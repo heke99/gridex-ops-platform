@@ -24,7 +24,10 @@ export function utiltsErrGatewayFixture(params: {
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const template = lines.slice(start, end)
   const receiver = params.receiver ?? '21660'
-  const wire = lines.slice(0, start).map(line => line.replaceAll('21660', receiver))
+  const wire = lines.slice(0, start).map(line => line.replaceAll('21660', receiver)
+    // This prospective harness is a physical test interchange: request at
+    // UNB0031 and test indicator UNB0035 are separate service elements.
+    .replace(/^(UNB\+.*)\+\+1'$/, "$1++1++1'"))
   for (const transaction of params.transactions) {
     wire.push(...template.map(line => {
       let own = line.replaceAll('GRIDEX2607E66001', transaction.reference)

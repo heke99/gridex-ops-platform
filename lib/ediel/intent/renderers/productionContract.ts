@@ -22,7 +22,7 @@ export async function buildProductionContractDraft(input: { actorUserId: string;
     version: { selectedVersion: version, messageTypeToken: prodatMessageTypeToken(version) },
     context: { code: 'Z09', bgmReference: i.interchangeReference, transactionReference: i.transactionReference,
       senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId, legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
-      customerName: '', meterPointId: b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction: 'Z70',
+      customerName: '', balanceResponsibleId: b.brpEdielId, meterPointId: b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction: 'Z70',
       contractStartDate: b.eventKind === 'signed' ? b.boundaryAt : null, contractEndDate: b.eventKind === 'ceased' ? b.boundaryAt : null,
       dependentConditionFacts: facts } })
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z09' })

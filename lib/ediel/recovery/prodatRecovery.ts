@@ -9,6 +9,7 @@ import { readRecoveryOperationBasis } from './sourceContext'
 import { loadProdatDateEventValidationContext, recoveryDateEventScope } from '@/lib/ediel/production/dateEventContext'
 import { loadRecoveryReportingContext } from './reportingContext'
 import { loadServicePermissionRecoveryOrigin } from '@/lib/ediel/services/permissionOrigin'
+import {loadCustomerLifeEventRecoveryContext} from '@/lib/ediel/production/lifeEventSource'
 import { copyReportingSelection } from '@/lib/ediel/prodat/prodatReportingPermissionContext'
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -109,6 +110,8 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       messageReference: canonical.messageReference,transactionReference: canonical.transactionReference,idempotencyKey: `prodat-recovery:${authorization.operationId}`,
       payload: { actorRole,recoveryOperationId: authorization.operationId,originalMessageId: original.id },actorUserId: input.actorUserId,
       routeProfile: { applicationReference: route.applicationReference,actorRole } })
+    const deathStatusContext=canonical.messageCode==='Z09'
+      ? await loadCustomerLifeEventRecoveryContext({companyId:input.companyId,operationId:authorization.operationId,actorUserId:input.actorUserId,intentId:intent.id,routeContext:route}) : undefined
     // The new intent UUID is the request identity. Shared permission/switch
     // identity would deduplicate into an older sent message.
     const outbound = await createOutboundRequest({ actorUserId: input.actorUserId, customerId: original.customer_id,
@@ -136,7 +139,7 @@ export async function prepareAndQueueProdatRecovery(input: RecoveryRequest) {
       ...deriveEdielAckDefaults({ family: 'PRODAT', code: canonical.messageCode }) }
     try {
       message = await finalizeRecoveryDraft({ companyId: input.companyId,operationId: authorization.operationId,actorUserId: input.actorUserId,intent,
-        params: { actorUserId: input.actorUserId, requestType: type, routeContext: route, draft, outboundRequestId: outbound.id,reportingContext,dateEventContext,
+        params: { actorUserId: input.actorUserId, requestType: type, routeContext: route, draft, outboundRequestId: outbound.id,reportingContext,dateEventContext,deathStatusContext,
           duplicateCheck: { sourceType: 'manual', sourceId: intent.id, messageFamily: 'PRODAT', messageCode: canonical.messageCode, receiverEdielId: canonical.receiver } } })
     } catch (error) {
       if (!(typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')) throw error

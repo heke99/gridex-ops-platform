@@ -12,6 +12,7 @@ import { assertScopedEdielProductionCapability } from '@/lib/ediel/scopedCapabil
 import {validateEdielMessageRowWithRulebook} from '@/lib/ediel/rulebook/validator'
 import {assertGasApplicabilitySendBoundary,gasApplicabilitySendIssue,gasApplicabilitySendFieldIssues} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {readFreshEdielSendValidationSources} from '@/lib/ediel/production/sendValidationSources'
 import {meterChangeSendIssue} from '@/lib/ediel/prodat/prodatMeterChangeAuthority'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import {loadTgtReportingValidationContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
@@ -20,6 +21,7 @@ import {hasProdatDateEventMessage} from '@/lib/ediel/prodat/prodatDateEventAutho
 import {loadProdatDateEventValidationContext} from '@/lib/ediel/production/dateEventContext'
 import {assertRulebookAllowsSend, assertRegistryRulebookAllowsSend} from '@/lib/ediel/rulebook/sendGuards'
 import { prepareEdielBusinessExpectationPlan, prepareEdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
+import {prepareEdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import {assertEdielSendLock} from './sendLock'
 import { inspectCmsRecipientCertificateSet } from './cmsRecipientSet'
 import { resolveSourceQualifiedNegativeFixtureForMessage } from '@/lib/ediel/testing/negativeFixtureAuthority'
@@ -369,26 +371,27 @@ export async function sendEdielMessageViaSmtp(
   const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
   if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
+  const {deathStatusContext,customerMasterdataContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonHeaderEvidence}=await readFreshEdielSendValidationSources(message,actorUserId)
   await assertBrpChangeSendSource(message, actorUserId)
   const requestedChangeBasis = isEdifactMessage(message) ? await assertRequestedChangeSendSource(message, actorUserId) : null
-  await assertMeteringMethodChangeSendSource(message, actorUserId)
+  const methodSendBasis = await assertMeteringMethodChangeSendSource(message, actorUserId)
   await assertUtiltsPositiveAckAuthorityForSend(message)
   assertAiListOutboundMessage(message)
   await assertScopedEdielProductionCapability(message)
   assertProdatFreeTextSendBoundary(message)
-  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message, requestedChangeBasis ?? undefined)].filter(Boolean)
+  const sourceHolds=[gasApplicabilitySendIssue(message),...gasApplicabilitySendFieldIssues(message),deathStatusSendIssue(message,deathStatusContext,requestedChangeBasis??undefined)].filter(Boolean)
   if(sourceHolds.length){
     const messages=sourceHolds.map(i=>`${i!.code}: ${i!.description}`)
     // Add the existing pure protected diagnostics before this new early hold;
     // no route/context loader or provider is invoked for a GAS boundary defect.
     if(sourceHolds.some(i=>i?.code.startsWith('PRODAT_GAS_'))){
-      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send').issues){
+      try{for(const issue of validateEdielMessageRowWithRulebook(message,'send',undefined,undefined,ackSourceQualification,deathStatusContext,commonHeaderEvidence,customerMasterdataContext,requestedChangeBasis??undefined).issues){
         if((issue.scope==='prodat_dependent'||issue.scope==='prodat_register')&&(issue.blocking||issue.severity==='error'))messages.push(`${issue.code}: ${issue.description}`)
       }}catch(error){messages.push(error instanceof Error?error.message:String(error))}
     }
     throw new Error([...new Set(messages)].join(' | '))
   }
-  if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message);assertEdielSendLock(message)}
+  if(meterChangeSendIssue(message)){assertRulebookAllowsSend(message,undefined,undefined,undefined,deathStatusContext,ackSourceQualification,customerMasterdataContext,requestedChangeBasis??undefined);assertEdielSendLock(message,undefined,undefined,ackSourceQualification,deathStatusContext,undefined,customerMasterdataContext,requestedChangeBasis??undefined)}
   assertTransportFamily(message.message_family, 'sendEdielMessageViaSmtp')
   const recoveryReporting = await loadRecoveryReportingValidationContext(message, actorUserId)
   const reportingContext = hasReportingPermissionMessage(message)
@@ -399,8 +402,8 @@ export async function sendEdielMessageViaSmtp(
     : undefined
   const dateEventContext = hasProdatDateEventMessage(message) ? await loadProdatDateEventValidationContext(message, actorUserId) : undefined
   const negativeFixture = await resolveSourceQualifiedNegativeFixtureForMessage({ message, actorUserId })
-  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture, requestedChangeBasis) : null
-  if (reportingContext || dateEventContext) assertEdielSendLock(message, dateEventContext, reportingContext)
+  const admission = isEdifactMessage(message) ? await assertRegistryRulebookAllowsSend(message, dateEventContext, reportingContext, negativeFixture,deathStatusContext,ackSourceQualification??undefined,customerMasterdataContext,requestedChangeBasis??undefined) : null
+  if (reportingContext || dateEventContext || deathStatusContext || customerMasterdataContext || ackSourceQualification || commonHeaderEvidence || requestedChangeBasis) assertEdielSendLock(message, dateEventContext, reportingContext,ackSourceQualification,deathStatusContext,commonHeaderEvidence,customerMasterdataContext,requestedChangeBasis??undefined)
   const technicalSyntaxAckEvidence = admission?.technicalSyntaxAckEvidence ?? null
   const prodatCommonHeaderRejectionEvidence=admission?.prodatCommonHeaderRejectionEvidence ?? null
   const sourceRulePackEvidence = !prodatCommonHeaderRejectionEvidence && ['PRODAT','UTILTS','APERAK','UTILTS_ERR'].includes(message.message_family)
@@ -415,6 +418,8 @@ export async function sendEdielMessageViaSmtp(
     guide: policy.guide, associationAssignedCode: policy.associationAssignedCode, sourceTrace: policy.sourceTrace }) : null
   const businessExpectationPlan = policy ? prepareEdielBusinessExpectationPlan(message, policy) : null
   const technicalExpectationPlan = policy ? prepareEdielTechnicalExpectationPlan(message, policy) : null
+  const meteringMethodExpectationPlan = policy && methodSendBasis.kind !== 'certification'
+    ? prepareEdielMeteringMethodExpectationPlan(message, policy) : null
 
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const recoveryAuthorization = params?.dispatchOwner?.kind === 'worker'
@@ -564,7 +569,7 @@ export async function sendEdielMessageViaSmtp(
 
   const sendFenced = (input: SendEdielEmailInput) => sendCorrectionFencedEmail(input, {
     message, actorUserId, owner: params?.dispatchOwner, mimeMode,
-    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
+    payload: payloadBytes, encoding: mimeEncoding, admissionDecision, businessExpectationPlan, technicalExpectationPlan, meteringMethodExpectationPlan, recoveryAuthorization, sourceRulePackEvidence, technicalSyntaxAckEvidence, prodatCommonHeaderRejectionEvidence,transportException,
   })
   let result: SmtpSendResult & { dispatchReplay?: boolean; dispatchObservedAt?: string }
   let rawMimePreview: string | null = null

@@ -1,3 +1,4 @@
+import {sourceQualifiedOutboundAck,type SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import type {ProdatErrorOccurrence, ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/ack.ts
@@ -24,7 +25,7 @@ import {
   type EdielCanonicalAckState,
 } from '@/lib/ediel/core/ackPolicy'
 import { resolveUtiltsSubordinateNadSegment } from '@/lib/ediel/utiltsSubordinateRole'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {canonicalBusinessSemanticsProjection} from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
 import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact, observeCompletedEdifactSegments } from '@/lib/ediel/core/edifactTokenizer'
 import { escapeEdifactValue } from '@/lib/ediel/core/edifactSerializer'
@@ -147,7 +148,7 @@ export type EdielAperakApplicationError = {
   lineItemReference?: string | null
 }
 
-export type EdielAckScope = 'message' | 'transaction'
+export type EdielAckScope = 'interchange' | 'message' | 'transaction' | 'object'
 
 export type UtiltsAckTransactionTarget = {
   reference: string
@@ -389,6 +390,7 @@ function buildAperakSegments(params: {
   applicationErrors?: readonly EdielAperakApplicationError[] | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
 }) {
   const refs = parseEdifactRefs(params.sourceMessage)
   const originalParties = originalAckPartyIdentities({ rawPayload: params.sourceMessage.raw_payload, expectedFamily: params.sourceMessage.message_family })
@@ -414,6 +416,7 @@ function buildAperakSegments(params: {
     applicationErrors: params.applicationErrors ?? null,
     utiltsAcknowledgementReference: params.relatedTransactionReference ?? null,
     utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 
   return rendered.segments.filter((segment) => !segment.toUpperCase().startsWith('UNH+'))
@@ -514,7 +517,7 @@ function parseUtiltsSourceGroups(sourceMessage: EdielMessageRow): UtiltsErrSourc
 }
 
 export function getUtiltsAckTransactionTargets(sourceMessage: EdielMessageRow): UtiltsAckTransactionTarget[] {
-  if (String(sourceMessage.message_family ?? '').toUpperCase() !== 'UTILTS') return []
+  if (!['UTILTS','UTILTS_ERR'].includes(String(sourceMessage.message_family ?? '').toUpperCase())) return []
   return parseUtiltsSourceGroups(sourceMessage).map(group => ({
     reference: group.transactionId!, transactionId: group.transactionId,
     meterPointId: group.meterPointId, gridAreaId: group.gridAreaId,
@@ -808,8 +811,14 @@ function buildAckDraft(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   ensureInboundEdifactSource(params.sourceMessage, params.ackFamily)
+  if(params.ackSourceQualification){
+    const qualified=sourceQualifiedOutboundAck({qualification:params.ackSourceQualification,companyId:params.sourceMessage.company_id,environment:params.sourceMessage.environment})
+    if(!qualified || qualified.sourceMessage.id!==params.sourceMessage.id || qualified.sourceMessage.raw_payload!==params.sourceMessage.raw_payload)throw new Error('ack_source_qualification_scope_mismatch')
+  }
 
   const outcome =
     params.ackFamily === 'UTILTS_ERR' ? 'negative' : params.outcome ?? 'positive'
@@ -880,6 +889,7 @@ function buildAckDraft(params: {
             applicationErrors: params.applicationErrors ?? null,
             relatedTransactionReference: params.relatedTransactionReference ?? null,
             utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
           })
         : buildUtiltsErrSegments({
             sourceMessage: params.sourceMessage,
@@ -889,19 +899,9 @@ function buildAckDraft(params: {
             relatedTransactionReference: params.relatedTransactionReference ?? null,
           })
 
-  let processType = 'ack'
-  if (params.ackFamily === 'UTILTS_ERR') {
-    // Use the generated ERR's own document date, as the canonical validator
-    // does, rather than the original observation date or a second clock read.
-    const documentDate = segments.find(segment => segment.startsWith('DTM+137:'))?.split(':')[1] ?? ''
-    processType = resolveCanonicalEdielPolicy({
-      family: 'UTILTS_ERR',
-      messageCode: 'ERR',
-      direction: 'outbound',
-      referenceDate: `${documentDate.slice(0, 4)}-${documentDate.slice(4, 6)}-${documentDate.slice(6, 8)}`,
-      mode: 'catalog_evidence',
-    }).processGroup!
-  }
+  const processType=params.ackFamily==='UTILTS_ERR'
+    ? canonicalBusinessSemanticsProjection({family:'UTILTS_ERR',code:'ERR'})?.businessProcess : 'ack'
+  if(!processType)throw new Error('canonical_utilts_err_semantics_unavailable')
 
   if (!parties.senderEdielId || !parties.receiverEdielId) {
     throw new Error(
@@ -926,6 +926,8 @@ function buildAckDraft(params: {
           : 'UTILTS:D:02B:UN:E5SE5A',
     applicationReference,
     segments,
+    companyId:params.sourceMessage.company_id,
+    ackSourceQualification:params.ackSourceQualification,
     senderSubAddress: parties.senderSubAddress ?? undefined,
     receiverSubAddress: parties.receiverSubAddress ?? undefined,
   })
@@ -1089,17 +1091,21 @@ export function buildAperakDraft(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'APERAK',
+    ackSourceQualification:params.ackSourceQualification,
     outcome: params.outcome ?? 'positive',
     messageText: params.messageText ?? null,
     applicationErrors: params.applicationErrors ?? null,
     ackScope: params.ackScope ?? null,
     relatedTransactionReference: params.relatedTransactionReference ?? null,
     utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
   })
 }
 
@@ -1108,11 +1114,13 @@ export function buildUtiltsErrDraft(params: {
   sourceMessage: EdielMessageRow
   messageText?: string | null
   relatedTransactionReference?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   return buildAckDraft({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: 'UTILTS_ERR',
+    ackSourceQualification:params.ackSourceQualification,
     messageText: params.messageText ?? null,
     ackScope: params.relatedTransactionReference ? 'transaction' : 'message',
     relatedTransactionReference: params.relatedTransactionReference ?? null,
@@ -1129,6 +1137,8 @@ export function buildAckDraftForSource(params: {
   ackScope?: EdielAckScope | null
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
+  prodatAcknowledgementLineIndices?:readonly number[]
+  ackSourceQualification?: SourceQualifiedOutboundAck
 }): CreateEdielMessageInput {
   if (params.ackFamily === 'CONTRL') {
     return buildContrlDraft({
@@ -1149,10 +1159,13 @@ export function buildAckDraftForSource(params: {
       ackScope: params.ackScope ?? null,
       relatedTransactionReference: params.relatedTransactionReference ?? null,
       utiltsHeaderRejected: params.utiltsHeaderRejected,
+    prodatAcknowledgementLineIndices:params.prodatAcknowledgementLineIndices,
+      ackSourceQualification:params.ackSourceQualification,
     })
   }
 
   return buildUtiltsErrDraft({
+    ackSourceQualification:params.ackSourceQualification,
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     messageText: params.messageText,

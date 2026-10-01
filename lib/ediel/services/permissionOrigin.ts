@@ -9,7 +9,7 @@ export type ServicePermissionOriginBasis = {
   permissionId: string; permissionStateVersion: number; code: 'Z13' | 'Z18'; environment: 'test' | 'production';
   providerActorId: string; dsoActorId: string; legalSenderId: string; legalReceiverId: string;
   customerId: string; customer: Record<string, unknown>; mode: 'V' | 'VH';
-  agreementReference?: string | null; purposeCode: string | null; frequency: string | null; terminationReason: string | null;
+  agreementReference?: string | null; requestedMethod?: string | null; purposeCode: string | null; frequency: string | null; terminationReason: string | null;
   evidenceId: string; evidenceSha256: string; evidenceVersion: string; li: string | null;
   reportingTerm: 'bounded' | 'indefinite' | null; customerClassification: 'private' | 'nonprivate' | null;
   objects: { point: string | null; permissionId: string | null; product: string;

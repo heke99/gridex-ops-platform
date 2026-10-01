@@ -44,7 +44,7 @@ function query() {
   return q
 }
 beforeEach(() => {
-  vi.clearAllMocks(); incoming = observationHandoffMessage(); rows = []
+  vi.clearAllMocks(); incoming = observationHandoffMessage('2026-09-30','11111111-1111-4111-8111-111111111111'); rows = []
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: 'meter-tenant-a', externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
@@ -77,7 +77,7 @@ async function capture(accepted: boolean) {
 }
 for (const accepted of [false, true]) for (const state of ['recorded', 'unavailable', 'contradictory'] as const) {
   it(`preserves every ${accepted ? 'accepted' : 'rejected'} business outcome with ${state} context`, async () => {
-    if (accepted) { incoming = energyHandoffMessage('2026-10-01'); io.allMatched.mockReturnValue(true) }
+    if (accepted) { incoming = energyHandoffMessage('2026-10-01','11111111-1111-4111-8111-111111111111'); io.allMatched.mockReturnValue(true) }
     const baseline = await capture(accepted)
     const row = source()
     if (state !== 'unavailable') row.received_prodat_context = {

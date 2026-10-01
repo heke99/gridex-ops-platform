@@ -7,6 +7,7 @@ import { evaluateProdatDependentConditions } from '@/lib/ediel/prodat/prodatDepe
 import { createProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import { validateProdatSubtypePolicy } from '@/lib/ediel/rulebook/prodatSubtypePolicy'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import {head} from './fixtures/prodat-identity'
 import { alphabets, characteristic, input, line, raw, rule, type Parts } from './fixtures/prodat-register'
 
 // The ordinary policy/readiness tests cover the rest of the envelope/fields.
@@ -17,7 +18,7 @@ function message(body: Parts[], code = 'Z09', environment: 'test' | 'production'
   const wire = input(payload,code)
   const evidence = createProdatRegisterEvidence({code,rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',meterReadingsSentInUtilts:false}})
   const row: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:code,message_version:'26A',direction:'outbound',environment,
-    message_standard:'edifact',application_reference:'23-DDQ-PRODAT',
+    created_at:'2026-10-01T00:00:00Z',message_received_at:'2026-10-01T00:00:00Z',message_standard:'edifact',application_reference:'23-DDQ-PRODAT',
     company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence:evidence,
       dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:code,facts:{canonicalSubtype:'F'}})
@@ -51,7 +52,7 @@ describe('source D cells at the real row and send boundaries',()=>{
     })
   }
   it.each(alphabets)('wire-derived valid mandatory method/validity passes the bounded gate with %j', (...alphabet)=>{
-    const m=message([line('1','A'),['DTM',['157','202610010000','203']],...characteristic('Z13','E64'),...characteristic('Z04','Z03')],'Z09','test',alphabet)
+    const m=message([...head(),line('1','735123456789012345',undefined,'9'),['DTM',['157','202610010000','203']],...characteristic('Z13','E64'),...characteristic('Z04','Z03'),['RFF',['Z05','99999']],['RFF',['LI','METHOD-CHANGE']],['NAD','Z02',['12345','160','SVK']]],'Z09','test',alphabet)
     const validated=validateEdielMessageRowWithRulebook(m,'send')
     expect(validated.issues.some(issue=>issue.code==='CANONICAL_POLICY_VALIDATION_FAILED')).toBe(false)
     const failures=validated.issues.filter(target)

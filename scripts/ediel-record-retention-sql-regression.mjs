@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 import assert from 'node:assert/strict'
 import {createHash,createHmac} from 'node:crypto'
+import {runProcessJournalRetentionSqlRegression} from './ediel-process-journal-retention-sql-regression.mjs'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
 const{PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite(),uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 const fn=(file,name)=>{const s=readFileSync(new URL(file,import.meta.url),'utf8'),start=s.indexOf(`CREATE FUNCTION ${name}`),end=s.indexOf('$$;',start);if(start<0||end<0)throw Error(name);return s.slice(start,end+3)}
@@ -361,4 +362,6 @@ try{
  assert.equal((await db.query("select count(*)::int n from gridex_ediel_retention.record_events where kind='personal_fields_redacted'")).rows[0].n,11)
  console.log('PASS 11 class-specific personal-field native SQL transitions + no issuer/foreign operation/separate reviewer/private ACL/re-identification/portal/signature replay holds; bounded synthetic schema/issuer/signature/Storage boundaries, NOT native or actual legal authority')
 
+ const {runProcessRetentionRegression}=await import('./helpers/ediel-process-retention-sql-fixture.mjs');await runProcessRetentionRegression({db,uid,quote,service,authenticatedCall,grant,retentionKey})
+ await runProcessJournalRetentionSqlRegression({db,uid,quote,grant,authenticatedCall,service,retentionKey})
 }finally{await db.close()}

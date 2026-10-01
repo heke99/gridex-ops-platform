@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import {diffRegistryRecord,readRegistryPreviewSnapshot} from '@/lib/actor-registry/registrySnapshotDiff'
 import {parseActorRegistryTxt} from '@/lib/actor-registry/parseActorRegistryTxt'
 import { parseActorRegistryXml } from '@/lib/actor-registry/parseActorRegistryXml'
-import { applyActorRegistryRecords, decodeRegistryUpload } from '@/lib/actor-registry/importActorRegistry'
+import { applyActorRegistryRecords, decodeRegistryUpload, readActorRegistryPriorResult } from '@/lib/actor-registry/importActorRegistry'
 import type { ParsedActorRegistryActor } from '@/lib/actor-registry/types'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -240,6 +240,21 @@ async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:
   }
 
   for (const record of records) {
+    const sourceDiagnostics = record.sourceRecord?.registryDiagnostics
+    if (Array.isArray(sourceDiagnostics)) for (const diagnostic of sourceDiagnostics) {
+      if (!diagnostic || typeof diagnostic !== 'object' || typeof diagnostic.code !== 'string') continue
+      summary.issues.push({
+        recordName: record.name,
+        issueType: diagnostic.code,
+        severity: 'blocking',
+        message: diagnostic.code === 'actor_registry_source_market_conflict' || diagnostic.code === 'actor_registry_source_country_conflict'
+          ? 'Marknad eller land motsägs av deklarationerna i Market och Company. Aktören hålls utan att välja mellan dem.'
+          : diagnostic.code === 'actor_registry_source_country_required'
+          ? 'Källan saknar land. Aktören hålls utan gissat land.'
+          : 'Källan saknar uttrycklig familj, juridisk/teknisk routeidentitet eller transportuppgifter. Ingen route skapas från kontakt- eller postadress.',
+        metadata: { sourceDiagnostic: diagnostic, edielId: record.edielId },
+      })
+    }
     const roles = new Set(record.roles)
     if (roles.has('grid_owner')) summary.gridOwners += 1
     if (roles.has('electricity_supplier')) summary.electricitySuppliers += 1
@@ -292,6 +307,16 @@ async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:
     }
   }
 
+  if (summary.routesSeen === 0) {
+    summary.issues.push({
+      recordName: 'Importfilen',
+      issueType: 'ediel_registry_zero_routes_source_held',
+      severity: 'blocking',
+      message: 'Importen saknar routes. Kontrollera originalfilens format och kommunikationsuppgifter; importen kan inte tillämpas som lyckad.',
+      metadata: { recordsSeen: summary.recordsSeen, routesSeen: 0 },
+    })
+  }
+
   return summary
 }
 
@@ -308,11 +333,11 @@ async function createActorImportPreviewRun(input: {
     .insert({
       source: input.fileName,
       import_type: input.importType,
-      status: preview.conflicts > 0 ? 'completed_with_warnings' : 'completed',
+      status: preview.issues.length > 0 ? 'completed_with_warnings' : 'completed',
       records_seen: preview.recordsSeen,
       records_upserted: 0,
       records_failed: preview.issues.filter((issue) => issue.severity === 'blocking').length,
-      safe: preview.conflicts === 0,
+      safe: !preview.issues.some((issue) => issue.severity === 'blocking'),
       completed_at: new Date().toISOString(),
       created_by: input.userId,
       metadata: {
@@ -368,6 +393,16 @@ export async function importPlatformActorsAction(formData: FormData) {
   const fileName = file.name || 'actor-import'
   const importType = format==='txt'||fileName.toLowerCase().endsWith('.txt')?'companies_txt':format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
   const sourceBytes=Buffer.from(await file.arrayBuffer())
+  if(mode==='apply') {
+    if(confirmApply!=='IMPORTERA')throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
+    const prior=await readActorRegistryPriorResult({sourceBytes,sourceKind:importType,actorUserId:context.userId})
+    if(prior) {
+      await logAdminActionAndUsage({companyId:null,actorUserId:context.userId,entityType:'platform_actor_import_run',entityId:prior.uiRunId,
+        action:'actor_import.reused',label:'Registerimportens tidigare resultat läst',billable:false,billingUnit:'actor_import',metadata:{source,fileName,result:prior,activation:prior.activation}})
+      revalidatePath('/admin/ediel/actors');revalidatePath('/admin/ediel/auto-readiness');revalidatePath('/admin/customers/intake')
+      return
+    }
+  }
   const textContent=decodeRegistryUpload(sourceBytes,importType)
   const txtActors=importType==='companies_txt'?parseActorRegistryTxt(textContent):null
   const parsed:ActorImportRecord[] = txtActors ? txtActors.map(actor=>({name:actor.name,market:actor.market,countryCode:actor.countryCode,sourceRecord:actor.raw,orgNumber:actor.orgNumber??null,edielId:actor.edielId??null,svkId:actor.svkId??null,eic:actor.eic??null,roles:actor.roles,routes:actor.routes.map(route=>({...route,subaddress:route.subaddress??null,communicationType:route.communicationType??null,communicationAddress:route.communicationAddress??null,ediCharset:route.ediCharset??null,ediSyntax:route.ediSyntax??null,partyId:route.partyId??null,partyIdQualifier:route.partyIdQualifier??null,partyIdResponsible:route.partyIdResponsible??null,interchangePartyId:route.interchangePartyId??null,interchangeIdQualifier:route.interchangeIdQualifier??null}))}))
@@ -392,6 +427,11 @@ export async function importPlatformActorsAction(formData: FormData) {
   }
 
   const preview = await buildActorImportPreview(parsed,context.userId)
+  if (preview.routesSeen === 0) {
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
+    revalidatePath('/admin/ediel/actors')
+    throw new Error('ediel_registry_zero_routes_source_held: Importen saknar routes. Granska originalfilens format och kommunikationsuppgifter innan tillämpning.')
+  }
   if (preview.conflicts > 0) {
     await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
     throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')

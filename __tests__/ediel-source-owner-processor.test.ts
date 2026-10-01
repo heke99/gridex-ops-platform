@@ -1,3 +1,4 @@
+import {tokenizeEdifact,segmentComposite,segmentElementCount} from '@/lib/ediel/core/edifactTokenizer'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {OWNER,ownerRows,ownerSource,ownerId} from './helpers/sourceOwnerFixtures'
@@ -41,7 +42,14 @@ it('normal ACK and business outcomes are identical when the new evidence store f
  await run();const baseline={drafts:structuredClone(io.drafts),switch:structuredClone(io.rows.supplier_switch_requests[0]),supply:structuredClone(io.rows.customer_supply_periods[0])}
  reset();io.badReceipt='gridex_record_source_object_decisions_v1';await run()
  const withoutClock=(row:Record<string,unknown>)=>Object.fromEntries(Object.entries(row).filter(([key])=>key!=='updated_at'))
- expect(io.drafts.map(d=>[d.messageFamily,d.rawPayload])).toEqual(baseline.drafts.map(d=>[d.messageFamily,d.rawPayload]))
+ const responseSemantics=(draft:Record<string,unknown>)=>{
+  const wire=tokenizeEdifact(String(draft.rawPayload)),unb=wire.segments.find(t=>t.tag==='UNB')!,unz=wire.segments.find(t=>t.tag==='UNZ')!,own=segmentComposite(unb,5,wire.una)[0]
+  expect(own).toMatch(/^[A-F0-9]{14}$/);expect(segmentComposite(unz,2,wire.una)).toEqual([own])
+  // Separate fresh creations have different own generated UNB identities.
+  // Keep every original-source reference, party, function, error and field.
+  return [draft.messageFamily,wire.segments.map(token=>({tag:token.tag,elements:Array.from({length:segmentElementCount(token,wire.una)},(_,index)=>token.tag==='UNB'&&index===4||token.tag==='UNZ'&&index===1?['<fresh-own-reference>']:segmentComposite(token,index+1,wire.una))}))]
+ }
+ expect(io.drafts.map(responseSemantics)).toEqual(baseline.drafts.map(responseSemantics))
  expect(withoutClock(io.rows.supplier_switch_requests[0])).toEqual(withoutClock(baseline.switch))
  expect(withoutClock(io.rows.customer_supply_periods[0])).toEqual(withoutClock(baseline.supply))
  expect(io.calls.filter(c=>c.name==='gridex_witness_source_objects_v1')).toHaveLength(0)

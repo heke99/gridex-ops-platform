@@ -1,3 +1,4 @@
+import {utiltsIssuerIdentityFacts,type UtiltsIssuerIdentityAuthority,type UtiltsIssuerIdentityFacts} from '@/lib/ediel/utilts/issuerIdentityAuthority'
 import { canonicalAdmissionDate, resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { segmentComposite,segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
@@ -45,22 +46,23 @@ export type UtiltsRuntimeReferenceOptions = {
   canonicalPolicy?: CanonicalEdielPolicy
   /** Internal whole-guide candidate selection; never authorizes effects/ACKs. */
   guideOnly?: boolean
+  issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority
 }
 
 const PRE_TENANT_OBJECT_SENTINEL = '00000000-0000-0000-0000-000000000000'
 
-const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy}>()
+const runtimeOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority}>()
 export function utiltsRuntimeOwnerFingerprint(message:EdielMessageRow,runtime:UtiltsRuntimeResult):{sourceHash:string;resultHash:string} {
   return {sourceHash:evidenceHash(JSON.stringify(message)),resultHash:evidenceHash(JSON.stringify(runtime))}
 }
 /** One-use actual engine/structural-owner handoff. A copied or mutated runtime,
  * a different source context/policy, or a guide-only candidate has no owner. */
-export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy):UtiltsRuntimeResult|null {
+export function takeUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority):UtiltsRuntimeResult|null {
   const owner=runtimeOwners.get(runtime)
   runtimeOwners.delete(runtime)
-  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy)
+  if(!owner) return takeQualifiedUtiltsRuntimeOwner(runtime,message,policy,issuerIdentityAuthority)
   const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
-  return owner.policy===policy && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
 }
 
 function runtimeValidationMessage(message: EdielMessageRow): EdielMessageRow {
@@ -463,6 +465,45 @@ function applyUtiltsHeaderGuide(message: EdielMessageRow, result: UtiltsRuntimeR
       validation: rebuildValidation(issues) }).aperakApplicationErrors,
   }
   return rejected
+}
+
+/** National duplicate findings come solely from an authenticated prior
+ * observation in the same legal issuer namespace. Absence/history/retention
+ * failures hold eligible IDEs locally and supply no national error code. */
+function applyUtiltsIssuerIdentityGuide(message:EdielMessageRow,result:UtiltsRuntimeResult,facts:UtiltsIssuerIdentityFacts):UtiltsRuntimeResult {
+ const wire=tokenizeEdifact(message.raw_payload),bgm=wire.segments.find(segment=>segment.tag==='BGM'),ides=wire.segments.filter(segment=>segment.tag==='IDE')
+ const issues:UtiltsValidationIssue[]=[]
+ if(facts.messageReferenceCollision){
+  if(!bgm)throw new Error('ediel_utilts_issuer_identity_source_mismatch')
+  issues.push({severity:'error',kind:'application',code:'UTILTS_ISSUER_MESSAGE_REFERENCE_DUPLICATE',title:'Meddelandeidentiteten har redan använts',
+   description:'En tidigare autentisk källa i samma juridiska avsändares namespace har samma fält203. Identiteter gäller över tid och alla avsändarens applikationer.',
+   aperakErcCode:'42',aperakFieldCode:'203',aperakText:'INCORRECT DATA',aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:2,componentIndex:0}})
+ }
+ // A rejected physical header stops own-transaction guide checks. Preserve
+ // earlier header diagnostics rather than replacing them with issuer203.
+ for(const collision of facts.messageReferenceCollision||result.ackPlan.utiltsHeaderRejection?[]:facts.transactionReferenceCollisions){
+  const observed=result.facts.transactions[collision.transactionIndex],physical=ides[collision.transactionIndex]
+  if(!observed||observed.transactionId!==collision.transactionId||!physical)throw new Error('ediel_utilts_issuer_identity_source_mismatch')
+  issues.push({severity:'error',kind:'application',code:'UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE',title:'Transaktionsidentiteten har redan använts',
+   description:'En tidigare autentisk källa i samma juridiska avsändares namespace har samma fält505. Identiteter gäller över tid och alla avsändarens applikationer.',
+   aperakErcCode:'42',aperakFieldCode:'505',aperakText:'INCORRECT DATA',aperakInvalidOccurrence:{segmentIndex:physical.index,elementIndex:2,componentIndex:0},
+   referenceQualifier:'ACW',referenceNumber:collision.transactionId,lineItemReference:collision.transactionId})
+ }
+ let qualified=issues.length?rebuildUtiltsRuntimeResult({message,result,issues:[...result.validation.issues,...issues]}):result
+ if(facts.messageReferenceCollision){
+  const own=decideUtiltsRuntimeAckPlan({message,facts:result.facts,validation:rebuildValidation(issues.filter(item=>item.aperakFieldCode==='203'))})
+  qualified={...qualified,ackPlan:{...qualified.ackPlan,utiltsHeaderRejection:{applicationErrors:[...(result.ackPlan.utiltsHeaderRejection?.applicationErrors??[]),...own.aperakApplicationErrors]}}}
+ }
+ if(facts.status!=='held')return qualified
+ const held=new Set(qualified.transactionDispositions.filter(item=>item.disposition==='accepted').map(item=>item.transactionId))
+ if(!held.size)return qualified
+ const dispositions=qualified.transactionDispositions.map(item=>held.has(item.transactionId)?{...item,disposition:'internal_review' as const,responseType:'none' as const,
+  issueCodes:[...item.issueCodes,'UTILTS_ISSUER_IDENTITY_BASIS_UNAVAILABLE']}:item)
+ return {...qualified,transactionDispositions:dispositions,validation:{...qualified.validation,ok:false,
+  classification:qualified.validation.classification==='accepted'?'internal_review':qualified.validation.classification,
+  issues:[...qualified.validation.issues,...[...held].map(transactionId=>({severity:'warning' as const,kind:'application' as const,code:'UTILTS_ISSUER_IDENTITY_BASIS_UNAVAILABLE',
+   title:'Avsändarens identitetsunderlag saknas',description:facts.holdReason??'Juridisk avsändare, transportmandat, historiktäckning och retention måste styrkas. Ingen nationell dubblett har fabricerats.',referenceNumber:transactionId,lineItemReference:transactionId}))]},
+  ackPlan:{...qualified.ackPlan,...(qualified.ackPlan.aperakOutcome==='positive'?{shouldSendAperak:false,aperakOutcome:null}:{}),reason:'Ej styrkt identitetsauktoritet håller egna godkända transaktioner utan positiv APERAK eller affärseffekt.'}}
 }
 
 function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResult): UtiltsRuntimeResult {
@@ -891,8 +932,12 @@ function runUtiltsRuntimeForMessageCore(
     }
   }))
   const ordered = rebuildUtiltsRuntimeResult({message,result:guideEffective,issues:[...guideEffective.validation.issues,...packagingIssues,...utiltsQuantityUnitGuideIssues(message.raw_payload ?? ''),...utiltsDecimalGuideIssues(message.raw_payload ?? ''),...utiltsObservationOrderGuideIssues(message.raw_payload ?? '')]})
-  const guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
+  let guided = applyUtiltsS02PlanningGuide(message, applyUtiltsSuppliedMeteringPointGuide(message, applyUtiltsSuppliedRegulatingObjectGuide(message, applyUtiltsGridAreaGuide(message, applyUtiltsIdeGuide(message, applyUtiltsHeaderGuide(message, ordered, sourceGuideIssues))), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy), referenceDate, canonicalPolicy)
   if (options?.guideOnly) return guided
+  if(options?.issuerIdentityAuthority){
+    if(!canonicalPolicy)throw new Error('ediel_utilts_issuer_identity_policy_required')
+    guided=applyUtiltsIssuerIdentityGuide(message,guided,utiltsIssuerIdentityFacts({authority:options.issuerIdentityAuthority,message,policy:canonicalPolicy}))
+  }
   const eligible = new Set(guided.transactionDispositions
     .filter(item => item.disposition === 'accepted')
     .map(item => String(item.transactionId ?? '')))
@@ -915,6 +960,6 @@ export function runUtiltsRuntimeForMessage(message:EdielMessageRow,options?:Util
   const runtime=runUtiltsRuntimeForMessageCore(message,options)
   // Final effect paths always provide their retained policy. Guide candidates
   // and diagnostic calls with no source-qualified retained policy cannot seal.
-  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy})
+  if(options?.canonicalPolicy && !options.guideOnly) runtimeOwners.set(runtime,{...utiltsRuntimeOwnerFingerprint(message,runtime),policy:options.canonicalPolicy,issuerIdentityAuthority:options.issuerIdentityAuthority})
   return runtime
 }

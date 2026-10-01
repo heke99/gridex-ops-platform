@@ -15,7 +15,7 @@ function version():StructuralVersion{return {sourceMessageId:id(6),payloadHash:'
  coverage:{kind:'post_ledger_supply',baselineSourceMessageId:id(6),baselineAssessmentId:id(7),baselineFactsHash:'b'.repeat(64),supplyPeriodId:id(8),switchRequestId:id(9),switchCreatedAt:at('20260930'),outboundSourceMessageId:id(10),outboundCreatedAt:at('20260930'),validFrom:at('20261002'),validTo:null},
  wire:{object:{messageIndex:0,messageReference:'M',objectId:'735123456789012345',identityAgency:'9',registers:[]},messageCode:'Z04',businessCase:'supply_baseline',functionCode:'9',documentReference:'D',caseReference:'LI',effectiveFrom:{fieldNumber:'210',marketMinute:'202610020000',utc:at('20261002')},contractStartMinute:'202610020000',legalSender:'54321',legalReceiver:'12345',transportSender:'54321',transportReceiver:'12345',meterNumber:'ACTUAL',oldMeterNumber:null,registers:[{position:1,registerId:'1'}]},measurements:{measurementMethod:'Z04',reportingFrequency:'D',productCode:'L639Q',settlementMethod:'Z32'}}}
 function data(versions=[version()]){return {timeline:{...emptySourceDecisionTimeline(),status:'inspected',boundedReadComplete:true,ledgerStartedAt:at('20260901'),snapshotId:id(11),readsetHash:'c'.repeat(64)},versions,closures:[],closureBlockers:[],correctionContextBlockers:[],unresolvedSources:false,sources:[]}}
-beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers();vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));mocks.read.mockResolvedValue(data());mocks.owned.mockReturnValue({...input});mocks.rpc.mockResolvedValue({data:{qualified:true,...input,initialSourceMessageId:id(6)},error:null})})
+beforeEach(()=>{vi.clearAllMocks();vi.useFakeTimers();vi.setSystemTime(new Date('2026-11-02T12:00:00Z'));mocks.read.mockResolvedValue(data());mocks.owned.mockReturnValue({...input});mocks.rpc.mockImplementation(async name=>({data:name==='ediel_read_structural_effect_scope_v1'?{applied:true}:{qualified:true,...input,initialSourceMessageId:id(6)},error:null}))})
 describe('actual owned dated customer structure consumer',()=>{
  it('keeps quarter method and daily reporting distinct and rechecks the exact native owned period',async()=>{
   const result=await readQualifiedCustomerStructure(input)
@@ -34,6 +34,18 @@ describe('actual owned dated customer structure consumer',()=>{
   expect(await readQualifiedCustomerStructure(input)).toEqual({status:'unavailable',reason:'dated_structure_owned_period_missing'})
   mocks.rpc.mockResolvedValue({data:null,error:{message:'unconfirmed'}})
   await expect(readQualifiedCustomerStructure(input)).rejects.toThrow('dated_structure_current_supply_basis_unconfirmed')
+ })
+ it('requires the actual applied own source receipt, not just an accepted dated proposal',async()=>{
+  const change=version();change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,balanceResponsibleId:'22222'}
+  mocks.read.mockResolvedValue(data([version(),change]));mocks.rpc.mockImplementation(async name=>({data:name==='ediel_read_structural_effect_scope_v1'?{applied:false}:{qualified:true,...input,initialSourceMessageId:id(6)},error:null}))
+  expect(await readQualifiedCustomerStructure(input)).toEqual({status:'unavailable',reason:'dated_structure_applied_source_missing'})
+  expect(mocks.rpc).toHaveBeenCalledWith('ediel_read_structural_effect_scope_v1',expect.objectContaining({p_snapshot_id:id(11),p_readset_hash:'c'.repeat(64),p_source_message_id:id(12),p_assessment_id:id(13),p_object_id:change.wire.object.objectId,p_identity_agency:'9',p_company_id:input.companyId,p_customer_id:input.customerId,p_period_id:id(8)}))
+ })
+ it('preserves the separate field source when a later own structural change leaves BRP unchanged',async()=>{
+  const baseline=version();baseline.measurements={...baseline.measurements!,balanceResponsibleId:'11111'}
+  const change=structuredClone(baseline);change.sourceMessageId=id(12);change.assessmentId=id(13);change.wire.messageCode='Z06';change.wire.businessCase='change_with_reading';change.wire.documentReference='CHANGE';change.wire.effectiveFrom={fieldNumber:'216',marketMinute:'202610040000',utc:at('20261004')};change.measurements={...change.measurements!,balanceResponsibleId:null}
+  mocks.read.mockResolvedValue(data([baseline,change]))
+  expect(await readQualifiedCustomerStructure(input)).toMatchObject({status:'selected',fields:{balanceResponsibleId:'11111'},selection:{states:[{sourceMessageId:id(12),measurements:{balanceResponsibleId:{sourceMessageId:id(6),value:'11111'}}}]}})
  })
 })
 

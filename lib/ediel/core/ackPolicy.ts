@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto'
 import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
 import {readOutboundAckOriginals} from './outboundAckOriginals'
+import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
 import {
   canonicalAckRequirementsForFamilyCode,
@@ -269,9 +270,15 @@ export async function findExistingAckForSource(params: {
   ackScope?: 'interchange'|'message'|'transaction'|'object'
   transactionReference?: string
   acknowledgedReferences?: readonly string[]
+  acknowledgedProdatObjects?:readonly ProdatAckObjectScope[]
+  expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
-  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily)
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource,params.expectedTechnicalCompanyId)
   const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
+  const objects=params.acknowledgedProdatObjects??[]
+  if(objects.length&&(!params.expectedSource||params.ackFamily!=='APERAK'||params.ackScope!=='object'))throw new Error('ediel_existing_ack_original_object_scope_unavailable')
+  if(params.ackScope==='object'&&!references.length&&!objects.length)throw new Error('ediel_existing_ack_original_object_scope_unavailable')
   for(const original of originals){
     const {correlation}=original
     const wholeCoverage=correlation.wholeSourceOutcome!==undefined && ['message','interchange'].includes(correlation.scope)
@@ -279,8 +286,11 @@ export async function findExistingAckForSource(params: {
     if(references.length && ['transaction','object'].includes(correlation.scope)
       && !references.every(reference=>correlation.acknowledgedReferences.includes(reference)))continue
     if(references.length && !['transaction','object'].includes(correlation.scope) && !wholeCoverage)continue
+    const matchesObject=(own:ProdatAckObjectScope)=>correlation.prodatObjectOutcomes?.find(result=>result.objectId===own.objectId&&result.identityAgency===own.identityAgency
+      &&result.firstLineIndex===own.firstLineIndex&&result.lineItemReference===own.lineItemReference)
+    if(objects.length&&!wholeCoverage&&(correlation.scope!=='object'||!objects.every(own=>matchesObject(own))))continue
     if(original.status==='held')throw new Error('ediel_existing_ack_original_basis_unavailable')
-    const outcomes=references.length && correlation.scope==='object'
+    const outcomes=objects.length&&!wholeCoverage?objects.map(own=>matchesObject(own)?.outcome):references.length && correlation.scope==='object'
       ? references.map(reference=>correlation.scopedOutcomes?.find(result=>result.reference===reference)?.outcome)
       : [wholeCoverage?correlation.wholeSourceOutcome:correlation.classification.outcome]
     if(outcomes.some(outcome=>outcome!=='positive'&&outcome!=='negative'))throw new Error('ediel_existing_ack_original_outcome_unavailable')

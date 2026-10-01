@@ -6,6 +6,7 @@ import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import { buildAperakDraft } from '@/lib/ediel/ack'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import {escapeEdifactValue} from '@/lib/ediel/core/edifactSerializer'
 
 const state = vi.hoisted(() => ({ rpc: vi.fn(), create: vi.fn(),
   sources:new Map<string,EdielMessageRow>(),actors:new Map<string,string>(),protectedCalls:[] as string[] }))
@@ -125,6 +126,19 @@ it('requires the saved exact ACK, source and wire scope on transmission', async 
   await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).resolves.toBeUndefined()
   expect(state.rpc.mock.calls[0][1]).toMatchObject({ p_company_id: f.source.company_id, p_source_message_id: f.source.id,
     p_transaction_id: 'OWN-IDE', p_ack_message_id: ack.id, p_ack_raw_payload: ack.raw_payload })
+})
+it('passes exact leading/embedded ACW bytes to the same durable authority without merging a trimmed sibling',async()=>{
+  const f=fixture(),ack=outbound(f),reference=' OWN A+B:C?D'
+  ack.raw_payload=ack.raw_payload!.replace('ACW:OWN-IDE',`ACW:${escapeEdifactValue(reference)}`)
+  state.rpc.mockImplementation(async (_name,args)=>{
+    const result=authority(f,ack);result.data.transactionId=args.p_transaction_id;return result
+  })
+  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).resolves.toBeUndefined()
+  expect(state.rpc.mock.calls[0][1].p_transaction_id).toBe(reference)
+  ack.raw_payload=ack.raw_payload.replace(escapeEdifactValue(reference),`${escapeEdifactValue(reference)} `)
+  state.rpc.mockClear()
+  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable')
+  expect(state.rpc).not.toHaveBeenCalled()
 })
 it('refuses a stale caller source or forged authority projection', async () => {
   const f = fixture(); const result = authority(f); result.data.sourceRawHash = '0'.repeat(64); state.rpc.mockResolvedValue(result)

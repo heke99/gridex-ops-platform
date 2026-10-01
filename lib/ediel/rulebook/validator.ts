@@ -1,4 +1,4 @@
-import {bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
+import {requiresBilateralProdatOutboundOwner,qualifyPersistedBilateralProdatOutboundOriginal,bilateralProdatOutboundDraftQualified,type QualifiedBilateralProdatOutboundDraft} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import {technicalSyntaxAckQualification,readPersistedEdielTechnicalContrlBasis,type TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {commonHeaderOriginalSource,prodatCommonHeaderRejectionQualification,readPersistedProdatCommonHeaderNegativeAckBasis,type ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {validateEdifactEnvelope} from '@/lib/ediel/core/edifactValidation'
@@ -11,7 +11,7 @@ import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
 import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
-import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {deathStatusSendIssue,assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateProdatDeathStatus} from './prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
@@ -32,7 +32,7 @@ import { readProdatRegisterEvidence } from '@/lib/ediel/prodat/prodatRegisterEvi
 import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
 import type { CreateEdielMessageInput, EdielDirection, EdielMessageRow } from '@/lib/ediel/types'
-import {isRequestedChangeBasisQualified,requestedChangeRegisterFacts,type RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import {isRequestedChangeBasisQualified,requestedChangeRegisterFacts,requestedChangeWireDeathSelection,type RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
 import { parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
 import { parseRulebookWirePayload } from './messageFormatParser'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
@@ -49,6 +49,8 @@ import {
   type RulebookValidationResult as LegacyRulebookValidationResult,
 } from '@/lib/ediel/rulebook/validatorLegacy'
 import type { ProdatDependentConditionEvaluation } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import {customerMasterdataSendIssue,customerMasterdataRenderingIssue,type CustomerMasterdataSourceRow,type CustomerMasterdataRenderingSource} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 
 export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit local assessment time; sender DTM137 never admits a guide. */
@@ -69,6 +71,12 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   /** Explicit pure receiver knowledge, never incoming parsed metadata. */
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   /** Draft metadata from the canonical renderer. Used to verify that production
    * PRODAT D-conditions were already resolved with the original business facts. */
@@ -76,6 +84,23 @@ export type RulebookValidationInput = LegacyRulebookValidationInput & {
   dateEventContext?:ProdatDateEventValidationContext
   reportingContext?:ExpectedContext
   parsedPayload?: Record<string, unknown> | null
+}
+
+function qualifiedLifeEventContext(input:RulebookValidationInput):DeathStatusValidationContext|undefined{
+  const context=input.deathStatusContext
+  if(!context)return undefined
+  const row=input.deathStatusRow??input.messageRow??{...input.dateEventRow,raw_payload:input.rawPayload,
+    message_code:input.code,company_id:input.companyId,environment:input.environment,direction:input.direction}
+  assertDeathStatusContextMatches(row,context)
+  return context
+}
+
+function sourceQualifiedProdatFacts(input:RulebookValidationInput,code:string,rawSegments:string[],una:ReturnType<typeof parseUna>){
+  const facts=input.mode==='send'?protectedRegisterFacts(input,code,rawSegments,una)
+
+    :{meterChange:input.meterChange,deathStatus:input.deathStatus,gasSerialChange:input.gasSerialChange}
+  const context=qualifiedLifeEventContext(input)
+  return context?{...facts,deathStatus:context.selection,businessContext:context.businessContext}:facts
 }
 
 export type RulebookValidationResult = Omit<LegacyRulebookValidationResult,'fieldRuleSource'> & { canonicalPolicy?: CanonicalEdielPolicy; fieldRuleSource:'static'|'registry'|'technical_source'|'common_header_source';technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence }
@@ -178,11 +203,11 @@ function requestedChangeRow(input:RulebookValidationInput) {
  return row?{...row,raw_payload:input.rawPayload,message_code:input.code,message_family:input.family}:{raw_payload:input.rawPayload,message_code:input.code,message_family:input.family,parsed_payload:input.parsedPayload}
 }
 
-function protectedRegisterFacts(input:RulebookValidationInput,code:string,parsed:ParsedRulebookMessage) {
- const facts=readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code,rawSegments:parsed.rawSegments,una:parseUna(input.rawPayload),parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+function protectedRegisterFacts(input:RulebookValidationInput,code:string,rawSegments:string[],una:ReturnType<typeof parseUna>) {
+ const facts=readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,customerMasterdataContext:input.customerMasterdataContext,customerMasterdataRenderingSource:input.validationPurpose==='render'&&!input.messageRow?input.customerMasterdataRenderingSource:undefined,code,rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
  if(input.requestedChangeBasis){
   if(!isRequestedChangeBasisQualified(input.requestedChangeBasis,requestedChangeRow(input)))throw Error('requested_change_protected_basis_scope_invalid')
-  return {...facts,...requestedChangeRegisterFacts(input.requestedChangeBasis)}
+  return {...facts,...requestedChangeRegisterFacts(input.requestedChangeBasis),deathStatus:requestedChangeWireDeathSelection(input.requestedChangeBasis,input.rawPayload??'')}
  }
  return facts
 }
@@ -343,9 +368,9 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     requestedCapability: requestedEdielCapability({ message_intent: input.messageRow?.message_intent ?? null, parsed_payload: input.parsedPayload ?? {} }),
     messageCode: code,
     subtypeOrReasonCode: parsed.subtype,
-    prodatDependentFacts: familyValue === 'PRODAT' && input.mode === 'send'
-      ? protectedRegisterFacts(input,code,parsed)
-      : {meterChange:input.meterChange,deathStatus:input.deathStatus,gasSerialChange:input.gasSerialChange},
+    prodatDependentFacts: sourceQualifiedProdatFacts(input,code,parsed.rawSegments,parseUna(input.rawPayload)),
+    businessContext:qualifiedLifeEventContext(input)?.businessContext,
+
     direction: dir,
     referenceDate,
     // Runtime guide aliases such as PRODAT 26A and CONTRL aliases are not UNH
@@ -353,7 +378,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
     // is required to select the correct P- or U-family guide.
     associationAssignedCode,
     applicationReference: input.applicationReference ?? parsed.applicationReference ?? null,
-    bilateralCapabilityVerified:input.bilateralDraft&&input.bilateralDraftActorUserId?bilateralProdatOutboundDraftQualified({draft:input.bilateralDraft,actorUserId:input.bilateralDraftActorUserId,qualification:input.bilateralDraftQualification}):false,
+    bilateralCapabilityVerified:qualifiedLifeEventContext(input)?.bilateralCapabilityVerified||(input.bilateralDraft&&input.bilateralDraftActorUserId?bilateralProdatOutboundDraftQualified({draft:input.bilateralDraft,actorUserId:input.bilateralDraftActorUserId,qualification:input.bilateralDraftQualification}):false),
     mode:input.mode==='send'&&input.bilateralDraftQualification?'parse':input.mode==='send'?'catalog_evidence':'parse',
   })
 
@@ -365,6 +390,11 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
       policy,
       sourceMessageFamily,
     })
+    if(input.ackSourceQualification){
+      const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification||dir!=='outbound')throw new Error('ack_source_qualification_required')
+      return sourceBoundAckCanonicalPolicy({qualification,policy})
+    }
   }
 
   if (familyValue !== 'PRODAT' || input.mode !== 'send') return policy
@@ -384,7 +414,7 @@ function policyForValidation(input: RulebookValidationInput, parsed: ParsedRuleb
   return { ...policy, prodatDependentConditions: snapshot }
 }
 
-function canonicalValidation(input: RulebookValidationInput): RulebookValidationResult {
+function canonicalValidation(input: RulebookValidationInput, inheritedAckPolicy?:CanonicalEdielPolicy): RulebookValidationResult {
   const parsed = parse(input)
   const family = normalize(input.family ?? parsed?.family)
   const code = normalize(input.code ?? parsed?.code)
@@ -399,7 +429,7 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
   }
 
   try {
-    const policy = policyForValidation(input, parsed)
+    const policy = inheritedAckPolicy ?? policyForValidation(input, parsed)
     if (input.processGroup && policy.processGroup && String(input.processGroup).trim() !== policy.processGroup) {
       parserIssues.push(issue({
         severity: 'error',
@@ -410,6 +440,11 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     }
 
     let fieldIssues = validateCanonicalPolicyFields({reportingContext:input.reportingContext, policy, rawSegments: parsed.rawSegments, una: parseUna(input.rawPayload) })
+    if(input.ackSourceQualification&&isSourceBoundAckFamily(policy.family as ActiveCanonicalFamily)){
+      const qualification=sourceQualifiedOutboundAck({qualification:input.ackSourceQualification,companyId:input.companyId,environment:input.environment})
+      if(!qualification)throw new Error('ack_source_qualification_required')
+      fieldIssues.push(...validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:qualification.sourceMessage.raw_payload}))
+    }
     if (input.mode === 'send' && input.environment !== 'production') {
       fieldIssues = fieldIssues.map((entry) =>
         entry.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED' && entry.scope !== 'prodat_register' && entry.scope !== 'prodat_dependent'
@@ -444,13 +479,13 @@ function canonicalValidation(input: RulebookValidationInput): RulebookValidation
     // register structure and policy used on the normal path. Body-bound facts are re-read;
     // snapshot statuses and intentional-invalid labels supply no authority.
     const gasIssues=family==='PRODAT'?validateProdatGasApplicability({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{gasSerialChange:input.gasSerialChange}}):[]
-    const deathIssues = family==='PRODAT'?validateProdatDeathStatus({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{deathStatus:input.deathStatus}}):[]
+    const deathIssues = family==='PRODAT'?validateProdatDeathStatus({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:input.mode==='send'?'outbound':'inbound',facts:{deathStatus:qualifiedLifeEventContext(input)?.selection??input.deathStatus}}):[]
     const protectedRegisterIssues: EdielRulebookIssue[] = input.mode==='parse'&&family==='PRODAT'?validateProdatMeterChange({code:parsed.code??code,rawSegments:parsed.rawSegments,una:parsed.una??parseUna(input.rawPayload),direction:'inbound',applicationReference:parsed.applicationReference,facts:{meterChange:input.meterChange}}):[]
     if (family === 'PRODAT' && input.mode === 'send' && !description.startsWith('prodat_register_evidence_')) {
       try {
         const wireCode = parsed.code ?? code
         const una = parsed.una ?? parseUna(input.rawPayload)
-        const facts = readProdatRegisterEvidence({dateEventRow:input.dateEventRow,dateEventContext:input.dateEventContext,reportingContext:input.reportingContext,code:wireCode,rawSegments:parsed.rawSegments,una,parsedPayload:input.parsedPayload,companyId:input.companyId,runId:typeof input.parsedPayload?.testRunId==='string'?input.parsedPayload.testRunId:null,stepNo:typeof input.parsedPayload?.stepNo==='number'?input.parsedPayload.stepNo:null})
+        const facts = sourceQualifiedProdatFacts(input,wireCode,parsed.rawSegments,una)
         protectedRegisterIssues.push(...validateProdatReportingPermission({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,reportingContext:input.reportingContext}))
         protectedRegisterIssues.push(...validateProdatDateEvents({code:wireCode,rawSegments:parsed.rawSegments,una,facts,requireAuthority:true,dateEventContext:input.dateEventContext}))
         protectedRegisterIssues.push(...validateProdatInvoicee({code:wireCode,rawSegments:parsed.rawSegments,una,facts}))
@@ -515,8 +550,10 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
   input = captureAdmission(input)
   const freeText = input.mode === 'send' && input.direction !== 'inbound' ? prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }) : []
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue(requestedChangeRow(input),input.requestedChangeBasis):null
-  const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary||freeText.length?{...result,ok:false,blocking:true,issues:[...result.issues,...freeText.filter(entry => !result.issues.some(old => old.code === entry.code && old.description === entry.description)),...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[])]}:result
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(input.requestedChangeBasis?requestedChangeRow(input):(input.deathStatusRow??input.messageRow??{...input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,company_id:input.companyId,environment:input.environment,direction:input.direction}),input.deathStatusContext,input.requestedChangeBasis):null
+  const masterdataBoundary=input.mode==='send'?input.customerMasterdataRenderingSource?customerMasterdataRenderingIssue({rawPayload:input.validationPurpose==='render'&&!input.messageRow?input.rawPayload:null,companyId:input.companyId,environment:input.environment,family:input.family,code:input.code,source:input.customerMasterdataRenderingSource}):customerMasterdataSendIssue({...input.messageRow??input.customerMasterdataRow??input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,company_id:input.companyId,environment:input.environment,direction:direction(input)},input.customerMasterdataContext):null
+  const protect=(result:RulebookValidationResult):RulebookValidationResult=>deathBoundary||gasBoundary||masterdataBoundary||freeText.length?{...result,ok:false,blocking:true,issues:[...result.issues,...freeText.filter(entry => !result.issues.some(old => old.code === entry.code && old.description === entry.description)),...(deathBoundary?[deathBoundary]:[]),...(gasBoundary?[gasBoundary]:[]),...(masterdataBoundary?[masterdataBoundary]:[])]}:result
+
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return protect({ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null})
   const source = sourceBoundProdatInput(input)
@@ -533,10 +570,16 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   input = captureAdmission(input)
   if (input.mode === 'send' && input.direction !== 'inbound' && prodatFreeTextSendIssues({ raw_payload: input.rawPayload, message_family: input.family, message_code: input.code }).length) return validateRulebookMessage(input)
   const gasBoundary=input.mode==='send'&&input.direction!=='inbound'?gasApplicabilitySendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,application_reference:input.applicationReference}):null
-  const deathBoundary=input.mode==='send'?deathStatusSendIssue(requestedChangeRow(input),input.requestedChangeBasis):null
-  if(deathBoundary||gasBoundary)return validateRulebookMessage(input) // Preserve existing protected diagnostics without registry I/O.
+  const deathBoundary=input.mode==='send'?deathStatusSendIssue(input.requestedChangeBasis?requestedChangeRow(input):(input.deathStatusRow??input.messageRow??{...input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,parsed_payload:input.parsedPayload,company_id:input.companyId,environment:input.environment,direction:input.direction}),input.deathStatusContext,input.requestedChangeBasis):null
+  const masterdataBoundary=input.mode==='send'?input.customerMasterdataRenderingSource?customerMasterdataRenderingIssue({rawPayload:input.validationPurpose==='render'&&!input.messageRow?input.rawPayload:null,companyId:input.companyId,environment:input.environment,family:input.family,code:input.code,source:input.customerMasterdataRenderingSource}):customerMasterdataSendIssue({...input.messageRow??input.customerMasterdataRow??input.dateEventRow,message_code:input.code,message_family:input.family,raw_payload:input.rawPayload,company_id:input.companyId,environment:input.environment,direction:direction(input)},input.customerMasterdataContext):null
+  if(deathBoundary||gasBoundary||masterdataBoundary)return validateRulebookMessage(input) // Preserve existing protected diagnostics without registry I/O.
+
   const meterBoundary=input.mode==='send'?meterChangeSendIssue({message_code:input.code,message_family:input.family,raw_payload:input.rawPayload}):null
   if(meterBoundary)return {ok:false,blocking:true,family:'PRODAT',code:'Z10',processGroup:'unknown',expectedApplicationReference:null,parsed:null,issues:[meterBoundary],fieldRuleSource:'static',rulePackSnapshot:null}
+  if(input.mode==='send'&&input.messageRow?.direction==='outbound'&&input.messageRow.message_family==='PRODAT'&&requiresBilateralProdatOutboundOwner({rawPayload:input.messageRow.raw_payload??''})){
+    const qualified=await qualifyPersistedBilateralProdatOutboundOriginal(input.messageRow)
+    input={...input,bilateralDraft:qualified.draft,bilateralDraftActorUserId:qualified.actorUserId,bilateralDraftQualification:qualified.qualification}
+  }
   const source = sourceBoundProdatInput(input)
   if (source.failure) return source.failure
   input = source.input
@@ -547,7 +590,11 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
   const result = canonicalValidation({ ...input, parsed })
   if(input.prodatCommonHeaderRejectionEvidence)return qualifyCommonHeaderNegativeAck(input,result)
   if(input.technicalSyntaxAckEvidence)return qualifyTechnicalContrl(input,result)
-  if (!parsed || result.blocking) return result
+  // A source-bound response's national guide comes from the protected original.
+  // Today's reason catalogue must not reject a genuine retained-guide reply
+  // before that original is read. The same parser/guide checks run on the
+  // inherited policy below; business-family blocking behavior is unchanged.
+  if (!parsed || (result.blocking&&!isSourceBoundAckFamily(familyValue)) || !result.canonicalPolicy) return result
   const dir = direction(input)
   if (!dir) return { ...result, ok: false, blocking: true, issues: [...result.issues, issue({ severity: 'error', code: 'CANONICAL_EVIDENCE_DIRECTION_REQUIRED', title: 'Riktning saknas', description: 'Rule-pack evidence kräver explicit inbound/outbound-riktning.' })] }
 
@@ -583,8 +630,9 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
         const qualification=await readSourceBoundAckRulePackEvidence(input.messageRow),{sourceMessage,evidence}=qualification
         const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
         const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
-        const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-        return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+        const inherited=canonicalValidation({...input,parsed},policy)
+        const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+        return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
       }catch(error){
         const issues=[...result.issues,issue({severity:'error',code:'CANONICAL_ACK_SOURCE_EVIDENCE_UNAVAILABLE',title:'Fryst kvittensursprung saknas',description:error instanceof Error?error.message:String(error)})]
         return {...result,ok:false,blocking:true,issues,fieldRuleSource:'static',rulePackSnapshot:null}
@@ -598,8 +646,9 @@ export async function validateRulebookMessageWithRegistry(input: RulebookValidat
       const {sourceMessage,evidence}=qualification
       const policy=sourceBoundAckCanonicalPolicy({qualification,policy:result.canonicalPolicy!})
       const own=validateCanonicalAckGuide({policy,rawSegments:parsed.rawSegments,una:parsed.una,sourceRawPayload:sourceMessage.raw_payload})
-      const issues=[...result.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
-      return {...result,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
+      const inherited=canonicalValidation({...input,parsed},policy)
+      const issues=[...inherited.issues,...own],blocking=issues.some(entry=>entry.blocking||entry.severity==='error')
+      return {...inherited,canonicalPolicy:policy,ok:!blocking,blocking,issues,fieldRuleSource:'registry',rulePackSnapshot:{profileKey:evidence.profileKey,profileVersionId:evidence.messageProfileId,version:evidence.version,checksum:evidence.sourceHash}}
     }catch(error){
       const issues = [...result.issues, issue({
         severity: 'error',
@@ -658,10 +707,15 @@ export function validateEdielMessageRowWithRulebook(
   mode: 'send' | 'parse' | 'test' = 'send',
   dateEventContext?:ProdatDateEventValidationContext,
   reportingContext?:ExpectedContext,
+  ackSourceQualification?:SourceQualifiedOutboundAck,
+  deathStatusContext?:DeathStatusValidationContext,
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,
+  customerMasterdataContext?:CustomerMasterdataValidationContext,
   requestedChangeBasis?:RequestedChangeBasis,
 ): RulebookValidationResult {
   return validateRulebookMessage({
-    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,requestedChangeBasis,
+    messageRow:message,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,prodatCommonHeaderRejectionEvidence,customerMasterdataContext,requestedChangeBasis,
+
     family: message.message_family,
     code: String(message.message_code ?? ''),
     processGroup: message.process_type ?? message.route_scope ?? null,

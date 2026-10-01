@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { EdielProjectionField, EdielProjectionRequest } from './types'
+import { EDIEL_SERVICE_PURPOSE_MAX_LENGTH } from './limits'
 
 const fields = new Set<EdielProjectionField>(['reading_at', 'quantity', 'unit', 'quality', 'qualifier', 'registration_date', 'resolution', 'product_id'])
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -27,11 +28,11 @@ export function parseEdielProjectionRequest(input: { query: URLSearchParams; ser
   for (const key of input.query.keys()) if (!allowed.has(key) || input.query.getAll(key).length !== 1) invalid()
   const grantId = input.query.get('grantId') ?? ''
   const version = input.query.get('grantVersion') ?? ''
-  const purpose = input.query.get('purpose')?.trim() ?? ''
+  const purpose = input.query.get('purpose') ?? ''
   const selected = (input.query.get('fields') ?? '').split(',')
   const limit = input.query.get('limit') ?? '100'
   if (!uuid.test(input.seriesId) || !uuid.test(grantId) || !uuid.test(input.companyId) || !uuid.test(input.actorUserId) ||
-      !/^[1-9]\d{0,8}$/.test(version) || !purpose || purpose.length > 128 || /[\r\n\x00]/.test(purpose) ||
+      !/^[1-9]\d{0,8}$/.test(version) || !purpose.trim() || purpose.length > EDIEL_SERVICE_PURPOSE_MAX_LENGTH || /[\r\n\x00]/.test(purpose) ||
       !selected.length || selected.length > fields.size || new Set(selected).size !== selected.length || selected.some(value => !fields.has(value as EdielProjectionField)) ||
       !/^[1-9]\d{0,3}$/.test(limit) || Number(limit) > 1000) invalid()
   const request: EdielProjectionRequest = { beneficiaryCompanyId: input.companyId, actorUserId: input.actorUserId,

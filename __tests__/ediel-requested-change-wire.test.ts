@@ -23,10 +23,10 @@ describe('literal source Z09 requested change wire',()=>{
   const b=await readRequestedChangeSource({companyId:'company',eventId:'event',actorUserId:'executor'});if(b.status!=='authorized')throw Error('fixture')
   const row={company_id:'company',environment:'production',direction:'outbound',message_family:'PRODAT',message_code:'Z09',source_operation_id:'event',customer_id:'customer',metering_point_id:'point',raw_payload:wire('E'),parsed_payload:{reasonForTransaction:'E34'}}
   expect(isRequestedChangeBasisQualified(b,row)).toBe(true)
-  expect(deathStatusSendIssue(row,b)).toBeNull()
-  expect(deathStatusSendIssue(row,{...b})).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
-  for(const changed of [{...row,company_id:'other'},{...row,environment:'test'},{...row,customer_id:'other'},{...row,metering_point_id:'other'},{...row,source_operation_id:'other'}])expect(deathStatusSendIssue(changed,b)).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
-  b.sourceVersion='forged';expect(isRequestedChangeBasisQualified(b,row)).toBe(false);expect(deathStatusSendIssue(row,b)).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
+  expect(deathStatusSendIssue(row,undefined,b)).toBeNull()
+  expect(deathStatusSendIssue(row,undefined,{...b})).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
+  for(const changed of [{...row,company_id:'other'},{...row,environment:'test'},{...row,customer_id:'other'},{...row,metering_point_id:'other'},{...row,source_operation_id:'other'}])expect(deathStatusSendIssue(changed,undefined,b)).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
+  b.sourceVersion='forged';expect(isRequestedChangeBasisQualified(b,row)).toBe(false);expect(deathStatusSendIssue(row,undefined,b)).toMatchObject({code:'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED'})
  })
  it.each(['E','F','G'] as const)('production Z09%s retains actual own-wire date/party validation through the shared canonical validator',async variant=>{
   vi.mocked(supabaseService.rpc).mockResolvedValueOnce({data:basis(variant),error:null} as never)

@@ -210,6 +210,7 @@ export async function createOutboundRequest(input: {
   failOnMissingEnvironment?: boolean
 }): Promise<OutboundRequestRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,

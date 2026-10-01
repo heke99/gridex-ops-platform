@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { createEdielProjectionCursor, parseEdielProjectionRequest } from '@/lib/ediel/services/projectionRequest'
+import { EDIEL_SERVICE_PURPOSE_MAX_LENGTH } from '@/lib/ediel/services/limits'
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), project: vi.fn() }))
 vi.mock('@/lib/admin/apiGuards', () => ({ requireAdminApiAccess: mocks.auth }))
 vi.mock('@/lib/ediel/services/projection', () => ({ projectEdielSeriesToBeneficiary: mocks.project }))
@@ -21,6 +22,26 @@ describe('beneficiary series API', () => {
     expect(response.headers.get('cache-control')).toBe('private, no-store')
     expect(mocks.project).toHaveBeenCalledWith(expect.objectContaining({ beneficiaryCompanyId: companyId, actorUserId, expectedGrantVersion: 3 }))
     expect((await response.json()).rows[0].quantity).toBe('0.1234567890123456789')
+  })
+  it.each([129, EDIEL_SERVICE_PURPOSE_MAX_LENGTH])('passes a valid declared purpose of %i characters unchanged to the current grant evaluator', async length => {
+    const purpose = 'a'.repeat(length), values = query(); values.set('purpose', purpose)
+    expect((await GET(req(values), ctx)).status).toBe(200)
+    expect(mocks.project).toHaveBeenCalledWith(expect.objectContaining({ purpose }))
+  })
+  it.each(['a'.repeat(EDIEL_SERVICE_PURPOSE_MAX_LENGTH + 1), '   ', 'billing\nother'])('holds invalid purpose before a grant read', async purpose => {
+    const values = query(); values.set('purpose', purpose)
+    expect((await GET(req(values), ctx)).status).toBe(400)
+    expect(mocks.project).not.toHaveBeenCalled()
+  })
+  it('preserves literal purpose and binds whitespace to the same exact cursor scope', async () => {
+    const purpose = 'billing ', values = query(); values.set('purpose', purpose)
+    expect((await GET(req(values), ctx)).status).toBe(200)
+    expect(mocks.project).toHaveBeenCalledWith(expect.objectContaining({ purpose }))
+    const input = parseEdielProjectionRequest({ query: values, seriesId, companyId, actorUserId })
+    values.set('cursor', createEdielProjectionCursor(input, { readingAt: '2026-09-15T00:00:00Z', valueId: grantId })!)
+    expect(parseEdielProjectionRequest({ query: values, seriesId, companyId, actorUserId }).purpose).toBe(purpose)
+    values.set('purpose', purpose.trim())
+    expect(() => parseEdielProjectionRequest({ query: values, seriesId, companyId, actorUserId })).toThrow()
   })
   it.each(['companyId', 'actorUserId', 'raw_payload', 'fields'])('rejects scope overrides, raw fields and duplicate query values (%s)', async key => {
     const values = query(); values.append(key, companyId)

@@ -1,3 +1,4 @@
+import {qualifyReceivedProdatApplicationObject} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -135,13 +136,15 @@ export async function reviewReceivedStructuralSource(input:{companyId:string;env
     if(snapshotError)return unconfirmed()
     const readset=inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot)
     if(readset.timeline.status!=='inspected'||!readset.timeline.boundedReadComplete)return unconfirmed()
-    const ready=[canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].every(value=>value==='accepted')
-    const rejected=[canonical.syntaxDecision,canonical.applicationDecision,canonical.functionalDecision].includes('rejected')
+    const application=seed.evidence.prodatApplicationValidation
+    const ready=canonical.syntaxDecision==='accepted'&&application?.headerDecision==='accepted'
     const objects:SourceObjectDecision[]=[]
     for(const {disposition,reasons,...object} of register.objects){
-      let result:SourceObjectDecision={object,disposition:rejected||disposition==='rejected'?'rejected':'unavailable',
-        reasons:rejected?['canonical_rejected']:disposition==='rejected'?reasons:['structural_review_owner_unavailable'],business:null,party:null}
-      if(ready&&disposition==='accepted'&&object.identityAgency==='9'&&object.messageIndex===0){
+      const own=application?.objects.find(entry=>entry.registers[0]?.segmentIndex===object.registers[0]?.segmentIndex)
+      const rejected=own?.applicationDecision==='rejected'||disposition==='rejected'
+      let result:SourceObjectDecision={object,disposition:rejected?'rejected':'unavailable',
+        reasons:rejected?(own?.reasonCodes.length?own.reasonCodes:reasons.length?reasons:['own_application_rejected']):['structural_review_owner_unavailable'],business:null,party:null}
+      if(ready&&qualifyReceivedProdatApplicationObject(application,object)&&disposition==='accepted'&&object.identityAgency==='9'&&object.messageIndex===0){
         try{
           const wire=readStructuralSourceWire(original.raw_payload,object)
           if(!wire||!object.objectId)throw new Error('structural_wire_unavailable')

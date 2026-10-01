@@ -22,7 +22,7 @@ export async function buildMeteringMethodChangeDraft(input: { actorUserId: strin
     version: { selectedVersion: version, messageTypeToken: prodatMessageTypeToken(version) },
     context: { code: 'Z09', bgmReference: i.interchangeReference, transactionReference: i.transactionReference,
       senderEdielId: route.senderEdielId, receiverEdielId: route.receiverEdielId, legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
-      customerName: '', meterPointId: b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, reasonForTransaction:b.reason,meteringMethod:b.method,validityStartDate:b.effectiveAt,
+      customerName: '', meterPointId: b.pointId, meterPointIdAgency: b.identityAgency, gridAreaId: b.gridArea, balanceResponsibleId:b.brpEdielId,reasonForTransaction:b.reason,meteringMethod:b.method,validityStartDate:b.effectiveAt,
       dependentConditionFacts: facts } })
   const ack = deriveEdielAckDefaults({ family: 'PRODAT', code: 'Z09' })
   const raw = EdifactEnvelopeCodec.encode({ sender: route.senderEdielId, receiver: route.receiverEdielId, senderSubAddress: route.senderSubAddress,

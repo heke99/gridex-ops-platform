@@ -19,14 +19,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "blockers": [],
     "planned_tests": [
       "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå.",
       "Lägg inte nationell APERAK-kontroll i CONTRL.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "normative_source": "T §2.1",
     "exact_requirement": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå.",
     "commits": [
@@ -42,7 +43,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "95a53fce"
     ],
     "applies_to": "Alla inkommande EDIFACT utom CONTRL",
     "prohibited_effect": "Lägg inte nationell APERAK-kontroll i CONTRL."
@@ -67,14 +69,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "blockers": [],
     "planned_tests": [
       "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
       "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "normative_source": "P §3.3–3.5",
     "exact_requirement": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id.",
     "commits": [
@@ -90,7 +93,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "09db95c4"
     ],
     "applies_to": "APERAK på PRODAT",
     "prohibited_effect": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT."
@@ -115,14 +119,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
     "blockers": [],
     "planned_tests": [
       "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
       "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
     "normative_source": "U §5.3–5.5",
     "exact_requirement": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id.",
     "commits": [
@@ -138,7 +143,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "e864cac1"
     ],
     "applies_to": "APERAK på UTILTS",
     "prohibited_effect": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden."
@@ -163,14 +169,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "blockers": [],
     "planned_tests": [
       "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42.",
       "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "normative_source": "U s.117–119",
     "exact_requirement": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42.",
     "commits": [
@@ -186,7 +193,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "e864cac1"
     ],
     "applies_to": "UTILTS-APERAK ERC/FTX",
     "prohibited_effect": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn."
@@ -211,14 +219,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Actual ERR renderer copies all present own pre-SEQ source fields from U pp66–68 (LOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1, DTM324, STS7) with source qualifiers and bytes. Full physical TN/own sourceBGM is preserved, generated ERRIDE is distinct. ERR BGM is ERR::260 and document137 uses fixed UTC+1. Latest committed functional V2 facet binds each actual national reason to separate own responseTN, retaining original message/NULL scope provenance; native CREATE/SEND consumes it without code inference.",
     "blockers": [],
     "planned_tests": [
       "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
       "Skapa inte ERR på ERR eller APERAK på APERAK.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Actual ERR renderer copies all present own pre-SEQ source fields from U pp66–68 (LOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1, DTM324, STS7) with source qualifiers and bytes. Full physical TN/own sourceBGM is preserved, generated ERRIDE is distinct. ERR BGM is ERR::260 and document137 uses fixed UTC+1. Latest committed functional V2 facet binds each actual national reason to separate own responseTN, retaining original message/NULL scope provenance; native CREATE/SEND consumes it without code inference.",
     "normative_source": "U §3.4,4,5",
     "exact_requirement": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.",
     "commits": [
@@ -234,7 +243,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "0a5696d4"
     ],
     "applies_to": "UTILTS-ERR",
     "prohibited_effect": "Skapa inte ERR på ERR eller APERAK på APERAK."
@@ -259,14 +269,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "blockers": [],
     "planned_tests": [
       "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.",
       "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "normative_source": "T §5.5; P §3; U §5",
     "exact_requirement": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.",
     "commits": [
@@ -282,7 +293,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "3a0878ed"
     ],
     "applies_to": "Mottagna kvittenser",
     "prohibited_effect": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant."
@@ -307,14 +319,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "blockers": [],
     "planned_tests": [
       "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
       "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "normative_source": "P §3.2; U §5.2; T §2",
     "exact_requirement": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.",
     "commits": [
@@ -330,7 +343,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "8d074831"
     ],
     "applies_to": "Redan kvitterat objekt/transaktion",
     "prohibited_effect": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök."
@@ -355,14 +369,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "blockers": [],
     "planned_tests": [
       "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
       "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "normative_source": "P §3; U §5.2",
     "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
     "commits": [
@@ -378,7 +393,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "cf73cd05"
     ],
     "applies_to": "Flera objekt/transaktioner",
     "prohibited_effect": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner."
@@ -388,7 +404,7 @@
       "ACK-09"
     ],
     "owner": "utilts_ack",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/ack/canonicalAckEngine.ts",
       "lib/ediel/aperakEngine.ts",
@@ -401,16 +417,20 @@
       "lib/ediel/core/receivedSourceValidationLedger.ts",
       "lib/ediel/core/originalAckPartyIdentities.ts",
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
-      "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
+      "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql",
+      "lib/ediel/orchestrator/autoAckOrchestrator.ts",
+      "lib/ediel/core/dedupe.ts"
     ],
-    "confirmed_code_gap": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
-    "blockers": [],
+    "confirmed_code_gap": "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
+    "blockers": [
+      "Root-allocated actors ACK09 new received protocolduplicate receipt/response-request package is in progress; complete T original duplicate behavior unavailable must remain source-policy gated, not invented."
+    ],
     "planned_tests": [
       "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
       "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
       "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
     ],
-    "assessment": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
     "normative_source": "T §2.1; P §3.2; SYS",
     "exact_requirement": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett.",
     "commits": [
@@ -443,22 +463,31 @@
       "lib/ediel/utilts/canonicalMessageEngine.ts",
       "lib/ediel/profiles/messageProfileCatalog.ts",
       "lib/ediel/inboundRequestAutomation.ts",
-      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
     ],
-    "confirmed_code_gap": "Own physical profile now owns actual role/application/data scope; E30 optional field260 and conditionalunit/monetary branches no longer become unconditional requiredenergy. Actual metering and nonbilling dispatcher preserve same chosen canonical policy, own IDE outcome and final source facet before native effect.",
+    "confirmed_code_gap": "Same active source-owned conditional profile requirements are consumed through direct runtime, catalog, request automation and actual ingress. Alternative UNA no longer hides own role/application/597 fields; E30 field260 remains optional, forbidden SG5 MEA is not required, monetary-only S01/E31/E66 scopes are not given required energy QTY/unit defaults.",
     "blockers": [],
     "planned_tests": [
       "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate.",
       "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Own physical profile now owns actual role/application/data scope; E30 optional field260 and conditionalunit/monetary branches no longer become unconditional requiredenergy. Actual metering and nonbilling dispatcher preserve same chosen canonical policy, own IDE outcome and final source facet before native effect.",
+    "assessment": "Same active source-owned conditional profile requirements are consumed through direct runtime, catalog, request automation and actual ingress. Alternative UNA no longer hides own role/application/597 fields; E30 field260 remains optional, forbidden SG5 MEA is not required, monetary-only S01/E31/E66 scopes are not given required energy QTY/unit defaults.",
     "normative_source": "U §3.1; CODE; SYS",
     "exact_requirement": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate.",
     "commits": [
       "1fa1ba4f",
       "7230bc65",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "applies_to": "E66, S02, E31, S05 och requests",
     "prohibited_effect": "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion."
@@ -473,16 +502,26 @@
       "lib/ediel/utilts/canonicalObservationScope.ts",
       "lib/ediel/utilts/observationOrderGuide.ts",
       "lib/ediel/utilts/consumptionContract.ts",
-      "lib/ediel/core/receivedUtiltsTransactionValidation.ts"
+      "lib/ediel/core/receivedUtiltsTransactionValidation.ts",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Lossless tokenizer, canonical ownIDE/SEQ membership and conditional fields preserve each repeated original group; exact observation source ordinal/unit/decimal V2 and canonical sidecar persist complete physical membership. No sibling field/unit fallback.",
+    "confirmed_code_gap": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
     "blockers": [],
     "planned_tests": [
       "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
       "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Lossless tokenizer, canonical ownIDE/SEQ membership and conditional fields preserve each repeated original group; exact observation source ordinal/unit/decimal V2 and canonical sidecar persist complete physical membership. No sibling field/unit fallback.",
+    "assessment": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
     "normative_source": "U §2,3.8–3.9",
     "exact_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
     "commits": [
@@ -490,7 +529,8 @@
       "2fadf2b3",
       "7230bc65",
       "c1aff819",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "applies_to": "Samtliga UTILTS",
     "prohibited_effect": "Använd inte första LOC eller QTY i hela filen för samtliga objekt."
@@ -505,16 +545,25 @@
       "lib/ediel/utiltsEngine.ts",
       "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/flows/utiltsCanonicalValidation.ts",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Actual runtime syntax gate precedes whole selected-guide pass and functional execution only own guideaccepted IDE. Final sourcefacet consumes actual matched/structural owner with same selected policy/frozen original witness; no second guide selection and no global positive assumption.",
+    "confirmed_code_gap": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "blockers": [],
     "planned_tests": [
       "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion.",
       "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime syntax gate precedes whole selected-guide pass and functional execution only own guideaccepted IDE. Final sourcefacet consumes actual matched/structural owner with same selected policy/frozen original witness; no second guide selection and no global positive assumption.",
+    "assessment": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "normative_source": "U §5.2 s.107; bilaga1–2",
     "exact_requirement": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion.",
     "commits": [
@@ -522,7 +571,8 @@
       "df184c1a",
       "08616e0d",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "applies_to": "Samtliga UTILTS",
     "prohibited_effect": "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel."
@@ -684,7 +734,7 @@
       "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
       "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
     ],
-    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure.",
+    "assessment": "Fresh actual U comparison chain uses gridex_correction_combined_snapshot_v1→qualified structuralSourceReadset→same selectStructuralSources chronology with own period/meter/register conditions. Prodat independent inspection confirms P15 dated Z06/Z10 histories already feed that readset; no second history selector or supplier full-structure requirement is introduced for ESCO Z14. Source absence/partial/unsupported historical identity remains internal review with no invented E61/E62, quantity, positive ACK or legal backfill. Independent code support is complete; authentic prescribed source/evidence availability and final behavior proof remain separate.",
     "normative_source": "U bilaga2 s.131; PZ14fält",
     "exact_requirement": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen.",
     "commits": [
@@ -714,18 +764,27 @@
       "lib/ediel/utilts/transactionPersistence.ts",
       "lib/billing/sourceBasis.ts",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Exact V2 raw lexical decimals remain authoritative through source-bound RPC, numeric SQL writes and exact billing totals. NULL136/220 is not zero and needs own STS8+46; E30 implicit kWh only source-authenticated own136/resolution; QTY6411 N rejected. Source U§3.6.4 energyprecision is functional E51 only after own guide pass; monetary own fields lexical/precision national41/42. Authentic V1/finalnegative same-source replay preserved before new guards; pure unitconversion cannot activate nonstandard billing.",
+    "confirmed_code_gap": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "blockers": [
       "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
     ],
     "planned_tests": [
       "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer.",
       "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Exact V2 raw lexical decimals remain authoritative through source-bound RPC, numeric SQL writes and exact billing totals. NULL136/220 is not zero and needs own STS8+46; E30 implicit kWh only source-authenticated own136/resolution; QTY6411 N rejected. Source U§3.6.4 energyprecision is functional E51 only after own guide pass; monetary own fields lexical/precision national41/42. Authentic V1/finalnegative same-source replay preserved before new guards; pure unitconversion cannot activate nonstandard billing.",
+    "assessment": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "normative_source": "U §3.6,3.7; SYS",
     "exact_requirement": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer.",
     "commits": [
@@ -733,7 +792,8 @@
       "80e6b0e2",
       "7230bc65",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "applies_to": "Mätvärdesobservationer",
     "prohibited_effect": "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi."
@@ -750,25 +810,35 @@
       "lib/ediel/utilts/consumptionContract.ts",
       "lib/billing/underlayEngine.ts",
       "lib/billing/sourceBasis.ts",
-      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql"
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Actualown period/resolution/timezone and calendar interval count preserve month/year bounds; conditional energy/power/monetary branches separated. Monthly/year energy andreading integer rules vs quarterenergy0–3 sourceprecision honored; exact billing never uniformly prorates a partial observation. Datetime roundtrip prevents SQL normalization of invalid originals.",
+    "confirmed_code_gap": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "blockers": [
       "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
     ],
     "planned_tests": [
       "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
       "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actualown period/resolution/timezone and calendar interval count preserve month/year bounds; conditional energy/power/monetary branches separated. Monthly/year energy andreading integer rules vs quarterenergy0–3 sourceprecision honored; exact billing never uniformly prorates a partial observation. Datetime roundtrip prevents SQL normalization of invalid originals.",
+    "assessment": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "normative_source": "U §3.6.18; bilaga2",
     "exact_requirement": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
     "commits": [
       "7230bc65",
       "f69e8df0",
       "21b71d81",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "applies_to": "Period 245 och upplösning508",
     "prohibited_effect": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet."
@@ -887,14 +957,15 @@
       "lib/ediel/utilts/positiveAckAuthority.ts",
       "lib/ediel/core/kernel.ts"
     ],
-    "confirmed_code_gap": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review.",
+    "confirmed_code_gap": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "blockers": [],
     "planned_tests": [
       "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
       "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
-      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate."
+      "Broad unit/native replay/schema/types/security/browser/E2E/manual phase has not run on final candidate.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review.",
+    "assessment": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "normative_source": "U §5.2; SYS",
     "exact_requirement": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
     "commits": [
@@ -905,7 +976,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "applies_to": "Positiv APERAK på UTILTS",
     "prohibited_effect": "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden."
@@ -1134,7 +1206,7 @@
       "ACK-06"
     ],
     "owner": "utilts_ack",
-    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/ack/canonicalAckEngine.ts",
       "lib/ediel/aperakEngine.ts",
@@ -1143,14 +1215,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "blockers": [],
     "planned_tests": [
       "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
       "Forbidden effect: Tenant A:s ärende förblir oförändrat.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance. This row retains its own literal expected/prohibited criterion; this owner assesses the ACK component of the integrated multiowner contract.",
     "exact_expected": "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
     "exact_prohibited": "Tenant A:s ärende förblir oförändrat.",
     "commits": [
@@ -1161,7 +1234,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "3a0878ed"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-013",
     "exact_requirement": "Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
@@ -1176,7 +1250,7 @@
       "ACK-06"
     ],
     "owner": "utilts_ack",
-    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/ack/canonicalAckEngine.ts",
       "lib/ediel/aperakEngine.ts",
@@ -1185,14 +1259,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "blockers": [],
     "planned_tests": [
       "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
       "Forbidden effect: Avvisa inte Z04 enbart på grund av ankomstordningen.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance. This row retains its own literal expected/prohibited criterion; this owner assesses the ACK component of the integrated multiowner contract.",
     "exact_expected": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
     "exact_prohibited": "Avvisa inte Z04 enbart på grund av ankomstordningen.",
     "commits": [
@@ -1203,7 +1278,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "3a0878ed"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-036",
     "exact_requirement": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
@@ -1227,14 +1303,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "blockers": [],
     "planned_tests": [
       "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
       "Forbidden effect: BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "exact_expected": "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
     "exact_prohibited": "BGM-koden AB ersätter inte UNB/0031. Ingen kvittensloop får skapas.",
     "commits": [
@@ -1245,7 +1322,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "95a53fce"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-041",
     "exact_requirement": "UNB/0031 = 1 för kvittenspliktig PRODAT och APERAK. CONTRL begär inte en ny CONTRL och använder rätt UNH-version, CONTRL:2:2:UN.",
@@ -1270,14 +1348,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "blockers": [],
     "planned_tests": [
       "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
       "Forbidden effect: Blanda inte familjernas BGM-positioner, referenser eller gruppstrukturer.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. 6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "exact_expected": "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
     "exact_prohibited": "Blanda inte familjernas BGM-positioner, referenser eller gruppstrukturer.",
     "commits": [
@@ -1288,7 +1367,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "09db95c4"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-042",
     "exact_requirement": "P-APERAK använder D96A, BGM/1225 34 eller 27 och originalreferenser enligt P. U-APERAK använder D04A, BGM/1001 312 eller 313 samt DOC och transaktionsreferenser där de ska finnas.",
@@ -1312,14 +1392,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "blockers": [],
     "planned_tests": [
       "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
       "Forbidden effect: Gissa inte 273 eller 597 genom att plocka siffror ur ett DTM-segmentnamn.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "exact_expected": "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
     "exact_prohibited": "Gissa inte 273 eller 597 genom att plocka siffror ur ett DTM-segmentnamn.",
     "commits": [
@@ -1330,7 +1411,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "e864cac1"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-043",
     "exact_requirement": "ERC 41 med fältreferens 327 respektive 512 i familjens rätta FTX-format.",
@@ -1359,14 +1441,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "blockers": [],
     "planned_tests": [
       "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
       "Forbidden effect: En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Exact contract expected/prohibited literals below are frozen, not narrowed to code assertions. SC044 historical formalPASSED is separate and must remain unchanged.",
+    "assessment": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "exact_expected": "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
     "exact_prohibited": "En global klassificering får inte ersätta IDE 2:s anvisningsfel med ett senare funktionsfel.",
     "commits": [
@@ -1377,7 +1460,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-044",
     "exact_requirement": "IDE 1 lagras och får positiv APERAK. IDE 2 får negativ APERAK. IDE 3 får UTILTS-ERR enligt tillämplig orsak.",
@@ -1405,16 +1489,23 @@
       "lib/ediel/ack.ts",
       "lib/ediel/ack/ackCorrelation.ts",
       "lib/ediel/flows/inboundAckProcessing.ts",
-      "lib/ediel/utilts/transactionPersistence.ts"
+      "lib/ediel/utilts/transactionPersistence.ts",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "blockers": [],
     "planned_tests": [
       "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
       "Forbidden effect: Välj inte exempelvis E10 innan huvudfelet hanterats.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. 6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "exact_expected": "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
     "exact_prohibited": "Välj inte exempelvis E10 innan huvudfelet hanterats.",
     "commits": [
@@ -1425,7 +1516,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-045",
     "exact_requirement": "Negativ U-APERAK på huvudnivå. Inga efterföljande funktionskontroller och inga påhittade originaltransaktionsreferenser.",
@@ -1487,14 +1579,15 @@
       "lib/ediel/core/messagePolicy.ts",
       "lib/ediel/flows/utiltsDataRequest.part-2.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "blockers": [],
     "planned_tests": [
       "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
       "Forbidden effect: Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "exact_expected": "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
     "exact_prohibited": "Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
     "commits": [
@@ -1505,7 +1598,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-047",
     "exact_requirement": "UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
@@ -1527,14 +1621,15 @@
       "lib/ediel/core/messagePolicy.ts",
       "lib/ediel/flows/utiltsDataRequest.part-2.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "blockers": [],
     "planned_tests": [
       "UTILTS-ERR E50 när denna kontroll är utlösande.",
       "Forbidden effect: Använd inte E10 som generell kod för alla valideringsfel.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime completes physical syntax, whole header/own-IDE guide pass, then eligible functions only; b4d51952 preserves negative CONTRL on dangling release and typed unaddressable facts. 08616e0d routes direct callers through one shared whole selected guide. No favorable per-rule blending. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "exact_expected": "UTILTS-ERR E50 när denna kontroll är utlösande.",
     "exact_prohibited": "Använd inte E10 som generell kod för alla valideringsfel.",
     "commits": [
@@ -1545,7 +1640,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-048",
     "exact_requirement": "UTILTS-ERR E50 när denna kontroll är utlösande.",
@@ -1575,7 +1671,7 @@
       "Forbidden effect: Ett godtyckligt E61 eller E62 på grund av lokal kunskapsbrist är inte ett godkänt testfacit.",
       "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
     ],
-    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Fresh actual U comparison chain uses gridex_correction_combined_snapshot_v1→qualified structuralSourceReadset→same selectStructuralSources chronology with own period/meter/register conditions. Prodat independent inspection confirms P15 dated Z06/Z10 histories already feed that readset; no second history selector or supplier full-structure requirement is introduced for ESCO Z14. Source absence/partial/unsupported historical identity remains internal review with no invented E61/E62, quantity, positive ACK or legal backfill. Independent code support is complete; authentic prescribed source/evidence availability and final behavior proof remain separate.",
     "exact_expected": "Använd villkoren för kontroll mot erhållen struktur. Lokalt saknade, ej föreskrivna fält får inte bli ett påhittat PRODAT-krav.",
     "exact_prohibited": "Ett godtyckligt E61 eller E62 på grund av lokal kunskapsbrist är inte ett godkänt testfacit.",
     "commits": [
@@ -1611,16 +1707,24 @@
       "lib/ediel/utilts/transactionPersistence.ts",
       "lib/ediel/flows/utiltsCanonicalValidation.ts",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Own actualperiod/resolution/product/timezone observation count remains independent of energy sum and counts ownQTY136 separate from reading220. Source E87 is emitted only after ownwholeguideaccepted and applicable object/processability context; actualmixed sibling count failure persists canonicalownIDE functionalnegative facet while healthy sibling staysaccepted. Finalmatching retainsselectedguide/frozenwitness; exactdecimal totals never mask missingobservations. Broad finalcandidate ownintegration/native/E2E NOT_RUN.",
+    "confirmed_code_gap": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "blockers": [],
     "planned_tests": [
       "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
       "Forbidden effect: Korrekt energisumma får inte maskera saknade observationer.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Own actualperiod/resolution/product/timezone observation count remains independent of energy sum and counts ownQTY136 separate from reading220. Source E87 is emitted only after ownwholeguideaccepted and applicable object/processability context; actualmixed sibling count failure persists canonicalownIDE functionalnegative facet while healthy sibling staysaccepted. Finalmatching retainsselectedguide/frozenwitness; exactdecimal totals never mask missingobservations. Broad finalcandidate ownintegration/native/E2E NOT_RUN.",
+    "assessment": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "exact_expected": "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
     "exact_prohibited": "Korrekt energisumma får inte maskera saknade observationer.",
     "commits": [
@@ -1628,7 +1732,8 @@
       "80e6b0e2",
       "7230bc65",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-050",
     "exact_requirement": "UTILTS-ERR E87 där antalskontrollen är tillämplig; luckan synliggörs.",
@@ -1691,16 +1796,24 @@
       "lib/ediel/utilts/transactionPersistence.ts",
       "lib/ediel/flows/utiltsCanonicalValidation.ts",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Fresh own literal criterion checked: actual physical QTY136 energy and QTY220 readings stay distinct; quantity-bearing monetary/power/request profiles never coerced to energy. NULL136/220 retained as null with ownSTS8+46, not zero; E30 implicitKWH only own136 resolution15:806/1:802/1:801. Exact source unit/original lexical quantity/ordinal and quality preserved throughV2 nativeRPC, finalcanonicalownIDE facet andbilling projection. SourceprecisionE51 only after ownguide. Broad finalcandidate native/E2E proof not run.",
+    "confirmed_code_gap": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "blockers": [],
     "planned_tests": [
       "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
       "Forbidden effect: Mätarställning, energi och effekt får inte blandas ihop.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Fresh own literal criterion checked: actual physical QTY136 energy and QTY220 readings stay distinct; quantity-bearing monetary/power/request profiles never coerced to energy. NULL136/220 retained as null with ownSTS8+46, not zero; E30 implicitKWH only own136 resolution15:806/1:802/1:801. Exact source unit/original lexical quantity/ordinal and quality preserved throughV2 nativeRPC, finalcanonicalownIDE facet andbilling projection. SourceprecisionE51 only after ownguide. Broad finalcandidate native/E2E proof not run.",
+    "assessment": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "exact_expected": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
     "exact_prohibited": "Mätarställning, energi och effekt får inte blandas ihop.",
     "commits": [
@@ -1708,7 +1821,8 @@
       "80e6b0e2",
       "7230bc65",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-053",
     "exact_requirement": "Skilda värde- och kvalitetsrepresentationer; ingen automatisk nollifyllnad.",
@@ -1730,14 +1844,15 @@
       "lib/ediel/utilts/positiveAckAuthority.ts",
       "lib/ediel/core/kernel.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "blockers": [],
     "planned_tests": [
       "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
       "Forbidden effect: Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "exact_expected": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
     "exact_prohibited": "Enbart köstatus får inte betraktas som lagring i mottagande applikation.",
     "commits": [
@@ -1748,7 +1863,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-054",
     "exact_requirement": "Ingen extern positiv APERAK före beständigt genomförd, föreskriven affärsbehandling. Fel och tidsfrist bevakas.",
@@ -1763,7 +1879,7 @@
       "ACK-06"
     ],
     "owner": "utilts_ack",
-    "code_status": "ALREADY_IMPLEMENTED_VERIFICATION_ONLY",
+    "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/ack/canonicalAckEngine.ts",
       "lib/ediel/aperakEngine.ts",
@@ -1772,14 +1888,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "blockers": [],
     "planned_tests": [
       "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
       "Forbidden effect: Ingen tillståndsändring över tenantgränsen.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance. This row retains its own literal expected/prohibited criterion; this owner assesses the ACK component of the integrated multiowner contract.",
     "exact_expected": "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
     "exact_prohibited": "Ingen tillståndsändring över tenantgränsen.",
     "commits": [
@@ -1790,7 +1907,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "3a0878ed"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-055",
     "exact_requirement": "Ingen ändring i det felaktigt utpekade ärendet; loggad säker hantering.",
@@ -1814,14 +1932,15 @@
       "lib/ediel/flows/inboundAckProcessing.ts",
       "lib/ediel/utilts/transactionPersistence.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "blockers": [],
     "planned_tests": [
       "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
       "Forbidden effect: Ett återförsök får inte skriva om kvittenshistoriken.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "exact_expected": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
     "exact_prohibited": "Ett återförsök får inte skriva om kvittenshistoriken.",
     "commits": [
@@ -1832,7 +1951,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "8d074831"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-056",
     "exact_requirement": "Skapa incident och använd källstödd rättelse- eller kontaktprocess, inte en motsatt APERAK för samma tidigare utfall.",
@@ -1862,14 +1982,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "blockers": [],
     "planned_tests": [
       "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
       "Forbidden effect: Lägg inte nationell APERAK-kontroll i CONTRL.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual CONTRL uses2:2:UN and UCI outcomes1/4; loop suppression and syntax-first rejection remain separate from APERAK national checks. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Prospective syntax-negative CONTRL can use a complete unambiguous observed UNB prefix of the same malformed source hash; neither body nor business acceptance is salvaged. T16 UCI first14 is qualified globally across actual sent source originals; ambiguity is held. Immutable committed incoming ACK receipts are read before today's tenant/runtime reclassification.",
     "exact_expected": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
     "exact_prohibited": "Lägg inte nationell APERAK-kontroll i CONTRL.",
     "commits": [
@@ -1885,7 +2006,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "95a53fce"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-01",
     "exact_requirement": "Använd CONTRL:2:2:UN och resultatkod 1/4 på rätt korrelationsnivå. → Larma vid negativt resultat och undvik kvittensloop.",
@@ -1915,14 +2037,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "blockers": [],
     "planned_tests": [
       "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
       "Forbidden effect: Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Family-specific PRODAT APERAK D96A/E2SE6A BGM1225 codes27/34 retained. No UTILTS312/313 reference structure adopted. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "PRODAT own ERC/LI groups retain separate physical outcomes in mixed34 messages. Protected outbound-original lookup ignores mutable outcome/status as authority and returns only actual qualified outbound originals; ambiguous/unavailable historical proof is held.",
     "exact_expected": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
     "exact_prohibited": "Använd inte UTILTS-APERAK:s BGM312/313 eller dess transaktions-ACW för PRODAT.",
     "commits": [
@@ -1938,7 +2061,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "09db95c4"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-02",
     "exact_requirement": "D96A/E2SE6A; BGM27 för avvisat helt meddelande eller 34 för behandlat; ERC40/41/42/100 och ACW till originalets BGM-id. → Bygg RFF+Z07/LI när uppgifterna finns och korrekt fält- eller särskild felreferens.",
@@ -1968,14 +2092,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
     "blockers": [],
     "planned_tests": [
       "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
       "Forbidden effect: Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "6929b6f3 corrected full released original IDE ACW, own distinct DM for positive groups, original DOC BGM; no truncation, synthesized BGM ACW or false shared IDE. Header guide rejection remains header-only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Actual national header313 without ACW is source-qualified by same-owner committed header errors, full original source hash and named pack; own transaction negatives retain exact physical ACW and independent DM. ERC42 text contains actual own physical failed content; unavailable source text holds rather than inventing a value. Legal NAD is reversed from genuine original and is separate from technical UNB.",
     "exact_expected": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
     "exact_prohibited": "Använd inte PRODAT-BGM34 eller generiska ERC40-specialkoder utan stöd i UTILTS-guiden.",
     "commits": [
@@ -1991,7 +2116,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "e864cac1"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-03",
     "exact_requirement": "D04A/E5SE5A; BGM312 positivt eller313 negativt; DOC till originaltyp/BGM, DM för eget transaktions-id och ACW till originalets IDE-id. → Håll positiva och negativa transaktioner i skilda APERAK. Ange inte påhittad IDE-referens vid huvudfel.",
@@ -2021,14 +2147,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "blockers": [],
     "planned_tests": [
       "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
       "Forbidden effect: Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "6929b6f3 allows source-defined17-character segment/element field references; actual canonical ERC100/41/42 mapper retains matching FTX and no guessed digits. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "The actual source-qualified ERC42 builder supplies decoded failed field content through the shared canonical guide text rules and immutable header facet; no description or sibling value becomes evidence. Field/reference lengths are checked, not truncated to manufacture another reference.",
     "exact_expected": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
     "exact_prohibited": "Härled inte ett fältnummer ur siffrorna i ett segmentnamn.",
     "commits": [
@@ -2044,7 +2171,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "e864cac1"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-04",
     "exact_requirement": "ERC100 ger OK; 41 ger MANDATORY FIELD MISSING; 42 ger INCORRECT DATA XXX. Riktig fältreferens krävs vid41/42. → Bygg exakt referens och korrekt frisläppning; begränsa känsliga uppgifter i loggar.",
@@ -2074,14 +2202,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Actual ERR renderer copies all present own pre-SEQ source fields from U pp66–68 (LOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1, DTM324, STS7) with source qualifiers and bytes. Full physical TN/own sourceBGM is preserved, generated ERRIDE is distinct. ERR BGM is ERR::260 and document137 uses fixed UTC+1. Latest committed functional V2 facet binds each actual national reason to separate own responseTN, retaining original message/NULL scope provenance; native CREATE/SEND consumes it without code inference.",
     "blockers": [],
     "planned_tests": [
       "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
       "Forbidden effect: Skapa inte ERR på ERR eller APERAK på APERAK.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual functional ERR uses wire UTILTS with BGMERR and exact own original BGM/IDE membership; family loops suppressed. Physical-reference fix removes punctuation truncation. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Actual ERR renderer copies all present own pre-SEQ source fields from U pp66–68 (LOC172/175/239/232/233, NADDDK/DDQ/BY/SE/EZ, PIA1, DTM324, STS7) with source qualifiers and bytes. Full physical TN/own sourceBGM is preserved, generated ERRIDE is distinct. ERR BGM is ERR::260 and document137 uses fixed UTC+1. Latest committed functional V2 facet binds each actual national reason to separate own responseTN, retaining original message/NULL scope provenance; native CREATE/SEND consumes it without code inference.",
     "exact_expected": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
     "exact_prohibited": "Skapa inte ERR på ERR eller APERAK på APERAK.",
     "commits": [
@@ -2097,7 +2226,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "0a5696d4"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-05",
     "exact_requirement": "Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor.",
@@ -2127,14 +2257,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "blockers": [],
     "planned_tests": [
       "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
       "Forbidden effect: UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual ACK correlation constrains source family, parties, tenant, environment and message references; unrelated/ambiguous sources remain no mutation. This UTILTS assessment covers ACK portion of multiowner PRODAT SC036 only. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Full source/hash/company/environment/legal/transport/APP/reference qualification occurs globally before tenant expectation; no reference-first/latest guess. CONTRL first14 collisions remain held across all actual sent originals. Persisted incoming ACK replay returns the same atomic applied receipt before fresh policy selection; legacy correlations with missing aggregate receipt return explicit summaryUnavailable rather than fabricated acceptance.",
     "exact_expected": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
     "exact_prohibited": "UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant.",
     "commits": [
@@ -2150,7 +2281,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "3a0878ed"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-06",
     "exact_requirement": "Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus.",
@@ -2180,14 +2312,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "blockers": [],
     "planned_tests": [
       "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
       "Forbidden effect: Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual immutable per-IDE ACK reservation/finalization retains original outcome; c1aff819 frozenV1 retry only same source/hash and existing stored outcome. Root transport guard binds exact immutable ACKraw. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Protected actual outbound ACK originals preserve already established outcomes even if mutable public status is failed/cancelled. Every requested physical reference must be covered; mixed PRODAT own ERC groups and UTILTS own scopes are not coalesced into whole-message classification. Immutable own final negative/positive retries are retained before fresh gates; no opposite-outcome rewrite or new fabricated ACK target.",
     "exact_expected": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
     "exact_prohibited": "Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök.",
     "commits": [
@@ -2203,7 +2336,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "8d074831"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-07",
     "exact_requirement": "Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande.",
@@ -2233,14 +2367,15 @@
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
       "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
     ],
-    "confirmed_code_gap": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "confirmed_code_gap": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "blockers": [],
     "planned_tests": [
       "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
       "Forbidden effect: Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual staged runtime preserves header versus per-IDE guide/function outcomes; valid sibling persists independently. Packaging incompatibility is correctly whole-message guide failure, not favorable sibling exception. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Same initial/final opaque UTILTS owner projects immutable own-IDE and optional header/functional sidecars without guide reselection. Source-defined global functional NULL detail is assigned only to actual processability-rejected ERR own IDEs; original message scope remains distinct from exact own TN response scope. Partial positive never approves the entire source or a sibling.",
     "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
     "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
     "commits": [
@@ -2256,7 +2391,8 @@
       "3516bb03",
       "77a1c406",
       "1c95e0fa",
-      "ceeac5c9"
+      "ceeac5c9",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-ACK-08",
     "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
@@ -2271,7 +2407,7 @@
       "ACK-09"
     ],
     "owner": "utilts_ack",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/ack/canonicalAckEngine.ts",
       "lib/ediel/aperakEngine.ts",
@@ -2284,16 +2420,20 @@
       "lib/ediel/core/receivedSourceValidationLedger.ts",
       "lib/ediel/core/originalAckPartyIdentities.ts",
       "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
-      "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql"
+      "supabase/migrations/20260930175005_ediel_ack_read_source_admission_authority.sql",
+      "lib/ediel/orchestrator/autoAckOrchestrator.ts",
+      "lib/ediel/core/dedupe.ts"
     ],
-    "confirmed_code_gap": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
-    "blockers": [],
+    "confirmed_code_gap": "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
+    "blockers": [
+      "Root-allocated actors ACK09 new received protocolduplicate receipt/response-request package is in progress; complete T original duplicate behavior unavailable must remain source-policy gated, not invented."
+    ],
     "planned_tests": [
       "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
       "Forbidden effect: Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
       "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
     ],
-    "assessment": "Actual internal retry reuses stored authority/outcomes while new protocol duplicate may repeat same required ACK; no silent discard used as idempotency shortcut. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion. Fresh actual chain: alternateUNA/shared tokenizer preserves physical ACK refs; global unique sealed source qualification requires reversed transport/legal/app/env scope; atomic durable finalscope/source correlations precede businesspatch, no latest/ref-first guess, partialpositive does not approve whole source. U/P legal NAD reverses actual legal original independentUNBtechnical.",
+    "assessment": "Fresh literal and actual consumer re-review: internal replay/immutable ACK originals are implemented, but a newly received protocolduplicate is not yet a distinct persisted receipt/response request. Existing autoAck already_sent_success returns without a new outbox/provider request. Actors owns root-allocated prospective new-reception support; exact T/P duplicate response policy must be source-qualified and no new ERC is guessed. No silent discard is permitted; this row is not code-complete until that integration is implemented and independently reviewed.",
     "exact_expected": "Skilj intern återkörning av sparad mottagning från en ny mottagen protokolldubblett. → Undvik dubbla affärseffekter och ge det protokollföreskrivna dubblettsvaret.",
     "exact_prohibited": "Idempotens får inte innebära att kvittenspliktig mottagning bara slängs tyst.",
     "commits": [
@@ -2331,22 +2471,31 @@
       "lib/ediel/utilts/canonicalMessageEngine.ts",
       "lib/ediel/profiles/messageProfileCatalog.ts",
       "lib/ediel/inboundRequestAutomation.ts",
-      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts"
     ],
-    "confirmed_code_gap": "Own physical profile now owns actual role/application/data scope; E30 optional field260 and conditionalunit/monetary branches no longer become unconditional requiredenergy. Actual metering and nonbilling dispatcher preserve same chosen canonical policy, own IDE outcome and final source facet before native effect.",
+    "confirmed_code_gap": "Same active source-owned conditional profile requirements are consumed through direct runtime, catalog, request automation and actual ingress. Alternative UNA no longer hides own role/application/597 fields; E30 field260 remains optional, forbidden SG5 MEA is not required, monetary-only S01/E31/E66 scopes are not given required energy QTY/unit defaults.",
     "blockers": [],
     "planned_tests": [
       "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
       "Forbidden effect: Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Own physical profile now owns actual role/application/data scope; E30 optional field260 and conditionalunit/monetary branches no longer become unconditional requiredenergy. Actual metering and nonbilling dispatcher preserve same chosen canonical policy, own IDE outcome and final source facet before native effect.",
+    "assessment": "Same active source-owned conditional profile requirements are consumed through direct runtime, catalog, request automation and actual ingress. Alternative UNA no longer hides own role/application/597 fields; E30 field260 remains optional, forbidden SG5 MEA is not required, monetary-only S01/E31/E66 scopes are not given required energy QTY/unit defaults.",
     "exact_expected": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
     "exact_prohibited": "Parserstöd eller en exempel-E66 ger inte rätt att sända nätägarens E66 i produktion.",
     "commits": [
       "1fa1ba4f",
       "7230bc65",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-01",
     "exact_requirement": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate. → Tillåt stödd roll, funktion, riktning och produkt med rätt bevis.",
@@ -2366,16 +2515,26 @@
       "lib/ediel/utilts/canonicalObservationScope.ts",
       "lib/ediel/utilts/observationOrderGuide.ts",
       "lib/ediel/utilts/consumptionContract.ts",
-      "lib/ediel/core/receivedUtiltsTransactionValidation.ts"
+      "lib/ediel/core/receivedUtiltsTransactionValidation.ts",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Lossless tokenizer, canonical ownIDE/SEQ membership and conditional fields preserve each repeated original group; exact observation source ordinal/unit/decimal V2 and canonical sidecar persist complete physical membership. No sibling field/unit fallback.",
+    "confirmed_code_gap": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
     "blockers": [],
     "planned_tests": [
       "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
       "Forbidden effect: Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Lossless tokenizer, canonical ownIDE/SEQ membership and conditional fields preserve each repeated original group; exact observation source ordinal/unit/decimal V2 and canonical sidecar persist complete physical membership. No sibling field/unit fallback.",
+    "assessment": "Actual parser→canonical policy→runtime→own facets→consumption/meter/timezone consumers now use the same release-aware codec. Original rawSegments/AST/QTY occurrence bytes remain genuine; runtimeSegments is transient only. Full escaped IDE/BGM/RFF punctuation is not normalized/truncated or confused with siblings. Trailing-space observation is preserved but grants no guide/native acceptance; native hold remains.",
     "exact_expected": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
     "exact_prohibited": "Använd inte första LOC eller QTY i hela filen för samtliga objekt.",
     "commits": [
@@ -2383,7 +2542,8 @@
       "2fadf2b3",
       "7230bc65",
       "c1aff819",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-02",
     "exact_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp. → En disposition per ursprungstransaktion; mätarställningar och energier separata.",
@@ -2403,16 +2563,25 @@
       "lib/ediel/utiltsEngine.ts",
       "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/flows/utiltsCanonicalValidation.ts",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Actual runtime syntax gate precedes whole selected-guide pass and functional execution only own guideaccepted IDE. Final sourcefacet consumes actual matched/structural owner with same selected policy/frozen original witness; no second guide selection and no global positive assumption.",
+    "confirmed_code_gap": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "blockers": [],
     "planned_tests": [
       "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
       "Forbidden effect: Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actual runtime syntax gate precedes whole selected-guide pass and functional execution only own guideaccepted IDE. Final sourcefacet consumes actual matched/structural owner with same selected policy/frozen original witness; no second guide selection and no global positive assumption.",
+    "assessment": "Physical syntax still precedes the complete selected guide and own functional pass; alternative UNA participates in that same authority rather than a second parser/engine. Same-owner negative header and functional response facets are stored atomically with current COMMITTED assessment; no global hasFunctionalError chooses every IDE response.",
     "exact_expected": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
     "exact_prohibited": "Ett guidefel för samma IDE får inte ersättas av ett senare E10/E50-funktionsfel.",
     "commits": [
@@ -2420,7 +2589,8 @@
       "df184c1a",
       "08616e0d",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-03",
     "exact_requirement": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion. → Lagra godkända transaktioner och kvittera varje utfall på rätt nivå.",
@@ -2607,7 +2777,7 @@
       "Forbidden effect: Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
       "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
     ],
-    "assessment": "Actual received-source qualification uses own observation register/meter/period and retained immutable structural history. Missing genuine prescribed source is internal review with no guessed E61/E62, quantity or positive ACK. Authentic issuer/history/deletion coverage and positive LOC175 object/mandate/sink evidence remain external; Z14 is not assumed supplier full structure. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Fresh actual U comparison chain uses gridex_correction_combined_snapshot_v1→qualified structuralSourceReadset→same selectStructuralSources chronology with own period/meter/register conditions. Prodat independent inspection confirms P15 dated Z06/Z10 histories already feed that readset; no second history selector or supplier full-structure requirement is introduced for ESCO Z14. Source absence/partial/unsupported historical identity remains internal review with no invented E61/E62, quantity, positive ACK or legal backfill. Independent code support is complete; authentic prescribed source/evidence availability and final behavior proof remain separate.",
     "exact_expected": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen. → Hantera eget strukturbevisgap internt när kontrollen är villkorad enligt guiden.",
     "exact_prohibited": "Kräv inte hela leverantörens PRODAT-struktur av varje ESCO-mottagare.",
     "commits": [
@@ -2642,18 +2812,27 @@
       "lib/ediel/utilts/transactionPersistence.ts",
       "lib/billing/sourceBasis.ts",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql"
+      "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Exact V2 raw lexical decimals remain authoritative through source-bound RPC, numeric SQL writes and exact billing totals. NULL136/220 is not zero and needs own STS8+46; E30 implicit kWh only source-authenticated own136/resolution; QTY6411 N rejected. Source U§3.6.4 energyprecision is functional E51 only after own guide pass; monetary own fields lexical/precision national41/42. Authentic V1/finalnegative same-source replay preserved before new guards; pure unitconversion cannot activate nonstandard billing.",
+    "confirmed_code_gap": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "blockers": [
       "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
     ],
     "planned_tests": [
       "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
       "Forbidden effect: Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Exact V2 raw lexical decimals remain authoritative through source-bound RPC, numeric SQL writes and exact billing totals. NULL136/220 is not zero and needs own STS8+46; E30 implicit kWh only source-authenticated own136/resolution; QTY6411 N rejected. Source U§3.6.4 energyprecision is functional E51 only after own guide pass; monetary own fields lexical/precision national41/42. Authentic V1/finalnegative same-source replay preserved before new guards; pure unitconversion cannot activate nonstandard billing.",
+    "assessment": "Default/alternate UNA exact source QTY strings are restored by own physical occurrence before ordinal/native membership contracts. Exact V2 decimals and SQL numeric/billing totals retain source lineage; unchanged authentic V1 receipts and finalized own negative outcomes replay before fresh guards. NULL is not zero, E30 own136 implicit kWh requires source scope, forbidden QTY6411 does not infer unit. Energy precision is source-defined functional E51 after guide acceptance; own monetary field 522/523 constraints remain guide checks.",
     "exact_expected": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
     "exact_prohibited": "Fyll inte saknade värden med noll och använd inte årsprognos som faktisk kvartsenergi.",
     "commits": [
@@ -2661,7 +2840,8 @@
       "80e6b0e2",
       "7230bc65",
       "f69e8df0",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-09",
     "exact_requirement": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer. → Lagra decimaler och källkvalitet exakt med korrektionsspår.",
@@ -2683,25 +2863,35 @@
       "lib/ediel/utilts/consumptionContract.ts",
       "lib/billing/underlayEngine.ts",
       "lib/billing/sourceBasis.ts",
-      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql"
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Actualown period/resolution/timezone and calendar interval count preserve month/year bounds; conditional energy/power/monetary branches separated. Monthly/year energy andreading integer rules vs quarterenergy0–3 sourceprecision honored; exact billing never uniformly prorates a partial observation. Datetime roundtrip prevents SQL normalization of invalid originals.",
+    "confirmed_code_gap": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "blockers": [
       "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
     ],
     "planned_tests": [
       "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
       "Forbidden effect: Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Actualown period/resolution/timezone and calendar interval count preserve month/year bounds; conditional energy/power/monetary branches separated. Monthly/year energy andreading integer rules vs quarterenergy0–3 sourceprecision honored; exact billing never uniformly prorates a partial observation. Datetime roundtrip prevents SQL normalization of invalid originals.",
+    "assessment": "Actual own period/resolution/timezone and singleton E30 own DTM597 exception work under default/alternative UNA through the same shared projection. Calendar interval counting remains independent of QTY220 readings; missing/NULL observations are not replaced by zero. Native/source-guide precision and required own-quality guards remain unchanged.",
     "exact_expected": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
     "exact_prohibited": "Hårdkoda inte96 för varje serie och använd inte energisumma som bevis på fullständighet.",
     "commits": [
       "7230bc65",
       "f69e8df0",
       "21b71d81",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-10",
     "exact_requirement": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn. → Ett fullständigt24h-dygn i+CET har96 kvartar; andra perioder räknas uttryckligt.",
@@ -2840,14 +3030,15 @@
       "lib/ediel/utilts/positiveAckAuthority.ts",
       "lib/ediel/core/kernel.ts"
     ],
-    "confirmed_code_gap": null,
+    "confirmed_code_gap": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "blockers": [],
     "planned_tests": [
       "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
       "Forbidden effect: Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
-      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance."
+      "Final-candidate own integration/native/replay/schema/type/security/browser/E2E/manual criteria remain NOT_RUN; fast packet regressions do not establish formal acceptance.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ],
-    "assessment": "Matrix/root own new positive stored-authority guard in draft gateway and transport. U09 package preserves service receipt/source/rawhash/contract/reservation ownership through positive ACK selection; queue or preview does not grant stored authority. This owner assessment does not replace matrix independent complete U14 SQL/send review. Full contract behavior proof remains pending; multiowner criteria require integrated review beyond this owner portion.",
+    "assessment": "Matrix/root positive stored-authority guard remains the sole native CREATE/SEND authority. Actual final runtime matching uses the retained initial opaque policy and immutable six-key named witness; new own accepted source facet is COMMITTED before source capture/persist/positive response. Genuine full named negative source capture supports national negative ACKs without minting accepted IDEs; no-pack genuine negative remains held as prescribed.",
     "exact_expected": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
     "exact_prohibited": "Kölagt eller bara mottaget är inte bevis på lagrade mätvärden.",
     "commits": [
@@ -2858,7 +3049,8 @@
       "396b23a4",
       "08616e0d",
       "2fadf2b3",
-      "c1aff819"
+      "c1aff819",
+      "cf73cd05"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-U-14",
     "exact_requirement": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK. → Gör atomär lagring av accepterad data, disposition och ACK-avsikt.",
@@ -3125,17 +3317,27 @@
       "lib/billing/invoiceReadiness.ts",
       "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql"
+      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Omitted source, qualifier-as-quality, absent physicalproduct and floating total/partial-proration actualpaths corrected; new raw/hash/ownQTYordinal/period/exactquality/product/AES projection qualifies source independently without rewriting V1/V2 or ACK. Same directRPC guard protects exact underlay, immutable source/quantity/price/supplyversion binding, correction journal and export readiness. Source→meter→normalized→supply→underlay locks and strictdatetime roundtrip fixed; source-qualified current private supply ledger + authenticlegal and frozennamedpack required.",
+    "confirmed_code_gap": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "blockers": [
       "Historical original/legal/rule basis cannot be reconstructed or backfilled; absent authentic raw/precision/current supply ground/locked price-version proof is held. DGI beneficiary individualbilling basis needs independently proven data purpose/right/supply/pricemodel; original is never relabeled DDQ-E66."
     ],
-    "assessment": "Fresh actual consumer/RPC review and targeted implementation completed. Root independent DB06 review cleared identified lock/period/source Important findings; broad finalcandidate native/integration/manual proof NOT_RUN.",
+    "assessment": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "commits": [
       "21b71d81",
       "2bcbd74e",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "U §3.1–3.2; SYS",
     "exact_requirement": "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet.",
@@ -3144,7 +3346,8 @@
       "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet.",
       "Lås spårbart underlag och skapa särskild rättelsejournal vid nya data.",
       "Forbidden effect: S02-prognos, E31-aggregat eller DGI-leverans blir inte automatiskt individuell faktura.",
-      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN."
+      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ]
   },
   {
@@ -3161,17 +3364,27 @@
       "lib/billing/invoiceReadiness.ts",
       "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql"
+      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Omitted source, qualifier-as-quality, absent physicalproduct and floating total/partial-proration actualpaths corrected; new raw/hash/ownQTYordinal/period/exactquality/product/AES projection qualifies source independently without rewriting V1/V2 or ACK. Same directRPC guard protects exact underlay, immutable source/quantity/price/supplyversion binding, correction journal and export readiness. Source→meter→normalized→supply→underlay locks and strictdatetime roundtrip fixed; source-qualified current private supply ledger + authenticlegal and frozennamedpack required.",
+    "confirmed_code_gap": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "blockers": [
       "Historical original/legal/rule basis cannot be reconstructed or backfilled; absent authentic raw/precision/current supply ground/locked price-version proof is held. DGI beneficiary individualbilling basis needs independently proven data purpose/right/supply/pricemodel; original is never relabeled DDQ-E66."
     ],
-    "assessment": "Fresh actual consumer/RPC review and targeted implementation completed. Root independent DB06 review cleared identified lock/period/source Important findings; broad finalcandidate native/integration/manual proof NOT_RUN.",
+    "assessment": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "commits": [
       "21b71d81",
       "2bcbd74e",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json AT-DB-06",
     "exact_requirement": "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet. → Lås spårbart underlag och skapa särskild rättelsejournal vid nya data.",
@@ -3180,7 +3393,8 @@
     "planned_tests": [
       "Verifiera kvantitetstyp, produkt, period, leveransrelation, dataversion, prisversion och kvalitet. → Lås spårbart underlag och skapa särskild rättelsejournal vid nya data.",
       "Forbidden effect: S02-prognos, E31-aggregat eller DGI-leverans blir inte automatiskt individuell faktura.",
-      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN."
+      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ]
   },
   {
@@ -3197,17 +3411,27 @@
       "lib/billing/invoiceReadiness.ts",
       "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
       "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
-      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql"
+      "supabase/migrations/20260930181909_ediel_source_consumer_authority_bridges.sql",
+      "lib/ediel/core/canonicalMessage.ts",
+      "lib/ediel/utilts.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/utiltsEngine.part-1.ts",
+      "lib/ediel/utilts/profiles.ts",
+      "lib/ediel/utilts/consumptionPreparation.ts",
+      "lib/ediel/utilts/meteringObservationParser.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts"
     ],
-    "confirmed_code_gap": "Omitted source, qualifier-as-quality, absent physicalproduct and floating total/partial-proration actualpaths corrected; new raw/hash/ownQTYordinal/period/exactquality/product/AES projection qualifies source independently without rewriting V1/V2 or ACK. Same directRPC guard protects exact underlay, immutable source/quantity/price/supplyversion binding, correction journal and export readiness. Source→meter→normalized→supply→underlay locks and strictdatetime roundtrip fixed; source-qualified current private supply ledger + authenticlegal and frozennamedpack required.",
+    "confirmed_code_gap": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "blockers": [
       "Historical original/legal/rule basis cannot be reconstructed or backfilled; absent authentic raw/precision/current supply ground/locked price-version proof is held. DGI beneficiary individualbilling basis needs independently proven data purpose/right/supply/pricemodel; original is never relabeled DDQ-E66."
     ],
-    "assessment": "Fresh actual consumer/RPC review and targeted implementation completed. Root independent DB06 review cleared identified lock/period/source Important findings; broad finalcandidate native/integration/manual proof NOT_RUN.",
+    "assessment": "Actual independent exact source billing projection validates own raw/hash/QTY ordinal/period/quality/product/AES, same accepted own facet and immutable named/legal basis; supply and locked price versions remain separate current authority. Underlay/direct RPC use the same qualified exact quantity basis with source→metering→normalized→supply/price consistent locks. Alternative UNA consumption preserves original QTY and explicit offset. Root bounded review cleared identified source, period and locking Important findings; authentic price/supply/mandate/history absence remains held, no backfill.",
     "commits": [
       "21b71d81",
       "2bcbd74e",
-      "9088317c"
+      "9088317c",
+      "5b553041"
     ],
     "normative_source": "annex/D_Acceptanskontrakt.md;registers/acceptance_tests.json SC-019",
     "exact_requirement": "Pröva datagrund/ändamål/leveransperiod/prismodell och bevara källproveniens.",
@@ -3216,7 +3440,8 @@
     "planned_tests": [
       "Pröva datagrund/ändamål/leveransperiod/prismodell och bevara källproveniens.",
       "Forbidden effect: Omskriv inte original som DDQ-E66 eller använd data utan rätt.",
-      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN."
+      "Own source missing/foreign/wrongquality/product/period/unit/AES, authenticfrozenoldcontract replay, exactlarge decimals and partialinterval hold; atomic current supply/price changes, lockedunderlay correctionjournal and export fence, native ACL/tenant crossscope; final full/native/replay/schema/types/security/browser/E2E/manual NOT_RUN.",
+      "Fixed-candidate full unit/native clean replay/schema and generated-type parity/security/browser/E2E/manual proofs remain NOT_RUN; these scoped code checks do not change formal acceptance."
     ]
   }
 ]

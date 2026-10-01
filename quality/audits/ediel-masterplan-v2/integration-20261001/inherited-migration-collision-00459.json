@@ -1,0 +1,23 @@
+{
+  "version": "20261001000459",
+  "exact_files": [
+    {
+      "name": "20261001000459_ediel_immutable_inbound_reception_response_requests.sql",
+      "sha256": "ac9d54e65564c53124a8c1a4d4ed6a947ec41c0d3cc0585cf5194311aff11eb7"
+    },
+    {
+      "name": "20261001000459_ediel_retention_migration_owner_prerequisite.sql",
+      "sha256": "df7d140a069a77fc959c69b876d8cd8c5cab1e76d32751e5ddee12635a48bbf5"
+    }
+  ],
+  "classification": "independent committed source histories inherited during semantic integration",
+  "source_commits": [
+    "a8e489d17695151f35b70405810211aab7d2269f",
+    "5e38e646c1b7a2aa0996935247801ed23339cb4d"
+  ],
+  "resolution": "preserve both immutable sources and checksums; canonical replay and genuine ancestor upgrade execute both in exact filename order; exact two-name collision registration, no general collision permission",
+  "independence_review": "first source creates only inbound reception/response-request schema and service/current-tenant guarded observers; second grants the private non-login retention owner only to the qualified migration role. No shared function/table/trigger overwrite; retention prerequisite still precedes00500.",
+  "native_replay": "PENDING_NEW_EXACT_HEAD",
+  "production_activation": "HELD; ordinary raw Supabase db push is not qualified by canonical historical reconstruction and must not be performed",
+  "original_sql_modified": false
+}

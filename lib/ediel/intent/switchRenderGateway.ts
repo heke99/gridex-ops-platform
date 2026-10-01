@@ -18,7 +18,7 @@ export async function renderAndQueueNormalSwitch(input:{intentId:string;actorUse
   ||(intent.senderSubaddress??null)!==(input.routeContext.senderSubAddress??null)||(intent.receiverSubaddress??null)!==(input.routeContext.receiverSubAddress??null)
   ||intent.senderEdielId!==input.routeContext.senderEdielId||intent.receiverEdielId!==input.routeContext.receiverEdielId
   ||!intent.interchangeReference||!intent.messageReference||!intent.transactionReference
-  ||!['L','LK'].includes(String(intent.payload.transactionSubtype))||typeof intent.payload.documentReference!=='string')throw new Error('switch_validated_source_intent_required')
+  ||!['L','LK','H'].includes(String(intent.payload.transactionSubtype))||typeof intent.payload.documentReference!=='string')throw new Error('switch_validated_source_intent_required')
  let message=intent.edielMessageId?await getEdielMessageById(intent.edielMessageId):null
  if(message&&(message.company_id!==intent.companyId||message.intent_id!==intent.id||message.outbound_request_id!==input.outboundRequestId))throw new Error('switch_original_intent_binding_conflict')
  if(message&&message.status!=='draft')return message

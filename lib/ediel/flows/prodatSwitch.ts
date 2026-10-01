@@ -1,3 +1,4 @@
+import {qualifyBilateralProdatSwitchPreparation} from '@/lib/ediel/production/bilateralProdatSwitchPreparation'
 // lib/ediel/flows/prodatSwitch.ts
 //
 // Supplier-switch domain flow. A SupplierSwitchRequest may originate PRODAT
@@ -49,15 +50,17 @@ function normalizeSwitchSubtype(switchRequest: {
   request_type?: string | null
   prodat_variant?: string | null
   prodat_reason?: string | null
-}): 'L' | 'LK' | 'C' {
+}): 'L' | 'LK' | 'C' | 'H' {
   const explicit = String(switchRequest.prodat_variant ?? '').trim().toUpperCase()
   const reason = String(switchRequest.prodat_reason ?? '').trim().toUpperCase()
+  if(explicit==='H'||reason==='Z25'){if(explicit!=='H'||reason!=='Z25')throw Error('prodat_switch_h_variant_reason_mismatch');return 'H'}
   if (explicit === 'C' || reason === 'Z24' || String(switchRequest.status ?? '').toLowerCase() === 'cancellation_requested') return 'C'
   if (explicit === 'LK' || reason === 'Z23' || String(switchRequest.request_type ?? '').toLowerCase() === 'move_in') return 'LK'
   return 'L'
 }
 
-function reasonForSubtype(subtype: 'L' | 'LK' | 'C'): 'Z22' | 'Z23' | 'Z24' {
+function reasonForSubtype(subtype: 'L' | 'LK' | 'C' | 'H'): 'Z22' | 'Z23' | 'Z24' | 'Z25' {
+  if(subtype==='H')return 'Z25'
   if (subtype === 'LK') return 'Z23'
   if (subtype === 'C') return 'Z24'
   return 'Z22'
@@ -123,7 +126,6 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
   const contractId =
     switchRequest.customer_contract_id
     ?? switchRequest.contract_id
-    ?? (typeof switchRequest.metadata?.contract_id === 'string' ? switchRequest.metadata.contract_id : null)
   if (!contractId) throw new Error('PRODAT Z03 stoppades: switchärendet saknar exakt customer_contract_id.')
 
   const switchGate = await supabaseService.rpc('gridex_assert_supplier_switch_ready', {
@@ -170,6 +172,11 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
       actorRole: 'supplier',
     },
   })
+
+  if(subtype==='H'){
+    const qualified=await qualifyBilateralProdatSwitchPreparation({companyId,switchId:switchRequest.id,actorUserId,environment:routeContext.environment})
+    if(qualified.rulePackId!==canonicalRule.rulePackId||qualified.messageProfileId!==canonicalRule.messageProfileId||qualified.senderEdielId!==routeContext.senderEdielId||qualified.receiverEdielId!==routeContext.receiverEdielId||qualified.contractId!==contractId||qualified.pointId!==meteringPoint.id||qualified.customerId!==switchRequest.customer_id||qualified.siteId!==site.id||qualified.requestedStartDate!==switchRequest.requested_start_date)throw Error('prodat_switch_actual_bilateral_profile_scope_changed')
+  }
 
   const forceCreateNewAttempt = Boolean(params.forceRegenerate) && isEdielPortalParty(routeContext.receiverEdielId)
   const externalReference = forceCreateNewAttempt
@@ -273,6 +280,7 @@ export async function prepareAndQueueProdatSwitch(params: PrepareProdatSwitchPar
 
   const message = await renderAndQueueNormalSwitch({intentId:intent.id,actorUserId,outboundRequestId:outbound.id,routeContext,source:{
     actorUserId,
+    contractId,
     senderEdielId: routeContext.senderEdielId,
     senderName: routeContext.senderName,
     receiverEdielId: routeContext.receiverEdielId,

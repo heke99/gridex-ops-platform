@@ -32,13 +32,13 @@ jobs:
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - name: Canonical quote runtime regression matrix
-        run: npx vitest run __tests__/canonical-contract-runtime-adapter.test.ts __tests__/contract-commercial-selection.test.ts __tests__/website-quote-persistence-invariant.test.ts __tests__/public-website-quote.test.ts
+        run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/canonical-contract-runtime-adapter.test.ts __tests__/contract-commercial-selection.test.ts __tests__/website-quote-persistence-invariant.test.ts __tests__/public-website-quote.test.ts
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
       - run: node scripts/gridex-partner-api-business-contract-regression.cjs
       - run: node scripts/gridex-papilite-centroid-regression.cjs
-      - run: npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts
-      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
-      - run: npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - name: Integrated remaining-masterpoints golden path
@@ -46,7 +46,7 @@ jobs:
       - run: npm run gridex:canonical-architecture-57-regression
       - run: npm run gridex:post-108-health-residuals-regression
       - run: npm run gridex:post-332-field-511-health-residuals-regression
-      - run: npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
@@ -55,7 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
         with:
@@ -70,8 +70,8 @@ jobs:
       - run: npm run typecheck:scripts
       - run: npm run typecheck:tests
       - run: bash quality/mechanical/verify.sh
-      - run: npx vitest run --config quality/vitest.config.ts
-      - run: npm test
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run --config quality/vitest.config.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
       - run: npm run api:release:verify
@@ -84,6 +84,8 @@ jobs:
   clean-migration-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
         with:
@@ -181,6 +183,8 @@ jobs:
           export GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH="$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json"
           export GRIDEX_AI_PURPOSE_FIXTURE_PATH="$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json"
           export GRIDEX_RECORD_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-record-retention-browser-fixture.json"
+          export GRIDEX_BLOB_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-blob-retention-browser-fixture.json"
+          export GRIDEX_PROCESS_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-process-retention-browser-fixture.json"
           export GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH="$RUNNER_TEMP/ediel-business-incident-browser-fixture.json"
           export GRIDEX_REGULATED_FIXTURE_PATH="$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json"
           export GRIDEX_RCS_FIXTURE_PATH="$RUNNER_TEMP/ediel-requested-change-browser-fixture.json"
@@ -215,6 +219,14 @@ jobs:
             NATIVE_SUITE_FAILED=1
           fi
           [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          if ! npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
+          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          if ! npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-native-junit.xml; then
+            NATIVE_SUITE_FAILED=1
+          fi
+          [[ -s "$GRIDEX_PROCESS_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
           if ! npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-native-junit.xml; then
             NATIVE_SUITE_FAILED=1
           fi
@@ -229,8 +241,9 @@ jobs:
           [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || unset GRIDEX_AI_PURPOSE_FIXTURE_PATH
           [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_RECORD_RETENTION_FIXTURE_PATH
           [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH
+          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_BLOB_RETENTION_FIXTURE_PATH
           npx playwright install --with-deps chromium
-          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs e2e/browser/ediel-customer-record-retention-local.spec.mjs e2e/browser/ediel-business-incident-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
+          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs e2e/browser/ediel-customer-record-retention-local.spec.mjs e2e/browser/ediel-business-incident-local.spec.mjs e2e/browser/ediel-message-content-retention-local.spec.mjs e2e/browser/ediel-process-journal-retention-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
             NATIVE_SUITE_FAILED=1
           fi
           if [[ -s "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}" ]]; then
@@ -269,12 +282,23 @@ jobs:
               NATIVE_SUITE_FAILED=1
             fi
           fi
+          if [[ -s "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_BLOB_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-after-browser-junit.xml; then
+              NATIVE_SUITE_FAILED=1
+            fi
+          fi
+          if [[ -s "${GRIDEX_PROCESS_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_PROCESS_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-after-browser-junit.xml; then
+              NATIVE_SUITE_FAILED=1
+            fi
+          fi
           if [[ -s "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_EDIEL_INCIDENT_VERIFY_AFTER_BROWSER=1 npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-after-browser-junit.xml; then
               NATIVE_SUITE_FAILED=1
             fi
           fi
-          rm -f "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_PROCESS_RETENTION_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_RECORD_RETENTION_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}"
           rm -f "${GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH:-}"
@@ -327,8 +351,10 @@ jobs:
             --root rem002-bilateral-prodat-native-junit.xml --root rem002-bilateral-prodat-after-browser-junit.xml \
             --root rem002-ai-purpose-native-junit.xml --root rem002-ai-purpose-after-browser-junit.xml \
             --root rem002-record-retention-native-junit.xml --root rem002-record-retention-after-browser-junit.xml \
-            --root rem002-business-incident-native-junit.xml --root rem002-business-incident-after-browser-junit.xml
-          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json" "$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json" "$RUNNER_TEMP/ediel-record-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-business-incident-browser-fixture.json"
+            --root rem002-business-incident-native-junit.xml --root rem002-business-incident-after-browser-junit.xml \
+            --root rem002-blob-retention-native-junit.xml --root rem002-blob-retention-after-browser-junit.xml \
+            --root rem002-process-journal-retention-native-junit.xml --root rem002-process-journal-retention-after-browser-junit.xml
+          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json" "$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json" "$RUNNER_TEMP/ediel-record-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-business-incident-browser-fixture.json" "$RUNNER_TEMP/ediel-blob-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-process-retention-browser-fixture.json"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -355,6 +381,10 @@ jobs:
             rem002-record-retention-after-browser-junit.xml
             rem002-business-incident-native-junit.xml
             rem002-business-incident-after-browser-junit.xml
+            rem002-blob-retention-native-junit.xml
+            rem002-blob-retention-after-browser-junit.xml
+            rem002-process-journal-retention-native-junit.xml
+            rem002-process-journal-retention-after-browser-junit.xml
             e2e-artifacts/
           if-no-files-found: error
 

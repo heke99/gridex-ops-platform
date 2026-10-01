@@ -1,6 +1,8 @@
 import { readEdielBusinessExpectations, expireEdielBusinessExpectations } from '@/lib/ediel/businessExpectations'
 import { supabaseService } from '@/lib/supabase/service'
 import { readEdielProcessNextActions, type EdielProcessNextAction } from './processNextAction'
+import {readEdielMeteringMethodExpectations,expireEdielMeteringMethodExpectations} from '@/lib/ediel/meteringMethodExpectations'
+import type {EdielBusinessExpectation} from '@/lib/ediel/businessExpectations'
 
 /** Sweep only the automation actor's accepted memberships. Each operation
  * repeats authorization in the source-owner RPC; a clock never sends a message. */
@@ -20,19 +22,32 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
   for (const companyId of companies) {
     for (const environment of ['test', 'production'] as const) {
       const scope = { actorUserId: input.actorUserId, companyId, environment, limit }
-      let operation: 'read' | 'expire' | 'project' = 'read'
-      try {
-        // Reading projects already committed business responses. Expiry is a
-        // separate send-level authorization and only escalates pending watches.
-        await readEdielBusinessExpectations(scope)
+      const observations=new Map<string,EdielBusinessExpectation>()
+      let visited=false
+      for(const owner of [{read:readEdielBusinessExpectations,expire:expireEdielBusinessExpectations},
+        {read:readEdielMeteringMethodExpectations,expire:expireEdielMeteringMethodExpectations}]) {
+       let operation: 'read' | 'expire' = 'read'
+       try {
+        // Each source owner reconciles its own committed responses and calendar.
+        // Failure in one independent watch does not suppress the other sweep.
+        await owner.read(scope)
         operation = 'expire'
-        const rows = await expireEdielBusinessExpectations(scope)
+        const rows = await owner.expire(scope)
+        visited=true
+        for(const row of rows)observations.set(row.id,row)
+       } catch (error) {
+        result.blocked.push({ companyId, environment, operation,
+          reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
+       }
+      }
+      if(visited) {
+        const rows=[...observations.values()]
         result.scopes += 1
         result.observed += rows.length
         result.manualReview += rows.filter(row => row.status === 'manual_review').length
         result.fulfilled += rows.filter(row => row.status === 'fulfilled').length
         result.rejected += rows.filter(row => row.status === 'rejected').length
-        operation='project'
+        try {
         const sourceIds=rows.flatMap(row=>typeof row.source_message_id==='string'?[row.source_message_id]:[])
         // Timer output is display-only. An automation actor's send grant never
         // manufactures cases.write permission, provider entry or an auto-resend.
@@ -40,8 +55,9 @@ export async function sweepEdielBusinessExpectations(input: { actorUserId: strin
           access:{canRead:true,canReview:false,canPrepare:false}})
         for(const decision of decisions.values())result.nextActions.push({companyId,environment,decision})
       } catch (error) {
-        result.blocked.push({ companyId, environment, operation,
+        result.blocked.push({ companyId, environment, operation: 'project',
           reason: error instanceof Error ? error.message : typeof error === 'object' && error !== null && 'message' in error ? String(error.message) : 'ediel_expectation_sweep_failed' })
+      }
       }
     }
   }

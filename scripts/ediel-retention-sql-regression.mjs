@@ -286,11 +286,30 @@ try{
  await assert.rejects(()=>authenticatedCall(uid(30),`select public.ediel_revoke_blob_retention_before_class_guard_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}','BYPASS') b`),/permission denied/)
  await assert.rejects(()=>service(`select public.ediel_read_blob_retention_decision_v1('${uid(1)}','${uid(30)}','${mimeDecision.decisionId}',true) b`),/permission denied/)
  console.log('PASS 11 private review-reader/revocation mechanisms: current own actor and actual class, archived company history, exact original legal bytes/hash, no source/MIME byte export, metadata deletion cannot imply physical Storage finish, foreign/global/current deny no-effects, direct predecessor and service denial (bounded synthetic SQL; NOT native/issuer/physical proof)')
+ // Read-only authority uses the actual installed class resolver and read actor
+ // bodies. Catalog rows are unnecessary for its exact __read_scope__ key.
+ const classes=readFileSync(new URL('../supabase/migrations/20261001012305_ediel_customer_record_class_retention.sql',import.meta.url),'utf8'),workspace=readFileSync(new URL('../supabase/migrations/20261001015940_ediel_retention_workspace_scope.sql',import.meta.url),'utf8')
+ const permissionBody=classes.match(/CREATE FUNCTION gridex_ediel_retention\.record_permission_v1\(c uuid,actor uuid,k text\)[\s\S]*?END\$\$;/)[0].replace(" SELECT permission_key INTO wanted FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=k;"," IF k='__read_scope__' THEN wanted:='ediel.retention.read';ELSE SELECT permission_key INTO wanted FROM gridex_ediel_retention.record_class_catalog WHERE retention_class=k;END IF;").replace("user_status='active'","user_status='active' AND disabled_at IS NULL")
+ const readActor=workspace.match(/CREATE FUNCTION gridex_ediel_retention\.record_read_actor_v1\(c uuid,actor uuid\)[\s\S]*?END\$\$;/)[0]
+ await db.exec(`ALTER TABLE user_profiles ADD disabled_at timestamptz;CREATE TABLE gridex_ediel_retention.record_class_catalog(retention_class text PRIMARY KEY,permission_key text NOT NULL);ALTER TABLE gridex_ediel_retention.record_class_catalog OWNER TO gridex_ediel_retention_owner;${permissionBody}${readActor}ALTER FUNCTION gridex_ediel_retention.record_permission_v1(uuid,uuid,text) OWNER TO gridex_ediel_retention_owner;ALTER FUNCTION gridex_ediel_retention.record_read_actor_v1(uuid,uuid) OWNER TO gridex_ediel_retention_owner;REVOKE ALL ON FUNCTION gridex_ediel_retention.record_permission_v1(uuid,uuid,text),gridex_ediel_retention.record_read_actor_v1(uuid,uuid) FROM PUBLIC,anon,authenticated,service_role;INSERT INTO permissions(id,key,name,category,description,is_active) VALUES('${uid(85)}','ediel.retention.read','SYNTHETIC read key','ediel','Explicit read only',true);`)
+ await grant(uid(80),['ediel.retention.read','ediel.retention.mime_bytes'])
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80)),/current_read_grant_required/)
  await db.exec(readFileSync(new URL('../supabase/migrations/20261001025642_ediel_retention_current_auth_owner_bridge.sql',import.meta.url),'utf8'))
  assert.equal((await blobRead(original.decisionId)).documentBase64,null)
  assert.equal((await blobRead(original.decisionId,uid(30),true)).documentHash,document.documentHash)
  await assert.rejects(()=>blobRead(original.decisionId,uid(30),true,uid(99)),/current_read_grant_required|current_actor_forbidden/)
  assert.equal((await db.query("SELECT count(*)::int n FROM pg_proc p WHERE p.proowner='gridex_ediel_retention_owner'::regrole AND p.prosrc~*'auth\\.(uid|users)'")).rows[0].n,0)
  console.log('PASS installed artifact/customer/blob/read Auth consumers adapt without changing source/legal/current-class guards; full archive graph retained (bounded synthetic SQL only)')
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001031103_ediel_blob_retention_read_only_history.sql',import.meta.url),'utf8'))
+ const readOnly=await blobRead(mimeDecision.decisionId,uid(80));assert.equal(readOnly.documentBase64,null);assert.equal(readOnly.targetId,uid(71));assert.equal(readOnly.purge.physicalBytesRemoved,false)
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80),true),/current_read_grant_required/)
+ await assert.rejects(()=>authenticatedCall(uid(80),`select public.ediel_revoke_blob_retention_v1('${uid(1)}','${uid(80)}','${mimeDecision.decisionId}','BYPASS read grant') b`),/current_actor_forbidden/)
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80),false,uid(99)),/current_read_grant_required|current_read_actor_required/)
+ await db.exec(`INSERT INTO user_permission_overrides(user_id,company_id,permission_key,effect,is_active) VALUES('${uid(80)}',NULL,'ediel.retention.read','deny',true)`)
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80)),/current_read_grant_required/)
+ await db.exec(`DELETE FROM user_permission_overrides;UPDATE user_profiles SET disabled_at=now() WHERE id='${uid(80)}'`)
+ await assert.rejects(()=>blobRead(mimeDecision.decisionId,uid(80)),/current_read_grant_required/)
+ console.log('PASS explicit archived read-only own class metadata; no legal original bytes or mutations, actual read actor/current DENY/disabled/foreign scope fail closed (bounded synthetic SQL only)')
+
 
 }finally{await db.close()}

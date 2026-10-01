@@ -28,7 +28,8 @@ describe('actual canonical UTILTS header facet',()=>{
     const runtime=runUtiltsRuntimeForMessage(source),facet=buildReceivedUtiltsHeaderValidation({source,headerRejection:runtime.ackPlan.utiltsHeaderRejection})!
     expect(bindReceivedUtiltsHeaderValidation(facet,source.raw_payload!+' ')).toBeNull()
     for(const change of [{ercCode:'100'},{fieldCode:''},{text:' INCORRECT DATA'},{text:'X\nY'},{extra:true}]) {
-      const copy={...facet,applicationErrors:facet.applicationErrors.map(error=>({...error}))};Object.assign(copy.applicationErrors[0],change)
+      // Deliberately mutable malicious copy; it cannot impersonate the immutable owner.
+      const copy=structuredClone(facet) as unknown as {applicationErrors:Array<Record<string,unknown>>};Object.assign(copy.applicationErrors[0],change)
       expect(bindReceivedUtiltsHeaderValidation(copy,source.raw_payload!)).toBeNull()
     }
     expect(buildReceivedUtiltsHeaderValidation({source:{...source,message_family:'PRODAT'},headerRejection:runtime.ackPlan.utiltsHeaderRejection})).toBeNull()

@@ -2,6 +2,7 @@ import { isCanonicalUtiltsDecimal } from './exactDecimal'
 import {canonicalUtiltsDecimal} from './exactDecimal'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {canonicalUtiltsTransactions} from './canonicalObservationScope'
+import {isValidUtiltsTransactionReference} from './physicalReference'
 /** V1 enumerates business-write inputs, not arbitrary normalized diagnostics.
  * Source/actor/invocation lineage is deliberately outside reusable content. */
 export type UtiltsConsumptionAttribution = {
@@ -128,7 +129,9 @@ export function validateUtiltsConsumptionContract(value: unknown): UtiltsConsump
   const c = object(value)
   keys(c, 'version projectionVersion attributionVersion companyId environment messageCode transactionId seriesKind profileKey profileVersion rulePackHash guideRevision interpretation observations metering billing billingContributionOrdinals sourceType')
   if (!((c.version === 1 && c.projectionVersion === 'utilts-consumption-v1') || (c.version === 2 && c.projectionVersion === 'utilts-consumption-v2')) || c.attributionVersion !== 'tenant-match-v1' || c.sourceType !== 'ediel_utilts') consumptionConflict('unsupported_version')
-  for (const key of ['companyId', 'messageCode', 'transactionId', 'seriesKind', 'guideRevision']) text(c[key], false)
+  for (const key of ['companyId', 'messageCode', 'seriesKind', 'guideRevision']) text(c[key], false)
+  if(c.version===1) text(c.transactionId,false)
+  else if(!isValidUtiltsTransactionReference(c.transactionId)) consumptionConflict('transaction_reference')
   text(c.profileKey)
   text(c.profileVersion); text(c.rulePackHash)
   if (!['test', 'production'].includes(String(c.environment))) consumptionConflict('environment')

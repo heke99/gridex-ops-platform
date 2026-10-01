@@ -111,6 +111,17 @@ describe('UTILTS object/processability context boundary', () => {
     expect(validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
     expect(operations.validation.classification).toBe('accepted')
     expect(operations.validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
+    expect(operations.previewEvaluationAt).toBe(new Date(admissionAt).toISOString())
+  })
+
+  it('keeps explicitly observed preview admission independent of the original document date',()=>{
+    const rawPayload=VALID_MONTHLY_E66.replace('QTY+136:1000','QTY+136:500')
+    const prior=runUtiltsOperationsEngine({rawPayload,admissionAt:'2026-09-30T12:00:00Z'})
+    const current=runUtiltsOperationsEngine({rawPayload,admissionAt:'2026-10-01T12:00:00Z'})
+    expect(prior.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(current.ackPlan.utiltsErrCodes).not.toContain('E19')
+    expect(current.facts.rawSegments).toContain('DTM+137:202608311811:203')
+    expect(current.previewEvaluationAt).toBe('2026-10-01T12:00:00.000Z')
   })
 
   it('holds raw-only validation and preview without observed admission rather than selecting from a hidden clock', () => {

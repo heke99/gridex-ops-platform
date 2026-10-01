@@ -121,12 +121,26 @@ END $$;
 -- All evidence kinds are immutable even for the owner; caller roles cannot
 -- bypass this by their service-role RLS exemption or table-level TRUNCATE.
 DO $$ DECLARE tab text; command text; blocked boolean; rol text; signature text; BEGIN
+ PERFORM pg_temp.ledger_check('sources/native-retention-immutable-guard-installed',EXISTS(
+  SELECT FROM pg_trigger WHERE tgrelid='gridex_received_sources.sources'::regclass
+   AND tgname='no_evidence_update_delete' AND NOT tgisinternal AND tgtype=27
+   AND tgenabled IN('O','A') AND tgfoid='gridex_ediel_retention.source_guard_v1()'::regprocedure));
  FOREACH tab IN ARRAY ARRAY['epoch','sources','snapshots','discovery_attempts','validation_assessments'] LOOP
   FOREACH command IN ARRAY ARRAY['UPDATE','DELETE','TRUNCATE'] LOOP
    blocked:=false; BEGIN
     IF command='UPDATE' THEN EXECUTE format('UPDATE gridex_received_sources.%I SET %I=%I',tab,CASE WHEN tab='epoch' THEN 'singleton' WHEN tab='sources' THEN 'source_message_id' ELSE 'id' END,CASE WHEN tab='epoch' THEN 'singleton' WHEN tab='sources' THEN 'source_message_id' ELSE 'id' END);
     ELSE EXECUTE format('%s %s gridex_received_sources.%I%s',command,CASE WHEN command='DELETE' THEN 'FROM' ELSE 'TABLE' END,tab,CASE WHEN command='TRUNCATE' THEN ' CASCADE' ELSE '' END); END IF;
-   EXCEPTION WHEN check_violation THEN blocked:=true; END;
+   EXCEPTION WHEN check_violation THEN blocked:=true;
+    WHEN raise_exception THEN
+     -- The installed qualified-retention guard replaces only the sources row
+     -- immutability trigger. Accept its exact rejection, never another error.
+     IF tab='sources' AND command IN('UPDATE','DELETE')
+       AND SQLERRM='received_original_immutable_without_native_retention'
+       AND EXISTS(SELECT FROM pg_trigger WHERE tgrelid='gridex_received_sources.sources'::regclass
+         AND tgname='no_evidence_update_delete' AND NOT tgisinternal AND tgtype=27
+         AND tgenabled IN('O','A') AND tgfoid='gridex_ediel_retention.source_guard_v1()'::regprocedure)
+     THEN blocked:=true;ELSE RAISE;END IF;
+   END;
    PERFORM pg_temp.ledger_check(tab||'/'||command||'/immutable',blocked);
   END LOOP;
   FOREACH rol IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP

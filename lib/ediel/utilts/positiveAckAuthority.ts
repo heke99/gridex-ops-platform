@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
-import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import { segmentComposite, segmentUntrimmedRaw, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
+import {isValidUtiltsTransactionReference} from './physicalReference'
 
 const STORAGE_REQUIRED = 'utilts_positive_ack_storage_unavailable'
 
@@ -14,9 +15,9 @@ function positiveUtiltsWire(raw: string | null | undefined, required = false): {
   const unhs = segments.filter(s => s.tag === 'UNH')
   const type = unhs.length === 1 ? segmentComposite(unhs[0], 2, una) : []
   if (bgms.length !== 1 || type[0] !== 'APERAK' || type[2] !== '04A' || type[4] !== 'E5SE5A') throw new Error(STORAGE_REQUIRED)
-  const acw = segments.filter(s => s.tag === 'RFF').map(s => segmentComposite(s, 1, una)).filter(c => c[0] === 'ACW')
+  const acw = segments.filter(s => s.tag === 'RFF').map(s => segmentComposite({...s,raw:segmentUntrimmedRaw(s)}, 1, una)).filter(c => c[0] === 'ACW')
   const ids = acw.map(c => c[1])
-  if (!ids.length || ids.some(id => !id || id !== id.trim()) || new Set(ids).size !== ids.length) throw new Error(STORAGE_REQUIRED)
+  if (!ids.length || ids.some(id => !isValidUtiltsTransactionReference(id)) || new Set(ids).size !== ids.length) throw new Error(STORAGE_REQUIRED)
   return { transactionIds: ids }
 }
 
@@ -45,14 +46,14 @@ async function requireAuthority(input: {
       (input.ackMessageId && result.ackRawHash !== createHash('sha256').update(input.ackRawPayload ?? '', 'utf8').digest('hex'))) throw new Error(STORAGE_REQUIRED)
 }
 
-/** CREATE needs committed accepted storage. Final ACK binding follows creation,
+/** CREATE needs the committed native source authority. Ordinary data requires accepted storage; incoming ERR requires its accepted original correlation. Final ACK binding follows creation,
  * avoiding a circular requirement for ordinary consumer finalization. */
 export async function assertUtiltsPositiveAckSourceAuthority(input: { sourceMessage: EdielMessageRow; draft: CreateEdielMessageInput }) {
-  const required = input.sourceMessage.message_family === 'UTILTS' && input.draft.messageFamily === 'APERAK' &&
+  const required = ['UTILTS','UTILTS_ERR'].includes(input.sourceMessage.message_family) && input.draft.messageFamily === 'APERAK' &&
     (input.draft.ackOutcome === 'positive' || input.draft.parsedPayload?.ackOutcome === 'positive')
   const wire = positiveUtiltsWire(input.draft.rawPayload, required)
   if (!wire) return
-  if (input.sourceMessage.message_family !== 'UTILTS' || input.sourceMessage.direction !== 'inbound' ||
+  if (!['UTILTS','UTILTS_ERR'].includes(input.sourceMessage.message_family) || input.sourceMessage.direction !== 'inbound' ||
       (input.draft.companyId != null && input.draft.companyId !== input.sourceMessage.company_id) || input.draft.environment !== input.sourceMessage.environment ||
       (input.draft.parsedPayload?.relatedTransactionReference && (wire.transactionIds.length !== 1 || input.draft.parsedPayload.relatedTransactionReference !== wire.transactionIds[0]))) throw new Error(STORAGE_REQUIRED)
   for (const transactionId of wire.transactionIds) await requireAuthority({ companyId: input.sourceMessage.company_id, environment: input.sourceMessage.environment,

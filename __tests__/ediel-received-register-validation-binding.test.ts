@@ -5,6 +5,7 @@ import {COMPANY, OTHER, row} from './helpers/receivedSourceInventoryFixtures'
 
 function fixture() {
   const source = row()
+  if(typeof source.rawPayload!=='string')throw new Error('synthetic raw source required')
   const original = {id:source.sourceMessageId,company_id:COMPANY,environment:'test',direction:'inbound',message_family:'PRODAT',message_standard:'edifact',
     raw_payload:String(source.rawPayload),message_code:source.messageCode,message_received_at:source.sourceReceivedAt,execution_context_snapshot:{receivedProdatContext:source.receivedContext}}
   return {original,validated:structuredClone(original),resolvedCompanyId:COMPANY,decision:{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',

@@ -14,7 +14,7 @@ function sourceRaw(alternate = false) {
     messages: [{ messageReference: 'SOURCEM', messageTypeToken: 'PRODAT:D:97A:UN:E2SE6A', businessSegments: [
       'BGM+Z03+SOURCEDOC+9+AB', 'DTM+137:202609301200:203', 'DTM+ZZZ:1:805',
       'NAD+FR+54321:160:SVK+++++++SE', 'NAD+DO+12345:160:SVK+++++++NO',
-      'LIN+1++735123456789012345:::9', 'RFF+LI:ORIGINAL-LI', 'CCI++Z13', 'CAV+Z22',
+      'LIN+1++735123456789012345:::9', 'CCI++Z13', 'CAV+Z22', 'RFF+LI:ORIGINAL-LI',
     ] }] })
 }
 function source(raw = sourceRaw()): EdielMessageRow {
@@ -33,14 +33,21 @@ describe('physical legal parties and technical transport stay separate across ac
     expect(parties.legalReceiver).toEqual({ id: '12345', identityComponents: ['12345', '160', 'SVK'], country: 'NO' })
     expect(originalAckLegalNadSegment('FR', parties.legalReceiver)).toBe('NAD+FR+12345:160:SVK+++++++NO')
   })
-  it.each([false, true])('routes APERAK on physical UNB while reversing exact legal NAD=%s', alternate => {
-    const draft = buildAckDraftForSource({ sourceMessage: source(sourceRaw(alternate)), ackFamily: 'APERAK', outcome: 'positive' })
-    const envelope = EdifactEnvelopeCodec.decode(draft.rawPayload)
-    expect([envelope.sender, envelope.receiver, envelope.senderSubAddress, envelope.receiverSubAddress]).toEqual(['90002', '90001', 'ORIGINAL:R', 'ORIGINAL:S'])
-    const fr = envelope.segments.find(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, envelope.una)[0] === 'FR')!
-    const receiver = envelope.segments.find(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, envelope.una)[0] === 'DO')!
-    expect(segmentComposite(fr, 2, envelope.una)).toEqual(['12345', '160', 'SVK']); expect(segmentComposite(fr, 9, envelope.una)).toEqual(['NO'])
-    expect(segmentComposite(receiver, 2, envelope.una)).toEqual(['54321', '160', 'SVK']); expect(segmentComposite(receiver, 9, envelope.una)).toEqual(['SE'])
+  it.each([false, true])('preserves technical and legal originals while dual-reference APERAK stays held, alphabet=%s', alternate => {
+    const original=source(sourceRaw(alternate))
+    // Keep both mandatory original references. This is an actual normative
+    // hold, not a successful 96A envelope or a substitute legal approval.
+    expect(()=>buildAckDraftForSource({sourceMessage:original,ackFamily:'APERAK',outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+    const technical=buildAckDraftForSource({sourceMessage:original,ackFamily:'CONTRL',outcome:'positive'})
+    const envelope=EdifactEnvelopeCodec.decode(technical.rawPayload)
+    expect([envelope.sender,envelope.receiver,envelope.senderSubAddress,envelope.receiverSubAddress]).toEqual(['90002','90001','ORIGINAL:R','ORIGINAL:S'])
+    const rendered=renderAperakEdiel({source:{id:original.id,rawPayload:original.raw_payload,messageFamily:'PRODAT',messageCode:'Z03'},refs:{},externalReference:'ACKDOC',transactionReference:'ACKT',outcome:'positive'})
+    expect(rendered.segments).toContain('RFF+Z07:735123456789012345');expect(rendered.segments).toContain('RFF+LI:ORIGINAL-LI')
+    const wire=tokenizeEdifact(rendered.segments.join("'")+"'")
+    const fr=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='FR')!
+    const receiver=wire.segments.find(segment=>segment.tag==='NAD'&&segmentComposite(segment,1,wire.una)[0]==='DO')!
+    expect(segmentComposite(fr,2,wire.una)).toEqual(['12345','160','SVK']);expect(segmentComposite(fr,9,wire.una)).toEqual(['NO'])
+    expect(segmentComposite(receiver,2,wire.una)).toEqual(['54321','160','SVK']);expect(segmentComposite(receiver,9,wire.una)).toEqual(['SE'])
   })
   it('holds a missing or ambiguous own legal header instead of borrowing technical or object actors', () => {
     const original = sourceRaw()

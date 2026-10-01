@@ -23,8 +23,10 @@ export async function reviewReceivedStructureAction(form:FormData):Promise<{acce
   const result=await reviewReceivedStructuralSource({companyId,sourceMessageId,environment:environment as 'test'|'production',
     reviewerUserId:context.userId,confirmedOriginal:true,replacesSourceMessageId:typeof replacement==='string'&&replacement!==''?replacement:null})
   revalidatePath(`/admin/ediel/messages/${sourceMessageId}`)
-  if(result.status==='recorded'&&result.sourceDisposition==='accepted')return {accepted:true,assessmentId:result.assessmentId,
-    message:'Hela källmeddelandet har fått ett spårbart godkännande. Giltighet och eventuella konflikter prövas separat vid varje mätvärdeskontroll.'}
+  if(result.status==='recorded'&&result.objectCounts&&result.objectCounts.accepted>0)return {accepted:true,assessmentId:result.assessmentId,
+    message:result.sourceDisposition==='accepted'
+      ? 'Originalets samtliga objekt har källbunden granskning. Strukturändringen kan nu tillämpas i godkännandesteget.'
+      : `${result.objectCounts.accepted} egna objekt har källbunden granskning. ${result.objectCounts.rejected} är avvisade och ${result.objectCounts.held} är spärrade. Godkännandesteget tillämpar endast kvalificerade egna objekt.`}
   return {accepted:false,message:'Fullständigt godkännande kunde inte fastställas. Kontrollera källvalidering, partsbehörighet, leveransperiod och eventuell ersättningsreferens. Ingen marknadskvittens har skickats.'}
 }
 

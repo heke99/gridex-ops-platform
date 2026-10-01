@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Isolated integration of whole Ediel masterplan v2 F0\u2013F7 and all 352 literal IDs",
+  "active_item": "Isolated integration of whole Ediel masterplan v2 F0–F7 and all 352 literal IDs",
   "current_audit": "quality/audits/ediel-masterplan-v2/integration-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -1330,5 +1330,26 @@
     "baseline_tree_byte_identical": true,
     "branch_mutated": false,
     "integration_status": "MERGED_WITH_SOURCE_AWARE_RESOLUTION_FINAL_SCOPE_FORWARD_AND_VERIFICATION_PENDING"
+  },
+  "active_integration_continuation": {
+    "updated_at": "2026-10-01T03:59:04.159965+00:00",
+    "owner": "/root",
+    "draft_pr": 424,
+    "published_head": "35016282e182cc713726702a1970c7f78ff451bb",
+    "published_tree": "eaf4d9ef7ece3f0287f7ff547d059dfb5385e35b",
+    "current_reconciliation_source": "a8e489d17695151f35b70405810211aab7d2269f",
+    "next_clean_owner_source": "7fb2a5f8337e48d1f9b81a4aa30b62be5df25715",
+    "all_ids": 352,
+    "frozen_hashes": 36,
+    "whole_masterplan_accepted": false,
+    "native_and_browser_final_candidate": "NOT_EXECUTED",
+    "generated_artifacts": "AUTHENTIC_350_RECEIPTS_PRESERVED; FINAL_SQL_REGENERATION_PENDING",
+    "prohibited": [
+      "main merge",
+      "force-push",
+      "production migration",
+      "real customer communication",
+      "Ediel/counterparty/TGT/AGT traffic"
+    ]
   }
 }

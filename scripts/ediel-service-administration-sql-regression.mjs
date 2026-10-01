@@ -97,5 +97,26 @@ try{
  const checkWire=()=>db.query(`SELECT gridex_service_permission.require_agreement_reference_v1(m,'{"agreementReference":"SOURCE-DECLARED-ANJ"}') FROM ediel_messages m WHERE id='${uid(900)}'`)
  await checkWire();checks++
  for(const raw of ["UNH+1+PRODAT:D:96B:UN:E2SE6A'RFF+ANJ:FORGED-INTENT-ANJ'", "UNH+1+PRODAT:D:96B:UN:E2SE6A'LIN+1'", "UNH+1+PRODAT:D:96B:UN:E2SE6A'RFF+ANJ:SOURCE-DECLARED-ANJ'RFF+ANJ:SOURCE-DECLARED-ANJ'"]){await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[raw,uid(900)]);await assert.rejects(checkWire(),/authentic_agreement_reference_required/);checks++}
+ // The requested-method enum port is a declared synthetic copy of the
+ // separate source-generated canonical tuple projection, not legal evidence.
+ await db.exec(`CREATE SCHEMA gridex_metering_method_changes;CREATE FUNCTION gridex_metering_method_changes.requested_method_supported_v1(method text) RETURNS boolean LANGUAGE sql AS 'SELECT $1 IN (''Z03'',''Z04'')';`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930235816_ediel_service_permission_source_requested_method.sql',import.meta.url),'utf8'));checks++
+ assert.equal((await agreementContext()).rows[0].result.status,'held');checks++
+ await assert.rejects(db.exec(`UPDATE ediel_service_evidence SET permission_requested_method='Z04' WHERE id='${pending.evidenceId}'`),/new_source_record/);checks++
+ // A separate synthetic new owner scope leaves all old evidence unchanged.
+ await db.exec(`INSERT INTO ediel_service_assignments(id,company_id,beneficiary_company_id,provider_actor_id,actor_profile_id,customer_id,dso_actor_id,environment,mode,purpose,object_ids,product_ids,field_sets,data_start,valid_from,status) SELECT '${uid(951)}',company_id,beneficiary_company_id,provider_actor_id,actor_profile_id,customer_id,dso_actor_id,environment,mode,purpose,object_ids,product_ids,field_sets,data_start,valid_from,'held' FROM ediel_service_assignments WHERE id='${aid}';`)
+ const newStage={action:'stage_evidence',commandId:uid(950),assignmentId:uid(951),expectedVersion:1,fields:{...evidence.fields,permission_requested_method:'Z04'}}
+ const stagedMethod=await command(newStage);assert.equal(stagedMethod.status,'pending');assert.equal(stagedMethod.approvalGranted,false);assert.equal((await db.query(`SELECT permission_requested_method FROM ediel_service_evidence WHERE id='${stagedMethod.evidenceId}'`)).rows[0].permission_requested_method,'Z04');checks++
+ await assert.rejects(command({...newStage,commandId:uid(952),fields:{...newStage.fields,permission_requested_method:'Z01'}}),/check constraint/);checks++
+ await db.exec(`UPDATE ediel_service_evidence SET status='verified',approved_by='${uid(20)}',approved_at='2000-01-01',approved_assignment_version=1 WHERE id='${stagedMethod.evidenceId}';UPDATE fixture_agreement_basis SET basis='{"status":"authorized","evidenceId":"${stagedMethod.evidenceId}","scopeBasisVersion":1}';`)
+ const methodContext=()=>db.query(`SELECT gridex_service_permission.context_v1('${uid(1)}','${uid(951)}','${uid(20)}',1,'Z13','${uid(202)}') result`)
+ assert.equal((await methodContext()).rows[0].result.requestedMethod,'Z04');checks++
+ await assert.rejects(db.exec(`UPDATE ediel_service_evidence SET permission_requested_method='Z03' WHERE id='${stagedMethod.evidenceId}'`),/new_source_record/);checks++
+ await db.exec(`INSERT INTO ediel_service_evidence(company_id,assignment_id,kind,source_reference,source_sha256,source_version,valid_from,status,approved_by,approved_at,approved_assignment_version,permission_agreement_reference,permission_requested_method) VALUES('${uid(1)}','${uid(951)}','end_user_contract','SYNTHETIC METHOD CONFLICT',repeat('d',64),'fixture','2000-01-01','verified','${uid(20)}','2000-01-01',1,'SOURCE-DECLARED-ANJ','Z03')`)
+ assert.equal((await methodContext()).rows[0].result.status,'held');checks++
+ const methodWire=()=>db.query(`SELECT gridex_service_permission.require_requested_method_v1(m,'{"requestedMethod":"Z04","objects":[{},{}]}') FROM ediel_messages m WHERE id='${uid(900)}'`)
+ const exactMethodRaw="UNH+1+PRODAT:D:96B:UN:E2SE6A'LIN+1'CCI++Z04'CAV+Z04'LIN+2'CCI++Z04'CAV+Z04'UNT+8+1'"
+ await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[exactMethodRaw,uid(900)]);await methodWire();checks++
+ for(const raw of [exactMethodRaw.replace("LIN+2'CCI++Z04'CAV+Z04'","LIN+2'"),exactMethodRaw.replace("CAV+Z04'","CAV+Z03'"),exactMethodRaw.replace("LIN+2'", "CCI++Z04'CAV+Z04'LIN+2'"),exactMethodRaw.replace("LIN+2'CCI++Z04'CAV+Z04'",'')]){await db.query('UPDATE ediel_messages SET raw_payload=$1 WHERE id=$2',[raw,uid(900)]);await assert.rejects(methodWire(),/authentic_requested_method_required/);checks++}
  console.log(`PASS ${checks} targeted service administration PostgreSQL checks; synthetic owner/helper fixtures, not native/legal evidence`)
 }finally{await db.close()}

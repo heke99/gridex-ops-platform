@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseEdifactEnvelope } from '@/lib/ediel/transport/index.part-1'
 import { parseInboundProdat } from '@/lib/ediel/prodat/compatAdapter'
 import { buildAckDraftForSource } from '@/lib/ediel/ack'
+import { renderAperakEdiel } from '@/lib/ediel/aperakEngine'
 import { createEdielMessage } from '@/lib/ediel/db'
 import { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight'
 import { resolveProdatPermissionAperakValidationIssues } from '@/lib/ediel/testing/prodatPermissionEngine'
@@ -22,8 +23,8 @@ function payload(id: string, code = 'Z03', options: { rawId?: boolean; function?
     `BGM+${escape(code)}+${options.rawId ? id : escape(id)}+${options.function ?? '9'}+${options.ack ?? 'AB'}`,
     'DTM+137:202609171200:203',
     'DTM+ZZZ:1:805',
-    'NAD+FR+12345:160:SVK', 'NAD+DO+54321:160:SVK',
-    'LIN+1++735999999999999999:::9', ...(options.body ?? []),
+    'NAD+FR+12345:160:SVK+++++++SE', 'NAD+DO+54321:160:SVK+++++++SE',
+    'LIN+1++735999999999999999:::9', 'RFF+LI:ORIGINAL-LI', ...(options.body ?? []),
   ]
   return "UNA:+.? 'UNB+UNOC:3+12345:14+54321:14+260917:1200+INTERCHANGE++23-DDQ-PRODAT'"
     + [...parts, `UNT+${parts.length + 1}+UNH-OTHER`, 'UNZ+1+INTERCHANGE'].join("'") + "'"
@@ -50,9 +51,16 @@ describe('real ingress, ACK and preflight read the same source BGM', () => {
       expect(parseInboundProdat(raw).externalReference).toBe(id)
       const source = message(raw)
       const before = JSON.stringify(source)
-      const ack = buildAckDraftForSource({ sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive' })
-      expect(ack.rawPayload).toContain(`RFF+ACW:${escape(id)}'`)
-      expect(ack.rawPayload).not.toContain('RFF+ACW:STALE')
+      // The real producer must retain both original Z07 and LI. Frozen 96A
+      // allows one RFF in this group, so the full gateway truthfully holds this
+      // dual-reference source. Inspect its real diagnostic body, never drop a
+      // reference or claim an admitted positive ACK merely to test BGM parsing.
+      const rendered = renderAperakEdiel({source:{id:source.id,rawPayload:raw,messageFamily:'PRODAT',messageCode:'Z03'},refs:{},externalReference:'ACKDOC',transactionReference:'ACKT',outcome:'positive'})
+      expect(rendered.segments).toContain(`RFF+ACW:${escape(id)}`)
+      expect(rendered.segments).toContain('RFF+Z07:735999999999999999')
+      expect(rendered.segments).toContain('RFF+LI:ORIGINAL-LI')
+      expect(rendered.segments.some(segment=>segment.startsWith('RFF+ACW:STALE'))).toBe(false)
+      expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive' })).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
       expect(JSON.stringify(source)).toBe(before)
       const preflight = preflightEdielPayload({ rawPayload: raw, messageStandard: 'edifact', mode: 'send' })
       expect(preflight.family).toBe('PRODAT'); expect(preflight.code).toBe('Z03')

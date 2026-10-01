@@ -6,7 +6,7 @@ vi.mock('server-only',()=>({}))
 vi.mock('next/headers',()=>({cookies:async()=>({get:io.cookie})}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>({auth:{getUser:io.auth},rpc:io.rpc})}))
 vi.mock('@/lib/ediel/retention/blobLifecycleRetention',()=>({submitBlobRetention:io.submit,reviewBlobRetention:io.review,purgeBlobRetention:io.purge,revokeBlobRetention:io.revoke}))
-import {messageRetentionDocument,messageRetentionPurge,messageRetentionRead,messageRetentionReview,messageRetentionSubmit} from '@/lib/ediel/retention/blobRetentionHttp'
+import {messageRetentionDocument,messageRetentionPurge,messageRetentionRead,messageRetentionReview,messageRetentionRevoke,messageRetentionSubmit} from '@/lib/ediel/retention/blobRetentionHttp'
 const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,company=id(1),actor=id(2),decision=id(3),target=id(4),bytes=Buffer.from('SYNTHETIC legal decision, unit HTTP boundary only')
 const permissions=['ediel.retention.submit','ediel.retention.review','ediel.retention.purge','ediel.retention.original_bytes','ediel.retention.mime_bytes']
 const row=()=>({companyId:company,decisionId:decision,retentionClass:'transport_raw_mime_bytes',targetId:target,messageId:id(5),sourceHash:'a'.repeat(64),targetHash:'b'.repeat(64),documentHash:createHash('sha256').update(bytes).digest('hex'),documentByteLength:bytes.length,submittedBy:actor,createdAt:'2026-10-01T00:00:00Z',issuerQualified:false,currentQualified:false,revoked:false,reviews:[],purge:null,documentBase64:null})
@@ -42,3 +42,10 @@ it('preserves a held native separate review and source-specific storage-pending 
  const purge=await messageRetentionPurge(req({}),decision);expect(await purge.json()).toMatchObject({status:'storage_purge_pending'});expect(io.purge).toHaveBeenCalledExactlyOnceWith({companyId:company,decisionId:decision})
 })
 it('rejects caller physical completion claims before the actual two-phase consumer',async()=>{expect((await messageRetentionPurge(req({physicalBytesRemoved:true}),decision)).status).toBe(400);expect(io.purge).not.toHaveBeenCalled()})
+
+it('explicit read-only class session receives metadata while document and all mutations hold before lifecycle effects',async()=>{
+ const read=io.rpc.getMockImplementation()!;io.rpc.mockImplementation(async(name,args)=>name==='ediel_current_retention_session_v1'?{data:{companyId:company,actorUserId:actor,permissions:['ediel.retention.read','ediel.retention.mime_bytes']},error:null}:read(name,args))
+ const metadata=await messageRetentionRead(decision);expect(metadata.status).toBe(200);expect(await metadata.json()).toMatchObject({documentBase64:null,currentQualified:false})
+ expect((await messageRetentionDocument(decision)).status).toBe(403);expect((await messageRetentionSubmit(req(submission()))).status).toBe(403);expect((await messageRetentionReview(req({outcome:'approve',reason:'forbidden'}),decision)).status).toBe(403);expect((await messageRetentionRevoke(req({reason:'forbidden'}),decision)).status).toBe(403);expect((await messageRetentionPurge(req({}),decision)).status).toBe(403)
+ expect(io.submit).not.toHaveBeenCalled();expect(io.review).not.toHaveBeenCalled();expect(io.revoke).not.toHaveBeenCalled();expect(io.purge).not.toHaveBeenCalled()
+})

@@ -21,9 +21,13 @@ export function ownerRulePack() {
 /** Fixed synthetic wire. The real canonical engine must accept it, not a stub
  * of its output. Receiver-local reading facts are explicit fixture input. */
 export function ownerSource():EdielMessageRow {
-  const wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...common('1','Synthetic'),qty('1000'),
+  const own=common('1','Synthetic')
+  // Original D97A group8: own dates, quantity, characteristics, references, parties.
+  const wire=raw([...head(),line('1',OWNER.external,undefined,'9'),...own.filter(p=>p[0]==='DTM'),qty('1000'),
+    ...own.filter(p=>p[0]==='CCI'||p[0]==='CAV'),
     ...characteristic('Z07','E22'),...characteristic('Z12','D',3),...characteristic('Z15','D'),
     ['CCI','','Z14'],['CAV',['','','','L917','8716867000030']],
+    ...own.filter(p=>p[0]==='RFF'),...own.filter(p=>p[0]==='NAD'),
     ['NAD','IT',[OWNER.external,'','9'],'','','Street','Town','','12345','SE'],
     ['NAD','Z02',['11111','160','SVK']]],'Z04').replace('+S+R+','+12345:14+54321:14+')
   return {...source(wire,'Z04'),id:OWNER.source,company_id:OWNER.company,customer_id:OWNER.customer,metering_point_id:OWNER.point,site_id:OWNER.site,
@@ -34,6 +38,8 @@ export function ownerSource():EdielMessageRow {
 export function ownerRows():Record<string,Record<string,unknown>[]> {
   const tenant={company_id:OWNER.company,environment:'test',valid_from:'2026-01-01T00:00:00Z',valid_to:null}
   return {
+    company_memberships:[{company_id:OWNER.company,user_id:ownerId(50),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}],
+    user_profiles:[{id:ownerId(50),user_status:'active'}],
     tenant_ediel_profiles:[{...tenant,id:ownerId(20),market:'electricity',is_enabled:true}],
     tenant_actor_identifiers:[{...tenant,id:ownerId(21),actor_id:OWNER.actor,identifier_type:'EdielId',identifier_value:'54321',qualifier:null,subaddress:null}],
     tenant_actor_roles:[{...tenant,id:ownerId(22),actor_id:OWNER.actor,role_code:'electricity_supplier'}],
@@ -44,4 +50,11 @@ export function ownerRows():Record<string,Record<string,unknown>[]> {
     supplier_switch_requests:[{id:OWNER.switch,company_id:OWNER.company,customer_id:OWNER.customer,metering_point_id:OWNER.point,site_id:OWNER.site,inbound_z04_message_id:OWNER.source,status:'draft',confirmed_start_date:null}],
     customer_supply_periods:[{id:OWNER.supply,company_id:OWNER.company,customer_id:OWNER.customer,metering_point_id:OWNER.point,source_message_id:OWNER.source,status:'draft',start_date:'2026-10-01'}],
   }
+}
+
+/** Named registry rows are explicitly synthetic IO. Real canonical field
+ * selection and immutable original witness decoding remain active. */
+export function ownerRulePackEvidence(){
+ const rulePackId=ownerId(12),messageProfileId=ownerId(11),sourceHash='a'.repeat(64),databaseProfileKey='PRODAT:Z04:L:26.A:r3'
+ return {profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey,sourceHash,messageProfileId,rulePackId,originalVersion:'26.A:r3',originalSnapshot:{rulePack:{id:rulePackId,guide_version:'26.A',guide_revision:'3',source_hash:sourceHash},messageProfile:{id:messageProfileId,rule_pack_id:rulePackId,profile_key:databaseProfileKey},guideSources:[]}}
 }

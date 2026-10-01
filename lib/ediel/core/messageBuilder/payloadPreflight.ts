@@ -1,12 +1,17 @@
+import {isRequestedChangeBasisQualified,requestedChangeRegisterFacts,requestedChangeWireDeathSelection,type RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
+import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
+import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
 import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { utiltsPackagingGuideViolations } from '@/lib/ediel/utilts/packagingGuide'
 import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
 import { prodatFreeTextSendIssues } from '@/lib/ediel/prodat/prodatFreeText'
 import {gasApplicabilitySendIssue} from '@/lib/ediel/prodat/prodatGasAuthority'
 import {validateProdatGasApplicability} from '@/lib/ediel/rulebook/prodatGasApplicabilityPolicy'
 import type {GasSerialChangeSelection} from '@/lib/ediel/prodat/prodatGasApplicability'
-import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {deathStatusSendIssue,assertDeathStatusContextMatches,type DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import type {DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import type {MeterChangeSelection} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
@@ -33,11 +38,13 @@ import { prodatDocumentValue } from '@/lib/ediel/prodat/prodatDocumentFields'
 import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import { prodatReferenceValue } from '@/lib/ediel/prodat/prodatReferenceFields'
 import { misplacedProdatEnergyProducts, prodatCharacteristicValue } from '@/lib/ediel/prodat/prodatCharacteristicFields'
-import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 // lib/ediel/core/messageBuilder/payloadPreflight.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { validateRulebookMessage } from '@/lib/ediel/rulebook/validator'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
+import type {CustomerMasterdataRenderingSource,CustomerMasterdataSourceRow} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import {
   profileForMessage,
@@ -373,9 +380,20 @@ function validateEdifactPayload(params: {
   dateEventContext?:ProdatDateEventValidationContext
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  requestedChangeBasis?:RequestedChangeBasis
+  requestedChangeRow?:EdielMessageRow
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
+
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): EdielPayloadPreflightResult {
   const rawPayload = params.rawPayload
   const canonical = parseCanonicalEdielPayload({ rawPayload, standardHint: 'edifact' })
@@ -397,7 +415,7 @@ function validateEdifactPayload(params: {
   if (params.mode === 'send') for (const failure of prodatFreeTextSendIssues({ raw_payload: rawPayload })) issues.push(issue({ severity: failure.severity, code: failure.code, title: failure.title, description: failure.description, segment: failure.fieldPath }))
   const gasBoundary=params.mode==='send'?gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
   if(gasBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}))
-  const deathBoundary=params.mode==='send'?deathStatusSendIssue({message_family:'PRODAT',raw_payload:rawPayload,parsed_payload:params.parsedPayload}):null
+  const deathBoundary=params.mode==='send'?deathStatusSendIssue(params.deathStatusRow??{...params.dateEventRow,message_family:canonical.family,message_code:canonical.messageCode,raw_payload:rawPayload,parsed_payload:params.parsedPayload},params.deathStatusContext,params.requestedChangeBasis):null
   if(deathBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}))
   const meterBoundary=params.mode==='send'?meterChangeSendIssue({message_family:'PRODAT',raw_payload:rawPayload}):null
   if(meterBoundary)issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}))
@@ -600,7 +618,10 @@ function validateEdifactPayload(params: {
   }
 
   if(canonical.family==='PRODAT')for(const failure of validateProdatGasApplicability({code:canonical.messageCode??'',rawSegments,una,direction:params.mode==='send'?'outbound':'inbound',facts:{gasSerialChange:params.mode==='send'?undefined:params.gasSerialChange}}))issues.push(issue({severity:failure.severity,code:params.mode==='send'?`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`:failure.code,title:failure.title,description:failure.description}))
-  if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDeathStatus({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{deathStatus:params.deathStatus}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
+  if(params.mode==='parse'&&canonical.family==='PRODAT'){
+    if(params.deathStatusContext)assertDeathStatusContextMatches(params.deathStatusRow??{...params.dateEventRow,message_code:canonical.messageCode,raw_payload:rawPayload},params.deathStatusContext)
+    for(const failure of validateProdatDeathStatus({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{deathStatus:params.deathStatusContext?.selection??params.deathStatus}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
+  }
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatMeterChange({code:canonical.messageCode??'',rawSegments,una,direction:'inbound',facts:{meterChange:params.meterChange}}))issues.push(issue({severity:failure.severity,code:failure.code,title:failure.title,description:failure.description}))
   if(params.mode==='parse'&&canonical.family==='PRODAT')for(const failure of validateProdatDateEvents({code:canonical.messageCode??'',rawSegments,una,direction:'inbound'}))issues.push(issue({severity:'error',code:failure.code,title:failure.title,description:failure.description}))
 
@@ -611,8 +632,13 @@ function validateEdifactPayload(params: {
     applicationReference: canonical.applicationReference,
     rawPayload,
     companyId: params.companyId,
+    ackSourceQualification: params.ackSourceQualification,
+    prodatCommonHeaderRejectionEvidence:params.prodatCommonHeaderRejectionEvidence,
+    deathStatusContext:params.deathStatusContext,deathStatusRow:params.deathStatusRow,customerMasterdataContext:params.customerMasterdataContext,customerMasterdataRow:params.customerMasterdataRow,validationPurpose:params.validationPurpose,customerMasterdataRenderingSource:params.customerMasterdataRenderingSource,
+    requestedChangeBasis:params.requestedChangeBasis,messageRow:params.requestedChangeRow,
+
     dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange,
-    ...(params.mode==='send'?{environment:params.dateEventRow?.environment,direction:params.dateEventRow?.direction}:{}),
+    ...(params.mode==='send'?{environment:params.ackSourceQualification||params.customerMasterdataRenderingSource?EdifactEnvelopeCodec.decode(rawPayload).environment:params.dateEventRow?.environment,direction:params.ackSourceQualification||params.customerMasterdataRenderingSource?'outbound':params.dateEventRow?.direction}:{}),
     mode: params.mode === 'send' ? 'send' : 'parse',
     parsedPayload: params.parsedPayload && typeof params.parsedPayload === 'object' && !Array.isArray(params.parsedPayload)
       ? params.parsedPayload as Record<string, unknown> : null,
@@ -674,7 +700,26 @@ function validateEdifactPayload(params: {
     if (tag === 'NAD' && canonical.family === 'PRODAT') continue
     const indices = tag === 'NAD' ? [2] : segment.elements.slice(1).map((_, index) => index + 1)
     for (const index of indices) {
-      const candidate = segmentComposite(segment, index, una)[0] ?? null
+      const parts=segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},index,una)
+      // Own IDE505 has an..35 admission. TN529/ACW525 copy the observed
+      // original (an..70), including an original invalid trailing space.
+      // A negative reply must not normalize or truncate that observation.
+      const physicalUtiltsId=tag==='IDE' && index===2 && ['UTILTS','UTILTS_ERR'].includes(canonical.family)
+      const copiedUtiltsId=tag==='RFF' && index===1 && ((canonical.family==='UTILTS_ERR' && parts[0]==='TN') ||
+        (canonical.family==='APERAK' && canonical.version==='E5SE5A' && parts[0]==='ACW'))
+      if(physicalUtiltsId) {
+        const reference=parts[0]
+        if(!isValidUtiltsTransactionReference(reference)) issues.push(issue({severity:'error',code:'UTILTS_PHYSICAL_TRANSACTION_REFERENCE_INVALID',
+          title:'Ogiltig fysisk UTILTS-transaktionsreferens',description:'Det egna fält505 ska behålla an..35 utan avslutande blanksteg eller styrtecken.',segment}))
+        continue
+      }
+      if(copiedUtiltsId){
+        const reference=parts[1]
+        if(typeof reference!=='string'||reference.length<1||reference.length>70||/[\x00-\x1f\x7f-\x9f\u0100-\uffff]/.test(reference))issues.push(issue({severity:'error',code:'UTILTS_COPIED_TRANSACTION_REFERENCE_INVALID',
+          title:'Ogiltig kopierad UTILTS-transaktionsreferens',description:'Fält529/525 återger originalet oförändrat som an..70 utan styrtecken eller tecken utanför UNOC.',segment}))
+        continue
+      }
+      const candidate = parts[0] ?? null
       if (candidate && /^[A-Za-z0-9ÅÄÖåäö _.-]{4,}$/.test(candidate)) {
         checkIdentifierCharacters({ issues, value: candidate, segment, label: `${tag} identifierare` })
       }
@@ -765,13 +810,24 @@ export function preflightEdielPayload(params: {
   dateEventContext?:ProdatDateEventValidationContext
   gasSerialChange?:GasSerialChangeSelection
   deathStatus?:DeathSelection
+  deathStatusContext?:DeathStatusValidationContext
+  requestedChangeBasis?:RequestedChangeBasis
+  requestedChangeRow?:EdielMessageRow
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  validationPurpose?:'render'|'outbound_original'|'send'
+  customerMasterdataRenderingSource?:CustomerMasterdataRenderingSource
+  customerMasterdataRow?:CustomerMasterdataSourceRow
+
+  deathStatusRow?:Parameters<typeof assertDeathStatusContextMatches>[0]
   meterChange?:MeterChangeSelection
   reportingContext?:ExpectedContext
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence
 }): EdielPayloadPreflightResult {
-  const rawPayload = String(params.rawPayload ?? '').trim()
+  const rawPayload = String(params.rawPayload ?? '')
   const payloadSizeBytes = new TextEncoder().encode(rawPayload).length
-  if (!rawPayload) {
+  if (!rawPayload.trim()) {
     return {
       ok: false,
       blocking: true,
@@ -796,27 +852,29 @@ export function preflightEdielPayload(params: {
 
   // Actual Z10 must reach its EDIFACT send boundary before caller format hints
   // can select XML/list early returns. Preserve ordinary syntax validation there.
-  if (params.mode === 'send' && (prodatFreeTextSendIssues({ raw_payload: rawPayload }).length > 0 || gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || meterChangeSendIssue({raw_payload:rawPayload}))) {
+  if (params.mode === 'send' && (prodatFreeTextSendIssues({ raw_payload: rawPayload }).length > 0 || gasApplicabilitySendIssue({raw_payload:rawPayload,parsed_payload:params.parsedPayload}) || deathStatusSendIssue(params.deathStatusRow??{...params.dateEventRow,raw_payload:rawPayload,parsed_payload:params.parsedPayload},params.deathStatusContext,params.requestedChangeBasis) || meterChangeSendIssue({raw_payload:rawPayload}))) {
     return validateEdifactPayload({...params,rawPayload,mode:'send'})
   }
   if (params.messageStandard === 'xml' || rawPayload.startsWith('<')) return validateXmlPayload(rawPayload, params.mimeType ?? null)
   const edifactDeclared = params.messageStandard === 'edifact' || rawPayload.startsWith('UNA')
   if (params.messageStandard === 'ai_list' || (!edifactDeclared && !rawPayload.includes("'") && rawPayload.includes(';'))) return validateListPayload(rawPayload)
-  return validateEdifactPayload({ rawPayload, mimeType: params.mimeType ?? null, mode: params.mode ?? 'parse', parsedPayload:params.parsedPayload,companyId:params.companyId,dateEventRow:params.dateEventRow,dateEventContext:params.dateEventContext,reportingContext:params.reportingContext,gasSerialChange:params.gasSerialChange,deathStatus:params.deathStatus,meterChange:params.meterChange })
+  return validateEdifactPayload({ ...params,rawPayload,mode:params.mode??'parse' })
 }
 
-export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext): EdielPayloadPreflightResult {
+export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' | 'parse' = 'send', dateEventContext?:ProdatDateEventValidationContext,reportingContext?:ExpectedContext,ackSourceQualification?:SourceQualifiedOutboundAck,deathStatusContext?:DeathStatusValidationContext,prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence,customerMasterdataContext?:CustomerMasterdataValidationContext,requestedChangeBasis?:RequestedChangeBasis): EdielPayloadPreflightResult {
+
   const result = preflightEdielPayload({
     rawPayload: message.raw_payload,
     mimeType: message.mime_type,
     messageStandard: message.message_standard,
     mode,
     parsedPayload:message.parsed_payload,
-    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,
+    companyId:message.company_id,dateEventRow:message,dateEventContext,reportingContext,ackSourceQualification,deathStatusContext,deathStatusRow:message,prodatCommonHeaderRejectionEvidence,customerMasterdataContext,customerMasterdataRow:message,validationPurpose:'send',requestedChangeBasis,requestedChangeRow:message,
+
   })
   const gasBoundary=mode==='send'?gasApplicabilitySendIssue(message):null
   if(gasBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${gasBoundary.code}`,title:gasBoundary.title,description:gasBoundary.description}));result.ok=false;result.blocking=true}
-  const deathBoundary=mode==='send'?deathStatusSendIssue(message):null
+  const deathBoundary=mode==='send'?deathStatusSendIssue(message,deathStatusContext,requestedChangeBasis):null
   if(deathBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${deathBoundary.code}`,title:deathBoundary.title,description:deathBoundary.description}));result.ok=false;result.blocking=true}
   const meterBoundary=mode==='send'?meterChangeSendIssue(message):null
   if(meterBoundary){result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${meterBoundary.code}`,title:meterBoundary.title,description:meterBoundary.description}));result.ok=false;result.blocking=true}
@@ -840,7 +898,14 @@ export function preflightEdielMessageRow(message: EdielMessageRow, mode: 'send' 
         result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
       }
     }
-    const facts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    let sourceFacts = mode === 'send' ? readProdatRegisterEvidence({dateEventRow:message,dateEventContext,reportingContext,customerMasterdataContext,code,rawSegments,una:tokens.una,parsedPayload:message.parsed_payload,companyId:message.company_id,runId:typeof message.parsed_payload?.testRunId==='string'?message.parsed_payload.testRunId:null,stepNo:typeof message.parsed_payload?.stepNo==='number'?message.parsed_payload.stepNo:null}) : undefined
+    if(requestedChangeBasis){
+      if(!isRequestedChangeBasisQualified(requestedChangeBasis,message))throw Error('requested_change_protected_basis_scope_invalid')
+      sourceFacts={...sourceFacts,...requestedChangeRegisterFacts(requestedChangeBasis),deathStatus:requestedChangeWireDeathSelection(requestedChangeBasis,message.raw_payload)}
+    }
+
+    if(deathStatusContext)assertDeathStatusContextMatches(message,deathStatusContext)
+    const facts=deathStatusContext?{...sourceFacts,deathStatus:deathStatusContext.selection,businessContext:deathStatusContext.businessContext}:sourceFacts
     if(mode==='send')for(const failure of validateProdatReportingPermission({code,rawSegments,una:tokens.una,facts,requireAuthority:true,reportingContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatDateEvents({code,rawSegments,una:tokens.una,facts,requireAuthority:true,dateEventContext}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))
     if(mode==='send')for(const failure of validateProdatInvoicee({code,rawSegments,una:tokens.una,facts}))result.issues.push(issue({severity:'error',code:`PRODAT_DEPENDENT_PREFLIGHT_${failure.code}`,title:failure.title,description:failure.description}))

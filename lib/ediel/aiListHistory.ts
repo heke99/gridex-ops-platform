@@ -4,6 +4,8 @@ import {parseProdatMessage,parsedProdatObjects} from '@/lib/ediel/prodat/parser'
 import {prodatMarketMinuteToUtc,prodatNowDate203} from '@/lib/ediel/prodat/render/dates'
 import {selectStructuralSources} from '@/lib/ediel/sources/structuralSourceSelection'
 import {reviewedBusinessFor,type StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import type {CustomerLifeEventPatch} from '@/lib/ediel/production/customerLifeEventPatches'
+import {composeAiListCustomerEpochs} from '@/lib/ediel/aiListCustomerEpochs'
 import {isConfirmedCustomerHistoryQualified,type ConfirmedCustomerHistory} from '@/lib/ediel/production/confirmedCustomerHistory'
 
 export type AiListSupplyPeriod={id:string;company_id:string;customer_id:string;metering_point_id:string;start_date:string;end_date:string|null;actual_start_date?:string|null;actual_end_date?:string|null}
@@ -18,7 +20,8 @@ const min=(a:string,b:string)=>a<b?a:b
 /** Pure dated projection, not an approval capability. The server consumer opens
  * the existing service-owned immutable snapshot only after tenant/site access.
  * Mutable today's site/customer/meter fields never manufacture historical rows. */
-export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly AiListSupplyPeriod[],readset:StructuralReadset,customerHistory?:ConfirmedCustomerHistory):AiListHistoricalProjection {
+export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly AiListSupplyPeriod[],readset:StructuralReadset,customerHistory?:ConfirmedCustomerHistory|readonly CustomerLifeEventPatch[],customerPatches?:readonly CustomerLifeEventPatch[]):AiListHistoricalProjection {
+  const patches:readonly CustomerLifeEventPatch[]=Array.isArray(customerHistory)?customerHistory:customerPatches??[]
   const from=aiListDate(scope.fromDate),to=aiListDate(scope.toDate)
   if(from>=to)hold('search_period_invalid')
   const timeline=readset.timeline
@@ -51,7 +54,8 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
       &&version.wire.legalSender===scope.legalNetwork&&version.wire.legalReceiver===scope.legalSupplier&&version.wire.businessCase==='customer_only'
       &&version.disposition!=='rejected'&&(version.wire.functionCode==='5'||version.wire.effectiveFrom.utc>=first.coverage!.validFrom&&version.wire.effectiveFrom.utc<endUtc))
     for(const version of sameFacet){
-      if(version.wire.functionCode!=='9'||customerFacets.filter(row=>row.sourceMessageId===version.sourceMessageId&&row.payloadHash===version.payloadHash&&row.marketMinute===version.wire.effectiveFrom.marketMinute&&Date.parse(row.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1)hold('dated_customer_change_owner_missing')
+      if(version.wire.functionCode!=='9'||customerFacets.filter(row=>row.sourceMessageId===version.sourceMessageId&&row.payloadHash===version.payloadHash&&row.marketMinute===version.wire.effectiveFrom.marketMinute&&Date.parse(row.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1
+       &&patches.filter(patch=>patch.sourceMessageId===version.sourceMessageId&&patch.sourcePayloadHash===version.payloadHash&&Date.parse(patch.effectiveAt)===Date.parse(version.wire.effectiveFrom.utc)).length!==1)hold('dated_customer_change_owner_missing')
     }
     if(customerFacets.some(row=>!sameFacet.some(version=>version.sourceMessageId===row.sourceMessageId)&&row.marketMinute>=minuteForDay(periodFrom)&&row.marketMinute<minuteForDay(end)))hold('dated_customer_facet_source_missing')
     if(customerFacets.some(row=>row.marketMinute.slice(8)!=='0000')||new Set(customerFacets.map(row=>row.marketMinute)).size!==customerFacets.length)hold('date_only_customer_boundary_unrepresentable')
@@ -87,12 +91,22 @@ export function projectAiListHistory(scope:AiListHistoryScope,periods:readonly A
       for(let part=0;part<boundaries.length-1;part++){
        const rowStart=boundaries[part],rowEnd=boundaries[part+1],facet=customerFacets.filter(row=>row.marketMinute<=minuteForDay(rowStart)).at(-1)
        if(facet&&facet.party.id!==customer.endUserId&&!(facet.authorityKind==='bilateral'&&facet.identityChangeAuthorized===true))hold('dated_customer_identity_transition_unqualified')
-       rowSources.push({sourceMessageId:state.sourceMessageId,baselineSourceMessageId:baseline.sourceMessageId,addressSourceMessageId,supplyPeriodId:period.id,...(facet?{customerSourceMessageId:facet.sourceMessageId}:{})})
-       details.push({anlaggningsId:object.objectId!,kodlista:object.identityAgency!,natavrakningsomrade:parsed.gridAreaId,
-        balansansvarsId:parsed.balanceResponsibleId,elanvandarId:facet?.party.id??customer.endUserId,elanvandarNamn:facet?.party.name??customer.endUserName,
-        anlaggningsAdress:previous.installationAddress,postnummer:previous.installationPostcode,ort:previous.installationCity,
-        franDatum:rowStart===from?null:rowStart,tillDatum:rowEnd===to?null:rowEnd,
-        matarNummer:null,avrakningsmetod:null,arsforbrukningKwh:null,rapporteringsfrekvens:null,matmetod:null,produktkod:null})
+       // Independent deltas after this fully qualified customer facet compose
+       // over its actual identity/name. Earlier deltas cannot overwrite a later
+       // confirmed/bilateral full facet. Both producer paths retain their own
+       // final native whole-row checks; this pure projection grants no authority.
+       const epochPatches=facet?patches.filter(patch=>Date.parse(patch.effectiveAt)>Date.parse(facet.effectiveAt)):patches
+       const epochs=composeAiListCustomerEpochs({baselineId:facet?.party.id??customer.endUserId,baselineName:facet?.party.name??customer.endUserName,
+        baselineFrom:facet?.marketMinute.slice(0,8)??periodFrom,from:rowStart,to:rowEnd,cutoff:scope.cutoffAt,patches:epochPatches})
+       for(const epoch of epochs){
+        rowSources.push({sourceMessageId:state.sourceMessageId,baselineSourceMessageId:baseline.sourceMessageId,addressSourceMessageId,supplyPeriodId:period.id,...(facet?{customerSourceMessageId:facet.sourceMessageId}:{})})
+        details.push({anlaggningsId:object.objectId!,kodlista:object.identityAgency!,natavrakningsomrade:parsed.gridAreaId,
+         balansansvarsId:parsed.balanceResponsibleId,elanvandarId:epoch.identity,elanvandarNamn:epoch.name,
+         anlaggningsAdress:previous.installationAddress,postnummer:previous.installationPostcode,ort:previous.installationCity,
+         franDatum:epoch.from===from?null:epoch.from,tillDatum:epoch.to===to?null:epoch.to,
+         matarNummer:null,avrakningsmetod:null,arsforbrukningKwh:null,rapporteringsfrekvens:null,matmetod:null,produktkod:null})
+        epoch.sourceMessageIds.forEach(id=>sourceIds.add(id))
+       }
        if(facet)sourceIds.add(facet.sourceMessageId)
       }
       sourceIds.add(state.sourceMessageId)

@@ -6,6 +6,8 @@ import {PRODAT_APERAK_FIELD_NAMES,PRODAT_APERAK_APPLICATION_TEXTS,prodatAperakFi
 import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {utiltsErrSourceCopyViolations} from '@/lib/ediel/utilts/errSourceCopy'
 import {UTILTS_HEADER_IDENTITY_GUIDE_CONSTRAINTS,validUtiltsLegalIdentity} from '@/lib/ediel/utilts/headerIdentityGuide'
+import {UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY} from './utilts25A4'
+import {canonicalRegisteredEdielGuideScopes} from './canonicalEdielFacade'
 
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 /** Source projection port for native admission. The TS guide consumer below
@@ -13,7 +15,7 @@ import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAu
  * and edition and must not interpret this table as approval of original data. */
 export const CANONICAL_ACK_GUIDE_CONSTRAINTS=Object.freeze({
  version:1,common:Object.freeze({documentDate:Object.freeze({qualifier:'137',format:'203',pattern:'^[0-9]{12}$'}),positiveText:'OK'}),
- PRODAT:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','96A','UN','E2SE6A']),allowedErc:Object.freeze(['100','40','41','42']),allowedFunctions:Object.freeze(['27','34']),legalAgency:'SVK',legalQualifier:'160',countryPattern:'^[A-Z]{2}$',missingSuffix:' saknas',missingCustomerPrefix:' saknas, kundid',invalidPrefix:'Felaktigt ',agency:'260',textQualifier:'AAO',textMax:70,fieldReferenceMax:3,fieldLabels:Object.freeze(Object.fromEntries(Object.keys(PRODAT_APERAK_FIELD_NAMES).map(key=>[key,prodatAperakFieldWireLabel(key)]))),applicationTexts:PRODAT_APERAK_APPLICATION_TEXTS,source:Object.freeze({id:'P',sections:Object.freeze(['3.3','3.4','3.5']),pages:Object.freeze([89,105]),availableBasis:'authenticated_original_page_excerpt'})}),
+ PRODAT:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','96A','UN','E2SE6A']),allowedErc:Object.freeze(['100','40','41','42']),allowedFunctions:Object.freeze(['27','34']),unusedDocumentElements:Object.freeze([1,2]),legalAgency:'SVK',legalQualifier:'160',countryPattern:'^[A-Z]{2}$',missingSuffix:' saknas',missingCustomerPrefix:' saknas, kundid',invalidPrefix:'Felaktigt ',agency:'260',textQualifier:'AAO',textMax:70,fieldReferenceMax:3,fieldLabels:Object.freeze(Object.fromEntries(Object.keys(PRODAT_APERAK_FIELD_NAMES).map(key=>[key,prodatAperakFieldWireLabel(key)]))),applicationTexts:PRODAT_APERAK_APPLICATION_TEXTS,source:Object.freeze({id:'P',sections:Object.freeze(['3.3','3.4','3.5']),pages:Object.freeze([89,105]),availableBasis:'authenticated_original_page_excerpt'})}),
  UTILTS:Object.freeze({technicalProfile:Object.freeze(['APERAK','D','04A','UN','E5SE5A']),allowedErc:Object.freeze(['100','41','42']),allowedDocumentStatuses:Object.freeze(['312','313']),messageFunction:'9',documentIdMax:35,fixedOffset:Object.freeze(['735','+0100','406']),legalAgencies:Object.freeze(['260','9','305']),svkAgency:'260',svkQualifier:'SVK',agency:'260',textQualifier:'AAO',textMax:512,fieldReferenceMax:17,ownDmMax:70,originalAcwMax:70,missingText:'MANDATORY FIELD MISSING',invalidTextPattern:'^INCORRECT DATA .+$',source:Object.freeze({id:'U',sections:Object.freeze(['5.3','5.4','5.5']),pages:Object.freeze([108,119]),availableBasis:'authentic_original'})}),
  CONTRL:Object.freeze({technicalProfile:Object.freeze(['CONTRL','2','2','UN']),optionalAssociation:'EDIEL2',allowedActions:Object.freeze(['1','4']),forbiddenSegments:Object.freeze(['BGM','DOC','ERC','FTX','RFF','NAD']),originalUciMax:14,source:Object.freeze({id:'T',section:'2.1',availableBasis:'frozen_authenticated_contract'})}),
 })
@@ -33,6 +35,25 @@ export const CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS=Object.freeze({
  forbiddenSegments:Object.freeze(['ERC','FTX','DOC','LIN','SEQ','QTY','MEA','CCI','CAV']),
  source:Object.freeze({id:'U',section:'3.7.4',pages:Object.freeze([66,68]),reasonField:'531',validityPages:Object.freeze([122,126]),availableBasis:'authentic_original'}),
 })
+/** Authentic prior U SHA fad5cf4f... p131 field531 includes E19; p138
+ * describes its own meter-reading comparison. The existing dated overlay
+ * removes E19. A reply inherits the original guide, rather than its send date.
+ * Native consumers project this same data against protected named originals. */
+export const CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES=Object.freeze(canonicalRegisteredEdielGuideScopes()
+ .filter(scope=>scope.family==='UTILTS').map(scope=>{
+  const processability=[UTILTS_25_A_3_POLICY,UTILTS_25_A_4_POLICY].find(policy=>policy.guideRevision===scope.canonicalGuideRevision)
+  if(!processability)throw new Error('canonical_err_reason_guide_scope_unavailable')
+  const base=[...CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS.allowedReasons,...UTILTS_25_A_4_POLICY.removedRejectionReasonCodes]
+  return Object.freeze({...scope,allowedReasons:Object.freeze(base.filter(reason=>!processability.removedRejectionReasonCodes.includes(reason))),
+   source:Object.freeze({document:processability.source.document,sha256:processability.structuralComparisonSource.sha256,
+    field:'531',pages:Object.freeze(processability===UTILTS_25_A_3_POLICY?[131,138]:[126,132])})})
+ }))
+export function canonicalUtiltsErrReasonsForPolicy(policy:CanonicalEdielPolicy):readonly string[]|null {
+ if(policy.family!=='UTILTS_ERR')return null
+ const scope=CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.find(scope=>scope.canonicalGuideRevision===policy.guide.guideRevision
+  &&scope.associationAssignedCode===policy.associationAssignedCode)
+ return scope?.allowedReasons??null
+}
 type Wire=ReturnType<typeof tokenizeEdifact>
 const equal=(a:readonly string[],b:readonly string[])=>JSON.stringify(a)===JSON.stringify(b)
 function value(wire:Wire,segment:EdifactTokenizedSegment | undefined,index:number){return segmentComposite(segment,index,wire.una)[0] ?? ''}
@@ -66,6 +87,8 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
  }
  if(input.policy.family==='UTILTS_ERR'){
   const cfg=CANONICAL_UTILTS_ERR_GUIDE_CONSTRAINTS
+  const allowedReasons=canonicalUtiltsErrReasonsForPolicy(input.policy)
+  if(!allowedReasons)add('ACK_UTILTS_ERR_ORIGINAL_GUIDE_UNQUALIFIED','ERR ska använda en styrkt originalanvisnings avvisningsorsaker.','STS/531')
   if(!equal(type,[...cfg.technicalProfile.slice(0,4),input.policy.associationAssignedCode??'']))add('ACK_UTILTS_ERR_PROFILE_INVALID','UTILTS-ERR ska använda det faktiska originalets tekniska UTILTS-version.','UNH/S009')
   const bgms=all('BGM'),bgm=bgms[0],name=segmentComposite(bgm,1,wire.una),id=segmentComposite(bgm,2,wire.una)
   if(bgms.length!==1||name[0]!==cfg.documentCode||name[2]!==cfg.documentAgency||!cfg.optionalDocumentCodeLists.includes(name[1]??'')||name.slice(3).some(Boolean))add('ACK_UTILTS_ERR_DOCUMENT_CODE_INVALID','UTILTS-ERR ska ha dokumentnamn ERR och kodlistansvarig260.','BGM/202')
@@ -90,7 +113,9 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   for(const group of groups){
    const own=segmentComposite(group[0],2,wire.una),responses=group.filter(t=>t.tag==='STS'&&value(wire,t,1)===cfg.responseQualifier),response=responses[0],status=segmentComposite(response,2,wire.una),reason=segmentComposite(response,3,wire.una),tn=references(wire,group,cfg.referenceQualifier)
    if(value(wire,group[0],1)!==cfg.transactionQualifier||!own[0]||own[0].length>cfg.ownTransactionIdMax||own.length!==1||ids.includes(own[0]))add('ACK_UTILTS_ERR_OWN_TRANSACTION_INVALID','ERR-transaktionsnumret ska vara eget och unikt.','IDE/505');ids.push(own[0]??'')
-   if(responses.length!==1||!equal(segmentComposite(response,1,wire.una),[cfg.responseQualifier,'',cfg.agency])||!equal(status,[cfg.responseStatus])||!cfg.allowedReasons.includes(reason[0]??'')||!equal(reason,[reason[0]??'','',cfg.agency])||response?.elements.slice(4).some(Boolean))add('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID','ERR ska ange STS41 och en faktisk nationell avvisningsorsak med kodlistansvarig260.','STS/528/531')
+   const reasonFormValid=responses.length===1&&equal(segmentComposite(response,1,wire.una),[cfg.responseQualifier,'',cfg.agency])&&equal(status,[cfg.responseStatus])&&equal(reason,[reason[0]??'','',cfg.agency])&&!response?.elements.slice(4).some(Boolean)
+   if(!reasonFormValid||!CANONICAL_UTILTS_ERR_REASON_GUIDE_SCOPES.some(scope=>scope.allowedReasons.includes(reason[0]??'')))add('ACK_UTILTS_ERR_NATIONAL_REASON_INVALID','ERR ska ange STS41 och en faktisk nationell avvisningsorsak med kodlistansvarig260.','STS/528/531')
+   else if(!allowedReasons?.includes(reason[0]??''))add('ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED','Avvisningsorsaken kräver en styrkt tillämplig originalanvisning.','STS/531')
    if(!one(tn)||tn[0].length>cfg.originalTransactionIdMax||group.filter(t=>t.tag==='RFF'&&value(wire,t,1)===cfg.referenceQualifier).some(t=>segmentComposite(t,1,wire.una).length!==2))add('ACK_UTILTS_ERR_ORIGINAL_TRANSACTION_INVALID','ERR ska referera exakt ett fullständigt transaktionsnummer i originalet.','RFF/529')
    const scope=`${tn[0]??''}|${reason[0]??''}`;if(scopes.includes(scope))add('ACK_UTILTS_ERR_OWN_RESPONSE_DUPLICATE','Samma ursprungstransaktion och avvisningsorsak får inte dupliceras.','RFF/529');scopes.push(scope)
    const docs=group.filter(t=>t.tag==='RFF'&&cfg.originalMessageCodes.includes(value(wire,t,1)))
@@ -146,7 +171,12 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   const id=segmentComposite(bgm,2,wire.una)
   if(!id[0]||id[0].length>CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.documentIdMax||id.slice(1).some(Boolean))add('ACK_UTILTS_DOCUMENT_ID_INVALID','APERAK ska ha sitt eget oförändrade meddelande-id.','BGM/A203')
   if(value(wire,bgm,3)!==CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.messageFunction||segmentComposite(bgm,4,wire.una).some(Boolean))add('ACK_UTILTS_MESSAGE_FUNCTION_INVALID','UTILTS-APERAK meddelandefunktion ska vara 9 och kvittensbegäran ska utelämnas.','BGM/A204')
- }else if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.allowedFunctions.includes(value(wire,bgm,3)))add('ACK_PRODAT_MESSAGE_FUNCTION_INVALID','PRODAT-APERAK meddelandefunktion ska vara 27 eller 34.','BGM/A204')
+ }else{
+  if(!CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.allowedFunctions.includes(value(wire,bgm,3)))add('ACK_PRODAT_MESSAGE_FUNCTION_INVALID','PRODAT-APERAK meddelandefunktion ska vara 27 eller 34.','BGM/A204')
+  // Frozen ACK-10, P16.B pp98–100: 1001/1004 are unused; 1225 is
+  // the function. A technical UNH/archive identity is not a BGM document id.
+  if(CANONICAL_ACK_GUIDE_CONSTRAINTS.PRODAT.unusedDocumentElements.some(index=>segmentComposite(bgm,index,wire.una).some(Boolean)))add('ACK_PRODAT_UNUSED_DOCUMENT_ELEMENT','PRODAT-APERAK BGM/1001 och BGM/1004 ska utelämnas.','BGM/1001/1004')
+ }
  const dates=all('DTM').filter(t=>value(wire,t,1)===CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate.qualifier)
  if(dates.length!==1||segmentComposite(dates[0],1,wire.una)[2]!==CANONICAL_ACK_GUIDE_CONSTRAINTS.common.documentDate.format||!dateTime(segmentComposite(dates[0],1,wire.una)[1]??''))add('ACK_APERAK_DOCUMENT_DATE_INVALID','APERAK ska innehålla ett giltigt eget meddelandedatum.','DTM/A205')
  if(utilts){const offsets=all('DTM').filter(t=>value(wire,t,1)==='735');if(offsets.length!==1||!equal(segmentComposite(offsets[0],1,wire.una),CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS.fixedOffset))add('ACK_UTILTS_TIME_OFFSET_INVALID','UTILTS-APERAK ska ange den svenska fasta tidszonen.','DTM/A206')}
@@ -200,16 +230,21 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   }else{
    if(one(references(wire,header,'ACW'))!==value(source,sourceBgm,2))add('ACK_PRODAT_ORIGINAL_DOCUMENT_MISMATCH','ACW ska kopiera ursprungligt BGM/1004.','RFF/A255')
    const objects=prodatRegisterGroups(source.segments,source.una,value(source,sourceBgm,1)).groups.filter(object=>object.registerPosition===1)
-   const answered=new Set<string>()
+   // P pp85–87, authenticated original relevant-page excerpt, permits replies
+   // per own installation in multiple APERAK messages.
+   // Native immutable own response receipts qualify each actual final scope;
+   // siblings omitted from this wire cannot be inferred accepted or rejected.
+   const outcomes=new Map<number,boolean>()
    for(const group of groups){
     const li=one(references(wire,group,'LI')),objectId=one(references(wire,group,'Z07')),matches=objects.filter(object=>li?references(source,object.segments,'LI').includes(li):objectId?value(source,object.segments[0],3)===objectId:false)
     if(functionCode==='27'&&!li&&!objectId)continue
     if(matches.length!==1){add('ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH','ERC ska avse en entydig egen anläggning i ursprungsmeddelandet.','RFF/A209/A226');continue}
     const original=matches[0],physicalId=segmentComposite(original.segments[0],3,source.una)[0]??'',originalLi=one(references(source,original.segments,'LI'))
     if(originalLi!==li||(physicalId&&objectId!==physicalId&&!(value(wire,group[0],1)==='100'&&value(source,sourceBgm,1)==='Z13')))add('ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH','Kända ursprungliga objekt- och ärendereferenser ska kopieras utan syskonbyte.','RFF/A209/A226')
-    answered.add(String(original.lineIndex))
+    const positive=value(wire,group[0],1)==='100',prior=outcomes.get(original.lineIndex)
+    if(prior!==undefined&&prior!==positive)add('ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT','Samma ursprungliga anläggning får inte samtidigt godkännas och avvisas.','ERC')
+    outcomes.set(original.lineIndex,positive)
    }
-   if(functionCode==='34'&&objects.some(object=>!answered.has(String(object.lineIndex))))add('ACK_PRODAT_OBJECT_OUTCOME_MISSING','Ett bearbetat PRODAT ska besvaras för varje egen anläggning i samma APERAK.','ERC')
   }
   for(const [own,opposite] of utilts?[['MS','MR'],['MR','MS']]:[['FR','DO'],['DO','FR']]){
    const original=sourceHeader.filter(t=>t.tag==='NAD'&&value(source,t,1)===opposite),actual=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===own)

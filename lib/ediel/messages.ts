@@ -1,6 +1,9 @@
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { buildEdielInterchangeReference } from '@/lib/ediel/references'
 import { preflightEdielPayload, type EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import type {SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
+import {bindCustomerMasterdataRenderingSource} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 
 type BuildEdifactEnvelopeInput = {
   senderEdielId: string
@@ -17,6 +20,8 @@ type BuildEdifactEnvelopeInput = {
   messageTypeToken: string
   segments: string[]
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  customerMasterdataProjection?: SourceQualifiedCustomerMasterdataProjection
   parsedPayload?: Record<string, unknown> | null
 }
 
@@ -57,6 +62,11 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     messageStandard: 'edifact',
     mode: 'send',
     companyId: input.companyId,
+    ackSourceQualification: input.ackSourceQualification,
+    validationPurpose:'render',
+    ...(input.customerMasterdataProjection?{customerMasterdataRenderingSource:bindCustomerMasterdataRenderingSource({
+      projection:input.customerMasterdataProjection,companyId:input.companyId??'',rawPayload:raw,
+      environment:EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testFlag)})}:{}),
     parsedPayload: input.parsedPayload,
   })
   if (preflight.blocking) {

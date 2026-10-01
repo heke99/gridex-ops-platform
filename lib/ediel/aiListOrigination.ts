@@ -2,11 +2,15 @@ import {supabaseService} from '@/lib/supabase/service'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {resolveCanonicalTenantEdielIdentityWithEvidence} from '@/lib/ediel/tenant/tenantEdielIdentity'
 import {projectAiListHistory,type AiListSupplyPeriod} from '@/lib/ediel/aiListHistory'
-import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
+import {inspectStructuralReadset,reviewedBusinessFor} from '@/lib/ediel/sources/structuralSourceReadset'
 import {getGridOwnerById} from '@/lib/masterdata/db'
 import type {CustomerSiteRow} from '@/lib/masterdata/types'
 import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 import {readConfirmedCustomerHistory} from '@/lib/ediel/production/confirmedCustomerHistory'
+import {requireAiListAppliedHistory} from '@/lib/ediel/aiListAppliedHistory'
+import {readCustomerLifeEventPatches} from '@/lib/ediel/production/customerLifeEventPatches'
+import {aiListDate} from '@/lib/ediel/aiListFormat'
+import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 
 export type AiListOriginRequest={companyId:string;actorUserId:string;environment:'test'|'production';customerId:string;siteId:string;meteringPointId?:string|null;fromDate:string;toDate:string}
 export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>){
@@ -32,7 +36,16 @@ export async function loadAiListOriginBasis(input:AiListOriginRequest,route:Awai
  if(snapshotError)throw new Error('ai_list_source_history_read_unconfirmed')
  const scope={...input,legalSupplier:tenant.identity.legalEdielId,legalNetwork:gridOwner.ediel_id,cutoffAt},readset=inspectStructuralReadset({companyId:input.companyId,environment:input.environment,cutoffAt},snapshot)
  const customers=await readConfirmedCustomerHistory({scope,actorUserId:input.actorUserId,readset})
- const history=projectAiListHistory(scope,(periods??[]) as AiListSupplyPeriod[],readset,customers)
+ const relevantPeriods=new Set((periods??[]).filter(period=>aiListDate(period.actual_start_date??period.start_date)<aiListDate(input.toDate)
+  &&(!(period.actual_end_date??period.end_date)||aiListDate(period.actual_end_date??period.end_date)>aiListDate(input.fromDate))).map(period=>period.id))
+ // This is only a bound for reading the SAME customer's actual source deltas.
+ // The existing dated structural owner below qualifies each baseline/period.
+ const baselineStarts=readset.versions.filter(version=>version.wire.businessCase==='supply_baseline'&&version.coverage&&relevantPeriods.has(version.coverage.supplyPeriodId)
+  &&reviewedBusinessFor(readset,version.sourceMessageId,version.wire.object)?.siteId===input.siteId).map(version=>version.wire.effectiveFrom.utc).sort()
+ const patches=baselineStarts.length?await readCustomerLifeEventPatches({companyId:input.companyId,customerId:input.customerId,actorUserId:input.actorUserId,
+  from:baselineStarts[0],to:prodatMarketMinuteToUtc(`${aiListDate(input.toDate)}0000`)!,cutoff:cutoffAt}):[]
+ const history=projectAiListHistory(scope,(periods??[]) as AiListSupplyPeriod[],readset,customers,patches)
+ await requireAiListAppliedHistory({actorUserId:input.actorUserId,scope,history,readset})
  return {request:input,site,history,gridOwner}
 }
 

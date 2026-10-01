@@ -138,21 +138,21 @@ it.each([
   expect(JSON.stringify(report)).not.toMatch(/source-1|SECOND-PRIVATE|OTHER-TENANT/)
 })
 it('accepts the same receipt instant in a different offset, retaining the incoming SELECT literal', async () => {
-  incoming.message_received_at = '2026-09-30T22:00:00.000002+02:00'
+  incoming = { ...incoming, message_received_at: '2026-09-30T22:00:00.000002+02:00' }
   rows[0].message_received_at = '2026-06-20T11:00:00.000001+02:00'
   rows[0].received_prodat_context = context(rows[0], { sourceReceivedAt: '2026-06-20T09:00:00.000001Z' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
   expect(queryCalls).toContainEqual(['lte', 'message_received_at', '2026-09-30T22:00:00.000002+02:00'])
 })
 it.each(['2026-09-30T20:00:00.000002Z', '2026-09-30T22:00:00.000002+02:00'])('does not claim a receive context existed at the UTILTS cutoff when it was captured later: %s', async capturedAt => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = { ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' }
   rows[0].received_prodat_context = context(rows[0], { capturedAt })
   const result = await run()
   expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
   assertNoSourceData(result)
 })
 it('allows equality at the capture cutoff to microsecond precision', async () => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = { ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' }
   rows[0].received_prodat_context = context(rows[0], { capturedAt: '2026-09-30T22:00:00.000001+02:00' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
 })

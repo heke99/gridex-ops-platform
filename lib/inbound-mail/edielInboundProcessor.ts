@@ -1,3 +1,4 @@
+import { InboundReceptionHeldError } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
 import { parseDeliveryStatusReport } from './dsnDisposition'
@@ -314,37 +315,56 @@ export async function processInboundEmailMessage(input: {
   const safeMatch = outboundMatch.status === 'matched'
   const matchStatus = safeMatch ? 'matched' : outboundMatch.status
 
-  if (safeMatch) {
-    await applySafeInboundStatusUpdate({
-      companyId: tenant.companyId,
-      environment,
-      parsed,
-      outboundMatch,
-      meteringPointMatch,
-      inboundEmailMessageId: input.inboundEmailMessageId,
-      parseResultId,
-      actorUserId: input.actorUserId ?? null,
-      tenantResolution: tenant.shared,
-    })
-  } else {
-    await createInboundEdielMessage({
-      companyId: tenant.companyId,
-      environment,
-      inboundEmailMessageId: input.inboundEmailMessageId,
-      parseResultId,
-      parsed,
-      outboundMatch,
-      meteringPointMatch,
-      tenantResolution: tenant.shared,
-    })
+  try {
+    if (safeMatch) {
+      await applySafeInboundStatusUpdate({
+        companyId: tenant.companyId,
+        environment,
+        parsed,
+        outboundMatch,
+        meteringPointMatch,
+        inboundEmailMessageId: input.inboundEmailMessageId,
+        parseResultId,
+        actorUserId: input.actorUserId ?? null,
+        tenantResolution: tenant.shared,
+      })
+    } else {
+      await createInboundEdielMessage({
+        actorUserId: input.actorUserId,
+        companyId: tenant.companyId,
+        environment,
+        inboundEmailMessageId: input.inboundEmailMessageId,
+        parseResultId,
+        parsed,
+        outboundMatch,
+        meteringPointMatch,
+        tenantResolution: tenant.shared,
+      })
 
+      await createInboundMailTask({
+        companyId: tenant.companyId,
+        title: 'Inkommande Ediel-mail kräver manuell matchning',
+        description: outboundMatch.reasons.join('\n'),
+        metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+        actorUserId: input.actorUserId ?? null,
+      })
+    }
+  } catch (error) {
+    if (!(error instanceof InboundReceptionHeldError)) throw error
+    const receipt = error.reception
+    // The native receipt/request and NEW mail hold already committed. The old
+    // canonical original, first validation and ACK are deliberately untouched.
+    const matchedCustomer = outboundMatch.candidates?.[0]?.customer_id ?? meteringPointMatch.candidates?.[0]?.customer_id
     await createInboundMailTask({
       companyId: tenant.companyId,
-      title: 'Inkommande Ediel-mail kräver manuell matchning',
-      description: outboundMatch.reasons.join('\n'),
-      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+      customerId: typeof matchedCustomer === 'string' ? matchedCustomer : null,
+      title: 'Ny Ediel-mottagning väntar på källbelagt dubblettsvar',
+      description: receipt.reason,
+      taskType: 'ediel_duplicate_response_held',
+      metadata: { sourceId: receipt.responseRequestId, reception: receipt, inboundEmailMessageId: input.inboundEmailMessageId, parseResultId },
       actorUserId: input.actorUserId ?? null,
     })
+    return { status: 'manual_review', companyId: tenant.companyId, parseResultId }
   }
 
   await updateInboundEmailProcessingStatus({

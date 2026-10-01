@@ -6,8 +6,10 @@ import { buildSafeMasterdataProposal, type EdielMasterdataChangeProposal } from 
 import { supabaseService } from '@/lib/supabase/service'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import {applyConfirmedCustomerSource,isConfirmedCustomerSourceCandidate} from '@/lib/ediel/production/confirmedCustomerSource'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
 
-export type EdielSafeApplyReviewStatus = 'pending' | 'applied' | 'rejected' | 'no_changes'
+export type EdielSafeApplyReviewStatus = 'pending' | 'partially_applied' | 'applied' | 'rejected' | 'no_changes'
 
 export type EdielSafeApplyReviewItem = {
   message: EdielMessageRow
@@ -16,6 +18,7 @@ export type EdielSafeApplyReviewItem = {
   latestEvent: EdielMessageEventRow | null
   decisionEvent: EdielMessageEventRow | null
   summary: string
+  objectScopes: Array<{lineIndex:number;objectId:string|null;identityAgency:string|null;applicationDecision:'accepted'|'rejected'|'held';applied:boolean}>
 }
 
 export type EdielSafeApplyDecisionResult = {
@@ -105,8 +108,22 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
     const decision = decisionEvent ? eventDecision(decisionEvent) : null
     const eventChanges = getProposalChangesFromEvent(latestProposalEvent)
     const changes = eventChanges.length > 0 ? eventChanges : await buildSafeMasterdataProposal(message)
+    // This list is a read projection of the protected complete invocation and
+    // committed primary receipts. Proposal diffs do not authorize application.
+    const application=message.company_id&&message.raw_payload?await readReceivedProdatApplicationObjects({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload}):null
+    let committed:Awaited<ReturnType<typeof readReceivedProdatFinalResponsePlan>>=null
+    if(application&&message.company_id&&message.raw_payload){
+      try{committed=await readReceivedProdatFinalResponsePlan({companyId:message.company_id,sourceMessageId:message.id,rawPayload:message.raw_payload})}
+      catch{/* Missing protected receipt keeps the scope explicitly unconfirmed. */}
+    }
+    const applied=new Set(committed?.plans.flatMap(plan=>[...plan.objectLineIndices])??[])
+    const objectScopes=application?.objects.map(object=>({lineIndex:object.registers[0].segmentIndex,objectId:object.objectId,identityAgency:object.identityAgency,
+      applicationDecision:object.applicationDecision,applied:applied.has(object.registers[0].segmentIndex)}))??[]
+    const appliedObjects=objectScopes.filter(object=>object.applied).length
     const customerSource=isConfirmedCustomerSourceCandidate(message)
-    const status: EdielSafeApplyReviewStatus = decision ?? (customerSource||changes.length > 0 ? 'pending' : 'no_changes')
+    const status:EdielSafeApplyReviewStatus=customerSource?decision??'pending':objectScopes.length
+      ?appliedObjects===objectScopes.length?'applied':appliedObjects>0?'partially_applied':decision==='rejected'?'rejected':'pending'
+      :decision??'no_changes'
 
     items.push({
       message,
@@ -114,14 +131,17 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
       changes,
       latestEvent: latestProposalEvent,
       decisionEvent,
+      objectScopes,
       summary:
         status === 'applied'
           ? 'Ändringen är redan godkänd och applicerad.'
           : status === 'rejected'
             ? 'Ändringen är avvisad av admin.'
+            :status==='partially_applied'
+              ?`${appliedObjects} av ${objectScopes.length} egna objekt har tillämpad källbunden strukturhistorik. Övriga objekt är inte tillämpade.`
             : status === 'no_changes'
-              ? 'Inga skillnader mot nuvarande masterdata hittades.'
-              : customerSource?'En källbunden kundversion väntar på separat livshändelsegranskning.':`${changes.length} masterdataändringar väntar på granskning.`,
+              ? 'Skyddad bedömning för hela originalets egna objekt saknas. Strukturunderlaget behöver granskas.'
+              : customerSource?'En källbunden kundversion väntar på separat livshändelsegranskning.':`${objectScopes.filter(object=>object.applicationDecision==='accepted').length} egna objekt kan prövas mot granskad originalkälla. ${objectScopes.filter(object=>object.applicationDecision!=='accepted').length} är avvisade eller spärrade.`,
     })
   }
 
@@ -129,11 +149,12 @@ export async function listSafeApplyReviewItems(messages: EdielMessageRow[]): Pro
 }
 
 /** Approval consumes the original source owner, never mutable proposal labels
- * or parsed values. The native boundary commits the entire source atomically
- * and preserves its original receipt on retry. */
+ * or parsed values. The native boundary keeps the complete original partition, atomically commits
+ * qualified own scopes, and preserves each original scope receipt on retry. */
 export async function approveSafeMasterdataChanges(params: {
   actorUserId: string
   edielMessageId: string
+  objectLineIndices?:number[]
 }): Promise<EdielSafeApplyDecisionResult> {
   const { getEdielMessageById } = await import('@/lib/ediel/db')
   const message = await getEdielMessageById(params.edielMessageId)
@@ -145,8 +166,8 @@ export async function approveSafeMasterdataChanges(params: {
     return {messageId:message.id,status:'applied',appliedCount:receipt.appliedCount,skippedCount:0,summary:'En daterad kundversion har källbunden livshändelsehistorik.'}
   }
   await assertEdielTenantActor({ companyId: message.company_id, actorUserId: params.actorUserId, permission: 'metering.write' })
-  const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_v1', {
-    p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,
+  const { data, error } = await supabaseService.rpc('ediel_apply_reviewed_structure_objects_v2', {
+    p_company_id: message.company_id, p_source_message_id: message.id, p_actor_user_id: params.actorUserId,p_object_line_indices:params.objectLineIndices??null,
   })
   if (error) throw error
   if (!isRecord(data) || typeof data.applied !== 'boolean') throw new Error('structural_apply_receipt_invalid')
@@ -155,7 +176,7 @@ export async function approveSafeMasterdataChanges(params: {
   if (!data.applied) throw new Error(typeof data.reason === 'string' ? data.reason : 'structural_apply_original_review_required')
   if (data.sourceMessageId !== message.id || !Number.isSafeInteger(data.appliedCount) || Number(data.appliedCount) < 1
     || !Array.isArray(data.objects) || !data.objects.length) throw new Error('structural_apply_receipt_invalid')
-  return { messageId: message.id, status: 'applied', appliedCount: Number(data.appliedCount), skippedCount: 0,
+  return { messageId: message.id, status: 'applied', appliedCount: Number(data.appliedCount), skippedCount: Number.isSafeInteger(data.skippedCount)?Number(data.skippedCount):0,
     summary: `${data.appliedCount} registerversioner har källbunden strukturhistorik.` }
 }
 

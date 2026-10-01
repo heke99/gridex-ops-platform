@@ -237,9 +237,12 @@
       "lib/ediel/sources/correctionOutboundDispatch.ts",
       "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql",
       "lib/email/sendEdielEmail.ts",
-      "lib/ediel/transport/rawMimeArchive.ts"
+      "lib/ediel/transport/rawMimeArchive.ts",
+      "lib/ediel/outbox/projectSentSources.ts",
+      "supabase/migrations/20260930223407_ediel_atomic_accepted_source_projection.sql",
+      "supabase/migrations/20260930225411_ediel_source_generated_technical_expectation_plan.sql"
     ],
-    "confirmed_code_gap": "Only oldZ08 H had durableproviderentry/result fence. Ordinaryfamilies and canonicalLK now samegeneric prospective immutableMIME+attempt journal; prepare+enter currenttyped authority, exactreadbackarchive/rfc/hash/route/workerCAS; enteredunknown noautoresend; acceptedonlyprojects oldreceipt; rootarchives actualallmodebytes.",
+    "confirmed_code_gap": "Only oldZ08 H had durableproviderentry/result fence. Ordinaryfamilies and canonicalLK now samegeneric prospective immutableMIME+attempt journal; prepare+enter currenttyped authority, exactreadbackarchive/rfc/hash/route/workerCAS; enteredunknown noautoresend; acceptedonlyprojects oldreceipt; rootarchives actualallmodebytes. Fresh post-acceptance consumer gap: separate unlocked read/write could downgrade later ACK/Z02/business state or restore cleared deadlines. Native current-actor/SEND-union projection now locks actual accepted source and all three consumers before writes, uses only unique frozen receipt/actual observedAt and original derivative technical plan, retains final technical status and progressed business state. Positive ACK never stands for Z02 completion; genuine private pending Z02 may start business wait independently.",
     "blockers": [
       "DSNcandidate unverified until authentic provider/mailbox corpus/contract; no SMTPfinaldelivery status invented.",
       "Native fullactualsourceauthority/migrations/SMTPcrash+concurrentworker testphase pending."
@@ -248,12 +251,1341 @@
       "All family send/direct/manual/batch/retry entry reachesjournal archivebeforeprovider exactbytes; callback/readback/scopefail providerzeroIO.",
       "Workerlease/CAS races and lostenter/observereply crash suppresssend; acceptedoldreceipt immutableprojectiononly.",
       "DSNsame RFCidwrongtenant/env/mailbox/recipient hasnocandidate; exactcandidate remainsunverified andbusinesspermission unchanged.",
-      "Z08 H sealedsource/witness retained andgenericdirectRPC cannotbypass; LKexemptstillgenericjournal."
+      "Z08 H sealedsource/witness retained andgenericdirectRPC cannotbypass; LKexemptstillgenericjournal.",
+      "Own accepted-source projection criteria: tenant/current actor/SEND either permission; unique exact raw/env/company source and frozen receipt; actual observedAt only; native expectation mutation and all three source rows in one transaction; foreign row abort rolls back earlier stamps; final ACK/failed/cancelled/progressed business states and cleared deadlines preserved; positive ACK plus private pending Z02 allows own business watch; historical missing plan never minted. Zero provider, reset, retry or guide reselection during repair."
     ],
-    "assessment": "Actual sendEdielEmail consumers rg: onlysharedordinaryjournal andexisting Hclosureowner (plusnative testscript). SQL15 embeddedPg checks with declaredsourceowner/gatestubs, wrapper5PASS, lint+tscPASS; noauthenticSMTP/nativeproof. Root archive reviewed Important privateBuffercopy fix requested.",
+    "assessment": "Actual sendEdielEmail consumers rg: onlysharedordinaryjournal andexisting Hclosureowner (plusnative testscript). SQL15 embeddedPg checks with declaredsourceowner/gatestubs, wrapper5PASS, lint+tscPASS; noauthenticSMTP/nativeproof. Root archive reviewed Important privateBuffercopy fix requested. Fresh223407+central225411 body actual protected receipt/mutate/projection mechanics25 PASS,17 targeted TS PASS; protected original policy port explicitly synthetic. Independent process literal review clear; native full replay, multi-session races and authentic receipt/source cases deferred. Root compound message/source repair wrapper is separately integration-owned and must be independently checked.",
     "commits": [
       "321864d8",
-      "20cda47c"
+      "20cda47c",
+      "aa3bd771",
+      "0ed79acb"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-01"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-01 literal expected: Verifiera legal DGI-aktör, slutkundsavtal, DSO-avtal och avsedd omfattning av objekt, period, produkter och ändamål. → Skapa väntande begäran, knyt service_assignment och skicka rätt V/VH.",
+      "AT-ESCO-01 literal prohibited: Ett avtal med beneficiary-tenant ger inte ensamt rätt till kundens mätvärden.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-02"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-02 literal expected: V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+      "AT-ESCO-02 literal prohibited: Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-03"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-03 literal expected: Kvittensen godkänner att begäran behandlas, inte slutkundens medgivande. → Sätt awaiting_customer_decision och bevaka Z14/Z14N.",
+      "AT-ESCO-03 literal prohibited: Skapa varken market_permission eller aktiv elleverans enbart från APERAK.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-04"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-04 literal expected: A74 och rätt LI, aktör och kund. Föreskrivna objekt-, adress-, tillstånds- och perioduppgifter ska stämma. Bara godkända objekt omfattas. → Skapa avgränsat market_permission; anslut därefter separat godkänd intern distribution.",
+      "AT-ESCO-04 literal prohibited: Bredda inte till samtliga kundens anläggningar eller andra tenants från ett godkänt objekt.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-05"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-05 literal expected: A13 anger aktivt och A76 passivt nekande. Ett korrekt negativt affärssvar är inte ett protokollfel. → Neka berörd begäran och informera ansvarig utan att exponera andra tenants.",
+      "AT-ESCO-05 literal prohibited: Skapa inte tillstånd eller negativ APERAK enbart för att nätägaren nekar begäran.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-06"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-06 literal expected: Koordinera samma aktör, kund och DSO. Tillkommande objekt kan kräva ny begäran; upprepning bedöms enligt Handboken, inte ett universellt negativt APERAK. → Tillåt en relevant ny begäran med spårbar koppling till tidigare förlopp.",
+      "AT-ESCO-06 literal prohibited: Inför inte ett generellt förbud mot varje ny Z13 före 21 dagar och kringgå inte reglerna genom ett nytt internt tenant-id.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-07"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-07 literal expected: Tillstånd, orsak, tidpunkt och process ska vara kända och överensstämmande. → Avsluta bara berört marknadstillstånd eller historikjobb; bevara andra separata rättigheter.",
+      "AT-ESCO-07 literal prohibited: Historikslut får inte upphäva ett separat V-tillstånd. DDQ-leverans ska vara oförändrad.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-08"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-08 literal expected: Behörig aktör ska avse rätt market_permission. Samordna beroenden från flera beneficiary-uppdrag. → Skicka fält 327/324/325 och bevaka Z15. Begränsa intern åtkomst enligt aktuellt mandat.",
+      "AT-ESCO-08 literal prohibited: Säg inte upp ett gemensamt tillstånd på ett enskilt UI-klick utan kontroll av andra giltiga uppdrag.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-09"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-09 literal expected: Kontrollera rätt ursprung och källstödda återställningsvillkor. → Återställ marknadsrelationen; ompröva varje downstream-grant självständigt.",
+      "AT-ESCO-09 literal prohibited: Återuppliva inte utgångna kundavtal eller uttryckligen återkallade tenantbehörigheter.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-10"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-10 literal expected: E66 kan sakna direkt tillstånds-id. Matcha juridisk relation, objekt, produkt, period och giltig tillstånds-/grantkoppling. → Lagra mottagningsbevis och distribuera endast till uttryckligen berättigade tenants.",
+      "AT-ESCO-10 literal prohibited: Kräv inte ett påhittat permission-fält i E66. Matcha inte enbart på GSRN eller SMTP-adress.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-ESCO-11"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-ESCO-11 literal expected: Tillåtet ändamål, rättslig/datamässig grund och processtillämplighet ska verifieras uttryckligen. → Bevara originalets DGI-roll, avsändare, kvalitet och syfte i varje härledd projektion.",
+      "AT-ESCO-11 literal prohibited: Skriv inte om DGI till DDQ och skapa inte en falsk E66 från nätägaren för att passa faktureringen.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z13V-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z13V-ESCO literal expected: 23-DGI-PRODAT; BGM=Z13; fält223=S17; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+      "AT-Z13V-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14V-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z14V-ESCO literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=S17; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+      "AT-Z14V-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15V-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z15V-ESCO literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=S17; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "AT-Z15V-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z13VH-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z13VH-ESCO literal expected: 23-DGI-PRODAT; BGM=Z13; fält223=S18; CONTRL, APERAK för begäran; därefter Z14 eller Z14N.; Skapa begäran och objektrelaterade rättigheter först efter positivt Z14; inte elleverans.",
+      "AT-Z13VH-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14VH-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z14VH-ESCO literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=S18; CONTRL och APERAK; E66 enligt bekräftade villkor och vid historik slut viaZ15VH.; Skapa/versionera market_permission och objektscope; projektionsåtkomst bara till uttryckligen berättigade tenants.",
+      "AT-Z14VH-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15VH-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z15VH-ESCO literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=S18; CONTRL och APERAK; inget nytt automatiskt Z13.; Avsluta rätt rapporterings-/tillståndsförlopp; VH slutför historikjobbet, inte separat V-tillstånd.",
+      "AT-Z15VH-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z14N-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z14N-ESCO literal expected: 23-DGI-PRODAT; BGM=Z14; fält223=Z96; CONTRL och APERAK på själva Z14N om korrekt; ingen datarapportering.; Neka berörd begäran; lägg ingen market_permission för åtkomst.",
+      "AT-Z14N-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z15C-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z15C-ESCO literal expected: 23-DGI-PRODAT; BGM=Z15; fält223=Z24; CONTRL och APERAK.; Återställ berört market_permission efter rätt korrelation. Återuppliva inte ett separat återkallat tenantåtkomstgrant.",
+      "AT-Z15C-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z18V-ESCO"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "supabase/migrations/20260930220932_ediel_source_read_send_permission_contract.sql",
+      "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql"
+    ],
+    "confirmed_code_gap": "Original service support lacked a live permission-checked assignment/grant administration producer and dedicated source-bound Z13/Z18 origin; grants could rely on mutable source actor snapshots and lifecycle CAS invalidated legal scope evidence. Corrected by held native commands, immutable approval scope basis, dedicated canonical source-origin renderer/gateway, and frozen legal-context + accepted UTILTS contract projection. This component covers actor/assignment/grant/origination criteria only; process and PRODAT owners cover business transitions/wire field contracts.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred.",
+      "Z13 field261 RFF+ANJ requires the authentic end-user agreement/PoA reference on the same approved immutable evidence; missing or contradictory reference stays held. No synthetic reference, hash or file name substitutes for it."
+    ],
+    "planned_tests": [
+      "AT-Z18V-ESCO literal expected: 23-DGI-PRODAT; BGM=Z18; fält223=S17; CONTRL, APERAK, tillämplig Z15.; Begär avslut av rätt marknadstillstånd; kontrollera andra giltiga serviceuppdrag innan gemensamt tillstånd sägs upp.",
+      "AT-Z18V-ESCO literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own actor/service criteria: actual legal ESCO/current electricity profile and separate transport identity; exact tenant/customer/DSO/mode/object/product/purpose/period scope; source-derived legal wire basis; no access before approved source Z14 and independently explicit grant; revoked grants remain revoked on Z15C; another active assignment prevents shared Z18 termination.",
+      "Exercise manual GET/POST selected tenant, idempotent immutable command replay, foreign actor/customer/grant denial, current scope edits, explicit revocation, direct service RPC bypass attempts, and corrected new intent preserving original ACK/journal.",
+      "Own prospective field261: pending-only manual evidence staging cannot approve; verified/revoked full source tuple immutable; exact authentic ANJ before LIN, original/new authorized recovery raw equality, missing/conflicting/mutated references denied; Z18 has no ANJ; compact shared UNB with independent Z13 LI and exact old LI for Z18."
+    ],
+    "assessment": "Fresh 184042 current commands/API, private context and projection inspected; 27 embedded PostgreSQL helper/source-fixture checks and 9 targeted TS checks passed. Process independent bounded review cleared reported Important findings. Code support complete in this allocated component; authentic activation basis absent, verification deferred. Fresh231633 actual source/context/private approval tuple, pending command producer, dedicated renderer and original/recovery native consumer reviewed independently by PRODAT with no C/I.35 embedded mechanical checks +10 renderer +4 actual producer-reference tests PASS; authentic approval and native acceptance remain deferred.",
+    "commits": [
+      "4fcb5e1f",
+      "1d534768",
+      "5329afb9",
+      "0deeee79",
+      "aa3bd771",
+      "6ab03a43"
+    ]
+  },
+  {
+    "ids": [
+      "SC-001"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-001 own contribution to expected: Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22.",
+      "SC-001 prohibit: Gridex-id ersätter inte A:s aktör; ingen data från B.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-002"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-002 own contribution to expected: B:s juridisk aktör och 23-DGI-PRODAT; separat tillståndsärende.",
+      "SC-002 prohibit: Ingen Z03 och inget Gridex-ombud antas.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-012"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-012 own contribution to expected: Z14 påverkar rättighet, Z04 leverans; separata state machines.",
+      "SC-012 prohibit: Inga korsvisa aktiveringar.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-013"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-013 own contribution to expected: Korrelation väljer B utifrån parter/marknad/roll/originalreferenser.",
+      "SC-013 prohibit: Tenant A:s ärende förblir oförändrat.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-014"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-014 own contribution to expected: Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+      "SC-014 prohibit: Gissa inte tenant från första kundträffen; fabricera inte objektsfel på egen konfigbrist.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-018"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-018 own contribution to expected: Begär rätt underlag och följ tillståndsprocessen.",
+      "SC-018 prohibit: Aktiv elleverans blir inte automatiskt DGI-tillstånd.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-019"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-019 own contribution to expected: Pröva datagrund/ändamål/leveransperiod/prismodell och bevara källproveniens.",
+      "SC-019 prohibit: Omskriv inte original som DDQ-E66 eller använd data utan rätt.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "SC-047"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/services/administration.ts",
+      "app/api/ediel/services/commands/route.ts",
+      "lib/ediel/services/permissionOrigin.ts",
+      "lib/ediel/services/commands.ts",
+      "lib/ediel/services/projection.ts",
+      "lib/ediel/services/reporting.ts",
+      "lib/ediel/flows/prodatServicePermission.ts",
+      "lib/ediel/intent/renderers/servicePermission.ts",
+      "lib/ediel/permissions/z13RequestAccess.ts",
+      "lib/ediel/permissions/z18RequestTermination.ts",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "lib/actor-registry/parseActorRegistryXml.ts",
+      "lib/actor-registry/importActorRegistry.ts"
+    ],
+    "confirmed_code_gap": "Actor/service component: preserved source legal actor versus transport actor versus beneficiary; tenant-scoped current private assignment/grant authority and accepted source projection added where absent. Full DDQ/business/ACK/billing outcome criteria belong to their separate owners. No cross-role supply activation or fabricated permission identity.",
+    "blockers": [
+      "G04: genuine end-user/DSO/service/downstream/privacy-role approvals with immutable original scope version, source-declared wire purpose/grid/term/classification and technical transport mandate where distinct; staging API creates pending claims only. No authentic approvals or production activation seeded.",
+      "Native migration replay/schema/type generation, concurrency, full cross-tenant/producer/negative-ACK/recovery tests and authentic manual counterpart evidence deferred. Existing pre-journal historical scope/source evidence remains held; no backfill inferred."
+    ],
+    "planned_tests": [
+      "SC-047 own contribution to expected: UTILTS-ERR E10 där detta är kontrollens föreskrivna utfall.",
+      "SC-047 prohibit: Skapa inte ett nytt kundobjekt eller sök i andra tenants för att få kontrollen grön.",
+      "Own full-chain negative checks: foreign tenant cannot read source evidence or grant; DGI source does not become DDQ; ambiguous legal identity or missing historical frozen basis held; unknown point not auto-created by service projection; technical mailbox does not identify beneficiary."
+    ],
+    "assessment": "Fresh selected-tenant administration and private service projection/source origin inspected; original source roles and permissions are kept separate, native direct consumers gated. Multi-owner contract, no whole-contract PASSED claim.",
+    "commits": [
+      "7516b0cc",
+      "a396fa3b",
+      "0deeee79"
+    ]
+  },
+  {
+    "ids": [
+      "IMP-03",
+      "AT-IMP-03",
+      "SC-057"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/actor-registry/importActorRegistry.ts",
+      "app/admin/ediel/actors/actions.ts",
+      "supabase/migrations/20260930172759_ediel_atomic_registry_import_v1.sql",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql"
+    ],
+    "confirmed_code_gap": "Actual XML/CSV import previously performed per-row actor/role/route/cert effects and could leave running or partial writes. New source-byte/hash-bound atomic apply owns run, all normalized effects, scope diff and final status; identical committed source reuses exact result. Contradictory same actor/family/environment/subaddress/application address holds both prior selected route and new route, invalidating current route version witness; separate app and exact unchanged flags preserved. Original unavailable TXT grammar held.",
+    "blockers": [
+      "Authentic official TXT layout and deletion/history/retention decisions not invented; no deletion inferred from absence. Native full replay/crash/concurrency/security-binding end-to-end proof deferred."
+    ],
+    "planned_tests": [
+      "Identiska data skapar inte dubbletter. Marknader, roller och rutter bevaras. Motstridiga ändringar får tydlig behandling och körningen får slutstatus.",
+      "En import med noll inlästa rutter får inte beskrivas som fullt sändningsklar. En avbruten körning får inte ligga obevakad som running.",
+      "Native fail injection at each import effect proves rollback/final failure; concurrent exact source idempotent result; address conflict makes old selected route and scoped readiness held; distinct market/role/application preserved; raw source hash mutation held; zero-route run never claims full readiness."
+    ],
+    "assessment": "Atomic current implementation and all actual import producer paths reviewed fresh. PG18 targeted import checks passed. Matrix independent review5329/182758 confirmed old selected route invalidation and no remaining Critical/Important in allocated scope.",
+    "commits": [
+      "169fbd4e",
+      "5329afb9"
+    ]
+  },
+  {
+    "ids": [
+      "TR-11",
+      "AT-TR-11"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts",
+      "lib/ediel/transport/rawMimeArchive.ts",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx",
+      "app/admin/ediel/messages/[id]/page.tsx",
+      "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql"
+    ],
+    "confirmed_code_gap": "TR11 journal lacked an independent actual operations copy consumer. Corrected by tenant/member/communication.read service-only private entered-attempt projection, selected server-tenant API, private exact-byte/hash/length/RFC readback before .eml download, and operations UI. Historical missing/unqualified archive is held or unavailable; no reconstructed copy, resend/status/retry/business write.",
+    "blockers": [
+      "Native replay/storage policy/live private object integrity/concurrency and full browser/manual empty-Sent observations remain deferred. Authentic provider/mailbox trust for delivery truth remains external; copy explicitly proves neither delivery nor resend authorization."
+    ],
+    "planned_tests": [
+      "AT-TR-11 literal expected: En Skickat-kopia är en separat IMAP-/arkivfunktion. → Använd transportjournalen som beviskälla; erbjud kopia som driftfunktion.",
+      "AT-TR-11 literal prohibited: En tom mapp ska inte utlösa omsändning eller betraktas som bevis på förlust.",
+      "Own criteria: actual generic and sealed Z08 entered witness only; foreign company/actor/data denial; immutable selected attempt archive ref/hash/bytes/RFC and payload snapshot matching; download refuses absent, changed, oversized or ambiguous objects; empty/held copy causes zero provider calls and no old journal/ACK/retry mutation; selected tenant remains server-owned."
+    ],
+    "assessment": "Fresh current copy RPC/API/verified private readback/operations panel reviewed; readback checks bytes immediately before response and remains a distinct operations read. Own helper-fixture checks and root narrow API/copy regressions executed earlier; broad native/E2E/manual deferred. No acceptance PASSED assertion.",
+    "commits": [
+      "b4acd663",
+      "01024ec",
+      "14281279"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z09B-SUPPLIER"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/production/brpChangeSource.ts",
+      "lib/ediel/flows/prodatBrpChange.ts",
+      "lib/ediel/intent/brpChangeGateway.ts",
+      "lib/ediel/intent/renderers/brpChange.ts",
+      "app/api/ediel/brp/changes/route.ts",
+      "supabase/migrations/20260930200545_ediel_brp_change_source_origination.sql",
+      "supabase/migrations/20260930211156_ediel_brp_approved_supply_physical_scope.sql",
+      "supabase/migrations/20260930213308_ediel_brp_positive_test_original_bridge.sql",
+      "supabase/migrations/20260930212435_ediel_source_qualified_positive_fixture_v1.sql",
+      "supabase/migrations/20260930230653_ediel_source_producer_physical_site_scope.sql",
+      "supabase/migrations/20260930231447_ediel_regulated_supply_internal_site_projection.sql"
+    ],
+    "confirmed_code_gap": "Previous live B source-approved producer, immutable per-relation BRP responsibility origin/history and current direct-native admission were missing. Production support now implemented over selected server-tenant API → source private contract/registry/relation authority → canonical supplier DDQ route → dedicated intent/renderer/canonical kernel/outbox → exact private raw/intent/request binding → fresh SMTP and direct-native guard. Current source admission additionally proves the initial approved physical point+actual identityAgency+grid and source DSO, not mutable MP UUID mapping. Genuine prospective positive TEST B now consumes the same exact registered original/run/role/case/revision/step/hash and ordinary original witness via source-owned positive port. It never writes live BRP history or substitutes for production approval. Fresh actual-consumer review also found missing source-owned internal site in B intent/request/message and overlength random20 UNB. Corrected by sole supply-source current internal site projection, exact source site/environment binding across native reserve/first bind/current read, and common compact reference allocator with independent LI.",
+    "blockers": [
+      "Authentic approved BRP contract, market decision, approved immutable source references/SHA/version and versioned genuine DSO/BRP owner register are required. No legal approval/registry/profile/production activation is seeded; source-declared per-relation history explicitly does not claim market activation.",
+      "Authentic original/run registered pointers and source-owner approval remain required for positive TGT. No historical retrofit, environment-only grant or production approval is inferred."
+    ],
+    "planned_tests": [
+      "AT-Z09B-SUPPLIER literal given: SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+      "AT-Z09B-SUPPLIER literal expected: 23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+      "AT-Z09B-SUPPLIER literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own criteria: each actual approved supplier relation and selected point/agency/grid/DSO, exact current immutable accepted supply source+version and signed own contract, approved BRP/DSO roles+register version, one calendar month in fixed UTC+1 including summer, exact216/262/reasonZ27/DDQ and no AI/UD/210/211/217 substitution.",
+      "Prove native same-message/intent/request idempotence, new-event separate per-period history without tenant-global overwrite; reject foreign actor/company/customer/period, stale source/version, physical remapping, invalid/revoked contract/registry/role, ambiguous sender/route/subaddresses/application, changed wire/hash/protected metadata, old accepted reset, and unqualified TEST/B; qualified prospective positive TGT never writes live BRP history.",
+      "Deferred final candidate: native full migration replay/types/schema parity, genuine approvals/source receipts and direct RPC/E2E concurrency, scheduled effective history boundary/manual counterpart evidence. Existing canonical expectation planner/CONTRL/APERAK pipeline remains common authority and must be proved in final whole-case test.",
+      "Own230653 native actual-schema tests: no source-approved internal site or stale/remapped site held; all intent/request/message site links and actual request.payload.environment exact; site-only mutation held; shared14-character UNB and independent transaction reference; first bind and immutable history use identical source basis. No local fallback from mutable point or retrospective site approval."
+    ],
+    "assessment": "Fresh fd53457a/623e34e2 source+producer+bind+history+admission consumers and literal inspected. 3 targeted canonical wire/calendar TS tests; 33 integrated and16 narrow PostgreSQL fixture checks; lint0warnings, migration integrity668 and tenant ratchet earlier pass. Independent process review cleared production scoped C/I. No native/replay/authentic legal/market acceptance claimed. Additive213308 genuine positive port consumer independently reviewed and21 mechanical PG probes PASS; root routes actual B SMTP through same helper. Full native/certification/E2E remains pending. Fresh230653 current producers/source-native projection paths independently cleared by PRODAT;39 PGlite mechanical SQL +4 actual producer refs +10 renderer TS PASS (source approval ports explicitly synthetic). Sole owner231447 independently read, not replaced; full replay and authentic approvals remain unrun.",
+    "commits": [
+      "fd53457a",
+      "3774eb02",
+      "623e34e2",
+      "00dacaa1",
+      "aa3bd771",
+      "b0810b0d"
+    ]
+  },
+  {
+    "ids": [
+      "AT-Z03C-SUPPLIER",
+      "P-14",
+      "AT-P-14"
+    ],
+    "owner": "actors_history",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/production/switchCancellationSource.ts",
+      "lib/ediel/flows/prodatSwitchCancellation.ts",
+      "lib/ediel/intent/switchCancellationGateway.ts",
+      "lib/ediel/intent/renderers/switchCancellation.ts",
+      "lib/ediel/flows/prodatSwitch.ts",
+      "supabase/migrations/20260930214933_ediel_switch_cancellation_source_origination.sql",
+      "supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql"
+    ],
+    "confirmed_code_gap": "Allocated Z03C origination criterion previously reused the blocked supplier-switch facade and could not prove the own exact accepted L/LK original. Dedicated canonical source-only cancellation context/producer/intent/new request/renderer/native binding now uses private actual sent original receipt, exact frozen LI/customer/point/agency/start/grid/site and fixedUTC+1 cancellation window. Corrected actual stored role electricity_supplier, original UPDATE-before-switch lock order, request.payload.environment actual schema and common compact new UNB. Only requested cancellation is recorded; old original pointer, attempts, receipts and ACK stay immutable. This is Z03C producer/source component of P14 only; source Z04C/Z05C/Z15C transitions are process-owner components.",
+    "blockers": [
+      "Authentic accepted own source original/private origin, actual current supplier and source-owned legal transport context are required. Historical missing origin/accepted receipt never backfilled; genuine positive/negative TEST needs authentic registered original/run witness. No approval, activation or counterpart evidence seeded.",
+      "Native full replay/types/schema parity, real multi-session deadlocks and whole C sequence including Z04C/source timers/APERAK/manual counterpart testing deferred."
+    ],
+    "planned_tests": [
+      "AT-Z03C literal given: SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+      "AT-Z03C literal expected: 23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+      "AT-Z03C literal prohibited: Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "Own producer/source: actual old own L/LK sealed accepted exact raw and private receipt; same frozen customer/physical point/agency/site/LI/start and historical contract tuple, no new mutable contract approval required for withdrawal; current legal supplier and exact canonical DDQ route; L boundary4calendar days/LK same inflyttningsday in fixedUTC+1; late/foreign/stale/malformed/ambiguous held.",
+      "Own operations: source original UPDATE before switch locks, new C intent/request/source operation bound; actual request.payload.environment; unchanged old original pointer and journal/ACK; recorded requested only, SMTP250 never completed cancellation. Exact source qualified TEST positive/negative ports cannot mint live cancellation origin/history or grant fallback after production source failure.",
+      "Shared source atomic post-send criteria: actual frozen observedAt/plan only; retain technical ACK and advanced business cancellation state, no blind replay downgrade or deadline restoration."
+    ],
+    "assessment": "Fresh214933 and forward223846 actual schema/current role/source lock/native context/render/gateway/real flow hook inspected; process independent literal review clear.41 small PostgreSQL actual-schema mechanism probes +3 cancellation wire/date renderer TS +4 actual producer reference TS PASS. Declared legal/original policy ports are synthetic mechanic fixtures; no native/authentic/whole-case acceptance asserted. Current source projection0ed79acb independently reviewed; root compound repair integration separate.",
+    "commits": [
+      "aac69429",
+      "40f29989",
+      "b0810b0d",
+      "0ed79acb"
     ]
   }
 ]

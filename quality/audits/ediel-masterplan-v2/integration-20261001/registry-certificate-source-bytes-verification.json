@@ -1,0 +1,214 @@
+{
+  "date": "2026-10-01",
+  "observedBaseHead": "d99c3307",
+  "criteria": [
+    "IMP-01",
+    "IMP-02",
+    "IMP-05",
+    "AT-IMP-01",
+    "AT-IMP-02",
+    "AT-IMP-05",
+    "TR-06",
+    "AT-TR-06"
+  ],
+  "wholeCriterionAccepted": false,
+  "problem": "The XML parser and shared import producer both collapsed PEM newlines through cleanString; actual X509 source bytes then failed Node/OpenSSL parsing. Preserve actual text/CDATA certificate scalar only; ordinary labels remain normalized.",
+  "productionFiles": {
+    "lib/actor-registry/parseActorRegistryXml.ts": "7fd43f5765ed3ecdfe925ff5124e72d1192ea4e25cc55d60cb136e8ff0811e0c",
+    "lib/actor-registry/importActorRegistry.ts": "cbfa32d64cc61d5a288412b539816b3b7366e73c6db684268b263866b16b45de"
+  },
+  "red": {
+    "passed": 0,
+    "failed": 4,
+    "reportSha256": "f7283c6227da13610aaef5b887552a0e50f5802479ceb59b3fe2a1e4f90134e9"
+  },
+  "green": {
+    "passed": 33,
+    "failed": 0,
+    "reportSha256": "5768b84d0ff2e5d420ff41b87a1438c1be7eab53d52bfc46995e7c06c691ec39",
+    "cases": [
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities preserves company market and exact legal/technical identities without granting representation",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities preserves a generic explicitly different transport party",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities inherits the official Market/Company context and preserves original source values",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities rejects malformed XML and custom entities before producing source records",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities uses AST records so comments and CDATA cannot inject actors or legal identities",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities rejects DTD/entity sources before import creates records",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values uses actual postal country and source roles without converting postal addresses into transport routes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values separates repeated family columns and preserves legal versus technical identity",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values joins an unquoted embedded address newline without inventing another actor",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values keeps metadata-only companies with missing-route diagnostics and retains GAS reference routes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values retains missing legal IDs as held metadata, without name-based joins",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values preserves registered case/empty subaddresses and forbids unsupported UTILTS subaddress",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values preserves unknown family blocks as non-executable reference routes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values rejects header with a bounded source diagnostic",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values rejects family_mismatch with a bounded source diagnostic",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values rejects field_count with a bounded source diagnostic",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values rejects incomplete with a bounded source diagnostic",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "fullName": "authentic companies TXT grammar with synthetic values rejects zero_routes with a bounded source diagnostic",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "fullName": "preserves exact multiline public certificate text for actual X509 decoding",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "fullName": "preserves exact multiline public certificate cdata for actual X509 decoding",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "fullName": "binds exact source DER and parsed validity through actual shared import producer without authorizing trust",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-certificate-source-bytes.test.ts",
+        "fullName": "rejects conflicting fingerprint and ambiguous certificate PEM before native apply",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot counts an unchanged actor as unchanged despite missing TXT org/roles and fresh metadata",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual name changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual countryCode changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual market changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual roles changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual routes changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual routes changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reports actual routes changes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot does not interpret missing source routes as an authenticated deletion",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot reads one actual native snapshot with scoped platform actor and deduplicated legal IDs",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-snapshot-diff.test.ts",
+        "fullName": "actual source values against native current registry snapshot fails closed if the native snapshot read fails",
+        "status": "passed"
+      }
+    ]
+  },
+  "native": {
+    "suite": "scripts/ediel-registry-route-certificate-native.test.ts",
+    "fullName": "actual native exact certificate custody survives an SMTP source change while all new route materialization remains held",
+    "status": "NOT_RUN_LOCAL",
+    "plannedAssertions": [
+      "actual installed exact source batch/DER/native fingerprint/purpose/validity custody",
+      "source cert remains UNKNOWN; route needs_review; no ready/status valid/privateaccepted seeds",
+      "actual source SMTPchange keeps old certificate and old sourcebytehashes",
+      "both old/new held registry routes cannot materialize communication/profile/readiness",
+      "native routeversion snapshot retains old source target/charset/native hash",
+      "fingerprint conflict and current platform revocation hold without operative effects"
+    ],
+    "limits": "public synthetic selfsigned cert and current local platform actor fixture; real issuer/CRL/competence/returnpath/counterparty certificate unavailable and no traffic authorized"
+  },
+  "scopedTypecheck": "PASS native/test source graph",
+  "ownedLint": "PASS",
+  "finalFrozenCandidate": "PENDING_ROOT_SEMANTIC_INTEGRATION_AND_REAL_NATIVE_CI"
+}

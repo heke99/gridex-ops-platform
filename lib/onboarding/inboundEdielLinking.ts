@@ -5,17 +5,8 @@ import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { MeteringPermissionRow } from '@/lib/onboarding/infoRequests'
-import {
-  createSupplierSwitchRequest,
-  findCustomerSiteById,
-  findOpenSupplierSwitchRequestForSite,
-  listMeteringPointsForSite,
-  listPowersOfAttorneyByCustomerId,
-  syncOperationTasksFromReadiness,
-} from '@/lib/operations/db'
-import { evaluateSiteSwitchReadiness } from '@/lib/operations/readiness'
-import type { SupplierSwitchRequestType } from '@/lib/operations/types'
 import { enqueueInboundGridOwnerResponseAutomation } from '@/lib/customer-operations/automation'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 type JsonRecord = Record<string, unknown>
 
@@ -186,67 +177,6 @@ async function findCustomerInfoRequestForZ02(message: EdielMessageRow): Promise<
   return candidates.size === 1 ? [...candidates.values()][0] ?? null : null
 }
 
-async function tryQueueSupplierSwitchAfterZ02(params: {
-  actorUserId: string
-  companyId: string
-  request: Record<string, unknown>
-  z02Payload: JsonRecord
-}): Promise<{ queued: boolean; reason: string | null; switchRequestId: string | null }> {
-  const customerId = stringOrNull(params.request.customer_id)
-  const siteId = stringOrNull(params.request.site_id)
-  if (!customerId || !siteId) return { queued: false, reason: 'missing_customer_or_site', switchRequestId: null }
-
-  const site = await findCustomerSiteById(supabaseService, siteId)
-  if (!site || site.company_id !== params.companyId || site.customer_id !== customerId) {
-    return { queued: false, reason: 'site_not_found_or_wrong_tenant', switchRequestId: null }
-  }
-
-  const existing = await findOpenSupplierSwitchRequestForSite(supabaseService, {
-    customerId,
-    siteId,
-    companyId: params.companyId,
-  })
-  if (existing) return { queued: false, reason: 'open_supplier_switch_exists', switchRequestId: existing.id }
-
-  const [meteringPoints, powersOfAttorney] = await Promise.all([
-    listMeteringPointsForSite(supabaseService, siteId),
-    listPowersOfAttorneyByCustomerId(supabaseService, customerId),
-  ])
-  const readiness = evaluateSiteSwitchReadiness({ site, meteringPoints, powersOfAttorney })
-  await syncOperationTasksFromReadiness(supabaseService, readiness)
-
-  if (!readiness.isReady || !readiness.candidateMeteringPointId) {
-    return { queued: false, reason: 'switch_preflight_not_ready', switchRequestId: null }
-  }
-
-  const meteringPoint = meteringPoints.find((point) => point.id === readiness.candidateMeteringPointId) ?? null
-  if (!meteringPoint) return { queued: false, reason: 'candidate_metering_point_not_found', switchRequestId: null }
-
-  const requestType: SupplierSwitchRequestType = site.move_in_date ? 'move_in' : 'switch'
-  const saved = await createSupplierSwitchRequest(supabaseService, {
-    readiness,
-    site,
-    meteringPoint,
-    requestType,
-    requestedStartDate: site.move_in_date ?? null,
-    companyId: params.companyId,
-    automationOrigin: 'z02_customer_masterdata_received',
-    automationKey: `z02-to-z03:${customerId}:${siteId}:${meteringPoint.id}`,
-  })
-
-  await supabaseService.from('supplier_switch_events').insert({
-    company_id: params.companyId,
-    switch_request_id: saved.id,
-    event_type: 'z02_preflight_queued_z03',
-    event_status: 'success',
-    message: 'PRODAT Z02 uppdaterade kund-/anläggningsdata och systemet köade Z03 eftersom preflight blev grön.',
-    payload: { z02: params.z02Payload, customerInfoRequestId: params.request.id ?? null },
-    created_by: params.actorUserId,
-  })
-
-  return { queued: true, reason: null, switchRequestId: saved.id }
-}
-
 export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   actorUserId: string
   message: EdielMessageRow
@@ -254,6 +184,12 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
   if (params.message.message_family !== 'PRODAT' || String(params.message.message_code).toUpperCase() !== 'Z02') {
     return { applied: false, targetId: null, reason: 'not_z02' }
   }
+
+  const companyId = params.message.company_id
+  if (!companyId) return { applied: false, targetId: null, reason: 'missing_company_id' }
+  const persistenceActorId=uuidOrNull(params.actorUserId)
+  if(!persistenceActorId)throw new Error('ediel_processing_actor_required')
+  await assertEdielTenantActor({companyId,actorUserId:persistenceActorId,permission:'metering.write'})
 
   const request = await findCustomerInfoRequestForZ02(params.message)
   if (!request) {
@@ -268,14 +204,7 @@ export async function applyInboundProdatZ02ToCustomerInfoRequest(params: {
     return { applied: false, targetId: null, reason: 'no_matching_customer_info_request' }
   }
 
-  const companyId = params.message.company_id
-  if (!companyId) return { applied: false, targetId: null, reason: 'missing_company_id' }
-
-  const persistenceActorId =
-    uuidOrNull(params.actorUserId) ??
-    uuidOrNull(request.created_by) ??
-    uuidOrNull(params.message.created_by)
-  const eventActorId = persistenceActorId ?? params.actorUserId
+  const eventActorId = persistenceActorId
   const z02Payload = prodatPayloadSnapshot(params.message)
   const linkedCustomerId = String(request.customer_id ?? '') || String(params.message.customer_id ?? '')
   const linkedSiteId = String(request.site_id ?? '') || String(params.message.site_id ?? '')

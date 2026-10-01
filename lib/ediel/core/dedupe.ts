@@ -94,8 +94,10 @@ export async function findInboundDuplicateByCanonicalIdentity(
       .limit(2)
 
     if (error) throw error
-    const existing=unique(data as EdielMessageRow[]|null)
-    if(existing)return existing
+    // An explicit new interchange is a new original even when its BGM/IDE
+    // references repeat an earlier business transaction. Functional duplicate
+    // assessment belongs to the source owner, not canonical original reuse.
+    return unique(data as EdielMessageRow[]|null)
   }
 
   if (
@@ -248,6 +250,9 @@ export async function hasCanonicalAckDuplicate(params: {
   outcome?: 'positive' | 'negative'
   ackScope?: 'interchange'|'message'|'transaction'|'object'
   acknowledgedReferences?: readonly string[]
+  acknowledgedProdatObjects?: Parameters<typeof findExistingAckForSource>[0]['acknowledgedProdatObjects']
+  expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
   const exact = await findExistingAckForSource({
     ...params,

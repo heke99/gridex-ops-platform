@@ -243,6 +243,11 @@
     "20260930232802_ediel_metering_method_complete_source_scope.sql": "3baf0dcd72926511d1b9dd26c318001ff4f3a2f75c5bd54d8e7b02b3da98683d",
     "20260930233300_ediel_signed_agreement_requested_method_source.sql": "892835287fb0b86f58fcfd302a999e21d491c012b8fc02432b10ac7c7646956b",
     "20260930233357_ediel_atomic_accepted_message_and_source_repair.sql": "cddb82b411005d3a5cb7a94245ad519127fe94d073f4cd42fd4eb71eba539196",
-    "20260930233558_ediel_method_expectation_actor_scope_v1.sql": "ed7aaf6d32b36a5a204e44da5260ea2aeba3ddc0bdc1347d4f0b39dc1c30bef7"
+    "20260930233558_ediel_method_expectation_actor_scope_v1.sql": "ed7aaf6d32b36a5a204e44da5260ea2aeba3ddc0bdc1347d4f0b39dc1c30bef7",
+    "20260930235816_ediel_service_permission_source_requested_method.sql": "a1bd74ef686f14861093b688939f6199d46539a1c9853db75d74a1ba844524ae",
+    "20261001000459_ediel_immutable_inbound_reception_response_requests.sql": "ac9d54e65564c53124a8c1a4d4ed6a947ec41c0d3cc0585cf5194311aff11eb7",
+    "20261001020640_ediel_service_permission_manual_source_commands.sql": "a29947c7e39e2cec87c59074ced5edcaccd7bd2ca0a44617066b9f766dcce7e9",
+    "20261001025903_ediel_registry_zero_route_import_hold.sql": "7921e317f7421c581a27ff497702b505ceafe54b4d01d8eca476cc9fd184e1fc",
+    "20261001031233_ediel_registry_declared_route_source_fields.sql": "18aaa6dc7838327dcd5ef88d5d9f444984e1fe9f4d6ee1101b2396cc093154f2"
   }
 }

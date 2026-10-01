@@ -27,6 +27,8 @@ import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissi
 import type { ProdatDateEventRow, ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority'
 import {qualifyBilateralProdatOutboundDraft,requiresBilateralProdatOutboundOwner,createAtomicBilateralProdatOriginal} from '@/lib/ediel/production/bilateralProdatOutboundDraft'
 import type {RequestedChangeBasis} from '@/lib/ediel/production/requestedChangeSource'
+import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 import { readSourceQualifiedNegativeFixtureDraft, sourceQualifiedNegativeFixtureMatchesDraft, prepareSourceQualifiedNegativeFixtureWitness, type SourceQualifiedNegativeFixture } from '@/lib/ediel/testing/negativeFixtureAuthority'
 import { readSourceQualifiedPositiveFixtureDraft, sourceQualifiedPositiveFixtureMatchesDraft, prepareSourceQualifiedPositiveFixtureWitness, type SourceQualifiedPositiveFixture } from '@/lib/ediel/testing/positiveFixtureAuthority'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
@@ -160,7 +162,7 @@ async function prepareTechnicalListDraft(draft:CreateEdielMessageInput,actorUser
  * one-use original witness as rendered drafts. A supplied snapshot/token is
  * never sufficient to bypass this public boundary. */
 export async function createCanonicalOutboundMessage(params: Parameters<typeof createLegacyCanonicalOutboundMessage>[0] & {
-  reportingContext?:ExpectedContext;dateEventContext?:ProdatDateEventValidationContext
+  reportingContext?:ExpectedContext;dateEventContext?:ProdatDateEventValidationContext;deathStatusContext?:DeathStatusValidationContext;customerMasterdataContext?:CustomerMasterdataValidationContext;requestedChangeBasis?:RequestedChangeBasis
 }) {
   const draft=params.baseInput,actorUserId=ensureActorUserId(params.actorUserId)
   if(!draft.companyId || draft.direction!=='outbound' || !draft.rawPayload || !['test','production'].includes(draft.environment ?? '')) throw new Error('canonical_outbound_owner_scope_required')
@@ -182,7 +184,7 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
         messageCode:String(draft.messageCode),messageVersion:null}:undefined})
   }
   const snapshot=await assertOutboundDraftAllowedByCanonicalPolicy({draft,actorUserId,messageVersion:draft.messageVersion,
-    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext})
+    negativeFixture,positiveFixture,reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext,requestedChangeBasis:params.requestedChangeBasis})
   const evidence=originalValidationEvidence(snapshot)
   if(draft.canonicalRulePackId && draft.canonicalRulePackId!==evidence.rulePackId)throw new Error('canonical_outbound_selected_rule_pack_mismatch')
   if(requiresBilateralProdatOutboundOwner(draft)&&(negativeFixture||positiveFixture))throw Error('bilateral_prodat_outbound_fixture_original_owner_required')
@@ -209,6 +211,8 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
   messageVersion?: string | null
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
+  deathStatusContext?: DeathStatusValidationContext
+  customerMasterdataContext?: CustomerMasterdataValidationContext
   negativeFixture?: SourceQualifiedNegativeFixture | null
   positiveFixture?: SourceQualifiedPositiveFixture | null
   ackSourceQualification?: SourceQualifiedOutboundAck
@@ -236,6 +240,12 @@ async function assertOutboundDraftAllowedByCanonicalPolicy(params: {
     version: params.messageVersion ?? params.draft.messageVersion ?? null,
     companyId: params.draft.companyId ?? null,
     dateEventRow, reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
+    deathStatusContext:params.deathStatusContext,
+    customerMasterdataContext:params.customerMasterdataContext,
+    customerMasterdataRow:{...dateEventRow,message_family:params.draft.messageFamily,raw_payload:params.draft.rawPayload,customer_id:params.draft.customerId??null,
+      intent_id:params.draft.intentId??null,communication_route_id:params.draft.communicationRouteId??null},
+    deathStatusRow:{...dateEventRow,message_family:params.draft.messageFamily,raw_payload:params.draft.rawPayload,
+      intent_id:params.draft.intentId??null,communication_route_id:params.draft.communicationRouteId??null},
     ackSourceQualification: params.ackSourceQualification,
     requestedChangeRow:params.draft,requestedChangeBasis:params.requestedChangeBasis,
     bilateralDraftQualification,bilateralDraft:params.draft,bilateralDraftActorUserId:params.actorUserId,
@@ -293,29 +303,33 @@ export async function createCanonicalAckMessage(params: {
     : {companyId,actorUserId,permission:'communication.write'})
   const draftWithSourceSnapshot = params.draft
 
-  const allowSequencedUtiltsErr =
-    params.ackFamily === 'UTILTS_ERR' &&
-    typeof draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken === 'string' &&
-    draftWithSourceSnapshot.parsedPayload.utiltsErrSequenceToken.trim().length > 0
-
-  // A transaction response belongs to the full original IDE, even when two
-  // rejected IDEs have the same ERR code. Unscoped ERRs retain code sequencing.
-  const transactionAckFamily = params.ackFamily === 'APERAK' || params.ackFamily === 'UTILTS_ERR'
-    ? params.ackFamily : null
-  const allowSequencedTransactionAck =
-    transactionAckFamily !== null &&
-    draftWithSourceSnapshot.parsedPayload?.ackScope === 'transaction' &&
-    typeof draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference === 'string' &&
-    draftWithSourceSnapshot.parsedPayload.relatedTransactionReference.trim().length > 0
-
-  const sequenceToken = allowSequencedTransactionAck
-    ? sequenceString(draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference)
-    : allowSequencedUtiltsErr
-      ? sequenceString(draftWithSourceSnapshot.parsedPayload?.utiltsErrSequenceToken)
-      : null
-
-  const sequenceField = allowSequencedTransactionAck ? 'relatedTransactionReference' as const
-    : allowSequencedUtiltsErr ? 'utiltsErrSequenceToken' as const : null
+  // The same shared wire projection defines the scope of a prospective ACK.
+  // Caller caches/error-code sequence tokens cannot coalesce independent IDEs.
+  const correlation=readPhysicalAckSourceCorrelation({id:'prospective-ack',company_id:companyId,
+    environment,direction:'outbound',message_family:params.ackFamily,raw_payload:draftWithSourceSnapshot.rawPayload ?? null},params.sourceMessage)
+  if(params.outcome && correlation.classification.outcome!==params.outcome)
+    throw new Error('canonical_ack_draft_physical_outcome_mismatch')
+  const scoped=correlation.scope==='transaction'||correlation.scope==='object'
+  const references=[...new Set(correlation.acknowledgedReferences)].sort()
+  // Missing LI has no string substitute. Its real object/agency/first-LIN
+  // tuple provides the operation namespace, independently of the outcome.
+  const objectScopes=correlation.prodatObjectOutcomes?.map(scope=>({lineItemReference:scope.lineItemReference,
+    objectId:scope.objectId,identityAgency:scope.identityAgency,firstLineIndex:scope.firstLineIndex}))
+    .sort((a,b)=>a.firstLineIndex-b.firstLineIndex)
+  const physicalSequenceToken=objectScopes?.some(scope=>scope.lineItemReference===null)
+    ? `object:${createHash('sha256').update(JSON.stringify(objectScopes),'utf8').digest('hex')}`
+    : scoped ? references.length===1 ? references[0]
+    : `${correlation.scope}:${createHash('sha256').update(JSON.stringify(references),'utf8').digest('hex')}` : null
+  const rawProdatScope=params.sourceMessage.message_family==='PRODAT'&&params.ackFamily==='APERAK'
+  const allowSequencedTransactionAck=!rawProdatScope&&correlation.scope==='transaction'
+  if(allowSequencedTransactionAck&&references.length!==1)throw Error('canonical_ack_physical_transaction_scope_ambiguous')
+  const physicalTransactionReference=allowSequencedTransactionAck?references[0]!:null
+  const parsedReference=draftWithSourceSnapshot.parsedPayload?.relatedTransactionReference
+  const parsedTransactionReference=typeof parsedReference==='string'&&parsedReference.trim().length>0?parsedReference:null
+  if(physicalTransactionReference&&parsedTransactionReference&&parsedTransactionReference!==physicalTransactionReference)
+    throw Error('canonical_ack_physical_transaction_metadata_mismatch')
+  const sequenceToken=rawProdatScope?physicalSequenceToken:physicalTransactionReference
+  const sequenceField=allowSequencedTransactionAck?'relatedTransactionReference' as const:null
   const readReplay = () => readProtectedOutboundAckReplay({companyId,environment,actorUserId,
     sourceMessage:params.sourceMessage,ackFamily:params.ackFamily,sequenceField,sequenceValue:sequenceToken,requestedRawPayload:params.draft.rawPayload})
   const returnReplay = (duplicate:EdielMessageRow) => {
@@ -328,6 +342,22 @@ export async function createCanonicalAckMessage(params: {
       : `conflicting_ack_draft_exists: ${params.ackFamily} finns redan med outcome ${existingOutcome}. Nytt outcome ${attemptedOutcome} blockeras tills den gamla draften ersätts.`)
     // Replay/conflict rejection produces no messages, witnesses, events or new
     // route/profile selection. Only the protected established row is returned.
+    if(params.sourceMessage.message_family==='PRODAT'&&params.ackFamily==='APERAK'){
+      const existing=duplicate
+      const desired=correlation.classification.outcome
+    if(correlation.prodatObjectOutcomes?.length){
+      const prior=readPhysicalAckSourceCorrelation(existing,params.sourceMessage)
+      if(!correlation.prodatObjectOutcomes.every(own=>prior.prodatObjectOutcomes?.some(result=>
+        result.objectId===own.objectId&&result.identityAgency===own.identityAgency&&result.firstLineIndex===own.firstLineIndex
+        &&result.lineItemReference===own.lineItemReference&&result.outcome===own.outcome)))
+        throw new Error('blocked_final_ack_exists: Originalets objektspecifika ACK-utfall är oföränderligt.')
+    }else if(correlation.scopedOutcomes?.length){
+      const prior=readPhysicalAckSourceCorrelation(existing,params.sourceMessage)
+      if(!correlation.scopedOutcomes.every(own=>prior.scopedOutcomes?.some(result=>result.reference===own.reference && result.outcome===own.outcome)))
+        throw new Error('blocked_final_ack_exists: Originalets objektspecifika ACK-utfall är oföränderligt.')
+    }else if(existing.ack_outcome!==desired)
+      throw new Error('blocked_final_ack_exists: Originalets ACK-utfall är oföränderligt.')
+    }
     return duplicate
   }
   const duplicate=await readReplay()
@@ -437,6 +467,7 @@ export async function createCanonicalAckMessage(params: {
 
   const input: CreateEdielMessageInput = {
     ...draftWithSourceSnapshot,
+    parsedPayload:physicalTransactionReference?{...draftWithSourceSnapshot.parsedPayload,ackScope:'transaction',relatedTransactionReference:physicalTransactionReference}:draftWithSourceSnapshot.parsedPayload,
     direction:'outbound',
     actorUserId,
     companyId,
@@ -509,6 +540,8 @@ export async function finalizeCanonicalOutboundDraft(params: {
   reportingContext?: ExpectedContext
   dateEventContext?: ProdatDateEventValidationContext
   requestedChangeBasis?:RequestedChangeBasis
+  deathStatusContext?: DeathStatusValidationContext
+  customerMasterdataContext?: CustomerMasterdataValidationContext
   outboundRequestId?: string | null
   duplicateCheck: {
     sourceType?: string | null
@@ -613,7 +646,7 @@ export async function finalizeCanonicalOutboundDraft(params: {
   const rulePackSnapshot = await assertOutboundDraftAllowedByCanonicalPolicy({
     draft: baseInput,actorUserId,
     messageVersion: resolvedVersion ?? params.duplicateCheck.messageVersion ?? null,
-    reportingContext: params.reportingContext, dateEventContext: params.dateEventContext,
+    reportingContext:params.reportingContext,dateEventContext:params.dateEventContext,deathStatusContext:params.deathStatusContext,customerMasterdataContext:params.customerMasterdataContext,
     requestedChangeBasis:params.requestedChangeBasis,
     negativeFixture,positiveFixture,
   })

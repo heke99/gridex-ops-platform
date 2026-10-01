@@ -60,6 +60,13 @@ it('object key order is not semantic while observation order is', () => {
   expect(consumptionEqual({ a: 1, b: [1, 2] }, { b: [1, 2], a: 1 })).toBe(true)
   expect(consumptionEqual([1, 2], [2, 1])).toBe(false)
 })
+it('preserves exact leading and embedded U505 data in V2 while the frozen V1 validator stays unchanged',async()=>{
+  const {contracts}=await preparedEnergy('E66',raw=>raw.replace('GRIDEX2607E66001',' OWN A'))
+  expect(validateUtiltsConsumptionContract(contracts[0]).transactionId).toBe(' OWN A')
+  const legacy={...contracts[0],version:1,projectionVersion:'utilts-consumption-v1',observations:contracts[0].observations.map(o=>({...o,quantity:500}))}
+  expect(()=>validateUtiltsConsumptionContract(legacy)).toThrow('text_required')
+  for(const transactionId of ['OWN ', ' ', 'X'.repeat(36),'OWN\tREF']) expect(()=>validateUtiltsConsumptionContract({...contracts[0],transactionId})).toThrow('transaction_reference')
+})
 it('rejects the old successful RPC shape without any stored authority', async () => {
   const { input } = await preparedEnergy()
   expect(() => validateUtiltsPersistenceResults(input, [{ transactionId: input.transactions[0].transactionId, disposition: 'accepted', responseType: 'positive_aperak', persistenceStatus: 'persisted' }])).toThrow('source_binding')

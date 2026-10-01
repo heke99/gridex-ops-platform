@@ -1,19 +1,17 @@
-import {parseInboundUtilts} from '@/lib/ediel/utilts'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage, type UtiltsRuntimeResult } from '@/lib/ediel/utiltsEngine'
+import {inferEdielFamilyAndCodeFromRawPayload} from '@/lib/ediel/classify'
 
 export function validateUtilts(rawPayload: string, admissionAt?: string | null): UtiltsRuntimeResult['validation'] {
   if (!admissionAt || !Number.isFinite(Date.parse(admissionAt))) throw new Error('ediel_admission_time_missing')
-  // No persisted metadata exists at this boundary. Read the actual BGM code;
-  // retain malformed wire for the runtime's typed syntax refusal.
-  let messageCode=''
-  try {messageCode=parseInboundUtilts(rawPayload).messageCode ?? ''} catch { /* Runtime syntax validation retains the malformed original. */ }
+  // Physical classification is diagnostic; only the explicit observed admission selects the guide.
+  const physical=inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const runtime = runUtiltsRuntimeForMessage({
     id: 'utilts-validation',
     direction: 'inbound',
     message_standard: 'edifact',
     message_family: 'UTILTS',
-    message_code: messageCode,
+    message_code: physical.messageFamily==='UTILTS' ? physical.messageCode ?? '' : '',
     message_version: null,
     process_type: null,
     environment: 'test',

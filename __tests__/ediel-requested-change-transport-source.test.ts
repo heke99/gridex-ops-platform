@@ -12,6 +12,7 @@ beforeEach(()=>{
  vi.clearAllMocks()
  io.rpc.mockImplementation(async(name,args)=>{
   if(name==='gridex_ediel_accepted_transport_projection_v1')return {data:null,error:null}
+  if(name==='ediel_customer_life_event_message_basis_v1'||name==='ediel_customer_masterdata_message_basis_v1'){expect(args).toEqual({p_company_id:companyId,p_message_id:messageId,p_actor_user_id:actorUserId});return {data:null,error:null}}
   if(name==='ediel_brp_change_message_basis_v1'||name==='ediel_require_brp_change_source_current_v1')return {data:null,error:null}
   if(name==='ediel_requested_change_message_basis_v1'){
    expect(args).toEqual({p_company_id:companyId,p_message_id:messageId,p_actor_user_id:actorUserId})
@@ -31,6 +32,6 @@ it.each([['E','E34'],['F','E64'],['G','E32']] as const)('actual fresh Z09%s send
  const message={id:messageId,company_id:companyId,environment:'test',direction:'outbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z09',status:'validated',raw_payload:raw,
   parsed_payload:{transactionSubtype:variant,requestedChangeBasis:{status:'authorized',sourceCurrent:true},requestedChangeSourceQualified:true}} as unknown as EdielMessageRow
  await expect(sendEdielMessageViaSmtp(message,{actorUserId})).rejects.toThrow('requested_change_actual_source_revoked')
- expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','ediel_brp_change_message_basis_v1','ediel_require_brp_change_source_current_v1','ediel_requested_change_message_basis_v1','ediel_require_requested_change_source_current_v1'])
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','ediel_customer_life_event_message_basis_v1','ediel_customer_masterdata_message_basis_v1','ediel_brp_change_message_basis_v1','ediel_require_brp_change_source_current_v1','ediel_requested_change_message_basis_v1','ediel_require_requested_change_source_current_v1'])
  expect(io.route).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled()
 })

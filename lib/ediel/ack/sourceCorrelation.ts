@@ -2,6 +2,7 @@ import { classifyCanonicalInboundAck, type CanonicalInboundAckClassification } f
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
 import { segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 export type AckCorrelationMessage = {
   id: string
@@ -13,6 +14,9 @@ export type AckCorrelationMessage = {
   message_sent_at?: string | null
 }
 export type AckSourceLookupReference = {type: 'UNB_REF' | 'BGM_REF' | 'IDE' | 'RFF_LI' | 'RFF_TN'; value: string}
+/** Exact first-register source membership. An absent LI remains absent; the
+ * physical object ID is never recast as an invented case reference. */
+export type ProdatAckObjectScope={objectId:string|null;identityAgency:string|null;firstLineIndex:number;lineItemReference:string|null}
 export type InboundAckSourceCorrelation = {
   classification: CanonicalInboundAckClassification | {family: 'UTILTS_ERR'; profile: null; outcome: 'negative'; code: 'ERR'; reason: null}
   lookupReferences: AckSourceLookupReference[]
@@ -21,6 +25,7 @@ export type InboundAckSourceCorrelation = {
   /** Whole-message classification does not describe each object in a mixed
    * processed PRODAT APERAK. These results use each physical ERC/LI group. */
   scopedOutcomes?: {reference: string; outcome: 'positive' | 'negative'}[]
+  prodatObjectOutcomes?: Array<ProdatAckObjectScope&{outcome:'positive'|'negative'}>
   wholeSourceOutcome?: 'positive' | 'negative'
 }
 export type AckSourceQualification<T extends AckCorrelationMessage> =
@@ -76,13 +81,45 @@ function prodatObjectOutcomes(wire: Wire, objectReferences: string[]): NonNullab
     return {reference, outcome: result.outcome}
   })
 }
+function prodatObjectGroups(wire:Wire){
+  const groups:Array<{objectId:string|null;lineItemReference:string|null;outcome:'positive'|'negative'}>=[]
+  for(const [index,segment]of wire.segments.entries()){
+    if(segment.tag!=='ERC')continue
+    const next=wire.segments.findIndex((part,position)=>position>index&&part.tag==='ERC')
+    const own=wire.segments.slice(index,next<0?wire.segments.length:next)
+    const refs=(qualifier:string)=>references({...wire,segments:own},qualifier)
+    const li=refs('LI'),id=refs('Z07'),result=classify(wire,[component(wire,segment,1)])
+    if(li.length>1||id.length>1||result.outcome!=='positive'&&result.outcome!=='negative'
+      ||!li.length&&(!id.length||result.outcome!=='negative'))throw Error('ack_processed_negative_scope_unavailable')
+    groups.push({objectId:one(id),lineItemReference:one(li),outcome:result.outcome})
+  }
+  return groups
+}
+function prodatSourceObjectOutcomes(ack:Wire,source:Wire):NonNullable<InboundAckSourceCorrelation['prodatObjectOutcomes']>{
+  const originals=prodatRegisterGroups(source.segments,source.una).groups.filter(group=>group.registerPosition===1)
+  const results=new Map<number,NonNullable<InboundAckSourceCorrelation['prodatObjectOutcomes']>[number]>()
+  for(const own of prodatObjectGroups(ack)){
+    const matches=originals.filter(group=>{
+      const li=one(references({...source,segments:group.segments},'LI'))
+      return (own.lineItemReference!==null?li===own.lineItemReference:group.itemId===own.objectId)
+        &&(own.objectId===null||group.itemId===own.objectId)
+    })
+    if(matches.length!==1)throw Error('ack_prodat_original_object_scope_ambiguous')
+    const original=matches[0],li=one(references({...source,segments:original.segments},'LI'))
+    if(li!==own.lineItemReference||own.lineItemReference===null&&own.outcome!=='negative')throw Error('ack_prodat_original_object_scope_mismatch')
+    const firstLineIndex=original.segments[0].index,prior=results.get(firstLineIndex)
+    if(prior&&prior.outcome!==own.outcome)throw Error('ack_object_result_conflict')
+    results.set(firstLineIndex,{objectId:original.itemId,identityAgency:original.identityAgency,firstLineIndex,lineItemReference:li,outcome:own.outcome})
+  }
+  return [...results.values()]
+}
 export function readInboundAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
   if (message.direction !== 'inbound') throw Error('ack_correlation_not_inbound')
   return readPhysicalAckSourceCorrelation(message)
 }
 /** Physical projection shared by inbound correlation and a protected outbound
  * original read. Direction and original authority remain each caller's gate. */
-export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage): InboundAckSourceCorrelation {
+export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage,actualSource?:AckCorrelationMessage): InboundAckSourceCorrelation {
   const wire = readWire(message,true), classification = classify(wire)
   if (classification.outcome !== 'positive' && classification.outcome !== 'negative') throw Error(classification.reason ?? 'ack_correlation_outcome_invalid')
   if (message.message_family && message.message_family !== classification.family) throw Error('ack_correlation_stored_family_mismatch')
@@ -101,18 +138,26 @@ export function readPhysicalAckSourceCorrelation(message: AckCorrelationMessage)
     lookupReferences = [{type:'BGM_REF',value:original}, ...acknowledgedReferences.map(value => ({type:'IDE' as const,value}))]
   } else {
     const original = one(references(wire, 'ACW')); if (!original) throw Error('ack_correlation_original_document_required')
-    const objects = references(wire, 'LI')
-    if (classification.outcome === 'negative' && component(wire, first(wire, 'BGM'), 3) === '34' && !objects.length) throw Error('ack_processed_negative_scope_unavailable')
-    scope = objects.length ? 'object' : 'message'; acknowledgedReferences = objects
+    const objects = references(wire, 'LI'),processed=component(wire,first(wire,'BGM'),3)==='34'
+    // P pp85-87 allows a source-owned negative object response when LI itself
+    // is missing. Only its actual Z07 remains; no surrogate LI is generated.
+    if(processed)prodatObjectGroups(wire)
+    scope = processed||objects.length ? 'object' : 'message'; acknowledgedReferences = objects
     lookupReferences = [{type:'BGM_REF',value:original}, ...objects.map(value => ({type:'RFF_LI' as const,value}))]
   }
   const scopedOutcomes = classification.family === 'APERAK' && classification.profile === 'PRODAT_16_B' && scope === 'object'
     ? prodatObjectOutcomes(wire, acknowledgedReferences) : undefined
+  let sourceObjectOutcomes:InboundAckSourceCorrelation['prodatObjectOutcomes']
+  if(actualSource&&classification.family==='APERAK'&&classification.profile==='PRODAT_16_B'&&scope==='object'){
+    const source=readWire(actualSource)
+    if(!qualifies(wire,source,{classification,scope,acknowledgedReferences,lookupReferences}))throw Error('ack_prodat_original_object_scope_mismatch')
+    sourceObjectOutcomes=prodatSourceObjectOutcomes(wire,source)
+  }
   const wholeSourceOutcome = classification.family === 'CONTRL' ? classification.outcome
     : scope === 'message' && classification.family === 'APERAK' && classification.outcome === 'negative'
       && (classification.profile === 'UTILTS_25_A' && classification.code === '313'
         || classification.profile === 'PRODAT_16_B' && component(wire, first(wire, 'BGM'), 3) === '27') ? 'negative' : undefined
-  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {}), ...(wholeSourceOutcome ? {wholeSourceOutcome} : {})}
+  return {classification, scope, acknowledgedReferences, lookupReferences, ...(scopedOutcomes ? {scopedOutcomes} : {}),...(sourceObjectOutcomes?{prodatObjectOutcomes:sourceObjectOutcomes}:{}), ...(wholeSourceOutcome ? {wholeSourceOutcome} : {})}
 }
 function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrelation): boolean {
   const ackUnb = first(ack, 'UNB'), sourceUnb = first(source, 'UNB')
@@ -144,7 +189,9 @@ function qualifies(ack: Wire, source: Wire, correlation: InboundAckSourceCorrela
   }
   if (sourceType !== 'PRODAT' || one(references(ack, 'ACW')) !== component(source, first(source, 'BGM'), 2)) return false
   const lineRefs = references(source,'LI')
-  return correlation.acknowledgedReferences.every(reference => lineRefs.includes(reference)) && legalMirror(ack,source,'FR','DO','FR','DO')
+  if(!correlation.acknowledgedReferences.every(reference => lineRefs.includes(reference))||!legalMirror(ack,source,'FR','DO','FR','DO'))return false
+  if(component(ack,first(ack,'BGM'),3)==='34')try{prodatSourceObjectOutcomes(ack,source)}catch{return false}
+  return true
 }
 function legalMirror(ack: Wire, source: Wire, ackSender: string, ackReceiver: string, sourceSenderQualifier = 'MS', sourceReceiverQualifier = 'MR'): boolean {
   const legal = (wire: Wire, qualifier: string) => one(wire.segments.filter(segment => segment.tag === 'NAD' && component(wire,segment,1) === qualifier).map(segment => component(wire,segment,2)))

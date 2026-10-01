@@ -35,6 +35,7 @@ export async function buildServicePermissionDraft(input: {
   const token = prodatMessageTypeToken(version)
   const external = text(i.payload.externalReference)
   const li = b.code === 'Z18' ? b.li : i.transactionReference
+  if (b.code === 'Z13' && !text(b.requestedMethod)) throw new Error('ediel_permission_source_requested_method_required')
   if (b.code === 'Z13' && !text(b.agreementReference)) throw new Error('ediel_permission_source_agreement_reference_required')
   if (!external || !li || !b.objects.length) throw new Error('ediel_permission_persisted_wire_references_required')
   const all: string[] = []
@@ -56,6 +57,7 @@ export async function buildServicePermissionDraft(input: {
         reportStartDate: b.code === 'Z13' ? object.reportStart : null,
         reportEndDate: b.code === 'Z13' ? object.reportEnd : null,
         reportingFrequency: b.code === 'Z13' ? b.frequency : null,
+        meteringMethod: b.code === 'Z13' ? b.requestedMethod : null,
         energyProductId: b.code === 'Z13' ? object.product : null,
         permissionPurpose: b.code === 'Z13' ? b.purposeCode : null,
         permissionEndReason: b.code === 'Z18' ? b.terminationReason : null,

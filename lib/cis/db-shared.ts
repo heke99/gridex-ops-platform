@@ -9,6 +9,8 @@ import { getContractLifecycleSummary } from '@/lib/customer-contracts/lifecycle'
 import type { CustomerContractRow } from '@/lib/customer-contracts/types'
 import type { CustomerSiteRow, MeteringPointRow } from '@/lib/masterdata/types'
 import type { CustomerContactRow, CustomerRow } from '@/types/customers'
+import {prepareCustomerMasterdataSource,type SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
+import { readCustomerLifeEventExportProjection, type CustomerLifeEventExportProjection } from '@/lib/ediel/production/customerLifeEventExport'
 
 export function normalizeQuery(value?: string | null): string {
   return (value ?? '').trim().toLowerCase()
@@ -88,6 +90,8 @@ export type CustomerExportContext = {
   meteringPoint: MeteringPointRow | null
   contract: CustomerContractRow | null
   qualifiedStructure?:QualifiedCustomerStructure
+  customerLifeEvent?: CustomerLifeEventExportProjection | null
+  customerMasterdata?:SourceQualifiedCustomerMasterdataProjection|null
 }
 
 function preferPrimaryContact(contacts: CustomerContactRow[]): CustomerContactRow | null {
@@ -205,21 +209,35 @@ export function requireContextCompanyId(
 
 export async function getCustomerExportContext(params: {
   edielStructure?:{companyId:string;actorUserId:string;environment:'test'|'production';periodStart:string;periodEnd:string}
+  companyId?: string | null
   customerId: string
   siteId?: string | null
   meteringPointId?: string | null
+  actorUserId?: string | null
+  asOf?: string
+  environment?:'test'|'production'
+  requireCustomerMasterdata?:boolean
 }): Promise<CustomerExportContext> {
-  if(params.edielStructure){
-    const {assertEdielTenantActor}=await import('@/lib/ediel/services/authorization')
-    await assertEdielTenantActor({companyId:params.edielStructure.companyId,actorUserId:params.edielStructure.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
+  const explicitCompanyId = normalizeCompanyId(params.companyId)
+  const explicitActorUserId = normalizeCompanyId(params.actorUserId)
+  if (params.companyId !== undefined && params.companyId !== null && !explicitCompanyId) throw new Error('customer_export_company_required')
+  if (params.edielStructure && ((explicitCompanyId && explicitCompanyId !== params.edielStructure.companyId)
+    || (explicitActorUserId && explicitActorUserId !== params.edielStructure.actorUserId))) throw new Error('customer_export_actor_scope_conflict')
+  if (params.asOf && params.edielStructure && Date.parse(params.asOf) !== Date.parse(params.edielStructure.periodStart)) throw new Error('customer_export_date_scope_conflict')
+  const scopedCompanyId = explicitCompanyId ?? params.edielStructure?.companyId
+  const scopedActorUserId = explicitActorUserId ?? params.edielStructure?.actorUserId
+  if (scopedCompanyId) {
+    if (!scopedActorUserId) throw new Error('customer_export_actor_required')
+    const { assertEdielTenantActor } = await import('@/lib/ediel/services/authorization')
+    await assertEdielTenantActor({ companyId: scopedCompanyId, actorUserId: scopedActorUserId, permissionAnyOf: ['communication.write', 'ediel_testing.write'] })
   }
   const [customer, contacts, site, meteringPoint, contract] = await Promise.all([
-    getCustomerRow(params.customerId,params.edielStructure?.companyId),
-    getCustomerContacts(params.customerId,params.edielStructure?.companyId),
-    getSite(params.siteId,params.edielStructure?.companyId),
-    getMeteringPoint(params.meteringPointId,params.edielStructure?.companyId),
+    getCustomerRow(params.customerId,scopedCompanyId),
+    getCustomerContacts(params.customerId,scopedCompanyId),
+    getSite(params.siteId,scopedCompanyId),
+    getMeteringPoint(params.meteringPointId,scopedCompanyId),
     getLatestContract({
-      companyId:params.edielStructure?.companyId,
+      companyId:scopedCompanyId,
       customerId: params.customerId,
       siteId: params.siteId ?? null,
     }),
@@ -232,21 +250,30 @@ export async function getCustomerExportContext(params: {
     contract,
   })
 
+  if (scopedCompanyId && (tenant.companyId !== scopedCompanyId || tenant.tenantIssues.length)) throw new Error('customer_export_tenant_scope_mismatch')
   let qualifiedStructure:QualifiedCustomerStructure|undefined
   if(params.edielStructure){
     if(tenant.companyId!==params.edielStructure.companyId||tenant.tenantIssues.length||!site||!meteringPoint||site.customer_id!==params.customerId||meteringPoint.customer_id!==params.customerId||(meteringPoint.customer_site_id??meteringPoint.site_id)!==site.id)throw new Error('dated_structure_export_scope_mismatch')
     const {readQualifiedCustomerStructure}=await import('@/lib/ediel/sources/qualifiedCustomerStructure')
     qualifiedStructure=await readQualifiedCustomerStructure({...params.edielStructure,customerId:params.customerId,siteId:site.id,meteringPointId:meteringPoint.id})
   }
+  if(params.environment&&params.edielStructure&&params.environment!==params.edielStructure.environment)throw Error('customer_export_environment_scope_conflict')
+  const customerLifeEvent = tenant.companyId && customer && tenant.tenantIssues.length === 0
+    ? await readCustomerLifeEventExportProjection({ companyId: tenant.companyId, customerId: customer.id, actorUserId: scopedActorUserId, asOf: params.asOf ?? params.edielStructure?.periodStart })
+    : null
+
+  const customerMasterdata=params.requireCustomerMasterdata&&scopedCompanyId&&scopedActorUserId&&customer?await prepareCustomerMasterdataSource({companyId:scopedCompanyId,customerId:customer.id,actorUserId:scopedActorUserId,asOf:params.asOf??params.edielStructure?.periodStart,environment:params.environment??params.edielStructure?.environment}):undefined
   return {
+    ...(customerMasterdata?{customerMasterdata}:{}),
     ...(qualifiedStructure?{qualifiedStructure}:{}),
     companyId: tenant.companyId,
     tenantIssues: tenant.tenantIssues,
-    customer,
+    customer: customer && customerLifeEvent ? { ...customer, ...customerLifeEvent.customerFields } : customer,
     contacts,
     site,
     meteringPoint,
     contract,
+    customerLifeEvent,
   }
 }
 

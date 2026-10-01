@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { readManualServicePermissionOptions, type ManualServicePermissionOption } from '@/lib/ediel/services/manualPermissionOptions'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -169,6 +170,15 @@ export default async function CustomerInfoRequestsPage() {
         for(const [id,decision] of decisions)processDecisions.set(id,decision)
       }
     }catch{processReadUnavailable=true;processDecisions.clear()}
+  }
+  let permissionAssignmentOptions: ManualServicePermissionOption[] = []
+  let permissionAssignmentReadFailed = false
+  if (companyId && user && permissions.length) {
+    try {
+      permissionAssignmentOptions = await readManualServicePermissionOptions({ companyId, actorUserId: user.id, permissionIds: permissions.slice(0, 12).map((permission) => permission.id) })
+    } catch {
+      permissionAssignmentReadFailed = true
+    }
   }
 
   const blockedRequests = requests.filter((request) => ['blocked', 'route_missing', 'negative_aperak', 'manual_review_required', 'missing_authorization'].includes(request.status))
@@ -374,10 +384,19 @@ export default async function CustomerInfoRequestsPage() {
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}
                   <div className="mt-3 grid gap-2">
-                    {canPreparePermission&&!['sent','waiting_for_z14','z14_received','approved','active','revoked','rejected','ended','cancelled'].includes(permission.status)?<form action={queueMeteringPermissionZ13Action}>
+                    {canPreparePermission&&!['sent','waiting_for_z14','z14_received','approved','active','revoked','rejected','ended','cancelled'].includes(permission.status)?<form action={queueMeteringPermissionZ13Action} className="grid gap-2">
                       <input type="hidden" name="permission_id" value={permission.id} />
+                      <label htmlFor={`permission-assignment-${permission.id}`} className="text-xs text-slate-700">Kopplat tjänsteuppdrag</label>
+                      <select id={`permission-assignment-${permission.id}`} name="service_assignment_selection" defaultValue="" className="h-9 rounded-lg border border-slate-300 bg-white px-3 text-xs">
+                        <option value="">Använd endast ett entydigt kopplat uppdrag</option>
+                        {permissionAssignmentOptions.filter((option) => option.permissionId === permission.id).map((option) => (
+                          <option key={option.assignmentId} value={`${option.assignmentId}:${option.assignmentVersion}`}>{option.beneficiaryLabel ?? option.beneficiaryCompanyId} · {option.purpose} · {option.mode} · {option.status}</option>
+                        ))}
+                      </select>
+                      {permissionAssignmentReadFailed ? <p className="text-xs text-amber-900">Uppdragen kunde inte läsas. Begäran kräver kontroll innan den kan förberedas.</p> : null}
+                      {!permissionAssignmentOptions.some((option) => option.permissionId === permission.id) ? <p className="text-xs text-slate-600">Saknas ett aktuellt källbelagt uppdrag skapas en uppgift för manuell kontroll.</p> : null}
                       <button className="w-full rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100">
-                        Kontrollera fullmakt och förbered Z13
+                        Kontrollera uppdrag och förbered Z13
                       </button>
                     </form>:null}
                     {canPreparePermission?<details className="rounded-xl border border-slate-200 bg-slate-50 p-3">

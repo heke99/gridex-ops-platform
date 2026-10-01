@@ -13,6 +13,7 @@ import {savePowerOfAttorney} from '@/lib/operations/db'
 import {ensureAuthorizationDocumentFromPowerOfAttorney} from '@/lib/legal/authorizationChain'
 import {prepareAndQueueEdielZ03} from '@/lib/ediel/flows/prodatSwitch'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
+import type {EdielMessageRow} from '@/lib/ediel/types'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 export const literal=(v:unknown):string=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
@@ -27,7 +28,12 @@ function fixtureGsrn(){
  const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
  return `${first17}${(10-weighted%10)%10}`
 }
-export async function seedNormalSwitchNativeFixture(input:{requestedStartDate?:string;external?:string;provider?:(email:string)=>void}={}){
+export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
+type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H'}
+export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
+export function seedNormalSwitchNativeFixture(input?:NormalSwitchFixtureInput&{deferOriginal?:false}):Promise<NormalSwitchStageNativeFixture&{caseReference:string;originalZ03:EdielMessageRow}>
+export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal?:boolean}={}){
+ if(input.initialSubtype!==undefined&&!['L','H'].includes(input.initialSubtype))throw Error('native_switch_initial_subtype_unsupported')
  const companyId=randomUUID(),actorUserId=randomUUID(),customerId=randomUUID(),siteId=randomUUID(),pointId=randomUUID(),contractId=randomUUID(),gridId=randomUUID(),switchId=randomUUID(),routeId=randomUUID(),routeProfileId=randomUUID(),marketActor=randomUUID()
  const external=input.external??fixtureGsrn(),requestedStartDate=input.requestedStartDate??'2026-10-01'
  const customerIdentity='199001011234',organizationNumber='5590001243',brpEdielId='99876',marker={test_center:{kind:'invoice_test_customer'}}
@@ -190,17 +196,19 @@ export async function seedNormalSwitchNativeFixture(input:{requestedStartDate?:s
  const authorization=await ensureAuthorizationDocumentFromPowerOfAttorney({companyId,customerId,powerOfAttorneyId:poa.id,siteId,meteringPointId:pointId,contractId})
  const authorizationDocumentId=authorization.authorizationDocumentId;expect(authorizationDocumentId).toBeTruthy()
  expect(sql(`SELECT to_jsonb(switch_ready) FROM public.customer_contract_lifecycle_readiness_v WHERE customer_contract_id=${literal(contractId)}`)).toBe(true)
- sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},'L','Z22',false);`)
+ sql(`INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,grid_owner_id,contract_id,customer_contract_id,power_of_attorney_id,authorization_document_id,request_type,status,requested_start_date,prodat_variant,prodat_reason,lifecycle_blocked) VALUES(${literal(switchId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(pointId)},${literal(gridId)},${literal(contractId)},${literal(contractId)},${literal(poa.id)},${literal(authorizationDocumentId)},'switch','ready',${literal(requestedStartDate)},${literal(input.initialSubtype??'L')},${literal(input.initialSubtype==='H'?'Z25':'Z22')},false);`)
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions
  WHERE key IN('communication.read','communication.write','communication.send','metering.read','metering.write','operations.read','operations.write','contracts.read','contracts.write','customers.read','customers.write');
  DELETE FROM public.admin_users WHERE user_id=${literal(actorUserId)};`)
  for(const permission of ['communication.read','communication.write','communication.send','metering.read','metering.write'])expect(sql(`SELECT to_jsonb(public.gridex_actor_has_company_permission(${literal(actorUserId)},${literal(companyId)},${literal(permission)}))`)).toBe(true)
+ const stage:NormalSwitchStageNativeFixture={companyId,actorUserId,customerId,siteId,pointId,contractId,switchId,external,sender,receiver,gridId,routeId,routeProfileId,marketActorId:marketActor,customerIdentity:{id:customerIdentity,qualifier:'SE2',agency:'260'},requestedStartDate,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId:authorizationDocumentId!,powerOfAttorneyId:poa.id}
+ if(input.deferOriginal){expect(sql(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(companyId)}),'originals',(SELECT count(*) FROM gridex_received_sources.switch_originals WHERE company_id=${literal(companyId)}),'periods',(SELECT count(*) FROM public.customer_supply_periods WHERE company_id=${literal(companyId)}))`)).toEqual({messages:0,originals:0,periods:0});return stage}
  const queued=await prepareAndQueueEdielZ03({actorUserId,switchRequestId:switchId,communicationRouteId:routeId,environment:'test'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.switch_originals WHERE message_id=${literal(queued.id)}`)).toBe(1)
  if(input.provider){input.provider('recipient@example.invalid');await sendEdielMessageViaSmtp(queued,{actorUserId,smtpMimeMode:'nodemailer-attachment'})}
  const originalZ03=await getEdielMessageById(queued.id);expect(originalZ03).not.toBeNull()
  const tokenized=tokenizeEdifact(originalZ03!.raw_payload!),li=tokenized.segments.find(t=>t.tag==='RFF'&&segmentComposite(t,1,tokenized.una)[0]==='LI'),caseReference=li?segmentComposite(li,1,tokenized.una)[1]:null;expect(caseReference).toBeTruthy()
  if(input.provider)expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${literal(queued.id)}`)).toBe(true)
- return {companyId,actorUserId,customerId,siteId,pointId,contractId,switchId,external,sender,receiver,gridId,routeId,routeProfileId,customerIdentity:{id:customerIdentity,qualifier:'SE2' as const,agency:'260' as const},caseReference:caseReference!,requestedStartDate,originalZ03:originalZ03!,brpEdielId,gridAreaCode:'TES',documentSha256,authorizationDocumentId,powerOfAttorneyId:poa.id}
+ return {...stage,caseReference:caseReference!,originalZ03:originalZ03!}
 }

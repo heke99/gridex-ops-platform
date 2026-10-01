@@ -111,6 +111,6 @@ describe('Exact MIME archive pre-send guard', () => {
   })
   it('requires TLS and certificate validation for the provider hop', async () => {
     await sendEdielEmail({ raw: rawSmime, to: 'receiver@example.test' }, entry)
-    expect(mocks.transport).toHaveBeenCalledWith(expect.objectContaining({ requireTLS: true, tls: { rejectUnauthorized: true } }))
+    expect(mocks.transport).toHaveBeenCalledWith(expect.objectContaining({ requireTLS: true, tls: { rejectUnauthorized: true, minVersion: 'TLSv1.2' } }))
   })
 })

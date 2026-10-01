@@ -43,5 +43,8 @@ export default defineConfig({
     'scripts/ediel-ai-network-original-native.test.ts',
     'scripts/ediel-network-registry-source-native.test.ts',
     'scripts/ediel-fresh-business-incident-native.test.ts',
+    'scripts/ediel-bilateral-prodat-h-original-native.test.ts',
+    'scripts/ediel-process-journal-retention-native.test.ts',
+    'scripts/ediel-registry-route-certificate-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })

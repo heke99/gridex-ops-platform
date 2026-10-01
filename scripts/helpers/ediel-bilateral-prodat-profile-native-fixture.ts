@@ -1,10 +1,10 @@
 // Disposable native producer fixture. All issuer trust configuration is synthetic.
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
-import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {seedNormalSwitchNativeFixture,type NormalSwitchStageNativeFixture,nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
 import {readBilateralProdatGroundScope,type BilateralProdatSubmission} from '@/lib/ediel/production/bilateralProdatProfileIntake'
-export async function createBilateralProdatGroundNativeFixture(){
- const f=await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15'}),reviewer=randomUUID(),agreement=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC bilateral issuer verifier mechanism fixture only')
+export async function createBilateralProdatGroundNativeFixture(sourceFixture?:NormalSwitchStageNativeFixture){
+ const f=sourceFixture??await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15'}),reviewer=randomUUID(),agreement=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC bilateral issuer verifier mechanism fixture only')
  sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(reviewer)},'authenticated','authenticated',${literal(`${reviewer}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(reviewer)},${literal(`${reviewer}@example.invalid`)},'Synthetic separate bilateral reviewer','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(f.companyId)},${literal(reviewer)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');

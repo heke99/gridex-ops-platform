@@ -12,7 +12,7 @@ const uuid=(x:unknown):x is string=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{
 const hash=(x:unknown):x is string=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x)
 /** Physical bytes select the exceptional owner. Parsed/public approval flags
  * do not select either a profile or an ordinary path. */
-export function requiresBilateralProdatOutboundOwner(draft:CreateEdielMessageInput):boolean{
+export function requiresBilateralProdatOutboundOwner(draft:Pick<CreateEdielMessageInput,'rawPayload'>):boolean{
  if(!draft.rawPayload)return false
  const wire=tokenizeEdifact(draft.rawPayload),family=wire.segments.find(s=>s.tag==='UNH'),bgm=wire.segments.find(s=>s.tag==='BGM')
  if(!family||segmentComposite(family,2,wire.una)[0]!=='PRODAT'||!bgm)return false
@@ -24,12 +24,12 @@ export function requiresBilateralProdatOutboundOwner(draft:CreateEdielMessageInp
 }
 /** Read-only qualification. Native persistence independently derives the
  * profile under the current authorization graph in its INSERT transaction. */
-export async function qualifyBilateralProdatOutboundDraft(input:{draft:CreateEdielMessageInput;actorUserId:string}):Promise<QualifiedBilateralProdatOutboundDraft|null>{
+async function qualifyNative(input:{draft:CreateEdielMessageInput;actorUserId:string;sourceMessageId?:string}):Promise<QualifiedBilateralProdatOutboundDraft|null>{
  const {draft,actorUserId}=input
  if(!requiresBilateralProdatOutboundOwner(draft))return null
  if(draft.direction!=='outbound'||draft.messageFamily!=='PRODAT'||!uuid(draft.companyId)||!uuid(actorUserId)||!['test','production'].includes(draft.environment??''))throw Error('bilateral_prodat_outbound_actual_scope_required')
  const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
- const {data,error}=await rpc('ediel_qualify_bilateral_prodat_outbound_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload})
+ const {data,error}=input.sourceMessageId?await rpc('ediel_read_bilateral_prodat_outbound_original_v1',{p_company_id:draft.companyId,p_message_id:input.sourceMessageId}):await rpc('ediel_qualify_bilateral_prodat_outbound_draft_v1',{p_company_id:draft.companyId,p_actor_user_id:actorUserId,p_environment:draft.environment,p_raw_payload:draft.rawPayload})
  if(error)throw error
  const r=record(data)
  if(!r)throw Error('bilateral_prodat_outbound_current_profile_required')
@@ -42,6 +42,12 @@ export async function qualifyBilateralProdatOutboundDraft(input:{draft:CreateEdi
  }
  const q=Object.freeze({...r,objects:Object.freeze(r.objects.map(o=>Object.freeze({...record(o)!})))}) as unknown as QualifiedBilateralProdatOutboundDraft
  issued.set(q,{raw:draft.rawPayload!});return q
+}
+export const qualifyBilateralProdatOutboundDraft=(input:{draft:CreateEdielMessageInput;actorUserId:string})=>qualifyNative(input)
+export async function qualifyPersistedBilateralProdatOutboundOriginal(message:EdielMessageRow){
+ if(!message.created_by)throw Error('bilateral_prodat_outbound_actual_actor_required')
+ const draft:CreateEdielMessageInput={actorUserId:message.created_by,companyId:message.company_id,environment:message.environment,direction:message.direction,messageStandard:message.message_standard,messageFamily:message.message_family,messageCode:message.message_code,rawPayload:message.raw_payload??''}
+ return {draft,actorUserId:message.created_by,qualification:await qualifyNative({draft,actorUserId:message.created_by,sourceMessageId:message.id})}
 }
 export function bilateralProdatOutboundDraftQualified(input:{draft:CreateEdielMessageInput;actorUserId:string;qualification?:QualifiedBilateralProdatOutboundDraft|null}):boolean{
  const q=input.qualification,w=q?issued.get(q):null

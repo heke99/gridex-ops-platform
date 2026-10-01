@@ -3,6 +3,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {copyProdatInvoiceeObjects,type ProdatInvoiceeObject} from '@/lib/ediel/prodat/prodatInvoicee'
 import type {ProdatDependentConditionFacts} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import {copyDeathSelection,type DeathSelection} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 export type RequestedChangeBasis={status:'authorized';companyId:string;environment:'test'|'production';eventId:string;variant:'E'|'F'|'G';eventKind:'death'|'quarter_contract'|'method_contract';supplyPeriodId:string;supplySourceMessageId:string;supplyStateVersion:number;customerId:string;meteringPointId:string;legalActorId:string;legalSenderId:string;legalReceiverId:string;pointId:string;identityAgency:'9'|'89';gridArea:string;brpEdielId:string;effectiveAt:string;sourceReference:string;sourceVersion:string;sourceDigest:string;invoiceeProfile:ProdatInvoiceeObject;customerIdentity:{id:string;qualifier:''|'1'|'SE1'|'SE2';agency:'89'|'260';name:string;addressLines:string[];city:string;postalCode:string;country:string}}
 export type RequestedChangeHeld={status:'held';missing:string[]}
@@ -32,6 +33,23 @@ export function isRequestedChangeBasisQualified(basis:unknown,row:{company_id?:s
  if(!basis||typeof basis!=='object')return false;const b=basis as RequestedChangeBasis,q=qualified.get(b);if(!q||q.basisHash!==createHash('sha256').update(JSON.stringify(b)).digest('hex'))return false
  if((row.company_id??row.companyId)!==b.companyId||row.environment!==b.environment||row.direction!=='outbound'||(row.message_family??row.messageFamily)!=='PRODAT'||(row.message_code??row.messageCode)!=='Z09'||(row.source_operation_id??row.sourceOperationId)!==b.eventId||(row.customer_id??row.customerId)!==b.customerId||(row.metering_point_id??row.meteringPointId)!==b.meteringPointId)return false
  return !q.messageId||(row.id===q.messageId&&createHash('sha256').update(row.raw_payload??row.rawPayload??'','utf8').digest('hex')===q.payloadHash)
+}
+/** Pure projection of the actual private event; authority remains the current
+ * native source/intent binder and the opaque RPC capability, never this object. */
+export function requestedChangeDeathSelection(b:RequestedChangeBasis,lineItemReference:string):DeathSelection|undefined{
+ if(b.variant!=='E')return undefined
+ if(b.eventKind!=='death')throw Error('requested_change_variant_event_mismatch')
+ const event={key:b.eventId,eventKey:b.eventId,revision:b.sourceVersion,reference:b.sourceReference}
+ return copyDeathSelection({source:{kind:'caller_selection',reference:b.sourceReference},objects:[{objectKey:b.meteringPointId,
+  installation:{id:b.pointId,agency:b.identityAgency},customer:{kind:'domain_customer',key:b.customerId,revision:String(b.supplyStateVersion),id:b.customerIdentity.id,qualifier:b.customerIdentity.qualifier,agency:b.customerIdentity.agency},
+  legalSupplier:{id:b.legalSenderId,qualifier:'160',agency:'SVK'},legalGridOwner:{id:b.legalReceiverId,qualifier:'160',agency:'SVK'},
+  process:{code:'Z09',reason:'E34'},event,assessment:{kind:'known',value:'death',evidence:event},lineItemReference}]})
+}
+export function requestedChangeWireDeathSelection(b:RequestedChangeBasis,raw:string):DeathSelection|undefined{
+ if(b.variant!=='E')return undefined
+ const wire=tokenizeEdifact(raw),refs=wire.segments.filter(t=>t.tag==='RFF'&&segmentComposite(t,1,wire.una)[0]==='LI')
+ if(refs.length!==1)throw Error('requested_change_original_li_scope_invalid')
+ return requestedChangeDeathSelection(b,segmentComposite(refs[0],1,wire.una)[1]??'')
 }
 export function requestedChangeRegisterFacts(b:RequestedChangeBasis):ProdatDependentConditionFacts{
  const user=b.customerIdentity

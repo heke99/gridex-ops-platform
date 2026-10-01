@@ -275,6 +275,23 @@ try {
  await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(120),uid(1),pSource,pEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(120),pEvidence])
  const prepareP=async(wire,source=120)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:wire,relatedMessageId:uid(source),rulePackEvidence:pEvidence}])).rows[0].r
  const createP=async(id,wire,sealed,code='APERAK',source=120)=>db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,encode(sha256(convert_to($4,'UTF8')),'hex'),now())",[uid(id),uid(1),code,wire,uid(source),pEvidence.rulePackId,pEvidence.messageProfileId,pEvidence.profileKey,pEvidence.version,pEvidence.sourceHash,sealed.evidence.snapshot,{outboundOwnerWitnessId:sealed.witnessId}])
+ // ACK-10 correction composed with the actual existing P guide, owner seal,
+ // one-use consumption and INSERT. The apply delegates are declared boundary
+ // fixtures only; their NEW guard mechanics have their own focused harness.
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z14',$3,now())",[uid(116),uid(1),pSource]);await legal(116)
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[uid(116),uid(1),pSource,pEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(116),pEvidence])
+ const oldUnusedWire=(await pAck('OLD-UNUSED')).replace('BGM+++34','BGM+APERAK+OLD-DOCUMENT+34')
+ const oldUnusedSeal=await prepareP(oldUnusedWire,116);await createP(119,oldUnusedWire,oldUnusedSeal,'APERAK',116);checks++
+ await db.exec(`create function gridex_ack_authority.read_committed_v1(uuid,text,uuid,uuid) returns jsonb language sql as 'select null::jsonb';create function gridex_ack_authority.apply_v1(uuid,text,uuid,uuid,uuid) returns jsonb language sql as $$select '{"explicitBoundary":"incoming_apply_tested_separately"}'::jsonb$$;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql',import.meta.url),'utf8'));checks++
+ for(const bgm of ['BGM+APERAK++34','BGM++NEW-DOCUMENT+34','BGM+::260++34']){
+  const invalid=(await pAck('FRESH-UNUSED')).replace('BGM+++34',bgm)
+  await assert.rejects(prepareP(invalid),/ediel_prodat_aperak_unused_document_element/)
+  await assert.rejects(createP(118,invalid,oldUnusedSeal),/ediel_prodat_aperak_unused_document_element/)
+  assert.equal((await db.query('select count(*)::int n from ediel_messages where id=$1',[uid(118)])).rows[0].n,0);checks++
+ }
+ // Published source knowledge does not rewrite a previously consumed original.
+ assert.deepEqual((await db.query('select gridex_ediel_outbound_owner.require_v1($1,$2) r',[uid(1),uid(119)])).rows[0].r,oldUnusedSeal.evidence);checks++
  const mixedRaw=await pAck('MIXED');const mixedSeal=await prepareP(mixedRaw);assert.equal((await db.query('select code from gridex_ediel_outbound_owner.witnesses where id=$1',[mixedSeal.witnessId])).rows[0].code,'APERAK');checks++
  await db.exec(readFileSync(new URL('../supabase/migrations/20260930231746_ediel_native_prodat_ack_immutable_scope.sql',import.meta.url),'utf8'));checks++
  const ownPScopes=(await db.query('select gridex_ediel_ack_guide.prodat_outcomes_v1($1,$2) r',[mixedRaw,pSource])).rows[0].r;assert.deepEqual(ownPScopes.map(s=>s.outcome),['positive','negative']);checks++
@@ -291,5 +308,134 @@ try {
  await assert.rejects(createP(124,race2,seal2,'APERAK',122),/scope_conflicting_outcome/);assert.equal((await db.query('select count(*)::int n from ediel_messages where id=$1',[uid(124)])).rows[0].n,0);assert.equal((await db.query('select count(*)::int n from gridex_ediel_outbound_owner.consumptions where witness_id=$1',[seal2.witnessId])).rows[0].n,0);checks++
  await assert.rejects(db.exec('update gridex_ediel_ack_guide.outbound_prodat_scopes set outcome=outcome'),/append_only/);checks++
  const scopeFenceAcl=(await db.query("select has_table_privilege('service_role','gridex_ediel_ack_guide.outbound_prodat_scopes','insert') write_scope,has_function_privilege('service_role','gridex_ediel_ack_guide.require_prodat_scope_v1(public.ediel_messages)','execute') invoke_private")).rows[0];assert.deepEqual(scopeFenceAcl,{write_scope:false,invoke_private:false});checks++
+ // Actual original canonical append + P V2 ignore facade + prospective V3
+ // sidecar. Registry/identity callbacks remain explicit earlier boundaries.
+ await db.exec(`create table gridex_received_sources.sources(source_message_id uuid primary key,company_id uuid,environment text,payload_hash text,received_context jsonb,raw_payload text);
+ alter table gridex_received_sources.validation_assessments alter column id set default gen_random_uuid();
+ alter table gridex_received_sources.validation_assessments alter column owner set default 'canonical-runtime-with-registry-v1';
+ create function public.gridex_read_inbound_ack_source_v1(uuid,text,uuid) returns jsonb language sql as $$select null::jsonb$$;grant usage on schema gridex_received_sources to service_role;`)
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930193136_ediel_locked_original_rule_pack_witness.sql',import.meta.url),'utf8'))
+ const ignoredForward=readFileSync(new URL('../supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql',import.meta.url),'utf8');await db.exec(ignoredForward.slice(0,ignoredForward.indexOf('CREATE FUNCTION public.gridex_read_prodat_ignored_fields_v1'))+'COMMIT;')
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930234111_ediel_prodat_canonical_response_facets.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20260930235457_ediel_native_prodat_planned_response_authority.sql',import.meta.url),'utf8'));checks++
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001002444_ediel_prodat_positive_response_functional_parity.sql',import.meta.url),'utf8'));checks++
+ await db.exec("update ediel_rule_packs set family='PRODAT',guide_version='26.A',guide_revision='3';update ediel_message_profiles set profile_key='DB:Z04',message_code='Z04'")
+ const pNamed=(await db.query("select jsonb_build_object('rulePack',(select to_jsonb(p) from ediel_rule_packs p),'messageProfile',(select to_jsonb(p) from ediel_message_profiles p),'guideSources',(select jsonb_agg(to_jsonb(s) order by id) from ediel_rule_pack_sources s)) s")).rows[0].s
+ const pFreshEvidence={...pEvidence,profileKey:'DB:Z04',snapshot:{...pEvidence.snapshot,profileKey:'DB:Z04',...pNamed}}
+ const registerSource=await counted(pSource.replace('BGM+Z14','BGM+Z04').replace("LIN+1++OBJECT1'","LIN+1+1:7+OBJECT1:::9'").replace("LIN+2++OBJECT2'","LIN+2+2:7+OBJECT1:::9'").replace("RFF+LI:L2'",''))
+ const ownLines=(await db.query('select gridex_utilts_binding.wire_tokens_v1($1) t',[registerSource])).rows[0].t.filter(t=>t.tag==='LIN')
+ const ownRegister={version:1,owner:'validateProdatRegisterPolicy',coverage:'canonical_register_only',objects:[{messageIndex:0,messageReference:'P1',objectId:'OBJECT1',identityAgency:'9',disposition:'accepted',registers:ownLines.map((t,index)=>({lineIndex:index,lineNumber:String(index+1),registerIndex:String(index+1),registerPosition:index+1,segmentIndex:t.index})),reasons:[]}]}
+ const ownResponse={scope:'object',lineIndex:ownLines[0].index,ercCode:'100',fieldCode:null,text:'OK',id:'OBJECT1',li:'L1'}
+ const pFacet={version:1,sourcePayloadHash:(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[registerSource])).rows[0].h,objects:[{lineIndex:ownLines[0].index,registerLineIndices:ownLines.map(line=>line.index),id:'OBJECT1',li:'L1',outcome:'positive'}],responses:[ownResponse]}
+ const pFacts={version:1,owner:'canonical-runtime-with-registry-v1',sourceDisposition:'not_established',objectDisposition:'not_checked',partyDisposition:'not_checked',coverage:'canonical_runtime_only',originalTenantMatch:'matched',syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'accepted',messageReference:'P1',reasonCodes:[],rulePackEvidence:{...pFreshEvidence,snapshot:pNamed},registerValidation:ownRegister}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z04',$3,now())",[uid(130),uid(1),registerSource]);await legal(130)
+ await db.query("insert into gridex_received_sources.sources values($1,$2,'test',$3,'{\"contextOrigin\":\"database_insert\"}',$4)",[uid(130),uid(1),pFacet.sourcePayloadHash,registerSource])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(130),uid(1),pFacet.sourcePayloadHash,pFreshEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(130),pFreshEvidence])
+ const recordP=async(facet=pFacet,facts=pFacts)=>{await db.exec('set role service_role');try{return(await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7) r',[uid(1),'test',uid(130),pFacet.sourcePayloadHash,JSON.stringify(facts),null,facet===null?null:JSON.stringify(facet)])).rows[0].r}finally{await db.exec('reset role')}}
+ const registeredReceipt=await recordP();assert.equal(registeredReceipt.version,3);assert.ok(registeredReceipt.responseFactsHash);checks++
+ for(const functionalDecision of ['rejected','manual_review','not_applicable']){await assert.rejects(recordP(pFacet,{...pFacts,functionalDecision}),/same_owner_required/);checks++}
+ const readOwnP=(await db.query('select gridex_received_sources.require_prodat_responses_v1($1,$2) r',[uid(1),uid(130)])).rows[0].r;assert.deepEqual(readOwnP.objects,pFacet.objects);checks++
+ for(const facet of [{...pFacet,sourcePayloadHash:'f'.repeat(64)},{...pFacet,objects:[{...pFacet.objects[0],registerLineIndices:[ownLines[0].index]}]},{...pFacet,responses:[{...ownResponse,li:'SIBLING'}]},{...pFacet,objects:[{...pFacet.objects[0],outcome:'held'}]}]){await assert.rejects(recordP(facet),/same_owner_required/);checks++}
+ const assessmentsBefore=(await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(130)])).rows[0].n
+ await assert.rejects(recordP({...pFacet,responses:[{...ownResponse,ercCode:'41'}]}),/same_owner_required/);assert.equal((await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(130)])).rows[0].n,assessmentsBefore);checks++
+ const positiveRegisterRaw=await counted((await pAck('REGISTER')).replace("ERC+41::260'FTX+AAO++209::260+Anläggnings-id saknas'RFF+LI:L2'RFF+Z07:OBJECT2'",''))
+ const prepareRegister=async(raw=positiveRegisterRaw)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(130),rulePackEvidence:pFreshEvidence}])).rows[0].r
+ const registerSeal=await prepareRegister();assert.ok((await db.query('select assessment_id from gridex_ediel_ack_guide.prodat_response_owner_bindings where witness_id=$1',[registerSeal.witnessId])).rows[0]);checks++
+ await assert.rejects(prepareRegister(positiveRegisterRaw.replace('ERC+100','ERC+41').replace('FTX+AAO+++OK','FTX+AAO++213::260+Uppskattad årsenergi saknas')),/native_ack_guide_invalid/);checks++
+ // A later canonical leaf without a new response facet cannot authorize any
+ // first response; it also cannot reinterpret the already sealed own plan.
+ await recordP(null);await assert.rejects(prepareRegister(),/original_owner_unavailable/);checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:Z04',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(131),uid(1),positiveRegisterRaw,uid(130),pFreshEvidence.rulePackId,pFreshEvidence.messageProfileId,pFreshEvidence.version,pFreshEvidence.sourceHash,registerSeal.evidence.snapshot,{outboundOwnerWitnessId:registerSeal.witnessId}]);checks++
+ assert.equal((await db.query('select count(*)::int n from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(130)])).rows[0].n,1);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(131)]);checks++
+ // The authentic PRODAT guide permits an individual negative ACK for one
+ // object. A held sibling has no fabricated positive or negative outcome.
+ const partialSource=await counted(pSource.replace('BGM+Z14','BGM+Z04').replace("LIN+1++OBJECT1'","LIN+1+1:7+OBJECT1:::9'").replace("LIN+2++OBJECT2'","LIN+2+1:7+OBJECT2:::9'"))
+ const partialLines=(await db.query('select gridex_utilts_binding.wire_tokens_v1($1) t',[partialSource])).rows[0].t.filter(t=>t.tag==='LIN')
+ const partialHash=(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[partialSource])).rows[0].h
+ const partialObjects=partialLines.map((line,index)=>({lineIndex:line.index,registerLineIndices:[line.index],id:`OBJECT${index+1}`,li:`L${index+1}`,outcome:index===0?'negative':'held'}))
+ const partialRegister={...ownRegister,objects:partialLines.map((line,index)=>({...ownRegister.objects[0],objectId:`OBJECT${index+1}`,registers:[{lineIndex:index,lineNumber:String(index+1),registerIndex:'1',registerPosition:1,segmentIndex:line.index}]}))}
+ const partialResponse={...ownResponse,lineIndex:partialLines[0].index,ercCode:'41',fieldCode:'209',text:'Anläggnings-id saknas'}
+ const partialFacet={version:1,sourcePayloadHash:partialHash,objects:partialObjects,responses:[partialResponse]}
+ const partialFacts={...pFacts,applicationDecision:'rejected',reasonCodes:['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_209'],registerValidation:partialRegister}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z04',$3,now())",[uid(140),uid(1),partialSource]);await legal(140)
+ await db.query("insert into gridex_received_sources.sources values($1,$2,'test',$3,'{\"contextOrigin\":\"database_insert\"}',$4)",[uid(140),uid(1),partialHash,partialSource])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(140),uid(1),partialHash,pFreshEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(140),pFreshEvidence])
+ await db.exec('set role service_role');try{await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7)',[uid(1),'test',uid(140),partialHash,JSON.stringify(partialFacts),null,JSON.stringify(partialFacet)])}finally{await db.exec('reset role')};checks++
+ const partialRaw=await counted((await pAck('PARTIAL','negative','negative')).replace("ERC+41::260'FTX+AAO++209::260+Anläggnings-id saknas'RFF+LI:L2'RFF+Z07:OBJECT2'",''))
+ const preparePartial=async(raw=partialRaw)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(140),rulePackEvidence:pFreshEvidence}])).rows[0].r
+ const partialSeal=await preparePartial();assert.ok(partialSeal.witnessId);checks++
+ await assert.rejects(preparePartial(await pAck('UNASSESSED-SIBLING','negative','positive')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(preparePartial(await pAck('INVENTED-NEGATIVE','negative','negative')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(preparePartial(partialRaw.replace('RFF+LI:L1','RFF+LI:L2').replace('RFF+Z07:OBJECT1','RFF+Z07:OBJECT2')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(preparePartial(partialRaw.replace('209::260+Anläggnings-id saknas','213::260+Uppskattad årsenergi saknas')),/native_ack_guide_invalid/);checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:Z04',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(141),uid(1),partialRaw,uid(140),pFreshEvidence.rulePackId,pFreshEvidence.messageProfileId,pFreshEvidence.version,pFreshEvidence.sourceHash,partialSeal.evidence.snapshot,{outboundOwnerWitnessId:partialSeal.witnessId}]);checks++
+ assert.deepEqual((await db.query('select scope_reference,outcome from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(140)])).rows,[{scope_reference:String(partialLines[0].index),outcome:'negative'}]);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(141)]);checks++
+ // Missing field226 is a genuine negative object response. Execute the SAME
+ // existing source/plan/seal/INSERT authority, with an explicitly modeled
+ // canonical negative facet. No original LI alias or native rule is added.
+ const missingLiSource=await counted(partialSource.replace("RFF+LI:L1'",''))
+ const missingLiLines=(await db.query('select gridex_utilts_binding.wire_tokens_v1($1) t',[missingLiSource])).rows[0].t.filter(t=>t.tag==='LIN')
+ const missingLiHash=(await db.query("select encode(sha256(convert_to($1,'UTF8')),'hex') h",[missingLiSource])).rows[0].h
+ const missingLiRegister={...partialRegister,objects:partialRegister.objects.map((object,index)=>({...object,registers:[{...object.registers[0],segmentIndex:missingLiLines[index].index}]}))}
+ const missingLiFacet={...partialFacet,sourcePayloadHash:missingLiHash,objects:partialObjects.map((object,index)=>({...object,lineIndex:missingLiLines[index].index,registerLineIndices:[missingLiLines[index].index],li:index===0?null:object.li})),
+  responses:[{...partialResponse,lineIndex:missingLiLines[0].index,fieldCode:'226',text:'Ärendereferens saknas',li:null}]}
+ const missingLiFacts={...partialFacts,registerValidation:missingLiRegister,reasonCodes:['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_226']}
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at) values($1,$2,'test','inbound','PRODAT','Z04',$3,now())",[uid(150),uid(1),missingLiSource]);await legal(150)
+ await db.query("insert into gridex_received_sources.sources values($1,$2,'test',$3,'{\"contextOrigin\":\"database_insert\"}',$4)",[uid(150),uid(1),missingLiHash,missingLiSource])
+ await db.query("insert into gridex_ediel_source_rules.receipts(source_message_id,company_id,environment,direction,payload_sha256,evidence) values($1,$2,'test','inbound',$3,$4)",[uid(150),uid(1),missingLiHash,pFreshEvidence]);await db.query("select gridex_ediel_ack_guide.bind_source_v1(m,'national',$2) from ediel_messages m where id=$1",[uid(150),pFreshEvidence])
+ await db.exec('set role service_role');try{await db.query('select public.gridex_record_prodat_source_validation_v3($1,$2,$3,$4,$5,$6,$7)',[uid(1),'test',uid(150),missingLiHash,JSON.stringify(missingLiFacts),null,JSON.stringify(missingLiFacet)])}finally{await db.exec('reset role')};checks++
+ const missingLiRaw=await counted(partialRaw.replaceAll('PARTIAL','MISSING-LI').replace("RFF+LI:L1'",'').replace('209::260+Anläggnings-id saknas','226::260+Ärendereferens saknas'))
+ const prepareMissingLi=async(raw=missingLiRaw)=>(await db.query('select gridex_ediel_outbound_owner.prepare_v1($1) r',[{companyId:uid(1),actorUserId:uid(7),environment:'test',rawPayload:raw,relatedMessageId:uid(150),rulePackEvidence:pFreshEvidence}])).rows[0].r
+ const missingLiSeal=await prepareMissingLi();assert.ok(missingLiSeal.witnessId);checks++
+ await assert.rejects(prepareMissingLi(missingLiRaw.replace('RFF+Z07:OBJECT1','RFF+Z07:OBJECT2')),/native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareMissingLi(missingLiRaw.replace("ERC+41::260'FTX+AAO++226::260+Ärendereferens saknas'","ERC+100::260'FTX+AAO+++OK'")),/native_ack_guide_invalid/);checks++
+ await assert.rejects(prepareMissingLi(await counted(missingLiRaw.replace("RFF+Z07:OBJECT1'","RFF+Z07:OBJECT1'RFF+LI:OBJECT1'"))),/native_ack_guide_invalid/);checks++
+ await db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,related_message_id,canonical_rule_pack_id,rule_profile_version_id,rule_profile_key,rule_profile_version,rule_pack_checksum,rule_pack_snapshot,execution_context_snapshot,immutable_payload_hash,immutable_rendered_at) values($1,$2,'test','outbound','APERAK','APERAK',$3,$4,$5,$6,'DB:Z04',$7,$8,$9,$10,encode(sha256(convert_to($3,'UTF8')),'hex'),now())",[uid(151),uid(1),missingLiRaw,uid(150),pFreshEvidence.rulePackId,pFreshEvidence.messageProfileId,pFreshEvidence.version,pFreshEvidence.sourceHash,missingLiSeal.evidence.snapshot,{outboundOwnerWitnessId:missingLiSeal.witnessId}]);checks++
+ const missingLiScope=(await db.query('select scope_reference,physical_source_reference,outcome from gridex_ediel_ack_guide.outbound_prodat_scopes where source_message_id=$1',[uid(150)])).rows
+ assert.deepEqual(missingLiScope,[{scope_reference:String(missingLiLines[0].index),physical_source_reference:{lineIndex:missingLiLines[0].index,id:'OBJECT1',li:null},outcome:'negative'}]);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(151)]);checks++
+ await assert.rejects(prepareMissingLi(),/scope_already_fixed/);checks++
+ // An authenticated pre-migration sealed response has its established own
+ // scope checked before the new prospective response-plan requirement.
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(121)]);checks++
+ const facetAcl=(await db.query("select has_table_privilege('service_role','gridex_received_sources.prodat_response_facets','insert') write_facet,has_function_privilege('service_role','gridex_received_sources.require_prodat_responses_v1(uuid,uuid)','execute') read_private")).rows[0];assert.deepEqual(facetAcl,{write_facet:false,read_private:false});checks++
+ await assert.rejects(db.exec('update gridex_received_sources.prodat_response_facets set response_facts_text=response_facts_text'),/append_only/);checks++
+ // Prospective V4 complete application facet: actual existing V3 owner and
+ // all physical groups, not a borrowed register/ACK business verdict.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001010321_ediel_complete_prodat_own_application_facets.sql',import.meta.url),'utf8'));checks++
+ const ownApplication={version:1,owner:'canonical-prodat-application-all-v1',coverage:'canonical_own_application_only',headerDecision:'accepted',sourcePayloadHash:partialHash,
+  objects:partialRegister.objects.map((row,index)=>{const {disposition,reasons,...scope}=row;return {...scope,applicationDecision:index===0?'rejected':'accepted',reasonCodes:index===0?['FIXTURE_SAME_OWNER_QUALIFIED_FIELD_209']:[]}})}
+ const recordOwnApplication=async(facet=ownApplication,canonical=partialFacts,response=partialFacet)=>{await db.exec('set role service_role');try{return(await db.query('select public.gridex_record_prodat_source_validation_v4($1,$2,$3,$4,$5,$6,$7,$8) r',[uid(1),'test',uid(140),partialHash,JSON.stringify(canonical),null,JSON.stringify(response),facet===null?null:JSON.stringify(facet)])).rows[0].r}finally{await db.exec('reset role')}}
+ const appReceipt=await recordOwnApplication();assert.equal(appReceipt.version,4);assert.ok(appReceipt.applicationFactsHash);checks++
+ const ownApp=(await db.query('select gridex_received_sources.require_prodat_application_objects_v1($1,$2) r',[uid(1),uid(140)])).rows[0].r
+ assert.deepEqual(ownApp.objects.map(row=>row.applicationDecision),['rejected','accepted']);checks++
+ const {disposition:unusedDisposition,reasons:unusedReasons,...goodScope}=partialRegister.objects[1]
+ assert.equal((await db.query('select gridex_received_sources.prodat_application_object_accepted_v1($1,$2,$3,$4) ok',[uid(1),uid(140),appReceipt.assessmentId,goodScope])).rows[0].ok,true);checks++
+ assert.equal((await db.query('select gridex_received_sources.prodat_application_object_accepted_v1($1,$2,$3,$4) ok',[uid(1),uid(140),appReceipt.assessmentId,{...goodScope,objectId:'SIBLING'}])).rows[0].ok,false);checks++
+ const beforeAppCount=(await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(140)])).rows[0].n
+ for(const facet of [{...ownApplication,sourcePayloadHash:'f'.repeat(64)},{...ownApplication,objects:[ownApplication.objects[1]]},{...ownApplication,objects:[ownApplication.objects[1],ownApplication.objects[1]]},
+  {...ownApplication,headerDecision:'rejected'},{...ownApplication,objects:ownApplication.objects.map(row=>({...row,applicationDecision:'accepted',reasonCodes:[]}))},
+  {...ownApplication,objects:ownApplication.objects.map(row=>({...row,businessAccepted:true}))}]){
+  await assert.rejects(recordOwnApplication(facet),/same_owner_required/);assert.equal((await db.query('select count(*)::int n from gridex_received_sources.validation_assessments where source_message_id=$1',[uid(140)])).rows[0].n,beforeAppCount);checks++
+ }
+ await assert.rejects(recordOwnApplication(ownApplication,{...partialFacts,functionalDecision:'manual_review'}),/same_owner_required/);checks++
+ await assert.rejects(db.exec('update gridex_received_sources.prodat_application_facets set application_facts_text=application_facts_text'),/append_only/);checks++
+ const ownAppAcl=(await db.query("select has_table_privilege('service_role','gridex_received_sources.prodat_application_facets','insert') write_facet,has_function_privilege('authenticated','public.ediel_read_prodat_application_objects_v1(uuid,uuid)','execute') user_read")).rows[0];assert.deepEqual(ownAppAcl,{write_facet:false,user_read:false});checks++
+ await recordOwnApplication(null);await assert.rejects(db.query('select gridex_received_sources.require_prodat_application_objects_v1($1,$2)',[uid(1),uid(140)]),/original_owner_unavailable/);checks++
+ // The prospective envelope guard composes with the REAL already loaded
+ // canonical owner, national guide, source scope and original consume stack.
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261001021545_ediel_fresh_ack_native_envelope_authority.sql',import.meta.url),'utf8'));checks++
+ const witnessCount=(await db.query('select count(*)::int n from gridex_ediel_outbound_owner.witnesses')).rows[0].n
+ await assert.rejects(prepareAck('312','T',ackRaw().replace('UNZ+1+OWN-AP','UNZ+1+OTHER')),/ediel_fresh_ack_envelope_invalid/)
+ assert.equal((await db.query('select count(*)::int n from gridex_ediel_outbound_owner.witnesses')).rows[0].n,witnessCount);checks++
+ await assert.rejects(db.query("insert into ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload)values($1,$2,'test','outbound','APERAK','APERAK',$3)",[uid(199),uid(1),ackRaw().replace('UNZ+1+','UNZ+2+')]),/ediel_fresh_ack_envelope_invalid/)
+ assert.equal((await db.query('select count(*)::int n from ediel_messages where id=$1',[uid(199)])).rows[0].n,0);checks++
+ // The new birth guard does not replace the historical wire projector or
+ // move today's envelope validation ahead of immutable provider-entry replay.
+ assert.notEqual((await db.query('select gridex_ack_authority.wire_v1($1) r',[ackRaw().replace('UNZ+1+OWN-AP','UNZ+1+OTHER')])).rows[0].r,null);checks++
+ assert.equal((await db.query('select gridex_ediel_transport.mutate_v1($1) r',[{...positiveInput,action:'enter'}])).rows[0].r.proceed,false);checks++
+ await db.query('select gridex_ediel_ack_guide.require_v1(m) from ediel_messages m where id=$1',[uid(151)]);checks++
  console.log(`Focused PostgreSQL outbound original owner seal/one-use atomic insertion/named version/raw scope/ACL/native Z08 binding checks: ${checks} PASS`)
 } catch(e){console.error(e.stack,e.where??'',e.position??'',e.routine??'');process.exitCode=1} finally{await db.close()}

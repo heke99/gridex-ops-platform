@@ -1,3 +1,5 @@
+import {rememberCustomerMasterdataDraft} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import {createCustomerMasterdataAddressFacts} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 // lib/ediel/intent/renderers/facilityLookupZ01.ts
 //
 // Sanctioned PRODAT Z01 renderer for facility lookup. This is the ONLY place that
@@ -7,7 +9,7 @@
 // P26.A requires a real object identity and a mandatory LIN for Z01.
 // An unresolved facility stays held; no synthetic identity is constructed.
 
-import { resolveSwedishProdatCustomerIdentity, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
+import { resolveSwedishProdatEndUserExport, prodatAddressFactsFromExportContext } from '@/lib/ediel/prodat/customerIdentity'
 import { getCustomerExportContext, requireContextCompanyId } from '@/lib/cis/db-shared'
 import { buildEdifactEnvelope } from '@/lib/ediel/messages'
 import { renderProdat26A } from '@/lib/ediel/prodatEngine'
@@ -69,6 +71,7 @@ export type FacilityLookupZ01Draft = {
 }
 
 export async function buildFacilityLookupZ01Draft(input: {
+  companyId: string
   actorUserId: string
   request: FacilityLookupZ01RenderRequest
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
@@ -77,19 +80,26 @@ export async function buildFacilityLookupZ01Draft(input: {
   intentId: string
   gridOwner: JsonRecord | null
 }): Promise<FacilityLookupZ01Draft> {
+  if (!clean(input.companyId)) throw new Error('facility_lookup_company_required')
   if (!input.request.customer_id || !input.request.customer_site_id) {
     throw new Error('facility_lookup_missing_customer_or_site')
   }
 
   const context = await getCustomerExportContext({
+    companyId: input.companyId,
+    actorUserId: input.actorUserId,
+    environment: input.routeContext.environment,
+    requireCustomerMasterdata: true,
     customerId: input.request.customer_id,
     siteId: input.request.customer_site_id,
     meteringPointId: null,
   })
   const companyId = requireContextCompanyId(context, 'Bygg facility lookup PRODAT Z01')
+  if (companyId !== input.companyId) throw new Error('facility_lookup_tenant_mismatch')
   const customer = (context.customer ?? null) as unknown as JsonRecord | null
   const site = (context.site ?? null) as unknown as JsonRecord | null
-  const identity = resolveSwedishProdatCustomerIdentity(customer)
+  const endUser = resolveSwedishProdatEndUserExport({customer, customerLifeEvent: context.customerLifeEvent, customerMasterdata: context.customerMasterdata})
+  const identity = endUser.identity
   if (!identity.id || !identity.qualifier || !identity.name) throw new Error('facility_lookup_verified_customer_identity_required')
   const externalReference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
   const transactionReference = compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25)
@@ -109,8 +119,8 @@ export async function buildFacilityLookupZ01Draft(input: {
     clean(site?.normalized_facility_id) ?? clean(site?.facility_id) ?? null
   if(!resolvedFacilityIdentifier || !/^\d{18}$/.test(resolvedFacilityIdentifier))throw new Error('facility_lookup_verified_object_identity_required')
   const allowedMissing: string[] = []
-  const addressLines=[clean(site?.street) ?? '']
-  const addressObjects=prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.request.customer_id}/${input.request.customer_site_id}`,
+  const addressLines=endUser.addressLines
+  const addressObjects=context.customerMasterdata?createCustomerMasterdataAddressFacts({projection:context.customerMasterdata,meteringPointId:resolvedFacilityIdentifier,identityAgency:'9'}):prodatAddressFactsFromExportContext({companyId,reference:`customer-export-context:${input.request.customer_id}/${input.request.customer_site_id}`,
     meterPointId:resolvedFacilityIdentifier,identityAgency:'9',customer:identity,addressLines})
 
   const rendered = renderProdat26A({
@@ -121,15 +131,16 @@ export async function buildFacilityLookupZ01Draft(input: {
       senderEdielId: input.routeContext.senderEdielId,
       receiverEdielId: input.routeContext.receiverEdielId,
       customerName: identity.name,
+      customerNameLines: endUser.nameLines,
       customerId: identity.id,
       customerIdCodeListQualifier: identity.qualifier,
       meterPointId: resolvedFacilityIdentifier,
       gridAreaId: clean(input.request.grid_area_code) ?? clean(site?.grid_area_code) ?? clean(input.gridOwner?.owner_code),
       startDate: date102(clean(site?.move_in_date)) ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      customerAddress: clean(site?.street),
-      customerPostalCode: clean(site?.postal_code),
-      customerCity: clean(site?.city),
-      customerCountry: clean(site?.country) ?? 'SE',
+      customerAddressLines: addressLines,
+      customerPostalCode: endUser.postalCode,
+      customerCity: endUser.city,
+      customerCountry: endUser.country,
       siteAddress: clean(site?.street),
       sitePostalCode: clean(site?.postal_code),
       siteCity: clean(site?.city),
@@ -152,6 +163,8 @@ export async function buildFacilityLookupZ01Draft(input: {
     testFlag: input.routeContext.environment === 'production' ? 0 : 1,
     messageTypeToken: `PRODAT:D:${canonicalProfile.edifactDirectory.slice(1)}:UN:${canonicalProfile.associationAssignedCode}`,
     segments: rendered.segments,
+    companyId,customerMasterdataProjection:context.customerMasterdata??undefined,
+    parsedPayload:{prodatEngine:rendered.diagnostics},
   })
 
   const draft: CreateEdielMessageInput = {
@@ -191,6 +204,7 @@ export async function buildFacilityLookupZ01Draft(input: {
     gridOwnerId: input.request.grid_owner_id,
     rawPayload: envelope.raw,
     parsedPayload: {
+      customerMasterdataSourceContextId: endUser.sourceContextId,
       draftType: 'facility_lookup_prodat_z01_outbound',
       processLabel: 'facility_lookup_request',
       grid_owner_information_request_id: input.request.id,
@@ -208,7 +222,7 @@ export async function buildFacilityLookupZ01Draft(input: {
       prodatAckExpectation: rendered.ackExpectation ?? null,
     },
     validationReport: {
-      status: 'warning',
+      status: rendered.issues.some(issue => issue.severity === 'error') ? 'blocked' : 'warning',
       checkedAt: new Date().toISOString(),
       facilityLookupDispatch: true,
       objectIdentifierMissing: false,
@@ -235,5 +249,6 @@ export async function buildFacilityLookupZ01Draft(input: {
     functionalCheckStatus: 'not_checked',
   }
 
+  rememberCustomerMasterdataDraft(draft,context.customerMasterdata)
   return { draft, externalReference, resolvedFacilityIdentifier, allowedMissing }
 }

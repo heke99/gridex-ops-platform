@@ -224,6 +224,7 @@ export async function createGridOwnerDataRequest(input: {
   requestPayload?: Record<string, unknown> | null
 }): Promise<GridOwnerDataRequestRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -335,6 +336,7 @@ export async function createPartnerExport(input: {
   notes?: string | null
 }): Promise<PartnerExportRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
@@ -759,6 +761,7 @@ export async function ingestMeteringValue(input: {
   rawPayload?: Record<string, unknown>
 }): Promise<MeteringValueRow> {
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId,
@@ -907,6 +910,7 @@ export async function ingestBillingUnderlay(input: {
   if (typeof input.totalKwh === 'string' && !input.immutableAttribution) throw new Error('utilts_consumption_binding_conflict:unbound_decimal')
   const now = new Date().toISOString()
   const context = await getCustomerExportContext({
+    actorUserId: input.actorUserId,
     customerId: input.customerId,
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,

@@ -1,5 +1,6 @@
 import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
 import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
+import { serializeTgtUnb } from './tgtEnvelope'
 import {resolveTgtDateEventBuildContext} from './tgtDateEventContext'
 import {assertTgtDateEventDraft} from './tgtDateEventSource'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
@@ -108,8 +109,7 @@ function runtimeSuiteForRun(testRun: EdielTestRunRow): "AGT" | "TGT" {
 
 function buildUnb(params: {
   interchangeRef: string;
-  date: string;
-  time: string;
+  createdAt: Date;
   family: EdielMessageFamily;
   systemTestContext: EdielSystemTestRuntimeContext;
   roleCode?: string | null;
@@ -129,13 +129,6 @@ function buildUnb(params: {
       ? params.systemTestContext.senderSubaddress
       : null;
 
-  const sender = senderSub
-    ? `${params.systemTestContext.testPortalEdielId}:ZZ:${senderSub}`
-    : `${params.systemTestContext.testPortalEdielId}:ZZ`;
-  const receiver = receiverSub
-    ? `${params.systemTestContext.actorEdielId}:ZZ:${receiverSub}`
-    : `${params.systemTestContext.actorEdielId}:ZZ`;
-
   const applicationReference =
     params.family === "CONTRL"
       ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
@@ -145,7 +138,10 @@ function buildUnb(params: {
           messageCode: params.messageCode,
         });
 
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}++${applicationReference}++1`;
+  return serializeTgtUnb({ family: params.family, code: params.messageCode,
+    sender: params.systemTestContext.testPortalEdielId, receiver: params.systemTestContext.actorEdielId,
+    senderSubAddress: senderSub, receiverSubAddress: receiverSub,
+    applicationReference, interchangeReference: params.interchangeRef, createdAt: params.createdAt });
 }
 
 function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
@@ -255,8 +251,7 @@ function buildMockPortalInput(params: {
   const rawPayload = serializeEdifact([
     buildUnb({
       interchangeRef,
-      date: parts.yyMMdd,
-      time: parts.hhmm,
+      createdAt: new Date(parts.iso),
       family: params.step.family,
       roleCode:
         params.evaluation.definition?.roleCode ?? params.testRun.role_code,

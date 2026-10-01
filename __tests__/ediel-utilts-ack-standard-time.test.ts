@@ -1,3 +1,4 @@
+import {edielDraftWire} from './helpers/edielDraftWire'
 import {afterEach,describe,expect,it,vi} from 'vitest'
 import {buildUtiltsErrDraft} from '@/lib/ediel/ack'
 import {renderAperakEdiel} from '@/lib/ediel/aperakEngine'
@@ -29,9 +30,9 @@ describe('U message205 and A205 use standard UTC+1 throughout the year',()=>{
  })
  it('accepts the original ERR::260 example and a present valid optional code-list',()=>{
   const source=energyHandoffMessage(),draft=buildUtiltsErrDraft({sourceMessage:source,messageText:'E51',relatedTransactionReference:'GRIDEX2607E66001'})
-  const ack={...source,id:'ACK',direction:'outbound',message_family:'UTILTS_ERR',related_message_id:source.id,raw_payload:draft.rawPayload} as EdielMessageRow
-  for(const raw of [draft.rawPayload!,draft.rawPayload!.replace('BGM+ERR::260','BGM+ERR:SVK:260')])
+  const ack={...source,id:'ACK',direction:'outbound',message_family:'UTILTS_ERR',related_message_id:source.id,raw_payload:edielDraftWire(draft)} as EdielMessageRow
+  for(const raw of [edielDraftWire(draft),edielDraftWire(draft).replace('BGM+ERR::260','BGM+ERR:SVK:260')])
    expect(validateAckPreflight({sourceMessage:source,ackMessage:{...ack,raw_payload:raw}}).issues.some(t=>t.code==='utilts_err_wrong_bgm')).toBe(false)
-  expect(validateAckPreflight({sourceMessage:source,ackMessage:{...ack,raw_payload:draft.rawPayload!.replace('BGM+ERR::260','BGM+ERR::999')}}).issues.some(t=>t.code==='utilts_err_wrong_bgm')).toBe(true)
+  expect(validateAckPreflight({sourceMessage:source,ackMessage:{...ack,raw_payload:edielDraftWire(draft).replace('BGM+ERR::260','BGM+ERR::999')}}).issues.some(t=>t.code==='utilts_err_wrong_bgm')).toBe(true)
  })
 })

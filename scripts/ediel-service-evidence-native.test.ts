@@ -55,7 +55,7 @@ async function seed(mode:'V'|'VH'='V'){
  sql(`INSERT INTO public.tenant_ediel_profiles(id,company_id,environment,market,is_enabled,valid_from) VALUES(${lit(ids.profile)},${lit(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${lit(ids.company)},'test',${lit(ids.legal)},'energy_service_company',clock_timestamp()-interval '1 day');INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id) VALUES(${lit(ids.company)},'test','Synthetic local ESCO',${lit(sender)},${lit(sender)});INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) VALUES(${lit(ids.dso)},'grid_owner',true);INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status,owner_code) VALUES(${lit(ids.grid)},${lit(ids.company)},'Synthetic DSO',${lit(receiver)},'test',true,'active','TES');INSERT INTO public.customers(id,company_id,customer_number,first_name,last_name,name,customer_type,personal_number,email,billing_country,billing_street,billing_postal_code,billing_city) VALUES(${lit(ids.customer)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','Customer','Synthetic Customer','private','199001011234','synthetic@example.invalid','SE','Synthetic street 1','12345','Synthetic city');INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id,grid_area_code) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic ESCO point','consumption','active','SE',${lit(point)},${lit(ids.grid)},'TES');INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,status) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},${lit(point)},${lit(point)},${lit(point)},${lit(ids.grid)},${lit(receiver)},'TES','active');
  INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,grid_owner_id,environment_type,is_active,target_email) VALUES(${lit(ids.route)},${lit(ids.company)},'Synthetic ESCO permission route','metering_access',${lit(ids.grid)},'bilateral_test',true,'dso-native@example.invalid'),(${lit(ids.ackRoute)},${lit(ids.company)},'Synthetic own ACK route','ediel_ack',${lit(ids.grid)},'bilateral_test',true,'dso-native@example.invalid');
  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email) VALUES(${lit(ids.routeProfile)},${lit(ids.company)},${lit(ids.route)},'Synthetic ESCO PRODAT','test','edifact','edifact',${lit(sender)},${lit(receiver)},${lit(app)},true,true,'esco-native@example.invalid','smtp.example.invalid',587,'dso-native@example.invalid','dso-native@example.invalid'),(${lit(ids.ackProfile)},${lit(ids.company)},${lit(ids.ackRoute)},'Synthetic ESCO E66 own ACK','test','edifact','edifact',${lit(sender)},${lit(receiver)},'23-DGI-E66-T',true,true,'esco-native@example.invalid','smtp.example.invalid',587,'dso-native@example.invalid','dso-native@example.invalid');`)
- const fields={beneficiary_company_id:ids.beneficiary,provider_actor_id:ids.legal,actor_profile_id:ids.profile,customer_id:ids.customer,dso_actor_id:ids.dso,environment:'test',mode,purpose:'Synthetic scoped analysis',object_ids:[point],product_ids:[product],field_sets:['reading_at','quantity','unit','quality','qualifier','registration_date','resolution','product_id'],data_start:'2026-06-01T00:00:00Z',data_end:mode==='VH'?'2026-12-31T00:00:00Z':null,valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z'}
+ const fields={beneficiary_company_id:ids.beneficiary,provider_actor_id:ids.legal,actor_profile_id:ids.profile,customer_id:ids.customer,dso_actor_id:ids.dso,environment:'test',mode,purpose:'Synthetic scoped analysis',object_ids:[point],product_ids:[product],field_sets:['reading_at','quantity','unit','quality','qualifier','registration_date','resolution','product_id'],data_start:'2026-06-01T00:00:00Z',data_end:mode==='VH'?'2026-09-30T00:00:00Z':null,valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z'}
  const command=(command:unknown)=>executeEdielServiceAdministration({companyId:ids.company,actorUserId:ids.actor,command}) as Promise<Record<string,unknown>>
  const created=await command({action:'create_assignment',commandId:randomUUID(),fields});expect(created.status).toBe('held');const assignment=String(created.assignmentId)
  const current=()=>sql<{version:number;basis:number;scope:Record<string,unknown>;hash:string}>(`SELECT jsonb_build_object('version',version,'basis',scope_basis_version,'scope',gridex_service_administration.scope_v1(a),'hash',encode(sha256(convert_to(gridex_service_administration.scope_v1(a)::text,'UTF8')),'hex')) FROM public.ediel_service_assignments a WHERE company_id=${lit(ids.company)} AND id=${lit(assignment)}`)
@@ -77,29 +77,47 @@ async function seed(mode:'V'|'VH'='V'){
  const effects=()=>sql<Record<string,number>>(`SELECT jsonb_build_object('messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(ids.company)}),'businessReferences',(SELECT count(*) FROM public.ediel_business_references WHERE company_id=${lit(ids.company)}),'creationReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.creation_receipts WHERE company_id=${lit(ids.company)}),'consumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${lit(ids.company)}),'namespace',(SELECT count(*) FROM gridex_ediel_wire_namespace.coverage WHERE company_id=${lit(ids.company)}),'outbox',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${lit(ids.company)}),'intents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${lit(ids.company)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE company_id=${lit(ids.company)}),'values',(SELECT count(*) FROM public.meter_reading_values WHERE company_id=${lit(ids.company)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE company_id=${lit(ids.company)}),'bindings',(SELECT count(*) FROM gridex_utilts_binding.receipts WHERE company_id=${lit(ids.company)}),'reservations',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE company_id=${lit(ids.company)}),'acks',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${lit(ids.company)} AND direction='outbound' AND related_message_id IS NOT NULL),'witnesses',(SELECT count(*) FROM gridex_ediel_outbound_owner.witnesses WHERE company_id=${lit(ids.company)}),'scopeReceipts',(SELECT count(*) FROM gridex_ediel_ack_replay.positive_service_scope_receipts WHERE company_id=${lit(ids.company)}),'events',(SELECT count(*) FROM public.ediel_message_events WHERE company_id=${lit(ids.company)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${lit(ids.company)}))`)
  return {ids,sender,receiver,point,product,app,mode,fields,assignment,command,current,insert,utilts,effects}
 }
-async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow}){
+type NativeTermMismatch='legacy_nine_terms'|'staged_agreement'|'staged_method'
+async function archiveReviewEvidence(f:Awaited<ReturnType<typeof seed>>,mismatch?:NativeTermMismatch){
  const pdf=Buffer.from('%PDF-1.7\nSYNTHETIC DISPOSABLE ESCO EVIDENCE. NOT EXTERNAL LEGAL APPROVAL.\n%%EOF'),hash=createHash('sha256').update(pdf).digest('hex'),key=Buffer.alloc(32,0x59),receiptIds:string[]=[],artifacts:string[]=[]
  sql(`INSERT INTO gridex_ediel_services.issuer_keys(id,company_id,environment,issuer_code,legal_issuer_reference,legal_authority_source_hash,receipt_signing_key,valid_from,valid_to) VALUES(${lit(f.ids.key)},${lit(f.ids.company)},'test','synthetic-native-issuer','SYNTHETIC EXTERNAL REGISTRY INPUT ONLY',${lit(hash)},decode(${lit(key.toString('hex'))},'hex'),'2000-01-01','2099-01-01')`)
- const terms={valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z',permission_purpose_code:'B72',permission_reporting_frequency:'D',permission_request_grid_area:'TES',permission_reporting_term_kind:f.mode==='V'?'indefinite':'bounded',permission_customer_classification:'private'}
- const normalized=sql<Record<string,unknown>>(`SELECT gridex_ediel_services.evidence_terms_v1(jsonb_populate_record(NULL::public.ediel_service_evidence,${lit(terms)}::jsonb))`)
+ const baseTerms={valid_from:'2000-01-01T00:00:00Z',valid_to:'2099-01-01T00:00:00Z',permission_purpose_code:'B72',permission_reporting_frequency:'D',permission_request_grid_area:'TES',permission_reporting_term_kind:f.mode==='V'?'indefinite':'bounded',permission_customer_classification:'private'}
+ const termsFor=(kind:string)=>({...baseTerms,permission_agreement_reference:kind==='end_user_contract'?'SYN-'+f.ids.customer.slice(0,20):null,permission_requested_method:kind==='end_user_contract'?'Z04' as const:null})
+ const terms=termsFor('end_user_contract')
  // Raw claims alone hold; a real staged command plus separate native review is
  // needed, and absence of issuer authority never creates verified evidence.
  const missing=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:f.current().basis,kind:'end_user_contract',terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference:'untrusted native claim',version:'synthetic-v1'}}})
  expect(missing.missing).toContain('authentic_current_issuer_and_representation_receipt')
  for(const kind of ['end_user_contract','dso_contract','service_contract','downstream_use','privacy_roles'] as const){
-  const native=f.current(),representation=randomUUID(),reference='native-'+kind,version='synthetic-v1'
+  const native=f.current(),representation=randomUUID(),reference='native-'+kind,version='synthetic-v1',terms=termsFor(kind)
+  const normalized=sql<Record<string,unknown>>(`SELECT gridex_ediel_services.evidence_terms_v1(jsonb_populate_record(NULL::public.ediel_service_evidence,${lit(terms)}::jsonb))`)
+  expect(Object.keys(normalized).sort()).toEqual(['valid_from','valid_to','permission_agreement_reference','permission_requested_method','permission_purpose_code','permission_reporting_frequency','permission_request_grid_area','permission_reporting_term_kind','permission_customer_classification','permission_termination_reason','permission_termination_at'].sort())
+  expect(normalized.permission_agreement_reference).toBe(terms.permission_agreement_reference);expect(normalized.permission_requested_method).toBe(terms.permission_requested_method)
+  const signedTerms={...normalized}
+  if(mismatch==='legacy_nine_terms'){delete signedTerms.permission_agreement_reference;delete signedTerms.permission_requested_method}
   receiptIds.push(representation)
   sql(`INSERT INTO gridex_ediel_services.issuer_representations(id,company_id,environment,issuer_key_id,legal_actor_id,beneficiary_company_id,customer_id,dso_actor_id,evidence_kind,scope_hash,legal_representation_reference,legal_authority_source_hash,valid_from,valid_to) VALUES(${lit(representation)},${lit(f.ids.company)},'test',${lit(f.ids.key)},${lit(f.ids.legal)},${lit(f.ids.beneficiary)},${lit(f.ids.customer)},${lit(f.ids.dso)},${lit(kind)},${lit(native.hash)},'SYNTHETIC EXTERNAL LEGAL REPRESENTATION INPUT ONLY',${lit(hash)},'2000-01-01','2099-01-01')`)
-  const payload={format:'ediel_service_evidence_receipt_v1',issuerCode:'synthetic-native-issuer',receiptId:randomUUID(),companyId:f.ids.company,environment:'test',assignmentId:f.assignment,scopeBasisVersion:native.basis,scope:native.scope,evidenceKind:kind,evidenceTerms:normalized,sourceHash:hash,sourceReference:reference,sourceVersion:version,transportRelationId:null,transportActorId:null,issuedAt:new Date().toISOString(),expiresAt:'2090-01-01T00:00:00Z'},wire=Buffer.from(JSON.stringify(payload))
+  const payload={format:'ediel_service_evidence_receipt_v1',issuerCode:'synthetic-native-issuer',receiptId:randomUUID(),companyId:f.ids.company,environment:'test',assignmentId:f.assignment,scopeBasisVersion:native.basis,scope:native.scope,evidenceKind:kind,evidenceTerms:signedTerms,sourceHash:hash,sourceReference:reference,sourceVersion:version,transportRelationId:null,transportActorId:null,issuedAt:new Date().toISOString(),expiresAt:'2090-01-01T00:00:00Z'},wire=Buffer.from(JSON.stringify(payload))
   const artifact=await archiveEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.actor,submission:{assignmentId:f.assignment,scopeBasisVersion:native.basis,kind,terms,source:{bytesBase64:pdf.toString('base64'),mimeType:'application/pdf',reference,version},issuerReceipt:{keyId:f.ids.key,representationId:representation,payloadBase64:wire.toString('base64'),signatureHex:createHmac('sha256',key).update(wire).digest('hex')}}})
-  expect(artifact.missing).toEqual(['separate_qualified_reviewer_required'])
-  const staged=await f.command({action:'stage_evidence',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,fields:{kind,source_reference:reference,source_sha256:hash,source_version:version,...terms}})
+  expect(artifact.missing).toEqual(mismatch==='legacy_nine_terms'?['separate_qualified_reviewer_required','authentic_current_issuer_and_representation_receipt']:['separate_qualified_reviewer_required'])
+  const stagedTerms={...terms,...(mismatch==='staged_agreement'?{permission_agreement_reference:'SYN-UNSIGNED-AGREEMENT'}:mismatch==='staged_method'?{permission_requested_method:'Z03' as const}:{})}
+  const staged=await f.command({action:'stage_evidence',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,fields:{kind,source_reference:reference,source_sha256:hash,source_version:version,...stagedTerms}})
   expect(staged).toMatchObject({status:'pending',approvalGranted:false})
   const review={decision:'approve',reason:'Separate synthetic fixture review of exact native archive and scope',sourceHash:artifact.sourceHash,scopeHash:artifact.scopeHash}
   const result=await reviewEdielServiceEvidence({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId,evidenceId:String(staged.evidenceId),review})
+  if(mismatch){
+   expect(result).toMatchObject({status:'held',marketActivationGranted:false})
+   expect(result.missing).toContain(mismatch==='legacy_nine_terms'?'authentic_current_issuer_and_representation_receipt':'current_exact_assignment_evidence_scope')
+   expect(sql(`SELECT jsonb_build_object('status',status,'approved',approved_by) FROM public.ediel_service_evidence WHERE company_id=${lit(f.ids.company)} AND id=${lit(staged.evidenceId)}`)).toEqual({status:'pending',approved:null})
+   break
+  }
   expect(result).toMatchObject({status:'verified',marketActivationGranted:false,missing:[]});artifacts.push(artifact.artifactId)
   expect(Buffer.from((await readEdielServiceEvidenceBytes({companyId:f.ids.company,actorUserId:f.ids.reviewer,artifactId:artifact.artifactId})).bytes)).toEqual(pdf)
  }
+ return {hash,receiptIds,artifacts}
+}
+async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow}){
+ const {hash,receiptIds,artifacts}=await archiveReviewEvidence(f)
  expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toMatchObject({status:'authorized'})
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'})
  let permission:{id:string;li:string},z13:EdielMessageRow,z14:EdielMessageRow
@@ -130,6 +148,15 @@ async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:
  expect(await f.command({action:'publish_grant',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version,grantId:grant.grantId,expectedGrantVersion:grant.grantVersion})).toMatchObject({status:'active'})
  return {grantId:String(grant.grantId),permissionId:permission.id,z13,z14,representationIds:receiptIds,artifacts,hash}
 }
+it.each(['legacy_nine_terms','staged_agreement','staged_method'] as const)('native issuer archive and separate review reject %s without source/request/grant/storage/ACK effects',async mismatch=>{
+ const f=await seed(),before=f.effects()
+ await archiveReviewEvidence(f,mismatch)
+ expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toMatchObject({status:'held'})
+ expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'held'})
+ expect(f.effects()).toEqual(before)
+ expect(sql(`SELECT jsonb_build_object('verified',(SELECT count(*) FROM public.ediel_service_evidence WHERE company_id=${lit(f.ids.company)} AND status='verified'),'grants',(SELECT count(*) FROM public.ediel_data_access_grants WHERE company_id=${lit(f.ids.company)}),'origins',(SELECT count(*) FROM gridex_service_permission.origins WHERE company_id=${lit(f.ids.company)}))`)).toEqual({verified:0,grants:0,origins:0})
+ expect(external.send).not.toHaveBeenCalled()
+})
 it.each(['V','VH'] as const)('genuine archived/reviewed %s scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects',async mode=>{
  const f=await seed(mode),positive=await f.utilts('accepted','NATIVE-ESCO-'+mode),initial=f.effects()
  await expect(positive.persist()).rejects.toMatchObject({message:expect.stringContaining('ediel_ack_service_scope_current_grant_required')});expect(f.effects()).toEqual(initial)
@@ -284,4 +311,54 @@ it('literal SC005/006 same actual market permission reused by independent review
  await expect(two.read()).rejects.toMatchObject({message:expect.stringContaining('ediel_grant_not_current')});expect((await one.read()).rows.length).toBeGreaterThan(0)
  expect(sql<Record<string,unknown>>(`SELECT to_jsonb(p) FROM public.metering_permissions p WHERE company_id=${lit(f.ids.company)} AND id=${lit(first.permissionId)}`)).toEqual(permissionBefore)
  expect(f.effects()).toEqual(stable);expect(sql<number>(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND message_code='Z18'`)).toBe(0);expect(external.send).toHaveBeenCalledTimes(1)
+})
+
+
+function projectionReceiptCount(company:string){
+ return sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_ediel_services.projection_receipts WHERE company_id=${lit(company)}`)
+}
+it('ESCO11 native filtered derivatives retain the original DGI source and private contract across separate missions; exact current replay attempts no insert',async()=>{
+ const f=await seed(),first=await qualify(f),second=await secondMission(f),other=await qualify(second)
+ const incoming=await f.utilts('accepted','NATIVE-ESCO-PROVENANCE')
+ await incoming.persist()
+ const one=projection(f,first,incoming.source.id),two=projection(second,other,incoming.source.id),stable=f.effects()
+ expect(projectionReceiptCount(f.ids.company)).toBe(0)
+ const pages=await Promise.all([one.read(),two.read()])
+ const native=sql<{version:number;hash:string}>(`SELECT jsonb_build_object('version',contract_version,'hash',contract_hash) FROM gridex_utilts_binding.contracts WHERE company_id=${lit(f.ids.company)} AND source_message_id=${lit(incoming.source.id)} AND series_id=${lit(one.request.seriesId)}`)
+ const sourceEnvelope=EdifactEnvelopeCodec.decode(incoming.source.raw_payload!),sourceHash=createHash('sha256').update(incoming.source.raw_payload!,'utf8').digest('hex')
+ expect(sourceEnvelope.applicationReference).toBe('23-DGI-E66-T')
+ expect(pages[0].consumerReceiptId).not.toBe(pages[1].consumerReceiptId)
+ for(const [index,page] of pages.entries()){
+  const p=index===0?one:two
+  expect(page.provenance).toEqual({version:1,sourceMessageId:incoming.source.id,sourceRawHash:sourceHash,sourceFamily:'UTILTS',sourceCode:'E66',sourceEnvironment:'test',sourceRole:'DGI',sourceApplicationReference:sourceEnvelope.applicationReference,sourceSenderEdielId:f.receiver,receiverActorId:f.ids.legal,receiverRole:'energy_service_company',contractVersion:native.version,contractHash:native.hash,purpose:p.request.purpose,fields:[...p.request.fields],qualityOrigin:null})
+  expect(page.rows.length).toBeGreaterThan(0)
+  for(const row of page.rows)expect(Object.keys(row).sort()).toEqual(['quantity','reading_at'])
+  expect(Object.keys(page).sort()).toEqual(['consumerReceiptId','grantId','grantVersion','next','provenance','rows','seriesId'])
+  expect(sql(`SELECT proof->'origin' FROM gridex_ediel_services.projection_receipts WHERE company_id=${lit(f.ids.company)} AND id=${lit(page.consumerReceiptId)}`)).toEqual(page.provenance)
+  expect(JSON.stringify(page)).not.toContain('raw_payload');expect(JSON.stringify(page)).not.toContain('observations')
+ }
+ expect(projectionReceiptCount(f.ids.company)).toBe(2);expect(f.effects()).toEqual(stable)
+ const quality=await projectEdielSeriesToBeneficiary({...one.request,fields:['reading_at','quality']})
+ expect(quality.provenance.qualityOrigin).toEqual({sourceMessageId:incoming.source.id,seriesId:one.request.seriesId,column:'meter_reading_values.quality'})
+ expect(quality.provenance.sourceRawHash).toBe(sourceHash);expect(quality.provenance.contractHash).toBe(native.hash)
+ for(const row of quality.rows)expect(Object.keys(row).sort()).toEqual(['quality','reading_at'])
+ expect(quality.consumerReceiptId).not.toBe(pages[0].consumerReceiptId);expect(projectionReceiptCount(f.ids.company)).toBe(3)
+ // Same fresh proof is serialized inside the real PostgreSQL owner: one receipt
+ // despite concurrent HTTP requests, then an exact retained read without INSERT.
+ const request={...one.request,limit:99},raced=await Promise.all([projectEdielSeriesToBeneficiary(request),projectEdielSeriesToBeneficiary(request)])
+ expect(raced[0]).toEqual(raced[1]);expect(projectionReceiptCount(f.ids.company)).toBe(4)
+ const suffix=randomUUID().replaceAll('-',''),fn='native_projection_no_insert_'+suffix,trigger=fn
+ sql(`CREATE FUNCTION public.${fn}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.company_id=${lit(f.ids.company)}::uuid THEN RAISE EXCEPTION 'native_projection_insert_attempt'; END IF; RETURN NEW; END $$;CREATE TRIGGER ${trigger} BEFORE INSERT ON gridex_ediel_services.projection_receipts FOR EACH ROW EXECUTE FUNCTION public.${fn}()`)
+ try{
+  expect(await one.read()).toEqual(pages[0]);expect(await two.read()).toEqual(pages[1]);expect(await projectEdielSeriesToBeneficiary(request)).toEqual(raced[0])
+  await expect(projectEdielSeriesToBeneficiary({...one.request,limit:98})).rejects.toMatchObject({message:expect.stringContaining('native_projection_insert_attempt')})
+  await expect(projectEdielSeriesToBeneficiary({...two.request,purpose:one.request.purpose})).rejects.toMatchObject({message:expect.stringContaining('ediel_projection_outside_grant')})
+  await expect(projectEdielSeriesToBeneficiary({...two.request,fields:['quality']})).rejects.toMatchObject({message:expect.stringContaining('ediel_projection_outside_grant')})
+  await expect(projectEdielSeriesToBeneficiary({...one.request,grantId:other.grantId,expectedGrantVersion:two.request.expectedGrantVersion})).rejects.toBeDefined()
+  sql(`INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(${lit(one.actor)},${lit(f.ids.beneficiary)},'metering.read','deny',true,now()-interval '1 minute',NULL)`)
+  await expect(one.read()).rejects.toMatchObject({message:expect.stringContaining('ediel_beneficiary_forbidden')})
+  expect(await two.read()).toEqual(pages[1]);expect(projectionReceiptCount(f.ids.company)).toBe(4);expect(f.effects()).toEqual(stable)
+ }finally{sql(`DROP TRIGGER ${trigger} ON gridex_ediel_services.projection_receipts;DROP FUNCTION public.${fn}()`)}
+ expect(sql(`SELECT jsonb_build_object('read',has_table_privilege('service_role','gridex_ediel_services.projection_receipts','SELECT'),'write',has_table_privilege('service_role','gridex_ediel_services.projection_receipts','INSERT'))`)).toEqual({read:false,write:false})
+ expect(external.send).toHaveBeenCalledTimes(2)
 })

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { resolveSwedishProdatCustomerIdentity } from '@/lib/ediel/prodat/customerIdentity'
+import { resolveSwedishProdatCustomerIdentity, resolveSwedishProdatEndUserExport } from '@/lib/ediel/prodat/customerIdentity'
 import { validateProdatProfile } from '@/lib/ediel/prodat/profiles'
 import {
   normalizeProdatEndUserIdQualifier,
@@ -41,6 +41,17 @@ describe('PRODAT Swedish end-user identity compliance', () => {
       qualifier: null,
       name: 'Kund Utan Legal ID',
     })
+  })
+
+  it('does not use future-only source masterdata or manufacture end-user address values', () => {
+    const value=resolveSwedishProdatEndUserExport({customer:{personal_number:'199001011234',full_name:'Current Name'},
+      customerLifeEvent:{effectiveVersionCount:0,endUserMasterdata:{name:['Future Name'],street:['Future Street'],country:'FI'}} as never})
+    expect(value.identity.name).toBe('Current Name')
+    expect(value.nameLines).toBeUndefined()
+    expect(value.addressLines).toEqual([])
+    expect(value.postalCode).toBeNull()
+    expect(value.city).toBeNull()
+    expect(value.country).toBe('')
   })
 
   it('keeps a missing verified name empty and blocks required identity construction', () => {

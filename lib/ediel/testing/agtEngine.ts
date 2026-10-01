@@ -1,9 +1,9 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // lib/ediel/agtEngine.ts
 
 import {
   buildAperakDraft,
   buildContrlDraft,
-  buildUtiltsErrDraft,
   type AckFamily,
   type AckOutcome,
   type EdielAperakApplicationError,
@@ -857,13 +857,7 @@ function buildAckDraftForAgtPlan(params: {
     })
   }
 
-  if (params.plan.ackFamily === 'UTILTS_ERR') {
-    return buildUtiltsErrDraft({
-      actorUserId: params.actorUserId,
-      sourceMessage: params.sourceMessage,
-      messageText: params.plan.messageText ?? 'E14',
-    })
-  }
+  if(params.plan.ackFamily==='UTILTS_ERR')throw new Error('ediel_agt_err_requires_source_preparation')
 
   return buildAperakDraft({
     actorUserId: params.actorUserId,
@@ -947,7 +941,7 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
   const created: EdielMessageRow[] = []
 
   for (const item of plan) {
-    const alreadyExists = existingAcks.find((ack) =>
+    const alreadyExists = item.ackFamily==='UTILTS_ERR'?undefined:existingAcks.find((ack) =>
       ack.message_family === item.ackFamily &&
       ack.status !== 'cancelled' &&
       ack.status !== 'failed'
@@ -957,11 +951,9 @@ export async function createEdielSupplierAgtResponsesForInbound(params: {
       continue
     }
 
-    const draft = buildAckDraftForAgtPlan({
-      actorUserId: params.actorUserId,
-      sourceMessage,
-      plan: item,
-    })
+    const prepared=item.ackFamily==='UTILTS_ERR'?await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage,ackFamily:'UTILTS_ERR',messageText:item.messageText??'E14'}) :null
+    if(prepared?.kind==='existing'){created.push(prepared.message);continue}
+    const draft=prepared?.kind==='draft'?prepared.draft:buildAckDraftForAgtPlan({actorUserId:params.actorUserId,sourceMessage,plan:item})
 
     const ackMessage = await createCanonicalAckMessage({
       actorUserId: params.actorUserId,

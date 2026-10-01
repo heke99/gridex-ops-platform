@@ -66,7 +66,13 @@
       "lib/ediel/prodat/render/registers.ts",
       "supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql",
       "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande nationella X/icke-tillämpliga D blev avvisade och saknade egen scope-signal; riktade validators ignorerar faktiskt förekommande sådana fält efter syntax. Z02 verkliga SQL-verkställare läste äldre JSON/årsvärden och mutable sent_at; nya framåtriktade funktioner använder förseglad accepted egen källa, unik leaf/facet och faktisk transportjournal.",
     "blockers": [],
@@ -75,14 +81,17 @@
       "Förbjuden effekt (fryst): Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
       "Inkommande syntaktiskt giltigt X/Dfalse extra: ingen negativ APERAK enbart för extra; ändra samma extra i två objekt/register och visa exakt noll masterdata-/energi-/grant-effekt samt råpayload oförändrad.",
       "Ogiltig fullsyntax ska fortfarande ge syntaxutfall före ignore. Egen utgående byggare ska avvisa förbjuden extra.",
-      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis."
+      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: P bilaga4 s.119. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P bilaga4 s.119. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
       "0328ff98",
       "e813dbd9",
-      "42c0cad1"
+      "42c0cad1",
+      "2229b4de"
     ]
   },
   {
@@ -101,7 +110,13 @@
       "lib/ediel/prodat/render/registers.ts",
       "supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql",
       "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande nationella X/icke-tillämpliga D blev avvisade och saknade egen scope-signal; riktade validators ignorerar faktiskt förekommande sådana fält efter syntax. Z02 verkliga SQL-verkställare läste äldre JSON/årsvärden och mutable sent_at; nya framåtriktade funktioner använder förseglad accepted egen källa, unik leaf/facet och faktisk transportjournal.",
     "blockers": [],
@@ -111,14 +126,17 @@
       "Förbjuden effekt (fryst): Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
       "Inkommande syntaktiskt giltigt X/Dfalse extra: ingen negativ APERAK enbart för extra; ändra samma extra i två objekt/register och visa exakt noll masterdata-/energi-/grant-effekt samt råpayload oförändrad.",
       "Ogiltig fullsyntax ska fortfarande ge syntaxutfall före ignore. Egen utgående byggare ska avvisa förbjuden extra.",
-      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis."
+      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: P bilaga4 s.119; registers/acceptance_tests.json#AT-P-02. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P bilaga4 s.119; registers/acceptance_tests.json#AT-P-02. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
       "0328ff98",
       "e813dbd9",
-      "42c0cad1"
+      "42c0cad1",
+      "2229b4de"
     ]
   },
   {
@@ -126,7 +144,7 @@
       "P-03"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -140,22 +158,42 @@
       "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
       "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/render/segments.ts"
+      "lib/ediel/prodat/render/segments.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql"
     ],
     "confirmed_code_gap": "Legacy/generiska verkliga producenter byggde identitet/adress och D-fakta från portalpreview eller gissade identiteter. Nu vald same-company serverkund/site/point styr, gemensam explicit pre-wirefas skjuter bara egna wire-klasser till strikt actualwire-kontroll före persistence/send.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat kvarvarande normalZ03 native declaration consumer i processägarens binder/currentguard; source/TS stöd klart."
+    ],
     "planned_tests": [
       "Eget regelkriterium (fryst): Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
       "Förbjuden effekt (fryst): Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
       "För varje D-cell prova sant→R, specificerat falskt→O eller X, okänt→lokal hold; valfria giltiga värden och frånvaro ska båda godtas där O gäller.",
       "Actual manual/API/intent/generic producer: annan tenant/site/customer eller sparad preview kan inte ersätta vald legal identitet/egna adressfakta. Deferred own-wire D måste vara strikt löst före skrivning och provider-anrop.",
-      "Rapporterings-, livshändelse-, invoicee- och gasfall med verkligt saknad källägare ska hållas utan tillverkat externt protokollfel."
+      "Rapporterings-, livshändelse-, invoicee- och gasfall med verkligt saknad källägare ska hållas utan tillverkat externt protokollfel.",
+      "Direct-native normalZ03 bind/first-send måste jämföra egen fysiska217 med sole current declared requestedMethod samt declaration/contract hash/customer/site/point/legal tuple; actual prior accepted replay före nya current guards och genuine TESTfixture-port separat."
     ],
-    "assessment": "Normativ källa: P §2.2. Varje D har tre utfall. Frysta Z06E/G noterade O-grenar behålls. Okända invoicee/gas/livshändelse/reporting-fakta förblir hold; en boolsk legacyflagga eller sparad portalpreview kvalificerar ingen faktisk ägare. Specifika Z13 reportingPermission source-owner adapters samordnas separat med actors/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.2. Varje D har tre utfall. Frysta Z06E/G noterade O-grenar behålls. Okända invoicee/gas/livshändelse/reporting-fakta förblir hold; en boolsk legacyflagga eller sparad portalpreview kvalificerar ingen faktisk ägare. Specifika Z13 reportingPermission source-owner adapters samordnas separat med actors/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual Z03-regression reproducerade att portal217 överröstade context. Ny sole signed-agreement declaration owner binder current exact contractrevision/originalSHA/customer/site/point/legal scope och explicit NEWrequested217; actualcompat läser samma skyddade port och ersätter portal/testoverride. Tidigare daterad DSO217 används aldrig som nytt kundavtal. Normal native binder/current-send-processkonsumtion av samma declaration port är ännu processägarens öppna Important integrationsberoende tills dess framåtcommit integrerats.",
     "commits": [
       "7b3c6b7a",
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2",
+      "6fb630ec"
     ]
   },
   {
@@ -163,7 +201,7 @@
       "AT-P-03"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -177,23 +215,43 @@
       "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
       "lib/ediel/intent/renderers/facilityLookupZ01.ts",
       "lib/ediel/flows/prodatCustomerMasterdata.ts",
-      "lib/ediel/prodat/render/segments.ts"
+      "lib/ediel/prodat/render/segments.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql"
     ],
     "confirmed_code_gap": "Legacy/generiska verkliga producenter byggde identitet/adress och D-fakta från portalpreview eller gissade identiteter. Nu vald same-company serverkund/site/point styr, gemensam explicit pre-wirefas skjuter bara egna wire-klasser till strikt actualwire-kontroll före persistence/send.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat kvarvarande normalZ03 native declaration consumer i processägarens binder/currentguard; source/TS stöd klart."
+    ],
     "planned_tests": [
       "AT-P-03 givet: D-villkor; när: Utgående profil – prova både uppfyllt villkor och relevant fel-/gränsfall.",
       "Eget AT-kriterium (fryst): Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
       "Förbjuden effekt (fryst): Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
       "För varje D-cell prova sant→R, specificerat falskt→O eller X, okänt→lokal hold; valfria giltiga värden och frånvaro ska båda godtas där O gäller.",
       "Actual manual/API/intent/generic producer: annan tenant/site/customer eller sparad preview kan inte ersätta vald legal identitet/egna adressfakta. Deferred own-wire D måste vara strikt löst före skrivning och provider-anrop.",
-      "Rapporterings-, livshändelse-, invoicee- och gasfall med verkligt saknad källägare ska hållas utan tillverkat externt protokollfel."
+      "Rapporterings-, livshändelse-, invoicee- och gasfall med verkligt saknad källägare ska hållas utan tillverkat externt protokollfel.",
+      "Direct-native normalZ03 bind/first-send måste jämföra egen fysiska217 med sole current declared requestedMethod samt declaration/contract hash/customer/site/point/legal tuple; actual prior accepted replay före nya current guards och genuine TESTfixture-port separat."
     ],
-    "assessment": "Normativ källa: P §2.2; registers/acceptance_tests.json#AT-P-03. Varje D har tre utfall. Frysta Z06E/G noterade O-grenar behålls. Okända invoicee/gas/livshändelse/reporting-fakta förblir hold; en boolsk legacyflagga eller sparad portalpreview kvalificerar ingen faktisk ägare. Specifika Z13 reportingPermission source-owner adapters samordnas separat med actors/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.2; registers/acceptance_tests.json#AT-P-03. Varje D har tre utfall. Frysta Z06E/G noterade O-grenar behålls. Okända invoicee/gas/livshändelse/reporting-fakta förblir hold; en boolsk legacyflagga eller sparad portalpreview kvalificerar ingen faktisk ägare. Specifika Z13 reportingPermission source-owner adapters samordnas separat med actors/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual Z03-regression reproducerade att portal217 överröstade context. Ny sole signed-agreement declaration owner binder current exact contractrevision/originalSHA/customer/site/point/legal scope och explicit NEWrequested217; actualcompat läser samma skyddade port och ersätter portal/testoverride. Tidigare daterad DSO217 används aldrig som nytt kundavtal. Normal native binder/current-send-processkonsumtion av samma declaration port är ännu processägarens öppna Important integrationsberoende tills dess framåtcommit integrerats.",
     "commits": [
       "7b3c6b7a",
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2",
+      "6fb630ec"
     ]
   },
   {
@@ -266,7 +324,13 @@
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
       "lib/ediel/rulebook/fieldMatrix.ts",
-      "lib/ediel/core/runtimeDecision.ts"
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande register-overlay forbidden extra utlöste fel; riktad direction-aware gren ignorerar egen faktiskt förekommande registerextra. Redan korrekt global314/per-object258 och första-registerarv återanvänds.",
     "blockers": [],
@@ -275,12 +339,15 @@
       "Förbjuden effekt (fryst): Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
       "Två objekt med två register: LIN314=1,2,3,4 och 258=1,2 per objekt; all first-register-only information får bara rätt scoped arv.",
       "Fel andra register/objekt måste synas; extra unused repeated datum/customer/product för inkommande påverkar inte data; syntax och national registerkärna förblir strikt.",
-      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare."
+      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: P bilaga2 s.114–116. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P bilaga2 s.114–116. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "2229b4de"
     ]
   },
   {
@@ -296,7 +363,13 @@
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
       "lib/ediel/rulebook/fieldMatrix.ts",
-      "lib/ediel/core/runtimeDecision.ts"
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande register-overlay forbidden extra utlöste fel; riktad direction-aware gren ignorerar egen faktiskt förekommande registerextra. Redan korrekt global314/per-object258 och första-registerarv återanvänds.",
     "blockers": [],
@@ -306,12 +379,15 @@
       "Förbjuden effekt (fryst): Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
       "Två objekt med två register: LIN314=1,2,3,4 och 258=1,2 per objekt; all first-register-only information får bara rätt scoped arv.",
       "Fel andra register/objekt måste synas; extra unused repeated datum/customer/product för inkommande påverkar inte data; syntax och national registerkärna förblir strikt.",
-      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare."
+      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: P bilaga2 s.114–116; registers/acceptance_tests.json#AT-P-05. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P bilaga2 s.114–116; registers/acceptance_tests.json#AT-P-05. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "2229b4de"
     ]
   },
   {
@@ -382,7 +458,7 @@
       "P-07"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/rulebook/prodatRuntimeProfileRegistry.ts",
       "lib/ediel/prodat/render/validate.ts",
@@ -391,7 +467,9 @@
       "lib/ediel/prodat/prodatDateFields.ts"
     ],
     "confirmed_code_gap": "Z13 faktisk LIN kunde blockeras när kundnivå saknade fysisk objectID. Profil/guard tillåter optional ID med mandatory LIN; redan korrekt 506/90/91 placering återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat actualZ13 requested217 source producer/evidence/native comparator under actor assessment; missing genuine source facts remain external held."
+    ],
     "planned_tests": [
       "Eget regelkriterium (fryst): Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
       "Förbjuden effekt (fryst): Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
@@ -399,7 +477,7 @@
       "Z13 utan fysisk objectID skriver LIN+1, korrekt legal kund och90/91 enligt sourceperiod; inget UUID/GSRN tillverkas.",
       "V tidsbegränsat:91; V tillsvidare:ingen91; VH:både90/91. Negative ACK-fält own mapping provas via actual renderer/canonical/ACK."
     ],
-    "assessment": "Normativ källa: P s.49–52,69–72. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P s.49–52,69–72. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Fresh actualservice Z13 renderer/native approved-evidence tuple saknar explicit requested217; source notes P§2.2 pp18/19 kräver quarteragreement eller administrator-decision. Actors undersöker/äger scoped immutable source support+wire/render integration; currentDSO217/portal/default får inte ersätta.",
     "commits": [
       "7b3c6b7a"
     ]
@@ -409,7 +487,7 @@
       "AT-P-07"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/rulebook/prodatRuntimeProfileRegistry.ts",
       "lib/ediel/prodat/render/validate.ts",
@@ -418,7 +496,9 @@
       "lib/ediel/prodat/prodatDateFields.ts"
     ],
     "confirmed_code_gap": "Z13 faktisk LIN kunde blockeras när kundnivå saknade fysisk objectID. Profil/guard tillåter optional ID med mandatory LIN; redan korrekt 506/90/91 placering återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat actualZ13 requested217 source producer/evidence/native comparator under actor assessment; missing genuine source facts remain external held."
+    ],
     "planned_tests": [
       "AT-P-07 givet: Z13/Z14; när: Energi-id och rapportperiod – prova både uppfyllt villkor och relevant fel-/gränsfall.",
       "Eget AT-kriterium (fryst): Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
@@ -427,7 +507,7 @@
       "Z13 utan fysisk objectID skriver LIN+1, korrekt legal kund och90/91 enligt sourceperiod; inget UUID/GSRN tillverkas.",
       "V tidsbegränsat:91; V tillsvidare:ingen91; VH:både90/91. Negative ACK-fält own mapping provas via actual renderer/canonical/ACK."
     ],
-    "assessment": "Normativ källa: P s.49–52,69–72; registers/acceptance_tests.json#AT-P-07. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P s.49–52,69–72; registers/acceptance_tests.json#AT-P-07. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Fresh actualservice Z13 renderer/native approved-evidence tuple saknar explicit requested217; source notes P§2.2 pp18/19 kräver quarteragreement eller administrator-decision. Actors undersöker/äger scoped immutable source support+wire/render integration; currentDSO217/portal/default får inte ersätta.",
     "commits": [
       "7b3c6b7a"
     ]
@@ -546,7 +626,18 @@
       "lib/ediel/aiBiImportParser.ts",
       "lib/ediel/rulebook/messageFormatParser.ts",
       "lib/ediel/rulebook/validator.ts",
-      "lib/ediel/rulebook/validatorLegacy.ts"
+      "lib/ediel/rulebook/validatorLegacy.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre named-header/positional parser och faktisk fileEngine hade avvikande layout/BI-substringheuristik. Gemensam strikt teknisk positional adapter används i builder/parser/ingest/import/send; profil/versiondatum projiceras från guideRegistry. Färsk actual rulebook-sync/registry-granskning hittade apostrofheuristik som felvalde XML/AI som annan parser; fysisk gemensam formatadapter ersätter den och ignorerar inte råkällan till förmån för callerparsed.",
     "blockers": [],
@@ -555,14 +646,19 @@
       "Förbjuden effekt (fryst): Skapa inte EDIFACT-kvittenser på en AI-fil.",
       "Actual parser→fileEngine→ingest och export→provider använder samma Ver20140401 poslayout: network först/supplier sedan,datum/blank6/period7–8/version9.",
       "Fel version/count/roles/semicolon/date och BI som substring i kundnamn ska inte bli annan family eller accepterad CSV; ingen CONTRL/APERAK på AI/BI. Giltig AI med literal apostrof/release i kunddata väljer shared CSV; XML syntax väljer verklig XML-parser. Fysisk EDIFACT kan inte döljas som XML/list/callerparsed; malformed/unsafe XML och malformed CSV hålls utan alternativ parserfallback.",
-      "Strict normative-authority-guard ska PASS utan allowlistweaken; autentiskt fulloriginal och externa CSV-motpartsprov kvarstår."
+      "Strict normative-authority-guard ska PASS utan allowlistweaken; autentiskt fulloriginal och externa CSV-motpartsprov kvarstår.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §2–3. 10 headerfields har network före supplier och fixed versionposition; detail21 plus trailing empty22. CSV från fryst guideprofil, ingen syntetisk EDIFACT-reference eller ACK. Actual root ingest/send hooks ska integreras på kandidatSHA. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §2–3. 10 headerfields har network före supplier och fixed versionposition; detail21 plus trailing empty22. CSV från fryst guideprofil, ingen syntetisk EDIFACT-reference eller ACK. Actual root ingest/send hooks ska integreras på kandidatSHA. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "8b56b028",
       "e36900c3",
-      "38fc7149"
+      "38fc7149",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -581,7 +677,18 @@
       "lib/ediel/aiBiImportParser.ts",
       "lib/ediel/rulebook/messageFormatParser.ts",
       "lib/ediel/rulebook/validator.ts",
-      "lib/ediel/rulebook/validatorLegacy.ts"
+      "lib/ediel/rulebook/validatorLegacy.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre named-header/positional parser och faktisk fileEngine hade avvikande layout/BI-substringheuristik. Gemensam strikt teknisk positional adapter används i builder/parser/ingest/import/send; profil/versiondatum projiceras från guideRegistry. Färsk actual rulebook-sync/registry-granskning hittade apostrofheuristik som felvalde XML/AI som annan parser; fysisk gemensam formatadapter ersätter den och ignorerar inte råkällan till förmån för callerparsed.",
     "blockers": [],
@@ -591,14 +698,19 @@
       "Förbjuden effekt (fryst): Skapa inte EDIFACT-kvittenser på en AI-fil.",
       "Actual parser→fileEngine→ingest och export→provider använder samma Ver20140401 poslayout: network först/supplier sedan,datum/blank6/period7–8/version9.",
       "Fel version/count/roles/semicolon/date och BI som substring i kundnamn ska inte bli annan family eller accepterad CSV; ingen CONTRL/APERAK på AI/BI. Giltig AI med literal apostrof/release i kunddata väljer shared CSV; XML syntax väljer verklig XML-parser. Fysisk EDIFACT kan inte döljas som XML/list/callerparsed; malformed/unsafe XML och malformed CSV hålls utan alternativ parserfallback.",
-      "Strict normative-authority-guard ska PASS utan allowlistweaken; autentiskt fulloriginal och externa CSV-motpartsprov kvarstår."
+      "Strict normative-authority-guard ska PASS utan allowlistweaken; autentiskt fulloriginal och externa CSV-motpartsprov kvarstår.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §2–3; registers/acceptance_tests.json#AT-AI-01. 10 headerfields har network före supplier och fixed versionposition; detail21 plus trailing empty22. CSV från fryst guideprofil, ingen syntetisk EDIFACT-reference eller ACK. Actual root ingest/send hooks ska integreras på kandidatSHA. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §2–3; registers/acceptance_tests.json#AT-AI-01. 10 headerfields har network före supplier och fixed versionposition; detail21 plus trailing empty22. CSV från fryst guideprofil, ingen syntetisk EDIFACT-reference eller ACK. Actual root ingest/send hooks ska integreras på kandidatSHA. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "8b56b028",
       "e36900c3",
-      "38fc7149"
+      "38fc7149",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -622,7 +734,18 @@
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
       "lib/ediel/sources/structuralSourceSelection.ts",
-      "lib/ediel/prodat/customerIdentity.ts"
+      "lib/ediel/prodat/customerIdentity.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre exporter fyllde snapshot/networkkolumner och internal customer/site labels. Actual supplierexport använder daterat reviewed legal original och blankar exakt sex network-only detailfields; positional format + trailingsemicolon korrekt.",
     "blockers": [],
@@ -630,13 +753,18 @@
       "Eget regelkriterium (fryst): Lämna mätarnummer, avräkningsmetod, årsenergi, rapporteringsfrekvens, mätmetod och produktkod tomma. → Fyll övriga tillämpliga verifierade marknads-/kunduppgifter och avslutande semikolon.",
       "Förbjuden effekt (fryst): Interna UUID eller site_name får inte ersätta kund-id eller kundnamn.",
       "Actual DDQ source-qualified month export: network header först, sex fields exakt tomma, alla applicable egna legal/site/grid/BRP values, trailingdelimiter utan columnshift.",
-      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet."
+      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §3.1 s.8–9. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §3.1 s.8–9. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "3e853546"
+      "3e853546",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -660,7 +788,18 @@
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
       "lib/ediel/sources/structuralSourceSelection.ts",
-      "lib/ediel/prodat/customerIdentity.ts"
+      "lib/ediel/prodat/customerIdentity.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre exporter fyllde snapshot/networkkolumner och internal customer/site labels. Actual supplierexport använder daterat reviewed legal original och blankar exakt sex network-only detailfields; positional format + trailingsemicolon korrekt.",
     "blockers": [],
@@ -669,13 +808,18 @@
       "Eget AT-kriterium (fryst): Lämna mätarnummer, avräkningsmetod, årsenergi, rapporteringsfrekvens, mätmetod och produktkod tomma. → Fyll övriga tillämpliga verifierade marknads-/kunduppgifter och avslutande semikolon.",
       "Förbjuden effekt (fryst): Interna UUID eller site_name får inte ersätta kund-id eller kundnamn.",
       "Actual DDQ source-qualified month export: network header först, sex fields exakt tomma, alla applicable egna legal/site/grid/BRP values, trailingdelimiter utan columnshift.",
-      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet."
+      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §3.1 s.8–9; registers/acceptance_tests.json#AT-AI-02. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §3.1 s.8–9; registers/acceptance_tests.json#AT-AI-02. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "3e853546"
+      "3e853546",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -689,7 +833,18 @@
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
       "lib/ediel/sources/structuralSourceSelection.ts",
-      "lib/ediel/aiList.ts"
+      "lib/ediel/aiList.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre current-active snapshot/enrad-perkund exporter ersatt av bounded all-status supplies + immutable reviewed structural timeline; actual delivery boundaries före scheduled. Alldaterad stöd färdigt för kvalificerad postledgerhistorik, äldre/obehörig historia hålls.",
     "blockers": [
@@ -701,13 +856,18 @@
       "Förbjuden effekt (fryst): Endast dagens aktiva objekt eller ett enda värde per kund är inte tillräckligt.",
       "Minst två supplies inklusive ended + två structuralchanges: samtliga relevanta egna periodrader, tomfromförst/tomtosist och temporal ordning per object trots gridchange.",
       "Separate huvudperiod/detailvalidity, confirmedactualstart/end kontra scheduled samt [from,to) exakt endpoints. Ingen currentcustomer/namefake/activeonly query.",
-      "Before-ledger, deletionhistorymissing, customer-onlyowner missing, ambiguoussite, partialsnapshot/count och minute-onlyunrepresentable ska hålla utan historikgissning; authentic historical fixtures/native ownerproof ännu ej körda."
+      "Before-ledger, deletionhistorymissing, customer-onlyowner missing, ambiguoussite, partialsnapshot/count och minute-onlyunrepresentable ska hålla utan historikgissning; authentic historical fixtures/native ownerproof ännu ej körda.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §2.1 s.6–7. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §2.1 s.6–7. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "98b1c80d",
       "b48359dd",
-      "6f79fc79"
+      "6f79fc79",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -721,7 +881,18 @@
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
       "lib/ediel/sources/structuralSourceSelection.ts",
-      "lib/ediel/aiList.ts"
+      "lib/ediel/aiList.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre current-active snapshot/enrad-perkund exporter ersatt av bounded all-status supplies + immutable reviewed structural timeline; actual delivery boundaries före scheduled. Alldaterad stöd färdigt för kvalificerad postledgerhistorik, äldre/obehörig historia hålls.",
     "blockers": [
@@ -734,13 +905,18 @@
       "Förbjuden effekt (fryst): Endast dagens aktiva objekt eller ett enda värde per kund är inte tillräckligt.",
       "Minst två supplies inklusive ended + två structuralchanges: samtliga relevanta egna periodrader, tomfromförst/tomtosist och temporal ordning per object trots gridchange.",
       "Separate huvudperiod/detailvalidity, confirmedactualstart/end kontra scheduled samt [from,to) exakt endpoints. Ingen currentcustomer/namefake/activeonly query.",
-      "Before-ledger, deletionhistorymissing, customer-onlyowner missing, ambiguoussite, partialsnapshot/count och minute-onlyunrepresentable ska hålla utan historikgissning; authentic historical fixtures/native ownerproof ännu ej körda."
+      "Before-ledger, deletionhistorymissing, customer-onlyowner missing, ambiguoussite, partialsnapshot/count och minute-onlyunrepresentable ska hålla utan historikgissning; authentic historical fixtures/native ownerproof ännu ej körda.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §2.1 s.6–7; registers/acceptance_tests.json#AT-AI-03. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §2.1 s.6–7; registers/acceptance_tests.json#AT-AI-03. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "98b1c80d",
       "b48359dd",
-      "6f79fc79"
+      "6f79fc79",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -760,7 +936,18 @@
       "lib/inbound-mail/edielMailboxPoller.part-3.ts",
       "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql",
       "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql",
-      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql"
+      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Påhittad legitimate_interest/365-dagarsgrund och icke-atomär import ersatta med versionsbundet beslutsschema, läskontrakt, förseglad källkonsumtion och ett atomärt beständigt källutfall. Faktiskt AI/BI-personinnehåll i mail/body/bilaga/payload spärras före första rålagring, även direkt databasväg och MIME/base64. Avstämning skriver bara utredningsdata, aldrig kund/objekt/BRP.",
     "blockers": [
@@ -772,14 +959,19 @@
       "Förbjuden effekt (fryst): Uppdatera inte kund, objekt eller BRP direkt från listan.",
       "Utan currenttenantactor eller versionsbundet legalownerbeslut: exakt blockerare och nollraw/import/discrepancywrite över manual/API/batch/IMAP/directSQL.",
       "Approved authentic decision på fixedSHA: import endastutredningsrader med originalhash/källa/ownerdecision; kund/objekt/BRP oförändrade. Laterchange kräver separat own process och currentactor.",
-      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis."
+      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §1.1. Gemensam teknisk parser identifierar fysiskt AI/BI-innehåll. Native före-lagringsspärr omfattar ediel_messages, samtliga personbärande mailkolumner, bilagor och payloadkopior med faktisk tenant/aktör och typad källförälder. Atomär RPC låser förseglad källa och aktuell aktör, binder faktiskt supplier/network-header till tenant och registrerad nätägargrund, skriver huvud/rader/utredningar/oföränderligt receipt tillsammans. Retry läser samma fastställda utfall utan nytt rättsligt beslut. Saknat beslutsägar-/retention-/nätägarmandat håller fortfarande; ren parser och mekanik är självständigt kodklara. Root äger faktisk ingest- och kernelintegration. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §1.1. Gemensam teknisk parser identifierar fysiskt AI/BI-innehåll. Native före-lagringsspärr omfattar ediel_messages, samtliga personbärande mailkolumner, bilagor och payloadkopior med faktisk tenant/aktör och typad källförälder. Atomär RPC låser förseglad källa och aktuell aktör, binder faktiskt supplier/network-header till tenant och registrerad nätägargrund, skriver huvud/rader/utredningar/oföränderligt receipt tillsammans. Retry läser samma fastställda utfall utan nytt rättsligt beslut. Saknat beslutsägar-/retention-/nätägarmandat håller fortfarande; ren parser och mekanik är självständigt kodklara. Root äger faktisk ingest- och kernelintegration. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "e36900c3",
       "b1f1d9ab",
       "7dc19c61",
-      "757fba63"
+      "757fba63",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -799,7 +991,18 @@
       "lib/inbound-mail/edielMailboxPoller.part-3.ts",
       "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql",
       "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql",
-      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql"
+      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Påhittad legitimate_interest/365-dagarsgrund och icke-atomär import ersatta med versionsbundet beslutsschema, läskontrakt, förseglad källkonsumtion och ett atomärt beständigt källutfall. Faktiskt AI/BI-personinnehåll i mail/body/bilaga/payload spärras före första rålagring, även direkt databasväg och MIME/base64. Avstämning skriver bara utredningsdata, aldrig kund/objekt/BRP.",
     "blockers": [
@@ -812,14 +1015,19 @@
       "Förbjuden effekt (fryst): Uppdatera inte kund, objekt eller BRP direkt från listan.",
       "Utan currenttenantactor eller versionsbundet legalownerbeslut: exakt blockerare och nollraw/import/discrepancywrite över manual/API/batch/IMAP/directSQL.",
       "Approved authentic decision på fixedSHA: import endastutredningsrader med originalhash/källa/ownerdecision; kund/objekt/BRP oförändrade. Laterchange kräver separat own process och currentactor.",
-      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis."
+      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §1.1; registers/acceptance_tests.json#AT-AI-04. Gemensam teknisk parser identifierar fysiskt AI/BI-innehåll. Native före-lagringsspärr omfattar ediel_messages, samtliga personbärande mailkolumner, bilagor och payloadkopior med faktisk tenant/aktör och typad källförälder. Atomär RPC låser förseglad källa och aktuell aktör, binder faktiskt supplier/network-header till tenant och registrerad nätägargrund, skriver huvud/rader/utredningar/oföränderligt receipt tillsammans. Retry läser samma fastställda utfall utan nytt rättsligt beslut. Saknat beslutsägar-/retention-/nätägarmandat håller fortfarande; ren parser och mekanik är självständigt kodklara. Root äger faktisk ingest- och kernelintegration. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §1.1; registers/acceptance_tests.json#AT-AI-04. Gemensam teknisk parser identifierar fysiskt AI/BI-innehåll. Native före-lagringsspärr omfattar ediel_messages, samtliga personbärande mailkolumner, bilagor och payloadkopior med faktisk tenant/aktör och typad källförälder. Atomär RPC låser förseglad källa och aktuell aktör, binder faktiskt supplier/network-header till tenant och registrerad nätägargrund, skriver huvud/rader/utredningar/oföränderligt receipt tillsammans. Retry läser samma fastställda utfall utan nytt rättsligt beslut. Saknat beslutsägar-/retention-/nätägarmandat håller fortfarande; ren parser och mekanik är självständigt kodklara. Root äger faktisk ingest- och kernelintegration. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "e36900c3",
       "b1f1d9ab",
       "7dc19c61",
-      "757fba63"
+      "757fba63",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -842,7 +1050,18 @@
       "lib/ediel/aiListHistory.ts",
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
-      "lib/ediel/sources/structuralSourceSelection.ts"
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Technical BI-kod fanns men actual export roll spärrades inte gemensamt. Builder/flow/actualsend gemensamt stoppar BI för platform supplier/ESCO; strict incomingBI parser avser reconciliation och skapar ingen nätföretagsroll.",
     "blockers": [],
@@ -850,13 +1069,18 @@
       "Eget regelkriterium (fryst): BI används enbart av nätföretag för angivna strukturändringar. → Stöd behörig mottagning/utredning; spärra utgående BI i DDQ/DGI.",
       "Förbjuden effekt (fryst): Känd CSV-struktur ger ingen marknadsbehörighet.",
       "DDQ/DGI directbuilder/action/API/queuedactualsend BI: hold före persist/send även med giltig CSV, metadataoverride eller textBI i kundname.",
-      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite."
+      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §1.1,3.2. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §1.1,3.2. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "e36900c3"
+      "e36900c3",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -879,7 +1103,18 @@
       "lib/ediel/aiListHistory.ts",
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
-      "lib/ediel/sources/structuralSourceSelection.ts"
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Technical BI-kod fanns men actual export roll spärrades inte gemensamt. Builder/flow/actualsend gemensamt stoppar BI för platform supplier/ESCO; strict incomingBI parser avser reconciliation och skapar ingen nätföretagsroll.",
     "blockers": [],
@@ -888,13 +1123,18 @@
       "Eget AT-kriterium (fryst): BI används enbart av nätföretag för angivna strukturändringar. → Stöd behörig mottagning/utredning; spärra utgående BI i DDQ/DGI.",
       "Förbjuden effekt (fryst): Känd CSV-struktur ger ingen marknadsbehörighet.",
       "DDQ/DGI directbuilder/action/API/queuedactualsend BI: hold före persist/send även med giltig CSV, metadataoverride eller textBI i kundname.",
-      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite."
+      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: AI §1.1,3.2; registers/acceptance_tests.json#AT-AI-05. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: AI §1.1,3.2; registers/acceptance_tests.json#AT-AI-05. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "e36900c3"
+      "e36900c3",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -933,7 +1173,7 @@
       "SC-025"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/rulebook/prodatRuntimeProfileRegistry.ts",
       "lib/ediel/prodat/render/validate.ts",
@@ -942,7 +1182,9 @@
       "lib/ediel/prodat/prodatDateFields.ts"
     ],
     "confirmed_code_gap": "Z13 faktisk LIN kunde blockeras när kundnivå saknade fysisk objectID. Profil/guard tillåter optional ID med mandatory LIN; redan korrekt 506/90/91 placering återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat actualZ13 requested217 source producer/evidence/native comparator under actor assessment; missing genuine source facts remain external held."
+    ],
     "planned_tests": [
       "Eget SC-025 fältkrav: kundnivå-Z13 har fysisk LIN1 utan fabricatedid; agency260/SE1-SE2 legalcustomer kvar.",
       "SC-025 givet (fryst): Korrekt tillståndsbegäran på kundnivå.; när: Bygg meddelandet.",
@@ -953,7 +1195,7 @@
       "Z13 utan fysisk objectID skriver LIN+1, korrekt legal kund och90/91 enligt sourceperiod; inget UUID/GSRN tillverkas.",
       "V tidsbegränsat:91; V tillsvidare:ingen91; VH:både90/91. Negative ACK-fält own mapping provas via actual renderer/canonical/ACK."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-025. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-025. 506=andra7110/femte CAV-komponent skiljs från242. 90/91 rapportgränser skiljs från92/93 kontraktsgränser. V med slut och VH har korrekt slutvillkor via gemensam reporting authority; processägaren ansvarar faktisk tillståndskedja. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Fresh actualservice Z13 renderer/native approved-evidence tuple saknar explicit requested217; source notes P§2.2 pp18/19 kräver quarteragreement eller administrator-decision. Actors undersöker/äger scoped immutable source support+wire/render integration; currentDSO217/portal/default får inte ersätta.",
     "commits": [
       "7b3c6b7a"
     ]
@@ -1137,7 +1379,13 @@
       "lib/ediel/prodat/render/registers.ts",
       "supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql",
       "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande nationella X/icke-tillämpliga D blev avvisade och saknade egen scope-signal; riktade validators ignorerar faktiskt förekommande sådana fält efter syntax. Z02 verkliga SQL-verkställare läste äldre JSON/årsvärden och mutable sent_at; nya framåtriktade funktioner använder förseglad accepted egen källa, unik leaf/facet och faktisk transportjournal.",
     "blockers": [],
@@ -1149,14 +1397,17 @@
       "Detta overlay bedömer uttryckligen fält-/AI-komponenten; fullprocess/roll/ACK/E2E har egna ägare och inget full-PASSED-bevis görs.",
       "Inkommande syntaktiskt giltigt X/Dfalse extra: ingen negativ APERAK enbart för extra; ändra samma extra i två objekt/register och visa exakt noll masterdata-/energi-/grant-effekt samt råpayload oförändrad.",
       "Ogiltig fullsyntax ska fortfarande ge syntaxutfall före ignore. Egen utgående byggare ska avvisa förbjuden extra.",
-      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis."
+      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-031. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-031. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
       "0328ff98",
       "e813dbd9",
-      "42c0cad1"
+      "42c0cad1",
+      "2229b4de"
     ]
   },
   {
@@ -1212,7 +1463,13 @@
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
       "lib/ediel/rulebook/fieldMatrix.ts",
-      "lib/ediel/core/runtimeDecision.ts"
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande register-overlay forbidden extra utlöste fel; riktad direction-aware gren ignorerar egen faktiskt förekommande registerextra. Redan korrekt global314/per-object258 och första-registerarv återanvänds.",
     "blockers": [],
@@ -1224,12 +1481,15 @@
       "Detta overlay bedömer uttryckligen fält-/AI-komponenten; fullprocess/roll/ACK/E2E har egna ägare och inget full-PASSED-bevis görs.",
       "Två objekt med två register: LIN314=1,2,3,4 och 258=1,2 per objekt; all first-register-only information får bara rätt scoped arv.",
       "Fel andra register/objekt måste synas; extra unused repeated datum/customer/product för inkommande påverkar inte data; syntax och national registerkärna förblir strikt.",
-      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare."
+      "Native source totals och UTILTS relation ska inte dubbelräkna registerenergi; process/UTILTS har separat verkställarägare.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-033. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-033. Grouping tuple är messageIndex + exakt objektid/agency. Alla register valideras, ogiltig kedja har inga arvprivilegier; 314 är globalt, 258 lokalt. Eget independent outbound registerantal får inte hämtas från annat objekt/root. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "2229b4de"
     ]
   },
   {
@@ -1275,7 +1535,13 @@
       "lib/ediel/prodat/render/registers.ts",
       "supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql",
       "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
-      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql"
     ],
     "confirmed_code_gap": "Inkommande nationella X/icke-tillämpliga D blev avvisade och saknade egen scope-signal; riktade validators ignorerar faktiskt förekommande sådana fält efter syntax. Z02 verkliga SQL-verkställare läste äldre JSON/årsvärden och mutable sent_at; nya framåtriktade funktioner använder förseglad accepted egen källa, unik leaf/facet och faktisk transportjournal.",
     "blockers": [],
@@ -1287,14 +1553,17 @@
       "Detta overlay bedömer uttryckligen fält-/AI-komponenten; fullprocess/roll/ACK/E2E har egna ägare och inget full-PASSED-bevis görs.",
       "Inkommande syntaktiskt giltigt X/Dfalse extra: ingen negativ APERAK enbart för extra; ändra samma extra i två objekt/register och visa exakt noll masterdata-/energi-/grant-effekt samt råpayload oförändrad.",
       "Ogiltig fullsyntax ska fortfarande ge syntaxutfall före ignore. Egen utgående byggare ska avvisa förbjuden extra.",
-      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis."
+      "Native två-tenant, full sourcelexer, rollback, simultaneous duplicate, canonical leaf/facet ambiguity och frozen receipt/retry på exakt SHA; de körda embeddedproven är syntetiska, inte native/RLS-bevis.",
+      "Bevisa alla ignored fields fysiska segment/component/message/object/registerpositioner mot verkliga egna sourcebytes. Förfalskad/geometriskt annan facet och annan canonical leaf ska ge noll tillåtna effekter.",
+      "Native V2 P-append rollback och replay, V4 U-delegering, immutable source/facet hash, cross-tenant ACL och kvarvarande runtime/source snapshot skalaparitet på kandidat-SHA."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-035. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-035. Inkommande ignore-signal avser endast faktisk egen förekomst, inte tomma frånvarande fält; objekt/registerscope bevaras. Z02 writes endast egen tillåten 209/260/UD/IT-korrelation; QTY31/213 och parsed payload ändrar inga årsvärden. Processägaren har separat Z14 egen-source-whitelist. Råpayload förblir bevis. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk faktisk P119-kedja: actualdecisionens fysiskt förekommande egna ignore-fält bindas till samma canonical/registerassessment, appendas atomärt som separat prospektiv facet utanför frysta factsText och läses genom exakt skyddad snapshot. Getter exponerar aldrig ignorerad217/222/242/254; annat objekts eller senare registers ignored datum kan inte maska tillåten första-registeruppgift. Gamla facetlösa källor är unknown; ingen ny regelomval/backfill.",
     "commits": [
       "7b3c6b7a",
       "0328ff98",
       "e813dbd9",
-      "42c0cad1"
+      "42c0cad1",
+      "2229b4de"
     ]
   },
   {
@@ -1374,7 +1643,18 @@
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
       "lib/ediel/sources/structuralSourceSelection.ts",
-      "lib/ediel/prodat/customerIdentity.ts"
+      "lib/ediel/prodat/customerIdentity.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre exporter fyllde snapshot/networkkolumner och internal customer/site labels. Actual supplierexport använder daterat reviewed legal original och blankar exakt sex network-only detailfields; positional format + trailingsemicolon korrekt.",
     "blockers": [],
@@ -1385,13 +1665,18 @@
       "Förbjuden effekt (fryst): Inga interna UUID som GSRN och inget generiskt energiprodukt-id som tidsserieprodukt.",
       "Detta overlay bedömer uttryckligen fält-/AI-komponenten; fullprocess/roll/ACK/E2E har egna ägare och inget full-PASSED-bevis görs.",
       "Actual DDQ source-qualified month export: network header först, sex fields exakt tomma, alla applicable egna legal/site/grid/BRP values, trailingdelimiter utan columnshift.",
-      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet."
+      "Inject internalcustomer/site_name, stale currentnetworkvalue, 506-as-product eller foreigntenant: hold/blank enligt source utan fabricatedidentitet.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-065. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-065. Supplier blankcolumns11–16 (meter,settlement,annual,frequency,measure,product) och AI newnetworkcolumns3–6 är tomma. Legal kund-id/namn är daterad originalidentitet, inte UUID/site_name; 506 skickas aldrig som tidsserieprodukt. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "3e853546"
+      "3e853546",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -1416,7 +1701,18 @@
       "lib/inbound-mail/edielMailboxPoller.part-3.ts",
       "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql",
       "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql",
-      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql"
+      "supabase/migrations/20260930181141_ediel_ai_personal_mail_storage_guards.sql",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Äldre current-active snapshot/enrad-perkund exporter ersatt av bounded all-status supplies + immutable reviewed structural timeline; actual delivery boundaries före scheduled. Alldaterad stöd färdigt för kvalificerad postledgerhistorik, äldre/obehörig historia hålls.",
     "blockers": [
@@ -1436,9 +1732,11 @@
       "Before-ledger, deletionhistorymissing, customer-onlyowner missing, ambiguoussite, partialsnapshot/count och minute-onlyunrepresentable ska hålla utan historikgissning; authentic historical fixtures/native ownerproof ännu ej körda.",
       "Utan currenttenantactor eller versionsbundet legalownerbeslut: exakt blockerare och nollraw/import/discrepancywrite över manual/API/batch/IMAP/directSQL.",
       "Approved authentic decision på fixedSHA: import endastutredningsrader med originalhash/källa/ownerdecision; kund/objekt/BRP oförändrade. Laterchange kräver separat own process och currentactor.",
-      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis."
+      "Native whole-import rollback efter senare rad, samtidig dublett, exakt source/hash och oföränderligt repeat efter ändrat beslut; främmande tenant/aktör/header/objekt får noll importerade eller masterdata-effekter. Native direkt mail/bilaga/payload och råupdate före/efter beslutsexpiry samt RLS måste bevisas på fast SHA. Körda syntetiska closedguard/rollback-prober är inte native mandat- eller acceptansbevis.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-066. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-066. Actual flow läser all-status customer_supply_periods company/customer och optional point, exakta countbounds; varje sitebindning måste visas av reviewed original owner, inte dagens snapshot. Delperioder/Z06/Z10/baseline/closure projiceras [from,to) med sourcebevis. Sourcequalified actual_date väljs före scheduled. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "98b1c80d",
       "b48359dd",
@@ -1446,7 +1744,10 @@
       "e36900c3",
       "b1f1d9ab",
       "7dc19c61",
-      "757fba63"
+      "757fba63",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -1469,7 +1770,18 @@
       "lib/ediel/aiListHistory.ts",
       "lib/ediel/flows/aiListFlow.ts",
       "lib/ediel/sources/structuralSourceReadset.ts",
-      "lib/ediel/sources/structuralSourceSelection.ts"
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/intent/aiListGateway.ts",
+      "lib/ediel/intent/renderers/aiList.ts",
+      "lib/ediel/core/kernelLegacy.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "lib/ediel/transport/index.part-2.ts",
+      "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "lib/ediel/aiListOrigination.ts",
+      "supabase/migrations/20260930203354_ediel_ai_intent_source_origination.sql",
+      "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "supabase/migrations/20260930190501_ediel_ai_message_personal_scope_guard.sql"
     ],
     "confirmed_code_gap": "Technical BI-kod fanns men actual export roll spärrades inte gemensamt. Builder/flow/actualsend gemensamt stoppar BI för platform supplier/ESCO; strict incomingBI parser avser reconciliation och skapar ingen nätföretagsroll.",
     "blockers": [],
@@ -1480,13 +1792,18 @@
       "Förbjuden effekt (fryst): Plattformen får inte uppträda som nätägare utan rätt roll och underlag.",
       "Detta overlay bedömer uttryckligen fält-/AI-komponenten; fullprocess/roll/ACK/E2E har egna ägare och inget full-PASSED-bevis görs.",
       "DDQ/DGI directbuilder/action/API/queuedactualsend BI: hold före persist/send även med giltig CSV, metadataoverride eller textBI i kundname.",
-      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite."
+      "Tillåten inkommande BI kan parsas/utredas först med currenttenant + legalretentionowner, aldrig actualnetworkexport eller masterdataautooverwrite.",
+      "Direct native: ändra egen radcell/epoch/site/address state/hash/intent operation/requesttuple eller utelämna relevant originalhistorik→hold före freshtransport/persistens; legitim multikomponent source name/street jämförs med samma normaliserare, inga syntetiska celler.",
+      "Source-qualified AI ska nå samma prepared/entered/accepted journal utan EDIFACTnamespace/Z08-lane; gamla committed/uncertain/replayutfall ska förbli oförändrade. TEST-only write får inte production approval; send-only får inte publicpurpose/origination."
     ],
-    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-067. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: registers/acceptance_tests.json#SC-067. assertAiListOutboundType/Message gate sharedteknisk typ; verified actual legal_supplier på exportflow. Matrix/root äger UI/readiness och actual transporthook. BI formatkunskap ersätter inte legal nätroll/mandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual AI-familjkedja: mandatory typed intent→egen dated-history recompute→privat komplett22cell original/source equality→canonical renderer→prospektiv one-use AI originalport→actual kernel utan fabricerat EDIFACTwitness→samma outbox/SMTP/native journal. UTF8 exakt raw bevaras, no ACK. Purpose prepare/send och genuine TEST environment har separata actualactorpermissions; send-only kan sända eget original men inte origineringsskriva. Root integrerade tekniskfamilj/sourceguard; underlag för legalowner/retention/mandat/nätägare/historik förblir externt held.",
     "commits": [
       "45c688b0",
       "98b1c80d",
-      "e36900c3"
+      "e36900c3",
+      "296a2b5a",
+      "b108ffc4",
+      "5f47c313"
     ]
   },
   {
@@ -1572,7 +1889,7 @@
       "AT-Z03L-SUPPLIER"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -1589,10 +1906,14 @@
       "lib/ediel/prodat/render/segments.ts",
       "lib/ediel/prodat/prodatDependentConditionEngine.ts",
       "lib/ediel/rulebook/canonicalEdielPolicy.ts",
-      "lib/ediel/prodat/engine.ts"
+      "lib/ediel/prodat/engine.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql"
     ],
     "confirmed_code_gap": null,
-    "blockers": [],
+    "blockers": [
+      "Processägarens normalnative declaration integration pending; exakt signed originalterms och registrerad juridisk beslutägare externheld."
+    ],
     "planned_tests": [
       "AT-Z03L-SUPPLIER egen exakt fältvariant: outbound Z03:L reason=Z22 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 210 @ SG8/DTM[2005=92]/C507/2380; 217 @ SG14/CCI[C502/6313=Z04] → CAV/C889/7111; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 261 @ SG16/RFF[1153=ANJ]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 227 @ SG17/NAD[3035=UD]/C082/3039; 228 @ SG17/NAD[3035=UD]/C080/3036[1..2]; 231 @ SG17/NAD[3035=UD]/3251; 232 @ SG17/NAD[3035=UD]/3164; 316 @ SG17/NAD[3035=UD]/3207; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -1601,12 +1922,14 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före. | Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt. | 23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Med rätt LI/intents/cthash men främmande eller tidigare217: normal nativefirstbind/send måste hålla utan source receipt/transport. Sourcegenuine newdeclaredZ04/Z03 ska exakt motsvara fysisk217."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z03L-SUPPLIER. Actual generic async producer får nyvald serverlegalcustomer/object/address och gemensam canonical policy; source ownreason L/LK/C/H perobject,210 and full R/D contract mandatory. Lifecycle/supply/date/mandate origin ägs av process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z03L-SUPPLIER. Actual generic async producer får nyvald serverlegalcustomer/object/address och gemensam canonical policy; source ownreason L/LK/C/H perobject,210 and full R/D contract mandatory. Lifecycle/supply/date/mandate origin ägs av process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Eget fält217 är nu uttrycklig NEWcontract vilja, inte priorDSO/portal. Sourceång och actual TS-render consumer färdiga; normalnative binder/current-consumer avsoledeclaration ägs avprocess och kvarstår integrationsberoende.",
     "commits": [
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "6fb630ec"
     ]
   },
   {
@@ -1758,7 +2081,7 @@
       "AT-Z03LK-SUPPLIER"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -1775,10 +2098,14 @@
       "lib/ediel/prodat/render/segments.ts",
       "lib/ediel/prodat/prodatDependentConditionEngine.ts",
       "lib/ediel/rulebook/canonicalEdielPolicy.ts",
-      "lib/ediel/prodat/engine.ts"
+      "lib/ediel/prodat/engine.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql"
     ],
     "confirmed_code_gap": null,
-    "blockers": [],
+    "blockers": [
+      "Processägarens normalnative declaration integration pending; exakt signed originalterms och registrerad juridisk beslutägare externheld."
+    ],
     "planned_tests": [
       "AT-Z03LK-SUPPLIER egen exakt fältvariant: outbound Z03:LK reason=Z23 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 210 @ SG8/DTM[2005=92]/C507/2380; 217 @ SG14/CCI[C502/6313=Z04] → CAV/C889/7111; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 261 @ SG16/RFF[1153=ANJ]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 227 @ SG17/NAD[3035=UD]/C082/3039; 228 @ SG17/NAD[3035=UD]/C080/3036[1..2]; 231 @ SG17/NAD[3035=UD]/3251; 232 @ SG17/NAD[3035=UD]/3164; 316 @ SG17/NAD[3035=UD]/3207; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -1787,12 +2114,14 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före. | Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt. | 23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Med rätt LI/intents/cthash men främmande eller tidigare217: normal nativefirstbind/send måste hålla utan source receipt/transport. Sourcegenuine newdeclaredZ04/Z03 ska exakt motsvara fysisk217."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z03LK-SUPPLIER. Actual generic async producer får nyvald serverlegalcustomer/object/address och gemensam canonical policy; source ownreason L/LK/C/H perobject,210 and full R/D contract mandatory. Lifecycle/supply/date/mandate origin ägs av process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z03LK-SUPPLIER. Actual generic async producer får nyvald serverlegalcustomer/object/address och gemensam canonical policy; source ownreason L/LK/C/H perobject,210 and full R/D contract mandatory. Lifecycle/supply/date/mandate origin ägs av process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Eget fält217 är nu uttrycklig NEWcontract vilja, inte priorDSO/portal. Sourceång och actual TS-render consumer färdiga; normalnative binder/current-consumer avsoledeclaration ägs avprocess och kvarstår integrationsberoende.",
     "commits": [
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "6fb630ec"
     ]
   },
   {
@@ -2337,10 +2666,32 @@
       "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
       "lib/ediel/prodat/prodatRegisterGroups.ts",
       "lib/ediel/rulebook/prodatRegisterPolicy.ts",
-      "lib/ediel/prodat/render/registers.ts"
+      "lib/ediel/prodat/render/registers.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/operationalVerification.ts",
+      "supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql",
+      "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
+      "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
     "confirmed_code_gap": "Incomingunusedfält kunde avvisas; direction-aware ownscope ignore korrigerat, registerbas/topology återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Autentiskt före-ledger structural/history original och nödvändiga instrument-/avläsningsägda beslut saknas där markerat UNKNOWN; inget historiskt backfill."
+    ],
     "planned_tests": [
       "AT-Z06F-SUPPLIER egen exakt fältvariant: inbound Z06:F reason=E64 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 216 @ SG8/DTM[2005=157]/C507/2380; 222 @ SG14/CCI[C502/6313=Z12] → CAV/C889/7110[1]; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 233 @ SG17/NAD[3035=IT]/C082/3039; 234 @ SG17/NAD[3035=IT]/C059/3042[1..3]; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2349,12 +2700,19 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD. | Nätägarens kund-/anläggningsuppdatering. | 23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Actual safeApplyReview directRPC/approval: forged proposal/raw/tenant/site/latestfacet/closure/canceled coverage→rollback av samtliga historik/receipt effekter; simultana duplicat returnerar samma immutable receipt.",
+      "Z06F/G och Z10M med framtida effectiveAt, sent source receipt och ändring mitt i UTILTSperiod: egen mätare/register/produkt för varje epoch, ingen dubbel registerenergi/global row overwrite; P119extra noll effekt."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z06F-SUPPLIER. Actual ownfirstregister E/F/G väljer sourceD/UDparent: E34→UD, F/E64 ochG/E32→kundfält inaktiva. 214/218/259 registeroverlay, wire506 unusedincoming ignored; datedstructuralowner/mutation ägs av root/process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z06F-SUPPLIER. Actual ownfirstregister E/F/G väljer sourceD/UDparent: E34→UD, F/E64 ochG/E32→kundfält inaktiva. 214/218/259 registeroverlay, wire506 unusedincoming ignored; datedstructuralowner/mutation ägs av root/process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Actual UIreview→sameprivate atomic source apply lagrar immutable egen structural_apply_receipt med full scoped sourceRegisters och separata effective/sourceReceivedAt. Aldrig mutable proposal/parsedJSON som auktoritet, aldrig global master/history overwrite; actualtenant på current reads, sorted source/switch/period/point locks och current immutable market continuation. Daterade export-/begärankonsumenter använder samma qualified chronology och egna ignore-facets. F readingFollowUp uttrycks explicit UNKNOWN där autentisk mätvärdesprocess saknas, G skapar ingen påhittad avläsning, M bevarar historiska observationsdata.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "920f700f",
+      "d5da4825",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2"
     ]
   },
   {
@@ -2362,7 +2720,7 @@
       "AT-Z09F-SUPPLIER"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -2379,10 +2737,22 @@
       "lib/ediel/prodat/render/segments.ts",
       "lib/ediel/prodat/prodatDependentConditionEngine.ts",
       "lib/ediel/rulebook/canonicalEdielPolicy.ts",
-      "lib/ediel/prodat/engine.ts"
+      "lib/ediel/prodat/engine.ts",
+      "lib/ediel/production/meteringMethodChangeSource.ts",
+      "lib/ediel/flows/prodatMeteringMethodChange.ts",
+      "lib/ediel/intent/meteringMethodChangeGateway.ts",
+      "lib/ediel/intent/renderers/meteringMethodChange.ts",
+      "app/admin/ediel/metering-method-actions.ts",
+      "supabase/migrations/20260930225504_ediel_customer_agreed_metering_method_origination.sql",
+      "supabase/migrations/20260930232802_ediel_metering_method_complete_source_scope.sql",
+      "lib/ediel/transport/index.part-2.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql"
     ],
-    "confirmed_code_gap": null,
-    "blockers": [],
+    "confirmed_code_gap": "Dedicated F/G source-owned actualproducer/intent/origin/desire-history stöd är integrerat. Färsk full nationell profil reproducerar dock R262 NAD+Z02 saknas i den faktiska renderern/native fullsource-bindningen; production-mode pre-wire D210/211 håll stoppar känd F/G trots strikt post-wire date authority. Root TM40/provider-hook integration pågår separat. CURRENT BRP får inte hämtas från B desired/source_declared period_versions utan faktiskt verkställd autentisk grund.",
+    "blockers": [
+      "Autentiskt nytt kundavtalsoriginal med uttrycklig requested217/exakt händelseminut samt behörig registrerad beslutägare och versionerad nätägargrund saknas; ingen event/approval seed."
+    ],
     "planned_tests": [
       "AT-Z09F-SUPPLIER egen exakt fältvariant: outbound Z09:F reason=E64 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2391,12 +2761,19 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte. | Begär kvartsmätning enligt kundavtal. | 23-DDQ-PRODAT; BGM=Z09; fält223=E64; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Äkta sourceground F/G: exakt DTM157format203 vid autentisk avtalsminut, inte currentDSO217/portal; purpose/source changes före firsteffect håller; immutable accepted outcomes/retry inte ändras.",
+      "TM-METHOD40 ankras physical z09_validity_day+40calendar, egen appliedZ06 customer/point/agency/legal +explicitmethod observed, UNKNOWNambiguous/missing, ingen invented equality eller SMTP+40; broad native/clock/lateregisterrace ännu ej körd.",
+      "På fastSHA faktisk F/G productionmode render får skjuta endast deklarerad own-wire D210/211 till kandidatprövning; strikt postwire håller D utan autentiskt event/XOR och förbjuder F/G210/211.",
+      "Faktisk komplett nationell F/G Rprofil inkluderar262 från samma qualified initialZ04 ownphysicalNADZ02 eller autentiskt faktiskt verkställt daterat BRPutfall; ingen globalrow/portal/newBdesiredfallback och later ambiguous/pendingchanges håller."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z09F-SUPPLIER. Actual ownfirstregister reason väljer kundUD endastE34; F/G mät217 och216/157, B BRP/datedcontext, D210 XOR211 ochnoUD. Verklig productionevent behöver egen registry/dispatch och ägs av process. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z09F-SUPPLIER. Actual ownfirstregister reason väljer kundUD endastE34; F/G mät217 och216/157, B BRP/datedcontext, D210 XOR211 ochnoUD. Verklig productionevent behöver egen registry/dispatch och ägs av process. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual producent: unseeded immutable kundavtalsevent +same explicit signed-agreement declaration→mandatory intent→canonical renderer217/216/223→source-required INSERT/private desired receipt→same outbox och root native/SMTP sourceguard. F E64/Z04 och G E32/Z03 centralfacadetuple, kundUD förbjuden, exact physical UNHfamily/UNB11+site/request/env/route/ref/source fulltuple. Äkta skyddade positive/negative TESToriginal kan gå genom egna prepared/consumed ports med businessEffect=false och inga desired/structural receipts; inget environmentfallback efter genuine originerror. Root TM-METHOD40-register/observe/cron hooks är integrationsberoende tills färdigställda. Färsk riktad actual-renderer full-national allR-probe efter6fb visar saknad262; test-mode-only byggprov bevisar inte production pre-wire admission (210/211). Dessa genomförbara kodluckor hålls öppna tills gemensam egen current BRPsource och explicit own-wire datephase integrerats.",
     "commits": [
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "805f0f14",
+      "d4cd5e0e",
+      "6fb630ec"
     ]
   },
   {
@@ -2415,10 +2792,32 @@
       "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
       "lib/ediel/prodat/prodatRegisterGroups.ts",
       "lib/ediel/rulebook/prodatRegisterPolicy.ts",
-      "lib/ediel/prodat/render/registers.ts"
+      "lib/ediel/prodat/render/registers.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/operationalVerification.ts",
+      "supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql",
+      "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
+      "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
     "confirmed_code_gap": "Incomingunusedfält kunde avvisas; direction-aware ownscope ignore korrigerat, registerbas/topology återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Autentiskt före-ledger structural/history original och nödvändiga instrument-/avläsningsägda beslut saknas där markerat UNKNOWN; inget historiskt backfill."
+    ],
     "planned_tests": [
       "AT-Z06G-SUPPLIER egen exakt fältvariant: inbound Z06:G reason=E32 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 216 @ SG8/DTM[2005=157]/C507/2380; 222 @ SG14/CCI[C502/6313=Z12] → CAV/C889/7110[1]; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 233 @ SG17/NAD[3035=IT]/C082/3039; 234 @ SG17/NAD[3035=IT]/C059/3042[1..3]; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2427,12 +2826,19 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD. | Nätägarens kund-/anläggningsuppdatering. | 23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Actual safeApplyReview directRPC/approval: forged proposal/raw/tenant/site/latestfacet/closure/canceled coverage→rollback av samtliga historik/receipt effekter; simultana duplicat returnerar samma immutable receipt.",
+      "Z06F/G och Z10M med framtida effectiveAt, sent source receipt och ändring mitt i UTILTSperiod: egen mätare/register/produkt för varje epoch, ingen dubbel registerenergi/global row overwrite; P119extra noll effekt."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z06G-SUPPLIER. Actual ownfirstregister E/F/G väljer sourceD/UDparent: E34→UD, F/E64 ochG/E32→kundfält inaktiva. 214/218/259 registeroverlay, wire506 unusedincoming ignored; datedstructuralowner/mutation ägs av root/process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z06G-SUPPLIER. Actual ownfirstregister E/F/G väljer sourceD/UDparent: E34→UD, F/E64 ochG/E32→kundfält inaktiva. 214/218/259 registeroverlay, wire506 unusedincoming ignored; datedstructuralowner/mutation ägs av root/process/actors. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Actual UIreview→sameprivate atomic source apply lagrar immutable egen structural_apply_receipt med full scoped sourceRegisters och separata effective/sourceReceivedAt. Aldrig mutable proposal/parsedJSON som auktoritet, aldrig global master/history overwrite; actualtenant på current reads, sorted source/switch/period/point locks och current immutable market continuation. Daterade export-/begärankonsumenter använder samma qualified chronology och egna ignore-facets. F readingFollowUp uttrycks explicit UNKNOWN där autentisk mätvärdesprocess saknas, G skapar ingen påhittad avläsning, M bevarar historiska observationsdata.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "920f700f",
+      "d5da4825",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2"
     ]
   },
   {
@@ -2440,7 +2846,7 @@
       "AT-Z09G-SUPPLIER"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -2457,10 +2863,22 @@
       "lib/ediel/prodat/render/segments.ts",
       "lib/ediel/prodat/prodatDependentConditionEngine.ts",
       "lib/ediel/rulebook/canonicalEdielPolicy.ts",
-      "lib/ediel/prodat/engine.ts"
+      "lib/ediel/prodat/engine.ts",
+      "lib/ediel/production/meteringMethodChangeSource.ts",
+      "lib/ediel/flows/prodatMeteringMethodChange.ts",
+      "lib/ediel/intent/meteringMethodChangeGateway.ts",
+      "lib/ediel/intent/renderers/meteringMethodChange.ts",
+      "app/admin/ediel/metering-method-actions.ts",
+      "supabase/migrations/20260930225504_ediel_customer_agreed_metering_method_origination.sql",
+      "supabase/migrations/20260930232802_ediel_metering_method_complete_source_scope.sql",
+      "lib/ediel/transport/index.part-2.ts",
+      "lib/ediel/production/contractRequestedMethodSource.ts",
+      "supabase/migrations/20260930233300_ediel_signed_agreement_requested_method_source.sql"
     ],
-    "confirmed_code_gap": null,
-    "blockers": [],
+    "confirmed_code_gap": "Dedicated F/G source-owned actualproducer/intent/origin/desire-history stöd är integrerat. Färsk full nationell profil reproducerar dock R262 NAD+Z02 saknas i den faktiska renderern/native fullsource-bindningen; production-mode pre-wire D210/211 håll stoppar känd F/G trots strikt post-wire date authority. Root TM40/provider-hook integration pågår separat. CURRENT BRP får inte hämtas från B desired/source_declared period_versions utan faktiskt verkställd autentisk grund.",
+    "blockers": [
+      "Autentiskt nytt kundavtalsoriginal med uttrycklig requested217/exakt händelseminut samt behörig registrerad beslutägare och versionerad nätägargrund saknas; ingen event/approval seed."
+    ],
     "planned_tests": [
       "AT-Z09G-SUPPLIER egen exakt fältvariant: outbound Z09:G reason=E32 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 260 @ SG16/RFF[1153=Z05]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2469,12 +2887,19 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Z09E har NAD+UD; Z09F/G använder respektive217 Z04/Z03 och giltighetsdatum157; inte automatiskt kundbyte. | Informera att nätägaren ska avgöra mätmetoden enligt ändrat avtal. | 23-DDQ-PRODAT; BGM=Z09; fält223=E32; CONTRL, APERAK och enligt processen senare Z06; inget påhittat direkt affärssvar.; Registrera önskad förändring; mottagen bekräftad struktur har egen versionshantering.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Äkta sourceground F/G: exakt DTM157format203 vid autentisk avtalsminut, inte currentDSO217/portal; purpose/source changes före firsteffect håller; immutable accepted outcomes/retry inte ändras.",
+      "TM-METHOD40 ankras physical z09_validity_day+40calendar, egen appliedZ06 customer/point/agency/legal +explicitmethod observed, UNKNOWNambiguous/missing, ingen invented equality eller SMTP+40; broad native/clock/lateregisterrace ännu ej körd.",
+      "På fastSHA faktisk F/G productionmode render får skjuta endast deklarerad own-wire D210/211 till kandidatprövning; strikt postwire håller D utan autentiskt event/XOR och förbjuder F/G210/211.",
+      "Faktisk komplett nationell F/G Rprofil inkluderar262 från samma qualified initialZ04 ownphysicalNADZ02 eller autentiskt faktiskt verkställt daterat BRPutfall; ingen globalrow/portal/newBdesiredfallback och later ambiguous/pendingchanges håller."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z09G-SUPPLIER. Actual ownfirstregister reason väljer kundUD endastE34; F/G mät217 och216/157, B BRP/datedcontext, D210 XOR211 ochnoUD. Verklig productionevent behöver egen registry/dispatch och ägs av process. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z09G-SUPPLIER. Actual ownfirstregister reason väljer kundUD endastE34; F/G mät217 och216/157, B BRP/datedcontext, D210 XOR211 ochnoUD. Verklig productionevent behöver egen registry/dispatch och ägs av process. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Färsk actual producent: unseeded immutable kundavtalsevent +same explicit signed-agreement declaration→mandatory intent→canonical renderer217/216/223→source-required INSERT/private desired receipt→same outbox och root native/SMTP sourceguard. F E64/Z04 och G E32/Z03 centralfacadetuple, kundUD förbjuden, exact physical UNHfamily/UNB11+site/request/env/route/ref/source fulltuple. Äkta skyddade positive/negative TESToriginal kan gå genom egna prepared/consumed ports med businessEffect=false och inga desired/structural receipts; inget environmentfallback efter genuine originerror. Root TM-METHOD40-register/observe/cron hooks är integrationsberoende tills färdigställda. Färsk riktad actual-renderer full-national allR-probe efter6fb visar saknad262; test-mode-only byggprov bevisar inte production pre-wire admission (210/211). Dessa genomförbara kodluckor hålls öppna tills gemensam egen current BRPsource och explicit own-wire datephase integrerats.",
     "commits": [
       "c22f3f22",
-      "3e853546"
+      "3e853546",
+      "805f0f14",
+      "d4cd5e0e",
+      "6fb630ec"
     ]
   },
   {
@@ -2577,10 +3002,32 @@
       "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
       "lib/ediel/prodat/prodatRegisterGroups.ts",
       "lib/ediel/rulebook/prodatRegisterPolicy.ts",
-      "lib/ediel/prodat/render/registers.ts"
+      "lib/ediel/prodat/render/registers.ts",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql",
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/operationalVerification.ts",
+      "supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql",
+      "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
+      "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql"
     ],
     "confirmed_code_gap": "Incomingunusedfält kunde avvisas; direction-aware ownscope ignore korrigerat, registerbas/topology återanvänds.",
-    "blockers": [],
+    "blockers": [
+      "Autentiskt före-ledger structural/history original och nödvändiga instrument-/avläsningsägda beslut saknas där markerat UNKNOWN; inget historiskt backfill."
+    ],
     "planned_tests": [
       "AT-Z10M-SUPPLIER egen exakt fältvariant: inbound Z10:M reason=E58 application_reference=23-DDQ-PRODAT; operating_role=SUPPLIER.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 209 @ SG8/LIN/C212/7140; 216 @ SG8/DTM[2005=157]/C507/2380; 508 @ SG8/DTM[2005=354]/C507/2380 + 2379; 217 @ SG14/CCI[C502/6313=Z04] → CAV/C889/7111; 222 @ SG14/CCI[C502/6313=Z12] → CAV/C889/7110[1]; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 224 @ SG16/RFF[1153=MG]/C506/1154; 225 @ SG16/RFF[1153=Z02]/C506/1154; 260 @ SG16/RFF[1153=Z05]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 262 @ SG17/NAD[3035=Z02]/C082/3039. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2589,12 +3036,19 @@
       "Hela egna AT-kriteriet (fryst): SUPPLIER; Gamla/nya mätarnummer olika; flerregisteroverlay; tio vardagar som sändningsfrist för nätägaren. | Nätägarens mätarbyte. | 23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
       "Förbjuden effekt (fryst): Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
-      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
+      "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda.",
+      "Actual safeApplyReview directRPC/approval: forged proposal/raw/tenant/site/latestfacet/closure/canceled coverage→rollback av samtliga historik/receipt effekter; simultana duplicat returnerar samma immutable receipt.",
+      "Z06F/G och Z10M med framtida effectiveAt, sent source receipt och ändring mitt i UTILTSperiod: egen mätare/register/produkt för varje epoch, ingen dubbel registerenergi/global row overwrite; P119extra noll effekt."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z10M-SUPPLIER. Actual ownold225/new224 meter,216 boundary och everyregister validations; global314/perobject258/full ownregisterreadings; customer/installation forbiddenincomingextras fårinteoverwrite. Datedmutation och UTILTSexpectations ägs av process/UTILTS. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z10M-SUPPLIER. Actual ownold225/new224 meter,216 boundary och everyregister validations; global314/perobject258/full ownregisterreadings; customer/installation forbiddenincomingextras fårinteoverwrite. Datedmutation och UTILTSexpectations ägs av process/UTILTS. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Actual UIreview→sameprivate atomic source apply lagrar immutable egen structural_apply_receipt med full scoped sourceRegisters och separata effective/sourceReceivedAt. Aldrig mutable proposal/parsedJSON som auktoritet, aldrig global master/history overwrite; actualtenant på current reads, sorted source/switch/period/point locks och current immutable market continuation. Daterade export-/begärankonsumenter använder samma qualified chronology och egna ignore-facets. F readingFollowUp uttrycks explicit UNKNOWN där autentisk mätvärdesprocess saknas, G skapar ingen påhittad avläsning, M bevarar historiska observationsdata.",
     "commits": [
       "7b3c6b7a",
-      "0328ff98"
+      "0328ff98",
+      "920f700f",
+      "d5da4825",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2"
     ]
   },
   {
@@ -2602,7 +3056,7 @@
       "AT-Z13V-ESCO"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -2616,7 +3070,9 @@
       "lib/ediel/prodat/prodatReportingPermissionContext.ts"
     ],
     "confirmed_code_gap": "OptionalphysicalID blockerade kundnivåbegäran; mandatoryLIN bevarat utan inventedidentity.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat actualZ13 requested217 source producer/evidence/native comparator under actor assessment; missing genuine source facts remain external held."
+    ],
     "planned_tests": [
       "AT-Z13V-ESCO egen exakt fältvariant: outbound Z13:V reason=S17 application_reference=23-DGI-PRODAT; operating_role=ESCO.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 302 @ SG8/DTM[2005=90]/C507/2380; 217 @ SG14/CCI[C502/6313=Z04] → CAV/C889/7111; 222 @ SG14/CCI[C502/6313=Z12] → CAV/C889/7110[1]; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 506 @ SG14/CCI[C502/6313=Z14] → CAV/C889/7110[2]; 513 @ SG14/CCI[C502/6313=Z22] → CAV/C889/7111; 261 @ SG16/RFF[1153=ANJ]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 227 @ SG17/NAD[3035=UD]/C082/3039; 228 @ SG17/NAD[3035=UD]/C080/3036[1..2]; 316 @ SG17/NAD[3035=UD]/3207. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2627,7 +3083,7 @@
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
       "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z13V-ESCO. Actual mandatoryLIN1 evenoptionalobjectID, legalcustomerSE1/SE2/260 nonbirthdate;506 second7110,90/91 sourceperiod and permission302/reportpurpose source. Dedicatedservergrant/origin/retryreader ägs av actors/root; ingetTGT somproductionmandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z13V-ESCO. Actual mandatoryLIN1 evenoptionalobjectID, legalcustomerSE1/SE2/260 nonbirthdate;506 second7110,90/91 sourceperiod and permission302/reportpurpose source. Dedicatedservergrant/origin/retryreader ägs av actors/root; ingetTGT somproductionmandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Fresh actualservice Z13 renderer/native approved-evidence tuple saknar explicit requested217; source notes P§2.2 pp18/19 kräver quarteragreement eller administrator-decision. Actors undersöker/äger scoped immutable source support+wire/render integration; currentDSO217/portal/default får inte ersätta.",
     "commits": [
       "7b3c6b7a"
     ]
@@ -2705,7 +3161,7 @@
       "AT-Z13VH-ESCO"
     ],
     "owner": "prodat (fält/identitet/AI); root är integrationsägare",
-    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_status": "REMAINING_CODE_WORK",
     "code_paths": [
       "lib/ediel/prodat/prodat26AFieldMatrix.ts",
       "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
@@ -2719,7 +3175,9 @@
       "lib/ediel/prodat/prodatReportingPermissionContext.ts"
     ],
     "confirmed_code_gap": "OptionalphysicalID blockerade kundnivåbegäran; mandatoryLIN bevarat utan inventedidentity.",
-    "blockers": [],
+    "blockers": [
+      "Samordnat actualZ13 requested217 source producer/evidence/native comparator under actor assessment; missing genuine source facts remain external held."
+    ],
     "planned_tests": [
       "AT-Z13VH-ESCO egen exakt fältvariant: outbound Z13:VH reason=S18 application_reference=23-DGI-PRODAT; operating_role=ESCO.",
       "Egen fryst R-profil: 311 @ UNB/0026; 312 @ UNH/S009/0057; 202 @ BGM/C002/1001; 203 @ BGM/1004; 313 @ BGM/4343; 205 @ DTM[2005=137]/C507/2380; 206 @ DTM[2005=ZZZ]/C507/2380; 207 @ SG4/NAD[3035=FR]/C082/3039 + 3207; 208 @ SG4/NAD[3035=DO]/C082/3039 + 3207; 314 @ SG8/LIN/1082; 302 @ SG8/DTM[2005=90]/C507/2380; 217 @ SG14/CCI[C502/6313=Z04] → CAV/C889/7111; 222 @ SG14/CCI[C502/6313=Z12] → CAV/C889/7110[1]; 223 @ SG14/CCI[C502/6313=Z13] → CAV/C889/7111; 506 @ SG14/CCI[C502/6313=Z14] → CAV/C889/7110[2]; 513 @ SG14/CCI[C502/6313=Z22] → CAV/C889/7111; 261 @ SG16/RFF[1153=ANJ]/C506/1154; 226 @ SG16/RFF[1153=LI]/C506/1154; 227 @ SG17/NAD[3035=UD]/C082/3039; 228 @ SG17/NAD[3035=UD]/C080/3036[1..2]; 316 @ SG17/NAD[3035=UD]/3207. Nationell R är inte automatiskt UNSM-syntaxM.",
@@ -2730,7 +3188,7 @@
       "På fastSHA prova exactwholewire somvalid och saknat/fel eget R/D/parent/register i andraobjekt; actualingress/render/retry/replay/RPC ska välja en redanresolvead canonicalregelauktoritet, tenant/contextsource inteclientpreview.",
       "Process/ACK/mandat/actualmutation-kriterier i hela AT ägs separat process/actors/ACK/root och är inte påstått bevisade av fältproverna. Full native/sourceoriginal/E2E/manualprov ännu ej körda."
     ],
-    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z13VH-ESCO. Actual mandatoryLIN1 evenoptionalobjectID, legalcustomerSE1/SE2/260 nonbirthdate;506 second7110,90/91 sourceperiod and permission302/reportpurpose source. Dedicatedservergrant/origin/retryreader ägs av actors/root; ingetTGT somproductionmandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
+    "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z13VH-ESCO. Actual mandatoryLIN1 evenoptionalobjectID, legalcustomerSE1/SE2/260 nonbirthdate;506 second7110,90/91 sourceperiod and permission302/reportpurpose source. Dedicatedservergrant/origin/retryreader ägs av actors/root; ingetTGT somproductionmandat. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte. Fresh actualservice Z13 renderer/native approved-evidence tuple saknar explicit requested217; source notes P§2.2 pp18/19 kräver quarteragreement eller administrator-decision. Actors undersöker/äger scoped immutable source support+wire/render integration; currentDSO217/portal/default får inte ersätta.",
     "commits": [
       "7b3c6b7a"
     ]
@@ -2905,5 +3363,105 @@
     ],
     "assessment": "Normativ källa: P §2.1–2.2,2.6; HB kap.4,10,11; registers/prodat_message_cases.json#CASE-Z18V-ESCO. Actual327 DTM164,324 status,325 RFFZ09 ochS17 ownobject/permissionbasis; dedicatedcurrentoriginprovider renderer/readers ägs av actors. Inget globalbeneficiaryabort skapar denna permission eller siblingtenantmutation. Kodstatus är inte verifierad/godkänd/produktionsaktiverad. Breda native/replay/schema-/typeparitet/RLS/browser/E2E/manualprov körs senare på fast kandidat-SHA; formella acceptansstatusar ändras inte.",
     "commits": []
+  },
+  {
+    "ids": [
+      "P-15"
+    ],
+    "owner": "prodat dated structure/mutation; process separate lifecycle owner; root integration owner",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/operationalVerification.ts",
+      "supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql",
+      "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
+      "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/utilts/structuralComparison.ts"
+    ],
+    "confirmed_code_gap": "Legacy safeApplyReview trusted mutable proposed labels, id-only tenant reads/writes and non-atomic audit/current scalar overwrite; actualsource-only nativeatomic history+immutable ownreceipt+dated scalar consumers+same Uchronology nowimplemented. Protected exactpoint port fixed zero-length strictinterval misuse.",
+    "blockers": [
+      "Before-ledger originals/history and source-owned instrument/reading proof missing remain UNKNOWN/held; no historical backfill or precision inference."
+    ],
+    "planned_tests": [
+      "Frozen own criterion Z06 och Z10 | Giltig strukturändring – prova både uppfyllt villkor och relevant fel-/gränsfall. | Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod. | prohibited:Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "Native full replay/RLS/parallel duplicate/cancel/sourceversion locks and exact original→effectreceipt matching onfixedSHA. ValidAt vsreceivedAt separately persisted, future supplier pre-start structure source entitlement separate.",
+      "Z06F/G andZ10M multiobject/multiregister timelines across changedepoch andreceipt chronology: proper meter/register/product/frequency eachperiod; ignoredfields no derivedeffect; preserve prior meter observations and no doubledregister energy.",
+      "Actual U08/U14 uses sameimmutable combinedreadset→structuralSourceReadset→selectStructuralSources chronology; no ESCOZ14 fullsupplier structure requirement/no globalmaster fallback.",
+      "Actual exports/datarequests andreadonlyprodatContext use exactprotected point or strictinterval samecurrent source coverage; requested newcontract217 remainsseparate source declaration, not old datedDSO method."
+    ],
+    "assessment": "Normative P §2.2; U §3.6.10,3.6.13. Fresh same-source chain inspected in committed P15/currentactualroot. Code status not verification, approval, activation; native/authentic/E2E/manual broad later.",
+    "commits": [
+      "920f700f",
+      "d5da4825",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2"
+    ]
+  },
+  {
+    "ids": [
+      "AT-P-15"
+    ],
+    "owner": "prodat dated structure/mutation; process separate lifecycle owner; root integration owner",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/safeApplyReview.ts",
+      "lib/ediel/operationalVerification.ts",
+      "supabase/migrations/20260930193612_ediel_structural_source_atomic_review_apply.sql",
+      "supabase/migrations/20260930204916_ediel_structural_supply_continuity.sql",
+      "supabase/migrations/20260930205032_ediel_structural_owner_preflight.sql",
+      "lib/ediel/sources/qualifiedCustomerStructure.ts",
+      "lib/ediel/sources/datedSourceMeasurements.ts",
+      "lib/ediel/sources/structuralSourceSelection.ts",
+      "lib/ediel/sources/structuralSourceReadset.ts",
+      "lib/ediel/sources/structuralSourceWire.ts",
+      "lib/ediel/sources/dataRequestStructure.ts",
+      "lib/cis/db-shared.ts",
+      "lib/ediel/prodatContext.ts",
+      "lib/ediel/flows/utiltsSupplierRequest.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "supabase/migrations/20260930230957_ediel_dated_structure_protected_point_read.sql",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "lib/ediel/core/receivedSourceValidationEvidence.ts",
+      "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "supabase/migrations/20260930215244_ediel_prodat_ignored_field_source_projection.sql",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/utilts/structuralComparison.ts"
+    ],
+    "confirmed_code_gap": "Legacy safeApplyReview trusted mutable proposed labels, id-only tenant reads/writes and non-atomic audit/current scalar overwrite; actualsource-only nativeatomic history+immutable ownreceipt+dated scalar consumers+same Uchronology nowimplemented. Protected exactpoint port fixed zero-length strictinterval misuse.",
+    "blockers": [
+      "Before-ledger originals/history and source-owned instrument/reading proof missing remain UNKNOWN/held; no historical backfill or precision inference."
+    ],
+    "planned_tests": [
+      "Frozen own criterion Z06 och Z10 | Giltig strukturändring – prova både uppfyllt villkor och relevant fel-/gränsfall. | Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod. | prohibited:Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "Native full replay/RLS/parallel duplicate/cancel/sourceversion locks and exact original→effectreceipt matching onfixedSHA. ValidAt vsreceivedAt separately persisted, future supplier pre-start structure source entitlement separate.",
+      "Z06F/G andZ10M multiobject/multiregister timelines across changedepoch andreceipt chronology: proper meter/register/product/frequency eachperiod; ignoredfields no derivedeffect; preserve prior meter observations and no doubledregister energy.",
+      "Actual U08/U14 uses sameimmutable combinedreadset→structuralSourceReadset→selectStructuralSources chronology; no ESCOZ14 fullsupplier structure requirement/no globalmaster fallback.",
+      "Actual exports/datarequests andreadonlyprodatContext use exactprotected point or strictinterval samecurrent source coverage; requested newcontract217 remainsseparate source declaration, not old datedDSO method."
+    ],
+    "assessment": "Normative P §2.2; U §3.6.10,3.6.13. Fresh same-source chain inspected in committed P15/currentactualroot. Code status not verification, approval, activation; native/authentic/E2E/manual broad later.",
+    "commits": [
+      "920f700f",
+      "d5da4825",
+      "2229b4de",
+      "c579e33f",
+      "6b8b1aa2"
+    ]
   }
 ]

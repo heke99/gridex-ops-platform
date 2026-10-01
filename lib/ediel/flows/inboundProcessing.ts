@@ -9,6 +9,10 @@ import {captureEdielTechnicalSyntaxAckEvidence,readEdielTechnicalSourceEndpoint,
 import {createHash} from 'node:crypto';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
+import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
+import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
+import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
 // lib/ediel/flows/inboundProcessing.ts
 import {isQualifiedProdatApplicationError} from "@/lib/ediel/prodat/prodatDiagnosticProjection";
 import {prodatHeaderFieldRejection} from "@/lib/ediel/prodat/prodatHeaderDateRejection";
@@ -38,9 +42,6 @@ import {
 } from "@/lib/ediel/matching";
 import { linkEdielMessage, updateEdielMessageStatus } from "@/lib/ediel/db";
 import {
-  buildContrlDraft,
-  buildAperakDraft,
-  buildUtiltsErrDraft,
   getAutomaticAckPolicy,
   getCanonicalAckState,
   type EdielAperakApplicationError,
@@ -51,6 +52,7 @@ import { processInboundAckMessage } from "@/lib/ediel/flows/inboundAckProcessing
 import { syncActorTestingForMessage } from "@/lib/ediel/actorTestingEngine";
 import {
   resolveCanonicalRuntimeDecisionWithRegistry,
+  hasReceivedCanonicalProdatPartialOwner,
   type CanonicalRuntimeDecision,
   type CanonicalResponsePlanItem,
 } from "@/lib/ediel/core/runtimeDecision";
@@ -63,7 +65,6 @@ import {
 import { resolveInboundTenantForMessage } from "@/lib/ediel/core/tenantResolver";
 import { analyzeEdielProcessingPipeline } from "@/lib/ediel/orchestrator/edielProcessingPipeline";
 import { createOutboxItem } from "@/lib/ediel/outbox/createOutboxItem";
-import { recognizeInboundFacilityData } from "@/lib/ediel/inbound/inboundFacilityRecognition";
 import { applyInboundBusinessStateMachine } from "@/lib/ediel/flows/inboundBusinessStateMachine";
 import { processAiBiInboundReconciliation } from "@/lib/ediel/aiBiInboundReconciliation";
 
@@ -117,44 +118,31 @@ async function createAckIfMissing(params: {
   messageText?: string | null;
   applicationErrors?: readonly EdielAperakApplicationError[] | null;
   utiltsHeaderRejected?: boolean;
+  relatedTransactionReference?:string;
 }) {
-  const draft =
-    params.ackFamily === "CONTRL"
-      ? buildContrlDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          outcome: params.outcome ?? "positive",
-          messageText: params.messageText ?? null,
-        })
-      : params.ackFamily === "APERAK"
-        ? buildAperakDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            outcome: params.outcome ?? "positive",
-            messageText: params.messageText ?? null,
-            applicationErrors: params.applicationErrors ?? null,
-            utiltsHeaderRejected: params.utiltsHeaderRejected,
-          })
-        : buildUtiltsErrDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            messageText: params.messageText ?? null,
-          });
-
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,
+    ackFamily:params.ackFamily,outcome:params.outcome??(params.ackFamily==='UTILTS_ERR'?'negative':'positive'),
+    messageText:params.messageText??null,applicationErrors:params.applicationErrors,
+    utiltsHeaderRejected:params.utiltsHeaderRejected,relatedTransactionReference:params.relatedTransactionReference});
+  // A protected immutable original is returned without outbox repair or a new
+  // blocked-event audit. A separately authorized fresh repair has its own port.
+  if(prepared.kind==='existing')return prepared.message;
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     ackFamily: params.ackFamily,
     outcome: params.outcome,
-    draft,
+    draft:prepared.draft,
   });
 
+  // Only a freshly prepared draft reaches this insertion-only queue branch.
   if (["draft", "prepared", "queued", "failed"].includes(String(ack.status))) {
     await createOutboxItem({
       actorUserId: params.actorUserId,
       message: ack,
       sourceMessageId: params.sourceMessage.id,
       status: "queued",
+      queueOnlyIfInserted: true,
       payload: {
         createdBy: "inbound_backend_automation",
         ackFamily: params.ackFamily,
@@ -175,6 +163,15 @@ async function createAckIfMissing(params: {
   }
 
   return ack;
+}
+
+async function acknowledgeCommittedReceivedErr(actorUserId:string,message:EdielMessageRow){
+  // The actual retained response owner decides replay versus a fresh prescribed
+  // reply. Retained originals perform reads only; current-authority failures
+  // propagate as holds without new blocked-event or outbox writes.
+  await createReceivedErrApplicationAcks({actorUserId,message,createAck:scope=>createAckIfMissing({
+    actorUserId,sourceMessage:scope.sourceMessage,ackFamily:'APERAK',outcome:'positive',
+    relatedTransactionReference:scope.relatedTransactionReference}),repairRetainedAck:async()=>undefined});
 }
 
 async function readCanonicalAckSnapshot(sourceMessageId: string) {
@@ -313,10 +310,19 @@ async function applyCanonicalRuntimeDecision(params: {
   message: EdielMessageRow;
   originalMessage: EdielMessageRow;
   resolvedCompanyId: string;
-}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null }> {
-  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(
-    params.message,
-  );
+}): Promise<{ message: EdielMessageRow; decision: CanonicalRuntimeDecision; sourceOwnerSession: SourceOwnerSession | null; lifeEventSourceReadFailure:string|null; authorizedPartialOwner:boolean }> {
+  const syntax=params.message.message_standard==='edifact'
+    ? validateEdifactSyntax({...params.message,status:'received',syntax_check_status:'not_checked',validation_report:{},failure_reason:null}) : null;
+  let deathStatusContext:Awaited<ReturnType<typeof loadCustomerLifeEventValidationContext>>;
+  let lifeEventSourceReadFailure:string|null=null;
+  if(syntax?.ok){
+    try{deathStatusContext=await loadCustomerLifeEventValidationContext(params.message,params.actorUserId)}
+    catch(error){lifeEventSourceReadFailure=formatErrorMessage(error,'Kundhändelsens skyddade källa kunde inte läsas.')}
+  }
+  const decision = await resolveCanonicalRuntimeDecisionWithRegistry(params.message,{deathStatusContext});
+  // Only the opaque result of this exact rule invocation may keep independent
+  // good own scopes moving past a sibling's internal hold. Public JSON cannot.
+  const authorizedPartialOwner=hasReceivedCanonicalProdatPartialOwner(decision,params.message);
   const sourceValidationEvidence = await recordReceivedSourceValidation({
     original: params.originalMessage, validated: params.message, resolvedCompanyId: params.resolvedCompanyId, decision,
   });
@@ -353,6 +359,7 @@ async function applyCanonicalRuntimeDecision(params: {
     decisionTrace: decision.decisionTrace,
     sourceRules: decision.sourceRules,
     runtimeTenantResolutionSource: persistedTenantResolution ? "persisted" : "not_available",
+    ...(lifeEventSourceReadFailure?{customerLifeEventSourceIncident:{kind:'source_read_unavailable',reason:lifeEventSourceReadFailure,authorizesBusinessEffects:false}}:{}),
   };
 
   const nextStatus =
@@ -409,7 +416,7 @@ async function applyCanonicalRuntimeDecision(params: {
     },
   });
 
-  return { message: updated, decision, sourceOwnerSession };
+  return { message: updated, decision, sourceOwnerSession,lifeEventSourceReadFailure,authorizedPartialOwner };
 }
 
 
@@ -592,24 +599,6 @@ async function processInboundProdatMessage(params: {
   message: EdielMessageRow;
   onSourceSwitchCommitted?: SourceSwitchCommitObserver;
 }) {
-  const facilityRecognition = await recognizeInboundFacilityData({
-    actorUserId: params.actorUserId,
-    edielMessageId: params.message.id,
-  }).catch(async (error) => {
-    await createEdielMessageEvent({
-      actorUserId: params.actorUserId,
-      edielMessageId: params.message.id,
-      eventType: "manual_note",
-      eventStatus: "warning",
-      message: "Inbound facility recognition kunde inte slutföras. Normal PRODAT-hantering fortsätter.",
-      payload: {
-        recognition: "inbound_facility_recognition_failed_non_blocking",
-        error: formatErrorMessage(error, "okänt fel"),
-      },
-    }).catch(() => null);
-    return null;
-  });
-
   const canonicalLinks = await linkInboundProdatMessageCanonically({
     actorUserId: params.actorUserId,
     message: params.message,
@@ -807,7 +796,10 @@ export async function processInboundEdielMessage(params: {
     // A protected old own receipt is read before current route/guide/runtime
     // loaders and public projection writes. Legacy summaries stay unknown.
     const committed=await readCommittedInboundAck({actorUserId,message});
-    if(committed)return message;
+    if(committed){
+      if(message.message_family==='UTILTS_ERR')await acknowledgeCommittedReceivedErr(actorUserId,message);
+      return message;
+    }
   }
 
   if (message.direction === 'inbound' && (message.message_standard === 'ai_list' || message.message_family === 'AI_LIST')) {
@@ -961,15 +953,14 @@ export async function processInboundEdielMessage(params: {
     return runtimeMessage;
   }
 
-  if (prodatInternalReview(runtimeMessage)) {
+  if (prodatInternalReview(runtimeMessage) && !canonicalRuntime.authorizedPartialOwner) {
     await canonicalRuntime.sourceOwnerSession?.finish();
     await createAutomaticPositiveAcks({actorUserId, sourceMessage: runtimeMessage});
     return runtimeMessage;
   }
 
-  // The case writer deliberately rejects malformed LIN/register structures.
-  // A source-owned missing or invalid required header field also rejects the whole
-  // message. Use the renderer's exact qualification before any business write.
+  // Source-owned header defects reject the whole message. Own object failures
+  // remain separate and reach the protected structural review path below.
   const headerPlan = canonicalRuntime.decision.responsePlan.find(item=>item.family==="APERAK" && item.outcome==="negative");
   const headerWire = runtimeMessage.message_family === "PRODAT" && runtimeMessage.raw_payload &&
     canonicalRuntime.decision.applicationDecision === "rejected"
@@ -985,8 +976,7 @@ export async function processInboundEdielMessage(params: {
   const header206 = headerWire ? prodatHeaderFieldRejection({field:'206',sourceWire:headerWire,
     errors:headerPlan?.applicationErrors}) : null;
   if (runtimeMessage.message_family === "PRODAT" &&
-      (header202?.defect || header204?.defect || header313?.defect || header205?.defect || header206?.defect ||
-        canonicalRuntime.decision.prodatRegisterValidation?.objects.some(object => object.disposition === "rejected"))) {
+      (header202?.defect || header204?.defect || header313?.defect || header205?.defect || header206?.defect)) {
     try {
       const negative = canonicalRuntime.decision.responsePlan.some(item =>
         item.family === "APERAK" && item.outcome === "negative" && Boolean(item.applicationErrors?.length));
@@ -1037,6 +1027,7 @@ export async function processInboundEdielMessage(params: {
     runtimeMessage.message_family === "UTILTS_ERR"
   ) {
     await processInboundAckMessage({ actorUserId, message: runtimeMessage });
+    if(runtimeMessage.message_family==='UTILTS_ERR')await acknowledgeCommittedReceivedErr(actorUserId,runtimeMessage);
     await syncActorTestingGlobally({
       actorUserId,
       message: runtimeMessage,
@@ -1049,6 +1040,37 @@ export async function processInboundEdielMessage(params: {
 
   if (runtimeMessage.message_family === "PRODAT") {
     try {
+      // A source-independent negative must survive an unavailable customer
+      // effect port. Positive own responses still require its committed receipt.
+      const hasOwnNegative=canonicalRuntime.decision.responsePlan.some(plan=>plan.family==='APERAK'&&plan.outcome==='negative'&&Boolean(plan.applicationErrors?.length));
+      const earlyAckIds=hasOwnNegative?await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage}):[];
+      if(runtimeMessage.message_code==='Z06'&&!canonicalRuntime.lifeEventSourceReadFailure){
+        try{await applyInboundCustomerLifeEvent({message:runtimeMessage,actorUserId,
+          onCustomerLifeEventCommitted:canonicalRuntime.sourceOwnerSession?.onCustomerLifeEventCommitted})}
+        catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
+          message:'Egna kundhändelser inväntar bekräftat källunderlag och skrivkvitto.',
+          payload:{customerLifeEventEffect:'held',reason:formatErrorMessage(error,'Kundhändelsens native-verkställighet kunde inte bekräftas.'),authorizesBusinessEffects:false}})}
+      }
+      if(['Z06','Z10'].includes(runtimeMessage.message_code)){
+        // The complete committed physical partition reaches the same manual
+        // native owner. No first parsed graph/point is written in this branch.
+        await canonicalRuntime.sourceOwnerSession?.finish();
+        const inboundCase=await createOrUpdateInboundProdatCase({actorUserId,message:runtimeMessage});
+        const ackIds=hasOwnNegative?earlyAckIds
+          :[(await createAckIfMissing({actorUserId,sourceMessage:runtimeMessage,ackFamily:'CONTRL',outcome:'positive'})).id];
+        await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'validated',eventStatus:'warning',
+          message:'PRODAT-objekten har lagts i källbunden granskning. Egna slutliga svar följer deras beständiga skrivkvitton.',
+          payload:{inboundCaseId:inboundCase?.id??null,createdAckMessageIds:ackIds,reviewRequired:true,
+            objectScopes:canonicalRuntime.decision.prodatApplicationValidation?.objects.map(object=>({objectId:object.objectId,
+              identityAgency:object.identityAgency,lineIndex:object.registers[0]?.segmentIndex,applicationDecision:object.applicationDecision}))??[]}});
+        return runtimeMessage;
+      }
+      // Other object failures still receive their prescribed negative response
+      // before legacy single-target processing; they grant no graph writes.
+      if(canonicalRuntime.decision.prodatApplicationValidation?.objects.some(object=>object.applicationDecision!=='accepted')){
+        await createAutomaticPositiveAcks({actorUserId,sourceMessage:runtimeMessage});
+        return runtimeMessage;
+      }
       await processInboundProdatMessage({ actorUserId, message: runtimeMessage,
         onSourceSwitchCommitted: canonicalRuntime.sourceOwnerSession?.onSwitchCommitted });
     } finally {

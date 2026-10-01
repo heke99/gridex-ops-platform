@@ -28,6 +28,7 @@ const objectFacts=()=>JSON.parse(String(io.calls.find(c=>c.name==='gridex_record
 beforeEach(()=>{io.rows=ownerRows();io.calls=[];io.badReceipt='';io.badCount=false;io.failTable='';io.hideSupply=false})
 it('uses a real fully accepted canonical register source as the positive oracle',async()=>{
  const {decision,receipt}=await record()
+ expect(decision.issues).toEqual([])
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
  expect(decision.validationReport.rulePackEvidence).toMatchObject({profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3'})
  expect(io.calls[0]).toEqual({name:'resolve_canonical_ediel_rule_pack_with_witness_v1',args:{p_market:'electricity',p_family:'PRODAT',p_message_code:'Z04',p_transaction_subtype:'L',p_direction:'inbound',p_business_date:'2026-09-22'}})
@@ -38,7 +39,7 @@ it('uses a real fully accepted canonical register source as the positive oracle'
 it('composes the real canonical, tenant, selected-party and committed Z04 owners, then witnesses separately',async()=>{
  const state=await record();const receipt=await apply(state)
  expect(receipt).toMatchObject({status:'recorded',sourceDisposition:'accepted',assessmentId:ownerId(31),witnessId:ownerId(32)})
- expect(io.calls.map(x=>x.name)).toEqual(['resolve_canonical_ediel_rule_pack_with_witness_v1','gridex_record_prodat_source_validation_v3','ediel_apply_supply_source_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
+ expect(io.calls.map(x=>x.name)).toEqual(['resolve_canonical_ediel_rule_pack_with_witness_v1','gridex_record_prodat_source_validation_v6','ediel_apply_supply_source_v1','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])
  const fact=objectFacts();expect(fact.objects).toHaveLength(1)
  expect(fact.objects[0]).toMatchObject({disposition:'accepted',reasons:[],object:{messageIndex:0,messageReference:'M',objectId:OWNER.external,identityAgency:'9'},business:{owner:'inbound-z04-switch-confirmation-v1',switchRequestId:OWNER.switch,supplyPeriodId:OWNER.supply,effectiveFrom:{fieldNumber:'210',marketMinute:'202610010000',utc:'2026-09-30T23:00:00.000Z'}},party:{receiver:{evidence:{completeness:'exact_count'}},parties:{legalSender:'12345',legalReceiver:'54321',transportSender:'12345',transportReceiver:'54321'}}})
  expect(await state.session!.finish()).toEqual(receipt);expect(io.calls).toHaveLength(5)
@@ -64,8 +65,8 @@ for(const [table,key,value] of [
  ['metering_points','meter_point_id','FOREIGN'],['metering_points','site_id',ownerId(99)],['customer_sites','grid_owner_id',ownerId(99)],
  ['customer_supply_periods','start_date','2026-10-02'],
 ] as const)it(`withholds mismatched ${table}.${key}`,async()=>{const s=await record();io.rows[table][0][key]=value;expect(await apply(s)).toMatchObject({sourceDisposition:'not_established'});expect(objectFacts()?.objects[0].disposition).toBe('unavailable')})
-it.each(['gridex_record_prodat_source_validation_v3','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])('rejects a foreign-company %s receipt',async name=>{
- io.badReceipt=name;const s=await record();if(name==='gridex_record_prodat_source_validation_v3'){expect(s.session).toBeNull();return}expect(await apply(s)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
+it.each(['gridex_record_prodat_source_validation_v6','gridex_record_source_object_decisions_v1','gridex_witness_source_objects_v1'])('rejects a foreign-company %s receipt',async name=>{
+ io.badReceipt=name;const s=await record();if(name==='gridex_record_prodat_source_validation_v6'){expect(s.session).toBeNull();return}expect(await apply(s)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
 })
 it('binds the committed message to the immutable original rather than its mutable report',async()=>{
  const s=await record();const original=s.row.raw_payload;s.row.raw_payload=String(original).replace('12345:14','99999:14')
@@ -100,8 +101,8 @@ for(const mutation of ['none','foreign-business','foreign-party','missing-owner'
  } else expect(result).toMatchObject({status:'read_failed',sources:[],snapshotId:null})
 })
 
-it.each(['objectFactsHash','ignoredFieldsHash'])('a malformed primary atomic %s receipt creates no source-owner capability',async field=>{
- io.badReceipt='gridex_record_prodat_source_validation_v3:'+field
+it.each(['objectFactsHash','ignoredFieldsHash','responseFactsHash','applicationFactsHash','sourceFunctionFactsHash'])('a malformed primary atomic %s receipt creates no source-owner capability',async field=>{
+ io.badReceipt='gridex_record_prodat_source_validation_v6:'+field
  const state=await record();expect(state.receipt).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'});expect(state.session).toBeNull()
  expect(io.calls.some(c=>c.name==='ediel_apply_supply_source_v1'||c.name==='gridex_record_source_object_decisions_v1')).toBe(false)
 })

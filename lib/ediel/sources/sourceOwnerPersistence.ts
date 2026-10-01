@@ -6,7 +6,7 @@ import type {SourceObjectScope} from './sourceOwnerWire'
 
 export type SourceOwnerReceipt =
   | {status:'unconfirmed';sourceDisposition:'not_established'}
-  | {status:'recorded';sourceDisposition:'accepted'|'not_established';assessmentId:string;factsHash:string;witnessId:string;availableAt:string}
+  | {status:'recorded';sourceDisposition:'accepted'|'not_established';assessmentId:string;factsHash:string;witnessId:string;availableAt:string;objectCounts?:{accepted:number;rejected:number;held:number}}
 export type SourceOwnerSeed = NonNullable<ReturnType<typeof takeReceivedSourceOwnerSeed>>
 export type SourceObjectDecision = {object:SourceObjectScope;disposition:'accepted'|'rejected'|'unavailable';reasons:string[];business:Record<string,unknown>|null;party:Record<string,unknown>|null}
 type Seed = SourceOwnerSeed
@@ -40,6 +40,7 @@ export async function persistReceivedSourceOwnerDecisions(seed:Seed, objects:Obj
     // compare against the exclusive end of the current millisecond.
     if (available === null || received === null || available < received || available >= (BigInt(Date.now())+BigInt(1))*BigInt(1000)
       || objects.some(entry => entry.party && available < parseSourceReceiptInstant(entry.party.completedAt)!)) return unconfirmed()
-    return {status:'recorded',sourceDisposition:objects.every(entry=>entry.disposition==='accepted')?'accepted':'not_established',assessmentId,factsHash,witnessId:witness.witnessId,availableAt:witness.availableAt}
+    return {status:'recorded',sourceDisposition:objects.every(entry=>entry.disposition==='accepted')?'accepted':'not_established',assessmentId,factsHash,witnessId:witness.witnessId,availableAt:witness.availableAt,
+      objectCounts:{accepted:objects.filter(entry=>entry.disposition==='accepted').length,rejected:objects.filter(entry=>entry.disposition==='rejected').length,held:objects.filter(entry=>entry.disposition==='unavailable').length}}
   } catch { return unconfirmed() }
 }

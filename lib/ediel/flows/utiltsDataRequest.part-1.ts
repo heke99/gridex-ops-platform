@@ -1,3 +1,4 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 
 
@@ -13,11 +14,12 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 
 
 import { findMatchingGridOwnerDataRequest, matchMeteringPointForEdielMessage, matchMeteringPointIdByIdentifier, matchSiteAndCustomerForMeteringPoint } from '@/lib/ediel/matching'
-import { buildAperakDraft, buildContrlDraft, buildUtiltsErrDraft, getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
+import { getUtiltsAckTransactionTargets, shouldUseTransactionScopedPositiveAperak, type EdielAckScope, type EdielAperakApplicationError } from '@/lib/ediel/ack'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
 import { finalizeUtiltsTransactionAck, resolveUtiltsTransactionId, type UtiltsTransactionPersistenceResult } from '@/lib/ediel/utilts/transactionPersistence'
 import type { UtiltsTransactionDisposition } from '@/lib/ediel/utiltsEngine'
 import { tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
+import {physicalUtiltsReference} from '@/lib/ediel/utilts/physicalReference'
 
 export type UtiltsProcessResult = {
   message: EdielMessageRow
@@ -218,10 +220,10 @@ export function resolutionMinutes(value: unknown): number | null {
 
 export function transactionReferenceFromObject(value: Record<string, unknown>): string | null {
   return (
-    stringOrNull(value.transactionReference) ??
-    stringOrNull(value.transaction_reference) ??
-    stringOrNull(value.transactionId) ??
-    stringOrNull(value.transaction_id)
+    physicalUtiltsReference(value.transactionReference) ??
+    physicalUtiltsReference(value.transaction_reference) ??
+    physicalUtiltsReference(value.transactionId) ??
+    physicalUtiltsReference(value.transaction_id)
   )
 }
 
@@ -292,8 +294,8 @@ function eligibleUtiltsTransactionIds(payload: Record<string, unknown>): Set<str
   const results = arrayFromCandidate(payload.utiltsTransactionPersistenceResults).map(ensureJson)
   return new Set(transactions.filter((id) => {
     if (transactions.filter(candidate => candidate === id).length !== 1) return false
-    const decisions = dispositions.filter(row => stringOrNull(row.transactionId) === id)
-    const persisted = results.filter(row => stringOrNull(row.transactionId) === id)
+    const decisions = dispositions.filter(row => physicalUtiltsReference(row.transactionId) === id)
+    const persisted = results.filter(row => physicalUtiltsReference(row.transactionId) === id)
     return decisions.length === 1 && persisted.length === 1 &&
       decisions[0].disposition === 'accepted' && decisions[0].responseType === 'positive_aperak' &&
       persisted[0].disposition === 'accepted' && persisted[0].responseType === 'positive_aperak' &&
@@ -399,7 +401,7 @@ export function extractUtiltsMeteringSeries(
       periodEnd: stringOrNull(normalizedPayload.periodEnd),
       readingType: normalizedPayload.readingType,
       qualityCode: stringOrNull(normalizedPayload.qualityCode),
-      transactionReference: stringOrNull(normalizedPayload.transactionReference),
+      transactionReference: physicalUtiltsReference(normalizedPayload.transactionReference),
       externalMeteringPointId: stringOrNull(normalizedPayload.meterPointId) ?? stringOrNull(normalizedPayload.meteringPointId),
       externalGridAreaId: stringOrNull(normalizedPayload.gridAreaId),
       rawItem: normalizedPayload,
@@ -530,31 +532,9 @@ export async function createAckIfMissing(params: {
   relatedTransactionReference?: string | null
   utiltsHeaderRejected?: boolean
 }) {
-  const draft =
-    params.ackFamily === 'CONTRL'
-      ? buildContrlDraft({
-          actorUserId: params.actorUserId,
-          sourceMessage: params.sourceMessage,
-          outcome: params.outcome ?? 'positive',
-          messageText: params.messageText ?? null,
-        })
-      : params.ackFamily === 'APERAK'
-        ? buildAperakDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            outcome: params.outcome ?? 'positive',
-            messageText: params.messageText ?? null,
-            applicationErrors: params.applicationErrors ?? null,
-            ackScope: params.ackScope ?? null,
-            relatedTransactionReference: params.relatedTransactionReference ?? null,
-            utiltsHeaderRejected: params.utiltsHeaderRejected,
-          })
-        : buildUtiltsErrDraft({
-            actorUserId: params.actorUserId,
-            sourceMessage: params.sourceMessage,
-            messageText: params.messageText ?? null,
-            relatedTransactionReference: params.relatedTransactionReference ?? null,
-          })
+  const prepared=await prepareSourceAckDraft(params)
+  if(prepared.kind==='existing')return prepared.message
+  const draft=prepared.draft
 
   const ackMessage = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
@@ -741,7 +721,7 @@ export async function createUtiltsRuntimeAcks(params: {
         // every transaction, so keep those codes on each transaction-scoped ERR.
         const codes = params.ackPlan.utiltsErrDetails
           .filter((detail) => {
-            const reference = stringOrNull(detail.referenceNumber ?? detail.lineItemReference)
+            const reference = physicalUtiltsReference(detail.referenceNumber ?? detail.lineItemReference)
             return reference === null || reference === transactionReference
           })
           .map((detail) => detail.code)
@@ -768,7 +748,7 @@ export async function createUtiltsRuntimeAcks(params: {
 
       if (disposition.disposition === 'guide_rejected') {
         const applicationErrors = params.ackPlan.aperakApplicationErrors.filter((item) => {
-          const reference = stringOrNull(item.referenceNumber ?? item.lineItemReference)
+          const reference = physicalUtiltsReference(item.referenceNumber ?? item.lineItemReference)
           return reference === null || reference === transactionReference
         })
         const aperak = await createAckIfMissing({

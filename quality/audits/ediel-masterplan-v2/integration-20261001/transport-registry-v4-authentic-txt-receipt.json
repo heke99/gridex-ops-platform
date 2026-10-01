@@ -1,0 +1,20 @@
+{
+  "sourceHash": "ee26868abc53f7ed60918806d81e225e4ba33cd6ae24afcecc741805fd34f0de",
+  "sourceBytes": 97717,
+  "parserHash": "0e605a15a7e91769be08f23ac764c716e36fa089294813943572265b27a5e227",
+  "encoding": "utf-8",
+  "logicalActors": 697,
+  "markets": {
+    "EL": 651,
+    "GAS": 46
+  },
+  "registeredRoutes": 1126,
+  "metadataOnlyActors": 134,
+  "multilineAddressRecords": 1,
+  "routeFamilies": {
+    "PRODAT": 563,
+    "UTILTS": 563
+  },
+  "generatedAt": "2026-09-10T06:34:58Z",
+  "grantsAuthority": false
+}

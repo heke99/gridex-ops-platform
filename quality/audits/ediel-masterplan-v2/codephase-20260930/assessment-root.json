@@ -9,10 +9,10 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/core/productionGuards.ts",
       "lib/ediel/transport/index.part-1.ts",
       "lib/ediel/transport/index.part-2.ts",
-      "lib/ediel/core/productionGuards.ts"
+      "lib/email/sendEdielEmail.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [],
@@ -32,10 +32,10 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/email/sendEdielEmail.ts",
+      "lib/ediel/core/productionGuards.ts",
       "lib/ediel/transport/index.part-1.ts",
       "lib/ediel/transport/index.part-2.ts",
-      "lib/ediel/core/productionGuards.ts"
+      "lib/email/sendEdielEmail.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [],
@@ -55,14 +55,15 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/inbound-mail/edielInboundProcessor.ts",
-      "lib/inbound-mail/edielEmailParser.ts",
-      "lib/inbound-mail/dsnDisposition.ts",
-      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "app/api/ediel/messages/[messageId]/delivery-reports/route.ts",
       "lib/ediel/transport/outboundAttempt.ts",
-      "lib/inbound-mail/dsnObservationJournal.ts",
-      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
-      "app/api/admin/ediel/messages/[id]/route.ts"
+      "lib/inbound-mail/dsnClassifier.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnSourceObservations.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -87,14 +88,15 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/inbound-mail/edielInboundProcessor.ts",
-      "lib/inbound-mail/edielEmailParser.ts",
-      "lib/inbound-mail/dsnDisposition.ts",
-      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "app/api/ediel/messages/[messageId]/delivery-reports/route.ts",
       "lib/ediel/transport/outboundAttempt.ts",
-      "lib/inbound-mail/dsnObservationJournal.ts",
-      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
-      "app/api/admin/ediel/messages/[id]/route.ts"
+      "lib/inbound-mail/dsnClassifier.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnSourceObservations.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -119,14 +121,15 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/inbound-mail/edielInboundProcessor.ts",
-      "lib/inbound-mail/edielEmailParser.ts",
-      "lib/inbound-mail/dsnDisposition.ts",
-      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "app/api/ediel/messages/[messageId]/delivery-reports/route.ts",
       "lib/ediel/transport/outboundAttempt.ts",
-      "lib/inbound-mail/dsnObservationJournal.ts",
-      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
-      "app/api/admin/ediel/messages/[id]/route.ts"
+      "lib/inbound-mail/dsnClassifier.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnSourceObservations.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -151,14 +154,15 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/inbound-mail/edielInboundProcessor.ts",
-      "lib/inbound-mail/edielEmailParser.ts",
-      "lib/inbound-mail/dsnDisposition.ts",
-      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "app/api/ediel/messages/[messageId]/delivery-reports/route.ts",
       "lib/ediel/transport/outboundAttempt.ts",
-      "lib/inbound-mail/dsnObservationJournal.ts",
-      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql",
-      "app/api/admin/ediel/messages/[id]/route.ts"
+      "lib/inbound-mail/dsnClassifier.ts",
+      "lib/inbound-mail/dsnDisposition.ts",
+      "lib/inbound-mail/dsnSourceObservations.ts",
+      "lib/inbound-mail/dsnTransportCandidates.ts",
+      "lib/inbound-mail/edielEmailParser.ts",
+      "lib/inbound-mail/edielInboundProcessor.ts",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -183,9 +187,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
-      "lib/email/sendEdielEmail.ts",
       "lib/ediel/mailReadiness.ts",
-      "lib/ediel/transport/index.part-1.ts"
+      "lib/ediel/transport/index.part-1.ts",
+      "lib/email/sendEdielEmail.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -207,9 +211,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
-      "lib/email/sendEdielEmail.ts",
       "lib/ediel/mailReadiness.ts",
-      "lib/ediel/transport/index.part-1.ts"
+      "lib/ediel/transport/index.part-1.ts",
+      "lib/email/sendEdielEmail.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -231,9 +235,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
+      "__tests__/ediel-transport-security-resolution.test.ts",
       "lib/ediel/config.ts",
-      "lib/ediel/transport/index.part-1.ts",
-      "__tests__/ediel-transport-security-resolution.test.ts"
+      "lib/ediel/transport/index.part-1.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -255,9 +259,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
+      "__tests__/ediel-transport-security-resolution.test.ts",
       "lib/ediel/config.ts",
-      "lib/ediel/transport/index.part-1.ts",
-      "__tests__/ediel-transport-security-resolution.test.ts"
+      "lib/ediel/transport/index.part-1.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -279,10 +283,10 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/ediel/transport/copy.ts",
-      "lib/ediel/transport/verifiedCopy.ts",
       "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
-      "components/admin/ediel/EdielTransportCopiesPanel.tsx"
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx",
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [],
@@ -302,10 +306,10 @@
     ],
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
-      "lib/ediel/transport/copy.ts",
-      "lib/ediel/transport/verifiedCopy.ts",
       "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
-      "components/admin/ediel/EdielTransportCopiesPanel.tsx"
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx",
+      "lib/ediel/transport/copy.ts",
+      "lib/ediel/transport/verifiedCopy.ts"
     ],
     "confirmed_code_gap": null,
     "blockers": [],
@@ -421,9 +425,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
-      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md",
       "lib/ediel/operations/exchangeLog.ts",
-      "lib/ediel/transport/acceptedProjection.ts"
+      "lib/ediel/transport/acceptedProjection.ts",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -445,9 +449,9 @@
     ],
     "code_status": "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED",
     "code_paths": [
-      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md",
       "lib/ediel/operations/exchangeLog.ts",
-      "lib/ediel/transport/acceptedProjection.ts"
+      "lib/ediel/transport/acceptedProjection.ts",
+      "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md"
     ],
     "confirmed_code_gap": null,
     "blockers": [
@@ -470,8 +474,8 @@
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/core/failureDisposition.ts",
-      "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/core/kernelLegacy.ts",
+      "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/rulebook/validator.ts"
     ],
     "confirmed_code_gap": null,
@@ -493,8 +497,8 @@
     "code_status": "CODE_READY_NOT_VERIFIED",
     "code_paths": [
       "lib/ediel/core/failureDisposition.ts",
-      "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/core/kernelLegacy.ts",
+      "lib/ediel/core/runtimeDecision.ts",
       "lib/ediel/rulebook/validator.ts"
     ],
     "confirmed_code_gap": null,

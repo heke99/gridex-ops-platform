@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import type { EdielBusinessExpectationPlan, EdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
+import type {EdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import type { ProdatTransportRetryBasis } from '@/lib/ediel/recovery/transportRetry'
 import type {EdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
@@ -21,6 +22,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
   admissionDecision?: Readonly<Record<string, unknown>> | null
   businessExpectationPlan?: EdielBusinessExpectationPlan | null
   technicalExpectationPlan?: EdielTechnicalExpectationPlan | null
+  meteringMethodExpectationPlan?: EdielMeteringMethodExpectationPlan | null
   recoveryAuthorization?: ProdatTransportRetryBasis | null
   sourceRulePackEvidence?: EdielSourceRulePackEvidence | null
   technicalSyntaxAckEvidence?: TechnicalSyntaxAckEvidence | null
@@ -48,6 +50,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
         admissionDecision: context.admissionDecision ?? null,
         businessExpectationPlan: context.businessExpectationPlan ?? null,
         technicalExpectationPlan: context.technicalExpectationPlan ?? null,
+        meteringMethodExpectationPlan: context.meteringMethodExpectationPlan ?? null,
         recoveryAuthorization: context.recoveryAuthorization ?? null,
         sourceRulePackEvidence: context.sourceRulePackEvidence ?? null,
         technicalSyntaxAckEvidence: context.technicalSyntaxAckEvidence ?? null,
