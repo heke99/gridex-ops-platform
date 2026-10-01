@@ -531,7 +531,7 @@ export function resolveCanonicalRuntimeDecision(message: EdielMessageRow): Canon
   })
 }
 
-const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy}>()
+const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy;hasWitness:boolean}>()
 function immutableUtiltsSourceIdentity(message:EdielMessageRow):string {
   return evidenceHash(JSON.stringify({id:message.id,companyId:message.company_id,environment:message.environment,direction:message.direction,
     family:message.message_family,code:message.message_code,raw:message.raw_payload,receivedAt:message.message_received_at,executionContext:message.execution_context_snapshot}))
@@ -546,6 +546,7 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
     ||evidenceHash(JSON.stringify(initial))!==owner.decisionHash)throw new Error('ediel_initial_utilts_owner_unavailable')
   const actual=takeUtiltsRuntimeOwner(input.runtime,input.message,owner.policy)
   if(!actual)throw new Error('ediel_final_utilts_owner_unavailable')
+  if(!owner.hasWitness&&actual.transactionDispositions.some(transaction=>transaction.disposition==='accepted'))throw new Error('ediel_final_utilts_rule_witness_required')
   initialUtiltsOwners.delete(initial)
   const responsePlan=initial.responsePlan.filter(item=>item.family==='CONTRL')
   const issues=initial.issues.filter(item=>item.source!=='runUtiltsRuntimeForMessage')
@@ -556,6 +557,11 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
     utiltsTransactionValidation:utilts.utiltsTransactionValidation,syntaxDecision:initial.syntaxDecision,applicationDecision:utilts.applicationDecision,
     functionalDecision:utilts.functionalDecision,responsePlan,issues,sourceRules,decisionTrace,syntax:initial.validationReport.syntax})
   final.validationReport={...final.validationReport,rulePackEvidence:initial.validationReport.rulePackEvidence,fieldRuleSource:initial.validationReport.fieldRuleSource}
+  if(!owner.hasWitness){
+    final.applicationDecision='manual_review';final.functionalDecision='manual_review'
+    final.responsePlan=final.responsePlan.filter(response=>response.family==='CONTRL')
+    final.validationReport={...final.validationReport,applicationDecision:'manual_review',functionalDecision:'manual_review',responsePlan:final.responsePlan,failureDisposition:initial.validationReport.failureDisposition}
+  }
   return final
 }
 
@@ -612,7 +618,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       fieldRuleSource: 'canonical_policy',
     }
     const resolved={ ...base, sourceRules, decisionTrace, validationReport }
-    if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted')initialUtiltsOwners.set(resolved,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),policy:base.policy})
+    if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted')initialUtiltsOwners.set(resolved,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(resolved)),policy:base.policy,hasWitness:true})
     return resolved
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
@@ -646,7 +652,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       decisionTrace,
       fieldRuleSource: 'canonical_policy',
     }
-    return {
+    const held:CanonicalRuntimeDecision={
       ...base,
       applicationDecision: 'manual_review',
       functionalDecision: 'manual_review',
@@ -655,5 +661,10 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message: Ediel
       decisionTrace,
       validationReport,
     }
+    if(base.policy.family==='UTILTS'&&base.syntaxDecision==='accepted'&&base.utiltsTransactionValidation
+      &&base.utiltsTransactionValidation.transactions.every(transaction=>transaction.disposition!=='accepted')) {
+      initialUtiltsOwners.set(held,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(held)),policy:base.policy,hasWitness:false})
+    }
+    return held
   }
 }
