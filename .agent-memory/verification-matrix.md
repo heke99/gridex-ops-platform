@@ -1,4 +1,18 @@
-## Active — 2026-09-30 full Ediel masterplan v2 code phase (in progress)
+## Active — 2026-10-01 full Ediel masterplan v2 code phase (IN_PROGRESS)
+
+Root is sole integration owner/publisher for draft #421, with six isolated package owners. Current coherent local checkpoint `eb39806406c8b0620e3019e54ad61a5277bc2f79` includes full own supply/permission coordination `96f9f5c6`, actual identityless negative ACK `4a2d449b`, registry AI leaf `e009561e`, and guarded register typing `56b7389e`. Actual remote remains `8052ebff1dd3746d0b4664b5f2533164a3497ae7`, exact tree-equivalent to local `66a66666aa1b8b28315ca7840ab07424da360a81`. Later commits remain preserved. API objects/individual commit staging for the next publication are in progress; this does not mean the branch ref has been updated. Baseline `885137de838481be6cda58f9af45df6c1655edfe` remains intact.
+
+The full task is still in progress. The matrix owner's current working 352-row refresh reports 261 code-ready/not-verified,24 already implemented/verification-only,51 externally blocked and16 remaining code rows (AI bridge8 and recovery/alias8); it is not a formal acceptance result or a final published matrix. Complete P's whole AI legal/technical/header/storage/ACK gateway packet and C/R's qualified correction lineage/current execution phase across all actual source-family consumers, then obtain independent final C/I review and refresh the coherent matrix. Preserve all121 rules,231 literal contracts and33 frozen originals.
+
+Actual bounded checks:17 real inbound coordinator tests PASS;8 identityless ACK source tests PASS;31 permission/native-contract and AI route tests PASS;35 physical register/binding tests PASS; changed root file lint0 errors. Full test TypeScript PASS on the current integration; application TypeScript PASS before the latest registry AI leaf (later rerun required). Scripts TypeScript is in progress. Packet SQL tests are declared embedded mechanics; they do not prove native PostgreSQL, concurrency, authentic originals, clean/upgrade replay or market activation.
+
+Mandatory older-head CI8052 was inspected once: actual failures and stale schema/type parity are recorded in `quality/audits/ediel-masterplan-v2/codephase-ci-8052-20261001.json`; subsequent source-loader/fixture/private search-path corrections are bounded local corrections, not a new-head all-green claim. Full fixed-candidate unit/native clean+upgrade replay/schema/type parity/security/browser/manual phase remains separately NOT_RUN. Do not promote formal acceptance statuses; historical SC044 and other evidence retain their original exact SHA and scope.
+
+Current read-only coordination: #418 head `ae56ee0a1e0e8adbce9d5f4d92da75cdcb8010c8`; #422 head `c4ab486a9c83d629a9dbd26f8b974f9186e860f6`, including current case-source binding/receipt guards and legitimate native source-owner fixture contract. #422-owned legacy/atomic switch files stay read-only; #310 remains untouched. Missing authentic originals, mandates, privacy/retention/legal decisions, archive/deletion continuity and versioned network/owner evidence remain explicitly held. No force push, main merge, production changes, real Ediel/TGT/counterparty sends or market activation.
+
+Every section below is historical, superseded for the active task, and keeps only its original SHA/scope-specific evidential meaning.
+
+## Historical — superseded checkpoint (2026-09-30 full Ediel masterplan v2 code phase (in progress))
 
 Root is sole integrator/publisher for draft #421, with six isolated package owners. Integrated local checkpoint `bd40962b9201bc4438e1e21362fd704bf8fbb72f`; last published remote `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Later commits and current WIP are preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
 

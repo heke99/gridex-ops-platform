@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-01T03:45:15.977774+00:00",
+  "updated_at": "2026-10-01T06:37:29.081055+00:00",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-v2-identity-e035-owner-20260928",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Ediel masterplan v2 full code phase: integrate source-backed feasible packages; root sole integrator, six isolated package owners",
+  "active_item": "Full Ediel masterplan v2 code phase: finish AI/recovery consumers, refresh352 matrix, independent final review and nonforce draft publication",
   "current_audit": "quality/audits/ediel-masterplan-v2/codephase-20260930/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Complete independent remaining feasible producer/source/parser/final ACK packets, integrate exact 352-row matrix, run serial quick checks and independent final C/I review, then nonforce publish the fixed code candidate. Broad verification is a later NOT_RUN phase.",
+  "next_action": "Complete independent AI and every qualified recovery source-family consumer; integrate, refresh352 matrix, quick checks/final independent C/I review, nonforce publish same coordinated draft. Broad fixed-candidate phase remains separate.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1323,5 +1323,30 @@
     ],
     "last_published_ci": "0b8c1c37 inspected once: actual full-unit/retry fixture failures, Node22 guide transform and schema/type parity pending; no current all-green claim",
     "publication_receipt": "quality/audits/ediel-masterplan-v2/codephase-publication-20261001.json"
+  },
+  "code_phase_current_20261001": {
+    "localCheckpoint": "eb39806406c8b0620e3019e54ad61a5277bc2f79",
+    "remoteHead": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+    "rootCoordinator": "96f9f5c6",
+    "codePhaseComplete": false,
+    "formalAcceptanceChanged": false,
+    "workingOwnerMatrix": {
+      "codeReady": 261,
+      "alreadyImplemented": 24,
+      "external": 51,
+      "remainingCode": 16,
+      "totalIds": 352
+    },
+    "checks": {
+      "coordinator": 17,
+      "identitylessAck": 8,
+      "permissionAndAiRoute": 31,
+      "registerBinding": 35,
+      "testsTypeScript": "PASS",
+      "appTypeScript": "PASS_BEFORE_LATEST_AI_LEAF",
+      "scriptsTypeScript": "RUNNING"
+    },
+    "finalBroadVerification": "NOT_RUN",
+    "coordinationPr422": "c4ab486a9c83d629a9dbd26f8b974f9186e860f6"
   }
 }
