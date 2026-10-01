@@ -67,6 +67,8 @@ jobs:
       - run: bash quality/mechanical/verify.sh
       - run: npx vitest run --config quality/vitest.config.ts
       - run: npx vitest run --config scripts/customer-account-role-preservation-20261001.config.ts --reporter=verbose
+      - name: Pinned baseline raw-write oracle controls
+        run: node --test scripts/tenantservice-baseline-raw-write-oracle-20261001.test.cjs
       - run: npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
@@ -473,8 +475,14 @@ jobs:
             rem002-database.types.ts
             rem002-schema-snapshot/
             e2e-artifacts/customer-contact-saved.png
+            e2e-artifacts/invoice-redelivery-history-*.png
+            e2e-artifacts/invoice-redelivery-unsaved-*.png
+            e2e-artifacts/customer-internal-note-*.png
+            e2e-artifacts/billing-revision-*.png
             e2e-artifacts/playwright-results/**/tenantservice-*.png
             e2e-artifacts/playwright-results/**/support-interactive-*.png
+            e2e-artifacts/playwright-results/**/webhook-readonly-controls-*.png
+            e2e-artifacts/playwright-results/**/ops-effect-*.png
           if-no-files-found: error
 
   upgrade-backup-restore:

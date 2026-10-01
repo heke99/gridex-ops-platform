@@ -1,11 +1,12 @@
-// Prepared full disposable Supabase proof; native execution is currently zero.
+// Prepared full disposable Supabase proof; corrected native execution pending.
 // Only EmailProvider.sendEmail is a controlled outer boundary. Real readiness,
 // sender lookup, policy, PostgREST, row triggers, claims and completion stay real.
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn, spawnSync, type SpawnSyncReturns } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
+import { manualEmailNativeSqlFailure, type ManualEmailNativeSqlStage } from './helpers/manual-email-native-sql-diagnostic-20261001'
 
 const transport = vi.hoisted(() => ({ calls: 0, accepted: false }))
 vi.mock('@/lib/email/providers', () => ({ getEmailProvider: () => ({ sendEmail: async () => {
@@ -20,16 +21,19 @@ const quote = (value: string) => "'" + value.replaceAll("'", "''") + "'"
 const directory = mkdtempSync(join(process.env.RUNNER_TEMP!, 'manual-email-fair-native.'))
 let sqlNumber = 0
 afterAll(() => rmSync(directory, { recursive: true, force: true }))
-function sql<T>(command: string): T {
-  const result = spawnSync('psql', [db, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=sqlstate'],
-    { input: command, encoding: 'utf8', timeout: 60_000, maxBuffer: 8 * 1024 * 1024 })
-  const log = join(directory, String(++sqlNumber) + '.log')
-  writeFileSync(log, result.stdout + result.stderr, { mode: 0o600 })
-  if (result.status !== 0 || result.error) {
-    const code = result.stderr.match(/(?:ERROR|FATAL):\s+([A-Z0-9]{5})\b/)?.[1] ?? 'unknown'
-    throw Object.assign(new Error('manual_email_native_sql_failed_private_context_' + code), { code })
+function sql<T>(command: string, stage: ManualEmailNativeSqlStage = 'native_sql'): T {
+  let result: SpawnSyncReturns<string> | undefined
+  try {
+    result = spawnSync('psql', [db, '-XAtq', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=sqlstate'],
+      { input: command, encoding: 'utf8', timeout: 60_000, maxBuffer: 8 * 1024 * 1024 })
+    const log = join(directory, String(++sqlNumber) + '.log')
+    writeFileSync(log, result.stdout + result.stderr, { mode: 0o600 })
+    if (result.status !== 0 || result.error) throw new Error('private_sql_process_failed')
+    return JSON.parse(result.stdout.trim()) as T
+  } catch {
+    const failure = manualEmailNativeSqlFailure(result?.stderr, stage)
+    throw Object.assign(new Error(failure.message), { code: failure.code })
   }
-  return JSON.parse(result.stdout.trim()) as T
 }
 type Claim = { id: string; company_id: string; status: string; locked_by: string; claim_token: string; attempts: number }
 const claim = (limit: number, company: string | null = null, worker = 'synthetic-manual-worker', token = randomUUID()) =>
@@ -44,14 +48,14 @@ function otherRows(companies: string[]): unknown {
     DO $snapshot$ DECLARE t record; predicate text; BEGIN
       FOR t IN SELECT n.nspname,c.relname,c.oid FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
         WHERE c.relkind IN ('r','p') AND n.nspname IN ('public','auth','private') ORDER BY n.nspname,c.relname LOOP
-        predicate := CASE WHEN t.nspname='public' AND t.relname='companies' THEN ' WHERE id NOT IN (${list})'
+        predicate := CASE WHEN t.nspname='public' AND t.relname='companies' THEN ${quote(` WHERE id NOT IN (${list})`)}
           WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_attribute a WHERE a.attrelid=t.oid AND a.attname='company_id' AND NOT a.attisdropped)
-          THEN ' WHERE company_id IS NULL OR company_id NOT IN (${list})' ELSE '' END;
+          THEN ${quote(` WHERE company_id IS NULL OR company_id NOT IN (${list})`)} ELSE '' END;
         EXECUTE format('INSERT INTO original_row_hashes SELECT %L,count(*),encode(sha256(convert_to(coalesce(string_agg(to_jsonb(r)::text,E''\\n'' ORDER BY to_jsonb(r)::text),''''),''UTF8'')),''hex'') FROM %I.%I r%s',
           t.nspname||'.'||t.relname,t.nspname,t.relname,predicate);
       END LOOP;
     END $snapshot$;
-    SELECT jsonb_agg(to_jsonb(h) ORDER BY surface) FROM original_row_hashes h;`)
+    SELECT jsonb_agg(to_jsonb(h) ORDER BY surface) FROM original_row_hashes h;`, 'other_rows_snapshot')
 }
 function fixture(noisy = 250, quiet = 2) {
   // Wire before every manual-mail producer fixture. Prior queued or stale rows

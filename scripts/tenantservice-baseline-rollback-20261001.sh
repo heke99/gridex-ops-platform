@@ -136,6 +136,39 @@ begin
   raise exception 'baseline_rollback_old_contact_grants_not_retained'; end if;
 end;
 $old_shape$;
+-- BEGIN_BASELINE_RAW_READ_ONLY_MEMBERSHIP
+-- Old operations membership legitimately permits own-tenant raw UPDATE. Use a
+-- member only for this rollback-local raw RLS proof; retain the stored role
+-- aliases and explicit permission and restore the whole original row before
+-- the original service-command checks. No historical policy or grant changes.
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_RAW_MEMBERSHIP_PREPARE
+do $old_raw_membership_prepare$
+declare original jsonb; affected bigint; prepared jsonb;
+begin
+ select to_jsonb(m) into strict original from public.company_memberships m
+  where m.company_id='e4954930-0000-4000-8000-000000000001'
+   and m.user_id='e4954930-0000-4000-8000-000000000011' for update;
+ if original->>'membership_role' is distinct from 'operations'
+  or original->>'role' is distinct from 'operations'
+  or original->>'role_key' is distinct from 'operations'
+  or original->>'status' is distinct from 'active'
+  or (original->>'is_active')::boolean is distinct from true then
+  raise exception 'baseline_rollback_original_operations_fixture_invalid'; end if;
+ perform set_config('gridex.rollback_original_membership',original::text,true);
+ update public.company_memberships set membership_role='member'
+  where id=(original->>'id')::uuid
+   and company_id='e4954930-0000-4000-8000-000000000001'
+   and user_id='e4954930-0000-4000-8000-000000000011'
+   and membership_role='operations';
+ get diagnostics affected=row_count;
+ select to_jsonb(m) into strict prepared from public.company_memberships m
+  where m.id=(original->>'id')::uuid;
+ if affected is distinct from 1 or prepared->>'membership_role' is distinct from 'member'
+  or (prepared-'membership_role') is distinct from (original-'membership_role') then
+  raise exception 'baseline_rollback_raw_member_fixture_not_prepared'; end if;
+end;
+$old_raw_membership_prepare$;
+-- END_BASELINE_RAW_READ_ONLY_MEMBERSHIP
 select set_config('request.jwt.claims',jsonb_build_object('role','authenticated',
  'sub','e4954930-0000-4000-8000-000000000011',
  'session_id','e4954930-0000-4000-8000-000000000021')::text,true) as jwt_claims \gset
@@ -164,12 +197,22 @@ end;
 $old_authenticated_foreign_read$;
 \echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_RAW_WRITE_DENIAL
 do $old_authenticated_raw_write_denial$
-declare denied boolean:=false;
+declare denied boolean:=false; affected bigint; before_row jsonb; after_row jsonb;
 begin
+ select to_jsonb(c) into before_row from public.customers c
+  where c.id='e4954930-0000-4000-8000-000000000031';
+ if before_row is null then
+  raise exception 'baseline_rollback_authenticated_raw_write_target_not_visible'; end if;
  begin update public.customers set email='denied-raw@example.invalid'
   where id='e4954930-0000-4000-8000-000000000031';
+ get diagnostics affected=row_count;
  exception when insufficient_privilege then denied:=true; end;
- if not denied then raise exception 'baseline_rollback_authenticated_raw_write_not_denied'; end if;
+ if not denied and affected is distinct from 0 then
+  raise exception 'baseline_rollback_authenticated_raw_write_not_denied'; end if;
+ select to_jsonb(c) into after_row from public.customers c
+  where c.id='e4954930-0000-4000-8000-000000000031';
+ if after_row is distinct from before_row then
+  raise exception 'baseline_rollback_authenticated_raw_write_changed_target'; end if;
 end;
 $old_authenticated_raw_write_denial$;
 \echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_AUTHENTICATED_COMMAND_DENIAL
@@ -204,6 +247,34 @@ end;
 $old_anonymous$;
 \echo TENANTSERVICE_BASELINE_ROLLBACK_OLD_RLS_LOW_ROLE_DENIAL_PASS
 reset role;
+-- BEGIN_BASELINE_RAW_MEMBERSHIP_RESTORE
+\echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_RAW_MEMBERSHIP_RESTORE
+do $old_raw_membership_restore$
+declare original jsonb:=current_setting('gridex.rollback_original_membership',true)::jsonb;
+ current_row jsonb; restored jsonb; affected bigint;
+begin
+ if original is null then
+  raise exception 'baseline_rollback_original_membership_snapshot_missing'; end if;
+ select to_jsonb(m) into strict current_row from public.company_memberships m
+  where m.id=(original->>'id')::uuid
+   and m.company_id='e4954930-0000-4000-8000-000000000001'
+   and m.user_id='e4954930-0000-4000-8000-000000000011' for update;
+ if current_row->>'membership_role' is distinct from 'member'
+  or (current_row-'membership_role') is distinct from (original-'membership_role') then
+  raise exception 'baseline_rollback_raw_member_fixture_changed'; end if;
+ update public.company_memberships set membership_role='operations'
+  where id=(original->>'id')::uuid
+   and company_id='e4954930-0000-4000-8000-000000000001'
+   and user_id='e4954930-0000-4000-8000-000000000011'
+   and membership_role='member';
+ get diagnostics affected=row_count;
+ select to_jsonb(m) into strict restored from public.company_memberships m
+  where m.id=(original->>'id')::uuid;
+ if affected is distinct from 1 or restored is distinct from original then
+  raise exception 'baseline_rollback_operations_fixture_not_restored'; end if;
+end;
+$old_raw_membership_restore$;
+-- END_BASELINE_RAW_MEMBERSHIP_RESTORE
 select set_config('request.jwt.claims','{}',true) as jwt_claims \gset
 set local role service_role;
 \echo TENANTSERVICE_BASELINE_ROLLBACK_STAGE_OLD_COMMAND
@@ -285,6 +356,8 @@ proof={'old-schema-proof.sql':'old_schema',
 try: rows=pathlib.Path(sys.argv[1]).read_text(errors='replace').splitlines()
 except OSError: rows=[]
 allowed={'OLD_SHAPE':'old_shape','OLD_AUTHENTICATED':'old_authenticated',
+         'OLD_RAW_MEMBERSHIP_PREPARE':'old_raw_membership_prepare',
+         'OLD_RAW_MEMBERSHIP_RESTORE':'old_raw_membership_restore',
          'OLD_AUTHENTICATED_IDENTITY':'old_authenticated_identity',
          'OLD_AUTHENTICATED_OWN_READ':'old_authenticated_own_read',
          'OLD_AUTHENTICATED_FOREIGN_READ':'old_authenticated_foreign_read',
@@ -297,7 +370,7 @@ for row in rows:
     prefix='TENANTSERVICE_BASELINE_ROLLBACK_STAGE_'
     if row.startswith(prefix) and row[len(prefix):] in allowed:
         stage=allowed[row[len(prefix):]]
-    match=re.fullmatch(r'(?:psql:.*?:\d+: )?(?:ERROR|FATAL|PANIC):\s+([0-9A-Z]{5})\s*',row)
+    match=re.fullmatch(r'(?:psql:.*?:\d+: )?(?:ERROR|FATAL|PANIC):\s+((?:00|01|02|03|08|09|0A|0B|0F|0L|0P|0Z|20|21|22|23|24|25|26|27|28|2B|2D|2F|34|38|39|3B|3D|3F|40|42|44|53|54|55|57|58|F0|HV|P0|XX)[0-9A-Z]{3})\s*',row)
     if match and match[1]!='00000': states.append(match[1])
 state=states[0] if len(states)==1 else 'unknown'
 print('TENANTSERVICE_BASELINE_ROLLBACK_SQL_DIAGNOSTIC proof='+proof+

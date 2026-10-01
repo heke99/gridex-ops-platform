@@ -532,3 +532,7 @@ Actual isolated7b491b10 source7594/525 units and3TS/lint0/101/sourcegates PASS; 
 ## 2026-10-01 final ninth private-request qualification
 
 Actual source6bcb8f79 full7613/526units + fresh fulltestTypesPASS, oldidentical app/scripts/RBAC/API/integrity gates retained. Privateactual19 controls/CLI nonzero/no raw cause or capabilities PASS; initial ProcessEnv env{} TS2769 fixed onlycontrolled NODE_ENV=test. Browser/native0; published c4ab unchanged pending9. All75OPEN. See integration-pass9-20261001.md.
+
+## 2026-10-01 CI correction and source recovery
+
+Exact published0cf/treecdb source recovered5990paths/130416041B with individual SHA/size/mode validation; original653 ae56 SQL bytes unchanged. Authentic31 replay artifact11145833501 3members adopted byte-exact; firstmanual6 historical42601/nativefuturepending. Fresh bounded6+11+11+8 and fullunits7624/527/typesapp+tests+scripts PASS, wholelint0errors101warnings PASS; peers approve boundedsource and correct false no-membership-trigger documentation to actual early-return constraint trigger. Unpublishednext10 bytes remain unavailable, priorreceipts retained. All75/P0–P8OPEN. Rootalone publisher; same422 frozenpublication/genuineCI next.

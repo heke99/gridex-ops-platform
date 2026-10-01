@@ -89452,6 +89452,15 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_claim_manual_email_outbox_fair_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_limit: number
+          p_worker_id: string
+        }
+        Returns: Json[]
+      }
       gridex_claim_spot_price_import_job: {
         Args: {
           p_calendar_date: string
@@ -90453,6 +90462,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      gridex_finish_manual_email_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_patch: Json
+          p_worker_id: string
+        }
+        Returns: boolean
+      }
       gridex_finish_support_attachment_read_v1: {
         Args: { p_context: Json; p_nonce_id: string; p_witness?: Json }
         Returns: Json
@@ -91420,6 +91439,60 @@ export type Database = {
         Args: { p_company_id: string; p_cutoff: string; p_environment: string }
         Returns: Json
       }
+      gridex_recheck_manual_email_claim_v1: {
+        Args: {
+          p_claim_token: string
+          p_company_id: string
+          p_item_id: string
+          p_worker_id: string
+        }
+        Returns: {
+          actual_recipient_email: string | null
+          attachments: Json
+          attempts: number
+          blocked_at: string | null
+          blocked_reason: string | null
+          body_html: string
+          body_text: string | null
+          bounced_at: string | null
+          company_id: string
+          company_status_snapshot: string | null
+          complained_at: string | null
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
+          delivery_uncertain_at: string | null
+          external_delivery: boolean
+          failed_at: string | null
+          from_email: string | null
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          last_error_code: string | null
+          locked_at: string | null
+          locked_by: string | null
+          next_attempt_at: string | null
+          operation_decision_snapshot: Json | null
+          provider: string
+          provider_idempotency_key: string | null
+          provider_message_id: string | null
+          queued_at: string
+          recipient_resolution: Json | null
+          reply_to: string | null
+          request_id: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          to_email: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "manual_email_outbox"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       gridex_reconcile_company_onboarding_tasks_v1: {
         Args: { p_company_id: string }
         Returns: Json
@@ -91530,6 +91603,10 @@ export type Database = {
       gridex_record_support_attachment_scan_v1: {
         Args: { p_nonce_id: string; p_proof: Json }
         Returns: Json
+      }
+      gridex_recover_stale_manual_email_outbox_v1: {
+        Args: { p_company_id: string; p_limit: number }
+        Returns: Json[]
       }
       gridex_refresh_actor_certificate_statuses: {
         Args: { p_run_type?: string }

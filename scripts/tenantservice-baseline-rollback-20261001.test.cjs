@@ -295,6 +295,19 @@ test('successful actual SQL wrapper prints only original fixed PASS markers and 
  assert.equal(result.stderr,'')
  assert.equal(result.stdout,'TENANTSERVICE_BASELINE_ROLLBACK_OLD_RLS_LOW_ROLE_DENIAL_PASS\n')
 })
+for(const value of ['KARIN','ABCDE'])
+ test('actual SQL wrapper never projects five-letter text from an unsupported technical namespace '+value,()=>{
+  const result=runSqlDiagnostic('ERROR:  '+value+'\n')
+  assert.match(result.stderr,/sqlstate=unknown/)
+  assert.ok(!result.stderr.includes(value))
+ })
+for(const [marker,stage] of [
+ ['OLD_RAW_MEMBERSHIP_PREPARE','old_raw_membership_prepare'],
+ ['OLD_RAW_MEMBERSHIP_RESTORE','old_raw_membership_restore'],
+]) test('actual SQL wrapper projects only the closed '+stage+' stage',()=>{
+ const result=runSqlDiagnostic('TENANTSERVICE_BASELINE_ROLLBACK_STAGE_'+marker+'\nERROR:  P0001\n')
+ assert.ok(result.stderr.includes('proof=old_schema stage='+stage+' sqlstate=P0001'))
+})
 function commandCorridor() {
   const source=proofSql()
   const shape=source.match(/do \$old_shape\$[\s\S]*?\$old_shape\$;/)?.[0]
