@@ -284,3 +284,13 @@ export function assertGuideFieldMatrixCertified(guide: AuthoritativeEdielGuide):
     throw new Error(`ediel_guide_field_matrix_not_certified:${guide.family}:${guide.guideRevision}`)
   }
 }
+
+import aiListSourceManifest from '@/docs/ediel/masterplan-v2/registers/source_manifest.json'
+/** AI14.A.3 is a separate technical list source, not an UNH guide family.
+ * Frozen annex/register source controls its format switch and identifiers;
+ * transport/readiness codecs expose this profile without choosing other dates. */
+export const AUTHORITATIVE_AI_LIST_PROFILE = Object.freeze({
+  sourceId:'AI',guideRevision:'14.A.3',technicalVersion:'Ver20140401',
+  sourceSha256:aiListSourceManifest.find(source=>source.id==='AI')!.sha256,
+  validFrom:'2025-10-01',format:'CSV',supplierOutboundType:'AI',
+} as const)

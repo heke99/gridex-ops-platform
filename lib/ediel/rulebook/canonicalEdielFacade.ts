@@ -193,3 +193,7 @@ export type {
   UtiltsRequestedMessageCode,
   UtiltsResolutionClass,
 }
+
+import {AUTHORITATIVE_AI_LIST_PROFILE} from '@/lib/ediel/rulebook/guideRegistry'
+/** Read-only source profile for the positional list codec and operational gate. */
+export function canonicalAiListProfile(){return AUTHORITATIVE_AI_LIST_PROFILE}
