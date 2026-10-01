@@ -118,12 +118,25 @@ for(const name of ['transitions','customer_versions']){
  await db.exec(declaration)
 }
 await db.exec(`CREATE FUNCTION gridex_customer_life_events.wire_v1(raw text) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('legalReceiver',(SELECT t#>>'{elements,2,0}' FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(raw))t WHERE t->>'tag'='NAD' AND t#>>'{elements,1,0}'='DO'))$$;`)
-const proof=lifeSource.slice(lifeSource.indexOf('CREATE FUNCTION gridex_customer_life_events.owner_proof_consistent_v1'),lifeSource.indexOf('CREATE FUNCTION public.ediel_customer_life_event_committed_source_v1'))
+const partialLifeSource=readFileSync(new URL('../supabase/migrations/20261001023512_ediel_partial_customer_life_event_source_effects.sql',import.meta.url),'utf8')
+// Actual current owner proof checks the independent classified original. The
+// admitted classifier/function/app ports here remain explicit synthetic IO;
+// their real receipt and V5 coupling are tested in their focused SQL harnesses.
+await db.exec(`CREATE TABLE gridex_customer_life_events.inbound_classifications(id uuid,company_id uuid,source_message_id uuid,classification text,classification_sha256 text,source_payload_hash text,recorded_at timestamptz);
+CREATE FUNCTION gridex_customer_life_events.wire_partition_v1(raw text) RETURNS jsonb LANGUAGE sql AS $$SELECT gridex_customer_life_events.wire_v1(raw)$$;`)
+const proof=partialLifeSource.slice(partialLifeSource.indexOf('CREATE OR REPLACE FUNCTION gridex_customer_life_events.owner_proof_consistent_v1'),partialLifeSource.indexOf('REVOKE ALL ON FUNCTION gridex_customer_life_events.wire_partition_v1'))
 await db.exec(proof)
 // Old structural proof is intentionally a declared qualified fixture. The NEW
 // actual physical E34 fence must still defeat its forged businessCase label.
 await db.exec(`CREATE OR REPLACE FUNCTION gridex_received_sources.review_business_proof_consistent(jsonb,jsonb,uuid) RETURNS boolean LANGUAGE sql AS $$SELECT true$$;`)
 await db.exec(readFileSync(new URL('../supabase/migrations/20261001022101_ediel_prodat_customer_primary_final_responses.sql',import.meta.url),'utf8'))
+const functionSource=readFileSync(new URL('../supabase/migrations/20261001025115_ediel_canonical_prodat_source_function_facets.sql',import.meta.url),'utf8')
+const functionTable=functionSource.match(/CREATE TABLE gridex_received_sources\.prodat_source_function_facets\([\s\S]*?\);/)?.[0]
+if(!functionTable)throw Error('actual own function table declaration missing')
+await db.exec(functionTable)
+await db.exec(`CREATE TABLE public.synthetic_source_function(company_id uuid,source_id uuid,canonical_id uuid,object_scope jsonb,accepted boolean);
+CREATE FUNCTION gridex_received_sources.prodat_source_function_object_accepted_v1(c uuid,source_id uuid,canonical_id uuid,object_scope jsonb) RETURNS boolean LANGUAGE sql AS $$SELECT coalesce((SELECT a.accepted FROM public.synthetic_source_function a WHERE a.company_id=$1 AND a.source_id=$2 AND a.canonical_id=$3 AND a.object_scope=$4),false)$$;`)
+await db.exec(readFileSync(new URL('../supabase/migrations/20261001033759_ediel_customer_primary_response_commit_fence.sql',import.meta.url),'utf8'))
 let checks=0;const check=(a,b)=>{assert.deepEqual(a,b);checks++},rejects=async(p,e)=>{await assert.rejects(p,e);checks++}
 const eSource=id(60),eCanonical=id(61),eOwner=id(62),eRaw=raw.replace('CAV+E64','CAV+E34')
 const eHash=(await db.query("SELECT encode(sha256(convert_to($1,'UTF8')),'hex') AS hash",[eRaw])).rows[0].hash
@@ -133,7 +146,7 @@ const eParty={version:1,owner:'received-source-party-binding-v1',ruleVersion:'1'
 const eEntry={object,disposition:'accepted',reasons:[],business:eBusiness,party:eParty},eFacts=JSON.stringify({objects:[eEntry,{object:badObject,disposition:'rejected',reasons:['own_application_rejected'],business:null,party:null}]})
 await db.query("INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,message_received_at) VALUES($1,$2,'test','inbound','edifact','PRODAT','Z06',$3,'2026-10-02T11:00:00Z')",[eSource,company,eRaw])
 await db.query("INSERT INTO gridex_received_sources.sources VALUES($1,$2,'test','Z06','2026-10-02T11:00:00Z',$3,$4)",[eSource,company,eRaw,eHash])
-await db.query("INSERT INTO gridex_received_sources.validation_assessments SELECT $1,source_message_id,company_id,environment,payload_hash,$2,NULL FROM gridex_received_sources.sources WHERE source_message_id=$3",[eCanonical,JSON.stringify({syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'accepted'}),eSource])
+await db.query("INSERT INTO gridex_received_sources.validation_assessments SELECT $1,source_message_id,company_id,environment,payload_hash,$2,NULL FROM gridex_received_sources.sources WHERE source_message_id=$3",[eCanonical,JSON.stringify({syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'manual_review'}),eSource])
 await db.query(`INSERT INTO public.synthetic_application VALUES($1,$2,$3,$4,true)`,[company,eSource,eCanonical,object])
 await db.query("INSERT INTO gridex_received_sources.prodat_response_facets VALUES($1,$2,encode(sha256(convert_to($2,'UTF8')),'hex'))",[eCanonical,JSON.stringify(eFacet)])
 await db.query("INSERT INTO gridex_ediel_ack_guide.source_bindings VALUES($1,'national',$2,'test',$3,$4)",[eSource,company,eHash,edition.sourceVersion])
@@ -144,7 +157,12 @@ check((await db.query(`SELECT gridex_received_sources.review_business_proof_cons
 check((await db.query(`SELECT gridex_received_sources.review_business_proof_consistent($1,$2,$3) AS qualified`,[entry.party,{...business,object},source])).rows[0].qualified,true)
 await db.query(`INSERT INTO public.customers(id,company_id) VALUES($1,$2)`,[customer,company])
 const resultCustomer={id:customer,company_id:company,name:'Actual source customer version'}
-const approved=[{pointId:object.objectId,identityAgency:'9',customerId:customer,siteId:site,meteringPointId:point,classification:'death',effectiveAt:eBusiness.effectiveAt}]
+const classificationId=id(80),classificationHash='d'.repeat(64)
+const approved=[{pointId:object.objectId,identityAgency:'9',customerId:customer,siteId:site,meteringPointId:point,classification:'death',effectiveAt:eBusiness.effectiveAt,classificationRecordId:classificationId,classificationSourceHash:classificationHash}]
+await db.query(`INSERT INTO gridex_customer_life_events.inbound_classifications VALUES($1,$2,$3,'death',$4,$5,clock_timestamp())`,[classificationId,company,eSource,classificationHash,eHash])
+const sourceFunction={version:1,objects:[{...object,functionalDecision:'accepted'},{...badObject,functionalDecision:'held'}]}
+await db.query(`INSERT INTO gridex_received_sources.prodat_source_function_facets VALUES($1,$2,$3,'test',$4,$5,encode(sha256(convert_to($5,'UTF8')),'hex'))`,[eCanonical,eSource,company,eHash,JSON.stringify(sourceFunction)])
+await db.query(`INSERT INTO public.synthetic_source_function VALUES($1,$2,$3,$4,true),($1,$2,$3,$5,false)`,[company,eSource,eCanonical,object,badObject])
 const insertTransition=async()=>db.query(`INSERT INTO gridex_customer_life_events.transitions VALUES($1,$2,$3,'death','[]',$4,$5,$6,$7,$8,$9,clock_timestamp(),clock_timestamp())`,[eSource,company,eHash,[resultCustomer],[{point:object.objectId,identityAgency:'9'}],approved,legal,eCanonical,actor])
 const insertVersion=async()=>db.query(`INSERT INTO gridex_customer_life_events.customer_versions VALUES($1,$2,1,$3,'{}',$4,$5,clock_timestamp())`,[company,customer,eSource,resultCustomer,eBusiness.effectiveAt])
 const insertAssessment=async(facts=eFacts,oid=eOwner)=>db.query(`INSERT INTO gridex_received_sources.object_assessments(id,source_message_id,company_id,environment,source_payload_hash,canonical_assessment_id,previous_assessment_id,facts_text,facts_hash) VALUES($1,$2,$3,'test',$4,$5,NULL,$6,encode(sha256(convert_to($6,'UTF8')),'hex'))`,[oid,eSource,company,eHash,eCanonical,facts])
@@ -157,6 +175,9 @@ check((await db.query(`SELECT gridex_customer_life_events.owner_proof_consistent
 await rejects(insertAssessment(JSON.stringify({objects:[{...eEntry,business:{...eBusiness,customerVersion:2}},{object:badObject,disposition:'rejected'}]})),/own_effect_unavailable/)
 await db.query(`UPDATE public.synthetic_application SET accepted=false WHERE source_id=$1`,[eSource]);await rejects(insertAssessment(),/own_effect_unavailable/)
 await db.query(`UPDATE public.synthetic_application SET accepted=true WHERE source_id=$1`,[eSource])
+await db.query(`UPDATE public.synthetic_source_function SET accepted=false WHERE source_id=$1`,[eSource]);await rejects(insertAssessment(),/own_effect_unavailable/)
+await db.query(`UPDATE public.synthetic_source_function SET accepted=true WHERE source_id=$1 AND object_scope=$2`,[eSource,object])
+check((await db.query(`SELECT facts_text::jsonb->>'functionalDecision' AS decision FROM gridex_received_sources.validation_assessments WHERE id=$1`,[eCanonical])).rows[0].decision,'manual_review')
 await db.exec('BEGIN;');await insertAssessment();check(await eRead(),null);await db.exec('COMMIT;')
 const ePlan=await eRead();check(ePlan.responseFacet.objects[0].outcome,'positive');check(ePlan.responseFacet.objects[1].outcome,'negative')
 check(ePlan.responseFacet.responses.find(e=>e.lineIndex===badLin.index),eFacet.responses[0])
@@ -169,6 +190,7 @@ check((await db.query(`SELECT gridex_ediel_outbound_owner.prepare_v1($1) AS resu
 await db.query("INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,execution_context_snapshot) VALUES($1,$2,'test','outbound','edifact','APERAK','APERAK',$3,$4)",[eAck,company,eAckRaw,{outboundOwnerWitnessId:eWitness}])
 const eBound=async()=>(await db.query(`SELECT gridex_ediel_ack_guide.bound_prodat_response_v1(m,s) AS facet FROM public.ediel_messages m,public.ediel_messages s WHERE m.id=$1 AND s.id=$2`,[eAck,eSource])).rows[0].facet
 check((await eBound()).responses,ePlan.responseFacet.responses)
+await db.query(`UPDATE public.synthetic_source_function SET accepted=false WHERE source_id=$1`,[eSource]);check((await eBound()).responses,ePlan.responseFacet.responses)
 await db.query(`UPDATE gridex_received_sources.prodat_response_facets SET response_facts_text=$1 WHERE assessment_id=$2`,[JSON.stringify({...eFacet,responses:[]}),eCanonical]);check((await eBound()).responses,ePlan.responseFacet.responses)
 await rejects(db.exec("UPDATE gridex_received_sources.customer_primary_response_receipts SET customer_version=2"),/received_source_evidence_is_append_only/)
 await rejects(db.exec('DELETE FROM gridex_received_sources.customer_primary_response_receipts'),/received_source_evidence_is_append_only/)
@@ -180,4 +202,4 @@ await db.query(`INSERT INTO gridex_received_sources.structural_object_apply_rece
 // No generic F/G receipt existed above; insert a declared forged history fixture.
 await db.query(`INSERT INTO gridex_received_sources.structural_object_apply_receipts VALUES($1,$2,$3,'test',$4,$5,$6,$7,clock_timestamp(),'2026-10-02T11:00:00Z',$8,$9) ON CONFLICT DO NOTHING`,[eSource,registers[0].segmentIndex,company,eHash,eCanonical,eOwner,actor,object,{object,wire,bogus:true}])
 await rejects(eRead(),/customer_primary_response_own_effect_required/);check((await eBound()).responses,ePlan.responseFacet.responses)
-await db.close();console.log(`PASS ${checks}: focused E primary committed customer-version→own final response and immutable binding; source classifier/guide/prepare boundaries declared synthetic. Native/replay/authentic legal acceptance NOT RUN.`)
+await db.close();console.log(`PASS ${checks}: focused E primary committed customer-version→own final response and immutable binding; classifier/function/app/guide/prepare ports declared synthetic; real committed transition/current owner proof/final capture and old binding exercised. Native/replay/authentic legal acceptance NOT RUN.`)
