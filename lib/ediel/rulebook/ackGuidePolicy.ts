@@ -225,16 +225,21 @@ export function validateCanonicalAckGuide(input:{policy:CanonicalEdielPolicy;raw
   }else{
    if(one(references(wire,header,'ACW'))!==value(source,sourceBgm,2))add('ACK_PRODAT_ORIGINAL_DOCUMENT_MISMATCH','ACW ska kopiera ursprungligt BGM/1004.','RFF/A255')
    const objects=prodatRegisterGroups(source.segments,source.una,value(source,sourceBgm,1)).groups.filter(object=>object.registerPosition===1)
-   const answered=new Set<string>()
+   // P pp85–87, authenticated original relevant-page excerpt, permits replies
+   // per own installation in multiple APERAK messages.
+   // Native immutable own response receipts qualify each actual final scope;
+   // siblings omitted from this wire cannot be inferred accepted or rejected.
+   const outcomes=new Map<number,boolean>()
    for(const group of groups){
     const li=one(references(wire,group,'LI')),objectId=one(references(wire,group,'Z07')),matches=objects.filter(object=>li?references(source,object.segments,'LI').includes(li):objectId?value(source,object.segments[0],3)===objectId:false)
     if(functionCode==='27'&&!li&&!objectId)continue
     if(matches.length!==1){add('ACK_PRODAT_OWN_OBJECT_SCOPE_MISMATCH','ERC ska avse en entydig egen anläggning i ursprungsmeddelandet.','RFF/A209/A226');continue}
     const original=matches[0],physicalId=segmentComposite(original.segments[0],3,source.una)[0]??'',originalLi=one(references(source,original.segments,'LI'))
     if(originalLi!==li||(physicalId&&objectId!==physicalId&&!(value(wire,group[0],1)==='100'&&value(source,sourceBgm,1)==='Z13')))add('ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH','Kända ursprungliga objekt- och ärendereferenser ska kopieras utan syskonbyte.','RFF/A209/A226')
-    answered.add(String(original.lineIndex))
+    const positive=value(wire,group[0],1)==='100',prior=outcomes.get(original.lineIndex)
+    if(prior!==undefined&&prior!==positive)add('ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT','Samma ursprungliga anläggning får inte samtidigt godkännas och avvisas.','ERC')
+    outcomes.set(original.lineIndex,positive)
    }
-   if(functionCode==='34'&&objects.some(object=>!answered.has(String(object.lineIndex))))add('ACK_PRODAT_OBJECT_OUTCOME_MISSING','Ett bearbetat PRODAT ska besvaras för varje egen anläggning i samma APERAK.','ERC')
   }
   for(const [own,opposite] of utilts?[['MS','MR'],['MR','MS']]:[['FR','DO'],['DO','FR']]){
    const original=sourceHeader.filter(t=>t.tag==='NAD'&&value(source,t,1)===opposite),actual=header.filter(t=>t.tag==='NAD'&&value(wire,t,1)===own)

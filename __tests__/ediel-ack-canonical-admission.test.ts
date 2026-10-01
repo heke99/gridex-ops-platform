@@ -18,7 +18,7 @@ const uSource=()=>wire('UTILTS',['BGM+E66+SOURCEDOC+9','NAD+MS+LEGAL_S:SVK:260',
 const pSource=()=>wire('PRODAT',['BGM+Z03+SOURCEDOC+9','NAD+FR+LEGAL_S:160:SVK+++++++SE','NAD+DO+LEGAL_R:160:SVK+++++++SE','LIN+1++POINT1:SVK:260','RFF+LI:LI1','CCI++Z13','CAV+Z22','LIN+2++POINT2:SVK:260','RFF+LI:LI2','CCI++Z13','CAV+Z22'],true,true)
 const date=['DTM+137:202609301200:203','DTM+735:?+0100:406']
 const uAck=(status='312',code='100',text='OK')=>wire('APERAK',[`BGM+${status}+ACKDOC+9`,...date,'DOC+E66::260+SOURCEDOC','NAD+MS+LEGAL_R:SVK:260','NAD+MR+LEGAL_S:SVK:260',`ERC+${code}::260`,code==='100'?`FTX+AAO+++${text}`:`FTX+AAO++209::260+${text}`,'RFF+DM:ACKT','RFF+ACW:T1'])
-const pAck=(second=true)=>wire('APERAK',['BGM+APERAK+ACKDOC+34',date[0],'RFF+ACW:SOURCEDOC','NAD+FR+LEGAL_R:160:SVK+++++++SE','NAD+DO+LEGAL_S:160:SVK+++++++SE','ERC+100::260','FTX+AAO+++OK','RFF+Z07:POINT1','RFF+LI:LI1',...(second?['ERC+42::260','FTX+AAO++260::260+Felaktigt Nätområdesid BAD','RFF+Z07:POINT2','RFF+LI:LI2']:[])],false,true)
+const pAck=(second=true)=>wire('APERAK',['BGM+++34',date[0],'RFF+ACW:SOURCEDOC','NAD+FR+LEGAL_R:160:SVK+++++++SE','NAD+DO+LEGAL_S:160:SVK+++++++SE','ERC+100::260','FTX+AAO+++OK','RFF+Z07:POINT1','RFF+LI:LI1',...(second?['ERC+42::260','FTX+AAO++260::260+Felaktigt Nätområdesid BAD','RFF+Z07:POINT2','RFF+LI:LI2']:[])],false,true)
 const row=(raw:string,family:'CONTRL'|'APERAK'|'PRODAT'='APERAK',direction:'inbound'|'outbound'='inbound')=>({id:direction==='inbound'?ackId:sourceId,company_id:company,environment:'test',direction,message_standard:'edifact',message_family:family,message_code:family,raw_payload:raw,message_received_at:'2026-09-30T12:00:00Z',created_at:'2026-09-30T12:00:00Z',message_sent_at:direction==='outbound'?'2026-09-30T11:00:00Z':null,immutable_rendered_at:direction==='outbound'?'2026-09-30T10:00:00Z':null,parsed_payload:{}}) as unknown as EdielMessageRow
 const pack=()=>({rulePackId:'40000000-0000-4000-8000-000000000001',messageProfileId:'50000000-0000-4000-8000-000000000001',profileKey:'synthetic-original-profile',version:'original-version-at-send',sourceHash:'a'.repeat(64),snapshot:{version:'original-version-at-send',rulePack:{id:'40000000-0000-4000-8000-000000000001',source_hash:'a'.repeat(64),family:'UTILTS',guide_version:'25-A-3',guide_revision:'3'},messageProfile:{id:'50000000-0000-4000-8000-000000000001',rule_pack_id:'40000000-0000-4000-8000-000000000001'},guideSources:[]}})
 const qualified=(raw=uSource())=>({version:1,sourceMessage:row(raw,'PRODAT','outbound'),sourceRulePackEvidence:pack()})
@@ -49,9 +49,18 @@ describe('actual source-bound ACK canonical admission, synthetic immutable port 
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(row(uAck()))
   expect(decision.applicationDecision).toBe('manual_review');expect(decision.responsePlan.some(response=>response.family==='APERAK')).toBe(false);expect(io.rulePack).not.toHaveBeenCalled()
  })
- it('checks own P objects independently and requires every processed original object',()=>{
-  expect(guide(pAck(false),pSource()).some(issue=>issue.code==='ACK_PRODAT_OBJECT_OUTCOME_MISSING')).toBe(true)
+ it('accepts a source-qualified own P subset without inferring omitted sibling outcomes',()=>{
+  expect(guide(pAck(false),pSource())).toEqual([])
+  const negativeOnly=pAck().replace("ERC+100::260'FTX+AAO+++OK'RFF+Z07:POINT1'RFF+LI:LI1'",'')
+  expect(guide(negativeOnly,pSource())).toEqual([])
+ })
+ it('keeps exact own P references and rejects opposite outcomes for the same original object',()=>{
   expect(guide(pAck().replace('RFF+Z07:POINT2','RFF+Z07:POINT1'),pSource()).some(issue=>issue.code==='ACK_PRODAT_OWN_OBJECT_REFERENCE_MISMATCH')).toBe(true)
+  const opposite=pAck().replace('RFF+Z07:POINT2','RFF+Z07:POINT1').replace('RFF+LI:LI2','RFF+LI:LI1')
+  expect(guide(opposite,pSource()).some(issue=>issue.code==='ACK_PRODAT_OWN_OBJECT_OUTCOME_CONFLICT')).toBe(true)
+  const repeatedNegative=pAck().replace('ERC+100::260\'FTX+AAO+++OK','ERC+42::260\'FTX+AAO++260::260+Felaktigt Nätområdesid BAD')
+    .replace('RFF+Z07:POINT2','RFF+Z07:POINT1').replace('RFF+LI:LI2','RFF+LI:LI1')
+  expect(guide(repeatedNegative,pSource())).toEqual([])
  })
  it('rejects foreign physical original transaction despite parsed source pointers',async()=>{
   const m=row(uAck().replace('RFF+ACW:T1','RFF+ACW:FOREIGN'));m.related_message_id=sourceId
