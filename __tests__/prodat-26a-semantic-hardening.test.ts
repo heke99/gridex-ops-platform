@@ -153,18 +153,20 @@ describe('PRODAT 26.A semantic hardening', () => {
       businessContext: 'death',
     })).toMatchObject({ ok: true, customerStatusRequired: true, bilateralRequired: false })
 
+    // Current owner (P-09, PC-310-Z09): field310 stays death-only; other Z09E
+    // use requires the exact source-supported bilateral process.
     expect(resolveProdatBusinessContext({
       messageCode: 'Z09',
       subtypeOrReasonCode: 'E',
       businessContext: 'identity_change',
-    })).toMatchObject({ ok: false, bilateralRequired: false })
+    })).toMatchObject({ ok: false, bilateralRequired: true, customerStatusRequired: false })
 
     expect(resolveProdatBusinessContext({
       messageCode: 'Z09',
       subtypeOrReasonCode: 'E',
       businessContext: 'identity_change',
       bilateralCapabilityVerified: true,
-    })).toMatchObject({ ok: false, bilateralRequired: false })
+    })).toMatchObject({ ok: true, bilateralRequired: true, customerStatusRequired: false })
   })
 
   it('treats Z05C and Z15C as reversals instead of terminations', () => {

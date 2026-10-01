@@ -51,7 +51,7 @@ it('loads the native terminal source and preserves the immediate failed original
 })
 it('uses only SEND for the actual sender after exact new-message/hash qualification',async()=>{
  const result=await loadServicePermissionMessageOrigin(next,id(3));expect(result?.originalMessage.id).toBe(immediate.id)
- expect(io.actor.mock.calls.every(([call])=>call.permissionAnyOf?.join(',')==='ediel.send,communication.send')).toBe(true)
+ expect(io.actor.mock.calls.every(([call])=>call.permission==='communication.send'&&call.permissionAnyOf===undefined)).toBe(true)
  expect(io.rpc).toHaveBeenCalledWith('ediel_service_permission_message_basis_v1',{p_company_id:id(1),p_message_id:root.id,p_actor_user_id:id(3),p_phase:'send'})
 })
 it('does not discover aliases from parsed claims or guess a missing terminal selector',async()=>{
@@ -85,7 +85,9 @@ it('builds real reporting context from the terminal private service intent while
 })
 it('revalidates a second correction with the same source proof and SEND-only phase',async()=>{
  const result=await loadServiceReportingValidationContext(next,id(3));expect(result?.objects[0].li).toBe('OWN-LI')
- expect(io.actor.mock.calls.every(([call])=>call.permissionAnyOf?.join(',')==='ediel.send,communication.send')).toBe(true)
+ const grants=io.actor.mock.calls.map(([call])=>call.permissionAnyOf??[call.permission])
+ expect(grants.every((grant:string[])=>grant.includes('communication.send')&&grant.every(value=>value==='ediel.send'||value==='communication.send'))).toBe(true)
+ expect(io.actor).toHaveBeenCalledWith({companyId:id(1),actorUserId:id(3),permission:'communication.send'})
 })
 it('holds changed protected reporting evidence and stale actual correction bytes',async()=>{
  next.parsed_payload.prodatEngine={registerEvidence:{facts:{reportingPermission:{forged:true}}}}
