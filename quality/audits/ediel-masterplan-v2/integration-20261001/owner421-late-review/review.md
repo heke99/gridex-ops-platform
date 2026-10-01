@@ -1,0 +1,11 @@
+# Read-only later #421 source-owner review
+
+Reviewed exact protected owner `3c7342c64c83b705e85c18f300705166a1732ad6`, last seven commits after `5c28d982`, against public033 and current root read snapshot recorded in review.json. Exact old owner `8052ebff1dd3746d0b4664b5f2533164a3497ae7` is an ancestor. The earlier shorthand8052ce0a was incorrect and is not used as evidence. This is no protected-ref, runtime or migration mutation.
+
+All four later intent groups are absent from the inspected root: approved customer-event recovery lineage; established PRODAT source-only/current execution phases; terminal current service recovery source; separate AI legal header/technical transport tuples with own immutable replay. Exact file/blob comparisons and hunk owner coordination are in review.json. Different bytes are a merge signal, not automatic semantic approval. Already integrated broader ancestor packages must not be reapplied.
+
+Two concrete integration hazards require composition. Incoming service permissionOrigin removes the existing captured timing assertion and requestTiming field. Incoming62832 expects an older requested-method context body, whereas the authentic033 installed context invokes current_request_timing_v1 and context_before_source_timing_v1 and returns the immutable requestTiming proof. A blind import fails its shape guard; replacing the current wrapper loses actual timing authority. Both phase forwards also gate prepare on communication.write, absent from the actual canonical catalog. The already corrected reception failure shows why a synthetic permission-key stub cannot prove this path.
+
+Preserve all later source/issuer/observation/fullgrammar/atomicACK/privacy/currentAuth and DENY consumers. Keep the original incoming published SQL bytes/history immutable. Compose compatible native phase/current-source authority and source lineage under explicit single file ownership, then test actual catalog and current source graph before considering the candidate frozen. AI thirdparty mandate remains explicitly held where no authenticated real mandate producer exists.
+
+No incoming tests/native/browser/exact-head CI were run by this review, and no whole criterion is approved.
