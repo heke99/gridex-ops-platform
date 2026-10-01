@@ -83,4 +83,8 @@ const continuation=String.raw`
  console.log(JSON.stringify({status:'PASS',checks,scope:'complete LK forward, real archive/review/current operation and atomic original over declared exact prior-supply/provider/canonical ports',native:'NOT_RUN',wholeCriterion:'NOT_APPROVED'}));
 }finally{await db.close()}
 `
-await new(Object.getPrototypeOf(async function(){}).constructor)('readFileSync','existsSync','resolve','pathToFileURL','createHash','createHmac','assert',prior.slice(start,end).replace('import.meta.url)',JSON.stringify(priorUrl.href)+')')+continuation)(fixtureReadFile,existsSync,resolve,pathToFileURL,createHash,createHmac,assert).catch(e=>{console.error({message:e.message,code:e.code,where:e.where,position:e.position,query:e.query?.slice(0,350),internalQuery:e.internalQuery,stack:e.stack});process.exitCode=1})
+export async function runClosureSqlRegression(beforeEnd=''){
+ const diagnostic=continuation.replace(' const endCounts=',beforeEnd+'\n const endCounts=')
+ await new(Object.getPrototypeOf(async function(){}).constructor)('readFileSync','existsSync','resolve','pathToFileURL','createHash','createHmac','assert',prior.slice(start,end).replace('import.meta.url)',JSON.stringify(priorUrl.href)+')')+diagnostic)(fixtureReadFile,existsSync,resolve,pathToFileURL,createHash,createHmac,assert)
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href)await runClosureSqlRegression().catch(e=>{console.error({message:e.message,code:e.code,where:e.where,position:e.position,query:e.query?.slice(0,350),internalQuery:e.internalQuery,stack:e.stack});process.exitCode=1})

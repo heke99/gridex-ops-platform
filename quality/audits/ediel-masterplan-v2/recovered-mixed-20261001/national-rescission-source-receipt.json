@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "candidateBase": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "prerequisites": [
+    "48f33677",
+    "15d5b191"
+  ],
+  "criterionScope": [
+    "AT-Z08H-SUPPLIER",
+    "P13",
+    "P16"
+  ],
+  "wholeCriterionStatus": "NOT_APPROVED",
+  "implementation": "National legal rescission ORIGINAL archive, designated issuer/representation/HMAC/prerequisite receipt, separate current qualified source-clause review and immutable own scoped mandate. No national H original, send or matched L end is produced by this packet.",
+  "purpose": "national_prodat_z08h_legal_rescission",
+  "newOriginalFamily": "national_supply_rescission_ground_original",
+  "custody": "gridex_supply_rescission.artifacts.source_bytes with source_hash and own company/environment/id, no duplicate contract PDF",
+  "sourceCurrentness": "receipt_current_v1 requires original bytes and exact hash/scope/authentic receipt. mandate_current_v1 requires current uploader/reviewer permissions, issuer/representation nonrevocation, current legal sender/DSO graph, exact contract hash; fresh also rechecks actual own supply/national source grammar and UTC+01 standard calendar cutoff.",
+  "expected": [
+    "archive does not create market effects or outgoing original",
+    "unsigned or incorrect-purpose/prerequisite issuer holds",
+    "only independent qualified reviewer and actual original clause can create legal mandate",
+    "last audit failure rolls review/mandate back atomically",
+    "legal mandate replay stays immutable; current DENY/issuer revocation holds further authority"
+  ],
+  "prohibited": [
+    "payment or bankruptcy flag must not establish legal rescission",
+    "LK/Bilateral profile cannot establish national H mandate",
+    "caller approved/company/actor/clause claims cannot bypass native owner",
+    "legal source review must not directly end period or originate message"
+  ],
+  "verification": {
+    "baselineRed": "AT-Z08H lacks authenticated national legal rescission source producer",
+    "boundedSql": {
+      "status": "PASS",
+      "totalChecks": 46,
+      "HSourceStageChecks": 15,
+      "boundary": "PGlite complete mandate forward+real archive/review/current native namespace and previous LK original/end bodies over explicitly finite prior supply/canonical/provider fixture and synthetic designated issuer configuration",
+      "nativeLegalApproval": "NOT_CLAIMED"
+    },
+    "strictHttpUnit": {
+      "status": "PASS",
+      "tests": 11,
+      "boundary": "finite authenticated server/RPC response decoder; real strict body/bytes/hash/current company binding, not actual live login/native legal proof"
+    },
+    "scriptsTypecheck": "PASS",
+    "targetedHttpTypes": "PASS",
+    "diffCheck": "PASS",
+    "native": {
+      "status": "NOT_RUN",
+      "suite": "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+      "newTests": 2,
+      "pipeline": "actual signed contract/PDF/POA→first H original→local provider→whole H Z04→qualified own supply→national archive/designated synthetic issuer→independent reviewer/native mandate and current DENY or last audit rollback"
+    },
+    "browser": "NOT_RUN",
+    "exactHeadCI": "PENDING_ROOT_INTEGRATION"
+  },
+  "remainingInternal": [
+    "source-qualified national H atomic original/witness/intent must be implemented next",
+    "fresh native transport mandate/cutoff guard and matched actual sent H→own Z05L end receipt/consumer remain next",
+    "new admin source/operation UI and interactive genuine browser fixture remain",
+    "own retention class allocation and protected purge consumer for new original family remain"
+  ],
+  "externalProductionFacts": [
+    "Actual authenticated specific legal decision and completed legal prerequisites for the owned contract/customer/period are required; synthetic keys and native fixtures do not establish these facts",
+    "Real Ediel/counterparty qualification is unperformed and forbidden traffic remains disabled"
+  ]
+}

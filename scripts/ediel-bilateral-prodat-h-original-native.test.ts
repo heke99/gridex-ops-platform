@@ -1,4 +1,4 @@
-import {randomUUID} from 'node:crypto'
+import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const provider=vi.hoisted(()=>vi.fn())
@@ -19,6 +19,7 @@ import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {prepareBilateralClosureOperation} from '@/lib/ediel/production/bilateralProdatClosureOperation'
 import {prepareAndQueueBilateralClosureZ08} from '@/lib/ediel/flows/prodatBilateralClosure'
+import {readSupplyRescissionScope,archiveSupplyRescission,reviewSupplyRescission,readSupplyRescissionBytes} from '@/lib/ediel/production/supplyRescissionIntake'
 /** Genuine internal contract/signature/PDF/POA, intent/original and local SMTP
  * owner chain. Bilateral issuer/legal facts are synthetic fixture boundaries;
  * no real bilateral agreement, customer authentication or Ediel approval claim. */
@@ -165,4 +166,27 @@ it('last LK audit failure rolls back matched period end/version, captured origin
  const f=await receivedLkEnd(true),before=lkEffects(f),constraint=`lk_last_${randomUUID().replaceAll('-','')}`
  sql(`ALTER TABLE public.audit_logs ADD CONSTRAINT ${constraint} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND action='ediel.bilateral_profile.closure_applied')) NOT VALID`)
  try{await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(lkEffects(f)).toEqual(before)}finally{sql(`ALTER TABLE public.audit_logs DROP CONSTRAINT ${constraint}`)}
+},120000)
+
+async function nationalRescissionArtifact(){
+ const f=await receivedHStart();await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
+ const periodId=sql<string>(`SELECT to_jsonb(id) FROM public.customer_supply_periods WHERE company_id=${literal(f.companyId)} AND source_message_id=${literal(f.sourceId)}`),rulePackId=sql<string>(`SELECT to_jsonb(pack.id) FROM public.ediel_rule_packs pack WHERE pack.family='PRODAT' AND pack.guide_version='26.A' AND pack.guide_revision='3' AND pack.status='active' AND(SELECT count(*) FROM public.ediel_message_profiles profile WHERE profile.rule_pack_id=pack.id AND profile.is_enabled AND(profile.profile_key='PRODAT:Z08:H:26.A:r3' OR profile.profile_key='PRODAT:Z05:L:26.A:r3'))=2`),selector={environment:'test' as const,supplyPeriodId:periodId,effectiveAt:'2026-10-16T12:30:00Z',rulePackId},scope=await readSupplyRescissionScope({companyId:f.companyId,actorUserId:f.actorUserId,...selector})
+ expect(scope.status,JSON.stringify(scope)).toBe('scoped')
+ const bytes=Buffer.from('SYNTHETIC LEGAL ORIGINAL: actual prerequisites completed; requested own contract rescission. NOT REAL LEGAL CLAIM.'),source={bytesBase64:bytes.toString('base64'),mimeType:'text/plain' as const,reference:'SYNTHETIC NATIONAL RESCISSION ORIGINAL',version:'1'},keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC national rescission issuer configured native fixture only'),dso=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)
+ sql(`INSERT INTO gridex_supply_rescission.issuer_keys VALUES(${literal(keyId)},${literal(f.companyId)},'test','SYNTHETIC','DECLARED MECHANISM BOUNDARY NOT REAL LEGAL CLAIM',${literal('a'.repeat(64))},decode(${literal(key.toString('hex'))},'hex'),'2000-01-01','2100-01-01');INSERT INTO gridex_supply_rescission.issuer_representations VALUES(${literal(representationId)},${literal(f.companyId)},'test',${literal(keyId)},${literal(f.actorUserId)},${literal(dso)},${literal(f.gridAreaCode)},'SYNTHETIC REPRESENTATION',${literal('b'.repeat(64))},'2000-01-01','2100-01-01');INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.reviewer)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key='ediel.supply_rescission.review';`)
+ const issued=new Date(Date.now()-1000).toISOString(),payload=Buffer.from(JSON.stringify({format:'ediel_national_supply_rescission_receipt_v1',purpose:'national_prodat_z08h_legal_rescission',issuerCode:'SYNTHETIC',receiptId:randomUUID(),companyId:f.companyId,environment:'test',scope:scope.scope,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceReference:source.reference,sourceVersion:'1',legalCaseReference:'SYNTHETIC CASE',legalDecisionReference:'SYNTHETIC DECISION',legalPrerequisitesReference:'SYNTHETIC PREREQUISITES',legalPrerequisitesCompletedAt:issued,issuedAt:issued,expiresAt:'2099-01-01T00:00:00Z'})),submission={...selector,source,issuerReceipt:{keyId,representationId,payloadBase64:payload.toString('base64'),signatureHex:createHmac('sha256',key).update(payload).digest('hex')}},artifact=await archiveSupplyRescission({companyId:f.companyId,actorUserId:f.actorUserId,...submission}),review={sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve' as const,reason:'Independent review of actual synthetic original and completed legal prerequisites; no real legal approval',sourceClauseLocator:'Original sentence 1',sourceClauseQuote:'actual prerequisites completed; requested own contract rescission.'}
+ expect(artifact.status,JSON.stringify(artifact)).toBe('archived');return{...f,periodId,bytes,artifactId:String(artifact.artifactId),review}
+}
+it('genuine signed-contract/accepted H supply feeds a separate authenticated national legal original and independent source-clause review; a legal mandate itself neither originates Z08 nor ends supply',async()=>{
+ const f=await nationalRescissionArtifact(),before=counts(f),approved=await reviewSupplyRescission({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId,...f.review})
+ expect(approved.status,JSON.stringify(approved)).toBe('authorized');expect(counts(f)).toEqual(before)
+ expect((await readSupplyRescissionBytes({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId})).bytes).toEqual(f.bytes)
+ const basis=sql<{owner:string;periodId:string}>(`SELECT public.ediel_read_supply_rescission_mandate_v1(${literal(f.companyId)},${literal(f.actorUserId)},${literal(approved.mandateId)})`);expect(basis.owner).toBe('immutable-national-supply-rescission-mandate-v1');expect(basis.periodId).toBe(f.periodId)
+ sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
+ expect(sql(`SELECT public.ediel_read_supply_rescission_mandate_v1(${literal(f.companyId)},${literal(f.actorUserId)},${literal(approved.mandateId)})`)).toBeNull();expect(counts(f)).toEqual(before)
+},120000)
+it('last national legal-mandate audit failure rolls back its independent review and mandate without changing own supply or making a new original',async()=>{
+ const f=await nationalRescissionArtifact(),before=counts(f),constraint=`national_h_source_last_${randomUUID().replaceAll('-','')}`
+ sql(`ALTER TABLE public.audit_logs ADD CONSTRAINT ${constraint} CHECK(NOT(company_id=${literal(f.companyId)}::uuid AND action='ediel.supply_rescission.mandate_created')) NOT VALID`)
+ try{await expect(reviewSupplyRescission({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId,...f.review})).rejects.toThrow();expect(counts(f)).toEqual(before);expect(sql(`SELECT jsonb_build_object('mandates',(SELECT count(*) FROM gridex_supply_rescission.mandates WHERE company_id=${literal(f.companyId)}),'reviews',(SELECT count(*) FROM gridex_supply_rescission.reviews WHERE company_id=${literal(f.companyId)}))`)).toEqual({mandates:0,reviews:0})}finally{sql(`ALTER TABLE public.audit_logs DROP CONSTRAINT ${constraint}`)}
 },120000)
