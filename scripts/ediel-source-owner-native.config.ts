@@ -52,5 +52,6 @@ export default defineConfig({
     'scripts/ediel-inbound-reception-actual-columns-native.test.ts',
     'scripts/ediel-retention-grant-native-clock-native.test.ts',
     'scripts/ediel-prodat-object-batch-current-source-native.test.ts',
+    'scripts/ediel-original-source-intake-native.test.ts',
   ],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })
