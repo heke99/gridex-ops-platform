@@ -3,6 +3,11 @@ import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import assert from 'node:assert/strict'
 import { buildReceivedSourceValidationEvidence as build } from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import { COMPANY, OTHER, row } from '@/__tests__/helpers/receivedSourceInventoryFixtures'
+import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
+import {buildReceivedUtiltsHeaderValidation} from '@/lib/ediel/core/receivedUtiltsHeaderValidation'
+import {buildReceivedUtiltsTransactionValidation} from '@/lib/ediel/core/receivedUtiltsTransactionValidation'
 
 type Input = Parameters<typeof build>[0]
 function fixture(): Input {
@@ -94,4 +99,14 @@ test('an ACK facet never grants a PRODAT structural register handoff',()=>{
  input.original.message_family='APERAK';input.validated.message_family='APERAK';input.original.execution_context_snapshot={receivedAckContext:snapshot.receivedProdatContext}
  Object.assign(input.decision,{prodatRegisterValidation:{}})
  assert.equal(build(input),null)
+})
+test('the additive actual header facet remains outside frozen canonical facts and requires negative complete own IDE scope',()=>{
+ const message=energyHandoffMessage('2026-10-01',COMPANY);message.raw_payload=message.raw_payload!.replace('BGM+E66::260','BGM+E66::BAD')
+ const runtime=runUtiltsRuntimeForMessage(message),input=fixture(),context={version:1,contextOrigin:'database_insert',sourceMessageId:OTHER,companyId:COMPANY,environment:'test',messageCode:'E66',payloadHash:evidenceHash(message.raw_payload),sourceReceivedAt:message.message_received_at,capturedAt:'2026-10-01T20:00:00Z'}
+ input.original={...message,id:OTHER,execution_context_snapshot:{receivedUtiltsContext:context}};input.validated=structuredClone(input.original)
+ Object.assign(input.decision,{syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'accepted',utiltsTransactionValidation:buildReceivedUtiltsTransactionValidation({source:message,transactions:runtime.transactionDispositions}),utiltsHeaderValidation:buildReceivedUtiltsHeaderValidation({source:message,headerRejection:runtime.ackPlan.utiltsHeaderRejection})})
+ const evidence=build(input);assert.ok(evidence);assert.deepEqual(evidence.utiltsHeaderValidation?.applicationErrors,[{ercCode:'42',fieldCode:'202',text:'INCORRECT DATA BAD'}]);assert.equal(Object.hasOwn(JSON.parse(evidence.factsText),'utiltsHeaderValidation'),false)
+ input.decision.applicationDecision='accepted';assert.equal(build(input),null)
+ input.decision.applicationDecision='rejected';input.decision.syntaxDecision='rejected';assert.equal(build(input),null)
+ input.decision.syntaxDecision='accepted';(input.decision.utiltsHeaderValidation as {sourcePayloadHash:string}).sourcePayloadHash='0'.repeat(64);assert.equal(build(input),null)
 })

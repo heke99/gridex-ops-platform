@@ -455,6 +455,7 @@ function applyUtiltsIdeGuide(message: EdielMessageRow, result: UtiltsRuntimeResu
       description: `IDE/7495 ${missing ? 'saknas' : 'måste vara 24'}.`,
       aperakErcCode: missing ? '41' : '42', aperakFieldCode: '505',
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      aperakInvalidOccurrence:{segmentIndex:observed.segmentIndex,elementIndex:1,componentIndex:0},
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
     })
   }
@@ -495,6 +496,7 @@ function applyUtiltsGridAreaGuide(message: EdielMessageRow, result: UtiltsRuntim
         description: `LOC+${location}/C517 måste innehålla tre tecken, SVK och 260.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: fieldCode,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:codeList!=='SVK' ? 1 : agency!=='260' ? 2 : 0},
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }
@@ -563,6 +565,7 @@ function applyUtiltsSuppliedRegulatingObjectGuide(message: EdielMessageRow, resu
       description: !value ? 'LOC+175/C517/3225 saknas.' : missing ? 'LOC+175/C517/3055 saknas.' : invalid ? 'LOC+175/C517/3055 måste vara 9 eller 89.' : 'LOC+175/C517/3225 har ogiltig GS1-kontrollsiffra.',
       aperakErcCode: missing ? '41' : '42', aperakFieldCode: '533',
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:invalid ? 2 : 0},
       referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
     })
   }
@@ -613,6 +616,7 @@ function applyUtiltsSuppliedMeteringPointGuide(message: EdielMessageRow, result:
         description: 'LOC+172/C517 kräver anläggningsid med byråkod 9 eller 89 och giltig GS1-kontrollsiffra när 9 används.',
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: '209',
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:invalidAgency ? 2 : 0},
         referenceQualifier: 'ACW', referenceNumber: reference, lineItemReference: reference,
       })
     }

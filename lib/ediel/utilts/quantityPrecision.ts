@@ -4,7 +4,7 @@ import type {UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine.part-1'
 import {canonicalUtiltsTransactions} from './canonicalObservationScope'
 import {utiltsE30StandardEnergyUnit,utiltsPhysicalQuantityUnit} from './quantityUnitScope'
 
-export type UtiltsDecimalGuideViolation={code:string;field:string;description:string;transactionId:string|null;missing:boolean}
+export type UtiltsDecimalGuideViolation={code:string;field:string;description:string;transactionId:string|null;missing:boolean;occurrence:{segmentIndex:number;elementIndex:number;componentIndex:number}}
 function decimals(value:string,una:EdifactServiceStringAdvice):number|null {
   const mark=una.decimalMark
   if(!['.',','].includes(mark) || !new RegExp(`^-?[0-9]+(?:\\${mark}[0-9]+)?$`).test(value)) return null
@@ -18,20 +18,20 @@ export function utiltsDecimalGuideViolations(segments:readonly EdifactTokenizedS
   const issues:UtiltsDecimalGuideViolation[]=[]
   if(start<0) return issues
   for(const transaction of canonicalUtiltsTransactions(segments.slice(start),una,0)) for(const observation of transaction.observations) {
-    const report=(field:string,value:string|undefined,maximum:number|null,length:number)=>{
+    const report=(field:string,value:string|undefined,maximum:number|null,length:number,segmentIndex:number)=>{
       if(value==='NULL' && ['516','517'].includes(field)) return
       const count=value ? decimals(value,una) : null
       if(count!==null && value!.length<=length && (maximum===null || count<=maximum)) return
-      issues.push({code:'UTILTS_DECIMAL_FIELD_INVALID',field,description:`Eget fält ${field} kräver ett ursprungligt decimaltal${maximum===null ? '' : ` med högst ${maximum} decimaler`} enligt U §3.6.4.`,transactionId:transaction.transactionId,missing:!value})
+      issues.push({code:'UTILTS_DECIMAL_FIELD_INVALID',field,description:`Eget fält ${field} kräver ett ursprungligt decimaltal${maximum===null ? '' : ` med högst ${maximum} decimaler`} enligt U §3.6.4.`,transactionId:transaction.transactionId,missing:!value,occurrence:{segmentIndex,elementIndex:1,componentIndex:1}})
     }
     for(const quantity of observation.quantities) {
       const field=quantity.qualifier==='135' ? '515' : quantity.qualifier==='136' ? '516' : quantity.qualifier==='220' ? '517' : quantity.qualifier==='42' ? '521' : null
-      if(field) report(field,quantity.value ?? undefined,null,35)
+      if(field) report(field,quantity.value ?? undefined,null,35,quantity.segmentIndex)
     }
     for(const segment of observation.segments) {
       const parts=segmentComposite(segment,1,una)
-      if(segment.tag==='MOA' && parts[0]==='9') report('522',parts[1],2,35)
-      if(segment.tag==='PRI' && parts[0]==='CAL') report('523',parts[1],6,15)
+      if(segment.tag==='MOA' && parts[0]==='9') report('522',parts[1],2,35,segment.index)
+      if(segment.tag==='PRI' && parts[0]==='CAL') report('523',parts[1],6,15,segment.index)
     }
   }
   return issues
@@ -41,6 +41,7 @@ export function utiltsDecimalGuideIssues(raw:string):UtiltsValidationIssue[] {
   const wire=tokenizeEdifact(raw)
   return utiltsDecimalGuideViolations(wire.segments,wire.una).map(issue=>({severity:'error',kind:'application',code:issue.code,title:'Felaktigt numeriskt fält',description:issue.description,
     aperakErcCode:issue.missing ? '41' : '42',aperakFieldCode:issue.field,aperakText:issue.missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+    aperakInvalidOccurrence:issue.occurrence,
     referenceQualifier:issue.transactionId ? 'ACW' : null,referenceNumber:issue.transactionId,lineItemReference:issue.transactionId}))
 }
 

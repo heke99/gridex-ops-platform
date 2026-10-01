@@ -3,6 +3,7 @@ import { fieldRulesForMessage } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine.part-1'
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from '@/lib/ediel/utilts/timezone'
+import {utiltsApplicationErrorText} from './aperakSourceText'
 
 /** Single source of physical message-header guide findings, also used to
  * qualify header-level ACK serialization. An IDE can never supply a header. */
@@ -29,6 +30,7 @@ export function resolveUtiltsHeaderGuideIssues(
         description: role ? `SG2/NAD/3035 har otillåtet värde ${role}.` : 'SG2/NAD/3035 saknas.',
         aperakErcCode: role ? '42' : '41', aperakFieldCode: '509',
         aperakText: role ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:1,componentIndex:0},
       })
       continue
     }
@@ -50,6 +52,7 @@ export function resolveUtiltsHeaderGuideIssues(
         description: `NAD+${role}/${path} ${missing ? 'saknas' : 'har otillåtet värde'}.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:badAgency ? 2 : 1},
       })
     }
     if (qualifier === 'SVK' && !/^\d{5}$/.test(partyId)) {
@@ -61,6 +64,7 @@ export function resolveUtiltsHeaderGuideIssues(
         description: `NAD+${role}/C082/3039 ska vara fem siffror när 1131=SVK.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:0},
       })
     }
     // UG-122-24: agencies 9/305 identify GS1 parties. Their GLN is 13
@@ -76,6 +80,7 @@ export function resolveUtiltsHeaderGuideIssues(
         description: `NAD+${role}/C082/3039 ska vara ett GLN med giltig GS1-kontrollsiffra.`,
         aperakErcCode: missing ? '41' : '42', aperakFieldCode: field,
         aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+        aperakInvalidOccurrence:{segmentIndex:segment.index,elementIndex:2,componentIndex:0},
       })
     }
   }
@@ -102,6 +107,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: missing ? '41' : '42',
       aperakFieldCode: fieldNumber,
       aperakText: missing ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      ...(market ? {aperakInvalidOccurrence:{segmentIndex:market.index,elementIndex:fieldNumber==='501' ? 1 : 2,componentIndex:invalidAgency ? 2 : 0}} : {}),
     }]
   })
   const ackRule = rules.find(item => item.fieldNumber === '313')
@@ -119,6 +125,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: documentQualifier ? '42' : '41',
       aperakFieldCode: '202',
       aperakText: documentQualifier ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(bgm ? {aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:1,componentIndex:1}} : {}),
     }] : []
   const documentAgency = bgm ? segmentComposite(bgm, 1, wire.una)[2]?.trim() : null
   const documentAgencyIssues = bgm && documentCodeRule?.requirement === 'required' && documentAgency !== '260'
@@ -130,6 +137,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: documentAgency ? '42' : '41',
       aperakFieldCode: '202',
       aperakText: documentAgency ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(bgm ? {aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:1,componentIndex:2}} : {}),
     }] : []
   const documentRule = rules.find(item => item.fieldNumber === '203')
   const documentIdentifier = bgm ? segmentComposite(bgm, 2, wire.una)[0]?.trim() : null
@@ -154,6 +162,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: functionCode ? '42' : '41',
       aperakFieldCode: '204',
       aperakText: functionCode ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(bgm ? {aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:3,componentIndex:0}} : {}),
     }] : []
   const request = bgm ? segmentComposite(bgm, 4, wire.una)[0]?.trim() : null
   const ackIssues = ackRule?.allowedValues?.length && (!request || !ackRule.allowedValues.includes(request))
@@ -165,6 +174,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: request ? '42' : '41',
       aperakFieldCode: '313',
       aperakText: request ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(bgm ? {aperakInvalidOccurrence:{segmentIndex:bgm.index,elementIndex:4,componentIndex:0}} : {}),
     }] : []
   const timezoneRule = rules.find(item => item.fieldNumber === '206')
   const timezoneSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '735')
@@ -181,6 +191,7 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: timezoneValue ? '42' : '41',
       aperakFieldCode: '206',
       aperakText: timezoneValue ? 'INCORRECT DATA' : 'MANDATORY FIELD MISSING',
+      ...(timezoneSegment ? {aperakInvalidOccurrence:{segmentIndex:timezoneSegment.index,elementIndex:1,componentIndex:timezoneParts[2]!=='406' ? 2 : 1}} : {}),
     }] : []
   const dateRule = rules.find(item => item.fieldNumber === '205')
   const dateSegment = wire.segments.find(segment => segment.tag === 'DTM' && segmentComposite(segment, 1, wire.una)[0] === '137')
@@ -203,7 +214,10 @@ export function resolveUtiltsHeaderGuideIssues(
       aperakErcCode: !dateValue ? '41' : '42',
       aperakFieldCode: '205',
       aperakText: !dateValue ? 'MANDATORY FIELD MISSING' : 'INCORRECT DATA',
+      ...(dateSegment ? {aperakInvalidOccurrence:{segmentIndex:dateSegment.index,elementIndex:1,componentIndex:dateFormat!=='203' ? 2 : 1}} : {}),
     }] : []
   const issues = [...nadIssues, ...mksIssues, ...documentQualifierIssues, ...documentAgencyIssues, ...documentIssues, ...functionIssues, ...ackIssues, ...timezoneIssues, ...dateIssues]
-  return issues
+  // This same header authority feeds actual runtime and ACK qualification.
+  // Re-read only the original observed occurrence, never reselect a guide.
+  return issues.map(issue=>({...issue,aperakText:utiltsApplicationErrorText({raw:message.raw_payload ?? '',issue}) ?? issue.aperakText}))
 }

@@ -5,6 +5,7 @@ import { parseInboundUtilts, type ParsedUtiltsMessage } from '@/lib/ediel/utilts
 import { deriveUtiltsSubordinateRole } from '@/lib/ediel/utiltsSubordinateRole'
 import { validateCanonicalUtiltsProfile } from '@/lib/ediel/utilts/profiles'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import {utiltsApplicationErrorText,locateUtiltsSourceOccurrence} from '@/lib/ediel/utilts/aperakSourceText'
 
 export const UTILTS_RUNTIME_ENGINE_VERSION = '2026-06-production-utilts-runtime-v5-object-first-reason-codes'
 
@@ -42,6 +43,7 @@ export type UtiltsValidationIssue = {
   aperakErcCode?: string | null
   aperakFieldCode?: string | null
   aperakText?: string | null
+  aperakInvalidOccurrence?: {segmentIndex:number;elementIndex:number;componentIndex:number}|null
   referenceQualifier?: string | null
   referenceNumber?: string | null
   lineItemReference?: string | null
@@ -121,6 +123,7 @@ export type UtiltsRuntimeUtiltsErrDetail = {
 export type UtiltsRuntimeAckPlan = {
   /** Set only by the canonical physical header guide; never by ACK scope. */
   utiltsHeaderRejection?: { applicationErrors: UtiltsAperakApplicationError[] }
+  aperakSourceTextUnavailable?: true
   shouldSendContrl: boolean
   contrlOutcome: EdielAckOutcome | null
   shouldSendAperak: boolean
@@ -708,13 +711,13 @@ function synthesizedTransactionIssueReference(
   return resolveUtiltsTransactionId(transactionIssueReference(group, fallback), index)
 }
 
-function aperakErrorsFromIssues(issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
+function aperakErrorsFromIssues(message:EdielMessageRow,issues: readonly UtiltsValidationIssue[]): UtiltsAperakApplicationError[] {
   const errors = issues
     .filter((issue) => issue.severity === 'error' && issue.kind === 'application')
     .map((issue) => ({
       ercCode: sanitizeRuntimeToken(issue.aperakErcCode ?? '40', 12) ?? '40',
       fieldCode: normalizedOptionalId(issue.aperakFieldCode),
-      text: issue.aperakText ?? issue.description ?? issue.title,
+      text: utiltsApplicationErrorText({raw:message.raw_payload ?? '',issue}) ?? '',
       referenceQualifier: sanitizeRuntimeToken(issue.referenceQualifier ?? null, 12),
       referenceNumber: normalizedOptionalId(issue.referenceNumber),
       lineItemReference: normalizedOptionalId(issue.lineItemReference ?? issue.referenceNumber),
@@ -1128,6 +1131,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
           aperakErcCode: '42',
           aperakFieldCode: '508',
           aperakText: 'INCORRECT DATA',
+          aperakInvalidOccurrence:locateUtiltsSourceOccurrence({raw:message?.raw_payload ?? '',transactionReference,tag:'DTM',qualifier:'354',elementIndex:1,componentIndex:resolution.value!=='1' ? 1 : 2}),
           referenceQualifier: 'ACW',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
@@ -1145,6 +1149,7 @@ function validateUtiltsFacts(facts: UtiltsRuntimeFacts, message?: EdielMessageRo
           aperakErcCode: '42',
           aperakFieldCode: '245',
           aperakText: 'INCORRECT DATA',
+          aperakInvalidOccurrence:locateUtiltsSourceOccurrence({raw:message?.raw_payload ?? '',transactionReference,tag:'DTM',qualifier:'324',elementIndex:1,componentIndex:deliveryPeriod.format!=='719' ? 2 : 1}),
           referenceQualifier: 'ACW',
           referenceNumber: transactionReference,
           lineItemReference: transactionReference,
@@ -1462,7 +1467,9 @@ export function decideUtiltsRuntimeAckPlan(params: {
   }
 
   if (params.validation.classification === 'application_rejected') {
+    const applicationErrors=aperakErrorsFromIssues(params.message,params.validation.issues)
     return {
+      ...(applicationErrors.some(error=>!error.text) ? {aperakSourceTextUnavailable:true as const} : {}),
       shouldSendContrl: true,
       contrlOutcome: 'positive',
       shouldSendAperak: true,
@@ -1470,7 +1477,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendUtiltsErr: false,
       utiltsErrDetails: [],
       utiltsErrCodes: [],
-      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
+      aperakApplicationErrors: applicationErrors,
       reason: 'Meddelandet är syntaktiskt läsbart men bryter mot UTILTS-anvisningen.',
     }
   }
@@ -1491,7 +1498,7 @@ export function decideUtiltsRuntimeAckPlan(params: {
       shouldSendUtiltsErr: true,
       utiltsErrDetails,
       utiltsErrCodes: utiltsErrCodes.length > 0 ? utiltsErrCodes : ['E14'],
-      aperakApplicationErrors: aperakErrorsFromIssues(params.validation.issues),
+      aperakApplicationErrors: aperakErrorsFromIssues(params.message,params.validation.issues),
       reason: 'Meddelandet är syntaktiskt/anvisningsmässigt läsbart men innehållet kunde inte behandlas.',
     }
   }

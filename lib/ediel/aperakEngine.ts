@@ -12,6 +12,7 @@ import { canonicalUtiltsTransactions } from '@/lib/ediel/utilts/canonicalObserva
 import { resolveUtiltsHeaderGuideIssues } from '@/lib/ediel/utilts/headerGuide'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
+import {isUtiltsAperakSourceText} from '@/lib/ediel/utilts/aperakSourceText'
 // lib/ediel/aperakEngine.ts
 
 export type AperakEngineOutcome = 'positive' | 'negative'
@@ -160,7 +161,10 @@ function normalizeAperakErrors(
         if (field !== null && (!field || field.length > 17 || !/^[A-Za-z0-9_./-]+$/.test(field))) throw new Error('utilts_aperak_field_reference_invalid')
         return field
       })() : sanitizeEdifactToken(error.fieldCode ?? null, 12),
-      text: error.prodatFieldDiagnostic || error.prodatAperakText
+      text: utilts ? (()=>{
+        if(!isUtiltsAperakSourceText(error.ercCode,error.text)) throw new Error('utilts_aperak_source_text_unavailable')
+        return escapeEdifactValue(error.text)
+      })() : error.prodatFieldDiagnostic || error.prodatAperakText
         ? (()=>{if(!isQualifiedProdatApplicationError(error))throw new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED');return escapeEdifactValue(error.text)})()
         : escapeEdifactValue(error.text.trim().slice(0,140)),
       referenceQualifier: sanitizeEdifactToken(error.referenceQualifier ?? null, 12),
