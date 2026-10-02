@@ -298,20 +298,18 @@ it('a second physical LOC+172 after SEQ cannot reserve a point or link its sourc
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   }
-  const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect(result.ingestedMeterValueIds).toEqual([])
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
-   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
-  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
-  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  // LOC after SEQ breaks the full-directory segment order: reception answers it
+  // with a negative CONTRL and never routes it to the business processor.
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(source)).syntaxDecision).toBe('rejected')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+  }
+  expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  const before = snapshot(source.id)
-  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect(snapshot(source.id)).toEqual(before)
   expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
 })
-it('an S01 point with a second LOC+172 after SEQ holds its final ACK and series on retry', async () => {
+it('an S01 point with a second LOC+172 after SEQ is syntax-rejected and never reaches ACK or series on retry', async () => {
   const f = await seed()
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
@@ -322,19 +320,17 @@ it('an S01 point with a second LOC+172 after SEQ holds its final ACK and series 
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
-   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
-  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
-  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  // Syntax-rejected at reception (LOC after SEQ); the business processor refuses it.
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(source)).syntaxDecision).toBe('rejected')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(run()).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+  }
+  expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  const before = snapshot(source.id)
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(snapshot(source.id)).toEqual(before)
 })
 it.each(['object-first', 'point-first'] as const)(
-  'native mixed S01 %s object and late second-LOC+172 point reserve neither ACK nor series on retry', async order => {
+  'native mixed S01 %s object and late second-LOC+172 point is syntax-rejected and reserves neither ACK nor series on retry', async order => {
   const f = await seed()
   const lines = f.original.raw_payload!.split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
@@ -354,32 +350,20 @@ it.each(['object-first', 'point-first'] as const)(
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
   const source = await f.insertSource(raw, 'S01')
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
-  expect(runUtiltsRuntimeForMessage(source).transactionDispositions.map(item => item.disposition)).toEqual(['accepted', 'accepted'])
+  // LOC after SEQ breaks the full-directory segment order: syntax-rejected at
+  // reception, so neither sibling reaches the business processor or a receipt.
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(source)).syntaxDecision).toBe('rejected')
   const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
   const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(pointId)})),'null'::jsonb)`)).toBeNull()
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
-   'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
-   FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`)).toEqual([
-    { disposition: 'internal_review', plan: 'none', final: null, series: null },
-    { disposition: 'internal_review', plan: 'none', final: null, series: null },
-  ])
-  // The source receipt seals the original and physical IDE membership even
-  // when both transaction dispositions are held without market effects.
-  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
-  const receipt = () => sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)
-  const beforeReceipt = receipt()
-  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.contracts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
-  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
-  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  }
+  expect(effects.ack).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  const before = snapshot(source.id)
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(snapshot(source.id)).toEqual(before)
-  expect(receipt()).toEqual(beforeReceipt)
 })
 it('native S01 valid LOC+175 cannot reserve a point series or positive ACK through a forged service RPC', async () => {
   const f = await seed()
