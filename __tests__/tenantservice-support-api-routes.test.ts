@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { validateResponse } = createRequire(import.meta.url)('../scripts/lib/openapi-schema-validator.cjs') as {
+  validateResponse: (document: unknown, path: string, value: unknown, method?: string, status?: string) => string[]
+}
 
 /**
  * Tenantservice P6: the mounted support routes end to end through the real route handlers,
@@ -140,7 +145,7 @@ describe('mounted customer support routes', () => {
     expect(created.status).toBe(201)
     const createdBody = await created.json()
     expect(createdBody.data.case_reference).toMatch(/^support_case_/)
-    expect(createdBody.contract_schema_version).toBe('2026-10-02.3')
+    expect(createdBody.contract_schema_version).toBe('2026-10-02.4')
     expect(createdBody.data.status).toBe('received')
     expect(JSON.stringify(createdBody.data)).not.toMatch(UUID)
 
@@ -158,6 +163,7 @@ describe('mounted customer support routes', () => {
 
     // Response shape matches the published closed schema fields.
     const spec = JSON.parse(readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
+    expect(validateResponse(spec, '/api/v1/customer/support/cases/{reference}', readBody)).toEqual([])
     const caseFields = Object.keys(spec.components.schemas.CustomerSupportCase.properties).sort()
     expect(Object.keys(createdBody.data).sort()).toEqual(caseFields)
     const messageFields = Object.keys(spec.components.schemas.CustomerSupportMessage.properties).sort()

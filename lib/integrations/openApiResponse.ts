@@ -61,6 +61,10 @@ export function openApiDocumentResponse(
   options: OpenApiDocumentResponseOptions = {},
 ): Response {
   const body = serializeOpenApiDocument(document)
+  const documentVersion = isRecord(document) && isRecord(document.info)
+    && typeof document.info.version === 'string' && document.info.version.trim()
+    ? document.info.version.trim()
+    : WEBSITE_INTEGRATION_CONTRACT_VERSION
   const etag = `"${createHash('sha256').update(body).digest('base64url')}"`
   const requestId = request.headers.get('x-request-id')?.trim() || randomUUID()
   const headers = {
@@ -72,7 +76,7 @@ export function openApiDocumentResponse(
     'Content-Type': 'application/json; charset=utf-8',
     ETag: etag,
     Vary: 'If-None-Match',
-    'X-Gridex-Contract-Version': WEBSITE_INTEGRATION_CONTRACT_VERSION,
+    'X-Gridex-Contract-Version': documentVersion,
     'X-Request-ID': requestId,
   }
 

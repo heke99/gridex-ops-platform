@@ -931,6 +931,16 @@ module.exports = function finalizeCustomerPortalRelease({
     }
   }
 
+  const { customerSupportCaseDetail, releaseManifestSchemas, documentVersionedOpenApiHeaders } = require('./lib/openapi-release-schemas.cjs')
+  if (portal.components.schemas.CustomerSupportCase) {
+    portal.components.schemas.CustomerSupportCaseDetail = customerSupportCaseDetail(portal.components.schemas.CustomerSupportCase)
+  }
+  for (const document of [website, portal]) {
+    Object.assign(document.components.schemas, releaseManifestSchemas(version, '2026-10-02.3'))
+    document['x-gridex-release-version'] = version
+    documentVersionedOpenApiHeaders(document)
+  }
+
   assertLocalRefs(website, 'website')
   assertLocalRefs(portal, 'customer portal')
 
