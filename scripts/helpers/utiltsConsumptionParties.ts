@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { initialCanonicalUtiltsDecision, recordFinalCanonicalUtiltsDecision } from '@/lib/ediel/flows/utiltsCanonicalValidation'
@@ -94,4 +95,16 @@ export function setUtiltsReceiverRole(sql: Sql, lit: Lit, company: string, actor
   sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code<>${lit(role)} AND valid_to IS NULL;
    INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(company)},'test',${lit(actor)},${lit(role)},clock_timestamp()
     WHERE NOT EXISTS(SELECT FROM public.tenant_actor_roles WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code=${lit(role)} AND valid_to IS NULL);`)
+}
+
+/** A real reception carries its mailbox, stored mail and parse result, as
+ * production does, so changed-byte retries reach the source-conflict check. */
+export function receiveUtiltsRetry(sql: Sql, lit: Lit, input: { companyId: string; actorUserId: string; raw: string; parsed: { senderEdielId?: string | null; receiverEdielId?: string | null; applicationReference?: string | null; interchangeReference?: string | null; messageFamily?: string | null; messageCode?: string | null; rawPayload: string } }): { inboundEmailMessageId: string; parseResultId: string } {
+  const box = randomUUID(), mail = randomUUID(), parse = randomUUID(), p = input.parsed
+  sql(`INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,environment,is_active,is_shared_platform_mailbox) VALUES(${lit(box)},${lit(input.companyId)},'Synthetic UTILTS retry mailbox','test',true,false);
+    INSERT INTO public.inbound_email_messages(id,company_id,environment,mailbox_id,internet_message_id,received_at,raw_edifact_payload,body_text,processing_status,match_status)
+    VALUES(${lit(mail)},${lit(input.companyId)},'test',${lit(box)},${lit(`${mail}@example.invalid`)},clock_timestamp(),${lit(input.raw)},${lit(input.raw)},'received','not_checked');
+    INSERT INTO public.inbound_ediel_parse_results(id,inbound_email_message_id,company_id,raw_payload,sender_ediel_id,receiver_ediel_id,application_reference,interchange_reference,message_family,message_code,parse_status)
+    VALUES(${lit(parse)},${lit(mail)},${lit(input.companyId)},${lit(p.rawPayload)},${lit(p.senderEdielId ?? null)},${lit(p.receiverEdielId ?? null)},${lit(p.applicationReference ?? null)},${lit(p.interchangeReference ?? null)},${lit(p.messageFamily ?? null)},${lit(p.messageCode ?? null)},'parsed')`)
+  return { inboundEmailMessageId: mail, parseResultId: parse }
 }

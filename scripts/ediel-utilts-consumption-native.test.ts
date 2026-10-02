@@ -16,7 +16,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
 import { committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
 const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
 
@@ -143,7 +143,7 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
     : kind === 'timezone' ? original.replace('?+0100:406', '?+0200:406') : original.replace('15:806', '15:805')
   const runtime = runUtiltsRuntimeForMessage({ ...f.original, raw_payload: changed })
   expect(runtime.validation.ok).toBe(true)
-  await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', inboundEmailMessageId: '', parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('INBOUND_UTILTS_SOURCE_CONFLICT')
+  await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', actorUserId: f.ids.actor, ...receiveUtiltsRetry(sql, lit, { companyId: f.ids.company, actorUserId: f.ids.actor, raw: changed, parsed: parseInboundEmailContent({ attachmentText: changed })! }), parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('same_identity_different_original_requires_review')
   // A read-to-persist race must also fail even if a stale upstream snapshot
   // bypassed the natural dedup call; the locked database bytes remain authority.
   effects.readRaw = changed
@@ -170,7 +170,7 @@ it('real persisted interruption + natural changed-byte dedup cannot consume old 
   expect(first[0].consumptionContract?.observations[0].quantity).toBe('500')
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const changed = f.original.raw_payload!.replace('QTY+136:500', 'QTY+136:999')
-  await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', inboundEmailMessageId: '', parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('INBOUND_UTILTS_SOURCE_CONFLICT')
+  await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', actorUserId: f.ids.actor, ...receiveUtiltsRetry(sql, lit, { companyId: f.ids.company, actorUserId: f.ids.actor, raw: changed, parsed: parseInboundEmailContent({ attachmentText: changed })! }), parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('same_identity_different_original_requires_review')
   await expect(persistUtiltsTransactionResults(await f.prepare({ ...f.original, raw_payload: changed }))).rejects.toThrow('utilts_source_binding_conflict')
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()

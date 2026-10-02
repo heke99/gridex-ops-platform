@@ -38663,6 +38663,7 @@ export type Database = {
           id: string
           immutable_payload_hash: string | null
           immutable_rendered_at: string | null
+          inbound_email_message_id: string | null
           intent_id: string | null
           interchange_reference: string | null
           mailbox: string | null
@@ -38791,6 +38792,7 @@ export type Database = {
           id?: string
           immutable_payload_hash?: string | null
           immutable_rendered_at?: string | null
+          inbound_email_message_id?: string | null
           intent_id?: string | null
           interchange_reference?: string | null
           mailbox?: string | null
@@ -38919,6 +38921,7 @@ export type Database = {
           id?: string
           immutable_payload_hash?: string | null
           immutable_rendered_at?: string | null
+          inbound_email_message_id?: string | null
           intent_id?: string | null
           interchange_reference?: string | null
           mailbox?: string | null
@@ -39157,6 +39160,13 @@ export type Database = {
             columns: ["grid_owner_information_request_id"]
             isOneToOne: false
             referencedRelation: "grid_owner_information_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_inbound_email_message_id_fkey"
+            columns: ["inbound_email_message_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_email_messages"
             referencedColumns: ["id"]
           },
           {
