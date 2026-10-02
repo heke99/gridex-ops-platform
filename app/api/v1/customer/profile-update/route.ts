@@ -219,11 +219,18 @@ export async function POST(request: NextRequest) {
           })
           addressResult = applied
           if (applied.status === 'updated' || applied.status === 'unchanged') {
-            void enqueueCustomerDataRequestAutomation({
-              companyId: context.client.company_id,
-              customerId: context.identity.customer_id,
-              siteId,
-            }).catch((error) => console.error('[customer-portal] profile automation enqueue failed', error))
+            // Awaited (F13): a fire-and-forget promise can be dropped when the serverless
+            // function is frozen after the response. A failure is logged and never undoes
+            // the already saved profile change.
+            try {
+              await enqueueCustomerDataRequestAutomation({
+                companyId: context.client.company_id,
+                customerId: context.identity.customer_id,
+                siteId,
+              })
+            } catch (error) {
+              console.error('[customer-portal] profile automation enqueue failed', error)
+            }
           }
         }
 

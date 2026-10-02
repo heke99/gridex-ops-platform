@@ -276,11 +276,11 @@ describe('OPS adapters', () => {
     expect(actions).toContain('expected_company_id')
     expect(actions.match(/assertFormTenant\(/g)?.length).toBeGreaterThanOrEqual(3)
   })
-  it('API routes are thin adapters mounted with the current (2026-10-02.1) contract release', async () => {
+  it('API routes are thin adapters mounted with the current (2026-10-02.2) contract release', async () => {
     const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
     expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")
     const spec = JSON.parse(readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
-    expect(spec.info.version).toBe('2026-10-02.1')
+    expect(spec.info.version).toBe('2026-10-02.2')
     expect(Object.keys(spec.paths)).toEqual(expect.arrayContaining([
       '/api/v1/customer/support/cases',
       '/api/v1/customer/support/cases/{reference}',
