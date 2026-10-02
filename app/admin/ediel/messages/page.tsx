@@ -167,7 +167,7 @@ export default async function AdminEdielMessagesPage({
  )
  }
 
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const companyId = companyScope.companyId
  const resolvedSearchParams = searchParams ? await searchParams : {}
  const family = firstParam(resolvedSearchParams.family) ?? undefined
  const directionParam = firstParam(resolvedSearchParams.direction)

@@ -69,6 +69,8 @@ export async function matchProcessForAutomation(input: EdielMatchInput): Promise
   }
 
   if (refs.length === 0 && !input.message.site_id && !input.message.grid_owner_id) return candidates
+  // Process lookups by reference must stay inside one tenant.
+  if (!companyId) return candidates
 
   if (refs.length > 0) {
     let switchQuery = supabaseService

@@ -33,7 +33,7 @@ export default async function EdielUnresolvedPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 100 })
+  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 })
 
   const unresolved = dashboard.unresolvedItems
   const traceManualReviews = dashboard.decisionTraces.filter((row) => {
@@ -46,8 +46,8 @@ export default async function EdielUnresolvedPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
-        title="Ediel unresolved"
-        subtitle="Osäker tenant, route, certifikat, kund, mätpunkt, process, portal-diff eller ACK-konflikt ska stoppas här – inte autoskickas."
+        title="Osäkra matchningar"
+        subtitle="Meddelanden där bolag, route, kund eller mätpunkt inte kunde avgöras säkert. De skickas inte automatiskt."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -62,20 +62,12 @@ export default async function EdielUnresolvedPage() {
 
         {dashboard.warnings.length > 0 ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 text-sm font-semibold text-amber-950">{dashboard.warnings.join(' · ')}</section> : null}
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h1 className="text-xl font-black text-slate-950">Köer som ska granskas</h1>
-          <p className="mt-2 max-w-4xl text-sm font-medium leading-6 text-slate-700">
-            Tenant-admin får bara se sådant som säkert tillhör bolaget. Platform-only unresolved ska ligga hos superadmin tills tenant, route och affärskoppling är säker.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-sm font-bold">
-            <Link className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50" href="/admin/ediel/automation">Automation</Link>
-            <Link className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50" href="/admin/ediel/outbox">Outbox</Link>
-            <Link className="rounded-full border border-slate-200 px-3 py-1 text-slate-700 hover:bg-slate-50" href="/admin/ediel/portal-feedback">Portal-feedback</Link>
-          </div>
-        </section>
+        <div className="flex flex-wrap gap-2 text-sm font-bold">
+          <Link className="rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 hover:bg-slate-50" href="/admin/ediel/portal-feedback">Portalfeedback</Link>
+        </div>
 
         <section className="space-y-4">
-          {unresolved.length === 0 ? <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950"><h2 className="font-black">Ingen unresolved tenant-/route-post hittad.</h2></div> : null}
+          {unresolved.length === 0 ? <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 text-emerald-950"><h2 className="font-black">Inga osäkra matchningar just nu.</h2></div> : null}
           {unresolved.map((item) => (
             <article key={text(item.id)} className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1,8 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
+import { loadCustomerTenantContext } from '@/lib/tenant/entityGuards'
+import { assertUserCanOperateCompany } from '@/lib/tenant/scope'
 import { ingestBillingUnderlay, ingestMeteringValue } from '@/lib/cis/db'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -103,19 +104,8 @@ function parseJsonRows(text: string): ParsedRow[] {
   })
 }
 
-async function getActorUserId(): Promise<string> {
-  await requireAdminActionAccess(['metering.write'])
-
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error('Unauthorized')
-  }
-
-  return user.id
+async function getActorGuard() {
+  return requireAdminActionAccess(['metering.write'])
 }
 
 async function insertAuditLog(params: {
@@ -126,9 +116,11 @@ async function insertAuditLog(params: {
   oldValues?: unknown
   newValues?: unknown
   metadata?: unknown
+  companyId: string
 }) {
   const { error } = await supabaseService.from('audit_logs').insert({
     actor_user_id: params.actorUserId,
+    company_id: params.companyId,
     entity_type: params.entityType,
     entity_id: params.entityId,
     action: params.action,
@@ -140,69 +132,37 @@ async function insertAuditLog(params: {
   if (error) throw error
 }
 
-async function resolveCustomerContext(customerId: string) {
+async function resolveCustomerContext(customerId: string, companyId: string) {
   const [{ data: sites, error: sitesError }, { data: points, error: pointsError }] =
     await Promise.all([
       supabaseService
         .from('customer_sites')
         .select('id, facility_id, site_name, grid_owner_id')
+        .eq('company_id', companyId)
         .eq('customer_id', customerId),
       supabaseService
         .from('metering_points')
         .select('id, site_id, meter_point_id, grid_owner_id')
-        .eq('customer_id', customerId as never)
-        .limit(0),
+        .eq('company_id', companyId)
+        .eq('customer_id', customerId),
     ])
 
   if (sitesError) throw sitesError
+  if (pointsError) throw pointsError
 
-  const siteRows = (sites ?? []) as Array<{
-    id: string
-    facility_id: string | null
-    site_name: string
-    grid_owner_id: string | null
-  }>
-
-  let pointRows:
-    | Array<{
-        id: string
-        site_id: string
-        meter_point_id: string
-        grid_owner_id: string | null
-      }>
-    | null = null
-
-  if (pointsError) {
-    const siteIds = siteRows.map((site) => site.id)
-    if (siteIds.length === 0) {
-      pointRows = []
-    } else {
-      const { data: pointsBySite, error: pointsBySiteError } = await supabaseService
-        .from('metering_points')
-        .select('id, site_id, meter_point_id, grid_owner_id')
-        .in('site_id', siteIds)
-
-      if (pointsBySiteError) throw pointsBySiteError
-
-      pointRows = (pointsBySite ?? []) as Array<{
-        id: string
-        site_id: string
-        meter_point_id: string
-        grid_owner_id: string | null
-      }>
-    }
-  } else {
-    pointRows = (points ?? []) as Array<{
+  return {
+    sites: (sites ?? []) as Array<{
+      id: string
+      facility_id: string | null
+      site_name: string
+      grid_owner_id: string | null
+    }>,
+    points: (points ?? []) as Array<{
       id: string
       site_id: string
       meter_point_id: string
       grid_owner_id: string | null
-    }>
-  }
-
-  return {
-    sites: siteRows,
-    points: pointRows,
+    }>,
   }
 }
 
@@ -215,7 +175,8 @@ function pickValue(row: ParsedRow, keys: string[]): string | null {
 }
 
 export async function importGridOwnerFileAction(formData: FormData): Promise<void> {
-  const actorUserId = await getActorUserId()
+  const guard = await getActorGuard()
+  const actorUserId = guard.userId
 
   const customerId = getString(formData, 'customer_id')
   const mode = normalizeImportMode(getNullableString(formData, 'import_mode'))
@@ -243,7 +204,9 @@ export async function importGridOwnerFileAction(formData: FormData): Promise<voi
     throw new Error('Filen innehåller inga tolkningsbara datarader')
   }
 
-  const context = await resolveCustomerContext(customerId)
+  const { companyId } = await loadCustomerTenantContext(customerId, guard)
+  await assertUserCanOperateCompany(actorUserId, companyId)
+  const context = await resolveCustomerContext(customerId, companyId)
 
   const siteById = new Map(context.sites.map((site) => [site.id, site]))
   const siteByFacilityId = new Map(
@@ -364,6 +327,7 @@ export async function importGridOwnerFileAction(formData: FormData): Promise<voi
 
   await insertAuditLog({
     actorUserId,
+    companyId,
     entityType: 'grid_owner_file_import',
     entityId: customerId,
     action: 'grid_owner_file_import_completed',
