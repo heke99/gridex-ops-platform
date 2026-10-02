@@ -480,7 +480,7 @@
     "20261002211000_atomic_test_customer_delete.sql": "a5445d6678eabbb21b719df6d486e1c618fd1864bc3e60fd34657da6420f34fc",
     "20261002212000_atomic_customer_lifecycle_close.sql": "6c72642fbb2c36befa0b77a668be2f58d38d5462eca34ca36e0b51df59647d0b",
     "20261002213000_end_customer_supply_on_switch_away.sql": "ccaeb50578b2f7d11969352365026bc9f4f9446c5528e60b4d65d462ce3d5e14",
-    "20261002214000_customer_legal_anonymization.sql": "d1104f203248b2106f5ca89589581aec069f655234e0140d23759292f2246a8e",
+    "20261002214000_customer_legal_anonymization.sql": "6ffbe7867a1be182b8c33fdc5825e38cf94c84d9dd3abe3939402205c86c7f41",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
