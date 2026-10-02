@@ -18,8 +18,8 @@ DECLARE
 BEGIN
   -- The same national metering point is held by tenant A (losing) and tenant B (gaining).
   INSERT INTO public.companies(id,name,status) VALUES(a,'Supply end A','active'),(b,'Supply end B','active');
-  INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
-  VALUES(cust_a,a,'SE-A','Customer at A','private'),(cust_b,b,'SE-B','Customer at B','private');
+  INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,status)
+  VALUES(cust_a,a,'SE-A','Customer at A','private','active'),(cust_b,b,'SE-B','Customer at B','private','active');
   INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country)
   VALUES(site_a,a,cust_a,'Site','consumption','active','SE'),(site_b,b,cust_b,'Site','consumption','active','SE');
   INSERT INTO public.metering_points(id,company_id,customer_id,site_id,metering_point_id,reading_frequency,measurement_type,is_settlement_relevant,status)
