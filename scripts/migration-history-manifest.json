@@ -479,7 +479,7 @@
     "20261002210000_tenant_company_foreign_keys.sql": "c8b834e1f3fcc3ff258483e7bd207650fac08d7ebb59d5a5211bd5d87710bdb6",
     "20261002211000_atomic_test_customer_delete.sql": "a5445d6678eabbb21b719df6d486e1c618fd1864bc3e60fd34657da6420f34fc",
     "20261002212000_atomic_customer_lifecycle_close.sql": "6c72642fbb2c36befa0b77a668be2f58d38d5462eca34ca36e0b51df59647d0b",
-    "20261002213000_end_customer_supply_on_switch_away.sql": "ccaeb50578b2f7d11969352365026bc9f4f9446c5528e60b4d65d462ce3d5e14",
+    "20261002213000_end_customer_supply_on_switch_away.sql": "fecc3cd7a7a03b89365c3acd0334d23d2c518d082f591e0f5cba7cec09f2efed",
     "20261002214000_customer_legal_anonymization.sql": "6ffbe7867a1be182b8c33fdc5825e38cf94c84d9dd3abe3939402205c86c7f41",
     "20261002215000_supplier_switch_atomic_writes.sql": "4f0ac7babe95e3b847594a0e0b7feb878831da730dd487a12e5395367936963d",
     "20261002216000_customer_lifecycle_decision_atomic.sql": "1d7da969623cf578da5becb14ec618799d2e416b30afe327f285f335e73d8cdf",

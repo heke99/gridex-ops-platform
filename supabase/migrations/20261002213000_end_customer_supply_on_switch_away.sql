@@ -61,7 +61,8 @@ begin
   where company_id = p_company_id
     and customer_id = p_customer_id
     and metering_point_id = p_metering_point_id
-    and status in ('active', 'confirmed_by_grid_owner')
+    and (status in ('active', 'confirmed_by_grid_owner')
+         or (status = 'ended' and metadata->>'end_key' = v_key))
     and start_date <= p_end_date
   order by start_date desc
   limit 1
@@ -76,11 +77,12 @@ begin
     return jsonb_build_object('supply_period_id', v_period.id, 'already_applied', true);
   end if;
 
-  -- Ended but still billable up to and including the end date.
+  -- 'ended' is the market-confirmed end the Ediel closure review requires;
+  -- billing still covers the period up to and including end_date.
   update public.customer_supply_periods
   set end_date = p_end_date,
       actual_end_date = p_end_date,
-      status = 'confirmed_by_grid_owner',
+      status = 'ended',
       source_message_id = coalesce(p_source_message_id, source_message_id),
       metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
         'end_reason', p_end_reason,

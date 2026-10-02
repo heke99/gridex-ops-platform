@@ -250,7 +250,7 @@ async function loadSupplyPeriods(
       .from("customer_supply_periods")
       .select("*")
       .eq("company_id", companyId)
-      .in("status", ["active", "confirmed_by_grid_owner"])
+      .in("status", ["active", "confirmed_by_grid_owner", "ended"])
       .lte("start_date", endDateInclusive)
       .or(`end_date.is.null,end_date.gte.${startDate}`)
       .order("start_date", { ascending: true })

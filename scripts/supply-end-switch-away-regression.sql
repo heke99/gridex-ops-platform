@@ -44,11 +44,16 @@ BEGIN
 
   res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
 
-  -- Ended but still billable up to and including the switch date.
+  -- Ended on the switch date; billing still covers it up to end_date.
   IF (SELECT end_date FROM public.customer_supply_periods WHERE id = period_a) <> DATE '2026-10-15'
      OR (SELECT actual_end_date FROM public.customer_supply_periods WHERE id = period_a) <> DATE '2026-10-15'
-     OR (SELECT status FROM public.customer_supply_periods WHERE id = period_a) NOT IN ('active','confirmed_by_grid_owner') THEN
-    RAISE EXCEPTION 'losing supply period not ended as billable';
+     OR (SELECT status FROM public.customer_supply_periods WHERE id = period_a) <> 'ended' THEN
+    RAISE EXCEPTION 'losing supply period not ended';
+  END IF;
+  -- Replaying the same end is idempotent.
+  res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
+  IF NOT coalesce((res->>'already_applied')::boolean, false) THEN
+    RAISE EXCEPTION 'supply end replay not idempotent';
   END IF;
   IF (SELECT count(*) FROM public.customer_operation_tasks WHERE customer_id = cust_a AND task_type = 'final_invoice_pending') <> 1 THEN
     RAISE EXCEPTION 'final invoice task missing';

@@ -121,7 +121,7 @@ const ESTIMATED_QUALITY = new Set([
   "e",
   "p",
 ]);
-const ACTIVE_SUPPLY_STATES = new Set(["active", "confirmed_by_grid_owner"]);
+const ACTIVE_SUPPLY_STATES = new Set(["active", "confirmed_by_grid_owner", "ended"]);
 const ACTIVE_CONTRACT_STATES = new Set(["signed", "active"]);
 const ACCEPTED_SOURCE_MESSAGE_STATES = new Set([
   "parsed",
@@ -246,7 +246,12 @@ export function evaluateBillingGate(input: {
       ),
     );
   if (supplyCount === 1) {
-    if (!ACTIVE_SUPPLY_STATES.has((text(supply.status) ?? "").toLowerCase())) {
+    const supplyStatus = (text(supply.status) ?? "").toLowerCase();
+    // An ended period is billable only up to a known end date.
+    if (
+      !ACTIVE_SUPPLY_STATES.has(supplyStatus) ||
+      (supplyStatus === "ended" && !text(supply.end_date))
+    ) {
       reasons.push(
         reason(
           "supply_period_not_active",
