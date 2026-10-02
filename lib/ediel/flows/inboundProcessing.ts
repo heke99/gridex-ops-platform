@@ -467,7 +467,16 @@ async function createAutomaticPositiveAcks(params: {
   deferProdatPositive?:boolean;
 }) {
   const createdIds: string[] = [];
-  const policy = await getAutomaticAckPolicy(params.sourceMessage);
+  // A bilateral capability that is no longer current (e.g. a revoked reviewer
+  // on replay) leaves no qualified policy: record the block, create nothing.
+  let policy: Awaited<ReturnType<typeof getAutomaticAckPolicy>>;
+  try{policy = await getAutomaticAckPolicy(params.sourceMessage);}
+  catch(error){
+    if(!/^prodat_bilateral_capability_required:/.test(error instanceof Error?error.message:''))throw error;
+    await createAckBlockedEvent({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:"APERAK",
+      reason:formatErrorMessage(error,"Bilateral förmåga är inte längre aktuell.")});
+    return createdIds;
+  }
 
   if (
     (policy.shouldSendContrl || policy.shouldSendPositiveAperak) &&
@@ -627,6 +636,7 @@ async function processInboundProdatMessage(params: {
   actorUserId: string;
   message: EdielMessageRow;
   onSourceSwitchCommitted?: SourceSwitchCommitObserver;
+  committedSupplyResult?: Awaited<ReturnType<typeof applySupplyMarketSource>>;
 }) {
   const canonicalLinks = await linkInboundProdatMessageCanonically({
     actorUserId: params.actorUserId,
@@ -666,6 +676,7 @@ async function processInboundProdatMessage(params: {
         null,
       permissionSourceResult: meteringPermissionLink,
       source: "prodat_without_strong_switch_match",
+      committedSupplyResult: params.committedSupplyResult,
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
     });
 
@@ -737,6 +748,7 @@ async function processInboundProdatMessage(params: {
       null,
     permissionSourceResult: meteringPermissionLink,
     source: "prodat_with_strong_switch_match",
+    committedSupplyResult: params.committedSupplyResult,
       onSourceSwitchCommitted: params.onSourceSwitchCommitted,
   });
 
@@ -1102,8 +1114,18 @@ export async function processInboundEdielMessage(params: {
         // One complete source enters the native object partition. Neither a
         // first parsed point nor a rendered subset may select its effects.
         const initialAckIds:string[]=[];
+        // The native apply is one transaction: a database failure (e.g. its
+        // final audit write) is rolled back server-side and leaves nothing
+        // committed. Hold such a source for review; no positive reply follows.
+        // Client-side invariant errors still reject the reception.
         const supply=['Z04','Z05'].includes(runtimeMessage.message_code)
-          ?await applySupplyMarketSource({actorUserId,message:runtimeMessage}):null;
+          ?await applySupplyMarketSource({actorUserId,message:runtimeMessage}).catch(async(error:unknown)=>{
+            if(error instanceof Error||!error||typeof error!=='object'||typeof (error as {code?:unknown}).code!=='string')throw error;
+            await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
+              message:'Leveranskällan kunde inte verkställas och har rullats tillbaka; den hålls för granskning.',
+              payload:{supplySourceApply:'rolled_back',reason:formatErrorMessage(error,'Leveranskällans transaktion misslyckades.')}})
+            return {applied:false,reason:'supply_source_apply_rolled_back',idempotent:false,periods:[],commits:[],partition:null,effectReceiptIds:[],fullyApplied:false,reviewRequired:true}
+          }):null;
         const permission=supply===null?await applyPermissionMarketSource({actorUserId,message:runtimeMessage}):null;
         if(supply){
           for(const scope of supply.commits)await publishSourceSwitchCommit(canonicalRuntime.sourceOwnerSession?.onSwitchCommitted,{
@@ -1128,7 +1150,7 @@ export async function processInboundEdielMessage(params: {
         // native replay only after every scope is committed. Multipart and
         // permission responses never select a first parsed target here.
         if(supply?.fullyApplied&&canonicalRuntime.domainObjectCount===1){
-          try{await processInboundProdatMessage({actorUserId,message:runtimeMessage})}
+          try{await processInboundProdatMessage({actorUserId,message:runtimeMessage,committedSupplyResult:supply})}
           catch(error){await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'manual_note',eventStatus:'warning',
             message:'Leveransutfallet och dess kvitto är fastställda; övriga projektioner inväntar granskning.',
             payload:{supplyAncillaryProjection:'held',reason:formatErrorMessage(error,'Operativ projektion kunde inte slutföras.')}})}

@@ -1,3 +1,12 @@
+## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
+
+Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426. Användaren: fortsätt stegvis med hela planen tills allt är grönt och mergat; P16B avgjort (RFF+Z07 och RFF+LI båda tillåtna i E2SE6A APERAK). Grenmigrationer omnumrerade till 20261002230000–231700 (efter main).
+
+Användarbeslut 2026-10-02: Claude får själv köra migrationer i Supabase, även produktion (`piidsfebjqjmnepdpnas` = gridex-ops-dev = app.gridex.se). Plan: applicera grenens migrationer 20261002230000–231700 i ordning via MCP apply_migration först när CI är grön (precis före merge), efter torrkörning BEGIN/ROLLBACK via execute_sql. Prod-ledgern har egna versionsnummer (MCP-tidsstämplar), och sista i prod är 20261002192605.
+
+Status: unit 9330 (kontrolleras); consumption native 141/141; H-original native 20/20 lokalt (efter: 231700 positiv läsare för H-slut, legacy final_metering-case scopas till slutande period, apply-DB-fel (PostgREST code) hålls i stället för att kasta, ACK-policy utan aktuell bilateral förmåga -> blockerat ACK-event, DENY-testet registrerar canonical assessment, NULL-assertion via coalesce 'null').
+Nästa åtgärd: verifiera unit+H-native, committa/pusha (231700 redan registrerad). Därefter: correction-context (Z08H mandat-fixtur), service-evidence, document-reference, err-gateway, z06f, z04-ack, övriga native; merga main; CI grön; merge #426 utan produktionsmigration; sedan masterplan-plan steg 6–8 (leveransmatris, frysning).
+
 ## Aktuell arbetsgren — 2026-10-02 (gäller före allt nedan)
 
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426 mot main, HEAD `0f61f08f57aedc6c0cc6a442829e16cc75064e67`. main (#425/#427/#428/#429) är inmergad i grenen (257eacbc). Användaren beslutade: EN PR, inga omskrivna migrationer, merga #426 när CI är grön och fortsätt sedan masterplan v2. Före faktisk merge: bekräfta deploy-migrationsordning (grenens migrationer har tidsstämplar före main:s 20261001210000 → `db push` kräver --include-all) och att merge inte kör produktionsmigration utan separat tillstånd.

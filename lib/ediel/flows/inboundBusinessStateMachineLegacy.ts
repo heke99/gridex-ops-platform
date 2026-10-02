@@ -94,6 +94,15 @@ async function recordEvent(input: {
   })
 }
 
+async function endingPeriodScopes(companyId: string, periods: ReadonlyArray<{ id: string; status: string }>) {
+  const ids = periods.filter(p => p.status === 'ending' || p.status === 'ended').map(p => p.id)
+  if (!ids.length) return []
+  const { data, error } = await supabaseService.from('customer_supply_periods').select('id,customer_id,metering_point_id').eq('company_id', companyId).in('id', ids)
+  if (error) throw error
+  return ((data ?? []) as Array<{ customer_id: string | null; metering_point_id: string | null }>)
+    .filter((row): row is { customer_id: string; metering_point_id: string | null } => typeof row.customer_id === 'string')
+}
+
 async function createReviewCase(input: {
   message: EdielMessageRow
   companyId: string
@@ -185,6 +194,7 @@ export async function applyInboundBusinessStateMachine(input: {
   permissionSourceResult?: { applied: boolean; targetId: string | null; reason?: string | null }
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
+  committedSupplyResult?: Awaited<ReturnType<typeof applySupplyMarketSource>>
 }): Promise<InboundBusinessStateResult> {
   let outcome = outcomeForMessage(input.message)
   const updated: string[] = []
@@ -208,10 +218,12 @@ export async function applyInboundBusinessStateMachine(input: {
   // only the protected native owner may establish an actual own supply effect.
   // Source identity is the entire RPC input: parsed capability flags, dates and
   // correlation hints cannot select or qualify a period or sent original.
-  let sourceSupplyResult: Awaited<ReturnType<typeof applySupplyMarketSource>> | undefined
+  // A result committed earlier in this same reception is the first apply,
+  // not a replay; reuse it instead of re-reading an idempotent outcome.
+  let sourceSupplyResult: Awaited<ReturnType<typeof applySupplyMarketSource>> | undefined = input.committedSupplyResult
   if (outcome === 'manual_review_required' && prodatLifecycle?.subtype === 'H'
     && input.message.direction === 'inbound' && ['Z04','Z05'].includes(String(input.message.message_code ?? '').toUpperCase())) {
-    sourceSupplyResult = await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
+    sourceSupplyResult ??= await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
     if (sourceSupplyResult.applied) {
       outcome = input.message.message_code === 'Z04' ? 'supplier_switch_accepted' : 'supply_terminated'
       reviewRequired = false
@@ -273,8 +285,16 @@ export async function applyInboundBusinessStateMachine(input: {
       if (outcome === 'supply_terminated' && sourceResult.periods.some(p => p.status === 'ending')) tenantMessage = 'Leveransslutet är registrerat och träder i kraft vid nätägarens giltiga sluttid.'
       // Final-value/billing follow-up is an operational task, not authority to
       // delete a customer, close another object or revive a beneficiary grant.
-      if (outcome === 'supply_terminated' && !sourceResult.idempotent && companyId) {
-        const caseId = await createReviewCase({ message: input.message, companyId, switchRequestId: input.matchedSwitchRequestId ?? null,
+      // The task is scoped to each committed ending period. A bound message
+      // carries that scope; an unbound received H end takes it from the
+      // committed periods.
+      const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent
+        ? input.message.customer_id ? [{ customer_id: input.message.customer_id, metering_point_id: input.message.metering_point_id ?? null }]
+          : await endingPeriodScopes(companyId, sourceResult.periods)
+        : []
+      if (companyId) for (const period of scopes) {
+        const caseId = await createReviewCase({ message: { ...input.message, customer_id: period.customer_id, metering_point_id: period.metering_point_id ?? input.message.metering_point_id },
+          companyId, switchRequestId: input.matchedSwitchRequestId ?? null,
           caseType: 'other', reviewIntent: 'final_metering_and_billing', title: 'Leveransen upphör – slutför mätvärden och fakturering',
           description: 'Ett källbundet leveransslut är registrerat. Säkerställ slutmätvärden och slutfakturering för just de berörda perioderna med bibehållen historik.',
           nextAction: 'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.' })

@@ -12,6 +12,7 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}})
 vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('../__tests__/helpers/p16bHold')).captureP16bPreflight(importOriginal))
 import {expectP16bHold,p16bBlockedAperaks} from '../__tests__/helpers/p16bHold'
 const heldP16b=(sourceId:string)=>{expectP16bHold(sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sourceId)}`));p16bBlockedAperaks.length=0}
+import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {createBilateralProdatGroundNativeFixture} from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import {archiveBilateralProdatGround,reviewBilateralProdatGround} from '@/lib/ediel/production/bilateralProdatProfileIntake'
@@ -204,7 +205,7 @@ it('genuine signed-contract/accepted H supply feeds a separate authenticated nat
  expect((await readSupplyRescissionBytes({companyId:f.companyId,actorUserId:f.reviewer,artifactId:f.artifactId})).bytes).toEqual(f.bytes)
  const basis=sql<{owner:string;periodId:string}>(`SELECT public.ediel_read_supply_rescission_mandate_v1(${literal(f.companyId)},${literal(f.actorUserId)},${literal(approved.mandateId)})`);expect(basis.owner).toBe('immutable-national-supply-rescission-mandate-v1');expect(basis.periodId).toBe(f.periodId)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
- expect(sql(`SELECT public.ediel_read_supply_rescission_mandate_v1(${literal(f.companyId)},${literal(f.actorUserId)},${literal(approved.mandateId)})`)).toBeNull();expect(counts(f)).toEqual(before)
+ expect(sql(`SELECT coalesce(public.ediel_read_supply_rescission_mandate_v1(${literal(f.companyId)},${literal(f.actorUserId)},${literal(approved.mandateId)}),'null'::jsonb)`)).toBeNull();expect(counts(f)).toEqual(before)
 },120000)
 it('last national legal-mandate audit failure rolls back its independent review and mandate without changing own supply or making a new original',async()=>{
  const f=await nationalRescissionArtifact(),before=counts(f),constraint=`national_h_source_last_${randomUUID().replaceAll('-','')}`
@@ -295,6 +296,9 @@ it('a real clock-scoped prepare DENY becoming active during last audit write rol
  try{await expect(prepareAndQueueSupplyRescissionZ08({companyId:f.companyId,actorUserId:creator,mandateId:String(approved.mandateId),preferredRouteId:f.routeId})).rejects.toMatchObject({message:expect.stringContaining('supply_rescission_terminal_producer_forbidden')});expect(sql(`SELECT jsonb_build_object('operations',(SELECT count(*) FROM gridex_supply_rescission.outbound_operations WHERE company_id=${literal(f.companyId)}),'receipts',(SELECT count(*) FROM gridex_supply_rescission.outbound_receipts WHERE company_id=${literal(f.companyId)}),'consumptions',(SELECT count(*) FROM gridex_ediel_outbound_owner.consumptions WHERE company_id=${literal(f.companyId)} AND source_message_id IN(SELECT id FROM public.ediel_messages WHERE source_operation_id=${literal(approved.mandateId)})),'boundIntents',(SELECT count(*) FROM public.ediel_message_intents WHERE company_id=${literal(f.companyId)} AND operation_id=${literal(approved.mandateId)} AND ediel_message_id IS NOT NULL))`)).toEqual({operations:0,receipts:0,consumptions:0,boundIntents:0})}finally{cleanup()}
 },120000)
 it('a real clock-scoped current executor DENY during final end audit rolls back period/history/end receipt and business-watch fulfillment',async()=>{
- const f=await receivedNationalRescissionEnd(true,true),before=nationalEndEffects(f),cleanup=installNationalLastWriteDeny(f.companyId,f.currentExecutor,'ediel.supply_rescission.end_applied','metering.write')
+ const f=await receivedNationalRescissionEnd(true,true),source=(await getEdielMessageById(f.endSourceId))!
+ // The apply admits only a persisted accepted canonical assessment.
+ expect(await recordReceivedSourceValidation({original:source,validated:source,resolvedCompanyId:f.companyId,decision:await resolveCanonicalRuntimeDecisionWithRegistry(source)})).toMatchObject({status:'recorded'})
+ const before=nationalEndEffects(f),cleanup=installNationalLastWriteDeny(f.companyId,f.currentExecutor,'ediel.supply_rescission.end_applied','metering.write')
  try{expect(()=>sql(`SELECT public.ediel_apply_supply_source_v1(${literal(f.companyId)},${literal(f.endSourceId)},${literal(f.currentExecutor)})`)).toThrow('supply_rescission_post_write_actor_forbidden');expect(nationalEndEffects(f)).toEqual(before)}finally{cleanup()}
 },120000)
