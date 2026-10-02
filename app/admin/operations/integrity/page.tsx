@@ -966,7 +966,7 @@ for (const powerOfAttorney of powersOfAttorney) {
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Customer Integrity / Operations Dashboard"
+ title="Kunddataintegritet"
  subtitle="Samlad kontrollvy för mismatch, väntar aktiv, flytt, byte, saknade mätvärden, importfel och redo för export."
  userEmail={user?.email ?? null}
  />

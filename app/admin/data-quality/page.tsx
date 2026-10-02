@@ -135,7 +135,7 @@ export default async function DataQualityPage() {
               <p className="mt-1 text-sm font-semibold text-slate-600">Öppna kunden och rätta fältet innan nästa automatiska steg.</p>
             </div>
             <Link href="/admin/operations/integrity" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
-              Operations integrity
+              Kunddataintegritet
             </Link>
           </div>
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
