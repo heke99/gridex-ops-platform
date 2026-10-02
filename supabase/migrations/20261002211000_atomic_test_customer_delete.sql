@@ -54,34 +54,34 @@ begin
 
   -- Same protected-history rule as the customer card: real history is archived, never deleted.
   if exists (select 1 from public.customer_contracts where customer_id = p_customer_id) then
-    v_protected := v_protected || 'customer_contracts'; end if;
+    v_protected := array_append(v_protected, 'customer_contracts'); end if;
   if exists (select 1 from public.customer_invoices where customer_id = p_customer_id) then
-    v_protected := v_protected || 'customer_invoices'; end if;
+    v_protected := array_append(v_protected, 'customer_invoices'); end if;
   if exists (select 1 from public.supplier_switch_requests where customer_id = p_customer_id) then
-    v_protected := v_protected || 'supplier_switch_requests'; end if;
+    v_protected := array_append(v_protected, 'supplier_switch_requests'); end if;
   if exists (select 1 from public.ediel_messages
              where customer_id = p_customer_id
                 or site_id = any (v_site_ids)
                 or metering_point_id = any (v_point_ids)) then
-    v_protected := v_protected || 'ediel_messages'; end if;
+    v_protected := array_append(v_protected, 'ediel_messages'); end if;
   if exists (select 1 from public.partner_exports where customer_id = p_customer_id) then
-    v_protected := v_protected || 'partner_exports'; end if;
+    v_protected := array_append(v_protected, 'partner_exports'); end if;
   if exists (select 1 from public.grid_owner_information_requests
              where customer_id = p_customer_id or customer_site_id = any (v_site_ids)) then
-    v_protected := v_protected || 'grid_owner_information_requests'; end if;
+    v_protected := array_append(v_protected, 'grid_owner_information_requests'); end if;
   if exists (select 1 from public.powers_of_attorney where customer_id = p_customer_id) then
-    v_protected := v_protected || 'powers_of_attorney'; end if;
+    v_protected := array_append(v_protected, 'powers_of_attorney'); end if;
   if exists (select 1 from public.customer_documents where customer_id = p_customer_id) then
-    v_protected := v_protected || 'customer_documents'; end if;
+    v_protected := array_append(v_protected, 'customer_documents'); end if;
   if exists (select 1 from public.customer_operation_events where customer_id = p_customer_id) then
-    v_protected := v_protected || 'customer_operation_events'; end if;
+    v_protected := array_append(v_protected, 'customer_operation_events'); end if;
   if exists (select 1 from public.customer_blockers where customer_id = p_customer_id) then
-    v_protected := v_protected || 'customer_blockers'; end if;
+    v_protected := array_append(v_protected, 'customer_blockers'); end if;
   if exists (select 1 from public.communication_logs
              where customer_id = p_customer_id
                 or site_id = any (v_site_ids)
                 or metering_point_id = any (v_point_ids)) then
-    v_protected := v_protected || 'communication_logs'; end if;
+    v_protected := array_append(v_protected, 'communication_logs'); end if;
 
   if cardinality(v_protected) > 0 then
     raise exception using
