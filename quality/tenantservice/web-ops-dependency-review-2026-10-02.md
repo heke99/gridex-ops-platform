@@ -76,3 +76,30 @@ the same synthetic response; composed response/schema tests pass.
    matching generated contract.
 5. Apply any eventual OPS migration in its correct production ledger order as
    part of the coordinated release; this review performs no production DDL.
+
+## Second exact-head replay result and owner-fixture precision
+
+Published cleanup head `71f36b2b9261243b0debedb9f12188b6cb0414d9`, exact local
+tree `e3a97a1137c6646a24ab705b8349921f887b9daa`, passes tenant/browser/full E2E
+and both OPS verify/quality jobs. OPS replay `37059428456` now passes cleanup
+and all 382 native source-owner tests, then fails the case-view fixture at line
+239 because it expected a foreign-key error for every invalid owner tuple.
+
+The new merged-customer BEFORE trigger correctly rejects the two mismatched
+customer/tenant pairs with `23514 customer_portal_customer_not_found_for_tenant`
+before FK evaluation. A coherent customer/tenant pair from B targeting case A
+still reaches `customer_case_events_case_owner_fk` and returns `23503`.
+Actual-PG16 native reproduction is RED under the old uniform expectation and
+GREEN under these three precise expectations; no invalid event remains.
+
+The case-view fixture now asserts the exact guard code/message for those first
+two pairs, retains the third composite-owner FK assertion and retains the
+existing complete unchanged status/event snapshots. Production trigger/RPC
+bodies, grants, FKs and schema snapshots remain unchanged. Root authorized this
+specific fixture update after reviewing its native evidence. Artifact
+11249644668 still stops before type generation and is not final replay acceptance.
+
+PR456 is closed unmerged at 2026-10-02T20:21:08Z, preserving its original head.
+Replacement draft PR461 is mergeable at `01e91fe10393567a1d65cf45e9986efef5d7d874`
+with parent `61fc46fe` and exact tree `ae72906dfc16fe49ae4684110ec20206dffe4210`.
+Neither production nor the frozen `.4` candidate was changed by this repair.
