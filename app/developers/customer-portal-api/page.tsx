@@ -435,9 +435,9 @@ export default function CustomerPortalApiDocumentationPage() {
             </p>
             <h3 className="text-lg font-semibold text-slate-950">Verified customer login (optional)</h3>
             <p className="leading-7 text-slate-700">
-              A tenant can let Gridex verify the end customer&apos;s own login (OPS → Inställningar → Kundinloggning). Your server then forwards the login&apos;s signed assertion in <code>x-gridex-customer-assertion</code>:
-              a compact JWS (RS256, PS256 or ES256) with the tenant&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
-              In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Tenants without a configuration are unaffected.
+              Your organization can let Gridex verify the end customer&apos;s own login (OPS → Inställningar → Kundinloggning). Your server then forwards the login&apos;s signed assertion in <code>x-gridex-customer-assertion</code>:
+              a compact JWS (RS256, PS256 or ES256) with your organization&apos;s <code>iss</code> and <code>aud</code>, <code>sub</code> = the linked portal user id, <code>exp</code> at most 15 minutes after <code>iat</code> and a unique <code>jti</code>.
+              In report mode a missing or invalid assertion is only logged; when verification is required the API returns <code>403 customer_assertion_required</code> or <code>403 customer_assertion_invalid</code>. Organizations without a configuration are unaffected.
             </p>
             <EndpointTable rows={customerPortalRows} />
           </Section>
