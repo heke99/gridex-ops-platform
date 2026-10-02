@@ -10638,6 +10638,8 @@ CREATE TABLE public.companies (
     lifecycle_status text DEFAULT 'creating'::text NOT NULL,
     industry text DEFAULT 'electricity_supplier'::text NOT NULL,
     brp_ediel_id text,
+    billing_provider_environment text,
+    CONSTRAINT companies_billing_provider_environment_check CHECK (((billing_provider_environment IS NULL) OR (billing_provider_environment = ANY (ARRAY['test'::text, 'production'::text])))),
     CONSTRAINT companies_canonical_status_check CHECK ((status = ANY (ARRAY['onboarding'::text, 'active'::text, 'paused'::text, 'suspended'::text, 'archived'::text, 'pending_deletion'::text, 'closed'::text, 'deleted_test_only'::text]))),
     CONSTRAINT companies_customer_number_prefix_check CHECK (((customer_number_prefix IS NULL) OR (customer_number_prefix ~ '^[A-Z0-9]{2,12}$'::text))),
     CONSTRAINT companies_customer_portal_url_https_check CHECK (((customer_portal_url IS NULL) OR ((customer_portal_url ~ '^https://[^[:space:]]+$'::text) AND (customer_portal_url !~ '[@#]'::text)))),
@@ -44376,6 +44378,76 @@ end;
 $$;
 
 --
+-- Name: gridex_select_invoice_provider_v1(uuid, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  c record;
+  cat record;
+  v_open integer;
+  v_connection_id uuid;
+BEGIN
+  IF p_environment NOT IN ('test', 'production') THEN
+    RAISE EXCEPTION 'invoice_provider_environment_invalid' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO cat FROM public.invoice_provider_catalog WHERE provider = p_provider;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'invoice_provider_unknown' USING ERRCODE = '22023';
+  END IF;
+  IF NOT cat.selectable THEN
+    RAISE EXCEPTION 'invoice_provider_not_available' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT id, invoice_export_target_system, billing_provider_environment, invoice_export_enabled
+    INTO c FROM public.companies WHERE id = p_company_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'company_not_found' USING ERRCODE = 'P0002';
+  END IF;
+
+  IF c.invoice_export_target_system IS DISTINCT FROM p_provider
+     OR c.billing_provider_environment IS DISTINCT FROM p_environment THEN
+    SELECT count(*) INTO v_open FROM public.invoice_export_runs
+     WHERE company_id = p_company_id AND status IN ('draft', 'processing');
+    IF v_open > 0 THEN
+      RAISE EXCEPTION 'invoice_provider_switch_blocked_open_exports' USING ERRCODE = '55000';
+    END IF;
+  END IF;
+
+  INSERT INTO public.billing_provider_connections (company_id, provider, environment, status, display_name, readiness_issues)
+  VALUES (p_company_id, p_provider, p_environment, 'incomplete', cat.label,
+          jsonb_build_array(jsonb_build_object('code', 'connection_test_required')))
+  ON CONFLICT (company_id, provider, environment) DO NOTHING
+  RETURNING id INTO v_connection_id;
+
+  UPDATE public.companies
+     SET invoice_export_target_system = p_provider,
+         billing_provider_environment = p_environment,
+         invoice_export_enabled = CASE
+           WHEN c.invoice_export_target_system IS DISTINCT FROM p_provider
+             OR c.billing_provider_environment IS DISTINCT FROM p_environment THEN false
+           ELSE invoice_export_enabled END
+   WHERE id = p_company_id;
+
+  INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, system_actor, entity_type, entity_id, action,
+                                 old_values, new_values, metadata, resource_type, resource_id)
+  VALUES (p_company_id, p_actor_user_id, CASE WHEN p_actor_user_id IS NULL THEN 'system' ELSE 'user' END,
+          CASE WHEN p_actor_user_id IS NULL THEN 'invoice_provider_settings' ELSE NULL END,
+          'company', p_company_id::text, 'invoice_provider_selected',
+          jsonb_build_object('provider', c.invoice_export_target_system, 'environment', c.billing_provider_environment,
+                             'invoice_export_enabled', c.invoice_export_enabled),
+          jsonb_build_object('provider', p_provider, 'environment', p_environment),
+          jsonb_build_object('connection_created', v_connection_id IS NOT NULL),
+          'company', p_company_id::text);
+
+  RETURN jsonb_build_object('provider', p_provider, 'environment', p_environment,
+                            'connection_created', v_connection_id IS NOT NULL);
+END $$;
+
+--
 -- Name: gridex_set_contract_channel_permission(uuid, uuid, text, boolean, uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44535,6 +44607,56 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_set_invoice_dispatch_enabled_v1(uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_set_invoice_dispatch_enabled_v1(p_company_id uuid, p_enabled boolean, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  c record;
+  v_status text;
+BEGIN
+  SELECT id, invoice_export_target_system, billing_provider_environment, invoice_export_enabled
+    INTO c FROM public.companies WHERE id = p_company_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'company_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF p_enabled THEN
+    IF c.invoice_export_target_system IS NULL OR c.billing_provider_environment IS NULL THEN
+      RAISE EXCEPTION 'invoice_provider_not_selected' USING ERRCODE = '55000';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public.invoice_provider_catalog
+                    WHERE provider = c.invoice_export_target_system AND selectable) THEN
+      RAISE EXCEPTION 'invoice_provider_not_available' USING ERRCODE = '55000';
+    END IF;
+    SELECT status INTO v_status FROM public.billing_provider_connections
+     WHERE company_id = p_company_id AND provider = c.invoice_export_target_system
+       AND environment = c.billing_provider_environment;
+    IF v_status IS NULL OR v_status NOT IN ('ready', 'active') THEN
+      RAISE EXCEPTION 'invoice_provider_connection_not_ready' USING ERRCODE = '55000';
+    END IF;
+  END IF;
+
+  UPDATE public.companies SET invoice_export_enabled = p_enabled WHERE id = p_company_id;
+
+  INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, system_actor, entity_type, entity_id, action,
+                                 old_values, new_values, metadata, resource_type, resource_id)
+  VALUES (p_company_id, p_actor_user_id, CASE WHEN p_actor_user_id IS NULL THEN 'system' ELSE 'user' END,
+          CASE WHEN p_actor_user_id IS NULL THEN 'invoice_provider_settings' ELSE NULL END,
+          'company', p_company_id::text,
+          CASE WHEN p_enabled THEN 'invoice_dispatch_enabled' ELSE 'invoice_dispatch_disabled' END,
+          jsonb_build_object('invoice_export_enabled', c.invoice_export_enabled),
+          jsonb_build_object('invoice_export_enabled', p_enabled),
+          jsonb_build_object('provider', c.invoice_export_target_system, 'environment', c.billing_provider_environment),
+          'company', p_company_id::text);
+
+  RETURN jsonb_build_object('enabled', p_enabled, 'provider', c.invoice_export_target_system,
+                            'environment', c.billing_provider_environment);
+END $$;
 
 --
 -- Name: gridex_set_metering_billing_gate(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -53050,7 +53172,7 @@ CREATE TABLE public.billing_provider_connections (
     created_by uuid,
     updated_by uuid,
     CONSTRAINT billing_provider_connections_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT billing_provider_connections_provider_check CHECK ((provider = ANY (ARRAY['capway_aptic'::text, 'fortnox'::text, 'billogram'::text, 'manual_export'::text, 'custom'::text]))),
+    CONSTRAINT billing_provider_connections_provider_check CHECK ((provider = ANY (ARRAY['capway_aptic'::text, 'nordfin'::text, 'fortnox'::text, 'billogram'::text, 'manual_export'::text, 'custom'::text]))),
     CONSTRAINT billing_provider_connections_status_check CHECK ((status = ANY (ARRAY['incomplete'::text, 'ready'::text, 'active'::text, 'paused'::text, 'disabled'::text, 'needs_review'::text])))
 );
 
@@ -67534,6 +67656,26 @@ CREATE TABLE public.invoice_export_runs (
 );
 
 --
+-- Name: invoice_provider_catalog; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_provider_catalog (
+    provider text NOT NULL,
+    label text NOT NULL,
+    selectable boolean DEFAULT false NOT NULL,
+    unavailable_reason text,
+    sort_order integer DEFAULT 100 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT invoice_provider_catalog_reason_check CHECK ((selectable OR (unavailable_reason IS NOT NULL)))
+);
+
+--
+-- Name: TABLE invoice_provider_catalog; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.invoice_provider_catalog IS 'Platform catalog of invoice providers a tenant can choose. selectable=false means listed but not yet integrated.';
+
+--
 -- Name: invoice_purchase_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -74203,6 +74345,13 @@ ALTER TABLE ONLY public.invoice_export_items
 
 ALTER TABLE ONLY public.invoice_export_runs
     ADD CONSTRAINT invoice_export_runs_pkey PRIMARY KEY (id);
+
+--
+-- Name: invoice_provider_catalog invoice_provider_catalog_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_provider_catalog
+    ADD CONSTRAINT invoice_provider_catalog_pkey PRIMARY KEY (provider);
 
 --
 -- Name: invoice_provider_events invoice_provider_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -88779,6 +88928,13 @@ ALTER TABLE ONLY public.companies
 
 ALTER TABLE ONLY public.companies
     ADD CONSTRAINT companies_ediel_production_paused_by_fkey FOREIGN KEY (ediel_production_paused_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: companies companies_invoice_export_target_system_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.companies
+    ADD CONSTRAINT companies_invoice_export_target_system_fkey FOREIGN KEY (invoice_export_target_system) REFERENCES public.invoice_provider_catalog(provider);
 
 --
 -- Name: companies companies_lifecycle_last_transition_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -105161,6 +105317,12 @@ ALTER TABLE public.invoice_export_runs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY invoice_export_runs_service_role_all ON public.invoice_export_runs TO service_role USING (true) WITH CHECK (true);
 
 --
+-- Name: invoice_provider_catalog; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.invoice_provider_catalog ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: invoice_provider_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -117751,6 +117913,13 @@ REVOKE ALL ON FUNCTION public.gridex_seed_publication_price_option_template_v2(p
 GRANT ALL ON FUNCTION public.gridex_seed_publication_price_option_template_v2(p_publication_version_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_set_contract_channel_permission(p_company_id uuid, p_assignment_id uuid, p_channel text, p_allowed boolean, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117770,6 +117939,13 @@ GRANT ALL ON FUNCTION public.gridex_set_contract_version_legal_modules() TO serv
 --
 
 GRANT ALL ON FUNCTION public.gridex_set_grid_owner_request_idempotency_key() TO service_role;
+
+--
+-- Name: FUNCTION gridex_set_invoice_dispatch_enabled_v1(p_company_id uuid, p_enabled boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_set_invoice_dispatch_enabled_v1(p_company_id uuid, p_enabled boolean, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_set_invoice_dispatch_enabled_v1(p_company_id uuid, p_enabled boolean, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_set_metering_billing_gate(p_company_id uuid, p_metering_value_id uuid, p_normalized_value_id uuid, p_gate jsonb); Type: ACL; Schema: public; Owner: -
@@ -121553,6 +121729,12 @@ GRANT ALL ON TABLE public.invoice_export_items TO service_role;
 
 GRANT ALL ON TABLE public.invoice_export_runs TO authenticated;
 GRANT ALL ON TABLE public.invoice_export_runs TO service_role;
+
+--
+-- Name: TABLE invoice_provider_catalog; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.invoice_provider_catalog TO service_role;
 
 --
 -- Name: TABLE invoice_purchase_events; Type: ACL; Schema: public; Owner: -
