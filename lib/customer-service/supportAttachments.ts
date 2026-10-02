@@ -18,6 +18,9 @@ export const SUPPORT_ATTACHMENT_BUCKET = 'support-case-attachments'
 export const SUPPORT_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024
 /** OPS uploads go through a server action, whose request body limit is 5 MB (next.config.ts). */
 export const SUPPORT_ATTACHMENT_OPS_MAX_BYTES = 4 * 1024 * 1024
+/** Customer API uploads are raw request bodies; the hosting platform caps a request body at 4.5 MB. */
+export const SUPPORT_ATTACHMENT_API_MAX_BYTES = 4 * 1024 * 1024
+export const SUPPORT_ATTACHMENT_MIME_TYPES = ['application/pdf', 'image/png', 'image/jpeg'] as const
 export const SUPPORT_ATTACHMENT_QUOTA_PER_DAY = 20
 
 export type AttachmentMime = 'application/pdf' | 'image/png' | 'image/jpeg'
@@ -191,4 +194,27 @@ export async function downloadSupportAttachment(scope: CaseScope & { reference: 
     throw new SupportAttachmentError('attachment_unavailable', 'Bilagans innehåll stämmer inte med det som laddades upp.', 409)
   }
   return { row, bytes }
+}
+
+/** Public customer view of a released attachment: opaque reference only, no internal ids or paths. */
+export type PublicSupportAttachment = {
+  attachment_reference: string
+  file_name: string
+  mime_type: AttachmentMime
+  byte_size: number
+  sha256: string
+  uploaded_by: 'customer' | 'staff'
+  created_at: string
+}
+
+export function publicSupportAttachment(row: SupportAttachmentRow): PublicSupportAttachment {
+  return {
+    attachment_reference: row.public_reference,
+    file_name: row.file_name,
+    mime_type: row.detected_mime_type as AttachmentMime,
+    byte_size: row.byte_size,
+    sha256: row.sha256,
+    uploaded_by: row.uploaded_by_kind,
+    created_at: row.created_at,
+  }
 }
