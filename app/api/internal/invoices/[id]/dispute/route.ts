@@ -24,7 +24,9 @@ export async function POST(request: Request, { params }: Props) {
     if (!invoiceGuid) return NextResponse.json({ error: 'Exportposten saknar Capway invoiceGuid.' }, { status: 400 })
     const client = await createCapwayApticClient({ companyId, environment: item.environment === 'production' ? 'production' : 'test' })
     const result = await client.dispute(invoiceGuid, { reason: typeof body.reason === 'string' ? body.reason : 'Bestridd via Gridex', disputedAt: new Date().toISOString(), isDisputed: true })
-    await supabaseService.from('invoice_export_items').update({ provider_status: 'disputed', status_payload: { dispute: result }, updated_at: new Date().toISOString() }).eq('company_id', companyId).eq('id', id)
+    // The dispute is already registered at the provider; failing to store it locally must not look like success.
+    const { error: updateError } = await supabaseService.from('invoice_export_items').update({ provider_status: 'disputed', status_payload: { dispute: result }, updated_at: new Date().toISOString() }).eq('company_id', companyId).eq('id', id)
+    if (updateError) throw updateError
     await emitDomainEvent({
       companyId,
       eventType: 'invoice.disputed',

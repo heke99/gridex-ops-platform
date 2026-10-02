@@ -91754,6 +91754,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_approve_invoice_test_item_v1: {
+        Args: {
+          p_approval: Json
+          p_company_id: string
+          p_invoice_export_item_id: string
+        }
+        Returns: Json
+      }
       gridex_approve_portal_claim_v1: {
         Args: {
           p_account: Json
@@ -92520,6 +92528,16 @@ export type Database = {
       }
       gridex_create_invoice_export_graph_v1_core: {
         Args: { p_invoices: Json; p_items: Json; p_run: Json }
+        Returns: Json
+      }
+      gridex_create_invoice_review_draft_v1: {
+        Args: {
+          p_company_id: string
+          p_enrichment: Json
+          p_invoices: Json
+          p_items: Json
+          p_run: Json
+        }
         Returns: Json
       }
       gridex_create_legal_template_version: {
@@ -94387,6 +94405,18 @@ export type Database = {
           p_company_id: string
           p_environment: string
           p_provider: string
+        }
+        Returns: Json
+      }
+      gridex_set_billing_period_lock_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_locked: boolean
+          p_metadata?: Json
+          p_reason: string
+          p_status: string
         }
         Returns: Json
       }

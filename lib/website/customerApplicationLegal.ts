@@ -1233,7 +1233,7 @@ export async function ensureWebsitePowerOfAttorney(input: {
       // used by customer_info_requests/grid_owner_data_requests/outbound_requests.
       // The old customer_documents JSON snapshot is retained only as internal audit
       // metadata and must never be mailed to a grid owner as the POA attachment.
-      await supabaseService
+      const { error: documentLinkError } = await supabaseService
         .from("powers_of_attorney")
         .update({
           document_id: authorizationDocumentId ?? documentId,
@@ -1244,11 +1244,11 @@ export async function ensureWebsitePowerOfAttorney(input: {
           },
           updated_at: new Date().toISOString(),
         })
-        .eq("id", powerOfAttorneyId)
-        .then(
-          () => undefined,
-          () => undefined,
-        );
+        .eq("company_id", input.companyId)
+        .eq("id", powerOfAttorneyId);
+      // A POA without its authorization document cannot be used for grid-owner
+      // requests, so a failed link must fail the application instead of passing silently.
+      if (documentLinkError) throw documentLinkError;
     }
 
     // Audit trail: created + accepted (+ internal JSON snapshot created). The

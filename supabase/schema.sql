@@ -12941,6 +12941,53 @@ end;
 $$;
 
 --
+-- Name: gridex_approve_invoice_test_item_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_now timestamptz := now();
+  v_item_id uuid;
+  v_invoice_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_test_approval_service_role_required';
+  end if;
+  if p_company_id is null or p_invoice_export_item_id is null or jsonb_typeof(p_approval) <> 'object' then
+    raise exception using errcode = '22023', message = 'invoice_test_approval_payload_invalid';
+  end if;
+
+  update public.invoice_export_items
+  set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('approval', p_approval),
+      updated_at = v_now
+  where company_id = p_company_id
+    and id = p_invoice_export_item_id
+    and environment = 'test'
+    and status = 'pending'
+  returning id into v_item_id;
+  if v_item_id is null then
+    raise exception using errcode = '23514', message = 'invoice_test_approval_item_not_pending';
+  end if;
+
+  update public.customer_invoices
+  set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('approval', p_approval),
+      updated_at = v_now
+  where company_id = p_company_id
+    and invoice_export_item_id = p_invoice_export_item_id
+    and status = 'draft'
+  returning id into v_invoice_id;
+  if v_invoice_id is null then
+    raise exception using errcode = '23514', message = 'invoice_test_approval_invoice_not_draft';
+  end if;
+
+  return jsonb_build_object('invoice_export_item_id', v_item_id, 'invoice_id', v_invoice_id);
+end
+$$;
+
+--
 -- Name: gridex_approve_portal_claim_v1(uuid, uuid, uuid, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -21538,6 +21585,49 @@ begin
   return jsonb_build_object(
     'run_id',v_run_id,'existing',false,'item_count',v_count
   );
+end
+$$;
+
+--
+-- Name: gridex_create_invoice_review_draft_v1(uuid, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_result jsonb;
+  v_item_id uuid := nullif(p_enrichment->>'invoice_export_item_id', '')::uuid;
+  v_invoice_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_review_draft_service_role_required';
+  end if;
+  if p_company_id is null or v_item_id is null
+     or nullif(p_run->>'company_id', '')::uuid is distinct from p_company_id then
+    raise exception using errcode = '22023', message = 'invoice_review_draft_payload_invalid';
+  end if;
+
+  v_result := public.gridex_create_invoice_export_graph_v1(p_run, p_items, p_invoices);
+
+  update public.customer_invoices
+  set price_plan_version_id = nullif(p_enrichment->>'price_plan_version_id', '')::uuid,
+      price_area_code = nullif(p_enrichment->>'price_area_code', ''),
+      consumption_kwh = nullif(p_enrichment->>'consumption_kwh', '')::numeric,
+      vat_rate = nullif(p_enrichment->>'vat_rate', '')::numeric,
+      calculation_snapshot = p_enrichment->'calculation_snapshot',
+      calculation_snapshot_sha256 = nullif(p_enrichment->>'calculation_snapshot_sha256', ''),
+      metadata = coalesce(p_enrichment->'metadata', metadata),
+      updated_at = now()
+  where company_id = p_company_id
+    and invoice_export_item_id = v_item_id
+  returning id into v_invoice_id;
+  if v_invoice_id is null then
+    raise exception using errcode = 'P0002', message = 'invoice_review_draft_invoice_missing';
+  end if;
+
+  return v_result || jsonb_build_object('invoice_id', v_invoice_id);
 end
 $$;
 
@@ -46253,6 +46343,81 @@ BEGIN
   RETURN jsonb_build_object('provider', p_provider, 'environment', p_environment,
                             'connection_created', v_connection_id IS NOT NULL);
 END $$;
+
+--
+-- Name: gridex_set_billing_period_lock_v1(uuid, text, boolean, text, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb DEFAULT '{}'::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_now timestamptz := now();
+  v_year integer;
+  v_month integer;
+  v_status text := case when p_locked then coalesce(nullif(p_status, ''), 'locked') else 'reopened' end;
+  v_lock public.billing_period_locks%rowtype;
+  v_unlocked_runs integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'billing_period_lock_service_role_required';
+  end if;
+  if p_company_id is null or p_locked is null or p_billing_month !~ '^\d{4}-(0[1-9]|1[0-2])$'
+     or (p_locked and v_status not in ('locked', 'exported', 'closed')) then
+    raise exception using errcode = '22023', message = 'billing_period_lock_payload_invalid';
+  end if;
+  v_year := split_part(p_billing_month, '-', 1)::integer;
+  v_month := split_part(p_billing_month, '-', 2)::integer;
+
+  if p_locked then
+    insert into public.billing_period_locks (
+      company_id, billing_year, billing_month, status, locked_by, locked_at, unlocked_by, unlocked_at,
+      lock_reason, metadata, updated_at
+    ) values (
+      p_company_id, v_year, v_month, v_status, p_actor_user_id, v_now, null, null,
+      coalesce(p_reason, 'Fakturaperioden är låst.'), coalesce(p_metadata, '{}'::jsonb), v_now
+    )
+    on conflict (company_id, billing_year, billing_month) do update set
+      status = excluded.status, locked_by = excluded.locked_by, locked_at = excluded.locked_at,
+      unlocked_by = null, unlocked_at = null, lock_reason = excluded.lock_reason,
+      metadata = excluded.metadata, updated_at = excluded.updated_at
+    returning * into v_lock;
+
+    insert into public.price_period_locks (
+      company_id, billing_month, lock_scope, status, locked_by, locked_at, reason, metadata
+    ) values (
+      p_company_id, p_billing_month, 'billing_period', 'locked', p_actor_user_id, v_now,
+      coalesce(p_reason, 'Fakturaperioden är låst.'), coalesce(p_metadata, '{}'::jsonb)
+    )
+    on conflict (company_id, billing_month, lock_scope) do update set
+      status = 'locked', locked_by = excluded.locked_by, locked_at = excluded.locked_at,
+      reason = excluded.reason, metadata = excluded.metadata;
+  else
+    insert into public.billing_period_locks (
+      company_id, billing_year, billing_month, status, unlocked_by, unlocked_at, lock_reason, updated_at
+    ) values (
+      p_company_id, v_year, v_month, 'reopened', p_actor_user_id, v_now,
+      coalesce(p_reason, 'Fakturaperioden har låsts upp.'), v_now
+    )
+    on conflict (company_id, billing_year, billing_month) do update set
+      status = 'reopened', unlocked_by = excluded.unlocked_by, unlocked_at = excluded.unlocked_at,
+      lock_reason = excluded.lock_reason, updated_at = excluded.updated_at
+    returning * into v_lock;
+
+    update public.price_period_locks
+    set status = 'unlocked', reason = coalesce(p_reason, 'Fakturaperioden har låsts upp.')
+    where company_id = p_company_id
+      and billing_month = p_billing_month
+      and lock_scope in ('billing_period', 'invoice_export');
+
+    v_unlocked_runs := public.gridex_unlock_pricing_runs_for_month(
+      p_company_id, p_billing_month, p_actor_user_id, coalesce(p_reason, 'billing_period_unlocked'));
+  end if;
+
+  return jsonb_build_object('lock', to_jsonb(v_lock), 'unlocked_pricing_runs', coalesce(v_unlocked_runs, 0));
+end
+$_$;
 
 --
 -- Name: gridex_set_contract_channel_permission(uuid, uuid, text, boolean, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -117095,6 +117260,13 @@ REVOKE ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id 
 GRANT ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id uuid, p_actor_setting_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117901,6 +118073,13 @@ GRANT ALL ON FUNCTION public.gridex_create_invoice_export_graph_v1(p_run jsonb, 
 --
 
 REVOKE ALL ON FUNCTION public.gridex_create_invoice_export_graph_v1_core(p_run jsonb, p_items jsonb, p_invoices jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_legal_template_version(p_module_key text, p_version_label text, p_title text, p_body text, p_publish boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -120269,6 +120448,13 @@ GRANT ALL ON FUNCTION public.gridex_seed_publication_price_option_template_v2(p_
 
 REVOKE ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_set_contract_channel_permission(p_company_id uuid, p_assignment_id uuid, p_channel text, p_allowed boolean, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -

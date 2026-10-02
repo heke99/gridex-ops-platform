@@ -40,12 +40,13 @@ export async function GET(request: Request, { params }: Props) {
     const financeStatus = normalizeCapwayFinanceStatus((invoicePayload as Record<string, unknown> | null)?.financeStatus)
     const invoiceStatus = normalizeCapwayInvoiceStatus((invoicePayload as Record<string, unknown> | null)?.status)
 
-    await supabaseService.from('invoice_export_items').update({
+    const { error: updateError } = await supabaseService.from('invoice_export_items').update({
       provider_status: invoiceStatus,
       purchase_status: financeStatus,
       status_payload: { invoice: plainSettled(invoice), financial: plainSettled(financial), purchase: plainSettled(purchase), recourse: plainSettled(recourse) },
       updated_at: new Date().toISOString(),
     }).eq('company_id', companyId).eq('id', id)
+    if (updateError) throw updateError
 
     return NextResponse.json({ data: { invoiceStatus, financeStatus, invoice: plainSettled(invoice), financial: plainSettled(financial), purchase: plainSettled(purchase), recourse: plainSettled(recourse) } })
   } catch (error) {

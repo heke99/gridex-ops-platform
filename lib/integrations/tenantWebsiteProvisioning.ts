@@ -256,12 +256,14 @@ function canonicalReceiptHash(input: Record<string, unknown>): string {
 }
 
 async function updateReceipt(
+  companyId: string,
   receiptId: string,
   values: Record<string, unknown>,
 ): Promise<void> {
   const { error } = await supabaseService
     .from('tenant_website_installation_receipts')
     .update({ ...values, updated_at: new Date().toISOString() })
+    .eq('company_id', companyId)
     .eq('id', receiptId)
   if (error) throw error
 }
@@ -438,7 +440,7 @@ export async function provisionTenantWebsiteIntegration(
       )
     }
 
-    await updateReceipt(row.receipt_id, {
+    await updateReceipt(input.companyId, row.receipt_id, {
       state: 'preflight_passed',
       tenant_reference: tenantReference,
       contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
@@ -480,7 +482,7 @@ export async function provisionTenantWebsiteIntegration(
       state,
     })
 
-    await updateReceipt(row.receipt_id, {
+    await updateReceipt(input.companyId, row.receipt_id, {
       state,
       completed_at: launchReady ? new Date().toISOString() : null,
       receipt_sha256: receiptHash,
@@ -497,6 +499,7 @@ export async function provisionTenantWebsiteIntegration(
         launch_blockers: readiness.blockers,
         updated_at: new Date().toISOString(),
       })
+      .eq('company_id', input.companyId)
       .eq('id', row.api_client_id)
     if (clientReadyError) throw clientReadyError
 
@@ -525,7 +528,7 @@ export async function provisionTenantWebsiteIntegration(
           ? String((cause as { code?: unknown }).code ?? 'TENANT_WEBSITE_PREFLIGHT_FAILED')
           : 'TENANT_WEBSITE_PREFLIGHT_FAILED'
     const message = cause instanceof Error ? cause.message : String(cause)
-    await updateReceipt(row.receipt_id, {
+    await updateReceipt(input.companyId, row.receipt_id, {
       state: 'failed',
       failure_code: code,
       failure_message: message.slice(0, 500),
