@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { certificationSummary, EDIEL_BATCH4_CERTIFICATION_CASES, type EdielCertificationCase } from '@/lib/ediel/rulebook/testCaseRuleRegistry'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,7 @@ function CaseTable({ title, cases }: { title: string; cases: EdielCertificationC
                 <td className="px-4 py-3 font-black text-slate-950">{testCase.testCaseCode}<div className="text-xs font-semibold text-slate-500">{testCase.portalTestId ?? '—'}</div></td>
                 <td className="px-4 py-3 font-semibold text-slate-800">{testCase.messageFamily} {testCase.messageCode}{testCase.variant ? `-${testCase.variant}` : ''}</td>
                 <td className="px-4 py-3 font-semibold text-slate-700">{testCase.direction === 'actor_to_portal' ? 'Gridex → Portal' : 'Portal → Gridex'}</td>
-                <td className="px-4 py-3"><span className={`rounded-full border px-2.5 py-1 text-xs font-black ${statusTone(testCase.status)}`}>{testCase.status}</span></td>
+                <td className="px-4 py-3"><span className={`rounded-full border px-2.5 py-1 text-xs font-black ${statusTone(testCase.status)}`}>{formatStatusLabel(testCase.status)}</span></td>
                 <td className="px-4 py-3 font-semibold text-slate-700">{testCase.expectedContrl} CONTRL + {testCase.expectedBusinessOutcome} {testCase.expectedBusinessResponseFamily}</td>
                 <td className="px-4 py-3 font-semibold text-slate-700">{nextStep(testCase)}</td>
               </tr>

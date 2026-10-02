@@ -46,6 +46,7 @@ type CertificateOption = {
   owner_ediel_id?: string | null;
   owner_subaddress?: string | null;
   message_type?: string | null;
+  company_id?: string | null;
   purpose?: string | null;
   usage?: string | null;
   metadata?: Record<string, unknown> | null;
@@ -1141,7 +1142,7 @@ export default async function EdielSystemTestsPage({
       .limit(50),
   ]);
   const companies = (companiesResult.data ?? []) as CompanyOption[];
-  const certificates = certificatesResult.error
+  const allRecipientCertificates = certificatesResult.error
     ? []
     : ((certificatesResult.data ?? []) as CertificateOption[]).filter(
         isOutboundRecipientCertificate,
@@ -1166,6 +1167,11 @@ export default async function EdielSystemTestsPage({
     null;
   const selectedCompany =
     companies.find((company) => company.id === selectedCompanyId) ?? null;
+  // Shared (company-less) certificates plus the selected company's own.
+  const certificates = allRecipientCertificates.filter(
+    (certificate) =>
+      !certificate.company_id || certificate.company_id === selectedCompanyId,
+  );
   const q = String(query.q ?? "")
     .trim()
     .toUpperCase();

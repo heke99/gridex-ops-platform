@@ -1402,19 +1402,24 @@ export default async function SystemTestCasePage({
                                   />
                                 ) : null}
                                 {message ? (
-                                  <UnlinkMessageForm
-                                    testRunId={evaluation.testRun.id}
-                                    testCaseCode={testCase.testCaseCode}
-                                    edielMessageId={message.id}
-                                    linkId={link.id}
-                                  />
-                                ) : null}
-                                {message ? (
-                                  <SoftDeleteMessageForm
-                                    testRunId={evaluation.testRun.id}
-                                    testCaseCode={testCase.testCaseCode}
-                                    edielMessageId={message.id}
-                                  />
+                                  <details className="relative">
+                                    <summary className="cursor-pointer list-none rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-700">
+                                      Mer ▾
+                                    </summary>
+                                    <div className="absolute right-0 z-10 mt-1 flex w-48 flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                                      <UnlinkMessageForm
+                                        testRunId={evaluation.testRun.id}
+                                        testCaseCode={testCase.testCaseCode}
+                                        edielMessageId={message.id}
+                                        linkId={link.id}
+                                      />
+                                      <SoftDeleteMessageForm
+                                        testRunId={evaluation.testRun.id}
+                                        testCaseCode={testCase.testCaseCode}
+                                        edielMessageId={message.id}
+                                      />
+                                    </div>
+                                  </details>
                                 ) : null}
                               </div>
                             </div>
@@ -1422,8 +1427,7 @@ export default async function SystemTestCasePage({
                             message.message_family !== "CONTRL" ? (
                               <div className="mt-3 space-y-2">
                                 <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-900">
-                                  Systemet visar bara kvittenserna som testfallet förväntar sig.
-                                  Positiv/negativ väljs av backend utifrån payload, route, matchning och regelprofil, inte som fritt manuellt val i UI.
+                                  Bara kvittenser som testfallet förväntar sig visas. Positiv eller negativ avgörs av meddelandets innehåll och regelprofilen.
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                   {expectedAckActionsForInboundMessage(

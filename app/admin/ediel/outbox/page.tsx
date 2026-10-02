@@ -92,7 +92,7 @@ export default async function EdielOutboxPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 100 })
+  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 })
   const queued = dashboard.outboxItems.filter((row) => ['prepared', 'queued', 'failed'].includes(String(row.status ?? '').toLowerCase()))
   const envOf = (row: EdielAutomationRow) => String(row.environment ?? '').toLowerCase()
   const productionItems = dashboard.outboxItems.filter((row) => envOf(row) === 'production')
