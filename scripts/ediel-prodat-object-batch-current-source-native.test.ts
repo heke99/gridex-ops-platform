@@ -8,6 +8,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {approveEdielInboundCase,createOrUpdateInboundProdatCase} from '@/lib/ediel/inboundCases'
 import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -15,7 +16,7 @@ type Rpc=(name:string,args:Record<string,unknown>)=>Promise<{data:unknown;error:
 const rpc=(name:string,args:Record<string,unknown>)=>(supabaseService.rpc.bind(supabaseService) as unknown as Rpc)(name,args)
 const sourceArgs=(f:Fixture)=>({p_company_id:f.companyId,p_source_message_id:f.sourceId,p_actor_user_id:f.actorUserId})
 async function fixture(){
- const base=await seedNormalSwitchNativeFixture({deferOriginal:true}),sourceId=randomUUID(),doc='BATCH'+randomUUID().replaceAll('-','').slice(0,20)
+ const base=await seedNormalSwitchNativeFixture({deferOriginal:true}),sourceId=randomUUID(),doc='B'+randomUUID().replaceAll('-','').slice(0,13).toUpperCase() // UNH 0062 an..14
  const points=['A','B'].map(prefix=>prefix+randomUUID().replaceAll('-','').slice(0,23).toUpperCase())
  // Literal D97A ordering and independent distributor namespace. Each first
  // register has actual source-only customer/site data, every repeated register
@@ -25,12 +26,16 @@ async function fixture(){
  const wire=`UNA:+.? 'UNB+UNOC:3+${base.receiver}:14+${base.sender}:14+261001:1200+${doc}++23-DDQ-PRODAT++1++1'${segments.join("'")}'UNT+${segments.length+1}+${doc}'UNZ+1+${doc}'`
  sql(`INSERT INTO public.permissions(key,name,is_active) VALUES('communication.write','Synthetic batch communication',true),('customers.write','Synthetic batch customer',true) ON CONFLICT(key) DO NOTHING;
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${literal(base.actorUserId)},${literal(base.companyId)},p.id,p.key,'allow','active',true FROM public.permissions p WHERE p.key IN('communication.write','customers.write');
- INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,parsed_payload,status,message_received_at,sender_ediel_id,receiver_ediel_id,application_reference,test_flag)
- VALUES(${literal(sourceId)},${literal(base.companyId)},'test','inbound','edifact','PRODAT','Z04',${literal(wire)},'{"subtype":"L","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}','received',clock_timestamp(),${literal(base.receiver)},${literal(base.sender)},'23-DDQ-PRODAT',1);`)
+ INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,raw_payload,parsed_payload,status,message_received_at,sender_ediel_id,receiver_ediel_id,application_reference,test_flag,
+  canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+ SELECT ${literal(sourceId)},${literal(base.companyId)},'test','inbound','edifact','PRODAT','Z04',${literal(wire)},'{"subtype":"L","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}','received',clock_timestamp(),${literal(base.receiver)},${literal(base.sender)},'23-DDQ-PRODAT',1,
+  pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
  const message=await getEdielMessageById(sourceId);expect(message).not.toBeNull()
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message!)
  expect({syntax:decision.syntaxDecision,application:decision.applicationDecision,functional:decision.functionalDecision},JSON.stringify(decision.issues)).toEqual({syntax:'accepted',application:'accepted',functional:'accepted'})
  const recorded=await recordReceivedSourceValidation({original:message!,validated:message!,resolvedCompanyId:base.companyId,decision});expect(recorded.status).toBe('recorded')
+ await captureFreshEdielSourceRulePackEvidence(base.companyId,sourceId) // production order (inboundProcessing.ts)
  const inboundCase=await createOrUpdateInboundProdatCase({actorUserId:base.actorUserId,message:message!});expect(inboundCase?.status).toBe('pending_review')
  return {...base,sourceId,caseId:inboundCase!.id,wire,points,assessmentId:recorded.status==='recorded'?recorded.assessmentId:null}
 }
@@ -44,7 +49,12 @@ describe('actual PRODAT object batch original/current actor and atomic native fi
  it('identical completed retry attempts no insert and preserves the full original',async()=>{const f=await fixture();await approve(f);const before=counts(f),remove=tripwire(f,'public.audit_logs',`NEW.company_id=${literal(f.companyId)}::uuid`);try{expect((await approve(f)).status).toBe('applied');expect(counts(f)).toEqual(before);expect((await getEdielMessageById(f.sourceId))?.raw_payload).toBe(f.wire)}finally{remove()}})
  it('retained completed result is current read-scoped after write revocation with no new effects',async()=>{const f=await fixture();await approve(f);const before=counts(f);sql(`INSERT INTO public.permissions(key,name,is_active) VALUES('customers.read','Synthetic retained customer read',true) ON CONFLICT(key) DO NOTHING;INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,status,is_active) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},p.id,p.key,'allow','active',true FROM public.permissions p WHERE p.key IN('communication.read','customers.read');INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},p,'deny',true,clock_timestamp() FROM unnest(ARRAY['communication.write','customers.write'])p;`);expect((await approve(f)).status).toBe('applied');expect(counts(f)).toEqual(before);expect((await rpc('ediel_read_prodat_object_batch_source_v1',sourceArgs(f))).error).not.toBeNull()})
  it('current DENY before approval creates no approval/graph/final effects',async()=>{const f=await fixture(),before=counts(f);deny(f);await expect(approve(f)).rejects.toThrow(/current_actor/);expect(counts(f)).toEqual(before)})
- it('revoked membership cannot borrow stored full facets',async()=>{const f=await fixture(),before=counts(f);sql(`UPDATE public.company_memberships SET status='revoked',is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)}`);await expect(approve(f)).rejects.toThrow(/current_actor/);expect(counts(f)).toEqual(before)})
+ it('revoked membership cannot borrow stored full facets',async()=>{const f=await fixture(),before=counts(f),admin=randomUUID()
+  // The tenant keeps another functioning admin, so the revocation itself is allowed.
+  sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES(${literal(admin)},'authenticated','authenticated',${literal(`${admin}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+   INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(admin)},${literal(`${admin}@example.invalid`)},'Synthetic remaining admin','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+   INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(f.companyId)},${literal(admin)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');`)
+  sql(`UPDATE public.company_memberships SET status='revoked',is_active=false WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.actorUserId)}`);await expect(approve(f)).rejects.toThrow(/current_actor/);expect(counts(f)).toEqual(before)})
  it('banned Auth actor has no native first-effect authority',async()=>{const f=await fixture(),before=counts(f);sql(`UPDATE auth.users SET banned_until=clock_timestamp()+interval '1 day' WHERE id=${literal(f.actorUserId)}`);await expect(approve(f)).rejects.toThrow(/current_actor/);expect(counts(f)).toEqual(before)})
  it('current receiver role revocation holds before an accepted graph',async()=>{const f=await fixture(),before=counts(f);sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${literal(f.companyId)} AND actor_id=${literal(f.actorUserId)} AND role_code='electricity_supplier'`);await expect(approve(f)).rejects.toThrow(/captured_role/);expect(counts(f)).toEqual(before)})
  it('a final private graph-receipt failure rolls back that actual graph transaction',async()=>{const f=await fixture(),remove=tripwire(f,'gridex_prodat_object_batch.graph_receipts',`NEW.case_id=${literal(f.caseId)}::uuid`);try{await expect(approve(f)).rejects.toThrow(/batch_native_last_effect_failure/);expect(counts(f)).toMatchObject({graphs:0,receipts:0,audit:0,events:0,ack:0,outbox:0})}finally{remove()}})

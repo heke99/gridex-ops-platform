@@ -35792,6 +35792,7 @@ export type Database = {
       }
       ediel_inbound_cases: {
         Row: {
+          applied_at: string | null
           assigned_to: string | null
           case_type: string
           company_id: string | null
@@ -35799,17 +35800,32 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           ediel_message_id: string | null
+          failure_reason: string | null
           id: string
+          match_confidence: number | null
+          message_code: string | null
+          message_family: string | null
           metadata: Json | null
           metering_point_id: string | null
+          parsed_contract: Json
+          parsed_customer: Json
+          parsed_metering_point: Json
+          parsed_production: Json
+          parsed_site: Json
           payload: Json
+          proposed_action: Json
+          review_decision: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           site_id: string | null
           status: string
           switch_request_id: string | null
+          transaction_type: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          applied_at?: string | null
           assigned_to?: string | null
           case_type?: string
           company_id?: string | null
@@ -35817,17 +35833,32 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           ediel_message_id?: string | null
+          failure_reason?: string | null
           id?: string
+          match_confidence?: number | null
+          message_code?: string | null
+          message_family?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
+          parsed_contract?: Json
+          parsed_customer?: Json
+          parsed_metering_point?: Json
+          parsed_production?: Json
+          parsed_site?: Json
           payload?: Json
+          proposed_action?: Json
+          review_decision?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           site_id?: string | null
           status?: string
           switch_request_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          applied_at?: string | null
           assigned_to?: string | null
           case_type?: string
           company_id?: string | null
@@ -35835,13 +35866,27 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           ediel_message_id?: string | null
+          failure_reason?: string | null
           id?: string
+          match_confidence?: number | null
+          message_code?: string | null
+          message_family?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
+          parsed_contract?: Json
+          parsed_customer?: Json
+          parsed_metering_point?: Json
+          parsed_production?: Json
+          parsed_site?: Json
           payload?: Json
+          proposed_action?: Json
+          review_decision?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           site_id?: string | null
           status?: string
           switch_request_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
           updated_by?: string | null
         }
