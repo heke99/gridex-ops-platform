@@ -48,3 +48,32 @@ config, analytics/forecast/spot.
 ## Gaps (no write flow exists)
 Contract renewal, product change and a dedicated move-in flow (move-in runs
 through website application/switch).
+
+## Status after remediation (2026-10-02)
+
+| # | Status | Evidence |
+|---|---|---|
+| 1–3 | Fixed | #449: gridex_create/transition/finalize_supplier_switch_v1 |
+| 4–8 | Deferred | Ediel outbound/inbound is owned by the Ediel masterplan V2 workstream (user decision). Supply end on Z05 now uses gridex_end_customer_supply_v1 (#449) and keeps status `ended` for the reviewed-closure owner |
+| 9 | Fixed | #449: gridex_register_customer_lifecycle_decision_v1 |
+| 10 | Fixed | #450: gridex_create_grid_owner_data_request_v1; company_id NOT NULL; monthly autopilot no longer writes tenantless requests |
+| 11 | No change | upsertPartnerCustomerInvoice has no callers (dead code) |
+| 12 | Fixed | #451: gridex_record_invoice_purchase_request_v1; provider-status/dispute now fail on lost local update |
+| 13–14 | Partly fixed | Provider webhook retries now always drain `received` events (lost-event bug); send-result/processor left as is (idempotent claim-based processor) |
+| 15 | Fixed | gridex_create_invoice_review_draft_v1 (graph + calculation snapshot in one transaction) |
+| 16 | Open | billing period lock, low traffic; next batch |
+| 17 | Fixed | #451: gridex_import_billing_underlays_v1 (savepoint per row, once per content) |
+| 18 | Accepted | tenantSync / ensureCustomerPortalUserLink are idempotent convergent upserts, every write is company_id + customer_id scoped, failures throw; a retry completes the graph |
+| 19 | Fixed (tenant scope) | website application response update and POA document link now company-scoped; a failed POA document link fails the application |
+| 20 | Open | admin review save, single-tenant admin path; next batch |
+| 21 | Fixed | #452: gridex_merge_customers_v1; canonical merge columns converged |
+| 22 | Partly fixed | #450: POA expiry status+event atomic; POA save chain still multi-call |
+| 23 | Open | missing facility information request; next batch |
+| 24 | Fixed | #453: gridex_approve_portal_claim_v1; canonical claim/event columns converged |
+| 25 | Open | tenant website integration finalisation; platform-admin only |
+| — | Fixed | Invoice test-center approval: gridex_approve_invoice_test_item_v1 |
+
+Hosted DB (gridex-ops-dev) has every migration through 20261002225000 applied
+except 20261002211000_atomic_test_customer_delete.sql, which contains DELETE
+statements the Supabase MCP refuses without interactive confirmation; it must
+be run once in the SQL Editor.
