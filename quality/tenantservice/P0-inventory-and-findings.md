@@ -242,3 +242,23 @@
 3. Set `enforce`.
 4. Review the invoice_email backfill (customers that only have a contact email).
 5. Set `shared`.
+
+## Status 2026-10-02 (after #430–#436)
+
+| Item | Status | Evidence |
+|---|---|---|
+| F4 / P1c: independent customer proof | **Done** | #432, live in production. Documented in OpenAPI 2026-10-02.2 (#436). |
+| F9: unique support idempotency | **Done** | `support_case_idempotency_unique`, applied in production |
+| P2b: transaction for contact change | **Done** | #430 (`customer_contact_change_transaction`, RPC with sequential fallback) |
+| P4b: attachments with quarantine | **Done** | #433 (OPS, DB), #434 (customer API 2026-10-02.1). Content check, not antivirus. |
+| F13: fire-and-forget automation in `profile-update` | **Done** | #436. Awaited, and a failure does not stop the profile change. Test in `tenantservice-contact-change.test.ts`. |
+| P8: backfill for `invoice_distribution_missing` | **Not needed** | Live read 2026-10-02: 0 customers with only a contact email; 0 open billing underlays |
+| Live RLS/grant verification | **Done (read-only, production)** | All public tables have RLS; no write policy for anon/public is `true`. See the note below. |
+| P7: perf baseline | **Done + first optimization** | `perf-baseline-2026-10-02.md`; #435 instrumentation; #436 parallel reads |
+| F12: legal identity fields (personal and org number) in the ordinary OPS profile | **Open** | Needs a product decision on the high-risk flow (who may change them, approval, audit) |
+| P3: versioned billing profile with revision on the item | **Open** | Needs a migration and a design decision |
+| P5b: restructure the customer card (header, 5 tabs, shared edit panel) | **Open** | Large UI change; needs prioritization |
+| Browser verification (mobile/keyboard) | **Blocked** | Needs a running app with login and DB in the session |
+| node-forge GHSA-86w9-cpqp-85rv | **Exception until 2026-11-01** | No fixed release yet |
+
+**Note on RLS:** on `customer_cases` the permissive policy `gridex_perf_authenticated_select_v1 (true)` is combined with the RESTRICTIVE `tenant_lifecycle_select_guard` (`company_id IN gridex_user_company_ids()`). The effective rule is still tenant scoping, so this is a false positive and not a leak. `customer_case_attachments`, `tenant_customer_identity_providers` and `tenant_customer_assertion_replays` have no grants for anon/authenticated.
