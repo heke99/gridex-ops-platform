@@ -8,9 +8,11 @@ import { utiltsNativeSourceFixture, utiltsTestEnvironmentWire } from '../__tests
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { buildUtiltsTransactionPersistencePayload, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
+import { canonicalUtiltsDecimal } from '@/lib/ediel/utilts/exactDecimal'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 // Real public canonical consumer, evidence trigger, SQL, ACK gateway/writer
@@ -98,7 +100,7 @@ async function seed(_label: string, defect: S02PlanningDefect, ownFirst: boolean
 }
 
 type Ack = { id: string; message_family: string; ack_outcome: string; raw_payload: string; company_id: string;
-  source_operation_id: string; parsed_payload: { relatedTransactionReference: string }; rule_pack_snapshot: Record<string, unknown> }
+  source_operation_id: string; parsed_payload: Record<string, unknown> & { relatedTransactionReference: string }; rule_pack_snapshot: Record<string, unknown>; canonical_rule_pack_id: string | null }
 type Reservation = { source_transaction_id: string; disposition: string; planned_response_type: string;
   final_response_type: string | null; response_message_id: string | null; persisted_series_id: string | null }
 type Series = { id: string; source_transaction_reference: string; series_kind: string; external_metering_point_id: string }
@@ -118,15 +120,20 @@ function snapshot(source: string): Snapshot {
 function noConsumption() {
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
 }
+const OWN_REFUSAL = /utilts_(transaction_owner_outcome_mismatch|consumption_identity_unsupported|s02_quantity_required)/
 function directRpc(input: UtiltsBoundPersistenceInput & { actorUserId: string }) {
   // Bypass application persistence validation entirely: this oracle belongs
   // to the service-only PostgreSQL boundary, not to its TypeScript adapter.
+  // The boundary's v2 contract carries each quantity as the exact canonical
+  // decimal string of its raw QTY token, never a JavaScript number.
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
     p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id: string
   }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
   return rpc('gridex_persist_utilts_consumption_v1', { p_company_id: input.companyId, p_environment: input.environment,
     p_source_message_id: input.sourceMessageId, p_message_code: input.messageCode, p_raw_payload: input.rawPayload, p_actor_user_id: input.actorUserId,
-    p_transactions: input.transactions.map((item, index) => ({ ...item, consumptionContract: input.contracts[index] })) })
+    p_transactions: input.transactions.map((item, index) => ({ ...item, consumptionContract: input.contracts[index],
+      quantities: item.quantities.map(quantity => quantity.value === null ? quantity
+        : { ...quantity, value: canonicalUtiltsDecimal(quantity.raw.split(':')[1] ?? '', '.') }) })) })
 }
 function assertForecast(state: Snapshot, reference: string, point: string, quantity: number) {
   const series = state.series.find(row => row.source_transaction_reference === reference)!
@@ -188,7 +195,7 @@ it.each(cases)('native actual S02 $defect rejects only own IDE before forecastin
 it('native direct clean accepted S02 persists nonbilling forecasts and immutable reservation/contract retry', async () => {
   const f = await seed('54358', 'clean', true), input = await f.prepare(true)
   const result = await directRpc(input), first = snapshot(f.source.id)
-  expect(result.error).toBeNull()
+  expect(result.error, JSON.stringify(result.error)).toBeNull()
   expect(result.data).toMatchObject([{ disposition: 'accepted', persistenceStatus: 'persisted' }, { disposition: 'accepted', persistenceStatus: 'persisted' }])
   assertForecast(first, 'S02-OWN', '735999260731000007', 111); assertForecast(first, 'S02-SIBLING', '735999888000001014', 222)
   expect(first.acks).toEqual([])
@@ -212,9 +219,11 @@ it.each(cases)('native direct accepted S02 $defect refuses the whole batch twice
     transaction: row.source_transaction_id, disposition: row.disposition, response: row.planned_response_type })),
     series: state.series.map(row => ({ transaction: row.source_transaction_reference, point: row.external_metering_point_id, kind: row.series_kind })),
     values: state.values.map(row => ({ qualifier: row.qualifier, quantity: row.quantity })), contracts: state.contracts.length }))
+  // The canonical transaction owner (require_utilts_transaction_before_issuer_v1)
+  // holds this IDE as guide_rejected, so the forged accepted outcome is refused
+  // at that owner before the downstream identity/quantity checks run.
   expect(errors, JSON.stringify({ errors, observed })).toEqual([
-    expect.stringMatching(/utilts_(consumption_identity_unsupported|s02_quantity_required)/),
-    expect.stringMatching(/utilts_(consumption_identity_unsupported|s02_quantity_required)/),
+    expect.stringMatching(OWN_REFUSAL), expect.stringMatching(OWN_REFUSAL),
   ])
   for (const state of states) expect(state).toEqual({ acks: [], reservations: [], receipts: [], series: [], values: [], contracts: [], outbox: [] })
   noConsumption()
@@ -222,8 +231,22 @@ it.each(cases)('native direct accepted S02 $defect refuses the whole batch twice
 
 const quantityPlacements = [
   { defect: 'wrong-qualifier', transform: (raw: string) => raw.replace("SEQ++1'\nQTY+135:111'", "SEQ++1'\nQTY+136:111'") },
-  { defect: 'before-sequence', transform: (raw: string) => raw.replace("SEQ++1'\nQTY+135:111'", "QTY+135:111'\nSEQ++1'") },
 ]
+// A QTY between IDE and its first SEQ is not a UTILTS directory position
+// (lib/ediel/core/unsmGrammar.ts, generated from the UN/EDIFACT archive). The
+// interchange is syntax-rejected, so there is no canonical UTILTS business
+// owner and no own-IDE APERAK; the business processor refuses it before any
+// durable effect, on every retry.
+const quantityBeforeSequence = (raw: string) => raw.replace("SEQ++1'\nQTY+135:111'", "QTY+135:111'\nSEQ++1'")
+it('native actual S02 QTY135 before its SEQ is syntax-rejected and refused without any business effect', async () => {
+  const f = await seed('54369', 'clean', true, quantityBeforeSequence)
+  expect(resolveCanonicalRuntimeDecision(f.source)).toMatchObject({ syntaxDecision: 'rejected', policy: null })
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(f.consume()).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+    expect(snapshot(f.source.id)).toEqual({ acks: [], reservations: [], receipts: [], series: [], values: [], contracts: [], outbox: [] })
+  }
+  noConsumption()
+})
 it.each(quantityPlacements)('native actual S02 $defect cannot supply own observation QTY135; sibling and retry remain independent', async ({ defect, transform }) => {
   const f = await seed(defect === 'wrong-qualifier' ? '54368' : '54369', 'clean', true, transform)
   expect((await f.consume()).internalReviewRequired).toBe(false)
@@ -235,20 +258,20 @@ it.each(quantityPlacements)('native actual S02 $defect cannot supply own observa
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })
 
-async function assertTwoAtomicRefusals(f: Awaited<ReturnType<typeof seed>>, errorCode: string) {
+async function assertTwoAtomicRefusals(f: Awaited<ReturnType<typeof seed>>, errorCode: RegExp) {
   const input = await f.prepare(true), observed = []
   for (let attempt = 0; attempt < 2; attempt++) {
     const result = await directRpc(input)
     observed.push({ error: result.error?.message ?? null, state: snapshot(f.source.id) })
   }
   for (const attempt of observed) {
-    expect(attempt.error, JSON.stringify(observed)).toContain(errorCode)
+    expect(attempt.error, JSON.stringify(observed)).toMatch(errorCode)
     expect(attempt.state).toEqual({ acks: [], reservations: [], receipts: [], series: [], values: [], contracts: [], outbox: [] })
   }
   noConsumption()
 }
 it.each(quantityPlacements)('native direct S02 $defect refuses both attempts atomically despite sibling QTY135', async ({ defect, transform }) => {
-  await assertTwoAtomicRefusals(await seed(defect === 'wrong-qualifier' ? '54370' : '54371', 'clean', true, transform), 'utilts_s02_quantity_required')
+  await assertTwoAtomicRefusals(await seed(defect === 'wrong-qualifier' ? '54370' : '54371', 'clean', true, transform), OWN_REFUSAL)
 })
 
 const zeroQuantity = (raw: string) => raw.replace('QTY+135:111', 'QTY+135:0')
@@ -285,15 +308,16 @@ it('native actual S02 agency89 stays guide-valid, held with syntax CONTRL only, 
     ack_outcome: 'positive', company_id: f.ids.company,
     source_operation_id: `ediel_ack:${f.source.id}:CONTRL:message` })
   expect(technical.raw_payload).toContain(`UCI+${f.source.interchange_reference}+${f.parties.issuer}:ZZ+${f.parties.receiver}:ZZ+1'`)
-  expect(technical.parsed_payload.relatedTransactionReference).toBeNull()
-  expect(technical.rule_pack_snapshot).toMatchObject({ authority: 'resolveCanonicalEdielPolicy',
-    inheritedFromSourceMessage: true, sourceMessageId: f.source.id })
+  // Technical CONTRL is owned by the protected original syntax authority
+  // (20260930184410): interchange scoped, no transaction and no business rule pack.
+  expect(technical.parsed_payload).toMatchObject({ ackFamily: 'CONTRL', ackSourceId: f.source.id, sourceTransactionReference: null })
+  expect(technical.canonical_rule_pack_id).toBeNull(); expect(technical.rule_pack_snapshot).toEqual({})
   expect(first.series).toEqual([]); expect(first.values).toEqual([])
   expect(first.contracts).toEqual([]); expect(first.outbox).toEqual([])
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })
 it('native direct S02 agency89 refuses a positive override twice with zero durable effects', async () => {
-  await assertTwoAtomicRefusals(await seed('54375', 'clean', true, nationalPoints), 'utilts_consumption_identity_unsupported')
+  await assertTwoAtomicRefusals(await seed('54375', 'clean', true, nationalPoints), /utilts_(transaction_owner_outcome_mismatch|consumption_identity_unsupported)/)
 })
 
 it('native actual S02 first observation cannot fill missing QTY135 in own second SEQ; sibling and retry remain independent', async () => {
@@ -306,7 +330,7 @@ it('native actual S02 first observation cannot fill missing QTY135 in own second
   await f.consume(); expect(snapshot(f.source.id)).toEqual(first); noConsumption()
 })
 it('native direct S02 own second SEQ missing QTY135 refuses both whole batches atomically', async () => {
-  await assertTwoAtomicRefusals(await seed('54377', 'clean', true, raw => s02PlanningSecondSequence(raw, null)), 'utilts_s02_quantity_required')
+  await assertTwoAtomicRefusals(await seed('54377', 'clean', true, raw => s02PlanningSecondSequence(raw, null)), OWN_REFUSAL)
 })
 
 function assertTwoForecastObservations(state: Snapshot) {
