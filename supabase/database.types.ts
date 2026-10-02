@@ -93026,6 +93026,15 @@ export type Database = {
         Args: { p_company_id: string; p_permission: string }
         Returns: boolean
       }
+      gridex_import_billing_underlays_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_batch: Json
+          p_company_id: string
+          p_rows: Json
+        }
+        Returns: Json
+      }
       gridex_import_grid_area_geojson_feature: {
         Args: {
           p_feature_id: string
@@ -93891,6 +93900,16 @@ export type Database = {
           p_status: string
         }
         Returns: undefined
+      }
+      gridex_record_invoice_purchase_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_financing_mode: string
+          p_invoice_export_item_id: string
+          p_payload: Json
+        }
+        Returns: Json
       }
       gridex_record_legacy_api_key_use_v1: {
         Args: { p_api_client_id: string; p_route: string }

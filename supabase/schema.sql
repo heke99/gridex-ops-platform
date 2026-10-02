@@ -30538,6 +30538,137 @@ $$;
 COMMENT ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) IS 'F-2: use this in RLS policies. gridex_has_permission(uid, perm) carries no tenant binding.';
 
 --
+-- Name: gridex_import_billing_underlays_v1(uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_content_sha text := nullif(p_batch->>'content_sha256', '');
+  v_batch_id uuid;
+  v_existing record;
+  v_row jsonb;
+  v_underlay jsonb;
+  v_underlay_id uuid;
+  v_columns text;
+  v_status text;
+  v_issues jsonb;
+  v_imported integer := 0;
+  v_failed integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'billing_import_service_role_required';
+  end if;
+  if p_company_id is null or p_actor_user_id is null or jsonb_typeof(p_rows) <> 'array' then
+    raise exception using errcode = '22023', message = 'billing_import_payload_invalid';
+  end if;
+
+  if v_content_sha is not null then
+    perform pg_advisory_xact_lock(hashtextextended('billing_import:' || p_company_id::text || ':' || v_content_sha, 0));
+    select id, rows_imported, rows_failed into v_existing
+    from public.billing_import_batches
+    where company_id = p_company_id
+      and metadata->>'content_sha256' = v_content_sha
+      and status in ('imported', 'partially_imported')
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('batch_id', v_existing.id, 'duplicate', true,
+        'imported', v_existing.rows_imported, 'failed', v_existing.rows_failed);
+    end if;
+  end if;
+
+  insert into public.billing_import_batches (
+    company_id, file_name, source_type, status, rows_total, issues, metadata, created_by
+  ) values (
+    p_company_id,
+    nullif(p_batch->>'file_name', ''),
+    coalesce(nullif(p_batch->>'source_type', ''), 'manual_paste'),
+    'previewed',
+    jsonb_array_length(p_rows),
+    coalesce(p_batch->'issues', '[]'::jsonb),
+    coalesce(p_batch->'metadata', '{}'::jsonb) || jsonb_build_object('content_sha256', v_content_sha),
+    p_actor_user_id
+  )
+  returning id into v_batch_id;
+
+  for v_row in select value from jsonb_array_elements(p_rows) loop
+    v_underlay_id := null;
+    v_issues := coalesce(v_row->'issues', '[]'::jsonb);
+    v_status := case when coalesce((v_row->>'has_errors')::boolean, false) then 'failed' else 'imported' end;
+    v_underlay := v_row->'underlay';
+
+    if v_status = 'imported' and v_underlay is not null and jsonb_typeof(v_underlay) = 'object' then
+      v_underlay := (v_underlay - array['id', 'company_id', 'created_by', 'updated_by'])
+        || jsonb_build_object(
+          'company_id', p_company_id,
+          'created_by', p_actor_user_id,
+          'updated_by', p_actor_user_id,
+          'payload', coalesce(v_underlay->'payload', '{}'::jsonb) || jsonb_build_object('importBatchId', v_batch_id)
+        );
+      select string_agg(quote_ident(key), ', ' order by key) into v_columns
+      from jsonb_object_keys(v_underlay) as key
+      where key in (
+        select attname from pg_attribute
+        where attrelid = 'public.billing_underlays'::regclass and attnum > 0 and not attisdropped
+      );
+      begin
+        execute format(
+          'insert into public.billing_underlays (%1$s) select %1$s from jsonb_populate_record(null::public.billing_underlays, $1) returning id',
+          v_columns
+        ) into v_underlay_id using v_underlay;
+      exception when others then
+        v_status := 'failed';
+        v_issues := v_issues || jsonb_build_array(jsonb_build_object(
+          'code', 'db_insert_failed',
+          'severity', 'error',
+          'title', 'Raden kunde inte importeras',
+          'description', sqlerrm
+        ));
+      end;
+    elsif v_status = 'imported' then
+      -- Nothing to import (no customer): never count it as imported.
+      v_status := 'failed';
+      v_issues := v_issues || jsonb_build_array(jsonb_build_object(
+        'code', 'customer_missing',
+        'severity', 'error',
+        'title', 'Kund saknas',
+        'description', 'Raden saknar kund och importerades inte.'
+      ));
+    end if;
+
+    if v_status = 'imported' then v_imported := v_imported + 1; else v_failed := v_failed + 1; end if;
+
+    insert into public.billing_import_rows (
+      import_batch_id, company_id, row_number, status, billing_underlay_id, normalized_payload, issues
+    ) values (
+      v_batch_id,
+      p_company_id,
+      nullif(v_row->>'row_number', '')::integer,
+      v_status,
+      v_underlay_id,
+      coalesce(v_row->'normalized_payload', '{}'::jsonb),
+      v_issues
+    );
+  end loop;
+
+  update public.billing_import_batches
+  set status = case
+        when v_failed > 0 and v_imported > 0 then 'partially_imported'
+        when v_failed > 0 then 'failed'
+        else 'imported' end,
+      rows_imported = v_imported,
+      rows_failed = v_failed,
+      imported_at = now()
+  where id = v_batch_id and company_id = p_company_id;
+
+  return jsonb_build_object('batch_id', v_batch_id, 'duplicate', false, 'imported', v_imported, 'failed', v_failed);
+end
+$_$;
+
+--
 -- Name: gridex_import_grid_area_geojson_feature(text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -41578,6 +41709,46 @@ begin
     company_id=excluded.company_id,status=excluded.status,blocker_code=excluded.blocker_code,
     evidence=excluded.evidence,last_error=excluded.last_error,resolved_at=excluded.resolved_at,updated_at=now();
 end $$;
+
+--
+-- Name: gridex_record_invoice_purchase_request_v1(uuid, uuid, text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_event_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_purchase_service_role_required';
+  end if;
+  if p_company_id is null or p_invoice_export_item_id is null
+     or p_financing_mode not in ('factoring_without_recourse', 'factoring_with_recourse') then
+    raise exception using errcode = '22023', message = 'invoice_purchase_payload_invalid';
+  end if;
+
+  update public.invoice_export_items
+  set purchase_status = 'requested',
+      financing_mode = p_financing_mode,
+      updated_at = now()
+  where id = p_invoice_export_item_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'invoice_export_item_not_found_for_tenant';
+  end if;
+
+  insert into public.invoice_purchase_events (
+    company_id, invoice_export_item_id, event_type, purchase_status, finance_status, payload, created_by
+  ) values (
+    p_company_id, p_invoice_export_item_id, 'purchase_requested_manual', 'requested', p_financing_mode,
+    coalesce(p_payload, '{}'::jsonb), p_actor_user_id
+  )
+  returning id into v_event_id;
+
+  return jsonb_build_object('event_id', v_event_id);
+end
+$$;
 
 --
 -- Name: gridex_record_legacy_api_key_use_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -118313,6 +118484,13 @@ GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid,
 GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) TO authenticated;
 
 --
+-- Name: FUNCTION gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_import_grid_area_geojson_feature(p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -119361,6 +119539,13 @@ GRANT ALL ON FUNCTION public.gridex_record_customer_contract_event_v1(p_company_
 
 REVOKE ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id uuid, p_source_table text, p_offer_id uuid, p_status text, p_blocker_code text, p_evidence jsonb, p_error text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id uuid, p_source_table text, p_offer_id uuid, p_status text, p_blocker_code text, p_evidence jsonb, p_error text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text); Type: ACL; Schema: public; Owner: -
