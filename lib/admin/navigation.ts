@@ -106,6 +106,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Bolagets egna inställningar',
     items: [
       { key: 'company_settings', label: 'Inställningar', href: '/admin/company-settings', description: 'Kontaktuppgifter och bolagsprofil', pageKey: 'company.settings' },
+      { key: 'customer_login', label: 'Kundinloggning', href: '/admin/customer-login', description: 'Verifiera att era kunder verkligen är inloggade', pageKey: 'company.settings' },
       { key: 'audit', label: 'Revisionslogg', href: '/admin/audit', description: 'Spårbarhet för behörigt scope', pageKey: 'audit.log' },
     ],
   },

@@ -84,11 +84,34 @@ if (last.kind !== 'report') {
   process.exit(1)
 }
 
+// Documented, time-boxed exceptions (scripts/dependency-audit-exceptions.json). A vulnerability
+// is suppressed only when every advisory behind it is an unexpired exception for that package;
+// anything else, including a newly published advisory on the same package, still blocks.
+const exceptionsFile = require('node:path').join(__dirname, 'dependency-audit-exceptions.json')
+const today = new Date().toISOString().slice(0, 10)
+const exceptions = (JSON.parse(require('node:fs').readFileSync(exceptionsFile, 'utf8')).exceptions ?? [])
+const active = exceptions.filter((entry) => entry.expires >= today)
+for (const entry of exceptions.filter((entry) => entry.expires < today)) {
+  console.error(`dependency audit: exception ${entry.advisory} (${entry.package}) expired on ${entry.expires}`)
+}
+const advisoryId = (via) => String(via.url ?? '').split('/').pop()
+const counts = { ...last.counts }
+const suppressed = []
+for (const [name, vulnerability] of Object.entries(last.report.vulnerabilities ?? {})) {
+  const advisories = (vulnerability.via ?? []).filter((via) => typeof via === 'object')
+  const onlyExcepted = advisories.length > 0 && advisories.length === (vulnerability.via ?? []).length &&
+    advisories.every((via) => active.some((entry) => entry.package === name && entry.advisory === advisoryId(via)))
+  if (!onlyExcepted) continue
+  counts[vulnerability.severity] = Math.max(0, (counts[vulnerability.severity] ?? 0) - 1)
+  suppressed.push(`${name} (${advisories.map(advisoryId).join(', ')})`)
+}
+for (const item of suppressed) console.warn(`dependency audit: documented exception applied: ${item}`)
+
 const offending = blocking
-  .map((severity) => [severity, last.counts[severity] ?? 0])
+  .map((severity) => [severity, counts[severity] ?? 0])
   .filter(([, count]) => count > 0)
 
-const summary = Object.entries(last.counts)
+const summary = Object.entries(counts)
   .filter(([key]) => key !== 'total')
   .map(([key, value]) => `${key}=${value}`)
   .join(' ')

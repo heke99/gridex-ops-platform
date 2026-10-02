@@ -69781,6 +69781,57 @@ CREATE TABLE public.tenant_counterparty_routes (
 ALTER TABLE ONLY public.tenant_counterparty_routes FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: tenant_customer_assertion_replays; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_customer_assertion_replays (
+    company_id uuid NOT NULL,
+    jti text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tenant_customer_assertion_replays_jti_check CHECK (((length(jti) >= 8) AND (length(jti) <= 200)))
+);
+
+--
+-- Name: tenant_customer_identity_providers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_customer_identity_providers (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    kind text NOT NULL,
+    display_name text NOT NULL,
+    issuer text NOT NULL,
+    audience text NOT NULL,
+    jwks_uri text,
+    public_jwk jsonb,
+    subject_claim text DEFAULT 'sub'::text NOT NULL,
+    enforcement text DEFAULT 'report'::text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    last_tested_at timestamp with time zone,
+    last_test_result jsonb,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tenant_customer_identity_providers_audience_check CHECK (((length(audience) >= 1) AND (length(audience) <= 200))),
+    CONSTRAINT tenant_customer_identity_providers_display_name_check CHECK (((length(btrim(display_name)) >= 1) AND (length(btrim(display_name)) <= 120))),
+    CONSTRAINT tenant_customer_identity_providers_enforcement_check CHECK ((enforcement = ANY (ARRAY['report'::text, 'enforce'::text]))),
+    CONSTRAINT tenant_customer_identity_providers_issuer_check CHECK (((length(issuer) >= 1) AND (length(issuer) <= 500))),
+    CONSTRAINT tenant_customer_identity_providers_jwks_uri_check CHECK (((jwks_uri IS NULL) OR (jwks_uri ~ '^https://[^\s]{3,490}$'::text))),
+    CONSTRAINT tenant_customer_identity_providers_key_material CHECK ((((kind = 'oidc'::text) AND (jwks_uri IS NOT NULL) AND (public_jwk IS NULL)) OR ((kind = 'tenant_key'::text) AND (public_jwk IS NOT NULL) AND (jwks_uri IS NULL)))),
+    CONSTRAINT tenant_customer_identity_providers_kind_check CHECK ((kind = ANY (ARRAY['oidc'::text, 'tenant_key'::text]))),
+    CONSTRAINT tenant_customer_identity_providers_public_jwk_check CHECK (((public_jwk IS NULL) OR ((jsonb_typeof(public_jwk) = 'object'::text) AND (NOT (public_jwk ? 'd'::text))))),
+    CONSTRAINT tenant_customer_identity_providers_subject_claim_check CHECK ((subject_claim ~ '^[A-Za-z0-9_.:-]{1,64}$'::text))
+);
+
+--
+-- Name: TABLE tenant_customer_identity_providers; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.tenant_customer_identity_providers IS 'Tenantservice P1c: per-tenant end-customer login verification. Public key material only; a private JWK (with "d") is rejected.';
+
+--
 -- Name: website_customer_applications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -74827,6 +74878,20 @@ ALTER TABLE ONLY public.tenant_counterparty_routes
 
 ALTER TABLE ONLY public.tenant_counterparty_routes
     ADD CONSTRAINT tenant_counterparty_routes_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_customer_assertion_replays tenant_customer_assertion_replays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_customer_assertion_replays
+    ADD CONSTRAINT tenant_customer_assertion_replays_pkey PRIMARY KEY (company_id, jti);
+
+--
+-- Name: tenant_customer_identity_providers tenant_customer_identity_providers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_customer_identity_providers
+    ADD CONSTRAINT tenant_customer_identity_providers_pkey PRIMARY KEY (id);
 
 --
 -- Name: tenant_customer_sync_requests tenant_customer_sync_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -84640,6 +84705,18 @@ CREATE INDEX tenant_contract_assignments_company_status_idx ON public.tenant_con
 CREATE INDEX tenant_contract_assignments_product_version_idx ON public.tenant_contract_assignments USING btree (company_id, contract_product_version_id, status);
 
 --
+-- Name: tenant_customer_assertion_replays_expiry_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tenant_customer_assertion_replays_expiry_idx ON public.tenant_customer_assertion_replays USING btree (expires_at);
+
+--
+-- Name: tenant_customer_identity_providers_active_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX tenant_customer_identity_providers_active_uidx ON public.tenant_customer_identity_providers USING btree (company_id) WHERE is_active;
+
+--
 -- Name: tenant_customer_sync_requests_company_idempotency_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -94067,6 +94144,20 @@ ALTER TABLE ONLY public.tenant_counterparty_routes
 
 ALTER TABLE ONLY public.tenant_counterparty_routes
     ADD CONSTRAINT tenant_counterparty_routes_counterparty_relation_id_fkey FOREIGN KEY (counterparty_relation_id) REFERENCES public.tenant_counterparty_relations(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_customer_assertion_replays tenant_customer_assertion_replays_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_customer_assertion_replays
+    ADD CONSTRAINT tenant_customer_assertion_replays_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_customer_identity_providers tenant_customer_identity_providers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_customer_identity_providers
+    ADD CONSTRAINT tenant_customer_identity_providers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -105747,6 +105838,18 @@ ALTER TABLE public.tenant_counterparty_relations ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.tenant_counterparty_routes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tenant_customer_assertion_replays; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_customer_assertion_replays ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tenant_customer_identity_providers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_customer_identity_providers ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: tenant_customer_sync_requests; Type: ROW SECURITY; Schema: public; Owner: -
@@ -121335,6 +121438,18 @@ GRANT ALL ON TABLE public.tenant_counterparty_relations TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_counterparty_routes TO service_role;
+
+--
+-- Name: TABLE tenant_customer_assertion_replays; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.tenant_customer_assertion_replays TO service_role;
+
+--
+-- Name: TABLE tenant_customer_identity_providers; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.tenant_customer_identity_providers TO service_role;
 
 --
 -- Name: TABLE website_customer_applications; Type: ACL; Schema: public; Owner: -

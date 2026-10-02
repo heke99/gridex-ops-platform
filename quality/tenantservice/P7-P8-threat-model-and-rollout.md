@@ -15,7 +15,7 @@ Status: 2026-10-01. Evidence types: **T** = test in the repo, **S** = static cod
 | T7 | Tampering via replayed or conflicting request | API writes | `Idempotency-Key` with payload hash (409 on conflict); unique index for support cases (F9) | T. B: native replay of the index |
 | T8 | DoS of the business (support case stops billing) | `createCustomerCase` | `operationalImpact: 'none'` (F16, main #428) | T |
 | T9 | Tenant switched in another tab, then save | OPS forms | `expected_company_id` is validated server-side | T (static) |
-| T10 | Mass reading/enumeration via the support API | list/detail | Cursor bound to tenant+customer+resource (AES-GCM); limit ≤100; existing rate limit class | S + T. Per-customer quotas: 10 new cases/24 h, 30 messages/h, `429 support_quota_exceeded` |
+| T10 | Mass reading/enumeration via the support API | list/detail | Cursor bound to tenant+customer+resource (AES-GCM); limit ≤100; existing rate limit class | S + T. Per-customer quotas: 50 new cases/24 h, 150 messages/h, `429 support_quota_exceeded` |
 | T11 | Attachments (malware, SSRF) | – | No attachment endpoint is built. Unknown scan status is never approval | Not exposed |
 | T12 | Vulnerable dependencies | next/nodemailer/imapflow | Upgraded (#427) | T (audit 0 high/critical) |
 
