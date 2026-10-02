@@ -77,6 +77,19 @@ BEGIN
     RAISE EXCEPTION 'test approval accepted an unknown export item';
   EXCEPTION WHEN check_violation THEN NULL; END;
 
+  -- Billing lock and price lock move together.
+  PERFORM public.gridex_set_billing_period_lock_v1(a, '2026-09', true, 'locked', actor, 'test', '{}'::jsonb);
+  IF (SELECT status FROM public.billing_period_locks WHERE company_id = a AND billing_year = 2026 AND billing_month = 9) <> 'locked'
+     OR (SELECT status FROM public.price_period_locks WHERE company_id = a AND billing_month = '2026-09' AND lock_scope = 'billing_period') <> 'locked' THEN
+    RAISE EXCEPTION 'billing period lock not applied to both tables';
+  END IF;
+  PERFORM public.gridex_set_billing_period_lock_v1(a, '2026-09', false, null, actor, 'reopen', '{}'::jsonb);
+  IF (SELECT status FROM public.billing_period_locks WHERE company_id = a AND billing_year = 2026 AND billing_month = 9) <> 'reopened'
+     OR (SELECT status FROM public.price_period_locks WHERE company_id = a AND billing_month = '2026-09' AND lock_scope = 'billing_period') <> 'unlocked'
+     OR EXISTS (SELECT 1 FROM public.billing_period_locks WHERE company_id = b) THEN
+    RAISE EXCEPTION 'billing period unlock not applied to both tables';
+  END IF;
+
   RAISE NOTICE 'billing import atomic regression: ok';
 END $$;
 
