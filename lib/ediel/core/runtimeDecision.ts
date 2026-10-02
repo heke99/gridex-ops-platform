@@ -688,7 +688,9 @@ export function finalizeCanonicalUtiltsRuntimeDecision(input:{message:EdielMessa
 export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielMessageRow,facts:CanonicalRuntimeSourceFacts={}):Promise<CanonicalRuntimeDecision> {
   let base=resolveCanonicalRuntimeDecisionCore(message,facts,{deferUtiltsRuntime:message.direction==='inbound'})
   // Never read a bilateral authority for an unknown or invalid full grammar.
-  const needsCapability=base.canonical.family==='PRODAT'&&message.direction==='inbound'&&['A','D','H'].includes(base.canonical.subtype??'')
+  // A/D/H, or their reason code (Z26/Z70/Z25) where the national grammar has
+  // no such subtype for this message code (bilateral Z04/Z05 H carry Z25).
+  const needsCapability=base.canonical.family==='PRODAT'&&message.direction==='inbound'&&['A','D','H','Z25','Z26','Z70'].includes(base.canonical.subtype??'')
   if(needsCapability&&base.syntaxDecision==='accepted'){
     try{
       const capability=await readSourceQualifiedProdatBilateralCapability(message)
