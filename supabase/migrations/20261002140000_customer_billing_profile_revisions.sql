@@ -26,7 +26,7 @@ CREATE TABLE public.customer_billing_profile_revisions (
   recorded_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT customer_billing_profile_revisions_company_customer_fkey FOREIGN KEY (company_id, customer_id)
     REFERENCES public.customers(company_id, id) ON DELETE CASCADE,
-  CONSTRAINT customer_billing_profile_revisions_company_customer_revision_key UNIQUE (company_id, customer_id, revision)
+  CONSTRAINT customer_billing_profile_revisions_revision_key UNIQUE (company_id, customer_id, revision)
 );
 
 COMMENT ON TABLE public.customer_billing_profile_revisions IS
@@ -78,11 +78,11 @@ BEGIN
   IF TG_OP = 'INSERT' THEN
     v_changed := ARRAY['created'];
   ELSE
-    IF NEW.invoice_email IS DISTINCT FROM OLD.invoice_email THEN v_changed := v_changed || 'invoice_email'; END IF;
-    IF NEW.billing_street IS DISTINCT FROM OLD.billing_street THEN v_changed := v_changed || 'billing_street'; END IF;
-    IF NEW.billing_postal_code IS DISTINCT FROM OLD.billing_postal_code THEN v_changed := v_changed || 'billing_postal_code'; END IF;
-    IF NEW.billing_city IS DISTINCT FROM OLD.billing_city THEN v_changed := v_changed || 'billing_city'; END IF;
-    IF NEW.billing_country IS DISTINCT FROM OLD.billing_country THEN v_changed := v_changed || 'billing_country'; END IF;
+    IF NEW.invoice_email IS DISTINCT FROM OLD.invoice_email THEN v_changed := array_append(v_changed, 'invoice_email'); END IF;
+    IF NEW.billing_street IS DISTINCT FROM OLD.billing_street THEN v_changed := array_append(v_changed, 'billing_street'); END IF;
+    IF NEW.billing_postal_code IS DISTINCT FROM OLD.billing_postal_code THEN v_changed := array_append(v_changed, 'billing_postal_code'); END IF;
+    IF NEW.billing_city IS DISTINCT FROM OLD.billing_city THEN v_changed := array_append(v_changed, 'billing_city'); END IF;
+    IF NEW.billing_country IS DISTINCT FROM OLD.billing_country THEN v_changed := array_append(v_changed, 'billing_country'); END IF;
   END IF;
   INSERT INTO public.customer_billing_profile_revisions
     (company_id, customer_id, revision, invoice_email, billing_street, billing_postal_code, billing_city, billing_country, changed_fields)

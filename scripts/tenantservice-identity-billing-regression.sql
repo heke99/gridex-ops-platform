@@ -46,6 +46,20 @@ BEGIN
     RAISE EXCEPTION 'P3 history delete was allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- P3: billing items lock the revision current at insert; it cannot be changed later.
+  INSERT INTO public.billing_export_run_items(id, company_id, customer_id) VALUES (gen_random_uuid(), c, customer);
+  IF (SELECT customer_billing_profile_revision FROM public.billing_export_run_items WHERE customer_id = customer) <> 2 THEN
+    RAISE EXCEPTION 'P3 billing item did not lock revision 2';
+  END IF;
+  UPDATE public.customers SET billing_street = 'Nya gatan 2' WHERE id = customer;
+  IF (SELECT customer_billing_profile_revision FROM public.billing_export_run_items WHERE customer_id = customer) <> 2 THEN
+    RAISE EXCEPTION 'P3 billing item revision followed a later profile change';
+  END IF;
+  BEGIN
+    UPDATE public.billing_export_run_items SET customer_billing_profile_revision = 3 WHERE customer_id = customer;
+    RAISE EXCEPTION 'P3 billing item revision was changed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- F12: staff cannot apply a change that requires customer approval.
   INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,affected_contract_count,recipient_email,token_hash,expires_at,status)
   VALUES(c,customer,'personal_number','19121212-1212','19811218-9876','Felregistrerat',staff,true,1,'kund@example.test',repeat('a',64),now() + interval '1 day','pending_customer_approval')
