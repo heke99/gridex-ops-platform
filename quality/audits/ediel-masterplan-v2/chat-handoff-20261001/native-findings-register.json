@@ -326,6 +326,17 @@
       ],
       "summary": "Z08/H (reason Z25) outbound now requires a reviewed national supply rescission mandate (20261001093425); the correction-context dispatch fixture sends Z08/H without one.",
       "next": "Reuse the H-original mandate setup as a shared native helper once its fixture is unblocked."
+    },
+    {
+      "id": "NATIVE-OPEN-RECEIVER-208-REPLY",
+      "status": "open_design",
+      "severity": "medium",
+      "suites": [
+        "scripts/ediel-utilts-consumption-native.test.ts: six-digit SVK receiver field208, agency-305 GLN 208, IDE qualifier 505 (rule pack basis)"
+      ],
+      "summary": "A UTILTS whose legal receiver (NAD+MR, field 208) cannot be resolved gets a held inbound legal context at reception. recordFinalCanonicalUtiltsDecision then calls captureFreshEdielSourceRulePackEvidence, which requires that context and throws ediel_source_rule_pack_basis_required. The processor fails instead of producing the field-208 negative APERAK the guide prescribes, or an explicit internal-review hold.",
+      "evidence": "DB log: ediel_inbound_legal_context_required from gridex_ediel_inbound_context.require_v1 via gridex_ediel_source_rules.capture_before_outbound_owner_v1; context receipt status=held",
+      "decision_needed": "Whether a reply to an unresolved legal receiver may be authorized by transport identity alone, or such sources are held for manual review. Fail-closed today (no effect), but it is an uncaught error, not a recorded hold."
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
