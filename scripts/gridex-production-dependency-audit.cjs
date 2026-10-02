@@ -14,6 +14,58 @@
  */
 
 const { spawnSync } = require('node:child_process')
+const fs = require('node:fs')
+const path = require('node:path')
+
+// Time-limited, documented exceptions for advisories with no fixed release
+// whose vulnerable code path Gridex provably does not use. An expired or
+// unguarded exception stops applying, so the gate fails closed again.
+const EXCEPTIONS = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'gridex-production-dependency-audit-exceptions.json'), 'utf8'),
+).exceptions
+const today = new Date().toISOString().slice(0, 10)
+
+function listSourceFiles(dir) {
+  const out = []
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) out.push(...listSourceFiles(full))
+    else if (/\.(c|m)?[jt]sx?$/.test(entry.name)) out.push(full)
+  }
+  return out
+}
+
+// GHSA-86w9-cpqp-85rv only affects signature verification. The exception holds
+// only while no node-forge importer calls a verify API.
+function forgeSignatureVerificationUsers() {
+  const root = path.join(__dirname, '..')
+  return ['lib', 'app']
+    .map((dir) => path.join(root, dir))
+    .filter((dir) => fs.existsSync(dir))
+    .flatMap(listSourceFiles)
+    .filter((file) => {
+      const text = fs.readFileSync(file, 'utf8')
+      return /node-forge/.test(text) && /\.verify\s*\(|\bverifyCertificateChain\b/.test(text)
+    })
+    .map((file) => path.relative(root, file))
+}
+
+function activeException(pkg, advisoryUrl) {
+  const exception = EXCEPTIONS.find((e) => e.package === pkg && e.advisory === advisoryUrl)
+  if (!exception) return null
+  if (exception.expires < today) {
+    console.error(`dependency audit: exception for ${advisoryUrl} expired on ${exception.expires}`)
+    return null
+  }
+  if (pkg === 'node-forge') {
+    const users = forgeSignatureVerificationUsers()
+    if (users.length > 0) {
+      console.error(`dependency audit: exception for ${advisoryUrl} void, node-forge signature verification used in ${users.join(', ')}`)
+      return null
+    }
+  }
+  return exception
+}
 
 const AUDIT_LEVEL = process.env.GRIDEX_AUDIT_LEVEL || 'high'
 const BLOCKING_SEVERITIES = ['critical', 'high', 'moderate', 'low', 'info']
@@ -84,8 +136,23 @@ if (last.kind !== 'report') {
   process.exit(1)
 }
 
+// Count advisories by severity, leaving out the ones covered by an active
+// exception. A package that is only vulnerable through another package is
+// counted by its root advisory, as npm does.
+const advisoryCounts = {}
+for (const [pkg, vuln] of Object.entries(last.report.vulnerabilities ?? {})) {
+  const direct = (vuln.via ?? []).filter((via) => typeof via === 'object')
+  if (direct.length === 0) continue
+  const remaining = direct.filter((via) => {
+    const exception = activeException(pkg, via.url)
+    if (exception) console.warn(`dependency audit: ${pkg} ${via.url} excepted until ${exception.expires}`)
+    return !exception
+  })
+  if (remaining.length > 0) advisoryCounts[vuln.severity] = (advisoryCounts[vuln.severity] ?? 0) + 1
+}
+
 const offending = blocking
-  .map((severity) => [severity, last.counts[severity] ?? 0])
+  .map((severity) => [severity, advisoryCounts[severity] ?? 0])
   .filter(([, count]) => count > 0)
 
 const summary = Object.entries(last.counts)

@@ -1,0 +1,11 @@
+{
+  "exceptions": [
+    {
+      "advisory": "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "severity": "high",
+      "expires": "2026-11-15",
+      "reason": "RSA PKCS#1 v1.5 signature verification flaw. No fixed release exists (latest 1.4.0 is affected). Gridex uses node-forge only for PKCS#7 enveloped encryption/decryption, certificate parsing and SHA-256; it never verifies signatures with node-forge. The audit refuses this exception if any node-forge importer calls a verify API. Remove as soon as a fixed node-forge release is available."
+    }
+  ]
+}
