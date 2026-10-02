@@ -64,6 +64,19 @@ BEGIN
     RAISE EXCEPTION 'purchase recorded on an unknown export item';
   EXCEPTION WHEN no_data_found THEN NULL; END;
 
+  -- An invoice review draft must name the same tenant in its run as in the call.
+  BEGIN
+    PERFORM public.gridex_create_invoice_review_draft_v1(a, jsonb_build_object('company_id', b), '[]'::jsonb, '[]'::jsonb,
+      jsonb_build_object('invoice_export_item_id', gen_random_uuid()));
+    RAISE EXCEPTION 'invoice review draft accepted a foreign run';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+
+  -- An invoice test approval needs a pending test export item of the tenant.
+  BEGIN
+    PERFORM public.gridex_approve_invoice_test_item_v1(a, gen_random_uuid(), '{}'::jsonb);
+    RAISE EXCEPTION 'test approval accepted an unknown export item';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
   RAISE NOTICE 'billing import atomic regression: ok';
 END $$;
 
