@@ -1,6 +1,8 @@
 import AdminHeader from "@/components/admin/AdminHeader";
 import { requirePlatformAdminAccess } from "@/lib/admin/guards";
 import { supabaseService } from "@/lib/supabase/service";
+import { getOperationalCompanyScope } from "@/lib/tenant/scope";
+import { formatAdminDate } from "@/lib/ui/format";
 import {
   archiveEdielCertificateAction,
   deleteEdielCertificateAction,
@@ -106,48 +108,45 @@ function maskedEnvReference(value: string | null): string {
 }
 
 
-async function listCertificateRows(): Promise<{
+async function listCertificateRows(companyId: string | null): Promise<{
   rows: CertificateDisplayRow[];
+  companyNames: Map<string, string>;
   warning: string | null;
 }> {
-  const rich = await supabaseService
+  let query = supabaseService
     .from("ediel_certificates")
     .select(
       "id, company_id, scope, environment, display_name, subject, issuer, serial_number, fingerprint_sha256, certificate_fingerprint, valid_from, valid_to, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, renewal_window_days, warning_days_before_expiry, critical_days_before_expiry, owner_ediel_id, owner_subaddress, message_type, purpose, usage, p12_secret_reference, p12_secret_ref, p12_password_secret_ref, secret_reference, is_private_material_available, needs_verification, metadata",
     )
+    .not("status", "in", "(archived,deleted)")
     .order("updated_at", { ascending: false })
     .limit(100);
+  // With a selected company: its own certificates plus platform-wide ones.
+  if (companyId) query = query.or(`company_id.eq.${companyId},company_id.is.null`);
 
-  if (!rich.error) {
-    return {
-      rows: ((rich.data ?? []) as CertificateDisplayRow[]).filter(
-        (row) => row.status !== "archived" && row.status !== "deleted",
-      ),
-      warning: null,
-    };
-  }
+  const [certificates, companies] = await Promise.all([
+    query,
+    supabaseService.from("companies").select("id, name"),
+  ]);
 
-  const legacy = await supabaseService
-    .from("ediel_certificates")
-    .select(
-      "id, company_id, certificate_fingerprint, certificate_valid_from, certificate_valid_to, encryption_status, last_validation_at, status, metadata",
-    )
-    .order("updated_at", { ascending: false })
-    .limit(100);
+  const companyNames = new Map(
+    ((companies.data ?? []) as Array<{ id: string; name: string | null }>).map(
+      (company) => [company.id, company.name ?? company.id],
+    ),
+  );
 
-  if (legacy.error) {
+  if (certificates.error) {
     return {
       rows: [],
-      warning: `Kunde inte läsa certifikat: ${legacy.error.message}`,
+      companyNames,
+      warning: `Kunde inte läsa certifikat: ${certificates.error.message}`,
     };
   }
 
   return {
-    rows: ((legacy.data ?? []) as CertificateDisplayRow[]).filter(
-      (row) => row.status !== "archived" && row.status !== "deleted",
-    ),
-    warning:
-      "Databasen saknar några nya certifikatkolumner. Certifikaten visas från legacyfält/metadata. Kör senaste Supabase-migrationen för full funktion.",
+    rows: (certificates.data ?? []) as CertificateDisplayRow[],
+    companyNames,
+    warning: null,
   };
 }
 
@@ -163,7 +162,10 @@ export default async function EdielCertificatesPage({
         ? "error"
         : null;
   const certMessage = resolvedSearchParams?.certMessage ?? null;
-  const { rows, warning } = await listCertificateRows();
+  const companyScope = await getOperationalCompanyScope(context.userId);
+  const { rows, companyNames, warning } = await listCertificateRows(
+    companyScope.companyId,
+  );
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -383,7 +385,7 @@ export default async function EdielCertificatesPage({
           <table className="min-w-full text-sm">
             <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
               <tr>
-                <th className="p-4">Certificate</th>
+                <th className="p-4">Certifikat</th>
                 <th className="p-4">Scope</th>
                 <th className="p-4">Bolag</th>
                 <th className="p-4">Giltigt</th>
@@ -393,6 +395,13 @@ export default async function EdielCertificatesPage({
               </tr>
             </thead>
             <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-sm text-slate-600">
+                    Inga certifikat registrerade.
+                  </td>
+                </tr>
+              ) : null}
               {rows.map((row) => {
                 const certStatus = evaluateCertificateStatus(row);
                 const inboundEnvReference = isInboundPrivateEnvReference(row);
@@ -479,13 +488,17 @@ export default async function EdielCertificatesPage({
                     <td className="p-4">
                       {scope} · {environment}
                     </td>
-                    <td className="p-4">{row.company_id ?? "Platform"}</td>
                     <td className="p-4">
-                      {row.valid_from ?? row.certificate_valid_from ?? "—"} →{" "}
-                      {row.valid_to ?? row.certificate_valid_to ?? "—"}
+                      {row.company_id
+                        ? (companyNames.get(row.company_id) ?? "Okänt bolag")
+                        : "Plattform"}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      {formatAdminDate(row.valid_from ?? row.certificate_valid_from)} –{" "}
+                      {formatAdminDate(row.valid_to ?? row.certificate_valid_to)}
                     </td>
                     <td className="p-4 text-xs text-slate-700">
-                      Förnyelse från {certStatus.renewalAvailableFrom ?? "—"} ·{" "}
+                      Förnyelse från {formatAdminDate(certStatus.renewalAvailableFrom)} ·{" "}
                       {certStatus.daysUntilExpiry ?? "—"} dagar kvar
                     </td>
                     <td className="p-4">
@@ -495,11 +508,6 @@ export default async function EdielCertificatesPage({
                       <div className="mt-1 text-xs text-slate-600">
                         {certStatus.message}
                       </div>
-                      {row.status ? (
-                        <div className="mt-1 text-xs text-slate-500">
-                          DB: {row.status}
-                        </div>
-                      ) : null}
                     </td>
                     <td className="space-y-2 p-4">
                       {inboundEnvReference ? (
@@ -524,16 +532,21 @@ export default async function EdielCertificatesPage({
                           Arkivera
                         </button>
                       </form>
-                      <form action={deleteEdielCertificateAction}>
-                        <input
-                          type="hidden"
-                          name="certificateId"
-                          value={row.id}
-                        />
-                        <button className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
-                          Radera
-                        </button>
-                      </form>
+                      <details>
+                        <summary className="cursor-pointer text-xs font-bold text-slate-600">
+                          Mer
+                        </summary>
+                        <form action={deleteEdielCertificateAction} className="mt-2">
+                          <input
+                            type="hidden"
+                            name="certificateId"
+                            value={row.id}
+                          />
+                          <button className="rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-700">
+                            Radera permanent
+                          </button>
+                        </form>
+                      </details>
                     </td>
                   </tr>
                 );
