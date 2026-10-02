@@ -39,16 +39,15 @@ export async function POST(request: Request, { params }: Props) {
       note: typeof body.note === 'string' ? body.note : `Gridex fakturaköp ${id}`,
     })
 
-    await supabaseService.from('invoice_purchase_events').insert({
-      company_id: companyId,
-      invoice_export_item_id: id,
-      event_type: 'purchase_requested_manual',
-      purchase_status: 'requested',
-      finance_status: financingMode,
-      payload: result,
-      created_by: access.guard.userId,
+    // Event and export-item status are recorded together; a failure here must not look like success.
+    const { error: recordError } = await supabaseService.rpc('gridex_record_invoice_purchase_request_v1', {
+      p_company_id: companyId,
+      p_invoice_export_item_id: id,
+      p_financing_mode: financingMode,
+      p_payload: result as unknown as Record<string, unknown>,
+      p_actor_user_id: access.guard.userId,
     })
-    await supabaseService.from('invoice_export_items').update({ purchase_status: 'requested', financing_mode: financingMode, updated_at: new Date().toISOString() }).eq('company_id', companyId).eq('id', id)
+    if (recordError) throw recordError
 
     return NextResponse.json({ data: result })
   } catch (error) {
