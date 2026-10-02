@@ -53232,6 +53232,158 @@ export type Database = {
           },
         ]
       }
+      invoice_export_files: {
+        Row: {
+          billing_month: string
+          company_id: string
+          created_at: string
+          created_by: string
+          environment: string
+          id: string
+          row_count: number
+          rows: Json
+          rows_sha256: string
+          total_inc_vat: number
+        }
+        Insert: {
+          billing_month: string
+          company_id: string
+          created_at?: string
+          created_by: string
+          environment: string
+          id?: string
+          row_count: number
+          rows: Json
+          rows_sha256: string
+          total_inc_vat: number
+        }
+        Update: {
+          billing_month?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          environment?: string
+          id?: string
+          row_count?: number
+          rows?: Json
+          rows_sha256?: string
+          total_inc_vat?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "invoice_export_files_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       invoice_export_items: {
         Row: {
           amount_ex_vat: number
@@ -53247,6 +53399,7 @@ export type Database = {
           environment: string
           error_code: string | null
           error_payload: Json
+          export_file_id: string | null
           export_run_id: string
           financing_mode: string
           id: string
@@ -53300,6 +53453,7 @@ export type Database = {
           environment?: string
           error_code?: string | null
           error_payload?: Json
+          export_file_id?: string | null
           export_run_id: string
           financing_mode?: string
           id?: string
@@ -53353,6 +53507,7 @@ export type Database = {
           environment?: string
           error_code?: string | null
           error_payload?: Json
+          export_file_id?: string | null
           export_run_id?: string
           financing_mode?: string
           id?: string
@@ -53580,6 +53735,13 @@ export type Database = {
             columns: ["company_id", "billing_underlay_id"]
             isOneToOne: false
             referencedRelation: "billing_underlays"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "invoice_export_items_export_file_fkey"
+            columns: ["company_id", "export_file_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_export_files"
             referencedColumns: ["company_id", "id"]
           },
           {
@@ -90188,6 +90350,17 @@ export type Database = {
           p_site_id: string
         }
         Returns: Json
+      }
+      gridex_create_invoice_export_file_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_billing_month: string
+          p_company_id: string
+          p_environment: string
+          p_rows: Json
+          p_rows_sha256: string
+        }
+        Returns: string
       }
       gridex_create_invoice_export_graph_v1: {
         Args: { p_invoices: Json; p_items: Json; p_run: Json }
