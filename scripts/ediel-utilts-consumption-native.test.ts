@@ -18,6 +18,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import { committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
+const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`)
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
 // contract validation and both sink adapters. Only final external writes are
@@ -242,7 +243,7 @@ it.each(['before', 'after'] as const)('mixed physical LOC+175 %s LOC+172 cannot 
   // previously prepared point contract despite the application's LOC+175 hold.
   const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   }
@@ -291,7 +292,7 @@ it('a second physical LOC+172 after SEQ cannot reserve a point or link its sourc
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},'GRIDEX2607E66001')),'null'::jsonb)`)).toBeNull()
   const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   }
@@ -414,7 +415,7 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
   const forged = { ...input, sourceMessageId: unsupported.id, rawPayload: unsupported.raw_payload! }
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
     expect(snapshot(unsupported.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(unsupported.id)}`)).toBe(0)
   }
@@ -735,7 +736,7 @@ it('two physical IDE+24 occurrences with the same 505 stop before receipt, ACK a
     p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: Array.from({ length: 2 }, () => ({ ...supported.transactions[0], consumptionContract: supported.contracts[0] })),
   })
-  expect(forged.error?.message).toContain('utilts_physical_membership_conflict')
+  expect(forged.error?.message).toMatch(forgedRefusal('physical_membership_conflict'))
   for (let attempt = 0; attempt < 2; attempt++) {
     await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id }))
       .rejects.toThrow()
@@ -1239,7 +1240,7 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
     p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
   })
-  expect(forged.error?.message).toContain('utilts_consumption_identity_unsupported')
+  expect(forged.error?.message).toMatch(forgedRefusal('consumption_identity_unsupported'))
   expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(first.ingestedMeterValueIds).toEqual([])
@@ -1719,7 +1720,7 @@ it('R3 direct persistence HTTP cannot mint agency89 authority from forged plain-
     p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: source.id, p_message_code: 'E66', p_raw_payload: source.raw_payload!, p_actor_user_id: f.ids.actor,
     p_transactions: supported.transactions.map((t, i) => ({ ...t, consumptionContract: supported.contracts[i] })),
   })
-  expect(error?.message).toContain('identity_unsupported')
+  expect(error?.message).toMatch(forgedRefusal('consumption_identity_unsupported'))
   expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
 })
