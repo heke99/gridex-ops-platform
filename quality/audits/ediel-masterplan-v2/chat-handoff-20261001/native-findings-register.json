@@ -204,6 +204,27 @@
       "severity": "test",
       "cause": "UTILTS consumption/S02 fixtures lacked UNB test indicator, tenant receiver identity, issuer registry/history ground and the production recording step",
       "fix": "fixture-only: owned identities, synthetic approved issuer + coverage ground, recordFinalCanonicalUtiltsDecision in production order"
+    },
+    {
+      "id": "NATIVE-FIX-S02",
+      "severity": "high",
+      "suite": "scripts/ediel-utilts-s02-required-native.test.ts",
+      "summary": "Outbound reply creation repaired (20261002070000) and ACK inherited rule basis (20261002080000); S02 native 26/26.",
+      "evidence": "commit 71740854; local native run 26 passed / 0 failed",
+      "test_alignment": [
+        "direct oracle sends v2 canonical decimal strings",
+        "forged accepted outcome refused by canonical transaction owner",
+        "QTY before SEQ is UNSM syntax-rejected",
+        "technical CONTRL has no business rule pack (20260930184410)"
+      ]
+    },
+    {
+      "id": "SEC-EXC-NODE-FORGE",
+      "severity": "high",
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "expires": "2026-11-15",
+      "summary": "Owner-approved time-limited audit exception; void if node-forge signature verification is used.",
+      "evidence": "commit 23006a6b"
     }
   ],
   "open": [
