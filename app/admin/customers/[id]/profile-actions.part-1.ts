@@ -18,6 +18,7 @@ import {
   normalizeContactPhone,
   planPrimaryContactSync,
 } from "@/lib/customer-service/contactChange"
+import { identityNumbersEqual } from "@/lib/customer-service/identityChange"
 
 export class CustomerActionError extends Error {
   code: string;
@@ -302,6 +303,17 @@ export async function saveCustomerProfileImpl(
   }
 
   const stored = before as Record<string, unknown>;
+  // F12: personal and organization numbers are never changed by the ordinary profile save. They
+  // go through the audited identity-change flow (customer approval when there are contracts).
+  if (
+    !identityNumbersEqual(personalNumber, typeof stored.personal_number === "string" ? stored.personal_number : null) ||
+    !identityNumbersEqual(orgNumber, typeof stored.org_number === "string" ? stored.org_number : null)
+  ) {
+    throw new CustomerActionError(
+      "identity_change_requires_flow",
+      "Personnummer och organisationsnummer ändras via \"Ändra personnummer/organisationsnummer\" på kundkortet. Ändringen loggas och kräver kundens godkännande om kunden har avtal.",
+    );
+  }
   let email: string | null;
   let phone: string | null;
   let status: string;
@@ -354,8 +366,8 @@ export async function saveCustomerProfileImpl(
         last_name: lastName,
         full_name: fullName,
         company_name: companyName,
-        personal_number: personalNumber,
-        org_number: orgNumber,
+        personal_number: (stored.personal_number as string | null) ?? null,
+        org_number: (stored.org_number as string | null) ?? null,
         email,
         phone,
         apartment_number: apartmentNumber,
