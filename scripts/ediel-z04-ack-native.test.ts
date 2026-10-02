@@ -44,6 +44,7 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   }
   let wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
     .replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'") // UNB 0035: test interchange
+    .replace('+I++23-DDQ-PRODAT',`+${ids.source.replaceAll('-','').slice(0,14).toUpperCase()}++23-DDQ-PRODAT`).replace("UNZ+1+I'",`UNZ+1+${ids.source.replaceAll('-','').slice(0,14).toUpperCase()}'`) // own UNB 0020
   if (variant === 'missing-header-date') wire=wire.replace('DTM+137:202609171200:203\'','')
     .replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
   if (variant === 'invalid-header-date') wire=wire.replace('DTM+137:202609171200:203','DTM+137:202613171200:203')
@@ -84,10 +85,10 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
       VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true,true,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},'recipient@example.invalid','recipient@example.invalid');
     INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,
-      message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+      message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,sender_email,receiver_email,mailbox,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
     SELECT ${literal(ids.source)},${literal(ids.company)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},
       '{"subtype":"L","prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":false}}'::jsonb,'{}'::jsonb,
-      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345',${literal(actorEdielId)},pack.id,profile.profile_key,profile.id,
+      ${literal(receivedAt)}::timestamptz,${literal(sourceContext)}::jsonb,'23-DDQ-PRODAT','12345',${literal(actorEdielId)},'recipient@example.invalid',${literal(smtp.from)},${literal(smtp.from)},pack.id,profile.profile_key,profile.id,
       pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
     FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
     WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
