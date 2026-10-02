@@ -6,6 +6,7 @@ import {
 import { sanitizePortalCompletionBlockedFlash } from "@/lib/customer-portal/completionFlash";
 import { formatDate } from "@/lib/customer-portal/format";
 import { submitPortalCompletionAction } from "./actions";
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +154,7 @@ export default async function PortalCompletionPage({
                     {completion.completion_type}
                   </div>
                   <div className="mt-1 text-xs text-slate-500">
-                    Status {completion.status} ·{" "}
+                    Status {formatStatusLabel(completion.status)} ·{" "}
                     {formatDate(completion.created_at)}
                   </div>
                 </div>

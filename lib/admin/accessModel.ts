@@ -88,7 +88,7 @@ export const ADMIN_PAGE_ACCESS: Record<AdminPageKey, PermissionRequirement> = {
   'customers.segments': { anyOf: ['customers.read', 'reports.read'] },
   'customer.info_requests': { anyOf: ['customers.read', 'poa.read', 'metering.read'] },
   'customer.cases': { anyOf: ['cases.read', 'customers.read'] },
-  'contracts.catalog': { anyOf: ['contracts.write', 'pricing.write'] },
+  'contracts.catalog': { anyOf: ['contracts.read', 'contracts.write', 'pricing.write'] },
   'pricing.engine': { anyOf: ['pricing.write', 'pricing.publish'] },
   'companies.manage': { anyOf: ['tenants.write'] },
   'company.settings': { anyOf: ['tenants.invite', 'users.read', 'users.write'] },

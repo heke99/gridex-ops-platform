@@ -4,6 +4,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { bulkQueueMissingMeterValuesAction } from '@/app/admin/cis/actions'
 import { listMeteringPointsBySiteIds } from '@/lib/masterdata/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -253,7 +254,7 @@ export default async function MissingMeterValuesPage({
  {point.grid_owner_id ?? '—'}
  </td>
  <td className="px-6 py-4 text-slate-700 ">
- {point.status}
+ {formatStatusLabel(point.status)}
  </td>
  </tr>
  ))

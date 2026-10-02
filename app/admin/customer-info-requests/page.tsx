@@ -21,6 +21,7 @@ import {
   queueCustomerInfoRequestAction,
   queueMeteringPermissionZ13Action,
 } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -359,7 +360,7 @@ export default async function CustomerInfoRequestsPage() {
             <div className="space-y-3 p-6">
               {authorizationScopes.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Ingen omfattning sparad ännu.</div> : authorizationScopes.slice(0, 12).map((scopeRow) => (
                 <div key={scopeRow.id} className="rounded-2xl border border-slate-200 p-4">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{scopeRow.status}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(scopeRow.status)}`}>{formatStatusLabel(scopeRow.status)}</span>
                   <div className="mt-3 text-sm font-semibold text-slate-950">{scopeRow.scope_type}</div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-700">
                     {scopeRow.covers_grid_owner_data ? <span className="rounded-full bg-slate-100 px-2 py-1">Nätdata</span> : null}
@@ -379,7 +380,7 @@ export default async function CustomerInfoRequestsPage() {
             <div className="space-y-3 p-6">
               {permissions.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-slate-600">Inga mätvärdestillstånd ännu.</div> : permissions.slice(0, 12).map((permission) => (
                 <div key={permission.id} className="rounded-2xl border border-slate-200 p-4">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{permission.status}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(permission.status)}`}>{formatStatusLabel(permission.status)}</span>
                   <div className="mt-3 text-sm font-semibold text-slate-950">{permission.case_reference ?? permission.permission_reference ?? 'Tillståndsutkast'}</div>
                   <div className="mt-1 text-xs leading-5 text-slate-600">{permission.requested_start_date ?? 'Start saknas'} → {permission.requested_end_date ?? 'tills vidare'}</div>
                   {permission.last_blocker ? <div className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">{permission.last_blocker}</div> : null}

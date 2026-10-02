@@ -81,6 +81,7 @@ export async function createPartnerExportAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "partner_export",
     entityId: saved.id,
     action: "partner_export_created",
@@ -362,6 +363,7 @@ export async function savePowerOfAttorneyScopeAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "power_of_attorney_scope",
     entityId: data.id,
     action: "power_of_attorney_scope_created",
@@ -625,6 +627,7 @@ export async function registerCustomerLifecycleDecisionAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "customer_lifecycle_decision",
     entityId: customerCase.id,
     action:

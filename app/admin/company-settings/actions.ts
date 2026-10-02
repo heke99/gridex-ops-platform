@@ -1,5 +1,7 @@
 'use server'
 
+import { assertCompanyRoleChangeAllowed } from '@/lib/tenant/roleChangeGuard'
+
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { isPlatformAdminContext, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
@@ -248,7 +250,6 @@ export async function updateCompanyResponsibleUserAction(
     const userId = normalizeText(formData.get('user_id'))
     const email = normalizeEmail(formData.get('email'))
     const fullName = normalizeText(formData.get('full_name')) || null
-    const phone = normalizeText(formData.get('phone')) || null
     const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(
       normalizeText(formData.get('role_key')) || 'company_admin',
     )
@@ -259,6 +260,13 @@ export async function updateCompanyResponsibleUserAction(
     // Granting roles and changing a member's login e-mail needs users.write;
     // tenants.invite alone only allows inviting.
     const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['users.write'] })
+    await assertCompanyRoleChangeAllowed({
+      companyId,
+      actorUserId: admin.userId,
+      actorIsPlatformAdmin: isPlatformAdminContext(admin),
+      targetUserId: userId,
+      nextMembershipRole: membershipRole,
+    })
 
     const { data: membership, error: membershipLookupError } = await supabaseService
       .from('company_memberships')
@@ -272,6 +280,11 @@ export async function updateCompanyResponsibleUserAction(
 
     const { data: authUser, error: authLookupError } = await supabaseService.auth.admin.getUserById(userId)
     if (authLookupError) throw authLookupError
+
+    // The form has no phone field; keep the stored value unless one is sent.
+    const phone = formData.has('phone')
+      ? normalizeText(formData.get('phone')) || null
+      : ((authUser.user?.user_metadata?.phone as string | undefined) ?? null)
 
     const updatePayload: Parameters<typeof supabaseService.auth.admin.updateUserById>[1] = {
       user_metadata: {

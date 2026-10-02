@@ -1,4 +1,4 @@
--- 20261002231600 let the positive-reply reader accept a bilateral H start
+-- 20261002234600 let the positive-reply reader accept a bilateral H start
 -- (Z04, gridex_bilateral_prodat.supply_effect_receipts). Received H ends are
 -- committed by their own owners with their own receipts:
 --   * Z05 H end of a bilateral profile   -> gridex_bilateral_prodat.supply_effect_receipts

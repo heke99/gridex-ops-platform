@@ -52,6 +52,7 @@ import { resendCustomerEmailAction } from "./email-actions"
 
 
 import { formatDateTime } from './page.part-1'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export function CustomerCommunicationSection({
   logs,
@@ -162,7 +163,7 @@ export function CustomerCommunicationSection({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-700 ">
-                  {log.status}
+                  {formatStatusLabel(log.status)}
                   <div className="text-xs text-slate-500">
                     {log.sender_mode ?? "sender okänd"}
                   </div>

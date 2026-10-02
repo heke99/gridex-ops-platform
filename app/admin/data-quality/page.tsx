@@ -3,6 +3,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,17 +39,10 @@ type EmailDomainRow = {
   failure_reason: string | null
 }
 
-function isMissingReadinessSchema(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code ?? ''
-  return ['42P01', '42703', 'PGRST205'].includes(code)
-}
-
 async function safeRows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const { data, error } = await query
-  if (error) {
-    if (isMissingReadinessSchema(error)) return []
-    throw error
-  }
+  // Fail closed: a check that cannot run must not render as "no issues".
+  if (error) throw error
   return data ?? []
 }
 
@@ -119,7 +113,7 @@ export default async function DataQualityPage() {
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Data quality"
+        title="Datakvalitet"
         subtitle="Felaktiga kundfält, saknade fullmakter, trasiga webhooks och e-postdomäner som behöver åtgärdas."
         userEmail={admin.email}
         workspaceName={scope.companyName}
@@ -141,7 +135,7 @@ export default async function DataQualityPage() {
               <p className="mt-1 text-sm font-semibold text-slate-600">Öppna kunden och rätta fältet innan nästa automatiska steg.</p>
             </div>
             <Link href="/admin/operations/integrity" className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50">
-              Operations integrity
+              Kunddataintegritet
             </Link>
           </div>
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
@@ -173,7 +167,7 @@ export default async function DataQualityPage() {
               {webhookIssues.length === 0 ? <p className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Inga misslyckade webhooks.</p> : null}
               {webhookIssues.map((issue) => (
                 <div key={issue.id} className="rounded-2xl border border-red-100 bg-red-50 p-4">
-                  <p className="font-black text-red-900">{issue.event_type} · {issue.status}</p>
+                  <p className="font-black text-red-900">{issue.event_type} · {formatStatusLabel(issue.status)}</p>
                   <p className="mt-1 text-sm font-semibold text-red-800">Försök: {issue.attempts}. {issue.failure_reason ?? 'Okänt fel.'}</p>
                 </div>
               ))}
@@ -186,7 +180,7 @@ export default async function DataQualityPage() {
               {emailDomains.length === 0 ? <p className="rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">Alla registrerade domäner är verifierade.</p> : null}
               {emailDomains.map((domain) => (
                 <div key={domain.id} className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                  <p className="font-black text-amber-950">{domain.domain} · {domain.status}</p>
+                  <p className="font-black text-amber-950">{domain.domain} · {formatStatusLabel(domain.status)}</p>
                   <p className="mt-1 text-sm font-semibold text-amber-900">SPF {domain.spf_status}, DKIM {domain.dkim_status}, DMARC {domain.dmarc_status}</p>
                   {domain.failure_reason ? <p className="mt-1 text-sm text-amber-900">{domain.failure_reason}</p> : null}
                 </div>

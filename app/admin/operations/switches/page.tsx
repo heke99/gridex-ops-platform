@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 //app/admin/operations/switches/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -23,6 +24,7 @@ import {
 } from '@/app/admin/operations/actions'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 type SwitchesPageProps = {
  searchParams: Promise<{
@@ -495,7 +497,7 @@ export default async function AdminOperationsSwitchesPage({
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -513,7 +515,7 @@ export default async function AdminOperationsSwitchesPage({
  outbound.status
  )}`}
  >
- outbound: {outbound.status}
+ outbound: {formatStatusLabel(outbound.status)}
  </span>
  ) : null}
  </div>
@@ -526,7 +528,7 @@ export default async function AdminOperationsSwitchesPage({
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 

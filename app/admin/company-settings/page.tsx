@@ -13,7 +13,6 @@ import {
 import { getTenantLegalProfile } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import {
-  COMPANY_MEMBERSHIP_ROLE_OPTIONS,
   COMPANY_USER_ROLE_OPTIONS,
   getCompanyMembershipRoleLabel,
   getCompanyUserRoleLabel,
@@ -459,16 +458,9 @@ export default async function CompanySettingsPage() {
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Miljö</span>
-                      <input
-                        type="hidden"
-                        name="operating_environment"
-                        value={
-                          isLiveApproved
-                            ? (company.operating_environment ?? "test")
-                            : "test"
-                        }
-                      />
+                      {isLiveApproved ? null : <input type="hidden" name="operating_environment" value="test" />}
                       <select
+                        name={isLiveApproved ? "operating_environment" : undefined}
                         disabled={!isLiveApproved}
                         defaultValue={
                           isLiveApproved
@@ -575,31 +567,6 @@ export default async function CompanySettingsPage() {
                           defaultValue={user.email ?? user.invitedEmail ?? ""}
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         />
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-slate-700">
-                          Telefon
-                        </span>
-                        <input
-                          name="phone"
-                          className="rounded-2xl border border-slate-300 px-4 py-3"
-                        />
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-slate-700">
-                          Bolagsroll
-                        </span>
-                        <select
-                          name="membership_role"
-                          defaultValue={user.membershipRole}
-                          className="rounded-2xl border border-slate-300 px-4 py-3"
-                        >
-                          {COMPANY_MEMBERSHIP_ROLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
                       </label>
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">

@@ -96,7 +96,7 @@ export default async function OperationsAutomationPage({ searchParams }: { searc
           </form>
 
           <form action={runBatch2CPeriodMotorAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Batch 2C</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Automatisk periodkontroll</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Kör full periodmotor</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               Skannar alla mätpunkter över valt intervall, skapar en lucka per saknad period, köar outbound request och kopplar blockerare till kundärende.

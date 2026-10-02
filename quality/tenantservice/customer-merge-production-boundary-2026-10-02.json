@@ -1,0 +1,616 @@
+{
+  "project": {
+    "link_id": "link_6aa08570afb48191a4eb728ab8e93c81",
+    "project_id": "piidsfebjqjmnepdpnas",
+    "name": "gridex-ops-dev",
+    "region": "eu-north-1",
+    "status": "ACTIVE_HEALTHY",
+    "engine": "17.6.1.084",
+    "production_binding": "User-confirmed production recorded in tenantservice memory; Vercel OPS main deployment root-verified at472d703e."
+  },
+  "candidate": {
+    "head": "b08c77e60f4bc0a1c42de2e10ad3fb984b1a808d",
+    "tree": "388ab34a9f5447d6217ae574f99bc7891aaf7c7d",
+    "base": "472d703e7580fdaa49374f4d7aa202da74751057",
+    "migration": "20261002230000_customer_merge_portal_lifecycle.sql",
+    "sha256": "836c083fad0f231a145cf4117527057a20bdc2f73d094c3fbaa53fbab525a4c9",
+    "final_ci_run": 37063712963,
+    "final_ci_job": 111026217718,
+    "artifact_id": 11251911802,
+    "artifact_sha256": "5b0ed839a2e0ecf6701134fbf47bcea284de5c8d1ac06594cd02024876bc4eea",
+    "status": "b08 SQL/provenance qualified; accompanying exact-error boundary correction requires fresh published-head CI before app-first activation",
+    "actual_ci_checkout": "12a5b560cfff7bde041587f09b64402de6cdb25f",
+    "actual_ci_tree": "388ab34a9f5447d6217ae574f99bc7891aaf7c7d"
+  },
+  "ledger": {
+    "functions": [
+      {
+        "name": "gridex_customer_contact_change_v1",
+        "def_md5": "c857d2ed8945fbcab0d4b4e6d13ee35d",
+        "source_md5": "787f634401d593b7819a01d06aeef67a",
+        "anon_execute": false,
+        "identity_args": "p_company_id uuid, p_customer_id uuid, p_actor_kind text, p_actor_user_id uuid, p_api_client_id uuid, p_portal_identity_id text, p_channel text, p_expected_updated_at timestamp with time zone, p_customer_patch jsonb, p_contact_patch jsonb, p_idempotency_key text",
+        "service_execute": true,
+        "authenticated_execute": false
+      },
+      {
+        "name": "gridex_lock_signed_customer_contract",
+        "def_md5": "b6d6f9c15bc62d1752bf6a78ed9d74b4",
+        "source_md5": "e37e13a157f91f401e526b53d5eefdc1",
+        "anon_execute": true,
+        "identity_args": "",
+        "service_execute": true,
+        "authenticated_execute": true
+      },
+      {
+        "name": "gridex_merge_customers_v1",
+        "def_md5": "1e234e3cf8dd639c3a519e6b8c1ddf93",
+        "source_md5": "c1f14c592d7b231e6763eb99e88c8130",
+        "anon_execute": false,
+        "identity_args": "p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text",
+        "service_execute": true,
+        "authenticated_execute": false
+      }
+    ],
+    "ledger_count": 366,
+    "recent_migrations": [
+      {
+        "name": "ediel_inbound_prodat_source_seal",
+        "version": "20261001211709"
+      },
+      {
+        "name": "ediel_inbound_prodat_receive_context",
+        "version": "20261001211733"
+      },
+      {
+        "name": "ediel_received_source_ledger",
+        "version": "20261001211923"
+      },
+      {
+        "name": "ediel_received_discovery_shape",
+        "version": "20261001212028"
+      },
+      {
+        "name": "ediel_received_register_validation",
+        "version": "20261001212110"
+      },
+      {
+        "name": "ediel_source_object_decisions",
+        "version": "20261001212245"
+      },
+      {
+        "name": "ediel_source_decision_snapshots",
+        "version": "20261001212336"
+      },
+      {
+        "name": "ediel_register_message_line_scope",
+        "version": "20261001212430"
+      },
+      {
+        "name": "ediel_source_owner_timezone",
+        "version": "20261001212527"
+      },
+      {
+        "name": "ediel_reviewed_structural_source",
+        "version": "20261001212756"
+      },
+      {
+        "name": "ediel_z06e_context_owner_gate",
+        "version": "20261001212856"
+      },
+      {
+        "name": "ediel_utilts_committed_retry_guard",
+        "version": "20261001212934"
+      },
+      {
+        "name": "ediel_utilts_ack_plan_reservation",
+        "version": "20261001213011"
+      },
+      {
+        "name": "ediel_closure_original_wire_binding",
+        "version": "20261001213502"
+      },
+      {
+        "name": "ediel_reviewed_closure_source",
+        "version": "20261001214055"
+      },
+      {
+        "name": "ediel_closure_snapshot_expression",
+        "version": "20261001214210"
+      },
+      {
+        "name": "ediel_utilts_consumption_binding_v1",
+        "version": "20261001214413"
+      },
+      {
+        "name": "ediel_utilts_bound_sink_authority",
+        "version": "20261001214605"
+      },
+      {
+        "name": "ediel_utilts_existing_billing_binding",
+        "version": "20261001214737"
+      },
+      {
+        "name": "restore_customer_case_events_atomic_status",
+        "version": "20261001214806"
+      },
+      {
+        "name": "ediel_utilts_consumer_content_identity",
+        "version": "20261001214933"
+      },
+      {
+        "name": "classify_customer_case_events",
+        "version": "20261001215005"
+      },
+      {
+        "name": "ediel_correction_concern_capture",
+        "version": "20261001215103"
+      },
+      {
+        "name": "ediel_correction_capture_canonical_permission",
+        "version": "20261001215138"
+      },
+      {
+        "name": "company_direct_permission_scope_repair",
+        "version": "20261001215150"
+      },
+      {
+        "name": "schema_drift_repair_canonical_columns_20261001",
+        "version": "20261001215714"
+      },
+      {
+        "name": "communication_permission_registry_completion",
+        "version": "20261001215738"
+      },
+      {
+        "name": "document_reference_context",
+        "version": "20261001215910"
+      },
+      {
+        "name": "customer_read_permission_registry_completion",
+        "version": "20261001215918"
+      },
+      {
+        "name": "correction_outbound_dispatch_fence_v1",
+        "version": "20261001220125"
+      },
+      {
+        "name": "correction_process_facts_v1",
+        "version": "20261001220209"
+      },
+      {
+        "name": "correction_process_witness_v1",
+        "version": "20261001220320"
+      },
+      {
+        "name": "correction_process_scope_gap_v2",
+        "version": "20261001220410"
+      },
+      {
+        "name": "correction_process_readset_v1",
+        "version": "20261001220455"
+      },
+      {
+        "name": "correction_process_point_alias_scope_v3",
+        "version": "20261001220529"
+      },
+      {
+        "name": "e035_combined_correction_snapshot",
+        "version": "20261001220617"
+      },
+      {
+        "name": "correction_process_archive_dates_v4",
+        "version": "20261001220637"
+      },
+      {
+        "name": "e035_combined_outbound_document_readset",
+        "version": "20261001220712"
+      },
+      {
+        "name": "e035_combined_subject_scope",
+        "version": "20261001220803"
+      },
+      {
+        "name": "e035_combined_source_concern_scope",
+        "version": "20261001220845"
+      },
+      {
+        "name": "e035_combined_historical_alias_scope",
+        "version": "20261001221003"
+      },
+      {
+        "name": "e035_combined_source_scope_projection",
+        "version": "20261001221041"
+      },
+      {
+        "name": "e035_structural_source_point_projection",
+        "version": "20261001222414"
+      },
+      {
+        "name": "e035_source_scope_envelope_uniqueness",
+        "version": "20261002064334"
+      },
+      {
+        "name": "e035_source_scope_bgm_order",
+        "version": "20261002064403"
+      },
+      {
+        "name": "e035_outbound_unsealed_scope_wildcard",
+        "version": "20261002064450"
+      },
+      {
+        "name": "e035_switch_event_owner_binding",
+        "version": "20261002064502"
+      },
+      {
+        "name": "case_lifecycle_conditional_columns_repair",
+        "version": "20261002064513"
+      },
+      {
+        "name": "customer_case_write_permission_registry_completion",
+        "version": "20261002064519"
+      },
+      {
+        "name": "e035_switch_event_historical_scope",
+        "version": "20261002064554"
+      },
+      {
+        "name": "e035_switch_event_owner_history",
+        "version": "20261002064613"
+      },
+      {
+        "name": "e035_switch_event_uuid_shape",
+        "version": "20261002064633"
+      },
+      {
+        "name": "e035_switch_request_point_owner_scope",
+        "version": "20261002064711"
+      },
+      {
+        "name": "e035_combined_outbound_raw_candidate_scope",
+        "version": "20261002064734"
+      },
+      {
+        "name": "e035_outbound_unknown_wire_fence",
+        "version": "20261002064828"
+      },
+      {
+        "name": "e035_outbound_lk_scope_reason",
+        "version": "20261002064919"
+      },
+      {
+        "name": "e035_outbound_lk_wire_identity",
+        "version": "20261002065007"
+      },
+      {
+        "name": "ediel_ack_route_scope",
+        "version": "20261002065048"
+      },
+      {
+        "name": "utilts_ide_qualifier_membership",
+        "version": "20261002065150"
+      },
+      {
+        "name": "utilts_internal_storage_error_atomic_hold",
+        "version": "20261002065226"
+      },
+      {
+        "name": "support_case_idempotency_unique",
+        "version": "20261002065238"
+      },
+      {
+        "name": "customer_contact_change_transaction",
+        "version": "20261002065320"
+      },
+      {
+        "name": "tenant_customer_identity_providers",
+        "version": "20261002073700"
+      },
+      {
+        "name": "support_case_attachments",
+        "version": "20261002092737"
+      },
+      {
+        "name": "customer_identity_change_requests",
+        "version": "20261002114117"
+      },
+      {
+        "name": "customer_billing_profile_revisions",
+        "version": "20261002114144"
+      },
+      {
+        "name": "tenant_invoice_provider_selection",
+        "version": "20261002132942"
+      },
+      {
+        "name": "invoice_file_export",
+        "version": "20261002141500"
+      },
+      {
+        "name": "atomic_customer_archive",
+        "version": "20261002152453"
+      },
+      {
+        "name": "tenant_company_foreign_keys",
+        "version": "20261002164619"
+      },
+      {
+        "name": "atomic_customer_lifecycle_close",
+        "version": "20261002165019"
+      },
+      {
+        "name": "end_customer_supply_on_switch_away",
+        "version": "20261002165056"
+      },
+      {
+        "name": "customer_legal_anonymization",
+        "version": "20261002165128"
+      },
+      {
+        "name": "supplier_switch_atomic_writes",
+        "version": "20261002165214"
+      },
+      {
+        "name": "customer_lifecycle_decision_atomic",
+        "version": "20261002165233"
+      },
+      {
+        "name": "classify_customer_lifecycle_events",
+        "version": "20261002165535"
+      },
+      {
+        "name": "grid_owner_data_request_atomic",
+        "version": "20261002171950"
+      },
+      {
+        "name": "power_of_attorney_expiry_atomic",
+        "version": "20261002171959"
+      },
+      {
+        "name": "billing_import_atomic",
+        "version": "20261002173916"
+      },
+      {
+        "name": "invoice_purchase_request_atomic",
+        "version": "20261002173921"
+      },
+      {
+        "name": "customer_merge_atomic",
+        "version": "20261002180105"
+      },
+      {
+        "name": "portal_claim_atomic",
+        "version": "20261002182139"
+      },
+      {
+        "name": "invoice_test_approval_atomic",
+        "version": "20261002183126"
+      },
+      {
+        "name": "invoice_review_draft_atomic",
+        "version": "20261002183133"
+      },
+      {
+        "name": "billing_period_lock_atomic",
+        "version": "20261002183950"
+      },
+      {
+        "name": "atomic_test_customer_delete",
+        "version": "20261002192605"
+      },
+      {
+        "name": "converge_grid_owner_agreements_email_domains_quality_view",
+        "version": "20261002227000"
+      }
+    ],
+    "merged_guard_triggers": null
+  },
+  "prerequisites": {
+    "constraints": [
+      {
+        "type": "f",
+        "table": "customer_case_attachments",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "customer_case_attachments_case_owner_fk",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES customer_cases(id, company_id, customer_id) ON DELETE CASCADE"
+      },
+      {
+        "type": "f",
+        "table": "customer_case_events",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "customer_case_events_case_owner_fk",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES customer_cases(id, company_id, customer_id) ON DELETE CASCADE"
+      },
+      {
+        "type": "f",
+        "table": "customer_contracts",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "customer_contracts_company_customer_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "customer_contracts",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "customer_contracts_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "customer_info_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "customer_info_requests_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "grid_owner_data_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "grid_owner_data_requests_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "grid_owner_information_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "grid_owner_information_requests_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "metering_points",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "metering_points_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "outbound_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "outbound_requests_company_customer_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "outbound_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "outbound_requests_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "powers_of_attorney",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "powers_of_attorney_company_customer_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "powers_of_attorney",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "powers_of_attorney_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "supplier_switch_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "supplier_switch_requests_company_customer_customer_site_rel_fke",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      },
+      {
+        "type": "f",
+        "table": "supplier_switch_requests",
+        "exists": true,
+        "deferred": false,
+        "validated": true,
+        "constraint": "supplier_switch_requests_company_customer_site_rel_fkey",
+        "deferrable": false,
+        "definition": "FOREIGN KEY (company_id, customer_id, site_id) REFERENCES customer_sites(company_id, customer_id, id)"
+      }
+    ],
+    "missing_optional_graph_tables": [
+      "customer_profiles"
+    ],
+    "customer_columns": [
+      "id",
+      "status",
+      "updated_at",
+      "company_id",
+      "invoice_email",
+      "merged_into_customer_id"
+    ],
+    "permission_helper": "gridex_actor_has_company_permission(uuid,uuid,text)",
+    "merge_body_normalized_md5": "d1ec97bdab542f13be079611a32c9fbb",
+    "prior_repo_merge_body_normalized_md5": "d1ec97bdab542f13be079611a32c9fbb",
+    "prior_contact_source_md5": "787f634401d593b7819a01d06aeef67a",
+    "signed_guard_source_md5": "e37e13a157f91f401e526b53d5eefdc1"
+  },
+  "aggregate_counts": {
+    "portal_identities_on_merged": 0,
+    "portal_accounts_on_merged": 0,
+    "tenant_links_on_merged": 0
+  },
+  "live_only_ledger_caveat": {
+    "version": "20261002227000",
+    "name": "converge_grid_owner_agreements_email_domains_quality_view",
+    "statements": null,
+    "repo_file_present": false,
+    "assessment": "Its body cannot be verified from ledger. Targeted migration prerequisites and overwritten RPC/immutable guard logic nevertheless match expected baseline; no whole-production-schema parity claim.",
+    "repo_file_present_in_new_main_composition": true
+  },
+  "release_order": [
+    "Qualified corrected app head merge",
+    "Exact OPS production deployment READY and app.gridex.se alias proof",
+    "Single reviewed230000 migration apply on exact OPS project",
+    "Read-only target ledger/catalog/ACL/trigger assertions"
+  ],
+  "independent_native_pg17_6": {
+    "active_insert_on_conflict": "waits for contact parent lock and then succeeds; prior failure inference disproved",
+    "direct_same_owner_update": "conservative23514 guard conflict; retry after commit succeeds",
+    "case_status_vs_merge": "40P01 reproduced in both old FK baseline and candidate, with atomic rollback; no introduced deadlock blocker"
+  },
+  "composition": {
+    "base_commit": "889a2378411f826026336a593e3fde1ba8ba7258",
+    "production_ready_deployment_root_verified": "dpl_9hPQwbGu8unuE24M5QXxpZTjcg8Q",
+    "preflight_matches_frozen_before_json": true,
+    "actual_combined_capture_pending": false,
+    "historical_latest_main_types_sha256": "272c9783b3ab08f95951147abdadef22115a780589b9abecbea8282912d2a9b5",
+    "historical_latest_main_fingerprint": "8cfd07b378d61dc564d9d43d1ab55895a4f8bd5268ad2e90aba478f81dd7794f",
+    "canonical_artifact_plan": "Authentic combined schema/fingerprint/types imported byte-for-byte from11254046371. Native capture passes all preceding gates and correctly fails only historical baseline comparison. Final exact-head green CI is mandatory before app-first production READY and controlled230000 application.",
+    "integration_base_commit": "276b9e6155ef2cd83b5d75a61283fc4d99d9f184",
+    "combined_capture": {
+      "workflow_run": 37068613316,
+      "job": 111042463333,
+      "artifact_id": 11254046371,
+      "artifact_zip_sha256": "16daef10057ba44aef6a491879a70df4574be2fd3cf256311b891a8bdae5ec15",
+      "pull_request_head": "53080e7d74b5a44e275c8aed7eb19a506a290084",
+      "actual_checkout_commit": "a6a085ee440ee90c53c7bff65d57f2536b5278fa",
+      "actual_checkout_tree": "332590e25bf9058b39d24280c6cbc7912e9c14b7",
+      "schema_file_sha256": "c172f3458e522e50f75fb55a91e8fa7a6b1de6f619a3586708178f0ee5d000fb",
+      "fingerprint_file_sha256": "c9aaddabd93cd8d85f281232caaada044a6da49936d827efaff695409562b7fa",
+      "schema_fingerprint": "cc62d4a7c0c099fe0cac3dff838388f59c605f82639c0d55f8381a7ba0765da7",
+      "qualification": "All native stages through snapshot generation pass. The capture run correctly fails only final comparison to historical main baseline8cfd07b3; import this genuine capture and require fresh exact-head green CI. Main79d changes no migration, schema, type-generator or replay inputs. Main276b/PR465 likewise changes only UI/navigation/history; all database and affected API inputs remain unchanged."
+    },
+    "final_published_head_ci": "pending after authentic artifact import publication"
+  }
+}

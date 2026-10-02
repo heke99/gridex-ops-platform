@@ -6,6 +6,7 @@ import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,7 +47,16 @@ type CountFilter = {
 
 const HIDDEN_CUSTOMER_STATUSES = ['archived', 'deleted', 'deleted_test_only', 'pending_deletion']
 const ACTIVE_TASK_STATUSES = ['open', 'new', 'pending_review', 'action_required', 'missing_authorization', 'blocked', 'route_missing', 'manual_review_required', 'failed']
-const ACTION_REQUIRED_STATUSES = new Set(ACTIVE_TASK_STATUSES)
+// Mirrors customer_info_requests_status_check minus the terminal states.
+const INFO_REQUEST_OPEN_STATUSES = [
+  'draft', 'missing_authorization', 'ready_to_send', 'sent_to_grid_owner', 'waiting_for_contrl',
+  'waiting_for_aperak', 'waiting_for_z02', 'z02_received', 'negative_aperak', 'manual_review_required',
+  'missing_binding_info', 'missing_termination_info', 'ready_for_switch', 'blocked',
+]
+const ACTION_REQUIRED_STATUSES = new Set([
+  ...ACTIVE_TASK_STATUSES,
+  'draft', 'ready_to_send', 'negative_aperak', 'missing_binding_info', 'missing_termination_info', 'ready_for_switch',
+])
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -385,7 +395,7 @@ export default async function AdminWorkQueuePage() {
       'customer_info_requests',
       companyId,
       'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
-      [{ column: 'status', op: 'in', value: ACTIVE_TASK_STATUSES }],
+      [{ column: 'status', op: 'in', value: INFO_REQUEST_OPEN_STATUSES }],
       customerIds,
       80,
     ),
@@ -637,7 +647,7 @@ export default async function AdminWorkQueuePage() {
                       </td>
                       <td className="px-6 py-4 text-slate-700">{statusLabel(item.status)}</td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-700">{formatDate(item.createdAt)}</td>
                       <td className="px-6 py-4">

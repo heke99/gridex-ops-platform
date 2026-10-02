@@ -1,5 +1,7 @@
 'use server'
 
+import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
+
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
@@ -92,7 +94,6 @@ function safeReturnPath(formData: FormData, fallback: string): string {
 
 function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
   revalidatePath('/admin/website-applications')
-  revalidatePath('/admin/customer-applications')
   revalidatePath(websiteApplicationDetailPath(application.id))
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
 }
@@ -429,7 +430,11 @@ async function upsertApplicationSite(application: ApplicationRecord, payload: Re
   const city = cleanReviewText(site.city)
   const postalCode = cleanReviewText(site.postal_code)
   const gridOwnerInput = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
-  const gridOwnerId = isUuid(gridOwnerInput) ? gridOwnerInput : null
+  // Same normalization as admin intake: platform grid-owner ids map to the
+  // tenant's OPS grid owner instead of being stored raw or dropped.
+  const gridOwnerId = isUuid(gridOwnerInput)
+    ? (await normalizeGridOwnerIdToOps({ gridOwnerId: gridOwnerInput, companyId: application.company_id })).opsGridOwnerId
+    : null
   const moveInDate = cleanReviewText(site.move_in_date) ?? cleanReviewText(payload.requested_start_date)
 
   if (!facilityId && !street && !city) return application.customer_site_id
@@ -483,22 +488,8 @@ async function upsertApplicationSite(application: ApplicationRecord, payload: Re
     .select('id')
     .single()
 
-  if (error && !missingSchema(error)) throw error
-  if (data?.id) return String(data.id)
-
-  const fallback = await supabaseService
-    .from('customer_sites')
-    .insert({
-      company_id: application.company_id,
-      customer_id: application.customer_id,
-      site_name: facilityId ?? street ?? 'Anläggning',
-      status: 'active',
-      facility_id: facilityId,
-    })
-    .select('id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return String(fallback.data.id)
+  if (error) throw error
+  return String(data.id)
 }
 
 async function upsertApplicationMeteringPoint(application: ApplicationRecord, siteId: string | null, payload: Record<string, unknown>) {
@@ -563,24 +554,8 @@ async function upsertApplicationMeteringPoint(application: ApplicationRecord, si
     .select('id')
     .single()
 
-  if (error && !missingSchema(error)) throw error
-  if (data?.id) return String(data.id)
-
-  const fallback = await supabaseService
-    .from('metering_points')
-    .insert({
-      company_id: application.company_id,
-      customer_id: application.customer_id,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      meter_point_id: meteringPointId,
-      status: 'active',
-    })
-    .select('id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return String(fallback.data.id)
+  if (error) throw error
+  return String(data.id)
 }
 
 async function upsertApplicationContract(application: ApplicationRecord, siteId: string | null, meteringPointId: string | null, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {

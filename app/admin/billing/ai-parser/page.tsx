@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { createDocumentAiExtractionAction, reviewDocumentAiExtractionAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -84,7 +85,7 @@ export default async function BillingAiParserPage() {
             {rows.map((row) => (
               <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(row.status)}`}>{row.status}</span>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${tone(row.status)}`}>{formatStatusLabel(row.status)}</span>
                   <span className="text-xs text-slate-500">{new Date(row.created_at).toLocaleString('sv-SE')}</span>
                 </div>
                 <div className="mt-3 text-sm font-semibold text-slate-950">{row.source_file_name ?? 'Dokument utan filnamn'}</div>

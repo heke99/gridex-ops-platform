@@ -46,4 +46,5 @@ Register: `quality/audits/ui-consistency-20261002/findings-register.md`.
 Branch `claude/ui-audit`: PR A (security) in progress. Order: A security → B broken
 → C DB mismatch/raw codes → D clutter/wording → E intake/contracts/onboarding.
 Owner granted full Supabase approval (2026-10-02) and asked to proceed stepwise.
-Next action: finish S4–S8, run tsc + vitest, push PR A, merge when CI green.
+PR A = #462 MERGED. PR B = #463: types regenerated (2f24cc9a), verify green, replay pending; merge when green. PR C on branch claude/ui-audit-c (stacked on B): C1 status labels pushed; next C: raw UUIDs → names, company <select> instead of free-text company_id; then open PR C after B merges.
+Next: PR B (broken/dead), then C (raw codes/labels), D (clutter/wording), E (intake/contracts/onboarding: website review → onboardCustomerGraph, contractStatus allow-list, offer-not-found error, onboarding role hierarchy/last-admin, provisioning RPC).

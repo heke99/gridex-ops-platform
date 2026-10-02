@@ -45,6 +45,7 @@ import {
   parseContractAdminView,
   type ContractAdminView,
 } from "@/lib/contracts/adminDto";
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
 
@@ -445,7 +446,7 @@ async function TenantCustomerContracts({
                         {row.title}
                       </strong>
                       <p className="mt-1 text-xs text-slate-600">
-                        {row.module_key} · {row.legal_mode} · {row.status}
+                        {row.module_key} · {row.legal_mode} · {formatStatusLabel(row.status)}
                       </p>
                       {row.review_notes ? (
                         <p className="mt-2 text-xs text-slate-700">
@@ -945,7 +946,7 @@ export default async function AdminContractsPage({
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Avtal och kampanjer – platformstyrda"
+        title="Avtal och kampanjer"
         subtitle="Endast platform admin får skapa, ändra och publicera avtalsmallar, kampanjer och prisvillkor. Elbolagsadmin arbetar med kunder och publicerade avtal men äger inte pris-/avtalslogiken."
         userEmail={admin.email}
       />
@@ -959,16 +960,16 @@ export default async function AdminContractsPage({
             1. Interna avtalsprodukter
           </span>
           <a
-            href="#tenant-assignment"
+            href="#create-contract"
             className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
           >
-            2. Tenanttilldelningar
+            2. Skapa avtal
           </a>
           <a
-            href="#website-publication"
+            href="#contract-offers"
             className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-bold text-slate-800"
           >
-            3. Website-publiceringar
+            3. Befintliga avtal (tenant och webb)
           </a>
           <Link
             href="/admin/platform/contract-trace"
@@ -1162,7 +1163,7 @@ export default async function AdminContractsPage({
             </p>
           ) : null}
         </section>
-        <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
+        <section id="create-contract" className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 xl:col-span-2">
           <h2 className="text-lg font-semibold text-slate-950 ">
             Skapa utkast eller ny immutable avtalsversion
           </h2>
@@ -1185,7 +1186,7 @@ export default async function AdminContractsPage({
           )}
         </section>
 
-        <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+        <section id="contract-offers" className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
           <div className="border-b border-slate-200 px-6 py-5 ">
             <h2 className="text-lg font-semibold text-slate-950 ">
               Befintliga avtalsmallar

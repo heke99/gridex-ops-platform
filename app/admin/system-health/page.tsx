@@ -7,6 +7,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { runProductionConsistencyChecks, type ReconciliationCheckResult } from '@/lib/ops/reconciliation'
 import { getOpsHealth } from '@/lib/ops/health'
 import { requeueUncertainEmailAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -198,7 +199,7 @@ export default async function SystemHealthPage() {
                 <tr key={row.check_key} className={row.status === 'blocking' ? 'bg-red-50/50' : row.status === 'warning' ? 'bg-amber-50/50' : ''}>
                   <td className="px-3 py-3">
                     <span className={`rounded-full border px-2 py-1 text-xs font-medium ${row.status === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : tone(row.status)}`}>
-                      {row.status}
+                      {formatStatusLabel(row.status)}
                     </span>
                   </td>
                   <td className="px-3 py-3 font-mono text-xs font-medium text-slate-900">{row.check_key}</td>
@@ -298,7 +299,7 @@ export default async function SystemHealthPage() {
             <tbody className="divide-y divide-slate-100">
               {errors.map((row) => (
                 <tr key={`${row.source_table}-${row.id}`}>
-                  <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-medium ${tone(row.severity)}`}>{row.severity}</span></td>
+                  <td className="px-3 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-medium ${tone(row.severity)}`}>{formatStatusLabel(row.severity)}</span></td>
                   <td className="px-3 py-3 text-slate-700">{row.source_table}</td>
                   <td className="px-3 py-3 font-medium text-slate-900">{humanizeLaunchError(row.error_key)}</td>
                   <td className="px-3 py-3 text-slate-700">{row.recommended_action ?? humanizeLaunchError(row.error_key)}</td>
