@@ -55,6 +55,11 @@ const MESSAGE_MAX_LENGTH = 8_000
 const SUPPORT_CASE_SELECT = 'id,company_id,customer_id,status,title,description,source,metadata,created_at,updated_at,resolved_at,closed_at'
 const CLOSED_STATUSES: CustomerCaseStatus[] = ['resolved', 'cancelled', 'closed']
 
+/** Closed cases accept no new customer content (messages or attachments). */
+export function isClosedSupportCase(supportCase: Pick<SupportCaseRow, 'status'>): boolean {
+  return CLOSED_STATUSES.includes(supportCase.status)
+}
+
 type SupportCaseRow = {
   id: string
   company_id: string

@@ -297,6 +297,8 @@ describe('rollout flag GRIDEX_PORTAL_IDENTITY_ENFORCEMENT (default report)', () 
   it('support handlers always pass enforceBinding', async () => {
     const { readFileSync } = await import('node:fs')
     const handlers = readFileSync('lib/customer-service/supportApiHandlers.ts', 'utf8')
-    expect(handlers.match(/enforceBinding: true/g)?.length).toBe(5)
+    const contexts = handlers.match(/requireCustomerPortalApiContext\(/g)?.length ?? 0
+    expect(contexts).toBe(8)
+    expect(handlers.match(/requireCustomerPortalApiContext\(request, \[[^\]]+\], \{ enforceBinding: true \}\)/g)?.length).toBe(contexts)
   })
 })
