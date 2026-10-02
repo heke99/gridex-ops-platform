@@ -337,6 +337,14 @@
       "summary": "A UTILTS whose legal receiver (NAD+MR, field 208) cannot be resolved gets a held inbound legal context at reception. recordFinalCanonicalUtiltsDecision then calls captureFreshEdielSourceRulePackEvidence, which requires that context and throws ediel_source_rule_pack_basis_required. The processor fails instead of producing the field-208 negative APERAK the guide prescribes, or an explicit internal-review hold.",
       "evidence": "DB log: ediel_inbound_legal_context_required from gridex_ediel_inbound_context.require_v1 via gridex_ediel_source_rules.capture_before_outbound_owner_v1; context receipt status=held",
       "decision_needed": "Whether a reply to an unresolved legal receiver may be authorized by transport identity alone, or such sources are held for manual review. Fail-closed today (no effect), but it is an uncaught error, not a recorded hold."
+    },
+    {
+      "id": "PREEXISTING-INBOUND-CASES-SCHEMA-DRIFT",
+      "status": "open_preexisting_main",
+      "severity": "high",
+      "summary": "lib/ediel/inboundCases.ts inserts match_confidence, message_family, message_code, transaction_type, parsed_customer, parsed_site, parsed_metering_point, parsed_contract, parsed_production, proposed_action ... into public.ediel_inbound_cases, which has only id, company_id, ediel_message_id, case_type, status, customer_id, site_id, metering_point_id, switch_request_id, assigned_to, payload, created_at, updated_at, created_by, updated_by, metadata. No migration ever created those columns; PostgREST rejects the insert (schema cache: match_confidence). Same on origin/main.",
+      "evidence": "information_schema.columns; supabase/database.types.ts ediel_inbound_cases Row; grep of supabase/migrations finds no parsed_customer; scripts/ediel-z04-ack-native.test.ts failure",
+      "proposed_fix": "Separate PR: either a forward migration adding the typed columns, or map the parsed fields into payload/metadata in inboundCases.ts. Needs owner choice of storage model."
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."

@@ -21,7 +21,9 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
   const policyOnly=variant==='missing-header-code'||variant==='unlisted-header-code'
   // The active legal actor identifier is unique across tenants in the native database.
-  const actorEdielId=variant === 'missing-own-quantity' ? '54321' : variant === 'gas-unit-on-electric-register' ? '54322' : variant === 'whole-message-lin-sequence' ? '54323' : variant === 'missing-header-date' ? '54324' : variant === 'invalid-header-date' ? '54325' : variant === 'missing-header-offset' ? '54326' : variant === 'invalid-header-offset' ? '54327' : variant === 'missing-header-ack-request' ? '54328' : variant === 'invalid-header-ack-request' ? '54329' : variant === 'lowercase-header-ack-request' ? '54330' : variant === 'invalid-header-function' ? '54331' : variant === 'missing-header-code' ? '54333' : variant === 'unlisted-header-code' ? '54334' : '54332'
+  const actorEdielId=sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_z04_ack_receiver',0));
+   SELECT to_jsonb(min(n)::text) FROM generate_series(55000,59999) n WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
+    AND NOT EXISTS(SELECT FROM public.ediel_actor_settings s WHERE s.ediel_id=n::text); COMMIT;`)
   const parts=mixedZ04Parts()
   if (variant === 'gas-unit-on-electric-register') {
     const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
@@ -36,6 +38,7 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
     parts.splice(second+1,0,qty('20'))
   }
   let wire=raw(parts,'Z04').replaceAll('54321',actorEdielId).replace('+S+R+',`+12345:14+${actorEdielId}:14+`)
+    .replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'") // UNB 0035: test interchange
   if (variant === 'missing-header-date') wire=wire.replace('DTM+137:202609171200:203\'','')
     .replace(/UNT\+(\d+)\+M/,(_,count:string)=>`UNT+${Number(count)-1}+M`)
   if (variant === 'invalid-header-date') wire=wire.replace('DTM+137:202609171200:203','DTM+137:202613171200:203')
