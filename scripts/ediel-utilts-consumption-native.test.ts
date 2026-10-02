@@ -217,11 +217,10 @@ it.each(['accepted', 'internal_review'])('unbound historical %s evidence cannot 
   expect(snapshot(f.original.id)).toEqual(before)
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0)
 })
-it('equal cross-source content reuses immutable series, a new correction preserves exact noncurrent replay', async () => {
+it('same-issuer resend of field 505 is a duplicate identity, a new correction preserves exact noncurrent replay', async () => {
   const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
   const copy = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'COPY'+f.original.interchange_reference!))
-  const reused = await persistUtiltsTransactionResults(await f.prepare(copy))
-  expect(reused[0].seriesId).toBe(first[0].seriesId)
+  expect((await recordUtiltsFinalRuntime(copy)).validation.issues.map(issue => issue.code)).toContain('UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE') // identities hold over time
   const correction = await f.insertSource(f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'CORRECTION').replaceAll(f.original.interchange_reference!, 'COR'+f.original.interchange_reference!).replace('QTY+136:500', 'QTY+136:501'))
   expect((await persistUtiltsTransactionResults(await f.prepare(correction)))[0].seriesId).not.toBe(first[0].seriesId)
   expect(sql(`SELECT is_current FROM public.meter_reading_series WHERE id=${lit(first[0].seriesId)}`)).toBe(false)
@@ -384,7 +383,7 @@ it('native S01 valid LOC+175 cannot reserve a point series or positive ACK throu
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9').replaceAll('GRIDEX2607E66001', 'S01OBJECT001')
   const source = await f.insertSource(raw, 'S01')
   const prepared = await f.prepare(source, false, false)
   expect(prepared.transactions[0]).toMatchObject({ disposition: 'accepted', meteringPointId: null, externalMeteringPointId: null })
@@ -405,7 +404,7 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
   const f = await seed()
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
-    .replace('23-DDQ-E66-T', '23-DDK-S01-S')
+    .replace('23-DDQ-E66-T', '23-DDK-S01-S').replaceAll('GRIDEX2607E66001', 'S01EMPTY001')
   const clean = await f.insertSource(raw, 'S01')
   const input = await f.prepare(clean, false, false)
   expect(input.transactions[0]).toMatchObject({ disposition: 'accepted', responseType: 'positive_aperak', externalMeteringPointId: '735999260731000007' })
@@ -504,7 +503,7 @@ it('native E73 point request rejects an unowned physical agency-89 point before 
   const f = await seed()
   const cleanRaw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+E73::260')
-    .replace('23-DDQ-E66-T', '23-DDQ-E66-S')
+    .replace('23-DDQ-E66-T', '23-DDQ-E66-S').replaceAll('GRIDEX2607E66001', 'E73POINT001')
   const raw = cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
   const source = await f.insertSource(raw, 'E73')
   const input = await f.prepare(source, false, false)
@@ -634,7 +633,7 @@ it('cross-environment equal legacy identity cannot reuse test consumption author
 it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption capability', async code => {
   const f = await seed(), application = code === 'E30' ? '23-MDR-E30-T' : '23-DDQ-S07-T'
   const raw = f.original.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
-    .replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!)
+    .replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', code+'CONTROL001')
   const source = await f.insertSource(raw, code), input = await f.prepare(source, false, code === 'E30')
   const rows = await persistUtiltsTransactionResults(input)
   await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows })
@@ -692,7 +691,7 @@ it('distinguishable observation order is immutable, not a set comparison', async
 it('equivalent valid hour/minute wire spellings cannot replace a bound source', async () => {
   const f = await seed()
   const raw = f.original.raw_payload!.replace('15:806', '1:805').replace('202607010000202607010015:719', '202607010000202607010100:719')
-  const source = await f.insertSource(raw.replaceAll(f.original.interchange_reference!, 'HOUR'+f.original.interchange_reference!)), input = await f.prepare(source)
+  const source = await f.insertSource(raw.replaceAll(f.original.interchange_reference!, 'HOUR'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'HOURE66001')), input = await f.prepare(source)
   await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
   const changed = { ...source, raw_payload: source.raw_payload!.replace('1:805', '60:806') }, prepared = await f.prepare(changed)
   expect(prepared.contracts[0].observations[0].periodEnd).toBe(input.contracts[0].observations[0].periodEnd)
@@ -1129,7 +1128,7 @@ it('R1 identical different-source reuse preserves content and adds separate line
   const f = await seed(), a = await f.prepare()
   await persistUtiltsTransactionResults(a)
   const first = await sinkRpc(a, 'metering'); expect(first.error).toBeNull()
-  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'EQUAL'+f.original.interchange_reference!)), b = await f.prepare(source)
+  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'EQUAL'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'EQUALE66001')), b = await f.prepare(source)
   await persistUtiltsTransactionResults(b)
   const next = await sinkRpc(b, 'metering'); expect(next.error).toBeNull()
   expect((next.data as { id: string }).id).toBe((first.data as { id: string }).id)
@@ -1338,7 +1337,7 @@ it('native valid S01 LOC+175 holds its ACK/series until a distinct object owner 
   const raw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
-    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9')
+    .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9').replaceAll('GRIDEX2607E66001', 'S01OBJECT001')
   const source = await f.insertSource(raw, 'S01')
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
