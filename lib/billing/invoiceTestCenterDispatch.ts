@@ -19,10 +19,6 @@ function num(value: unknown): number | null {
   return null
 }
 
-function objectValue(value: unknown): Row {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Row : {}
-}
-
 function stableJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(',')}]`
   if (value && typeof value === 'object') {
@@ -195,27 +191,17 @@ export async function approveAndSendInvoiceTestItem(input: {
     calculation_snapshot_sha256: calculationHash,
     approval_source: 'invoice_test_center',
   }
-  const itemUpdate = await supabaseService
-    .from('invoice_export_items')
-    .update({ metadata: { ...objectValue(item.metadata), approval }, updated_at: approvedAt })
-    .eq('company_id', input.companyId)
-    .eq('id', input.itemId)
-    .eq('environment', 'test')
-    .eq('status', 'pending')
-    .select('id')
-    .maybeSingle()
-  if (itemUpdate.error) throw itemUpdate.error
-  if (!itemUpdate.data) throw new Error('Fakturatest kunde inte godkänna exportposten atomärt.')
-  const invoiceUpdate = await supabaseService
-    .from('customer_invoices')
-    .update({ metadata: { ...objectValue(invoice.metadata), approval }, updated_at: approvedAt })
-    .eq('company_id', input.companyId)
-    .eq('invoice_export_item_id', input.itemId)
-    .eq('status', 'draft')
-    .select('id')
-    .maybeSingle()
-  if (invoiceUpdate.error) throw invoiceUpdate.error
-  if (!invoiceUpdate.data) throw new Error('Fakturatest kunde inte godkänna fakturaspegeln.')
+  // Export item and invoice mirror are approved together or not at all.
+  const { error: approvalError } = await supabaseService.rpc('gridex_approve_invoice_test_item_v1', {
+    p_company_id: input.companyId,
+    p_invoice_export_item_id: input.itemId,
+    p_approval: approval,
+  })
+  if (approvalError) {
+    if (approvalError.message === 'invoice_test_approval_item_not_pending') throw new Error('Fakturatest kunde inte godkänna exportposten atomärt.')
+    if (approvalError.message === 'invoice_test_approval_invoice_not_draft') throw new Error('Fakturatest kunde inte godkänna fakturaspegeln.')
+    throw approvalError
+  }
 
   const sent = await sendApprovedInvoiceExportRun({
     companyId: input.companyId,

@@ -192,9 +192,9 @@ export async function receiveBillingProviderWebhook(input: {
     .maybeSingle()
   if (providerEvent.error) throw providerEvent.error
 
-  if (providerEvent.data) {
-    await processPendingInvoiceProviderEvents({ companyId: target.companyId, limit: 25 })
-  }
+  // Always drain 'received' events: a provider retry after a crash between the
+  // insert and processing hits the duplicate path, and must still finish the work.
+  await processPendingInvoiceProviderEvents({ companyId: target.companyId, limit: 25 })
 
   await emitDomainEvent({
     companyId: target.companyId,
