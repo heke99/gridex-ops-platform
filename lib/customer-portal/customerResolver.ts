@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { supabaseService } from '@/lib/supabase/service'
 import { portalIdentityEnforcement, reportPortalIdentityWouldReject } from '@/lib/customer-portal/identityEnforcement'
+import { canonicalPortalCustomer, portalCustomerCanLink } from '@/lib/customer-portal/customerLifecycle'
 
 export type CustomerPortalIdentifiers = {
   externalCustomerId: string | null
@@ -47,9 +48,9 @@ export type PortalCustomerResolution =
   | { ok: true; customer: ResolvedPortalCustomer; binding: PortalCustomerBinding }
   | { ok: false; status: number; error: string; code: string; identifiers: CustomerPortalIdentifiers }
 
-const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
-const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,first_name,last_name,full_name,company_name,name,email,phone,created_at'
-const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,email,phone,created_at'
+const CUSTOMER_SELECT = 'id,company_id,customer_number,external_customer_id,customer_type,status,merged_into_customer_id,first_name,last_name,full_name,company_name,name,email,phone,created_at,intake_status,intake_missing_fields,intake_quality_score'
+const CUSTOMER_FALLBACK_SELECT = 'id,company_id,customer_number,customer_type,status,merged_into_customer_id,first_name,last_name,full_name,company_name,name,email,phone,created_at'
+const CUSTOMER_MINIMAL_SELECT = 'id,company_id,customer_number,status,merged_into_customer_id,email,phone,created_at'
 const IDENTITY_SELECT = 'id,company_id,customer_id,external_customer_id,external_account_id,customer_number,email,status,match_strength,match_method,provider,auth_user_id,customer_portal_user_id'
 const IDENTITY_FALLBACK_SELECT = 'id,company_id,customer_id,external_customer_id,email,status,match_strength,match_method,provider'
 const ACCOUNT_SELECT = 'id,company_id,customer_id,user_id,portal_user_id,external_account_id,customer_number,external_customer_id,email,user_email,status,is_active'
@@ -333,6 +334,7 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
       provider: 'customer_portal_accounts',
       matchMethod: str(row, 'portal_user_id') ? 'customer_portal_accounts.portal_user_id' : str(row, 'external_account_id') ? 'customer_portal_accounts.external_account_id' : 'customer_portal_accounts.user_id',
       matchStrength: 'strong',
+      verifiedBinding: true,
     })
   }
 
@@ -350,6 +352,7 @@ async function linkedByAccount(companyId: string, userId: string): Promise<Resol
     provider: str(row, 'provider') ?? 'customer_portal_identity',
     matchMethod: str(row, 'match_method') ?? 'customer_portal_identities.user_id',
     matchStrength: str(row, 'match_strength') ?? 'strong',
+    verifiedBinding: true,
   })
 }
 
@@ -403,18 +406,27 @@ async function finishResolved(companyId: string, customerId: string, source: {
   matchMethod?: string | null
   matchStrength?: string | null
   prefetchedCustomer?: Record<string, unknown> | null
+  verifiedBinding?: boolean
 }): Promise<ResolvedPortalCustomer | null> {
-  const customer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
-  if (!customer || String(customer.company_id) !== companyId) return null
+  const originalCustomer = source.prefetchedCustomer ?? await fetchCustomer(companyId, customerId)
+  if (!originalCustomer) return null
+  const customer = await canonicalPortalCustomer({
+    companyId,
+    customer: originalCustomer,
+    allowMergedAlias: source.verifiedBinding === true,
+    load: (id) => fetchCustomer(companyId, id),
+  })
+  if (!customer) return null
+  const canonicalCustomerId = String(customer.id)
   const userId = source.authUserId ?? source.customerPortalUserId ?? null
-  const profile = await fetchProfile({ companyId, customerId, email: source.email ?? str(customer, 'email'), authUserId: userId })
+  const profile = await fetchProfile({ companyId, customerId: canonicalCustomerId, email: source.email ?? str(customer, 'email'), authUserId: userId })
   const merged = mergeCustomerProfile(customer, profile)
   return {
     id: source.id ?? null,
     company_id: companyId,
-    customer_id: customerId,
+    customer_id: canonicalCustomerId,
     external_customer_id: source.externalCustomerId ?? str(merged, 'external_customer_id'),
-    customer_number: source.customerNumber ?? str(merged, 'customer_number'),
+    customer_number: str(merged, 'customer_number') ?? source.customerNumber ?? null,
     email: normalizeEmail(source.email ?? merged.email),
     auth_user_id: source.authUserId ?? userId,
     customer_portal_user_id: source.customerPortalUserId ?? userId,
@@ -561,7 +573,7 @@ export async function ensureCustomerPortalUserLink(input: {
   if (!userId) return null
 
   const customer = await fetchCustomer(input.client.company_id, input.customerId)
-  if (!customer) return null
+  if (!customer || !portalCustomerCanLink(customer)) return null
 
   const now = new Date().toISOString()
   const email = normalizeEmail(input.email ?? customer.email)
