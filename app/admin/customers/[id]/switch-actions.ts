@@ -97,27 +97,31 @@ export async function retryOutboundRequestFromCustomerAction(
       reset.source_id,
     );
 
+    const retryEvent = {
+      eventType: "manual_retry_queued",
+      eventStatus: reset.status,
+      message: `Outbound ${reset.id} återköades manuellt från kundkortet.`,
+      payload: {
+        outboundRequestId: reset.id,
+        customerId,
+        companyId,
+        attemptsCount: reset.attempts_count,
+      },
+    };
+
     if (switchRequest && switchRequest.status === "failed") {
+      // Status and retry event in one transaction.
       await updateSupplierSwitchRequestStatus(supabase, {
         requestId: switchRequest.id,
         status: "queued",
         externalReference:
           reset.external_reference ?? switchRequest.external_reference,
+        event: retryEvent,
       });
-    }
-
-    if (switchRequest) {
+    } else if (switchRequest) {
       await createSupplierSwitchEvent(supabase, {
         switchRequestId: switchRequest.id,
-        eventType: "manual_retry_queued",
-        eventStatus: reset.status,
-        message: `Outbound ${reset.id} återköades manuellt från kundkortet.`,
-        payload: {
-          outboundRequestId: reset.id,
-          customerId,
-          companyId,
-          attemptsCount: reset.attempts_count,
-        },
+        ...retryEvent,
         companyId,
       });
     }
