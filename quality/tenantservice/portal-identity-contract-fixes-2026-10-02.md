@@ -1,8 +1,8 @@
 # Independent Web tenant integration: focused OPS corrections
 
-Status: locally verified candidate; unpublished and awaiting root review. No production writes or migrations.
+Status: published as draft PR #454; root owns publication and merge. Rebased candidate verified locally. No production writes or migrations.
 
-Base: `e98cef3aeefd0c564a4436e2e409bb0a5262c866`; origin/main rechecked unchanged after verification. Branch: `fix/portal-identity-contract-2026-10-02`. Existing Ediel branches, open PRs and checkpoint files are untouched.
+Base: `d8a5a111c02c1805b0be4a03284ecd178b40c947` (fetched origin/main on 2026-10-02). Original base was `e98cef3aeefd0c564a4436e2e409bb0a5262c866`. Branch: `fix/portal-identity-contract-2026-10-02`. Existing Ediel branches and checkpoint files are untouched.
 
 ## Scope and skill routing
 
@@ -53,3 +53,13 @@ RED before production fixes: resolver 4 failures/14 passes; unique sync 5 failur
 Initial checks used environment Node 24.19.0; repository engine requires Node 22. Final targeted rerun on Node 22.23.3 passed 103/103 in 12 affected/adjacent files and 31/31 quality functional tests. The harness emitted its existing EnvHttpProxyAgent experimental warning; no test failed. Root authorized a local checkpoint commit after verification; no push is authorized before root review. Full suite, native database replay and production deployment were not run for this unpublished candidate. No migration is needed.
 
 Next action: root reviews the bounded diff and tests; publish in a separate OPS PR only after review, then run required exact-head CI before any merge. Existing masterplan/other PR work must remain untouched.
+
+## PR #454 rebase verification (2026-10-02)
+
+Rebased the one owned identity commit onto main `d8a5a111`; no text conflicts. `git range-diff` reports the production/test patch identical to the original `040d9c0`. All upstream #451 atomic billing import/invoice purchase and #452 atomic customer merge files remain unchanged. Applied differential-review and verification-before-completion guidance to this bounded integration.
+
+Supported Node 22.23.3 fresh verification: 103/103 tests across the same 12 affected/adjacent Vitest files; 31/31 quality functional tests; both app/test TypeScript checks; scoped ESLint; all seven `api:docs` checks; both customer sync error scripts; service-role tenant ratchet (2,337 vs 2,353 baseline); diff whitespace check. Full repository suite, native database replay and production deployment were not run. No git push performed; root publishes the prepared tree to the existing PR.
+
+Static merge lifecycle follow-up, outside this identity patch: `gridex_merge_customers_v1` moves sites/contracts/cases to the primary customer but omits portal account/identity/link tables. Existing active portal links can therefore remain on a merged source. Resolver customer fetching currently accepts that company-bound source and strict support still selects its cases; merged sources also remain sync matching candidates and can trigger the new deliberate uniqueness refusal. The omission exists in the previous merge table list too, is not a rebase conflict, and does not bypass company predicates. Root must assess a separate customer merge lifecycle correction; do not weaken immutable identities or uniqueness checks here.
+
+Next action: root publishes the rebased tree to draft PR #454 and checks its required CI. Keep the separate support schema .3 release and customer merge lifecycle follow-up isolated.

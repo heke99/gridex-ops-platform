@@ -29192,6 +29192,7 @@ export type Database = {
           customer_reference: string
           customer_type: string
           data_retention_note: string | null
+          duplicate_review_status: string | null
           email: string | null
           ended_at: string | null
           external_customer_id: string | null
@@ -29212,6 +29213,10 @@ export type Database = {
           lifecycle_closed_at: string | null
           lifecycle_closed_by: string | null
           lifecycle_status_reason: string | null
+          merge_status: string | null
+          merged_at: string | null
+          merged_by: string | null
+          merged_into_customer_id: string | null
           metadata: Json
           moved_out_at: string | null
           name: string | null
@@ -29228,6 +29233,7 @@ export type Database = {
           pending_sites: number
           personal_number: string | null
           phone: string | null
+          possible_duplicate: boolean | null
           preferred_language: string | null
           process_summary: Json
           ready_for_billing_at: string | null
@@ -29262,6 +29268,7 @@ export type Database = {
           customer_reference?: string
           customer_type?: string
           data_retention_note?: string | null
+          duplicate_review_status?: string | null
           email?: string | null
           ended_at?: string | null
           external_customer_id?: string | null
@@ -29282,6 +29289,10 @@ export type Database = {
           lifecycle_closed_at?: string | null
           lifecycle_closed_by?: string | null
           lifecycle_status_reason?: string | null
+          merge_status?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_customer_id?: string | null
           metadata?: Json
           moved_out_at?: string | null
           name?: string | null
@@ -29298,6 +29309,7 @@ export type Database = {
           pending_sites?: number
           personal_number?: string | null
           phone?: string | null
+          possible_duplicate?: boolean | null
           preferred_language?: string | null
           process_summary?: Json
           ready_for_billing_at?: string | null
@@ -29332,6 +29344,7 @@ export type Database = {
           customer_reference?: string
           customer_type?: string
           data_retention_note?: string | null
+          duplicate_review_status?: string | null
           email?: string | null
           ended_at?: string | null
           external_customer_id?: string | null
@@ -29352,6 +29365,10 @@ export type Database = {
           lifecycle_closed_at?: string | null
           lifecycle_closed_by?: string | null
           lifecycle_status_reason?: string | null
+          merge_status?: string | null
+          merged_at?: string | null
+          merged_by?: string | null
+          merged_into_customer_id?: string | null
           metadata?: Json
           moved_out_at?: string | null
           name?: string | null
@@ -29368,6 +29385,7 @@ export type Database = {
           pending_sites?: number
           personal_number?: string | null
           phone?: string | null
+          possible_duplicate?: boolean | null
           preferred_language?: string | null
           process_summary?: Json
           ready_for_billing_at?: string | null
@@ -29489,6 +29507,34 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customers_merged_into_customer_id_fkey"
+            columns: ["merged_into_customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customers_merged_into_customer_id_fkey"
+            columns: ["merged_into_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "customers_merged_into_customer_id_fkey"
+            columns: ["merged_into_customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_merged_into_customer_id_fkey"
+            columns: ["merged_into_customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["customer_id"]
           },
         ]
       }
@@ -93026,6 +93072,15 @@ export type Database = {
         Args: { p_company_id: string; p_permission: string }
         Returns: boolean
       }
+      gridex_import_billing_underlays_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_batch: Json
+          p_company_id: string
+          p_rows: Json
+        }
+        Returns: Json
+      }
       gridex_import_grid_area_geojson_feature: {
         Args: {
           p_feature_id: string
@@ -93315,6 +93370,16 @@ export type Database = {
       }
       gridex_materialize_publication_price_options_v1: {
         Args: { p_actor_user_id?: string; p_publication_version_id: string }
+        Returns: Json
+      }
+      gridex_merge_customers_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_primary_customer_id: string
+          p_reason: string
+          p_source_customer_ids: string[]
+        }
         Returns: Json
       }
       gridex_new_external_tenant_reference: { Args: never; Returns: string }
@@ -93891,6 +93956,16 @@ export type Database = {
           p_status: string
         }
         Returns: undefined
+      }
+      gridex_record_invoice_purchase_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_financing_mode: string
+          p_invoice_export_item_id: string
+          p_payload: Json
+        }
+        Returns: Json
       }
       gridex_record_legacy_api_key_use_v1: {
         Args: { p_api_client_id: string; p_route: string }
