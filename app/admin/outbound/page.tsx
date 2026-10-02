@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -16,6 +17,7 @@ import {
 } from '@/app/admin/operations/control-actions'
 import { getBillingExportReadiness } from '@/lib/operations/controlTower'
 import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -544,7 +546,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -582,7 +584,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 
@@ -618,7 +620,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  className="text-emerald-700 underline-offset-2 hover:underline "
  >
  {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}
- {linkedMessage.status}
+ {formatStatusLabel(linkedMessage.status)}
  </Link>
  ) : (
  '—'
@@ -856,7 +858,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
 
  <div className="mt-3 text-sm text-slate-700 ">
- Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
+ Kund <CustomerName id={underlay.customer_id} /> · Site {underlay.site_id ?? '—'} ·
  Mätpunkt {underlay.metering_point_id ?? '—'}
  </div>
 

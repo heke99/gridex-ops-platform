@@ -41,6 +41,7 @@ import {
 import { archiveLegalTextVersionAction, createLegalTextVersionAction, publishLegalTextVersionAction, seedDefaultLegalPackageAction } from './legal-actions'
 import CopyPublicLegalLink from '@/components/admin/legal/CopyPublicLegalLink'
 import { buildPublicLegalUrl } from '@/lib/legal/publicLegalDocuments'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -624,7 +625,7 @@ function CompanyProfileEditor({ company, profile }: { company: GovernanceCompany
         <fieldset className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <legend className="mb-3 w-full text-base font-black text-slate-950">Status</legend>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800 md:col-span-3">
-            Bolagsstatus: {company.status}. Status ändras endast genom de auditerade styrningsåtgärderna på bolagsöversikten; profilformuläret kan inte kringgå readiness eller stängningskontroller.
+            Bolagsstatus: {formatStatusLabel(company.status)}. Status ändras endast genom de auditerade styrningsåtgärderna på bolagsöversikten; profilformuläret kan inte kringgå readiness eller stängningskontroller.
           </div>
         </fieldset>
 
@@ -1276,7 +1277,7 @@ function CompanyEmailSection({
             <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600"><tr><th className="px-4 py-3">Datum</th><th className="px-4 py-3">Kund</th><th className="px-4 py-3">Typ</th><th className="px-4 py-3">Mottagare</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Felorsak</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {logs.length === 0 ? <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-600">Inga utskick loggade ännu.</td></tr> : null}
-              {logs.map((log) => <tr key={log.id}><td className="px-4 py-3">{formatDate(log.created_at)}</td><td className="px-4 py-3">{log.customer_number ?? log.customer_id ?? '–'}</td><td className="px-4 py-3">{log.event_key ?? log.template_key ?? '–'}</td><td className="px-4 py-3">{log.recipient_email}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone(log.status)}`}>{log.status}</span></td><td className="max-w-sm px-4 py-3 text-xs text-red-700">{log.error_message ?? '–'}</td></tr>)}
+              {logs.map((log) => <tr key={log.id}><td className="px-4 py-3">{formatDate(log.created_at)}</td><td className="px-4 py-3">{log.customer_number ?? log.customer_id ?? '–'}</td><td className="px-4 py-3">{log.event_key ?? log.template_key ?? '–'}</td><td className="px-4 py-3">{log.recipient_email}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-xs font-black ${statusTone(log.status)}`}>{formatStatusLabel(log.status)}</span></td><td className="max-w-sm px-4 py-3 text-xs text-red-700">{log.error_message ?? '–'}</td></tr>)}
             </tbody>
           </table>
         </div>

@@ -1,3 +1,4 @@
+import CompanySelect from '@/components/admin/CompanySelect'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -124,8 +125,8 @@ export default async function AuditPage({
  </label>
  {isPlatformAdmin ? (
  <label className="grid gap-1 text-sm">
- <span className="font-medium text-slate-700">Company ID</span>
- <input name="company_id" defaultValue={companyFilter} placeholder="uuid" className="rounded-2xl border border-slate-300 px-4 py-3" />
+ <span className="font-medium text-slate-700">Bolag</span>
+ <CompanySelect defaultValue={companyFilter} emptyLabel="Alla bolag" className="rounded-2xl border border-slate-300 bg-white px-4 py-3" />
  </label>
  ) : null}
  <label className="grid gap-1 text-sm">

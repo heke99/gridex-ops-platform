@@ -6,6 +6,7 @@ import {
  updateGridOwnerDataRequestStatusAction,
 } from '@/app/admin/cis/actions'
 import { prepareUtiltsE73Action } from '@/app/admin/ediel/actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 function formatDateTime(value: string | null | undefined): string {
  if (!value) return '—'
@@ -178,7 +179,7 @@ export function MeteringRequestsSection({
  <div className="flex flex-wrap items-center justify-between gap-3">
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(request.status)}`}>
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
  {requestKindLabel(request.request_scope)}

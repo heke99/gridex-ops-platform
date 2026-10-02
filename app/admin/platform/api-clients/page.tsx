@@ -16,6 +16,7 @@ import {
   WEBSITE_INTEGRATION_OPENAPI_URL,
 } from '@/lib/integrations/websiteIntegrationContract'
 import { isTenantWebsiteIntegrationClient } from '@/lib/integrations/tenantWebsiteClient'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -432,7 +433,7 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
                           ) : null}
                         </div>
                       ) : (
-                        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(client.status)}`}>{client.status}</span>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(client.status)}`}>{formatStatusLabel(client.status)}</span>
                       )}
                     </td>
 

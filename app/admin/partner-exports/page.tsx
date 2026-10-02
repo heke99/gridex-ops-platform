@@ -5,6 +5,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listAllBillingUnderlays, listAllPartnerExports } from '@/lib/cis/db'
 import { updatePartnerExportStatusAction } from '@/app/admin/cis/actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -118,7 +119,7 @@ export default async function AdminPartnerExportsPage({
  <div>
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(exportRow.status)}`}>
- {exportRow.status}
+ {formatStatusLabel(exportRow.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
  {exportRow.export_kind}

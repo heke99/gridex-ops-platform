@@ -13,6 +13,7 @@ import {
   type FacilityWorkQueueRow,
   type FacilityWorkQueueStatus,
 } from '@/lib/facility/workQueue'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 type FacilityLookupRequestRow = {
   id: string
@@ -257,7 +258,7 @@ function FacilityRow({ item }: { item: FacilityWorkQueueRow }) {
         )}
       </td>
       <td className="px-6 py-4 align-top">
-        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
         <div className="mt-2 text-xs text-slate-500">Uppdaterad {formatDate(item.updatedAt ?? item.createdAt)}</div>
       </td>
       <td className="px-6 py-4 align-top">

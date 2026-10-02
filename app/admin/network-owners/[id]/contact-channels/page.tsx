@@ -1,3 +1,4 @@
+import CompanySelect from '@/components/admin/CompanySelect'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -118,7 +119,7 @@ export default async function GridOwnerContactChannelsPage({ params, searchParam
                   {[...platformDefaults, ...tenantOverrides].map((row) => (
                     <tr key={row.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 font-semibold text-slate-950">{channelLabel(row.channel_type)}</td>
-                      <td className="px-6 py-4 text-slate-700">{row.company_id ? 'Tenant-override' : 'Plattformsstandard'}</td>
+                      <td className="px-6 py-4 text-slate-700">{row.company_id ? 'Bolagsspecifik' : 'Plattformsstandard'}</td>
                       <td className="px-6 py-4 text-slate-700">{row.email ?? '—'}{row.phone ? ` · ${row.phone}` : ''}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${row.is_enabled ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{row.is_enabled ? 'Aktiv' : 'Inaktiv'}</span>
@@ -161,8 +162,8 @@ export default async function GridOwnerContactChannelsPage({ params, searchParam
               <input name="email" type="email" placeholder="natagare@example.se" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
             </label>
             <label className="text-sm font-semibold text-slate-800">
-              Bolags-ID (valfritt, för tenant-override)
-              <input name="company_id" placeholder="Lämna tomt för plattformsstandard" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+              Bolag (valfritt, för bolagsspecifik inställning)
+              <CompanySelect emptyLabel="Plattformsstandard (alla bolag)" />
             </label>
             <label className="text-sm font-semibold text-slate-800">
               Telefon (valfritt)
@@ -212,8 +213,8 @@ export default async function GridOwnerContactChannelsPage({ params, searchParam
               </select>
             </label>
             <label className="text-sm font-semibold text-slate-800">
-              Bolags-ID (valfritt, för tenant-override)
-              <input name="company_id" placeholder="Lämna tomt för plattformsstandard" className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm" />
+              Bolag (valfritt, för bolagsspecifik inställning)
+              <CompanySelect emptyLabel="Plattformsstandard (alla bolag)" />
             </label>
             <label className="text-sm font-semibold text-slate-800">
               E-post

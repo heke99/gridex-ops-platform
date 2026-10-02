@@ -45,6 +45,7 @@ import {
   parseContractAdminView,
   type ContractAdminView,
 } from "@/lib/contracts/adminDto";
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
 
@@ -445,7 +446,7 @@ async function TenantCustomerContracts({
                         {row.title}
                       </strong>
                       <p className="mt-1 text-xs text-slate-600">
-                        {row.module_key} · {row.legal_mode} · {row.status}
+                        {row.module_key} · {row.legal_mode} · {formatStatusLabel(row.status)}
                       </p>
                       {row.review_notes ? (
                         <p className="mt-2 text-xs text-slate-700">

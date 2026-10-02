@@ -3,6 +3,7 @@ import { requireAdminPageAccess, isPlatformAdminContext } from '@/lib/admin/guar
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listWebhookDeliveries, listWebhookSubscriptions } from '@/lib/admin/websiteIntegrationOps'
 import { markWebhookDeliveryIgnoredAction, resendWebhookDeliveryAction, sendWebhookTestEventAction } from '../actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -73,8 +74,8 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href="/admin/webhooks/deliveries" className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">Alla</Link>
-            <Link href="/admin/webhooks/deliveries?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Failed</Link>
-            <Link href="/admin/webhooks/deliveries?status=queued" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">Queued</Link>
+            <Link href="/admin/webhooks/deliveries?status=failed" className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-sm font-semibold text-red-800">Misslyckade</Link>
+            <Link href="/admin/webhooks/deliveries?status=queued" className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-900">I kö</Link>
           </div>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -87,7 +88,7 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
                   <div className="mt-1 break-all text-xs text-slate-600">{subscription.endpoint_url}</div>
                   <div className="mt-2 text-xs text-slate-500">{isPlatformAdmin ? subscription.companies?.name ?? subscription.company_id : 'Ditt bolag'} · {subscription.integration_api_clients?.name ?? 'API-client saknas'}</div>
                 </div>
-                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(subscription.status)}`}>{subscription.status}</span>
+                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(subscription.status)}`}>{formatStatusLabel(subscription.status)}</span>
               </div>
               <div className="mt-3 text-xs text-slate-600">Events: {(subscription.event_types ?? []).slice(0, 4).join(', ') || '—'}</div>
               <form action={sendWebhookTestEventAction} className="mt-4">
@@ -115,7 +116,7 @@ export default async function WebhookDeliveriesPage({ searchParams }: { searchPa
                   <td className="px-4 py-3 text-slate-700">{delivery.event_type}<div className="font-mono text-xs text-slate-500">{delivery.domain_event_id}</div></td>
                   <td className="max-w-xs break-all px-4 py-3 text-slate-700">{delivery.webhook_subscriptions?.endpoint_url ?? '—'}</td>
                   <td className="px-4 py-3 font-mono text-xs text-slate-700">{payloadString(delivery.payload, 'customer_number') ?? '—'}<div>{payloadString(delivery.payload, 'external_customer_id') ?? '—'}</div></td>
-                  <td className="px-4 py-3"><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(delivery.status)}`}>{delivery.status}</span><div className="mt-1 text-xs text-slate-500">{delivery.attempts}/{delivery.max_attempts}</div></td>
+                  <td className="px-4 py-3"><span className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(delivery.status)}`}>{formatStatusLabel(delivery.status)}</span><div className="mt-1 text-xs text-slate-500">{delivery.attempts}/{delivery.max_attempts}</div></td>
                   <td className="max-w-xs px-4 py-3 text-xs text-slate-700">HTTP {delivery.response_status ?? '—'}<div className="mt-1 text-red-700">{delivery.failure_reason ?? '—'}</div></td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">
