@@ -11,7 +11,9 @@ import {updateCustomerCaseStatus} from '@/lib/customer-cases/db'
 import {enqueue} from '@/lib/customer-operations/automation.part-1'
 import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvents'
 import {createSupplierSwitchEvent} from '@/lib/operations/db'
-import {literal,sql,raw,project,seed} from './helpers/correctionContextNative'
+import {literal,sql,raw,project,seed,seedCorrectionSource} from './helpers/correctionContextNative'
+import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
+import type {SupabaseClient} from '@supabase/supabase-js'
 const call=(f:Awaited<ReturnType<typeof seed>>)=>`public.gridex_capture_correction_concern_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)})`
 
 // Replay temporarily moves the original migrations out of their working-tree
@@ -357,6 +359,11 @@ it('the existing explicit platform superadmin wrapper authority remains unchange
 // invoke nodemailer. Real helper/readiness are retained; only external SMTP is stubbed.
 const provider = vi.hoisted(()=>vi.fn())
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}}))
+// The national rescission intake signs in through the actual local GoTrue
+// session; only the browser-cookie client factory is replaced.
+const sourceSession=vi.hoisted(()=>({client:null as SupabaseClient|null}))
+vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{if(!sourceSession.client)throw Error('native_actual_source_session_required');return sourceSession.client}}))
+const rescission=nationalRescissionNativeChain({provider,sourceSession})
 it.each(['raw','attachment'] as const)('outbound helper callback denial prevents %s provider entry',async mode=>{
  vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
@@ -379,84 +386,18 @@ async function outboundParsed(wire:string,companyId:string){
   invoiceeObjects:[{meteringPointId:'735123456789012345',identityAgency:'9',endUser:{identity,address},invoicee:{identity,nameLines:['Ångström'],address,availability:'available'},event:{state:'none',reference:'synthetic-no-change'},source}],
  }})}}
 }
+/** Genuine national H rescission chain (archived legal original, independent
+ * review, mandate) produces the real queued Z08 H original; no hand-built
+ * outbound row. The C concern shares its tenant and metering point. */
 async function outboundSeed(){
- const f=await seed(),routeId=randomUUID(),profileId=randomUUID(),gridId=randomUUID(),marketActor=randomUUID()
- // Actors are global and the disposable suite retains earlier fixture rows.
- // Own a distinct normalized name even when one test seeds two tenants.
- const marketActorName=`Dispatch electricity grid ${marketActor}`
- // Company creation deliberately seeds capabilities disabled; establish only this
- // synthetic tenant's test capability through its actual canonical gate.
- sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';`)
- expect(sql(`SELECT to_jsonb(allowed) FROM public.canonical_tenant_operation_decision(${literal(f.companyId)},'ediel.test.process')`)).toBe(true)
- // Allocate against the actual globally unique identifier owner. The short
- // transaction serializes this fixture allocator; it never rewrites old actors.
- const receiver=sql<string>(`BEGIN;
- SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_dispatch_actor_identifier',0));
- WITH actor AS (
-  INSERT INTO public.platform_market_actors(id,name,status,match_status,visible_to_tenants)
-  VALUES(${literal(marketActor)},${literal(marketActorName)},'active','verified',true) RETURNING id
- ), available AS (
-  SELECT candidate::text AS value FROM generate_series(60000,89999) candidate
-  WHERE NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text)
-  ORDER BY candidate LIMIT 1
- ), allocated AS (
-  INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified)
-  SELECT actor.id,'EdielId',available.value,true FROM actor CROSS JOIN available RETURNING identifier_value
- ) SELECT to_jsonb(identifier_value) FROM allocated; COMMIT;`)
- expect(receiver).toMatch(/^[6-8][0-9]{4}$/)
- expect(sql(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(receiver)}`)).toBe(marketActor)
- const sender=sql<string>(`BEGIN;
- SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_legal_actor_identifier',0));
- WITH available AS (SELECT candidate::text AS value FROM generate_series(40000,49999) candidate
-  WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text)
-  AND NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=candidate::text) ORDER BY candidate LIMIT 1),
- allocated AS (INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
-  SELECT ${literal(f.companyId)},'test',${literal(f.actorUserId)},'EdielId',value,clock_timestamp()-interval '1 day' FROM available RETURNING identifier_value)
- SELECT to_jsonb(identifier_value) FROM allocated; COMMIT;`)
- sql(`INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
-  VALUES(${literal(f.companyId)},'test','electricity',true,clock_timestamp()-interval '1 day');
- INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
-  VALUES(${literal(f.companyId)},'test',${literal(f.actorUserId)},'electricity_supplier',clock_timestamp()-interval '1 day');
- INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
-  VALUES(${literal(f.companyId)},'test','Synthetic native supplier',${literal(sender)},${literal(sender)});`)
- const wire=closureFixture({reason:'Z25',document:`D${randomUUID().replaceAll('-','').slice(0,13)}`,li:`L${randomUUID().replaceAll('-','').slice(0,13)}`}).wire
-  .replace('BGM+Z05','BGM+Z08').replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'").replaceAll('54321',receiver).replaceAll('12345:14',`${sender}:14`).replaceAll('12345:160:SVK',`${sender}:160:SVK`).replace('Synthetic','Ångström')
- const parsed=await outboundParsed(wire,f.companyId)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id WHERE p.profile_key='PRODAT:Z08:H:26.A:r3' AND p.is_enabled AND r.status='active' AND r.valid_from<=current_date AND (r.valid_to IS NULL OR r.valid_to>=current_date) AND r.source_hash ~ '^[a-f0-9]{64}$'`)).toBe(1)
- sql(`INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(gridId)},${literal(f.companyId)},'Dispatch native grid',${literal(receiver)},'test',true,'active');
- INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active,target_email) VALUES(${literal(routeId)},${literal(f.companyId)},'Dispatch native route',${literal(gridId)},'bilateral_test',true,'recipient@example.invalid');
- INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,transport_security_mode,smtp_to,receiver_email,message_family,business_code)
- VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Dispatch native profile','test','edifact',${literal(sender)},${literal(receiver)},'23-DDQ-PRODAT',true,'unencrypted','recipient@example.invalid','recipient@example.invalid','PRODAT','Z08');
- INSERT INTO public.platform_actor_roles(actor_id,actor_role,is_active) VALUES(${literal(marketActor)},'grid_owner',true);
- INSERT INTO public.platform_actor_routes(actor_id,message_family,environment,status,is_verified,application_reference,communication_type,communication_address,metadata) VALUES(${literal(marketActor)},'PRODAT','production','active',true,'23-DDQ-PRODAT','email','recipient@example.invalid','{"subaddress_status":"not_required_confirmed"}');
- INSERT INTO public.platform_actor_certificates(actor_id,environment,purpose,status,fingerprint_sha256,ediel_id,valid_to,raw_certificate_pem) VALUES(${literal(marketActor)},'production','encryption','valid','synthetic',${literal(receiver)},'2099-01-01','synthetic-readiness-only');
- `)
- // Prepare the source through the actual intent validator and canonical
- // original owner. No caller-written ready status, witness ID or rule pack
- // receipt can replace the private native producer/consumer handoff.
- const {parseInboundEmailContent}=await import('@/lib/inbound-mail/edielEmailParser')
- const {createEdielMessageIntent,updateIntentLifecycle}=await import('@/lib/ediel/intent/intentEngine')
- const {createCanonicalOutboundMessage}=await import('@/lib/ediel/core/kernel')
- const envelope=parseInboundEmailContent({attachmentText:wire})!,operationId=randomUUID()
- const intent=await createEdielMessageIntent({companyId:f.companyId,environment:'test',market:'electricity',
-  messageFamily:'PRODAT',messageCode:'Z08',businessProcess:'supplier_switch',direction:'outbound',actorUserId:f.actorUserId,
-  senderEdielId:sender,receiverEdielId:receiver,applicationReference:'23-DDQ-PRODAT',routeProfileId:profileId,
-  communicationRouteId:routeId,facilityId:'735123456789012345',interchangeReference:envelope.interchangeReference!,
-  messageReference:envelope.transactionReference!,transactionReference:envelope.references.LI?.[0] ?? null,
-  payload:{transactionSubtype:'H'},idempotencyKey:operationId})
- expect(intent.validationStatus).toBe('validated')
- const message=await createCanonicalOutboundMessage({actorUserId:f.actorUserId,requestType:'supplier_switch',baseInput:{
-  actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z08',
-  status:'queued',rawPayload:wire,parsedPayload:parsed,applicationReference:'23-DDQ-PRODAT',senderEdielId:sender,
-  receiverEdielId:receiver,receiverEmail:'recipient@example.invalid',communicationRouteId:routeId,routeProfileId:profileId,
-  sourceOperationId:operationId,intentId:intent.id,interchangeReference:envelope.interchangeReference!,transactionReference:envelope.references.LI?.[0] ?? null}})
- const messageId=message.id
- await updateIntentLifecycle(intent.id,{edielMessageId:messageId,renderStatus:'rendered',actorUserId:f.actorUserId})
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(messageId)}`)).toBe(1)
- expect(sql(`SELECT jsonb_build_object('id',id,'name',name,'normalizedName',normalized_name) FROM public.platform_market_actors WHERE normalized_name=${literal(marketActorName.toLowerCase())}`))
-  .toEqual({id:marketActor,name:marketActorName,normalizedName:marketActorName.toLowerCase()})
+ const n=await rescission.nationalRescissionOperation()
+ const wire=n.original.raw_payload!,point=n.external
+ const concern=await seedCorrectionSource({companyId:n.companyId,actorUserId:n.actorUserId,wire:raw().replaceAll('735123456789012345',point)})
+ const marketActor=n.marketActorId,marketActorName=sql<string>(`SELECT to_jsonb(name) FROM public.platform_market_actors WHERE id=${literal(marketActor)}`)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(n.original.id)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
- return {...f,messageId,routeId,wire,marketActor,marketActorName,receiver,sender}
+ sourceSession.client=null;provider.mockReset()
+ return {...concern,messageId:n.original.id,routeId:n.routeId,wire,point,marketActor,marketActorName,receiver:n.receiver,sender:n.sender}
 }
 function smtpFixture(){
  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
@@ -1314,7 +1255,7 @@ it('a real Z08H send appears with its original, attempt, provider result and wit
 it('a historical raw Z08 with stale metadata stays a wildcard but a sealed unrelated point does not',async()=>{
  const f=await outboundSeed()
  expect(await captureCorrectionContext({companyId:f.companyId,environment:'test',sourceMessageId:f.sourceMessageId,actorUserId:f.actorUserId})).toMatchObject({status:'recorded'})
- const unrelated='735999260731000008',wire=f.wire.replaceAll('735123456789012345',unrelated)
+ const unrelated='735999260731000008',wire=f.wire.replaceAll(f.point,unrelated)
  // An isolated native database emulates historical edits before immutable sealing.
  sql(`BEGIN; SET LOCAL session_replication_role=replica;
   UPDATE public.ediel_messages SET raw_payload=${literal(wire)},immutable_payload_hash=${literal(createHash('sha256').update(wire).digest('hex'))},
