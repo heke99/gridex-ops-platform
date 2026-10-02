@@ -75,7 +75,6 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     description: 'Underlag, export och fakturapartner',
     items: [
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag till fakturering/export', pageKey: 'billing.workspace' },
-      { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
       { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
     ],
   },
@@ -170,7 +169,6 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analytics', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
-      { key: 'billing_export', label: 'Exportcenter', href: '/admin/billing/export-center', description: 'Redo rader, blockerare och exporthistorik', pageKey: 'billing.export_center' },
       { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
       { key: 'partner_exports', label: 'Partnerexporter', href: '/admin/partner-exports', description: 'Exportkö och status mot faktureringspartner', pageKey: 'partner_exports.workspace' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },

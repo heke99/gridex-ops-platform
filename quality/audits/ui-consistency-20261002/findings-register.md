@@ -52,3 +52,7 @@ onboarding steps and lifecycle handling).
 | B2 | hosted-only policy `gridex_perf_authenticated_select_v` (select to authenticated using true) exposed every tenant's grid-owner agreements | fixed: dropped (hosted + migration) |
 | B3 | data-quality view (personnummer) readable by authenticated without RLS (security definer view) | fixed: security_invoker, service_role only |
 | B4 | data-quality page rendered "no issues" when a check failed | fixed: fails closed |
+| B5 | contracts page anchors `#tenant-assignment`/`#website-publication` point to sections only rendered in tenant view | fixed: point to create/offers sections |
+| B6 | work queue filtered customer_info_requests by statuses not in its DB check (open, new, pending_review…), hiding real open requests | fixed: list mirrors the DB check minus terminal states |
+| B7 | dead `app/admin/billing/_components.tsx`, unused export-center actions, nav entry to a redirect-only page | fixed: removed |
+| B8 | company-settings: environment select had no name (change ignored); membership-role select ignored by action; empty phone field wiped user phone on every save | fixed |
