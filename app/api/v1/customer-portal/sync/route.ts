@@ -76,6 +76,10 @@ async function canonicalExistingCustomer(companyId: string, customerId: string) 
   return customer ? canonicalPortalCustomer({ companyId, customer, allowMergedAlias: true, load }) : null
 }
 
+function ambiguousCustomerMatch(): never {
+  throw new ApiInputError('Kunduppgifterna kan inte matchas entydigt. Kontakta kundtjänst.', 'ambiguous_customer_match', 409)
+}
+
 function missingSchema(error: unknown): boolean {
   const code = (error as { code?: string } | null)?.code ?? ''
   const message = (error as { message?: string } | null)?.message ?? ''
@@ -121,8 +125,10 @@ async function facilityCustomerIds(companyId: string, facilityId: string): Promi
     .select('customer_id')
     .eq('company_id', companyId)
     .in('facility_id', variants)
+    .limit(21)
 
   if (error) throw error
+  if ((data?.length ?? 0) > 20) ambiguousCustomerMatch()
   return new Set((data ?? []).map((row) => String(row.customer_id)).filter(Boolean))
 }
 
@@ -130,7 +136,9 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
   const customerIds = new Set<string>()
   const candidates: CustomerCandidate[] = []
 
-  const addRows = (rows: CustomerCandidate[] | null | undefined) => {
+  const addRows = (rows: CustomerCandidate[] | null | undefined, maxRows?: number) => {
+    // Fetch one extra row to detect truncation: a partial candidate set cannot prove uniqueness.
+    if (maxRows !== undefined && (rows?.length ?? 0) > maxRows) ambiguousCustomerMatch()
     for (const row of rows ?? []) {
       if (!portalCustomerCanLink(row)) continue
       if (!customerIds.has(row.id)) {
@@ -146,9 +154,9 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
       .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .eq('customer_number', payload.customer_number)
-      .limit(10)
+      .limit(11)
     if (error) throw error
-    addRows(data as CustomerCandidate[])
+    addRows(data as CustomerCandidate[], 10)
   }
 
   if (payload.email) {
@@ -157,9 +165,9 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
       .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .ilike('email', payload.email)
-      .limit(20)
+      .limit(21)
     if (error) throw error
-    addRows(data as CustomerCandidate[])
+    addRows(data as CustomerCandidate[], 20)
   }
 
   if (payload.identifier) {
@@ -168,7 +176,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
       .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier},normalized_personal_number.eq.${payload.identifier},normalized_org_number.eq.${payload.identifier}`)
-      .limit(20)
+      .limit(21)
 
     if (result.error && missingSchema(result.error)) {
       result = await supabaseService
@@ -176,10 +184,10 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
         .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
         .eq('company_id', companyId)
         .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier}`)
-        .limit(20)
+        .limit(21)
     }
     if (result.error) throw result.error
-    addRows(result.data as CustomerCandidate[])
+    addRows(result.data as CustomerCandidate[], 20)
   }
 
   if (payload.facility_id) {
@@ -379,6 +387,7 @@ export async function POST(request: NextRequest) {
     const facilityMatches = facilityId ? await facilityCustomerIds(auth.context.companyId, facilityId) : new Set<string>()
 
     let best: { customer: CustomerCandidate; flags: Record<string, boolean>; isStrong: boolean } | null = null
+    let strongMatches = 0
     for (const customer of candidates) {
       const flags = {
         emailMatched: Boolean(email && normalizeEmail(customer.email) === email),
@@ -388,8 +397,9 @@ export async function POST(request: NextRequest) {
       }
       const isStrong = strongMatch(flags)
       if (isStrong) {
+        strongMatches += 1
+        if (strongMatches > 1) ambiguousCustomerMatch()
         best = { customer, flags, isStrong }
-        break
       }
       if (!best && Object.values(flags).filter(Boolean).length > 0) {
         best = { customer, flags, isStrong: false }
@@ -417,7 +427,7 @@ export async function POST(request: NextRequest) {
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: identity.id, customer_id: best.customer.id } })
       const responseBody = { data: {
         status: 'linked',
-        customer_reference: externalCustomerId,
+        customer_reference: publicReference('customer', auth.context.companyId, best.customer.id),
         customer_number: best.customer.customer_number,
         external_customer_id: externalCustomerId,
         customer_portal_user_id: body.customer_portal_user_id,

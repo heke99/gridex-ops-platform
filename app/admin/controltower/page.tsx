@@ -26,7 +26,9 @@ type SafeSupabaseQuery = {
 }
 type RecentCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null }
 type CustomerCaseRow = { id: string; title: string | null; status: string | null; priority: string | null; created_at: string | null; customer_id: string | null; reason_category: string | null; source: string | null; metadata: Record<string, unknown> | null }
-type QueueRow = { queue_type: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null }
+type QueueRow = { queue_type: string | null; company_id: string | null; source_id: string | null; title: string | null; severity: string | null; status: string | null; created_at: string | null }
+
+const SEVERITY_LABEL: Record<string, string> = { critical: 'Kritisk', warning: 'Varning', info: 'Info' }
 
 function applyFilter(query: SafeSupabaseQuery, filter: CountFilter): SafeSupabaseQuery {
   if (filter.op === 'in') return query.in(filter.column, Array.isArray(filter.value) ? filter.value : [])
@@ -88,7 +90,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
   const resolvedSearchParams = await searchParams
   const companyId = tenantScope.companyId
   if (!tenantScope.isPlatformAdmin && !companyId) {
-    return <div className="min-h-screen bg-slate-50"><AdminHeader title="System Control Tower" userEmail={context.email} workspaceName="Bolag saknas" workspaceMode="tenant" /><main className="p-6"><section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950"><h1 className="text-xl font-semibold">Bolagskoppling saknas</h1><p>Välj ett aktivt bolag för att läsa driftärenden.</p></section></main></div>
+    return <div className="min-h-screen bg-slate-50"><AdminHeader title="Driftöversikt" userEmail={context.email} workspaceName="Bolag saknas" workspaceMode="tenant" /><main className="p-6"><section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950"><h1 className="text-xl font-semibold">Bolagskoppling saknas</h1><p>Välj ett aktivt bolag för att läsa driftärenden.</p></section></main></div>
   }
   const canReadCases = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('customer.cases'))
   const canReadSupport = tenantScope.isPlatformAdmin || hasPermissionRequirement(context.permissions, getAdminPageRequirement('operations.tasks'))
@@ -103,21 +105,20 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
     safeCount('supplier_switch_requests', companyId, [{ column: 'status', op: 'in', value: ['blocked', 'rejected', 'cancelled'] }]),
     safeCount('outbound_requests', companyId, [{ column: 'status', value: 'failed' }]),
     safeCount('outbound_requests', companyId, [{ column: 'channel_type', value: 'unresolved' }]),
-    safeCount('metering_value_gaps', companyId, [{ column: 'status', op: 'in', value: ['open', 'missing', 'pending'] }]),
+    safeCount('gridex_batch_2c_drift_queue_v', companyId, [{ column: 'queue_type', value: 'metering_period_gap' }]),
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', op: 'in', value: ['warning', 'blocked', 'requires_correction'] }]),
     safeRows<RecentCaseRow>('customer_operation_tasks', companyId, 'id,title,status,priority,created_at,customer_id', [{ column: 'status', op: 'in', value: exceptionTaskStatuses }], 8),
     safeRows<CustomerCaseRow>('customer_cases', companyId, 'id,title,status,priority,created_at,customer_id,reason_category,source,metadata', [{ column: 'status', op: 'in', value: exceptionCaseStatuses }], 8),
-    safeRows<QueueRow>('batch2c_drift_queue', companyId, 'queue_type,source_id,title,severity,status,created_at', [{ column: 'status', op: 'in', value: ['open', 'new', 'pending', 'action_required'] }], 8),
+    safeRows<QueueRow>('gridex_batch_2c_drift_queue_v', companyId, 'queue_type,company_id,source_id,title,severity,status,created_at', [], 8),
   ])
   const exceptionSignals = openTasks + customerCases + switchBlocked + outboundFailed + outboundUnresolved + meteringGaps + blockedBilling
   const workspaceName = tenantScope.isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName ?? 'Bolag saknas'
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <AdminHeader title="System Control Tower" subtitle="Exception-only: normalflöden döljs och bara sådant som kräver åtgärd visas." userEmail={context.email} workspaceName={workspaceName} workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'} />
+      <AdminHeader title="Driftöversikt" subtitle="Bara det som kräver åtgärd visas. Normala flöden döljs." userEmail={context.email} workspaceName={workspaceName} workspaceMode={tenantScope.isPlatformAdmin ? 'platform' : 'tenant'} />
       <main className="space-y-6 p-6 lg:p-8">
         {resolvedSearchParams.message ? <section className={`rounded-3xl border p-4 text-sm font-semibold ${resolvedSearchParams.status === 'error' ? toneClass('danger') : toneClass('success')}`}>{resolvedSearchParams.message}</section> : null}
-        {!tenantScope.isPlatformAdmin && !companyId ? <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-amber-950 shadow-sm"><h2 className="text-lg font-semibold">Bolagskoppling saknas</h2><p className="mt-2 text-sm leading-6">Kontot har adminåtkomst men saknar aktiv koppling till ett elhandelsbolag.</p></section> : null}
 
         <section className={`rounded-3xl border p-6 shadow-sm ${exceptionSignals > 0 ? toneClass('warning') : toneClass('success')}`}>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-75">Öppna avvikelsesignaler</p>
@@ -150,7 +151,7 @@ export default async function AdminControlTowerPage({ searchParams }: { searchPa
                 return href ? <Link key={`case-${row.id}`} href={href} className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50">{content}</Link> : <article key={`case-${row.id}`} className="rounded-2xl border border-slate-200 p-4">{content}</article>
               })}
               {recentTasks.map((row) => <Link key={`task-${row.id}`} href="/admin/operations/tasks" className="block rounded-2xl border border-slate-200 p-4 hover:bg-slate-50"><div className="flex flex-wrap items-center justify-between gap-3"><p className="font-semibold text-slate-950">{row.title ?? 'Driftuppgift'}</p><span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority ?? 'normal'} · {row.status ?? 'open'}</span></div><p className="mt-2 text-xs text-slate-500">{formatDate(row.created_at)}</p></Link>)}
-              {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{row.severity ?? 'info'} · {row.status ?? 'open'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
+              {queueRows.map((row) => <form key={`${row.queue_type}-${row.source_id}`} action={resolveControlTowerQueueItemAction} className="rounded-2xl border border-slate-200 p-4"><input type="hidden" name="company_id" value={row.company_id ?? ''} /><input type="hidden" name="queue_type" value={row.queue_type ?? ''} /><input type="hidden" name="source_id" value={row.source_id ?? ''} /><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{row.title ?? row.queue_type ?? 'Driftkö'}</p><p className="mt-1 text-xs text-slate-500">{SEVERITY_LABEL[row.severity ?? 'info'] ?? 'Info'} · {formatDate(row.created_at)}</p></div><button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Markera hanterad</button></div></form>)}
             </div>
           </div>
 

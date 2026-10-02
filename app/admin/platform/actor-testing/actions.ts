@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import {
   requireEdielProductionActivateActionAccess,
@@ -171,6 +171,7 @@ export async function startActorTestAction(formData: FormData) {
       },
     })
   } catch (error) {
+    unstable_rethrow(error)
     const now = new Date().toISOString()
     const message = error instanceof Error ? error.message : 'Aktörstestet kunde inte köras automatiskt.'
 

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { formatErrorMessage } from '@/lib/errors'
 import { buildCreateCustomerParams } from '@/app/admin/customers/actions.part-1'
@@ -207,6 +207,7 @@ export async function createInvoiceTestCustomerAction(formData: FormData) {
       customerId: customer.id,
     })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'Testkunden kunde inte skapas.'), companyId })
   }
@@ -238,6 +239,7 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
           filename: source.filename ? `${run.label}-${source.filename}` : `invoice-test-${scenario}-${run.label}.edi`,
         })
       } catch (error) {
+        unstable_rethrow(error)
         if (run.expectation === 'blocked_missing_values') {
           expectedBlock = formatErrorMessage(error, 'Missing-values blockerades som väntat.')
           continue
@@ -266,6 +268,7 @@ export async function importInvoiceTestEdifactAction(formData: FormData) {
       traceHref: traceHref({ edielMessageId: last.edielMessageId, billingMonth, underlayId: last.runtime.billingUnderlayId }),
     })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'EDIFACT/Fakturatest misslyckades.'), companyId, customerId })
   }
@@ -298,6 +301,7 @@ export async function rerunInvoiceTestMessageAction(formData: FormData) {
       traceHref: traceHref({ edielMessageId, billingMonth, underlayId: result.billingUnderlayId }),
     })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'Omkörningen misslyckades.'), companyId, customerId })
   }
@@ -324,6 +328,7 @@ export async function sendInvoiceTestToProviderAction(formData: FormData) {
       customerId,
     })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'Testfakturan kunde inte skickas till Capway/Aptic TEST.'), companyId, customerId })
   }
@@ -341,6 +346,7 @@ export async function resetInvoiceTestCustomerAction(formData: FormData) {
     revalidatePath(WORKSPACE)
     workspaceRedirect({ status: 'success', message: `Testkörningen återställdes. ${result.cancelledDrafts} oskickade fakturautkast avbröts; audit och skickade providerfakturor bevarades.`, companyId, customerId })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'Testkörningen kunde inte återställas.'), companyId, customerId })
   }
@@ -358,6 +364,7 @@ export async function archiveInvoiceTestCustomerAction(formData: FormData) {
     revalidatePath(WORKSPACE)
     workspaceRedirect({ status: 'success', message: 'Testkunden togs bort från Fakturatest genom säker arkivering. Provider- och auditspår bevarades.', companyId })
   } catch (error) {
+    unstable_rethrow(error)
     rethrowNextRedirect(error)
     workspaceRedirect({ status: 'error', message: formatErrorMessage(error, 'Testkunden kunde inte arkiveras.'), companyId, customerId })
   }

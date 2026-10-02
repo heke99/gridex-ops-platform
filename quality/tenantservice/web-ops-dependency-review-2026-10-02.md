@@ -103,3 +103,17 @@ PR456 is closed unmerged at 2026-10-02T20:21:08Z, preserving its original head.
 Replacement draft PR461 is mergeable at `01e91fe10393567a1d65cf45e9986efef5d7d874`
 with parent `61fc46fe` and exact tree `ae72906dfc16fe49ae4684110ec20206dffe4210`.
 Neither production nor the frozen `.4` candidate was changed by this repair.
+
+## Complete replay and final dependency composition
+
+PR458 head `f65f3fbc3b05e72b9bbf8358b7c2b0a04ccdc044` passed every applicable workflow: OPS37060952835 (verify/quality/build/clean-migration-replay), tenant37060952746, browser37060952794 and full-E2E37060952783. The production crawler was intentionally skipped. The native job111017192071 passes lifecycle SQL and all three races,382 native owner tests, the precise case-owner assertions, browser/recheck, type generation, tenant invariants, all injected-drift selftests and final canonical schema comparison.
+
+Its actual GitHub checkout is synthetic merge `8841add6171be0872044feb54fc4536d1a2fb713`, tree `8bc61df8cd6e33b85dce6b817b08a319db3040be`, combining main61fc46fe and that PR head. Relative to the PR head tree27dd50b8 it adds only two upstream memory files and the metering-regression follow-up; SQL and generated artifact inputs match. This distinction is retained in structured type provenance.
+
+Authentic artifact11250727412 ZIP SHA-256 `d39f650b1387c8245bb20d0c7c50cfd9a5588940a690a406a3501887e82ff2a2` was downloaded and verified. Generated types SHA-256 `58bcc698c17fb45495f6e99cc07c03126dbeb88addc0044709b58a2267871180`, schema dump `de058b4793049cb206093d798267abae7662d49617695dd39ba239caca1bec8c` and fingerprint file `af351e72552bb0df1ee9172983e985ba9906144bbc1fb85ea58533ac6e98377b` were imported byte-for-byte and match the committed files. Canonical fingerprint remains `e170398075931d95622055a92b0eb58d127793fefa1386abc01f77bffd4b45c8`. No generated file was hand edited; the manifest records the complete actual capture. Earlier partial-replay status is SUPERSEDED.
+
+Root merged identity PR454 as766fdd42 and closed obsolete PR456 unmerged with its original head preserved. PR462 then advanced main to `b9764ffce249eb8775af3f4c0b7d2a8d59e5877e`; its tenant/company fail-closed behavior is preserved. Replacement schema PR461 head `5977e4574dcb6521d9e80815db10a00199dc72f5` passed every applicable exact-head workflow and85 affected current-main composition tests/types/API gates, then root merged it as `472d703e7580fdaa49374f4d7aa202da74751057`.
+
+The final lifecycle candidate composes this actual identity/schema/admin main. Only additive sync helpers/imports and the append-only tenantservice checkpoint required resolution. Both canonical merged-alias behavior and unique/saturated-match refusal are retained; .2/.3/.4 archives and the lifecycle SQL body are unchanged. Fresh Node22.23.3:151 tests across19 affected/adjacent suites, all three TypeScript checks, scoped lint, all API documentation/compatibility/immutable release/runtime-parity checks, migration checks, tenant ratchet, generated-type provenance and diff checks pass. New published-head CI remains required before root can merge this final composition.
+
+This work performs no production DDL, rollout flag change or deployment. Earlier repository/status tables in this report are historical observations.

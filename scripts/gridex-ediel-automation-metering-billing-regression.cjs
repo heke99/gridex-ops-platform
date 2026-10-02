@@ -71,8 +71,14 @@ assert(
     normalize.includes('canonical_dedupe_key'),
   'metering projection uses the atomic canonical ingest and dedupe path',
 )
+// UTILTS ingests through the bound consumption sink (PR #385); the sink must still
+// end in the canonical normalizer, so the chain is checked end to end.
+const consumptionSinks = source('lib/ediel/utilts/consumptionSinks.ts')
 assert(
-  utilts.includes('normalizeAndStoreMeteringValue('),
+  utilts.includes('normalizeAndStoreMeteringValue(') ||
+    (utilts.includes('ingestBoundUtiltsMetering') &&
+      consumptionSinks.includes('export async function ingestBoundUtiltsMetering') &&
+      consumptionSinks.includes('normalizeAndStoreMeteringValue(')),
   'inbound UTILTS uses canonical metering normalization/projection even when implementation is split behind a facade',
 )
 

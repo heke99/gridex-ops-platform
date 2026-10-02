@@ -132,6 +132,17 @@ describe('tenantservice portal resolver (read-only by default)', () => {
     expect(state.writes).toEqual([])
   })
 
+  it.each(['read', 'link'] as const)('rejects conflicting supplied user IDs before resolving a linked account in %s mode', async (mode) => {
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      mode,
+      identifiers: identifiers({ customerPortalUserId: USER_LINKED, authUserId: USER_UNLINKED }),
+    })
+    expect(result).toMatchObject({ ok: false, status: 422, code: 'portal_identity_mismatch' })
+    expect(state.writes).toEqual([])
+  })
+
   it('does not auto-link an unlinked user on read, even with customer number and email', async () => {
     const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
     const result = await resolvePortalCustomer({
@@ -257,15 +268,27 @@ describe('rollout flag GRIDEX_PORTAL_IDENTITY_ENFORCEMENT (default report)', () 
     delete process.env.GRIDEX_PORTAL_IDENTITY_ENFORCEMENT
   })
 
-  it('report mode keeps the legacy first link for existing integrations and logs would-reject', async () => {
+  it('report mode keeps the identifier read fallback without creating or verifying a portal link', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
-    await resolvePortalCustomer({
+    const result = await resolvePortalCustomer({
       client: clientA,
       identifiers: identifiers({ customerPortalUserId: USER_UNLINKED, customerNumber: 'A-1001', email: 'kund@example.test' }),
     }).catch(() => null)
+    expect(state.writes).toEqual([])
+    expect(result).toMatchObject({ ok: true, binding: 'identifier_match' })
     expect(warn.mock.calls.some((call) => call[0] === '[customer-portal] portal_identity_would_reject')).toBe(true)
     warn.mockRestore()
+  })
+
+  it('report mode also rejects mismatched IDs on an existing active link', async () => {
+    const { resolvePortalCustomer } = await import('@/lib/customer-portal/customerResolver')
+    const result = await resolvePortalCustomer({
+      client: clientA,
+      identifiers: identifiers({ customerPortalUserId: USER_LINKED, authUserId: USER_UNLINKED }),
+    })
+    expect(result).toMatchObject({ ok: false, status: 422, code: 'portal_identity_mismatch' })
+    expect(state.writes).toEqual([])
   })
 
   it('report mode still never reactivates a blocked account', async () => {

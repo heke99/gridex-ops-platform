@@ -121,6 +121,44 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Vercel prod+preview: GRIDEX_INVOICE_DELIVERY_RESOLVER=shared, GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce (user approved 2026-10-02).
 - User decisions 2026-10-02: Nordfin NOT built now (stays listed, would be a tenant option later). Capway runs in TEST only. Add file-based invoicing: tenant downloads a file the invoice provider imports.
 
+## Independent Gridex Web integration dependency (2026-10-02 ~17:45 UTC), unpublished candidate
+
+- Isolated branch `fix/portal-identity-contract-2026-10-02` from origin/main `e98cef3aeefd0c564a4436e2e409bb0a5262c866` (remote rechecked unchanged). No Ediel checkpoint/branch, existing PR, rollout flag or production migration/data modified.
+- Four executable-confirmed defects corrected: conflicting supplied portal/auth IDs; report-mode reads creating links; first-strong/silently truncated sync candidate matching; caller UUID wrongly used as public customer reference causing a response-safety 500 after linking (including related profile/bundle/sync/event paths).
+- Report-mode read fallback remains available without writes; strict support routes and controlled link mode retain existing enforcement. Saturated/nonunique factor matching fails closed before identity writes. Public customer reference uses verified company + resolved OPS customer, while `external_customer_id` stays available separately.
+- Local verification: 103 affected/adjacent unit tests + 31 quality functional tests, app/tests TypeScript, scoped lint, full `api:docs`, two sync error scripts, tenant service-role ratchet and diff check pass. Final 103+31 targeted rerun also passes on supported Node22.23.3. Full/native/exact-head CI and root review pending. Root authorized a local checkpoint commit; no push before root review.
+- Evidence: `quality/tenantservice/portal-identity-contract-fixes-2026-10-02.md`. Next: root review, then separate OPS PR/exact-head CI; do not merge active masterplan work as part of this candidate.
+
+## Independent Web identity PR #454 rebase (2026-10-02 ~20:30 UTC)
+
+- Root published draft PR #454. Rebased its one owned local identity commit onto fetched main `d8a5a111c02c1805b0be4a03284ecd178b40c947`; no text conflicts and range-diff confirms the same patch. Upstream atomic billing import/invoice purchase/customer merge changes preserved unchanged.
+- Fresh Node 22.23.3 checks pass: 103/103 affected/adjacent tests, 31/31 quality functional tests, app/test TypeScript, scoped lint, seven API docs checks, both customer sync error scripts, service-role ratchet (2,337 vs 2,353), diff check. No full/native/production verification or git push claimed.
+- Separate inherited merge lifecycle gap reported to root: active portal links stay on merged sources while sites/contracts/cases move to primary; resolver still accepts the company-bound source and matching does not exclude merged candidates. Previous merge omitted the same tables. No identity patch scope expansion or tenant predicate weakening.
+- Next: root publishes the prepared tree to existing draft PR #454 and verifies required CI; support schema .3 and merge lifecycle work stay separate. Evidence updated in `quality/tenantservice/portal-identity-contract-fixes-2026-10-02.md`.
+
+
+## 2026-10-02 — .4 support schema correction after live .3
+
+- Main `d9dda64a19e5733e0324600ce072c36b38c716c7` published PR457's attachment-header `.3`; direct live manifest/immutable fetches matched its exact normalized bytes and digests.
+- Preserve all `.2`/`.3` archives, routes and fixtures plus the `.3` prep script. Original PR456 branch is unchanged; replacement branch `fix/support-schema-combined-2026-10-02.4` advances closed Detail/manifest fixes to `.4`.
+- Minimum supported integration remains actual live `.3`; `.4` is backward-compatible relative to `.3`. `.2` is historical, not newly advertised as supported. Binary header correction is retained, blank request IDs receive UUIDs, and historical document/catalog headers use each document's version.
+- Node22.23.3: 12 affected suites/66 tests, quality31, app/test TypeScript, scoped TS lint/generator syntax, api:docs/compatibility/release/runtime-parity, mechanical, multitenant flow and diff checks passed.
+- Evidence: `quality/tenantservice/support-detail-schema-release-2026-10-02.4.md`. No `.4` deployment, prod DB/flags/scopes/secrets/domain activation is claimed.
+
+## Current-main `.4` publication candidate (2026-10-02)
+
+- Cherry-picked unchanged correction onto main `61fc46fe` in isolated branch `fix/support-closed-schema-release-2026-10-02.4`; preserves #459 memory/#460 metering test and published immutable `.3`. Fresh direct live manifest has that same build SHA and `.3` release/minimum. Support detail and actual manifest still fail their closed `.3` schemas; replacement is necessary.
+- Fresh Node22.23.3: nine affected suites58/58; app/test TypeScript; api:docs, compatibility, immutable release verification and runtime/OpenAPI parity pass. Diff clean. Full exact-head CI remains pending after new draft publication; no merge/deploy/production DDL.
+- Separately published PR458 cleanup correction head `71f36b2b9261243b0debedb9f12188b6cb0414d9` fast-forwards parent356211e4 with exact local treee3a97a1137c6646a24ab705b8349921f887b9daa. It fixes only immutable legal-fixture cleanup and records native proof; its new CI remains pending. Root owns integration/release and superseding old PR456 after replacement is linked.
+
+## Current-main identity and .4 integration (2026-10-02)
+
+- PR454 merged from exact head `0351df42a908ff6b939c7f9f3e624b42ff571bee` as main `766fdd423344ef1c93938372d212cc234ec24b28`. Its exact-head OPS/native/quality/build, browser and full E2E checks pass; latest-main-before-merge identity composition additionally passed 71 affected tests and app/test TypeScript. Historical pending status above is SUPERSEDED.
+- PR461 original head `01e91fe10393567a1d65cf45e9986efef5d7d874` passed every applicable exact-head workflow, including full native replay/types/tenant invariants/parity. Integrating actual main766fdd42 requires only retaining both append-only checkpoint histories; all API source and immutable .4 bytes merge unchanged. Fresh composition checks and new-head CI remain required after publication.
+- PR456 is closed unmerged at 2026-10-02T20:21:08Z; its original head `f73b57277a6f916c978f0826a216e77ff0bc1d8f` is preserved. Replacement PR461 is linked. No production release or mutation is claimed.
+
+- Fresh resolved main766fdd42 + .4 composition on Node22.23.3 passes82 tests/11 affected suites, application/test TypeScript, api:docs, compatibility, immutable release verification, runtime/OpenAPI parity and diff checks. .2/.3/.4 archives are unchanged. New-head exact CI remains required.
+
 ## Customer merge portal/support lifecycle (2026-10-02, source candidate)
 - Isolated candidate rebased onto `c1fdf06c6735d193a9bb2529811b0f3339ac1360`; #455 invoice migrations and generated artifacts preserved; lifecycle migration renamed to avoid its 224000 version collision. No live OPS DDL. Migration `20261002230000_customer_merge_portal_lifecycle.sql` keeps verified same-company mappings/history and support/site composite owners coherent while preserving subject/provider/status/role. Ambiguous subjects, uniqueness collisions, signed contracts, and cross-company merges fail closed. Rebased again onto d9dda64a (#457, .3 API headers/release); no new DDL.
 - Resolver and sync follow merged aliases only for verified existing bindings. Canonical customer number comes from the surviving customer. Late child writes and atomic/fallback contact changes cannot mutate an archived source; concurrent UPDATE returns a controlled conflict instead of deadlocking.
@@ -141,3 +179,10 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Cleanup published as exact head `71f36b2b`/tree `e3a97a11`; tenant/browser/full E2E and OPS verify/quality pass. Replay `37059428456` passes the cleanup and all 382 native source-owner tests, then fails the old uniform case-owner SQLSTATE expectation at `ediel-case-view-native.test.ts:239`. Artifact `11249644668` stops before typegen.
 - Actual PG16 reproduces the old RED and revised GREEN: two customer/tenant mismatches fail the new earlier guard with `23514 customer_portal_customer_not_found_for_tenant`; a coherent B owner targeting case A still fails `customer_case_events_case_owner_fk` with `23503`. Exact guard code/message and third FK expectation retained separately; all existing no-state/event-change checks remain. Root authorized the bounded fixture correction; no production SQL/RLS/grant/schema change.
 - Replacement `.4` draft PR #461 is published and mergeable at `01e91fe1`/tree `ae72906d`/parent `61fc46fe`; old PR #456 is closed unmerged with its original head preserved. Frozen `.4` head unchanged while CI runs. New exact-head #458 full replay/type/schema acceptance remains required after this fixture publication.
+
+## Final OPS Web dependencies and lifecycle composition (2026-10-02)
+
+- Status: IN_PROGRESS. PR454 is merged as766fdd42; PR456 is closed unmerged preserving its head; PR461 head5977 passed every applicable exact workflow and root merged it as472d703e7580fdaa49374f4d7aa202da74751057. Actual main includes PR462 tenant/company fail-closed patchb9764ffc. Earlier pending dependency status is SUPERSEDED.
+- PR458 headf65f3fbc passed every applicable workflow, including full native replay/types/tenant/parity/schema acceptance in OPS37060952835. Authentic artifact11250727412 (ZIPd39f650b…) types/schema/fingerprint are byte-identical to committed captures and reimported unchanged. Structured manifest records actual checkout8841add6/tree8bc61df8, headf65 and complete capture rather than retaining the historical #455 provenance. No generated artifact was hand edited.
+- Final composed candidate preserves identity uniqueness/read-only guards, merge alias/stale-write guards, .4 closed schemas and immutable .2/.3/.4 bytes, plus all PR462 admin-scope changes. Resolved only additive sync helpers/imports and append-only checkpoint history. Fresh Node22:151/151 tests in19 suites, app/test/script TypeScript, scoped lint, API docs/compatibility/release/runtime parity, migration integrity, tenant ratchet, generated-type provenance and diff checks pass.
+- Actual main472d703e tree is verified equal to prepareda88ede5e. Next action: publish final composition/provenance as fast-forward to existing PR458 and require every applicable new-head CI gate before root reviews/merges. Deployment/live .4/Web sync belong to root; production migration ledger/order remains a coordinated separate release step. No production mutation is performed here. Evidence: quality/tenantservice/web-ops-dependency-review-2026-10-02.md.
