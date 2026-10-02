@@ -18,7 +18,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import { committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
-const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`)
+const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
 // contract validation and both sink adapters. Only final external writes are
@@ -1219,7 +1219,7 @@ it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as co
 })
 it('native inbound stores NAD receiver agency 208 guide rejection and no consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}:SVK:999`))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}:SVK:999`)))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1263,7 +1263,7 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
 })
 it('native inbound persists field209 invalid GSRN with final negative ACK and stable retry', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9'))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')))
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(first.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1286,7 +1286,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
     .replace('23-DDQ-E66-T', application)
     .replace('LOC+172+735999260731000007::9', defect === 'invalid' ? 'LOC+172+735999260731000008::9' : '')
-  const source = await f.insertSource(raw, code)
+  const source = await f.insertSource(ownIdentity(raw), code)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = code === 'S07' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage
   const first = await run({ actorUserId: f.ids.actor, edielMessageId: source.id })
@@ -1312,7 +1312,7 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
-  const source = await f.insertSource(raw, 'S01')
+  const source = await f.insertSource(ownIdentity(raw), 'S01')
   // An S01 aggregate source cannot borrow the fixture's individual customer/point link.
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
@@ -1578,7 +1578,7 @@ it.each([
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
     .replace('23-DDQ-E66-T', application)
     .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
-  const source = await f.insertSource(raw, code)
+  const source = await f.insertSource(ownIdentity(raw), code)
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
@@ -1600,7 +1600,7 @@ it.each([
 })
 it('native inbound persists supplied 260a grid-area guide rejection without a consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260'))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260')))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1673,7 +1673,7 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
 })
 it('native inbound stores six-digit SVK receiver field208 rejection and no consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}0:SVK:260`))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}0:SVK:260`)))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1687,7 +1687,7 @@ it('native inbound stores six-digit SVK receiver field208 rejection and no consu
 })
 it('native inbound stores agency-305 GLN check-digit rejection at 208 without consumption', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, 'NAD+MR+7359990000014::305'))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, 'NAD+MR+7359990000014::305')))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1701,7 +1701,7 @@ it('native inbound stores agency-305 GLN check-digit rejection at 208 without co
 })
 it('native inbound stores unknown header NAD role 509 rejection without consumable series', async () => {
   const f = await seed()
-  const source = await f.insertSource(f.original.raw_payload!.replace("NAD+DDQ'", "NAD+BAD'"))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace("NAD+DDQ'", "NAD+BAD'")))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
