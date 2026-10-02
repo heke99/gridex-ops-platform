@@ -56,3 +56,11 @@ passes 66 tests across eight affected suites; this is composition evidence for
 that tree only. Current-main `.2`/`.3` archives remain identical. Full exact-head
 CI and live `.4` deployment remain required; this candidate needs a new draft PR
 and must not rewrite conflicting PR456's already-published `.3` release.
+
+## Actual merged-identity integration
+
+Original published PR461 head `01e91fe10393567a1d65cf45e9986efef5d7d874` passed OPS run37059848525 (verify, quality/build and clean-migration-replay), browser37059848637 and full-E2E37059848612. Native artifact11250455950 contains generated types whose SHA-256 remains `58bcc698c17fb45495f6e99cc07c03126dbeb88addc0044709b58a2267871180`; tenant invariants and all injected drift selftests pass. This supersedes the original pending exact-head status.
+
+Root merged identity PR454 as actual main `766fdd423344ef1c93938372d212cc234ec24b28`. A fresh merge with .4 has one append-only tenantservice checkpoint conflict and no source conflicts. Both histories are retained, with current status appended; source, runtime metadata, generators and raw .4 archives are unchanged from their respective parents. The integrated tree requires its fresh composition checks and new exact-head CI. PR456 was closed unmerged at2026-10-02T20:21:08Z with the original head preserved. Live .4 deployment remains separate.
+
+Fresh resolved composition verification on Node22.23.3:82/82 tests across11 affected identity/support/schema suites; application and test TypeScript; all api:docs gates, compatibility, immutable release verification, runtime/OpenAPI parity and diff checks pass. Raw .2/.3/.4 archives are unchanged from original PR461. No production state was changed.

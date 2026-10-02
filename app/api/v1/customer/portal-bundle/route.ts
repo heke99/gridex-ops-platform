@@ -252,7 +252,7 @@ async function buildBundleResponse(input: {
       external_customer_id: input.identity.external_customer_id,
       customer_number: input.identity.customer_number,
       email: input.identity.email,
-    })
+    }, input.client.company_id)
 
     await logCustomerPortalSuccess({
       request: input.request,
