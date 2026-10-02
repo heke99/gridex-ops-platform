@@ -1,8 +1,10 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
-import {expect,it} from 'vitest'
+import {expect,it,vi} from 'vitest'
 import {qty,raw} from '../__tests__/fixtures/prodat-register'
 import {mixedZ04Parts} from '../__tests__/helpers/mixedZ04Fixture'
+import {assertEdielSmtpReadiness} from '@/lib/ediel/mailReadiness'
+import {recordUtiltsTechnicalReception} from './helpers/utiltsConsumptionParties'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
@@ -19,6 +21,9 @@ function sql<T>(statement:string):T {
 
 for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','whole-message-lin-sequence','missing-header-date','invalid-header-date','missing-header-offset','invalid-header-offset','missing-header-ack-request','invalid-header-ack-request','lowercase-header-ack-request','invalid-header-function','invalid-header-code-metadata','missing-header-code','unlisted-header-code'] as const) it(`real inbound Z04 ${variant} holds unowned physical codes and persists only qualified ACK intent, retry-stable without business state`,async()=>{
   const ids={company:randomUUID(),source:randomUUID(),actor:randomUUID(),route:randomUUID(),profile:randomUUID()}
+  // Synthetic local mail settings: the ACK owner checks SMTP readiness before queueing.
+  vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
+  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato');vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid')
   const policyOnly=variant==='missing-header-code'||variant==='unlisted-header-code'
   // The active legal actor identifier is unique across tenants in the native database.
   const actorEdielId=sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_z04_ack_receiver',0));
@@ -53,11 +58,19 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'missing-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM++D+9+AB')
   if (variant === 'unlisted-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z99+D+9+AB')
   const receivedAt=new Date().toISOString()
+  const smtp=assertEdielSmtpReadiness()
   const sourceContext={receivedProdatContext:{version:1,contextOrigin:'database_insert',sourceMessageId:ids.source,
     companyId:ids.company,environment:'test',messageCode:'Z04',payloadHash:evidenceHash(wire),sourceReceivedAt:receivedAt,capturedAt:receivedAt}}
   // Isolated test tenant, legal actor, route and canonical source. No transport
   // worker runs in this suite; only the real inbound processor queues ACKs.
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(ids.company)},'Native Z04 ACK owner','active');
+    INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+      VALUES(${literal(ids.actor)},'authenticated','authenticated',${literal(`z04-${ids.actor}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+    INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(ids.actor)},${literal(`z04-${ids.actor}@example.invalid`)},'Synthetic Z04 operator','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
+    INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+      VALUES(${literal(ids.company)},${literal(ids.actor)},'operations','active',now(),'{}','member',true,now(),'operations');
+    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+      SELECT ${literal(ids.actor)},${literal(ids.company)},id,key FROM public.permissions WHERE key IN('communication.read','communication.write','communication.send','metering.write','customers.write');
     INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from)
       VALUES(${literal(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
     INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from)
@@ -66,10 +79,10 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
       VALUES(${literal(ids.company)},'test',${literal(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
       VALUES(${literal(ids.company)},'test','Synthetic native legal supplier',${literal(actorEdielId)},${literal(actorEdielId)});
-    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
-      VALUES(${literal(ids.route)},${literal(ids.company)},'Native ACK route','ediel_ack','bilateral_test',true);
-    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true);
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+      VALUES(${literal(ids.route)},${literal(ids.company)},'Native ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
+      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ACK profile','test','edifact','edifact',${literal(actorEdielId)},'12345','23-DDQ-PRODAT',true,true,${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)},'recipient@example.invalid','recipient@example.invalid');
     INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,
       message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
     SELECT ${literal(ids.source)},${literal(ids.company)},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},
@@ -81,6 +94,8 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull()
   const source=data as EdielMessageRow
+  // Production reception records the interchange's technical syntax decision first.
+  await recordUtiltsTechnicalReception(source,ids.actor)
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
   expect([decision.syntaxDecision,decision.applicationDecision],JSON.stringify(decision.issues)).toEqual(['accepted','rejected'])
   const input={actorUserId:ids.actor,edielMessageId:ids.source}
