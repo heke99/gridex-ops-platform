@@ -4,7 +4,8 @@
  * Mounted at app/api/v1/customer/support/cases/** (contract releases 2026-10-01.1 and 2026-10-02.1).
  */
 import { NextRequest } from 'next/server'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { ApiInputError, executeIdempotentPortalWrite, readJsonObject, requireIdempotencyKey } from '@/lib/api/strictRequest'
 import {
   customerPortalJson,
@@ -257,6 +258,8 @@ export async function getSupportAttachmentFile(request: NextRequest, contextInpu
         'Content-Security-Policy': "default-src 'none'; sandbox",
         'Cache-Control': 'private, no-store',
         'X-Gridex-Sha256': row.sha256,
+        'X-Gridex-Contract-Version': WEBSITE_INTEGRATION_CONTRACT_VERSION,
+        'X-Request-ID': request.headers.get('x-request-id') ?? randomUUID(),
       },
     })
   } catch (error) {

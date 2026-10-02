@@ -1,6 +1,6 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-10-02.2**
+Current contract: **2026-10-02.3**
 
 Use the canonical developer guide at `/developers/customer-portal-api#customer-portal` and the OpenAPI specification at `/api/v1/openapi/customer-portal-v1.json`.
 

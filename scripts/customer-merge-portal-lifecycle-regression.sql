@@ -10,10 +10,10 @@ DECLARE
   source_c uuid := gen_random_uuid();
   foreign_c uuid := gen_random_uuid();
   legacy_c uuid := gen_random_uuid();
-  signed_c uuid := gen_random_uuid();
+  locked_c uuid := gen_random_uuid();
   ambiguous_c uuid := gen_random_uuid();
   api_client uuid := gen_random_uuid();
-  signed_contract uuid := gen_random_uuid();
+  locked_contract uuid := gen_random_uuid();
   user_a uuid := gen_random_uuid();
   user_b uuid := gen_random_uuid();
   blocked_user uuid := gen_random_uuid();
@@ -28,7 +28,7 @@ BEGIN
   INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,status)
   VALUES(primary_c,tenant,'PM-1','Primary','private','active'),(source_c,tenant,'PM-2','Source','private','active'),
         (foreign_c,other_tenant,'PM-3','Foreign','private','active'),(legacy_c,tenant,'PM-4','Legacy','private','active'),
-        (signed_c,tenant,'PM-5','Signed source','private','active'),
+        (locked_c,tenant,'PM-5','Locked contract source','private','active'),
         (ambiguous_c,tenant,'PM-6','Ambiguous source','private','active');
   INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country)
   VALUES(fixture_site,tenant,source_c,'Source site','consumption','active','SE');
@@ -88,16 +88,26 @@ BEGIN
   END;
   DELETE FROM public.tenant_portal_customer_links WHERE company_id=tenant AND external_customer_id='duplicate-customer-alias';
 
-  INSERT INTO public.customer_contracts(id,company_id,customer_id,contract_name,status,signed_at)
-  VALUES(signed_contract,tenant,signed_c,'Immutable signed contract','signed',now());
+  -- An incomplete signature cannot be fabricated for this fixture. The valid
+  -- locked draft below exercises the same immutable-owner branch used by
+  -- signed, active, and terminal contracts, without fake version references.
   BEGIN
-    PERFORM public.gridex_merge_customers_v1(tenant,primary_c,array[signed_c],actor,'duplicates');
-    RAISE EXCEPTION 'signed customer contract reassigned';
+    INSERT INTO public.customer_contracts(id,company_id,customer_id,contract_number,customer_number,contract_name,status,signed_at)
+    VALUES(locked_contract,tenant,locked_c,'PM-'||locked_contract::text,'PM-5','Invalid signature fixture','signed',now());
+    RAISE EXCEPTION 'incomplete signed contract accepted';
+  EXCEPTION WHEN check_violation THEN
+    IF SQLERRM <> 'customer_contract_signed_insert_requires_import_command' THEN RAISE; END IF;
+  END;
+  INSERT INTO public.customer_contracts(id,company_id,customer_id,contract_number,customer_number,contract_name,status,locked_at)
+  VALUES(locked_contract,tenant,locked_c,'PM-'||locked_contract::text,'PM-5','Immutable locked draft','draft',now());
+  BEGIN
+    PERFORM public.gridex_merge_customers_v1(tenant,primary_c,array[locked_c],actor,'duplicates');
+    RAISE EXCEPTION 'locked customer contract reassigned';
   EXCEPTION WHEN object_not_in_prerequisite_state THEN
     IF SQLERRM NOT LIKE 'signed_customer_contract_immutable:%' THEN RAISE; END IF;
   END;
-  IF (SELECT customer_id FROM public.customer_contracts WHERE id=signed_contract) <> signed_c THEN
-    RAISE EXCEPTION 'signed ownership mutated';
+  IF (SELECT customer_id FROM public.customer_contracts WHERE id=locked_contract) <> locked_c THEN
+    RAISE EXCEPTION 'locked ownership mutated';
   END IF;
 
   -- Cross-company sources abort all moves, including access mappings and support history.
