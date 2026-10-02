@@ -5,8 +5,11 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { fmt, safeListRows, statusBadge } from '@/lib/pricing/adminData'
 import {
   reprocessInvoiceProviderEventsAction,
+  selectInvoiceProviderAction,
+  setInvoiceDispatchEnabledAction,
   testCapwayConnectionAction,
 } from './actions'
+import { listInvoiceProviderCatalog, loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,7 +21,22 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-export default async function BillingIntegrationsPage() {
+const PROVIDER_NOTICES: Record<string, { tone: 'ok' | 'error'; text: string }> = {
+  selected: { tone: 'ok', text: 'Fakturaleverantören är sparad. Testa kopplingen och aktivera sedan utskick.' },
+  enabled: { tone: 'ok', text: 'Utskick via fakturaleverantören är aktiverat.' },
+  disabled: { tone: 'ok', text: 'Utskick via fakturaleverantören är avstängt.' },
+  invoice_provider_not_available: { tone: 'error', text: 'Leverantören går inte att välja ännu.' },
+  invoice_provider_switch_blocked_open_exports: { tone: 'error', text: 'Det finns pågående fakturaexporter. Byt leverantör eller miljö när de är klara.' },
+  invoice_provider_not_selected: { tone: 'error', text: 'Välj en fakturaleverantör först.' },
+  invoice_provider_connection_not_ready: { tone: 'error', text: 'Kopplingen måste testas med godkänt resultat innan utskick kan aktiveras.' },
+}
+
+export default async function BillingIntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ provider?: string }>
+}) {
+  const notice = PROVIDER_NOTICES[(await searchParams).provider ?? ''] ?? null
   const admin = await requireAdminPageKeyAccess('billing.workspace')
   const supabase = await createSupabaseServerClient()
   const {
@@ -51,6 +69,20 @@ export default async function BillingIntegrationsPage() {
       200,
     )
   ).filter((row) => String(row.status ?? '') === 'needs_review')
+  const [catalog, selection] = scope?.companyId
+    ? await Promise.all([
+        listInvoiceProviderCatalog(scope.companyId).catch(() => []),
+        loadTenantInvoiceProviderSelection(scope.companyId).catch(() => null),
+      ])
+    : [[], null]
+  const selectedConnection = selection?.invoice_export_target_system
+    ? connections.find(
+        (row) =>
+          String(row.provider ?? '') === selection.invoice_export_target_system &&
+          String(row.environment ?? '') === (selection.billing_provider_environment ?? ''),
+      )
+    : undefined
+  const selectedConnectionReady = ['ready', 'active'].includes(String(selectedConnection?.status ?? ''))
   const capwayTest = connections.find(
     (row) =>
       String(row.provider ?? '') === 'capway_aptic' &&
@@ -94,6 +126,86 @@ export default async function BillingIntegrationsPage() {
               {envStatus('CAPWAY_APTIC_TEST_CLIENT_ID')}
             </div>
           </div>
+        </section>
+
+        <section className="rounded-3xl border bg-white p-6 shadow-sm" aria-labelledby="invoice-provider-heading">
+          <h2 id="invoice-provider-heading" className="text-lg font-semibold text-slate-950">Fakturaleverantör</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-700">
+            Godkända fakturor skickas via den leverantör bolaget väljer här. Byte av leverantör eller miljö
+            stänger av utskick tills den nya kopplingen är testad och utskick aktiveras igen.
+          </p>
+          {notice ? (
+            <p role="status" className={`mt-4 rounded-2xl border p-3 text-sm ${notice.tone === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-rose-200 bg-rose-50 text-rose-900'}`}>
+              {notice.text}
+            </p>
+          ) : null}
+          <form action={selectInvoiceProviderAction} className="mt-4 grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+            <fieldset className="grid gap-2">
+              <legend className="text-sm font-medium text-slate-800">Leverantör</legend>
+              {catalog.map((entry) => (
+                <label key={entry.provider} className={`flex items-start gap-3 rounded-2xl border p-3 text-sm ${entry.selectable ? 'border-slate-200' : 'border-slate-100 bg-slate-50 text-slate-500'}`}>
+                  <input
+                    type="radio"
+                    name="provider"
+                    value={entry.provider}
+                    required
+                    disabled={!entry.selectable}
+                    defaultChecked={selection?.invoice_export_target_system === entry.provider}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="font-semibold">{entry.label}</span>
+                    {!entry.selectable && entry.unavailable_reason ? (
+                      <span className="block text-xs">{entry.unavailable_reason}</span>
+                    ) : null}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+            <label className="grid gap-1 text-sm font-medium text-slate-800">
+              Miljö
+              <select
+                name="environment"
+                defaultValue={selection?.billing_provider_environment === 'production' ? 'production' : 'test'}
+                className="rounded-xl border border-slate-300 px-3 py-2"
+              >
+                <option value="test">Test</option>
+                <option value="production">Produktion</option>
+              </select>
+            </label>
+            <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
+              Spara leverantör
+            </button>
+          </form>
+          <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Vald leverantör</dt>
+              <dd className="mt-1 font-semibold">
+                {catalog.find((entry) => entry.provider === selection?.invoice_export_target_system)?.label ?? 'Ingen vald'}
+                {selection?.billing_provider_environment ? ` (${selection.billing_provider_environment === 'production' ? 'produktion' : 'test'})` : ''}
+              </dd>
+            </div>
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Koppling</dt>
+              <dd className="mt-1 font-semibold">{selectedConnectionReady ? 'Testad och godkänd' : selectedConnection ? 'Behöver testas' : '—'}</dd>
+            </div>
+            <div className="rounded-2xl border p-3">
+              <dt className="text-slate-600">Utskick</dt>
+              <dd className="mt-1 flex flex-wrap items-center gap-3 font-semibold">
+                {selection?.invoice_export_enabled ? 'Aktiverat' : 'Avstängt'}
+                <form action={setInvoiceDispatchEnabledAction}>
+                  <input type="hidden" name="enabled" value={selection?.invoice_export_enabled ? 'false' : 'true'} />
+                  <button
+                    type="submit"
+                    disabled={!selection?.invoice_export_enabled && !selectedConnectionReady}
+                    className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {selection?.invoice_export_enabled ? 'Stäng av utskick' : 'Aktivera utskick'}
+                  </button>
+                </form>
+              </dd>
+            </div>
+          </dl>
         </section>
 
         <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 shadow-sm">

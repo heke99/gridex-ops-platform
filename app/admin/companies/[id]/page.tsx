@@ -10,6 +10,7 @@ import {
   type GovernanceCompany,
 } from '@/lib/tenant/governance'
 import { getActorTestingSummary, getActorTestingStatusLabel, getProductionReadinessLabel } from '@/lib/ediel/actorTesting'
+import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 import { getCompanyActorConfiguration, type CompanyActorConfiguration, type EdielConfigRow } from '@/lib/ediel/companyActorConfiguration'
 import { CopyButton, CopyDnsRecordsButton } from '@/components/admin/email/CopyButtons'
 import { getCompanyEmailSettings, getEffectiveSender, type CompanyEmailSettings } from '@/lib/email/companyEmailSettings'
@@ -1308,6 +1309,7 @@ export default async function CompanyDetailPage({
     )
   }
 
+  const invoiceProviderSelection = await loadTenantInvoiceProviderSelection(id).catch(() => null)
   const [
     company,
     actorSummary,
@@ -1382,6 +1384,9 @@ export default async function CompanyDetailPage({
     eventRules: companyEmailEventRules,
     effectiveSender,
     billingPartnerCount,
+    invoiceProvider: invoiceProviderSelection
+      ? { selected: invoiceProviderSelection.invoice_export_target_system, dispatchEnabled: invoiceProviderSelection.invoice_export_enabled }
+      : null,
   })
 
   return (
@@ -1579,6 +1584,7 @@ export default async function CompanyDetailPage({
             <ReadinessPill ok={tenantReadiness.domainVerification} label="Domänverifiering" />
             <ReadinessPill ok={tenantReadiness.templates} label="Mallar" />
             <ReadinessPill ok={tenantReadiness.billingMapping} label="Capway/billing" />
+            <ReadinessPill ok={tenantReadiness.invoiceProvider} label="Fakturaleverantör" />
           </div>
           {tenantReadiness.notes.length > 0 ? (
             <ul className="mt-4 grid gap-2 text-sm font-semibold text-emerald-950 md:grid-cols-2">

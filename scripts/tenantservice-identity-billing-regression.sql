@@ -2,6 +2,7 @@
 -- F12: gridex_decide_customer_identity_change_v1 (customer approval, staff limits, stale value,
 --      expiry, single use, audit) and the append-only identity history.
 -- P3:  billing profile revisions by trigger and the locked revision on billing items.
+-- Invoice provider: per-tenant selection, dispatch enable gate, open-export switch block, audit.
 \set ON_ERROR_STOP on
 BEGIN;
 
@@ -159,6 +160,60 @@ BEGIN
   IF v <> '20000101-0008' THEN RAISE EXCEPTION 'F12 takeover number not applied: %', v; END IF;
 
   RAISE NOTICE 'tenantservice F12 + P3 native regression passed';
+END $$;
+
+-- Tenant invoice provider selection (gridex_select_invoice_provider_v1 / gridex_set_invoice_dispatch_enabled_v1).
+DO $$
+DECLARE
+  c uuid := gen_random_uuid();
+  actor uuid := gen_random_uuid();
+  res jsonb;
+  r record;
+BEGIN
+  INSERT INTO public.companies(id,name,status) VALUES(c,'Provider synthetic','active');
+
+  BEGIN
+    PERFORM public.gridex_select_invoice_provider_v1(c, 'nordfin', 'test', actor);
+    RAISE EXCEPTION 'provider: nordfin must not be selectable';
+  EXCEPTION WHEN invalid_parameter_value THEN
+    IF SQLERRM <> 'invoice_provider_not_available' THEN RAISE; END IF;
+  END;
+
+  res := public.gridex_select_invoice_provider_v1(c, 'capway_aptic', 'test', actor);
+  IF (res->>'connection_created')::boolean IS NOT TRUE THEN RAISE EXCEPTION 'provider: connection not created %', res; END IF;
+  SELECT invoice_export_target_system, billing_provider_environment, invoice_export_enabled INTO r FROM public.companies WHERE id = c;
+  IF r.invoice_export_target_system <> 'capway_aptic' OR r.billing_provider_environment <> 'test' OR r.invoice_export_enabled THEN
+    RAISE EXCEPTION 'provider: selection not stored %', r;
+  END IF;
+
+  BEGIN
+    PERFORM public.gridex_set_invoice_dispatch_enabled_v1(c, true, actor);
+    RAISE EXCEPTION 'provider: dispatch enabled before connection test';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    IF SQLERRM <> 'invoice_provider_connection_not_ready' THEN RAISE; END IF;
+  END;
+
+  UPDATE public.billing_provider_connections SET status = 'ready' WHERE company_id = c AND provider = 'capway_aptic' AND environment = 'test';
+  PERFORM public.gridex_set_invoice_dispatch_enabled_v1(c, true, actor);
+  IF NOT (SELECT invoice_export_enabled FROM public.companies WHERE id = c) THEN RAISE EXCEPTION 'provider: dispatch not enabled'; END IF;
+
+  INSERT INTO public.invoice_export_runs(company_id, billing_month, status) VALUES (c, '2026-09', 'processing');
+  BEGIN
+    PERFORM public.gridex_select_invoice_provider_v1(c, 'capway_aptic', 'production', actor);
+    RAISE EXCEPTION 'provider: switch allowed with open export';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    IF SQLERRM <> 'invoice_provider_switch_blocked_open_exports' THEN RAISE; END IF;
+  END;
+  UPDATE public.invoice_export_runs SET status = 'sent' WHERE company_id = c;
+
+  PERFORM public.gridex_select_invoice_provider_v1(c, 'capway_aptic', 'production', actor);
+  IF (SELECT invoice_export_enabled FROM public.companies WHERE id = c) THEN RAISE EXCEPTION 'provider: switch must disable dispatch'; END IF;
+
+  IF (SELECT count(*) FROM public.audit_logs WHERE company_id = c AND action IN ('invoice_provider_selected','invoice_dispatch_enabled')) <> 3 THEN
+    RAISE EXCEPTION 'provider: audit rows missing';
+  END IF;
+
+  RAISE NOTICE 'tenant invoice provider selection native regression passed';
 END $$;
 
 ROLLBACK;

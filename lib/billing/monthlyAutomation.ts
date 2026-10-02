@@ -1,3 +1,4 @@
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { generateBillingUnderlaysForMonth } from '@/lib/billing/underlayEngine'
@@ -50,10 +51,7 @@ function validateCompany(company: JsonRecord) {
   if (company.is_active !== true || String(company.status) !== 'active') throw new Error('Tenant är inte aktiv.')
   if (company.billing_automation_enabled !== true) throw new Error('Faktureringsautomation är inte aktiverad för tenant.')
   if (company.invoice_export_enabled !== true) throw new Error('Fakturaförberedelse är inte aktiverad för tenant.')
-  if (text(company.invoice_export_target_system) !== 'capway_aptic') throw new Error('Tenant saknar canonical Capway/Aptic-fakturapartner.')
-  const environment = text(company.billing_provider_environment)
-  if (environment !== 'test' && environment !== 'production') throw new Error('Tenant saknar canonical fakturaprovidermiljö.')
-  return environment
+  return requireTenantInvoiceProvider(company).environment
 }
 
 async function insertRun(input: { companyId: string; periodMonth: string; actorUserId: string | null; lockKey: string; lockToken: string }) {

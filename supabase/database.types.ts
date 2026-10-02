@@ -8577,6 +8577,7 @@ export type Database = {
           billing_contact_phone: string | null
           billing_country_code: string | null
           billing_postal_code: string | null
+          billing_provider_environment: string | null
           billing_settings: Json
           billing_terms_summary: string | null
           branding: Json
@@ -8717,6 +8718,7 @@ export type Database = {
           billing_contact_phone?: string | null
           billing_country_code?: string | null
           billing_postal_code?: string | null
+          billing_provider_environment?: string | null
           billing_settings?: Json
           billing_terms_summary?: string | null
           branding?: Json
@@ -8857,6 +8859,7 @@ export type Database = {
           billing_contact_phone?: string | null
           billing_country_code?: string | null
           billing_postal_code?: string | null
+          billing_provider_environment?: string | null
           billing_settings?: Json
           billing_terms_summary?: string | null
           branding?: Json
@@ -8981,7 +8984,15 @@ export type Database = {
           vat_number?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_invoice_export_target_system_fkey"
+            columns: ["invoice_export_target_system"]
+            isOneToOne: false
+            referencedRelation: "invoice_provider_catalog"
+            referencedColumns: ["provider"]
+          },
+        ]
       }
       company_actor_test_runs: {
         Row: {
@@ -53777,6 +53788,33 @@ export type Database = {
           },
         ]
       }
+      invoice_provider_catalog: {
+        Row: {
+          label: string
+          provider: string
+          selectable: boolean
+          sort_order: number
+          unavailable_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          label: string
+          provider: string
+          selectable?: boolean
+          sort_order?: number
+          unavailable_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          label?: string
+          provider?: string
+          selectable?: boolean
+          sort_order?: number
+          unavailable_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_provider_events: {
         Row: {
           attempt_count: number
@@ -91935,6 +91973,15 @@ export type Database = {
         Args: { p_actor_user_id?: string; p_publication_version_id: string }
         Returns: Json
       }
+      gridex_select_invoice_provider_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_provider: string
+        }
+        Returns: Json
+      }
       gridex_set_contract_channel_permission: {
         Args: {
           p_actor_user_id: string
@@ -91943,6 +91990,14 @@ export type Database = {
           p_channel: string
           p_company_id: string
           p_reason?: string
+        }
+        Returns: Json
+      }
+      gridex_set_invoice_dispatch_enabled_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_enabled: boolean
         }
         Returns: Json
       }
