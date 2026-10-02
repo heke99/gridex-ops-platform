@@ -1,5 +1,7 @@
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
 
+OBS 23:40: main lade till 20261002230000_customer_merge_portal_lifecycle → grenens 18 migrationer omnumrerade till 20261002233000–20261002234700 (032abc99). Containern startades om en gång (dockerd: `(nohup dockerd >/tmp/claude-0/dockerd.log 2>&1 &)`; DB överlever). Unit 9441/9441.
+
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426. Användaren: fortsätt stegvis med hela planen tills allt är grönt och mergat; P16B avgjort (RFF+Z07 och RFF+LI båda tillåtna i E2SE6A APERAK). Grenmigrationer omnumrerade till 20261002233000–231700 (efter main).
 
 Användarbeslut 2026-10-02: Claude får själv köra migrationer i Supabase, även produktion (`piidsfebjqjmnepdpnas` = gridex-ops-dev = app.gridex.se). Plan: applicera grenens migrationer 20261002233000–231700 i ordning via MCP apply_migration först när CI är grön (precis före merge), efter torrkörning BEGIN/ROLLBACK via execute_sql. Prod-ledgern har egna versionsnummer (MCP-tidsstämplar), och sista i prod är 20261002192605.
