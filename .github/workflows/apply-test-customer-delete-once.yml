@@ -1,0 +1,33 @@
+name: Apply atomic test-customer delete migration (one-shot)
+
+# One-shot, owner-approved: applies 20261002211000_atomic_test_customer_delete.sql
+# to the hosted database. The migration only creates the function; it deletes
+# no data. Runs only on pushes to its own branch; the branch is removed afterwards.
+on:
+  push:
+    branches: [claude/apply-test-customer-delete]
+
+permissions:
+  contents: read
+
+env:
+  DATABASE_URL: ${{ secrets.GRIDEX_OPS_DATABASE_URL || secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || secrets.POSTGRES_URL_NON_POOLING || secrets.POSTGRES_URL }}
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-e2e
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require database credentials
+        run: '[[ -n "${DATABASE_URL:-}" ]] || { echo "Missing database URL secret" >&2; exit 1; }'
+      - name: Install psql
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Apply migration and record history
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 -1 \
+            -f supabase/migrations/20261002211000_atomic_test_customer_delete.sql \
+            -c "insert into supabase_migrations.schema_migrations(version, name) select to_char(now() at time zone 'UTC','YYYYMMDDHH24MISS'), 'atomic_test_customer_delete' where not exists (select 1 from supabase_migrations.schema_migrations where name = 'atomic_test_customer_delete');"
+          psql "$DATABASE_URL" -X -At -c "select 'functions=' || count(*) from pg_proc where proname = 'gridex_delete_test_customer_v1'"
