@@ -3486,6 +3486,7 @@ export type Database = {
           consolidated_invoice_group_key: string | null
           contract_id: string | null
           created_at: string
+          customer_billing_profile_revision: number | null
           customer_id: string | null
           energy_direction: string
           export_run_id: string | null
@@ -3538,6 +3539,7 @@ export type Database = {
           consolidated_invoice_group_key?: string | null
           contract_id?: string | null
           created_at?: string
+          customer_billing_profile_revision?: number | null
           customer_id?: string | null
           energy_direction?: string
           export_run_id?: string | null
@@ -3590,6 +3592,7 @@ export type Database = {
           consolidated_invoice_group_key?: string | null
           contract_id?: string | null
           created_at?: string
+          customer_billing_profile_revision?: number | null
           customer_id?: string | null
           energy_direction?: string
           export_run_id?: string | null
@@ -15898,6 +15901,189 @@ export type Database = {
           },
         ]
       }
+      customer_billing_profile_revisions: {
+        Row: {
+          billing_city: string | null
+          billing_country: string | null
+          billing_postal_code: string | null
+          billing_street: string | null
+          changed_fields: string[]
+          company_id: string
+          customer_id: string
+          id: string
+          invoice_email: string | null
+          recorded_at: string
+          revision: number
+        }
+        Insert: {
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
+          changed_fields?: string[]
+          company_id: string
+          customer_id: string
+          id?: string
+          invoice_email?: string | null
+          recorded_at?: string
+          revision: number
+        }
+        Update: {
+          billing_city?: string | null
+          billing_country?: string | null
+          billing_postal_code?: string | null
+          billing_street?: string | null
+          changed_fields?: string[]
+          company_id?: string
+          customer_id?: string
+          id?: string
+          invoice_email?: string | null
+          recorded_at?: string
+          revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_billing_profile_revisions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       customer_blockers: {
         Row: {
           blocker_type: string
@@ -20131,6 +20317,415 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customer_portal_identities"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_identity_change_events: {
+        Row: {
+          actor_kind: string
+          actor_user_id: string | null
+          company_id: string
+          created_at: string
+          customer_id: string
+          detail: Json
+          event_type: string
+          field: string
+          id: string
+          new_value_masked: string | null
+          previous_value_masked: string | null
+          request_id: string
+        }
+        Insert: {
+          actor_kind: string
+          actor_user_id?: string | null
+          company_id: string
+          created_at?: string
+          customer_id: string
+          detail?: Json
+          event_type: string
+          field: string
+          id?: string
+          new_value_masked?: string | null
+          previous_value_masked?: string | null
+          request_id: string
+        }
+        Update: {
+          actor_kind?: string
+          actor_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          customer_id?: string
+          detail?: Json
+          event_type?: string
+          field?: string
+          id?: string
+          new_value_masked?: string | null
+          previous_value_masked?: string | null
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_identity_change_events_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "customer_identity_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_identity_change_requests: {
+        Row: {
+          acceptance_evidence: Json | null
+          affected_contract_count: number
+          approval_required: boolean
+          company_id: string
+          customer_id: string
+          decided_at: string | null
+          decided_by: string | null
+          document_sha256: string | null
+          expires_at: string | null
+          field: string
+          id: string
+          new_value: string
+          previous_value: string | null
+          reason: string
+          recipient_email: string | null
+          requested_at: string
+          requested_by: string
+          status: string
+          takeover_required: boolean
+          takeover_snapshot: Json | null
+          takeover_snapshot_sha256: string | null
+          token_hash: string | null
+        }
+        Insert: {
+          acceptance_evidence?: Json | null
+          affected_contract_count?: number
+          approval_required: boolean
+          company_id: string
+          customer_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          document_sha256?: string | null
+          expires_at?: string | null
+          field: string
+          id?: string
+          new_value: string
+          previous_value?: string | null
+          reason: string
+          recipient_email?: string | null
+          requested_at?: string
+          requested_by: string
+          status: string
+          takeover_required?: boolean
+          takeover_snapshot?: Json | null
+          takeover_snapshot_sha256?: string | null
+          token_hash?: string | null
+        }
+        Update: {
+          acceptance_evidence?: Json | null
+          affected_contract_count?: number
+          approval_required?: boolean
+          company_id?: string
+          customer_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          document_sha256?: string | null
+          expires_at?: string | null
+          field?: string
+          id?: string
+          new_value?: string
+          previous_value?: string | null
+          reason?: string
+          recipient_email?: string | null
+          requested_at?: string
+          requested_by?: string
+          status?: string
+          takeover_required?: boolean
+          takeover_snapshot?: Json | null
+          takeover_snapshot_sha256?: string | null
+          token_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -28168,6 +28763,7 @@ export type Database = {
           billing_city: string | null
           billing_country: string
           billing_postal_code: string | null
+          billing_profile_revision: number
           billing_street: string | null
           blocked_sites: number
           campaign_id: string | null
@@ -28231,6 +28827,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string
           billing_postal_code?: string | null
+          billing_profile_revision?: number
           billing_street?: string | null
           blocked_sites?: number
           campaign_id?: string | null
@@ -28294,6 +28891,7 @@ export type Database = {
           billing_city?: string | null
           billing_country?: string
           billing_postal_code?: string | null
+          billing_profile_revision?: number
           billing_street?: string | null
           blocked_sites?: number
           campaign_id?: string | null
@@ -89783,6 +90381,17 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_decide_customer_identity_change_v1: {
+        Args: {
+          p_acceptance?: Json
+          p_actor_user_id?: string
+          p_company_id: string
+          p_decided_by: string
+          p_outcome: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       gridex_default_customer_number_prefix: {
         Args: { p_company_id: string }
         Returns: string
@@ -89976,6 +90585,23 @@ export type Database = {
             }
             Returns: Json
           }
+      gridex_find_customer_identity_change_by_token_v1: {
+        Args: { p_token_hash: string }
+        Returns: {
+          affected_contract_count: number
+          company_id: string
+          customer_id: string
+          expires_at: string
+          field: string
+          id: string
+          new_value: string
+          previous_value: string
+          status: string
+          takeover_required: boolean
+          takeover_snapshot: Json
+          takeover_snapshot_sha256: string
+        }[]
+      }
       gridex_fk_reference_blockers: {
         Args: {
           p_ignored_relations?: string[]
@@ -90343,6 +90969,10 @@ export type Database = {
       gridex_mark_customer_contract_signature_request_sent_v1: {
         Args: { p_company_id: string; p_request_id: string }
         Returns: undefined
+      }
+      gridex_mask_identity_number: {
+        Args: { p_value: string }
+        Returns: string
       }
       gridex_mask_sensitive_payload: { Args: { payload: Json }; Returns: Json }
       gridex_match_actor_registry_item: {

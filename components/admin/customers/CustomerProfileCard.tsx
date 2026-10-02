@@ -229,6 +229,8 @@ export default function CustomerProfileCard({
  <span className="text-slate-700 ">Personnummer</span>
  <input
  name="personal_number"
+ readOnly
+ aria-describedby="identity-change-hint"
  defaultValue={customer.personal_number ?? ''}
  className={archivedInputClassName}
  {...archivedFieldProps}
@@ -243,8 +245,9 @@ export default function CustomerProfileCard({
  <span className="text-slate-700 ">Organisationsnummer</span>
  <input
  name="org_number"
+ readOnly
+ aria-describedby="identity-change-hint"
  defaultValue={customer.org_number ?? ''}
- required
  className={archivedInputClassName}
  {...archivedFieldProps}
  />
@@ -253,6 +256,9 @@ export default function CustomerProfileCard({
  <input type="hidden" name="org_number" value="" />
  )}
 
+ <p id="identity-change-hint" className="text-xs text-slate-600 md:col-span-2">
+ Personnummer och organisationsnummer ändras under &quot;Ändra personnummer/organisationsnummer&quot;. Ändringen loggas, och har kunden avtal måste kunden godkänna den via mejl.
+ </p>
  <label className="grid gap-1 text-sm">
  <span className="text-slate-700 ">E-post</span>
  <input

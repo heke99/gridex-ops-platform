@@ -11021,6 +11021,7 @@ CREATE TABLE public.customers (
     latest_customer_action text,
     process_summary jsonb DEFAULT '{}'::jsonb NOT NULL,
     invoice_email text,
+    billing_profile_revision integer DEFAULT 0 NOT NULL,
     CONSTRAINT customers_customer_type_check CHECK ((customer_type = ANY (ARRAY['private'::text, 'business'::text, 'association'::text]))),
     CONSTRAINT customers_intake_quality_score_check CHECK (((intake_quality_score IS NULL) OR ((intake_quality_score >= 0) AND (intake_quality_score <= 100)))),
     CONSTRAINT customers_intake_status_check CHECK (((intake_status IS NULL) OR (intake_status = ANY (ARRAY['draft'::text, 'incomplete'::text, 'needs_completion'::text, 'pending_information'::text, 'pending_power_of_attorney'::text, 'pending_duplicate_review'::text, 'blocked'::text, 'rejected'::text, 'ready_for_contract'::text, 'ready_for_operations'::text, 'application_received'::text, 'needs_contract_or_poa'::text, 'needs_grid_owner_resolution'::text, 'needs_facility_lookup'::text, 'facility_lookup_ready_to_send'::text, 'facility_lookup_waiting_response'::text, 'ready_for_supplier_switch'::text, 'supplier_switch_waiting_response'::text, 'active_supply'::text, 'needs_admin_review'::text])))),
@@ -14717,6 +14718,44 @@ CREATE FUNCTION public.gridex_billing_information_complete(p_value jsonb) RETURN
       or public.gridex_jsonb_valid_phone(coalesce(p_value,'{}'::jsonb))
       or public.gridex_address_complete(public.gridex_contact_address(coalesce(p_value,'{}'::jsonb)))
 $$;
+
+--
+-- Name: gridex_billing_item_lock_profile_revision(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_billing_item_lock_profile_revision() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.customer_id IS NOT NULL THEN
+      SELECT c.billing_profile_revision INTO NEW.customer_billing_profile_revision
+        FROM public.customers c
+       WHERE c.id = NEW.customer_id AND c.company_id = NEW.company_id;
+    END IF;
+  ELSIF NEW.customer_billing_profile_revision IS DISTINCT FROM OLD.customer_billing_profile_revision THEN
+    RAISE EXCEPTION 'billing_item_profile_revision_immutable' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END $$;
+
+--
+-- Name: gridex_billing_profile_revisions_append_only(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_billing_profile_revisions_append_only() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  -- Rows disappear only together with their customer (ON DELETE CASCADE runs as a nested trigger);
+  -- a direct UPDATE or DELETE is refused.
+  IF TG_OP = 'DELETE' AND pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+  RAISE EXCEPTION 'customer_billing_profile_revisions_append_only' USING ERRCODE = '42501';
+END $$;
 
 --
 -- Name: gridex_billing_underlay_item_gate_guard(); Type: FUNCTION; Schema: public; Owner: -
@@ -21818,6 +21857,61 @@ from checks;
 $$;
 
 --
+-- Name: gridex_customer_billing_profile_bump(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_billing_profile_bump() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.billing_profile_revision := 1;
+  ELSIF NEW.invoice_email IS DISTINCT FROM OLD.invoice_email
+     OR NEW.billing_street IS DISTINCT FROM OLD.billing_street
+     OR NEW.billing_postal_code IS DISTINCT FROM OLD.billing_postal_code
+     OR NEW.billing_city IS DISTINCT FROM OLD.billing_city
+     OR NEW.billing_country IS DISTINCT FROM OLD.billing_country THEN
+    NEW.billing_profile_revision := OLD.billing_profile_revision + 1;
+  ELSE
+    -- The revision is owned by this trigger; writers cannot move it.
+    NEW.billing_profile_revision := OLD.billing_profile_revision;
+  END IF;
+  RETURN NEW;
+END $$;
+
+--
+-- Name: gridex_customer_billing_profile_record(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_billing_profile_record() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  v_changed text[] := '{}'::text[];
+BEGIN
+  IF TG_OP = 'UPDATE' AND NEW.billing_profile_revision = OLD.billing_profile_revision THEN
+    RETURN NULL;
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    v_changed := ARRAY['created'];
+  ELSE
+    IF NEW.invoice_email IS DISTINCT FROM OLD.invoice_email THEN v_changed := array_append(v_changed, 'invoice_email'); END IF;
+    IF NEW.billing_street IS DISTINCT FROM OLD.billing_street THEN v_changed := array_append(v_changed, 'billing_street'); END IF;
+    IF NEW.billing_postal_code IS DISTINCT FROM OLD.billing_postal_code THEN v_changed := array_append(v_changed, 'billing_postal_code'); END IF;
+    IF NEW.billing_city IS DISTINCT FROM OLD.billing_city THEN v_changed := array_append(v_changed, 'billing_city'); END IF;
+    IF NEW.billing_country IS DISTINCT FROM OLD.billing_country THEN v_changed := array_append(v_changed, 'billing_country'); END IF;
+  END IF;
+  INSERT INTO public.customer_billing_profile_revisions
+    (company_id, customer_id, revision, invoice_email, billing_street, billing_postal_code, billing_city, billing_country, changed_fields)
+  VALUES
+    (NEW.company_id, NEW.id, NEW.billing_profile_revision, NEW.invoice_email, NEW.billing_street, NEW.billing_postal_code,
+     NEW.billing_city, NEW.billing_country, v_changed);
+  RETURN NULL;
+END $$;
+
+--
 -- Name: gridex_customer_cleanup_external_ref(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22135,6 +22229,18 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_customer_identity_events_append_only(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_identity_events_append_only() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  RAISE EXCEPTION 'customer_identity_change_events_append_only' USING ERRCODE = '42501';
+END $$;
 
 --
 -- Name: company_customer_intake_queue_v; Type: VIEW; Schema: public; Owner: -
@@ -22610,6 +22716,106 @@ begin
   );
 end
 $$;
+
+--
+-- Name: gridex_decide_customer_identity_change_v1(uuid, uuid, text, text, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_decide_customer_identity_change_v1(p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid DEFAULT NULL::uuid, p_acceptance jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  r public.customer_identity_change_requests%rowtype;
+  v_current text;
+BEGIN
+  IF p_outcome NOT IN ('applied', 'rejected', 'expired', 'cancelled') THEN
+    RAISE EXCEPTION 'identity_change_outcome_invalid' USING ERRCODE = '22023';
+  END IF;
+  IF p_decided_by NOT IN ('customer', 'staff', 'system') THEN
+    RAISE EXCEPTION 'identity_change_actor_invalid' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT * INTO r FROM public.customer_identity_change_requests
+   WHERE id = p_request_id AND company_id = p_company_id
+   FOR UPDATE;
+  IF r.id IS NULL THEN RAISE EXCEPTION 'identity_change_not_found' USING ERRCODE = 'P0002'; END IF;
+
+  IF r.status <> 'pending_customer_approval' THEN
+    RAISE EXCEPTION 'identity_change_not_pending' USING ERRCODE = '55000';
+  END IF;
+  IF p_outcome = 'applied' AND r.approval_required AND p_decided_by <> 'customer' THEN
+    RAISE EXCEPTION 'identity_change_requires_customer_approval' USING ERRCODE = '42501';
+  END IF;
+  IF p_outcome IN ('applied', 'rejected') AND r.approval_required AND r.expires_at <= now() THEN
+    UPDATE public.customer_identity_change_requests SET status = 'expired', decided_at = now(), decided_by = 'system' WHERE id = r.id;
+    INSERT INTO public.customer_identity_change_events (company_id, customer_id, request_id, event_type, actor_kind, field, previous_value_masked, new_value_masked)
+    VALUES (r.company_id, r.customer_id, r.id, 'expired', 'system', r.field,
+            public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value));
+    RETURN jsonb_build_object('status', 'expired', 'request_id', r.id);
+  END IF;
+
+  -- A takeover of binding contracts needs the new party's explicit acceptance of exactly the
+  -- contracts and terms that were shown (same snapshot hash), each confirmation separately.
+  IF p_outcome = 'applied' AND r.takeover_required THEN
+    IF p_acceptance IS NULL
+       OR p_acceptance->>'snapshot_sha256' IS DISTINCT FROM r.takeover_snapshot_sha256
+       OR (p_acceptance->'confirmations'->>'identity') IS DISTINCT FROM 'true'
+       OR (p_acceptance->'confirmations'->>'contracts') IS DISTINCT FROM 'true'
+       OR (p_acceptance->'confirmations'->>'terms') IS DISTINCT FROM 'true' THEN
+      RAISE EXCEPTION 'identity_change_takeover_acceptance_required' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
+  IF p_outcome = 'applied' THEN
+    -- The value must still be what the request was based on; otherwise someone changed it meanwhile.
+    EXECUTE format('SELECT %I FROM public.customers WHERE company_id = $1 AND id = $2 FOR UPDATE', r.field)
+      INTO v_current USING r.company_id, r.customer_id;
+    IF v_current IS DISTINCT FROM r.previous_value THEN
+      RAISE EXCEPTION 'identity_change_stale' USING ERRCODE = '40001';
+    END IF;
+    EXECUTE format('UPDATE public.customers SET %I = $1, updated_at = now() WHERE company_id = $2 AND id = $3', r.field)
+      USING r.new_value, r.company_id, r.customer_id;
+  END IF;
+
+  UPDATE public.customer_identity_change_requests
+     SET status = p_outcome, decided_at = now(), decided_by = p_decided_by,
+         acceptance_evidence = CASE WHEN p_outcome = 'applied' AND p_decided_by = 'customer' AND p_acceptance IS NOT NULL
+                                    THEN p_acceptance || jsonb_build_object('accepted_at', now())
+                                    ELSE acceptance_evidence END
+   WHERE id = r.id;
+
+  IF r.approval_required AND p_outcome IN ('applied', 'rejected') THEN
+    INSERT INTO public.customer_identity_change_events (company_id, customer_id, request_id, event_type, actor_kind, actor_user_id, field, previous_value_masked, new_value_masked)
+    VALUES (r.company_id, r.customer_id, r.id, CASE WHEN p_outcome = 'applied' THEN 'approved' ELSE 'rejected' END,
+            p_decided_by, p_actor_user_id, r.field,
+            public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value));
+  END IF;
+  INSERT INTO public.customer_identity_change_events (company_id, customer_id, request_id, event_type, actor_kind, actor_user_id, field, previous_value_masked, new_value_masked, detail)
+  VALUES (r.company_id, r.customer_id, r.id,
+          CASE p_outcome WHEN 'applied' THEN 'applied' WHEN 'rejected' THEN 'rejected' ELSE p_outcome END,
+          p_decided_by, p_actor_user_id, r.field,
+          public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value),
+          jsonb_build_object('affected_contract_count', r.affected_contract_count, 'approval_required', r.approval_required,
+                             'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
+                             'document_sha256', r.document_sha256));
+
+  INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, system_actor, entity_type, entity_id, action,
+                                 old_values, new_values, metadata, request_id, correlation_id, resource_type, resource_id)
+  VALUES (r.company_id, p_actor_user_id,
+          CASE WHEN p_actor_user_id IS NULL THEN 'system' ELSE 'user' END,
+          CASE WHEN p_actor_user_id IS NULL THEN 'customer_identity_change:' || p_decided_by ELSE NULL END,
+          'customer', r.customer_id::text, 'customer_identity_change_' || p_outcome,
+          jsonb_build_object(r.field, public.gridex_mask_identity_number(r.previous_value)),
+          jsonb_build_object(r.field, public.gridex_mask_identity_number(r.new_value)),
+          jsonb_build_object('identity_change_request_id', r.id, 'decided_by', p_decided_by,
+                             'approval_required', r.approval_required, 'affected_contract_count', r.affected_contract_count,
+                             'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
+                             'document_sha256', r.document_sha256),
+          r.id::text, r.id::text, 'customer_identity_change_request', r.id::text);
+
+  RETURN jsonb_build_object('status', p_outcome, 'request_id', r.id, 'customer_id', r.customer_id, 'field', r.field);
+END $_$;
 
 --
 -- Name: gridex_default_customer_number_prefix(uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -26644,6 +26850,21 @@ begin
   );
 end
 $$;
+
+--
+-- Name: gridex_find_customer_identity_change_by_token_v1(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_find_customer_identity_change_by_token_v1(p_token_hash text) RETURNS TABLE(id uuid, company_id uuid, customer_id uuid, field text, previous_value text, new_value text, status text, expires_at timestamp with time zone, affected_contract_count integer, takeover_required boolean, takeover_snapshot jsonb, takeover_snapshot_sha256 text)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+  SELECT r.id, r.company_id, r.customer_id, r.field, r.previous_value, r.new_value, r.status, r.expires_at, r.affected_contract_count,
+         r.takeover_required, r.takeover_snapshot, r.takeover_snapshot_sha256
+    FROM public.customer_identity_change_requests r
+   WHERE p_token_hash ~ '^[0-9a-f]{64}$' AND r.token_hash = p_token_hash
+   LIMIT 2
+$_$;
 
 --
 -- Name: gridex_fk_reference_blockers(regclass, uuid[], text[]); Type: FUNCTION; Schema: public; Owner: -
@@ -30872,6 +31093,18 @@ CREATE FUNCTION public.gridex_mark_customer_contract_signature_request_sent_v1(p
   update public.customer_contract_signature_requests
   set sent_at=coalesce(sent_at,now())
   where id=p_request_id and company_id=p_company_id and revoked_at is null and used_at is null;
+$$;
+
+--
+-- Name: gridex_mask_identity_number(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_mask_identity_number(p_value text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+  SELECT CASE WHEN p_value IS NULL OR btrim(p_value) = '' THEN NULL
+              ELSE '••••' || right(regexp_replace(p_value, '[^0-9]', '', 'g'), 4) END
 $$;
 
 --
@@ -52692,6 +52925,7 @@ CREATE TABLE public.billing_export_run_items (
     energy_direction text DEFAULT 'consumption'::text NOT NULL,
     settlement_type text DEFAULT 'invoice'::text NOT NULL,
     partner_result_type text DEFAULT 'none'::text NOT NULL,
+    customer_billing_profile_revision integer,
     CONSTRAINT billing_export_items_energy_direction_check CHECK ((energy_direction = ANY (ARRAY['consumption'::text, 'production'::text, 'consumption_correction'::text]))),
     CONSTRAINT billing_export_items_partner_result_type_check CHECK ((partner_result_type = ANY (ARRAY['none'::text, 'accepted'::text, 'rejected'::text, 'transport_failed'::text]))),
     CONSTRAINT billing_export_items_settlement_type_check CHECK ((settlement_type = ANY (ARRAY['invoice'::text, 'credit_invoice'::text, 'self_billing'::text])))
@@ -56343,6 +56577,31 @@ CREATE TABLE public.customer_authorization_documents (
 COMMENT ON COLUMN public.customer_authorization_documents.customer_contract_id IS 'Optional customer contract bound to an uploaded authorization/agreement document; canonical signed imports verify company/customer/contract ownership before finalization.';
 
 --
+-- Name: customer_billing_profile_revisions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_billing_profile_revisions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    revision integer NOT NULL,
+    invoice_email text,
+    billing_street text,
+    billing_postal_code text,
+    billing_city text,
+    billing_country text,
+    changed_fields text[] DEFAULT '{}'::text[] NOT NULL,
+    recorded_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_billing_profile_revisions_revision_check CHECK ((revision >= 1))
+);
+
+--
+-- Name: TABLE customer_billing_profile_revisions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer_billing_profile_revisions IS 'P3: immutable history of the customer billing profile (invoice e-mail and billing address). One row per change, written by trigger.';
+
+--
 -- Name: customer_case_attachments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -57260,6 +57519,80 @@ CREATE TABLE public.customer_events (
     customer_number text,
     CONSTRAINT customer_events_event_type_check CHECK ((event_type ~ '^customer\.[a-z0-9_]+$'::text))
 );
+
+--
+-- Name: customer_identity_change_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_identity_change_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    request_id uuid NOT NULL,
+    event_type text NOT NULL,
+    actor_kind text NOT NULL,
+    actor_user_id uuid,
+    field text NOT NULL,
+    previous_value_masked text,
+    new_value_masked text,
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_identity_change_events_actor_kind_check CHECK ((actor_kind = ANY (ARRAY['staff'::text, 'customer'::text, 'system'::text]))),
+    CONSTRAINT customer_identity_change_events_event_type_check CHECK ((event_type = ANY (ARRAY['requested'::text, 'approval_sent'::text, 'approved'::text, 'rejected'::text, 'applied'::text, 'expired'::text, 'cancelled'::text]))),
+    CONSTRAINT customer_identity_change_events_field_check CHECK ((field = ANY (ARRAY['personal_number'::text, 'org_number'::text])))
+);
+
+--
+-- Name: TABLE customer_identity_change_events; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer_identity_change_events IS 'F12: append-only audit history of personal/organization number changes (masked values).';
+
+--
+-- Name: customer_identity_change_requests; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_identity_change_requests (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    field text NOT NULL,
+    previous_value text,
+    new_value text NOT NULL,
+    reason text NOT NULL,
+    requested_by uuid NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    approval_required boolean NOT NULL,
+    affected_contract_count integer DEFAULT 0 NOT NULL,
+    recipient_email text,
+    token_hash text,
+    expires_at timestamp with time zone,
+    status text NOT NULL,
+    decided_at timestamp with time zone,
+    decided_by text,
+    takeover_required boolean DEFAULT false NOT NULL,
+    takeover_snapshot jsonb,
+    takeover_snapshot_sha256 text,
+    document_sha256 text,
+    acceptance_evidence jsonb,
+    CONSTRAINT customer_identity_change_request_takeover_snapshot_sha256_check CHECK (((takeover_snapshot_sha256 IS NULL) OR (takeover_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT customer_identity_change_requests_affected_contract_count_check CHECK ((affected_contract_count >= 0)),
+    CONSTRAINT customer_identity_change_requests_approval_shape CHECK (((approval_required AND (recipient_email IS NOT NULL) AND (token_hash IS NOT NULL) AND (expires_at IS NOT NULL)) OR ((NOT approval_required) AND (token_hash IS NULL)))),
+    CONSTRAINT customer_identity_change_requests_decided_by_check CHECK (((decided_by IS NULL) OR (decided_by = ANY (ARRAY['customer'::text, 'staff'::text, 'system'::text])))),
+    CONSTRAINT customer_identity_change_requests_document_sha256_check CHECK (((document_sha256 IS NULL) OR (document_sha256 ~ '^[0-9a-f]{64}$'::text))),
+    CONSTRAINT customer_identity_change_requests_field_check CHECK ((field = ANY (ARRAY['personal_number'::text, 'org_number'::text]))),
+    CONSTRAINT customer_identity_change_requests_new_value_check CHECK (((length(new_value) >= 1) AND (length(new_value) <= 40))),
+    CONSTRAINT customer_identity_change_requests_reason_check CHECK (((length(btrim(reason)) >= 3) AND (length(btrim(reason)) <= 500))),
+    CONSTRAINT customer_identity_change_requests_status_check CHECK ((status = ANY (ARRAY['pending_customer_approval'::text, 'applied'::text, 'rejected'::text, 'expired'::text, 'cancelled'::text]))),
+    CONSTRAINT customer_identity_change_requests_takeover_shape CHECK (((NOT takeover_required) OR (approval_required AND (takeover_snapshot IS NOT NULL) AND (takeover_snapshot_sha256 IS NOT NULL)))),
+    CONSTRAINT customer_identity_change_requests_token_hash_check CHECK (((token_hash IS NULL) OR (token_hash ~ '^[0-9a-f]{64}$'::text)))
+);
+
+--
+-- Name: TABLE customer_identity_change_requests; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer_identity_change_requests IS 'F12: changes of customer personal/organization numbers. Customers with contracts must approve via a single-use e-mail link (token hash only).';
 
 --
 -- Name: customer_info_request_events; Type: TABLE; Schema: public; Owner: -
@@ -71898,6 +72231,20 @@ ALTER TABLE ONLY public.customer_authorization_documents
     ADD CONSTRAINT customer_authorization_documents_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_billing_profile_revisions customer_billing_profile_revisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_billing_profile_revisions
+    ADD CONSTRAINT customer_billing_profile_revisions_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_billing_profile_revisions customer_billing_profile_revisions_revision_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_billing_profile_revisions
+    ADD CONSTRAINT customer_billing_profile_revisions_revision_key UNIQUE (company_id, customer_id, revision);
+
+--
 -- Name: customer_blockers customer_blockers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -72071,6 +72418,27 @@ ALTER TABLE ONLY public.customer_duplicate_resolution_events
 
 ALTER TABLE ONLY public.customer_events
     ADD CONSTRAINT customer_events_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_events
+    ADD CONSTRAINT customer_identity_change_events_pkey PRIMARY KEY (id);
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_company_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_requests
+    ADD CONSTRAINT customer_identity_change_requests_company_token_key UNIQUE (company_id, token_hash);
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_requests
+    ADD CONSTRAINT customer_identity_change_requests_pkey PRIMARY KEY (id);
 
 --
 -- Name: customer_info_request_events customer_info_request_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -76158,6 +76526,12 @@ CREATE INDEX customer_authorization_documents_portal_keyset_idx ON public.custom
 CREATE INDEX customer_authorization_documents_upload_idempotency_idx ON public.customer_authorization_documents USING btree (company_id, upload_idempotency_key) WHERE (upload_idempotency_key IS NOT NULL);
 
 --
+-- Name: customer_billing_profile_revisions_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_billing_profile_revisions_customer_idx ON public.customer_billing_profile_revisions USING btree (company_id, customer_id, revision DESC);
+
+--
 -- Name: customer_blockers_company_customer_status_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -76522,6 +76896,36 @@ CREATE INDEX customer_events_company_type_idx ON public.customer_events USING bt
 --
 
 CREATE INDEX customer_events_portal_keyset_idx ON public.customer_events USING btree (company_id, customer_id, occurred_at DESC, id DESC);
+
+--
+-- Name: customer_identity_change_events_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_identity_change_events_customer_idx ON public.customer_identity_change_events USING btree (company_id, customer_id, created_at DESC);
+
+--
+-- Name: customer_identity_change_events_request_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_identity_change_events_request_idx ON public.customer_identity_change_events USING btree (request_id);
+
+--
+-- Name: customer_identity_change_requests_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_identity_change_requests_customer_idx ON public.customer_identity_change_requests USING btree (company_id, customer_id, requested_at DESC);
+
+--
+-- Name: customer_identity_change_requests_one_pending_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_identity_change_requests_one_pending_idx ON public.customer_identity_change_requests USING btree (company_id, customer_id, field) WHERE (status = 'pending_customer_approval'::text);
+
+--
+-- Name: customer_identity_change_requests_token_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_identity_change_requests_token_idx ON public.customer_identity_change_requests USING btree (token_hash) WHERE (token_hash IS NOT NULL);
 
 --
 -- Name: customer_info_request_events_company_idx; Type: INDEX; Schema: public; Owner: -
@@ -85815,6 +86219,12 @@ CREATE TRIGGER base_price_components_locked_immutable BEFORE DELETE OR UPDATE ON
 CREATE TRIGGER billing_export_items_energy_flow_inherit BEFORE INSERT OR UPDATE OF billing_underlay_id ON public.billing_export_run_items FOR EACH ROW EXECUTE FUNCTION public.gridex_inherit_export_item_energy_flow();
 
 --
+-- Name: billing_export_run_items billing_export_run_items_lock_profile_revision; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER billing_export_run_items_lock_profile_revision BEFORE INSERT OR UPDATE ON public.billing_export_run_items FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_item_lock_profile_revision();
+
+--
 -- Name: billing_underlay_items billing_underlay_items_gate_guard_trg; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -86103,6 +86513,12 @@ CREATE TRIGGER customer_application_workflow_committed_canonical_v1 AFTER INSERT
 CREATE TRIGGER customer_authorization_documents_bind_poa_tg AFTER INSERT OR UPDATE OF power_of_attorney_id, site_id, status ON public.customer_authorization_documents FOR EACH ROW EXECUTE FUNCTION public.gridex_bind_poa_authorization_document();
 
 --
+-- Name: customer_billing_profile_revisions customer_billing_profile_revisions_no_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_billing_profile_revisions_no_update BEFORE DELETE OR UPDATE ON public.customer_billing_profile_revisions FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_profile_revisions_append_only();
+
+--
 -- Name: customer_contract_acceptances customer_contract_acceptances_immutable; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -86179,6 +86595,18 @@ CREATE TRIGGER customer_contracts_signed_operation_v1 AFTER INSERT OR UPDATE ON 
 --
 
 CREATE TRIGGER customer_contracts_state_machine_v1 BEFORE INSERT OR UPDATE OF status ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_customer_contract_state_v1();
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_no_truncate; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_identity_change_events_no_truncate BEFORE TRUNCATE ON public.customer_identity_change_events FOR EACH STATEMENT EXECUTE FUNCTION public.gridex_customer_identity_events_append_only();
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_no_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_identity_change_events_no_update BEFORE DELETE OR UPDATE ON public.customer_identity_change_events FOR EACH ROW EXECUTE FUNCTION public.gridex_customer_identity_events_append_only();
 
 --
 -- Name: customer_info_requests customer_info_requests_normalize_blocker_details; Type: TRIGGER; Schema: public; Owner: -
@@ -86263,6 +86691,18 @@ CREATE TRIGGER customer_supply_periods_customer_chain_v1 BEFORE INSERT OR UPDATE
 --
 
 CREATE TRIGGER customers_assign_customer_number BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION public.gridex_assign_customer_number();
+
+--
+-- Name: customers customers_billing_profile_bump; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customers_billing_profile_bump BEFORE INSERT OR UPDATE ON public.customers FOR EACH ROW EXECUTE FUNCTION public.gridex_customer_billing_profile_bump();
+
+--
+-- Name: customers customers_billing_profile_record; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customers_billing_profile_record AFTER INSERT OR UPDATE ON public.customers FOR EACH ROW WHEN ((new.company_id IS NOT NULL)) EXECUTE FUNCTION public.gridex_customer_billing_profile_record();
 
 --
 -- Name: customers customers_partner_api_events_v2; Type: TRIGGER; Schema: public; Owner: -
@@ -89020,6 +89460,20 @@ ALTER TABLE ONLY public.customer_authorization_documents
     ADD CONSTRAINT customer_authorization_documents_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id);
 
 --
+-- Name: customer_billing_profile_revisions customer_billing_profile_revisions_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_billing_profile_revisions
+    ADD CONSTRAINT customer_billing_profile_revisions_company_customer_fkey FOREIGN KEY (company_id, customer_id) REFERENCES public.customers(company_id, id) ON DELETE CASCADE;
+
+--
+-- Name: customer_billing_profile_revisions customer_billing_profile_revisions_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_billing_profile_revisions
+    ADD CONSTRAINT customer_billing_profile_revisions_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: customer_blockers customer_blockers_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -89487,6 +89941,41 @@ ALTER TABLE ONLY public.customer_events
 
 ALTER TABLE ONLY public.customer_events
     ADD CONSTRAINT customer_events_portal_identity_id_fkey FOREIGN KEY (portal_identity_id) REFERENCES public.customer_portal_identities(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_events
+    ADD CONSTRAINT customer_identity_change_events_company_customer_fkey FOREIGN KEY (company_id, customer_id) REFERENCES public.customers(company_id, id);
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_events
+    ADD CONSTRAINT customer_identity_change_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_identity_change_events customer_identity_change_events_request_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_events
+    ADD CONSTRAINT customer_identity_change_events_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.customer_identity_change_requests(id);
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_requests
+    ADD CONSTRAINT customer_identity_change_requests_company_customer_fkey FOREIGN KEY (company_id, customer_id) REFERENCES public.customers(company_id, id);
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_requests
+    ADD CONSTRAINT customer_identity_change_requests_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: customer_info_request_events customer_info_request_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -96195,6 +96684,12 @@ CREATE POLICY customer_application_workflows_tenant_read ON public.customer_appl
 ALTER TABLE public.customer_authorization_documents ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: customer_billing_profile_revisions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_billing_profile_revisions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: customer_blockers; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -96421,6 +96916,18 @@ CREATE POLICY customer_events_service_role_all ON public.customer_events TO serv
 --
 
 CREATE POLICY customer_events_tenant_read ON public.customer_events FOR SELECT USING ((public.gridex_user_is_platform_admin() OR public.gridex_can_read_company(company_id)));
+
+--
+-- Name: customer_identity_change_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_identity_change_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customer_identity_change_requests; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_identity_change_requests ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_info_request_events; Type: ROW SECURITY; Schema: public; Owner: -
@@ -114395,6 +114902,20 @@ GRANT ALL ON FUNCTION public.gridex_billing_information_complete(p_value jsonb) 
 GRANT ALL ON FUNCTION public.gridex_billing_information_complete(p_value jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_billing_item_lock_profile_revision(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_billing_item_lock_profile_revision() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_billing_item_lock_profile_revision() TO service_role;
+
+--
+-- Name: FUNCTION gridex_billing_profile_revisions_append_only(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_billing_profile_revisions_append_only() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_billing_profile_revisions_append_only() TO service_role;
+
+--
 -- Name: FUNCTION gridex_billing_underlay_item_gate_guard(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115026,6 +115547,20 @@ REVOKE ALL ON FUNCTION public.gridex_customer_application_runtime_contract_v1() 
 GRANT ALL ON FUNCTION public.gridex_customer_application_runtime_contract_v1() TO service_role;
 
 --
+-- Name: FUNCTION gridex_customer_billing_profile_bump(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_billing_profile_bump() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_billing_profile_bump() TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_billing_profile_record(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_billing_profile_record() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_billing_profile_record() TO service_role;
+
+--
 -- Name: FUNCTION gridex_customer_cleanup_external_ref(p_customer_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115051,6 +115586,13 @@ GRANT ALL ON FUNCTION public.gridex_customer_contracts_auto_renew_guard() TO ser
 
 REVOKE ALL ON FUNCTION public.gridex_customer_contracts_set_company_id() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_customer_contracts_set_company_id() TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_identity_events_append_only(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_identity_events_append_only() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_identity_events_append_only() TO service_role;
 
 --
 -- Name: TABLE company_customer_intake_queue_v; Type: ACL; Schema: public; Owner: -
@@ -115154,6 +115696,13 @@ GRANT ALL ON FUNCTION public.gridex_db1_try_exec(p_area text, p_object text, p_s
 REVOKE ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) TO authenticated;
 GRANT ALL ON FUNCTION public.gridex_db4b_archive_customer_registry_row(p_lookup text, p_email text, p_apply boolean, p_reason text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_decide_customer_identity_change_v1(p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid, p_acceptance jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_decide_customer_identity_change_v1(p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid, p_acceptance jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_decide_customer_identity_change_v1(p_company_id uuid, p_request_id uuid, p_outcome text, p_decided_by text, p_actor_user_id uuid, p_acceptance jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_default_customer_number_prefix(p_company_id uuid); Type: ACL; Schema: public; Owner: -
@@ -115434,6 +115983,13 @@ REVOKE ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_compa
 
 REVOKE ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_acceptance_evidence jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_find_customer_identity_change_by_token_v1(p_token_hash text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_find_customer_identity_change_by_token_v1(p_token_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_find_customer_identity_change_by_token_v1(p_token_hash text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_fk_reference_blockers(p_target regclass, p_target_ids uuid[], p_ignored_relations text[]); Type: ACL; Schema: public; Owner: -
@@ -115975,6 +116531,13 @@ GRANT ALL ON FUNCTION public.gridex_make_source_hash(p_payload jsonb) TO service
 
 REVOKE ALL ON FUNCTION public.gridex_mark_customer_contract_signature_request_sent_v1(p_request_id uuid, p_company_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_mark_customer_contract_signature_request_sent_v1(p_request_id uuid, p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_mask_identity_number(p_value text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_mask_identity_number(p_value text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_mask_identity_number(p_value text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_mask_sensitive_payload(payload jsonb); Type: ACL; Schema: public; Owner: -
@@ -118888,6 +119451,12 @@ GRANT ALL ON TABLE public.customer_authorization_documents TO authenticated;
 GRANT ALL ON TABLE public.customer_authorization_documents TO service_role;
 
 --
+-- Name: TABLE customer_billing_profile_revisions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_billing_profile_revisions TO service_role;
+
+--
 -- Name: TABLE customer_case_attachments; Type: ACL; Schema: public; Owner: -
 --
 
@@ -119010,6 +119579,18 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.customer_duplicate_resolution_
 GRANT ALL ON TABLE public.customer_events TO anon;
 GRANT ALL ON TABLE public.customer_events TO authenticated;
 GRANT ALL ON TABLE public.customer_events TO service_role;
+
+--
+-- Name: TABLE customer_identity_change_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_identity_change_events TO service_role;
+
+--
+-- Name: TABLE customer_identity_change_requests; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_identity_change_requests TO service_role;
 
 --
 -- Name: TABLE customer_info_request_events; Type: ACL; Schema: public; Owner: -
