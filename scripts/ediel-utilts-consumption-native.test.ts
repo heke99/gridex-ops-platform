@@ -83,7 +83,7 @@ async function seed() {
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id) VALUES(${lit(ids.point)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.site)},'735999260731000007','735999260731000007',${lit(ids.grid)});
    INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope) VALUES(${lit(ids.request)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'billing_underlay');`)
-  const insertSource = async (raw: string, code = 'E66', environment = 'test') => {
+  const insertSource = async (raw: string, code = 'E66', environment = 'test', receivedAt = '2026-10-01T20:00:00Z' /* inside the 25-A-3 grace */) => {
     // Template parties are bound to this fixture's own receiver and issuer.
     raw = raw.replaceAll('+91100:ZZ+', `+${ids.issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${ids.issuer}:`)
       .replaceAll('+21660:ZZ+', `+${ids.ediel}:ZZ+`).replaceAll('NAD+MR+21660:', `NAD+MR+${ids.ediel}:`)
@@ -94,7 +94,7 @@ async function seed() {
     const { id, parsed } = fixture
     raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-     SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+     SELECT ${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},${lit(ids.request)},${lit(environment)},'inbound','edifact','UTILTS',${lit(code)},'received',${lit(raw)},'{}',${lit(receivedAt)},'{}',${lit(parsed.applicationReference)},${lit(ids.issuer)},${lit(ids.ediel)},${lit(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
      FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.message_code=${lit(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
     seedUtiltsIssuerHistoryGround(sql, lit, id, ids.actor)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
@@ -1263,7 +1263,7 @@ it('native inbound binds IDE qualifier 505 rejection to tenant and source withou
 })
 it('native inbound persists field209 invalid GSRN with final negative ACK and stable retry', async () => {
   const f = await seed()
-  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')))
+  const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000008::9')), 'E66', 'test', '2026-10-15T20:00:00Z') // strict 25-A-4
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(first.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
@@ -1286,7 +1286,7 @@ it.each([['E30', 'invalid'], ['E30', 'missing'], ['S07', 'invalid'], ['S07', 'mi
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
     .replace('23-DDQ-E66-T', application)
     .replace('LOC+172+735999260731000007::9', defect === 'invalid' ? 'LOC+172+735999260731000008::9' : '')
-  const source = await f.insertSource(ownIdentity(raw), code)
+  const source = await f.insertSource(ownIdentity(raw), code, 'test', '2026-10-15T20:00:00Z') // strict 25-A-4
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = code === 'S07' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage
   const first = await run({ actorUserId: f.ids.actor, edielMessageId: source.id })
@@ -1312,7 +1312,7 @@ it('native S01 stores supplied LOC+175 field533 rejection with no aggregate or i
     .replace('BGM+E66::260', 'BGM+S01:SVK:260')
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9')
-  const source = await f.insertSource(ownIdentity(raw), 'S01')
+  const source = await f.insertSource(ownIdentity(raw), 'S01', 'test', '2026-10-15T20:00:00Z') // strict 25-A-4
   // An S01 aggregate source cannot borrow the fixture's individual customer/point link.
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
@@ -1578,7 +1578,7 @@ it.each([
     .replace('BGM+E66::260', `BGM+${code}${code === 'S06' ? ':SVK' : ':'}:260`)
     .replace('23-DDQ-E66-T', application)
     .replace('LOC+172+735999260731000007::9', defect === 'missing' ? '' : `${location}+735999260731000008::9`)
-  const source = await f.insertSource(ownIdentity(raw), code)
+  const source = await f.insertSource(ownIdentity(raw), code, 'test', '2026-10-15T20:00:00Z') // strict 25-A-4
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
