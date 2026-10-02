@@ -235,13 +235,13 @@
     {
       "id": "PROD-INBOUND-MAIL-LINK",
       "severity": "critical",
-      "summary": "ediel_messages.inbound_email_message_id was written by real reception but created only by a non-canonical batch file; every real inbound reception failed on canonical replays. Forward migration 20261002180000 adds column, FK, same-company tenant guard and index.",
+      "summary": "ediel_messages.inbound_email_message_id was written by real reception but created only by a non-canonical batch file; every real inbound reception failed on canonical replays. Forward migration 20261002231100 adds column, FK, same-company tenant guard and index.",
       "evidence": "commit 8444df42"
     },
     {
       "id": "PROD-IDE-QUALIFIER-WIRE",
       "severity": "high",
-      "summary": "gridex_ack_authority.wire_v1 returned NULL for IDE qualifier other than 24, so a field-505 fault could never be answered. Forward migration 20261002190000 keeps the reference with ideQualifierInvalid; APERAK plan drops empty-text duplicates covered by a qualified sibling.",
+      "summary": "gridex_ack_authority.wire_v1 returned NULL for IDE qualifier other than 24, so a field-505 fault could never be answered. Forward migration 20261002231200 keeps the reference with ideQualifierInvalid; APERAK plan drops empty-text duplicates covered by a qualified sibling.",
       "evidence": "commit e3a0c483"
     },
     {
@@ -261,6 +261,12 @@
       "severity": "info",
       "summary": "ediel-utilts-consumption-native 141/141 locally (clean phase). Remaining failures were stale fixtures: production legal context, issuer namespace (505 uniqueness), exact decimals, syntax-rejected LOC-after-SEQ, forged-RPC payloads, E30 without SG5/MEA.",
       "evidence": "commit 3484d8a9"
+    },
+    {
+      "id": "MERGE-MAIN-20261002",
+      "severity": "info",
+      "summary": "Merged origin/main (19 commits). The branch's unapplied 2026-10-02 migrations were renumbered to 20261002230000..20261002231400 (same internal order) because main already uses 080000-222000 versions. Main's legacy supply-end change (gridex_end_customer_supply_v1) targets code the source-owned path replaced; follow-up: let the source-owned Z05 end call the same contract/final-invoice closure.",
+      "evidence": "merge commit"
     }
   ],
   "open": [

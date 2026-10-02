@@ -28,14 +28,16 @@ export async function matchMeteringPointForAutomation(input: EdielMatchInput): P
   const normalizedValues = unique(values.map(normalizeDigits))
   if (values.length === 0 && normalizedValues.length === 0) return []
 
+  // A national metering point can belong to several tenants over time. Without
+  // a resolved company, a lookup would return other tenants' customers.
+  const companyId = input.companyId ?? input.message.company_id ?? null
+  if (!companyId) return []
+
   let query = supabaseService
     .from('metering_points')
     .select('id, company_id, customer_id, site_id, grid_owner_id, meter_point_id, metering_point_id, normalized_metering_point_id, site_facility_id, ediel_reference, status')
+    .eq('company_id', companyId)
     .limit(20)
-
-  if (input.companyId ?? input.message.company_id) {
-    query = query.eq('company_id', input.companyId ?? input.message.company_id)
-  }
 
   const filters: string[] = []
   for (const value of values) {

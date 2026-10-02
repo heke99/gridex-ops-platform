@@ -344,45 +344,32 @@ export async function pauseOpenSupplierSwitchesForLifecycleBlock(
       patch.failed_at = now
     }
 
-    const { error: updateError } = await supabase
-      .from('supplier_switch_requests')
-      .update(patch)
-      .eq('id', request.id)
-
-    if (updateError) {
-      if (!databaseShapeMissing(updateError) && updateError.code !== '23514') throw updateError
-      const fallbackPatch = {
-        status: nextStatus,
-        failure_reason: `${params.block.title}: ${params.block.reason}`,
-        updated_by: params.actorUserId,
-        updated_at: now,
-      }
-      const { error: fallbackError } = await supabase
-        .from('supplier_switch_requests')
-        .update(fallbackPatch)
-        .eq('id', request.id)
-      if (fallbackError && !databaseShapeMissing(fallbackError)) throw fallbackError
-    }
+    const { updated_at: _ignoredUpdatedAt, ...rpcPatch } = patch
+    void _ignoredUpdatedAt
+    // Status change and its lifecycle event are written in one transaction.
+    const { error: transitionError } = await supabase.rpc('gridex_transition_supplier_switch_v1', {
+      p_company_id: request.company_id,
+      p_request_id: request.id,
+      p_patch: rpcPatch,
+      p_event: {
+        event_type: 'lifecycle_blocked',
+        event_status: nextStatus,
+        message:
+          nextStatus === 'cancellation_requested'
+            ? 'Leverantörsbytet är pausat och behöver annullering mot nätägare.'
+            : 'Leverantörsbytet är stoppat innan fortsatt handläggning.',
+        payload: {
+          lifecycleBlock: params.block,
+          customerTaskId: params.customerCaseId ?? null,
+          previousStatus: request.status,
+          nextStatus,
+        },
+        created_by: params.actorUserId,
+      },
+    })
+    if (transitionError) throw transitionError
 
     pausedRequestIds.push(request.id)
-
-    await supabase.from('supplier_switch_events').insert({
-      switch_request_id: request.id,
-      company_id: params.block.companyId,
-      event_type: 'lifecycle_blocked',
-      event_status: nextStatus,
-      message:
-        nextStatus === 'cancellation_requested'
-          ? 'Leverantörsbytet är pausat och behöver annullering mot nätägare.'
-          : 'Leverantörsbytet är stoppat innan fortsatt handläggning.',
-      payload: {
-        lifecycleBlock: params.block,
-        customerTaskId: params.customerCaseId ?? null,
-        previousStatus: request.status,
-        nextStatus,
-      },
-      created_by: params.actorUserId,
-    })
   }
 
   return { paused: pausedRequestIds.length, requestIds: pausedRequestIds }

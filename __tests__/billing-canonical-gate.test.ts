@@ -45,4 +45,11 @@ describe('canonical billing gate', () => {
     const quantity = '9007199254740993.000000000000000001'
     expect(evaluateBillingGate({ normalizedValue: { ...value, quantity_kwh: quantity, billing_source_basis: { ...value.billing_source_basis, quantityKwh: quantity } }, supplyPeriod: supply, contract, sourceMessage }).eligible).toBe(true)
   })
+
+  it('bills an ended supply period up to its end date, never an open-ended one', () => {
+    const ended = { ...supply, status: 'ended', end_date: '2026-06-30' }
+    expect(evaluateBillingGate({ normalizedValue: value, supplyPeriod: ended, supplyPeriodCandidateCount: 1, contract, contractCandidateCount: 1, sourceMessage }).status).toBe('eligible')
+    const openEnded = evaluateBillingGate({ normalizedValue: value, supplyPeriod: { ...ended, end_date: null }, supplyPeriodCandidateCount: 1, contract, contractCandidateCount: 1, sourceMessage })
+    expect(openEnded.reasons.map((item) => item.code)).toContain('supply_period_not_active')
+  })
 })

@@ -46,7 +46,7 @@ export type BillingReadinessResult = {
 export const BILLABLE_CONTRACT_STATUSES = new Set(['active'])
 
 /** Supply-period statuses that count as active/confirmed delivery. */
-export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner'])
+export const BILLABLE_SUPPLY_PERIOD_STATUSES = new Set(['active', 'confirmed_by_grid_owner', 'ended'])
 
 const PRICE_AREAS = new Set(['SE1', 'SE2', 'SE3', 'SE4'])
 
@@ -402,7 +402,9 @@ export function evaluateBillingReadinessCore(input: BillingReadinessInput): Bill
     })
   }
   const activeSupplyPeriods = (input.supplyPeriods ?? []).filter((period) => {
-    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(clean(period.status)?.toLowerCase() ?? '')) return false
+    const status = clean(period.status)?.toLowerCase() ?? ''
+    if (!BILLABLE_SUPPLY_PERIOD_STATUSES.has(status)) return false
+    if (status === 'ended' && !clean(period.end_date)) return false
     if (clean(period.company_id) && clean(period.company_id) !== input.companyId) return false
     if (
       clean(period.customer_id) &&

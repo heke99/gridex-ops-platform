@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(path, 'utf8')
-// Release generator migration anchor: 2026-10-01.1
+// Release generator migration anchor: 2026-10-02.2
 
 describe('public pricing and settlement semantics', () => {
   it('keeps the current API contract while making customer website quotes non-expiring', () => {
@@ -13,7 +13,7 @@ describe('public pricing and settlement semantics', () => {
     const developerLayout = read('app/developers/customer-portal-api/layout.tsx')
     const developerTemplate = read('app/developers/customer-portal-api/template.tsx')
 
-    expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-01.1'")
+    expect(contract).toContain("WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-02.2'")
     expect(apiTypes).toContain('valid_until: string')
     expect(apiTypes).toContain('valid_to: string | null')
     expect(projector).toContain('valid_until: validUntil')

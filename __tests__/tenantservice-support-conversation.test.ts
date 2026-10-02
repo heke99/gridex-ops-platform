@@ -28,8 +28,10 @@ function builder(table: string) {
   let patch: Row = {}
   let limit: number | null = null
   let ascending = true
+  let head = false
   const api: Record<string, unknown> = {
-    select: () => api,
+    select: (_columns?: string, options?: { head?: boolean }) => { head = Boolean(options?.head); return api },
+    gte: (field: string, value: string) => { filters.push((row) => String(readPath(row, field)) >= value); return api },
     eq: (field: string, value: unknown) => { filters.push((row) => readPath(row, field) === value); return api },
     in: (field: string, values: unknown[]) => { filters.push((row) => values.includes(readPath(row, field))); return api },
     contains: (field: string, value: Row) => {
@@ -57,7 +59,10 @@ function builder(table: string) {
     },
     single: async () => ({ data: (api.rows as () => Row[])()[0] ?? null, error: null }),
     maybeSingle: async () => ({ data: (api.rows as () => Row[])()[0] ?? null, error: null }),
-    then: (resolve: (value: unknown) => unknown) => resolve({ data: (api.rows as () => Row[])(), error: null }),
+    then: (resolve: (value: unknown) => unknown) => {
+      const rows = (api.rows as () => Row[])()
+      return resolve({ data: head ? null : rows, count: rows.length, error: null })
+    },
   }
   return api
 }
@@ -227,6 +232,43 @@ describe('idempotency and lifecycle', () => {
   })
 })
 
+describe('per-customer quotas (T10)', () => {
+  it('refuses the 11th new case in a day with 429, but replays an existing idempotency key', async () => {
+    const support = await import('@/lib/customer-service/supportConversation')
+    for (let i = 0; i < support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay; i += 1) await openCase(`quota-${i}`)
+    await expect(openCase('quota-over')).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
+    const replay = await openCase('quota-0')
+    expect(replay.reused).toBe(true)
+    expect(db.customer_cases).toHaveLength(support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay)
+  })
+
+  it('cases older than the window and other customers do not count', async () => {
+    const support = await import('@/lib/customer-service/supportConversation')
+    for (let i = 0; i < support.SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay; i += 1) await openCase(`old-${i}`)
+    for (const row of db.customer_cases) row.created_at = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    await expect(openCase('fresh')).resolves.toBeTruthy()
+    await expect(support.createCustomerSupportCase({
+      companyId: TENANT_A, customerId: CUSTOMER_A2, apiClientId: 'client-a', portalIdentityId: null, title: 'Annan kund', message: 'Hej', idempotencyKey: 'a2-1',
+    })).resolves.toBeTruthy()
+  })
+
+  it('refuses customer messages above the hourly quota with 429', async () => {
+    const support = await import('@/lib/customer-service/supportConversation')
+    const created = await openCase('msg-quota')
+    const send = () => support.addCustomerSupportMessage({
+      ...scopeA1, caseReference: created.case.case_reference, apiClientId: 'client-a', portalIdentityId: null, message: 'ping',
+    })
+    for (let i = 1; i < support.SUPPORT_CUSTOMER_QUOTAS.messagesPerHour; i += 1) await send()
+    await expect(send()).rejects.toMatchObject({ code: 'support_quota_exceeded', status: 429 })
+  })
+
+  it('the API maps the quota error to HTTP 429', async () => {
+    const { toSupportApiError } = await import('@/lib/customer-service/supportApi')
+    const { SupportConversationError } = await import('@/lib/customer-service/supportConversation')
+    expect(toSupportApiError(new SupportConversationError('support_quota_exceeded', 'x', 429))).toMatchObject({ status: 429, code: 'support_quota_exceeded' })
+  })
+})
+
 describe('OPS adapters', () => {
   const actions = readFileSync('app/admin/customer-cases/actions.ts', 'utf8')
   it('every support action requires cases.write and refuses a tenant switched in another tab', () => {
@@ -234,15 +276,17 @@ describe('OPS adapters', () => {
     expect(actions).toContain('expected_company_id')
     expect(actions.match(/assertFormTenant\(/g)?.length).toBeGreaterThanOrEqual(3)
   })
-  it('API routes are thin adapters mounted with the 2026-10-01.1 contract release', async () => {
+  it('API routes are thin adapters mounted with the current (2026-10-02.2) contract release', async () => {
     const route = readFileSync('app/api/v1/customer/support/cases/route.ts', 'utf8')
     expect(route).toContain("from '@/lib/customer-service/supportApiHandlers'")
     const spec = JSON.parse(readFileSync('docs/openapi/customer-portal-v1.json', 'utf8'))
-    expect(spec.info.version).toBe('2026-10-01.1')
+    expect(spec.info.version).toBe('2026-10-02.2')
     expect(Object.keys(spec.paths)).toEqual(expect.arrayContaining([
       '/api/v1/customer/support/cases',
       '/api/v1/customer/support/cases/{reference}',
       '/api/v1/customer/support/cases/{reference}/messages',
+      '/api/v1/customer/support/cases/{reference}/attachments',
+      '/api/v1/customer/support/cases/{reference}/attachments/{attachmentReference}',
     ]))
     const serialized = JSON.stringify(spec.components.schemas.CustomerSupportMessage)
     expect(serialized).not.toContain('internal')

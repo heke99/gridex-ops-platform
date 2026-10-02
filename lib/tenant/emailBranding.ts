@@ -1,3 +1,4 @@
+import type { EmailAttachment } from '@/lib/email/providers/types';
 import { supabaseService } from "@/lib/supabase/service";
 import { getBaseAppUrl } from "@/lib/auth/urls";
 import { createCommunicationLog } from "@/lib/email/communicationLogs";
@@ -163,6 +164,7 @@ export async function queueTenantEmail(input: {
   textBody?: string | null;
   redirectUrl?: string | null;
   actorUserId?: string | null;
+  attachments?: EmailAttachment[];
 }) {
   const [branding, sender] = await Promise.all([
     getTenantEmailBranding(input.companyId),
@@ -200,6 +202,7 @@ export async function queueTenantEmail(input: {
     html: input.htmlBody,
     text: input.textBody ?? null,
     redirectUrl: input.redirectUrl ?? null,
+    attachments: input.attachments ?? [],
     brandingSnapshot: {
       ...branding,
       sender_mode: sender.mode,

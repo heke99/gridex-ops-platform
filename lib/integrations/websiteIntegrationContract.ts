@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-01.1' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-02.2' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -31,6 +31,17 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  * customer_support.read/.write). Customer-portal mutations require an actively
  * linked portal user: identifier-only matches (customer number or e-mail) are
  * rejected with customer_identity_binding_required, and reads never create links.
+ */
+
+/**
+ * 2026-10-02.1 adds support-case attachments for customers
+ * (`/api/v1/customer/support/cases/{reference}/attachments*`): raw-body upload of PDF/PNG/JPEG
+ * (≤ 4 MB) into quarantine, release only after a content check, SHA-256 re-verified downloads.
+ */
+
+/**
+ * 2026-10-02.2 documents the optional `x-gridex-customer-assertion` header (verified customer
+ * login, configured per tenant in OPS) on every customer API operation, and its 403 outcomes.
  */
 
 /**

@@ -113,3 +113,12 @@ describe('P2b transaction migration', () => {
     expect(sql).not.toMatch(/\b(DELETE|DROP|TRUNCATE)\b/)
   })
 })
+
+describe('F13: profile automation enqueue is awaited', () => {
+  it('never leaves the enqueue as a floating promise in the serverless route', async () => {
+    const { readFileSync } = await import('node:fs')
+    const route = readFileSync('app/api/v1/customer/profile-update/route.ts', 'utf8')
+    expect(route).not.toMatch(/void\s+enqueueCustomerDataRequestAutomation/)
+    expect(route).toMatch(/await enqueueCustomerDataRequestAutomation\(/)
+  })
+})

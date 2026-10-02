@@ -8,14 +8,15 @@ export async function matchPermissionForAutomation(input: EdielMatchInput): Prom
   const permissionId = cleanMatchText(canonical.permissionId)
   if (!permissionId) return []
 
+  // Never search another tenant's permissions when the company is unresolved.
+  const companyId = input.companyId ?? input.message.company_id ?? null
+  if (!companyId) return []
+
   let query = supabaseService
     .from('ediel_permissions')
     .select('id, company_id, permission_reference, external_permission_id, metering_point_id, customer_id, site_id, status, valid_from, valid_to')
+    .eq('company_id', companyId)
     .limit(20)
-
-  if (input.companyId ?? input.message.company_id) {
-    query = query.eq('company_id', input.companyId ?? input.message.company_id)
-  }
 
   query = query.or(`permission_reference.eq.${permissionId},external_permission_id.eq.${permissionId},id.eq.${permissionId}`)
 

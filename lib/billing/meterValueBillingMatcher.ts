@@ -121,7 +121,7 @@ export async function updateMeterValueBillingReadiness(params: {
     .select('*')
     .eq('company_id', companyId)
     .eq('metering_point_id', meteringPointId)
-    .in('status', ['active', 'confirmed_by_grid_owner'])
+    .in('status', ['active', 'confirmed_by_grid_owner', 'ended'])
     .lte('start_date', periodStart)
     .or(`end_date.is.null,end_date.gte.${periodEnd}`)
     .limit(3)

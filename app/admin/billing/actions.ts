@@ -1,5 +1,6 @@
 'use server'
 
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -28,8 +29,7 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     .maybeSingle()
   if (company.error) throw company.error
   if (!company.data) throw new Error('Tenant saknas.')
-  if (company.data.invoice_export_target_system !== 'capway_aptic') throw new Error('Canonical fakturapartner är inte konfigurerad som Capway/Aptic.')
-  const environment = company.data.billing_provider_environment === 'production' ? 'production' : 'test'
+  const { environment, provider } = requireTenantInvoiceProvider(company.data)
 
   // Refresh first so meter values that arrived since the page loaded can make
   // only the affected customers reviewable. Already-reserved invoices are
@@ -38,6 +38,7 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     companyId,
     billingMonth,
     environment,
+    provider,
     actorUserId: user.id,
   })
 
@@ -54,5 +55,6 @@ export async function approveAndSendReadyInvoicesAction(formData: FormData) {
     failed: String(result.failed),
     approved: String(result.approved),
   })
+  if (result.approveOnly) query.set('mode', 'file')
   redirect(`/admin/billing?${query.toString()}`)
 }

@@ -67,7 +67,12 @@ export async function GET(request: NextRequest) {
   const requiredScopes = query.diagnostics
     ? ['website_contracts.read', 'website_contracts.diagnostics']
     : ['website_contracts.read']
+  // Phase timings (ms) recorded in the request log only, to locate latency before optimizing.
+  const timings: Record<string, number> = {}
+  let phaseStart = Date.now()
+  const lap = (phase: string) => { const now = Date.now(); timings[phase] = now - phaseStart; phaseStart = now }
   const auth = await requireIntegrationApiAccess(request, requiredScopes)
+  lap('auth')
   if (!auth.ok) {
     await logIntegrationApiRequest({ client: auth.client ?? null, request, statusCode: auth.status, startedAt, errorCode: auth.errorCode })
     const headers = new Headers({
@@ -86,6 +91,7 @@ export async function GET(request: NextRequest) {
       p_channel: 'website',
     })
     if (fingerprintError) throw fingerprintError
+    lap('fingerprint')
     const fingerprintRow = (Array.isArray(fingerprintRows) ? fingerprintRows[0] : fingerprintRows) as {
       fingerprint?: string | null
     } | null
@@ -107,7 +113,7 @@ export async function GET(request: NextRequest) {
         request,
         statusCode: 304,
         startedAt,
-        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint },
+        metadata: { request_id: currentRequestId, feed_fingerprint: fingerprint, timings_ms: timings },
       })
       return new NextResponse(null, { status: 304, headers: earlyHeaders })
     }
@@ -120,6 +126,7 @@ export async function GET(request: NextRequest) {
       loadExternalTenantContext(auth.client),
       loadPublicContracts({ client: auth.client, customerType: query.customerType }),
     ])
+    lap('load')
     currentTenantReference = tenant.tenant_reference
     const organizationReference = publicOrganizationReference(tenant.tenant_reference)
     if (!organizationReference) throw new Error('PUBLIC_ORGANIZATION_REFERENCE_UNAVAILABLE')
@@ -270,6 +277,7 @@ export async function GET(request: NextRequest) {
       ...(diagnosticsPayload ? { diagnostics: diagnosticsPayload } : {}),
     })
     const responseEtag = query.diagnostics ? representationEtag : fingerprintEtag
+    lap('build')
     headers.ETag = responseEtag
 
     if (!query.diagnostics && ifNoneMatchMatches(request, responseEtag)) {
@@ -300,6 +308,7 @@ export async function GET(request: NextRequest) {
         diagnostics: query.diagnostics,
         publication_revision: revision.revision,
         representation_etag: responseEtag,
+        timings_ms: timings,
       },
     })
     await scheduleUsageEvent({

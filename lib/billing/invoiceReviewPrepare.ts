@@ -1,4 +1,5 @@
 import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
+import type { DispatchProvider } from '@/lib/billing/providers/registry'
 import { resolveInvoiceDeliveryFor, type InvoiceDeliveryContract, type InvoiceDeliveryCustomer } from '@/lib/billing/effectiveInvoiceDelivery'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
@@ -211,6 +212,7 @@ async function createDraft(input: {
   companyId: string
   billingMonth: string
   environment: 'test' | 'production'
+  provider: DispatchProvider
   actorUserId: string | null
   underlay: Row
   contract: Row
@@ -240,7 +242,7 @@ async function createDraft(input: {
   const runId = randomUUID()
   const itemId = randomUUID()
   const now = new Date().toISOString()
-  const canonicalKey = `invoice-review:capway_aptic:${input.companyId}:${underlayId}:${pricing.pricingRunId}`
+  const canonicalKey = `invoice-review:${input.provider}:${input.companyId}:${underlayId}:${pricing.pricingRunId}`
   const runKey = `invoice-review-run:${canonicalKey}`
   const approval = { status: 'pending_review', prepared_at: now, prepared_by: input.actorUserId, calculation_snapshot_sha256: calculationHash }
   const invoiceAddress = {
@@ -293,7 +295,7 @@ async function createDraft(input: {
     id: runId,
     company_id: input.companyId,
     period_month: input.billingMonth,
-    target_system: 'capway_aptic',
+    target_system: input.provider,
     export_format: 'json',
     status: 'ready',
     rows_total: 1,
@@ -322,7 +324,7 @@ async function createDraft(input: {
     period_end: text(input.underlay.billing_period_end),
     total_kwh: num(input.underlay.total_kwh) ?? 0,
     currency: text(input.underlay.currency) ?? 'SEK',
-    provider: 'capway_aptic',
+    provider: input.provider,
     environment: input.environment,
     financing_mode: 'invoice_service',
     amount_ex_vat: pricing.subtotalSekExVat,
@@ -348,7 +350,7 @@ async function createDraft(input: {
     p_run: {
       id: runId,
       company_id: input.companyId,
-      provider: 'capway_aptic',
+      provider: input.provider,
       environment: input.environment,
       billing_month: input.billingMonth,
       financing_mode: 'invoice_service',
@@ -424,6 +426,8 @@ export async function prepareInvoiceDraftsForReview(input: {
   companyId: string
   billingMonth: string
   environment?: 'test' | 'production'
+  /** The tenant's selected invoice provider; the run is prepared for exactly this provider. */
+  provider?: DispatchProvider
   actorUserId?: string | null
   customerId?: string | null
   billingUnderlayId?: string | null
@@ -469,6 +473,7 @@ export async function prepareInvoiceDraftsForReview(input: {
         companyId: input.companyId,
         billingMonth: input.billingMonth,
         environment: input.environment ?? 'test',
+        provider: input.provider ?? 'capway_aptic',
         actorUserId: input.actorUserId ?? null,
         underlay,
         contract,

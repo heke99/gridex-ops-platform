@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatAdminDateTime } from '@/lib/ui/format'
 import { prepareEdielTestCenterRunAction, releaseEdielTestRunLockAction } from '@/app/admin/ediel/test-center/actions'
 
 export const dynamic = 'force-dynamic'
@@ -57,39 +58,34 @@ async function listRecentRuns(): Promise<{
   runs: RecentRunRow[]
   warning: string | null
 }> {
-  const rich = await supabaseService
+  const { data, error } = await supabaseService
     .from('ediel_test_runs')
     .select('id,company_id,test_case_code,test_suite,role_code,status,environment_type,encryption_mode,certificate_fingerprint_sha256,route_profile_id,created_at,failure_reason')
     .order('created_at', { ascending: false })
     .limit(8)
 
-  if (!rich.error) return { runs: (rich.data ?? []) as RecentRunRow[], warning: null }
-
-  const legacy = await supabaseService
-    .from('ediel_test_runs')
-    .select('id,company_id,test_case_code,test_suite,role_code,status,created_at,failure_reason')
-    .order('created_at', { ascending: false })
-    .limit(8)
-
-  if (legacy.error) {
-    return { runs: [], warning: `Kunde inte läsa senaste test-runs: ${legacy.error.message}` }
-  }
-
-  return {
-    runs: (legacy.data ?? []) as RecentRunRow[],
-    warning: 'Databasen saknar nya test-run transportkolumner. Gamla AGT/Systemtester fungerar, men kör senaste migrationen för att visa krypteringsmetadata här.',
-  }
+  if (error) return { runs: [], warning: `Kunde inte läsa senaste testkörningar: ${error.message}` }
+  return { runs: (data ?? []) as RecentRunRow[], warning: null }
 }
 
-async function listActiveLocks(): Promise<ActiveLockRow[]> {
+async function listActiveLocks(): Promise<{ locks: ActiveLockRow[]; warning: string | null }> {
   const { data, error } = await supabaseService
-    .from('ediel_test_run_locks')
+    .from('ediel_test_run_locks' as never)
     .select('id,company_id,actor_role,message_family,environment_type,locked_at,expires_at')
     .is('released_at', null)
     .order('locked_at', { ascending: false })
     .limit(20)
-  if (error) return []
-  return (data ?? []) as ActiveLockRow[]
+  if (error) return { locks: [], warning: `Kunde inte läsa aktiva testlås: ${error.message}` }
+  return { locks: (data ?? []) as unknown as ActiveLockRow[], warning: null }
+}
+
+const RUN_STATUS_LABELS: Record<string, string> = {
+  draft: 'Utkast',
+  running: 'Pågår',
+  passed: 'Godkänd',
+  failed: 'Misslyckad',
+  cancelled: 'Avbruten',
+  completed: 'Klar',
 }
 
 export default async function EdielTestCenterPage({ searchParams }: TestCenterPageProps) {
@@ -97,7 +93,7 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
   const resolvedSearchParams = await searchParams
   const runStatus = resolvedSearchParams?.runStatus === 'success' ? 'success' : resolvedSearchParams?.runStatus === 'error' ? 'error' : null
   const runMessage = resolvedSearchParams?.runMessage ?? null
-  const [{ data: companies }, recentRunsResult, activeLocks] = await Promise.all([
+  const [{ data: companies }, recentRunsResult, activeLocksResult] = await Promise.all([
     supabaseService
       .from('companies')
       .select('id,name')
@@ -111,6 +107,10 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
     listActiveLocks(),
   ])
   const recentRuns = recentRunsResult.runs
+  const activeLocks = activeLocksResult.locks
+  const companyName = (id: string | null | undefined) =>
+    id ? ((companies ?? []).find((company) => company.id === id)?.name ?? 'Okänt bolag') : 'Plattform'
+  const loadWarnings = [recentRunsResult.warning, activeLocksResult.warning].filter(Boolean)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -131,11 +131,11 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
             {runMessage}
           </section>
         ) : null}
-        {recentRunsResult.warning ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
-            {recentRunsResult.warning}
+        {loadWarnings.map((warning) => (
+          <section key={warning} className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+            {warning}
           </section>
-        ) : null}
+        ))}
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h1 className="text-2xl font-black text-slate-950">Testfamiljer</h1>
           <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-slate-700">
@@ -238,7 +238,7 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
               {activeLocks.map((lock) => (
                 <div key={lock.id} className="rounded-2xl border border-amber-300 bg-white p-4">
                   <div className="font-bold text-slate-950">{lock.environment_type} · {lock.actor_role} · {lock.message_family}</div>
-                  <div className="mt-1 text-xs text-slate-600">Bolag: {lock.company_id ?? '—'} · Expires: {lock.expires_at ?? '—'}</div>
+                  <div className="mt-1 text-xs text-slate-600">Bolag: {companyName(lock.company_id)} · Går ut: {formatAdminDateTime(lock.expires_at)}</div>
                   <form action={releaseEdielTestRunLockAction} className="mt-3 flex gap-2">
                     <input type="hidden" name="lockId" value={lock.id} />
                     <input type="hidden" name="releaseReason" value="Manual release from Test Center." />
@@ -305,16 +305,20 @@ export default async function EdielTestCenterPage({ searchParams }: TestCenterPa
           <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-100 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
-                <tr><th className="p-3">Test</th><th className="p-3">Miljö</th><th className="p-3">Transport</th><th className="p-3">Route</th><th className="p-3">Status</th></tr>
+                <tr><th className="p-3">Test</th><th className="p-3">Bolag</th><th className="p-3">Miljö</th><th className="p-3">Transport</th><th className="p-3">Skapad</th><th className="p-3">Status</th></tr>
               </thead>
               <tbody>
+                {recentRuns.length === 0 ? (
+                  <tr><td colSpan={6} className="p-4 text-center text-slate-600">Inga testkörningar ännu.</td></tr>
+                ) : null}
                 {recentRuns.map((run) => (
                   <tr key={run.id} className="border-t border-slate-100">
                     <td className="p-3 font-semibold">{run.test_suite} {run.test_case_code}<div className="text-xs font-normal text-slate-500">{run.role_code}</div></td>
-                    <td className="p-3">{run.environment_type ?? 'legacy test/prod'}</td>
-                    <td className="p-3">{run.encryption_mode ?? 'none'}<div className="font-mono text-xs text-slate-500">{run.certificate_fingerprint_sha256 ?? 'utan certfingerprint'}</div></td>
-                    <td className="p-3 font-mono text-xs">{run.route_profile_id ?? 'route ej vald'}</td>
-                    <td className="p-3">{run.status}{run.failure_reason ? <div className="text-xs text-red-700">{run.failure_reason}</div> : null}</td>
+                    <td className="p-3">{companyName(run.company_id)}</td>
+                    <td className="p-3">{run.environment_type ?? '—'}</td>
+                    <td className="p-3">{run.encryption_mode === 'smime' ? 'Krypterad (S/MIME)' : run.encryption_mode ? run.encryption_mode : 'Okrypterad'}{run.route_profile_id ? null : <div className="text-xs text-slate-500">Ingen route vald</div>}</td>
+                    <td className="p-3 whitespace-nowrap">{formatAdminDateTime(run.created_at)}</td>
+                    <td className="p-3">{RUN_STATUS_LABELS[run.status] ?? run.status}{run.failure_reason ? <div className="text-xs text-red-700">{run.failure_reason}</div> : null}</td>
                   </tr>
                 ))}
               </tbody>

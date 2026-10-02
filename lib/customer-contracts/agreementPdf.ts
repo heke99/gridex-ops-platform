@@ -44,7 +44,7 @@ export type AgreementPdfInput = {
   signatureSnapshotSha256?: string | null
 }
 
-type PdfLine = {
+export type PdfLine = {
   text: string
   style?: 'title' | 'heading' | 'body' | 'small'
 }
@@ -285,7 +285,19 @@ function paginate(lines: PdfLine[]): PdfLine[][] {
 }
 
 export function buildAgreementPdfBuffer(input: AgreementPdfInput): Buffer {
-  const pages = paginate(agreementLines(input))
+  return buildLinesPdfBuffer(agreementLines(input))
+}
+
+/** Wraps free text into PDF lines of the given style (shared by all generated documents). */
+export function wrapPdfLines(text: string, style: PdfLine['style'] = 'body', maxLength = 82): PdfLine[] {
+  const lines: PdfLine[] = []
+  addWrapped(lines, text, style, maxLength)
+  return lines
+}
+
+/** Renders prepared lines into a self-contained A4 PDF (Helvetica, WinAnsi), paginated. */
+export function buildLinesPdfBuffer(lines: PdfLine[]): Buffer {
+  const pages = paginate(lines)
 
   const objects: Buffer[] = []
   const addObject = (body: Buffer | string) => {

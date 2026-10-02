@@ -1,5 +1,5 @@
 // Synthetic reference integration for an organization's own support page ("Mina sidor").
-// Server-side only: GRIDEX_API_KEY must never reach the browser. Contract 2026-10-01.1.
+// Server-side only: GRIDEX_API_KEY must never reach the browser. Contract 2026-10-02.2.
 //
 // Flow: the organization's backend authenticates its end customer itself, then calls Gridex on
 // that customer's behalf with the linked portal user id. Gridex only returns content that staff

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,8 +57,8 @@ function statusTone(status: string | null): string {
 }
 
 function Pill({ value }: { value: string | null | undefined }) {
-  const label = value && value.length > 0 ? value : '–'
-  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(label)}`}>{label}</span>
+  const raw = value && value.length > 0 ? value : '–'
+  return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusTone(raw)}`}>{formatStatusLabel(value, '–')}</span>
 }
 
 async function listCompanies(): Promise<CompanyRow[]> {

@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import type { Database, Json } from '@/supabase/database.types'
 
 // Generated Args mark every parameter non-null; the SQL function accepts null for the optional ones.
@@ -54,6 +55,103 @@ function mapError(error: { code?: string; message?: string }): Error {
   return Object.assign(new Error(message || 'contact_change_failed'), { code: error.code })
 }
 
+type ContactChangeInput = {
+  companyId: string
+  customerId: string
+  actor: ContactChangeActor
+  channel: 'ops' | 'customer_api' | 'phone'
+  expectedUpdatedAt: string | null
+  customerPatch: Record<string, unknown>
+  contactPatch: Record<string, string | null>
+  idempotencyKey?: string | null
+}
+
+/** The RPC is not deployed in this database yet (migration 20261001210000 not applied). */
+function isMissingFunction(error: { code?: string; message?: string }): boolean {
+  return error.code === 'PGRST202' || error.code === '42883' ||
+    (error.message ?? '').includes('gridex_customer_contact_change_v1') && /could not find|does not exist/i.test(error.message ?? '')
+}
+
+/**
+ * Deploy-safety fallback until the migration is applied in a given database: the previous
+ * sequential behaviour (version-locked customer update, primary contact, fail-closed audit).
+ * Remove once every environment has migration 20261001210000.
+ */
+async function applySequentialContactChange(input: ContactChangeInput): Promise<ContactChangeResult> {
+  const existing = await tenantSelect(input.companyId, 'customers', '*').eq('id', input.customerId).maybeSingle()
+  if (existing.error) throw existing.error
+  const before = existing.data as Record<string, unknown> | null
+  if (!before) throw new ContactChangeTransactionError('not_found', 'Kunden hittades inte för aktuell tenant.')
+  if (String(before.status ?? '').toLowerCase() === 'archived') {
+    throw new ContactChangeTransactionError('customer_archived', 'Arkiverad kund kan inte ändras via vanlig profil.')
+  }
+  if (input.expectedUpdatedAt && String(before.updated_at ?? '') !== input.expectedUpdatedAt) {
+    throw new ContactChangeTransactionError('version_conflict', 'Kunden ändrades samtidigt. Hämta profilen och försök igen.')
+  }
+  const changes: ContactChangeResult['changes'] = {}
+  for (const [key, value] of Object.entries(input.customerPatch)) {
+    if (JSON.stringify(before[key] ?? null) !== JSON.stringify(value ?? null)) changes[key] = { from: before[key] ?? null, to: value ?? null }
+  }
+  let updatedAt = typeof before.updated_at === 'string' ? before.updated_at : null
+  if (Object.keys(changes).length > 0) {
+    let update = tenantUpdate(input.companyId, 'customers', { ...input.customerPatch, updated_at: new Date().toISOString() })
+      .eq('id', input.customerId)
+    if (updatedAt) update = update.eq('updated_at', updatedAt)
+    const result = await update.select('id,updated_at').maybeSingle()
+    if (result.error) throw result.error
+    if (!result.data) throw new ContactChangeTransactionError('version_conflict', 'Kunden ändrades samtidigt. Hämta profilen och försök igen.')
+    updatedAt = String((result.data as Record<string, unknown>).updated_at ?? updatedAt)
+  }
+  const contactChanges: Record<string, unknown> = {}
+  if (Object.keys(input.contactPatch).length > 0) {
+    const contact = await tenantSelect(input.companyId, 'customer_contacts', 'id,name,email,phone')
+      .eq('customer_id', input.customerId).eq('is_primary', true)
+      .order('created_at', { ascending: true }).limit(1).maybeSingle()
+    if (contact.error) throw contact.error
+    const primary = contact.data as Record<string, unknown> | null
+    if (primary?.id) {
+      for (const [key, value] of Object.entries(input.contactPatch)) {
+        if ((primary[key] ?? null) !== (value ?? null)) contactChanges[key] = { from: primary[key] ?? null, to: value ?? null }
+      }
+      if (Object.keys(contactChanges).length > 0) {
+        const updated = await tenantUpdate(input.companyId, 'customer_contacts', input.contactPatch)
+          .eq('id', String(primary.id)).eq('customer_id', input.customerId)
+        if (updated.error) throw updated.error
+      }
+    } else {
+      const inserted = await tenantInsert(input.companyId, 'customer_contacts', {
+        customer_id: input.customerId, type: 'primary', title: null, is_primary: true,
+        name: input.contactPatch.name ?? null, email: input.contactPatch.email ?? null, phone: input.contactPatch.phone ?? null,
+      })
+      if (inserted.error) throw inserted.error
+      contactChanges.created = true
+    }
+  }
+  if (Object.keys(changes).length === 0 && Object.keys(contactChanges).length === 0) {
+    return { replayed: false, changed: false, domainEventId: null, customerUpdatedAt: updatedAt, changes, primaryContactChanges: contactChanges }
+  }
+  const staff = input.actor.kind === 'staff' ? input.actor : null
+  const portal = input.actor.kind === 'customer_portal' ? input.actor : null
+  const audit = await tenantInsert(input.companyId, 'audit_logs', {
+    actor_user_id: staff?.userId ?? null,
+    entity_type: 'customer',
+    entity_id: input.customerId,
+    action: 'customer_profile_updated',
+    old_values: Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v.from])),
+    new_values: Object.fromEntries(Object.entries(changes).map(([k, v]) => [k, v.to])),
+    metadata: {
+      channel: input.channel,
+      actor_type: staff ? 'staff' : 'customer_portal_account',
+      api_client_id: portal?.apiClientId ?? null,
+      portal_identity_id: portal?.portalIdentityId ?? null,
+      primary_contact_changes: contactChanges,
+      transaction: 'sequential_fallback',
+    },
+  })
+  if (audit.error) throw audit.error
+  return { replayed: false, changed: true, domainEventId: null, customerUpdatedAt: updatedAt, changes, primaryContactChanges: contactChanges }
+}
+
 export async function applyCustomerContactChange(input: {
   companyId: string
   customerId: string
@@ -79,7 +177,13 @@ export async function applyCustomerContactChange(input: {
     p_contact_patch: input.contactPatch as Json,
     p_idempotency_key: input.idempotencyKey ?? null,
   } as unknown as ContactChangeArgs)
-  if (error) throw mapError(error)
+  if (error) {
+    if (isMissingFunction(error)) {
+      console.warn('[customer-service] contact_change_rpc_missing_fallback', { companyId: input.companyId })
+      return applySequentialContactChange(input)
+    }
+    throw mapError(error)
+  }
   const result = (data ?? {}) as Record<string, unknown>
   return {
     replayed: result.replayed === true,

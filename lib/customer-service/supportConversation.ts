@@ -41,7 +41,8 @@ export class SupportConversationError extends Error {
       | 'support_message_required'
       | 'support_case_closed'
       | 'support_title_required'
-      | 'support_phone_verification_invalid',
+      | 'support_phone_verification_invalid'
+      | 'support_quota_exceeded',
     message: string,
     readonly status = 422,
   ) {
@@ -53,6 +54,11 @@ export class SupportConversationError extends Error {
 const MESSAGE_MAX_LENGTH = 8_000
 const SUPPORT_CASE_SELECT = 'id,company_id,customer_id,status,title,description,source,metadata,created_at,updated_at,resolved_at,closed_at'
 const CLOSED_STATUSES: CustomerCaseStatus[] = ['resolved', 'cancelled', 'closed']
+
+/** Closed cases accept no new customer content (messages or attachments). */
+export function isClosedSupportCase(supportCase: Pick<SupportCaseRow, 'status'>): boolean {
+  return CLOSED_STATUSES.includes(supportCase.status)
+}
 
 type SupportCaseRow = {
   id: string
@@ -237,6 +243,46 @@ async function insertSupportEvent(input: {
   return data as unknown as SupportEventRow
 }
 
+/**
+ * Per-customer abuse quotas for the end-customer support API (threat T10). They complement the
+ * per-API-client rate limit: one customer cannot flood a tenant's support queue through the
+ * tenant's shared client. Counts come from the database, so they hold across instances.
+ */
+export const SUPPORT_CUSTOMER_QUOTAS = {
+  newCasesPerDay: 50,
+  messagesPerHour: 150,
+} as const
+
+async function assertSupportQuota(
+  scope: CustomerScope,
+  kind: 'case' | 'message',
+): Promise<void> {
+  const windowMs = kind === 'case' ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000
+  const since = new Date(Date.now() - windowMs).toISOString()
+  const query = kind === 'case'
+    ? tenantSelect(scope.companyId, 'customer_cases', 'id', { count: 'exact', head: true })
+        .eq('customer_id', scope.customerId)
+        .eq('metadata->>support_case', 'true')
+        .eq('metadata->>opened_by', 'customer')
+        .gte('created_at', since)
+    : tenantSelect(scope.companyId, 'customer_case_events', 'id', { count: 'exact', head: true })
+        .eq('customer_id', scope.customerId)
+        .eq('event_type', SUPPORT_EVENT_TYPES.customerMessage)
+        .gte('created_at', since)
+  const { count, error } = await query
+  if (error) throw error
+  const limit = kind === 'case' ? SUPPORT_CUSTOMER_QUOTAS.newCasesPerDay : SUPPORT_CUSTOMER_QUOTAS.messagesPerHour
+  if ((count ?? 0) >= limit) {
+    throw new SupportConversationError(
+      'support_quota_exceeded',
+      kind === 'case'
+        ? 'För många nya ärenden från kunden det senaste dygnet. Försök igen senare eller kontakta kundtjänst.'
+        : 'För många meddelanden från kunden den senaste timmen. Försök igen senare.',
+      429,
+    )
+  }
+}
+
 /** The authenticated end customer opens a support case through the tenant's portal API. */
 export async function createCustomerSupportCase(input: CustomerScope & {
   apiClientId: string
@@ -250,6 +296,14 @@ export async function createCustomerSupportCase(input: CustomerScope & {
   if (!title) throw new SupportConversationError('support_title_required', 'Rubrik krävs.')
   const message = text(input.message, MESSAGE_MAX_LENGTH)
   if (!message) throw new SupportConversationError('support_message_required', 'Meddelande krävs.')
+  // A retry with an idempotency key that already created a case replays it; it never counts
+  // against (or is refused by) the new-case quota.
+  const existing = await tenantSelect(input.companyId, 'customer_cases', 'id')
+    .eq('customer_id', input.customerId)
+    .eq('metadata->>support_idempotency_key', input.idempotencyKey)
+    .limit(1)
+  if (existing.error) throw existing.error
+  if ((existing.data ?? []).length === 0) await assertSupportQuota(input, 'case')
 
   const created = await createTenantSupportCase({
     companyId: input.companyId,
@@ -309,6 +363,7 @@ export async function addCustomerSupportMessage(input: CustomerScope & {
   if (CLOSED_STATUSES.includes(supportCase.status)) {
     throw new SupportConversationError('support_case_closed', 'Ärendet är avslutat. Skapa ett nytt ärende.', 409)
   }
+  await assertSupportQuota(input, 'message')
   const row = await insertSupportEvent({
     companyId: input.companyId,
     customerId: input.customerId,

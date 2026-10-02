@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { CUSTOMER_ASSERTION_HEADER, gateCustomerAssertion } from '@/lib/customer-portal/customerAssertion'
 import { NextRequest, NextResponse } from 'next/server'
 import {
   currentIntegrationApiResponseContext,
@@ -218,6 +219,27 @@ function bindingRequiredError() {
   )
 }
 
+/** Tenantservice P1c: the tenant's own setting decides whether a signed customer assertion is required. */
+async function customerAssertionGate(
+  request: NextRequest,
+  client: IntegrationApiClient,
+  identity: LinkedPortalIdentity,
+): Promise<{ ok: true } | { ok: false; status: number; error: string; code: string }> {
+  const gate = await gateCustomerAssertion({
+    companyId: client.company_id,
+    clientId: client.id,
+    token: request.headers.get(CUSTOMER_ASSERTION_HEADER),
+    expectedSubject: identity.customer_portal_user_id ?? identity.auth_user_id,
+  })
+  if (gate.allowed) return { ok: true }
+  return {
+    ok: false,
+    status: 403,
+    error: 'Kundens inloggning kunde inte verifieras. Skicka en giltig, signerad kundintygelse i x-gridex-customer-assertion.',
+    code: gate.reason === 'missing' ? 'customer_assertion_required' : 'customer_assertion_invalid',
+  }
+}
+
 export async function requireCustomerPortalApiContextForIdentifiers(
   request: NextRequest,
   identifiers: Partial<CustomerPortalIdentifiers>,
@@ -250,6 +272,12 @@ export async function requireCustomerPortalApiContextForIdentifiers(
   if (!bindingGate(request.method, resolution.binding, options, auth.client)) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 403, startedAt, errorCode: 'customer_identity_binding_required' })
     return { ok: false, response: bindingRequiredError(), startedAt }
+  }
+
+  const assertion = await customerAssertionGate(request, auth.client, resolution.customer)
+  if (!assertion.ok) {
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: assertion.status, startedAt, errorCode: assertion.code })
+    return { ok: false, response: jsonError(assertion.error, assertion.status, assertion.code), startedAt }
   }
 
   return { ok: true, client: auth.client, identity: resolution.customer, startedAt }
@@ -302,6 +330,12 @@ export async function requireCustomerPortalApiContext(
       metadata: { ...portalIdentifiersFromRequest(request) },
     })
     return { ok: false, response: jsonError(identity.error, identity.status, identity.code), startedAt }
+  }
+
+  const assertion = await customerAssertionGate(request, auth.client, identity.identity)
+  if (!assertion.ok) {
+    await logIntegrationApiRequest({ client: auth.client, request, statusCode: assertion.status, startedAt, errorCode: assertion.code })
+    return { ok: false, response: jsonError(assertion.error, assertion.status, assertion.code), startedAt }
   }
 
   return { ok: true, client: auth.client, identity: identity.identity, startedAt }

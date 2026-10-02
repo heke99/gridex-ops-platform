@@ -232,7 +232,8 @@ export function hashOnlineSignatureToken(token: string): string {
   return createHash("sha256").update(normalized, "utf8").digest("hex");
 }
 
-function evidenceIpHash(ipAddress: string | null | undefined): string | null {
+/** HMAC of the client IP for evidence (the raw IP is never stored). Shared by signing and approvals. */
+export function evidenceIpHash(ipAddress: string | null | undefined): string | null {
   const ip = ipAddress?.trim();
   if (!ip) return null;
   const secret =

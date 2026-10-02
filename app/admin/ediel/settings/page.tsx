@@ -205,18 +205,16 @@ export default async function AdminEdielSettingsPage() {
 
   let actorSettingsQuery = supabase.from("ediel_actor_settings").select("*");
 
-  if (!isPlatformAdmin) {
-    if (companyScope.companyId) {
-      actorSettingsQuery = actorSettingsQuery.eq(
-        "company_id",
-        companyScope.companyId,
-      );
-    } else {
-      actorSettingsQuery = actorSettingsQuery.eq(
-        "company_id",
-        "00000000-0000-0000-0000-000000000000",
-      );
-    }
+  if (companyScope.companyId) {
+    actorSettingsQuery = actorSettingsQuery.eq(
+      "company_id",
+      companyScope.companyId,
+    );
+  } else if (!isPlatformAdmin) {
+    actorSettingsQuery = actorSettingsQuery.eq(
+      "company_id",
+      "00000000-0000-0000-0000-000000000000",
+    );
   }
 
   const [actorSettingsResult, messageRulesResult] = await Promise.all([
