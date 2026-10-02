@@ -50208,7 +50208,7 @@ export type Database = {
           agreement_reference: string | null
           agreement_scope: string
           agreement_type: string
-          company_id: string | null
+          company_id: string
           created_at: string
           created_by: string | null
           document_id: string | null
@@ -50239,7 +50239,7 @@ export type Database = {
           agreement_reference?: string | null
           agreement_scope?: string
           agreement_type?: string
-          company_id?: string | null
+          company_id: string
           created_at?: string
           created_by?: string | null
           document_id?: string | null
@@ -50270,7 +50270,7 @@ export type Database = {
           agreement_reference?: string | null
           agreement_scope?: string
           agreement_type?: string
-          company_id?: string | null
+          company_id?: string
           created_at?: string
           created_by?: string | null
           document_id?: string | null

@@ -64599,7 +64599,7 @@ CREATE TABLE public.grid_area_mappings (
 
 CREATE TABLE public.grid_owner_access_agreements (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
+    company_id uuid NOT NULL,
     grid_owner_id uuid,
     agreement_type text DEFAULT 'metering_access'::text NOT NULL,
     agreement_scope text DEFAULT 'metering_access'::text NOT NULL,
