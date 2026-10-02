@@ -109,3 +109,8 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Fix from CI: tenant invariant F-8/F-10 → attachment unique keys are now (company_id, public_reference) and (company_id, storage_path). Migration edited in place (never applied anywhere); checksum updated.
 - Ediel `ediel-document-reference-native` root cause (likely): app clock vs DB clock skew made startedAt < attempt.recorded_at → observe rejected → 1 attempt / 0 outcomes. Fix: `alignObservationToAttempt` in lib/ediel/sources/documentReferenceCapture.ts (+ unit test). If it still fails, investigate further.
 - Next: merge #433 when green → apply 20261002100000 in production (verify md5/RLS/grants) → reset branch from main → attachments step B (customer API + OpenAPI release 2026-10-02.1) → profile public-contracts.
+
+## #434–#437 MERGED; F12 + P3 live (2026-10-02 ~afternoon UTC)
+- #434 attachments API (contract 2026-10-02.1), #435 public-contracts timings, #436 parallel reads + contract 2026-10-02.2 + F13, #437 F12 identity change (customer approval by e-mail link + PDF, takeover of binding contract requires new customer to accept contract + terms) + P3 billing profile revisions.
+- Production: migrations customer_identity_change_requests + customer_billing_profile_revisions applied. Verified: RLS on, 0 anon/authenticated grants, 5 triggers, backfill 4/4 customers at revision 1, ledger 345.
+- Next: P5b customer card restructure (fixed header + action menu, tabs Översikt/Uppgifter/Avtal & anläggningar/Fakturor/Ärenden & historik). Scheduled timings analysis 2026-10-03 (trig_019oygjwmFvjcbFofRRYwn13). node-forge before 2026-11-01.

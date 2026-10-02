@@ -24,6 +24,8 @@ import CustomerContractsCard from "@/components/admin/customers/CustomerContract
 import CustomerContactsAddressesCard from "@/components/admin/customers/CustomerContactsAddressesCard"
 import CustomerProfileCard from "@/components/admin/customers/CustomerProfileCard"
 import CustomerIdentityChangePanel from "@/components/admin/customers/CustomerIdentityChangePanel"
+import CustomerBillingProfileHistory from "@/components/admin/customers/CustomerBillingProfileHistory"
+import { listBillingProfileRevisions } from "@/lib/customer-service/billingProfileRevisions"
 import { listCustomerIdentityChanges } from "@/lib/customer-service/identityChange"
 import { buildCustomerCardWorkflow } from "@/lib/customer-operations/customerCardWorkflow"
 import { buildTenantCustomerCardView } from "@/lib/customer-operations/customerCardTenantView"
@@ -697,9 +699,12 @@ export async function CustomerAdminDetailPage({
   const canRegisterContact = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["cases.write"] });
   const canEditCustomer = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["masterdata.write"] });
   // F12: masked identity-change history; null while the migration is not applied yet.
-  const identityChanges = activeTab === "profile" && customerCompanyId
-    ? await listCustomerIdentityChanges(customerCompanyId, id).catch(() => null)
-    : null;
+  const [identityChanges, billingRevisions] = activeTab === "profile" && customerCompanyId
+    ? await Promise.all([
+        listCustomerIdentityChanges(customerCompanyId, id).catch(() => null),
+        listBillingProfileRevisions(customerCompanyId, id).catch(() => null),
+      ])
+    : [null, null];
 
   return (
     <div className="space-y-6">
@@ -982,6 +987,7 @@ export async function CustomerAdminDetailPage({
               ) : (
                 <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">Ändring av personnummer/organisationsnummer är inte aktiverad i den här miljön än.</p>
               )}
+              {billingRevisions ? <CustomerBillingProfileHistory revisions={billingRevisions} /> : null}
               {isPlatformAdmin ? (
                 <CustomerContractOfferEligibilityCard
                   customerId={id}
