@@ -12941,6 +12941,86 @@ end;
 $$;
 
 --
+-- Name: gridex_approve_portal_claim_v1(uuid, uuid, uuid, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_now timestamptz := now();
+  v_account_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'portal_claim_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_user_id is null then
+    raise exception using errcode = '22023', message = 'portal_claim_payload_invalid';
+  end if;
+
+  perform 1 from public.customers
+  where id = p_customer_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  insert into public.customer_portal_accounts (
+    company_id, user_id, user_email, customer_id, role, is_active, activated_at, verified_at,
+    match_method, verified_identity_snapshot, updated_at
+  ) values (
+    p_company_id, p_user_id, p_account->>'user_email', p_customer_id, 'owner', true, v_now, v_now,
+    coalesce(p_account->>'match_method', 'self_claim_strict_identity'),
+    coalesce(p_account->'verified_identity_snapshot', '{}'::jsonb), v_now
+  )
+  on conflict (user_id, customer_id) where user_id is not null and customer_id is not null
+  do update set
+    company_id = excluded.company_id,
+    user_email = excluded.user_email,
+    role = excluded.role,
+    is_active = true,
+    activated_at = excluded.activated_at,
+    verified_at = excluded.verified_at,
+    match_method = excluded.match_method,
+    verified_identity_snapshot = excluded.verified_identity_snapshot,
+    updated_at = excluded.updated_at
+  where public.customer_portal_accounts.company_id is not distinct from excluded.company_id
+     or public.customer_portal_accounts.company_id is null
+  returning id into v_account_id;
+  if v_account_id is null then
+    -- An existing link for this user/customer belongs to another tenant.
+    raise exception using errcode = '42501', message = 'portal_claim_account_tenant_mismatch';
+  end if;
+
+  insert into public.customer_portal_claims (
+    user_id, company_id, user_email, customer_id, status, match_method, personal_number_last4,
+    email_matched, name_matched, personal_number_matched, installation_matched,
+    matched_site_id, matched_metering_point_id, input_snapshot, match_snapshot, reviewed_at
+  ) values (
+    p_user_id, p_company_id, p_account->>'user_email', p_customer_id, 'approved',
+    coalesce(p_claim->>'match_method', 'self_claim_strict_identity'),
+    p_claim->>'personal_number_last4',
+    true, true, true, true,
+    nullif(p_claim->>'matched_site_id', '')::uuid,
+    nullif(p_claim->>'matched_metering_point_id', '')::uuid,
+    coalesce(p_claim->'input_snapshot', '{}'::jsonb),
+    coalesce(p_claim->'match_snapshot', '{}'::jsonb),
+    v_now
+  );
+
+  insert into public.customer_portal_events (company_id, customer_id, user_id, event_type, message, metadata)
+  values (
+    p_company_id, p_customer_id, p_user_id,
+    coalesce(p_event->>'event_type', 'portal_account_verified'),
+    p_event->>'message',
+    coalesce(p_event->'metadata', '{}'::jsonb)
+  );
+
+  return jsonb_build_object('account_id', v_account_id);
+end
+$$;
+
+--
 -- Name: gridex_archive_contract_product(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -60317,7 +60397,21 @@ CREATE TABLE public.customer_portal_claims (
     expires_at timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_email text,
+    match_method text DEFAULT 'self_claim'::text NOT NULL,
+    personal_number_last4 text,
+    email_matched boolean DEFAULT false NOT NULL,
+    name_matched boolean DEFAULT false NOT NULL,
+    personal_number_matched boolean DEFAULT false NOT NULL,
+    installation_matched boolean DEFAULT false NOT NULL,
+    matched_site_id uuid,
+    matched_metering_point_id uuid,
+    failure_reason text,
+    input_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    match_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    reviewed_by uuid,
+    reviewed_at timestamp with time zone
 );
 
 --
@@ -60361,7 +60455,10 @@ CREATE TABLE public.customer_portal_events (
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    actor_user_id uuid,
+    event_status text DEFAULT 'info'::text NOT NULL,
+    message text
 );
 
 --
@@ -116996,6 +117093,13 @@ GRANT ALL ON FUNCTION public.gridex_apply_public_contract_legal_backfill_v1(p_co
 
 REVOKE ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id uuid, p_actor_setting_id uuid, p_actor_user_id uuid, p_reason text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id uuid, p_actor_setting_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -

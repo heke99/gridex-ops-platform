@@ -26120,12 +26120,26 @@ export type Database = {
           company_id: string | null
           created_at: string
           customer_id: string | null
+          email_matched: boolean
           expires_at: string | null
+          failure_reason: string | null
           id: string
+          input_snapshot: Json
+          installation_matched: boolean
+          match_method: string
+          match_snapshot: Json
+          matched_metering_point_id: string | null
+          matched_site_id: string | null
           metadata: Json
+          name_matched: boolean
+          personal_number_last4: string | null
+          personal_number_matched: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
           status: string
           token_hash: string | null
           updated_at: string
+          user_email: string | null
           user_id: string | null
         }
         Insert: {
@@ -26134,12 +26148,26 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          email_matched?: boolean
           expires_at?: string | null
+          failure_reason?: string | null
           id?: string
+          input_snapshot?: Json
+          installation_matched?: boolean
+          match_method?: string
+          match_snapshot?: Json
+          matched_metering_point_id?: string | null
+          matched_site_id?: string | null
           metadata?: Json
+          name_matched?: boolean
+          personal_number_last4?: string | null
+          personal_number_matched?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           token_hash?: string | null
           updated_at?: string
+          user_email?: string | null
           user_id?: string | null
         }
         Update: {
@@ -26148,12 +26176,26 @@ export type Database = {
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          email_matched?: boolean
           expires_at?: string | null
+          failure_reason?: string | null
           id?: string
+          input_snapshot?: Json
+          installation_matched?: boolean
+          match_method?: string
+          match_snapshot?: Json
+          matched_metering_point_id?: string | null
+          matched_site_id?: string | null
           metadata?: Json
+          name_matched?: boolean
+          personal_number_last4?: string | null
+          personal_number_matched?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           status?: string
           token_hash?: string | null
           updated_at?: string
+          user_email?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -26560,33 +26602,42 @@ export type Database = {
       }
       customer_portal_events: {
         Row: {
+          actor_user_id: string | null
           company_id: string | null
           created_at: string
           customer_id: string | null
+          event_status: string
           event_type: string
           id: string
+          message: string | null
           metadata: Json | null
           payload: Json
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          actor_user_id?: string | null
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          event_status?: string
           event_type: string
           id?: string
+          message?: string | null
           metadata?: Json | null
           payload?: Json
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          actor_user_id?: string | null
           company_id?: string | null
           created_at?: string
           customer_id?: string | null
+          event_status?: string
           event_type?: string
           id?: string
+          message?: string | null
           metadata?: Json | null
           payload?: Json
           updated_at?: string | null
@@ -91702,6 +91753,17 @@ export type Database = {
           p_reason?: string
         }
         Returns: undefined
+      }
+      gridex_approve_portal_claim_v1: {
+        Args: {
+          p_account: Json
+          p_claim: Json
+          p_company_id: string
+          p_customer_id: string
+          p_event: Json
+          p_user_id: string
+        }
+        Returns: Json
       }
       gridex_archive_contract_product: {
         Args: {
