@@ -1,3 +1,4 @@
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { NextResponse } from 'next/server'
 import { internalApiError } from '@/lib/http/apiError'
 import { requireAdminApiAccess } from '@/lib/admin/apiGuards'
@@ -28,10 +29,7 @@ export async function POST(request: Request) {
       .maybeSingle()
     if (company.error) throw company.error
     if (!company.data) throw new Error('Tenant saknas.')
-    if (company.data.invoice_export_target_system !== 'capway_aptic') {
-      throw new Error('Canonical fakturapartner är inte konfigurerad som Capway/Aptic.')
-    }
-    const environment = company.data.billing_provider_environment === 'production' ? 'production' : 'test'
+    const { environment } = requireTenantInvoiceProvider(company.data)
 
     const result = await prepareInvoiceDraftsForReview({
       companyId,

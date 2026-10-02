@@ -152,6 +152,7 @@ export type TenantReadiness = {
   domainVerification: boolean;
   templates: boolean;
   billingMapping: boolean;
+  invoiceProvider: boolean;
   notes: string[];
 };
 
@@ -616,6 +617,7 @@ export function computeTenantReadiness(input: {
   eventRules: EmailEventRule[];
   effectiveSender: EffectiveSender;
   billingPartnerCount?: number;
+  invoiceProvider?: { selected: string | null; dispatchEnabled: boolean | null } | null;
 }): TenantReadiness {
   const notes: string[] = [];
   const apiClient = input.apiClients.some(
@@ -647,6 +649,7 @@ export function computeTenantReadiness(input: {
         rule.event_key === "contract.application_received" && rule.enabled,
     );
   const billingMapping = Number(input.billingPartnerCount ?? 0) > 0;
+  const invoiceProvider = Boolean(input.invoiceProvider?.selected) && input.invoiceProvider?.dispatchEnabled === true;
 
   if (!apiClient)
     notes.push("Saknar aktiv API-client med website_applications.write.");
@@ -661,6 +664,12 @@ export function computeTenantReadiness(input: {
     );
   if (!billingMapping)
     notes.push("Capway/billing partner mapping saknas ännu.");
+  if (!invoiceProvider)
+    notes.push(
+      input.invoiceProvider?.selected
+        ? "Fakturaleverantör är vald men utskick är inte aktiverat."
+        : "Ingen fakturaleverantör är vald (Fakturering → Integrationer).",
+    );
   if (
     input.emailSettings?.verification_status === "disabled" ||
     input.emailSettings?.sender_mode === "disabled"
@@ -677,6 +686,7 @@ export function computeTenantReadiness(input: {
     domainVerification,
     templates,
     billingMapping,
+    invoiceProvider,
     notes,
   };
 }

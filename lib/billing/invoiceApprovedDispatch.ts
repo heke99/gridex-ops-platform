@@ -1,3 +1,4 @@
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
@@ -266,7 +267,13 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       if (itemApproval.status !== 'approved' || invoiceApproval.status !== 'approved') throw new Error('Fakturaexport blockerad: explicit godkännande saknas.')
       if (!['pending', 'failed', 'failed_retryable'].includes(String(context.item.status))) throw new Error('Fakturan är inte i ett skick som får skickas.')
       await assertItemStillReady(context)
+      // Send only through the provider and environment the tenant has selected and enabled; a run
+      // prepared for another provider or environment is never re-routed.
+      const selected = requireTenantInvoiceProvider(context.company ?? {})
+      if (context.company?.invoice_export_enabled !== true) throw new Error('Utskick via fakturaleverantör är inte aktiverat för bolaget.')
+      if ((text(context.run.provider) ?? 'capway_aptic') !== selected.provider) throw new Error('Exportkörningen gäller en annan fakturaleverantör än den bolaget har valt.')
       const environment = (text(context.run.environment) as CapwayEnvironment) ?? 'test'
+      if (environment !== selected.environment) throw new Error('Exportkörningen gäller en annan miljö än den bolaget har valt.')
       const financingMode = (text(context.run.financing_mode) as CapwayFinancingMode) ?? 'invoice_service'
       const billingMonth = text(context.run.billing_month)
       const runId = text(context.run.id)

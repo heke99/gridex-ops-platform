@@ -1,5 +1,6 @@
 'use server'
 
+import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
@@ -26,11 +27,12 @@ export async function createBillingExportRunAction(formData: FormData) {
   const periodMonth = parseBillingMonth(text(formData, 'period_month') || new Date().toISOString().slice(0, 7)).value
   const company = await supabase.from('companies').select('billing_provider_environment,invoice_export_target_system').eq('id', companyId).maybeSingle()
   if (company.error) throw company.error
-  if (!company.data || company.data.invoice_export_target_system !== 'capway_aptic') throw new Error('Canonical fakturapartner är inte korrekt konfigurerad.')
+  if (!company.data) throw new Error('Tenant saknas.')
+  const { environment } = requireTenantInvoiceProvider(company.data)
   await prepareInvoiceDraftsForReview({
     companyId,
     billingMonth: periodMonth,
-    environment: company.data.billing_provider_environment === 'production' ? 'production' : 'test',
+    environment,
     actorUserId: user.id,
   })
   revalidatePath('/admin/billing/export-center')
