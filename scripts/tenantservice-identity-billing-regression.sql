@@ -46,19 +46,30 @@ BEGIN
     RAISE EXCEPTION 'P3 history delete was allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
-  -- P3: billing items lock the revision current at insert; it cannot be changed later.
-  INSERT INTO public.billing_export_run_items(id, company_id, customer_id) VALUES (gen_random_uuid(), c, customer);
-  IF (SELECT customer_billing_profile_revision FROM public.billing_export_run_items WHERE customer_id = customer) <> 2 THEN
-    RAISE EXCEPTION 'P3 billing item did not lock revision 2';
+  -- P3: billing items lock the revision current at insert; it cannot be changed later. Real items
+  -- need a full billing underlay graph, so the production trigger function is exercised on a
+  -- temporary table with the same columns, and its attachment to the real table is asserted.
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid = t.tgfoid
+                  WHERE t.tgrelid = 'public.billing_export_run_items'::regclass AND NOT t.tgisinternal
+                    AND p.proname = 'gridex_billing_item_lock_profile_revision') THEN
+    RAISE EXCEPTION 'P3 lock trigger missing on billing_export_run_items';
   END IF;
+  CREATE TEMP TABLE p3_items (company_id uuid NOT NULL, customer_id uuid, customer_billing_profile_revision integer) ON COMMIT DROP;
+  CREATE TRIGGER p3_items_lock BEFORE INSERT OR UPDATE ON p3_items
+    FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_item_lock_profile_revision();
+  INSERT INTO p3_items(company_id, customer_id) VALUES (c, customer);
+  IF (SELECT customer_billing_profile_revision FROM p3_items) <> 2 THEN RAISE EXCEPTION 'P3 billing item did not lock revision 2'; END IF;
   UPDATE public.customers SET billing_street = 'Nya gatan 2' WHERE id = customer;
-  IF (SELECT customer_billing_profile_revision FROM public.billing_export_run_items WHERE customer_id = customer) <> 2 THEN
-    RAISE EXCEPTION 'P3 billing item revision followed a later profile change';
-  END IF;
+  IF (SELECT customer_billing_profile_revision FROM p3_items) <> 2 THEN RAISE EXCEPTION 'P3 billing item revision followed a later profile change'; END IF;
   BEGIN
-    UPDATE public.billing_export_run_items SET customer_billing_profile_revision = 3 WHERE customer_id = customer;
+    UPDATE p3_items SET customer_billing_profile_revision = 3;
     RAISE EXCEPTION 'P3 billing item revision was changed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  -- Another tenant's customer id never resolves a revision.
+  INSERT INTO p3_items(company_id, customer_id) VALUES (other_c, customer);
+  IF (SELECT customer_billing_profile_revision FROM p3_items WHERE company_id = other_c) IS NOT NULL THEN
+    RAISE EXCEPTION 'P3 cross-tenant revision lookup';
+  END IF;
 
   -- F12: staff cannot apply a change that requires customer approval.
   INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,affected_contract_count,recipient_email,token_hash,expires_at,status)
