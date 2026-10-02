@@ -117,15 +117,18 @@ try {
   assert.match(profileWrite.error, /customer_merged_write_conflict/)
   assert.equal(await requireSql(`SELECT count(*) FROM public.customers WHERE id=:'profile_source' AND phone IS NOT NULL;`), '0')
   assert.equal(await requireSql(`SELECT count(*) FROM public.domain_events WHERE company_id=:'tenant' AND subject_customer_id=:'profile_source';`), '0')
-  console.log('Customer merge portal concurrency regression passed: INSERT/profile wait and recheck; UPDATE fails without deadlock.')
 } finally {
   await Promise.allSettled([holder, follower].filter(Boolean))
+  // Company onboarding publishes immutable legal texts. Retain their synthetic
+  // tenant until this local replay database is discarded; deleting the company
+  // would cascade into those protected versions and correctly fail. Clean only
+  // the mutable concurrency fixture, without bypassing any legal-text guard.
   await requireSql(`
     DELETE FROM public.customer_portal_identities WHERE company_id=:'tenant';
     DELETE FROM public.customer_merge_events WHERE company_id=:'tenant';
     DELETE FROM public.audit_logs WHERE company_id=:'tenant';
     DELETE FROM public.customers WHERE company_id=:'tenant';
-    DELETE FROM public.companies WHERE id=:'tenant';
     DELETE FROM auth.users WHERE id=:'actor';
   `)
 }
+console.log('Customer merge portal concurrency regression passed: INSERT/profile wait and recheck; UPDATE fails without deadlock; mutable fixtures cleaned.')
