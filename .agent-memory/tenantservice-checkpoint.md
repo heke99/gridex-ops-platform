@@ -95,3 +95,10 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Production: migration `tenant_customer_identity_providers` applied to piidsfebjqjmnepdpnas (md5 matches repo file). No tenant has a provider yet → behaviour unchanged.
 - Ediel `ediel-document-reference-native` passed in the last two clean replays (was red earlier on 07:00–07:05 runs); no fix applied, treat as intermittent and watch.
 - Open: node-forge upgrade before 2026-11-01; ledger reconciliation (`supabase migration repair`) before any `db push`; attachments with quarantine; perf baseline.
+
+## Attachments step A (2026-10-02 ~08:35 UTC)
+- Migration `20261002100000_support_case_attachments.sql`: private bucket support-case-attachments (pdf/png/jpeg, 10 MB), table customer_case_attachments (quarantined→released/rejected, composite case/company/customer FK, RLS service-only).
+- `lib/customer-service/supportAttachments.ts`: magic-byte type detection, active-PDF rejection (hex-escaped names decoded), filename sanitizing, SHA-256 re-verified on download, 20/day/customer quota. Content inspection, NOT antivirus (seam: inspectAttachment).
+- OPS: case detail lists attachments + upload (≤4 MB because server action body limit is 5 MB) + download route with nosniff/CSP sandbox/attachment disposition.
+- Step B (open): customer support API endpoints for attachments = new OpenAPI release.
+- Then: perf baseline, then ledger reconciliation (user order).

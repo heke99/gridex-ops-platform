@@ -13,6 +13,7 @@ import {
   type PhoneVerificationMethod,
 } from '@/lib/customer-service/supportConversation'
 import type { CustomerCasePriority } from '@/lib/customer-cases/types'
+import { SUPPORT_ATTACHMENT_OPS_MAX_BYTES, addSupportAttachment } from '@/lib/customer-service/supportAttachments'
 
 const ALLOWED_STATUSES = new Set(['open', 'action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'])
 const ALLOWED_PRIORITIES = new Set<CustomerCasePriority>(['low', 'normal', 'high', 'urgent'])
@@ -129,5 +130,25 @@ export async function recordPhoneInteractionAction(formData: FormData): Promise<
       ? { name: value(formData, 'representative_name'), mandateReference: value(formData, 'representative_mandate_reference') || null }
       : null,
   })
+  revalidate()
+}
+
+/** Staff attaches a file to a support case. It is quarantined and inspected before it can be opened. */
+export async function uploadSupportAttachmentAction(formData: FormData): Promise<void> {
+  const scope = await supportCaseScope(formData, 'cases.write')
+  const file = formData.get('file')
+  if (!(file instanceof File) || file.size === 0) throw new Error('Välj en fil att bifoga.')
+  if (file.size > SUPPORT_ATTACHMENT_OPS_MAX_BYTES) throw new Error('Filen är större än 4 MB.')
+  await addSupportAttachment({
+    companyId: scope.companyId,
+    customerId: scope.customerId,
+    caseId: scope.caseId,
+    bytes: Buffer.from(await file.arrayBuffer()),
+    fileName: file.name,
+    declaredMime: file.type || null,
+    visibility: value(formData, 'visibility') === 'customer' ? 'customer' : 'internal',
+    uploadedBy: { kind: 'staff', userId: scope.actorUserId },
+  })
+  revalidatePath(`/admin/customer-cases/${scope.caseId}`)
   revalidate()
 }

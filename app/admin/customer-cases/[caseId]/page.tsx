@@ -7,7 +7,8 @@ import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { getCustomerCaseById, listCustomerCaseEvents } from '@/lib/customer-cases/db'
 import { PHONE_VERIFICATION_METHODS, SUPPORT_EVENT_TYPES, publicSupportStatus } from '@/lib/customer-service/supportConversation'
-import { addInternalNoteAction, recordPhoneInteractionAction, replyToCustomerAction } from '../actions'
+import { listSupportAttachments } from '@/lib/customer-service/supportAttachments'
+import { addInternalNoteAction, recordPhoneInteractionAction, replyToCustomerAction, uploadSupportAttachmentAction } from '../actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,8 @@ export default async function SupportCaseDetailPage({ params }: { params: Promis
   const events = (await listCustomerCaseEvents(supportCase.id, scope.companyId)).slice().reverse()
   const canWrite = !scope.isPlatformAdmin && hasPermissionRequirement(context.permissions, { anyOf: ['cases.write'] })
   const closed = ['resolved', 'closed', 'cancelled'].includes(supportCase.status)
+  const attachments = await listSupportAttachments({ companyId: scope.companyId, customerId: supportCase.customer_id, caseId: supportCase.id, audience: 'staff' })
+    .catch(() => null)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -70,6 +73,51 @@ export default async function SupportCaseDetailPage({ params }: { params: Promis
               )
             })}
           </ol>
+        </section>
+
+        <section aria-labelledby="attachments-heading" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 id="attachments-heading" className="text-lg font-semibold text-slate-950">Bilagor</h2>
+          <p className="mt-1 text-sm text-slate-600">PDF, PNG eller JPEG, högst 4 MB. Varje fil kontrolleras innan den kan öppnas.</p>
+          {attachments === null ? (
+            <p className="mt-4 text-sm text-amber-800">Bilagor är inte aktiverade i den här miljön än.</p>
+          ) : (
+            <ul className="mt-4 space-y-2">
+              {attachments.length === 0 ? <li className="text-sm text-slate-600">Inga bilagor ännu.</li> : null}
+              {attachments.map((file) => (
+                <li key={file.public_reference} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-slate-200 p-3 text-sm">
+                  <span className="font-medium text-slate-900">{file.file_name}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <span>{Math.max(1, Math.round(file.byte_size / 1024))} kB · {file.visibility === 'customer' ? 'Synlig för kunden' : 'Endast internt'} · {file.uploaded_by_kind === 'customer' ? 'Från kunden' : 'Från personal'}</span>
+                    {file.scan_status === 'released' ? (
+                      <a className="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-800 underline-offset-2 hover:underline" href={`/admin/customer-cases/${supportCase.id}/attachments/${file.public_reference}`}>Godkänd · Ladda ner</a>
+                    ) : file.scan_status === 'rejected' ? (
+                      <span className="rounded-full bg-red-50 px-3 py-1 font-semibold text-red-800">Stoppad i kontrollen</span>
+                    ) : (
+                      <span className="rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-800">Kontrolleras</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {canWrite && !closed && attachments !== null ? (
+            <form action={uploadSupportAttachmentAction} className="mt-4 flex flex-wrap items-end gap-3">
+              <input type="hidden" name="case_id" value={supportCase.id} />
+              <input type="hidden" name="expected_company_id" value={scope.companyId} />
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Fil</span>
+                <input type="file" name="file" required accept="application/pdf,image/png,image/jpeg" className="text-sm" />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium text-slate-700">Vem ser filen?</span>
+                <select name="visibility" defaultValue="internal" className="rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                  <option value="internal">Endast internt</option>
+                  <option value="customer">Även kunden</option>
+                </select>
+              </label>
+              <button type="submit" className="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white">Bifoga</button>
+            </form>
+          ) : null}
         </section>
 
         {canWrite && !closed ? (
