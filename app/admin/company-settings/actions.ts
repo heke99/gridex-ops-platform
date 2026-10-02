@@ -1,5 +1,7 @@
 'use server'
 
+import { assertCompanyRoleChangeAllowed } from '@/lib/tenant/roleChangeGuard'
+
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 import { isPlatformAdminContext, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
@@ -258,6 +260,13 @@ export async function updateCompanyResponsibleUserAction(
     // Granting roles and changing a member's login e-mail needs users.write;
     // tenants.invite alone only allows inviting.
     const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['users.write'] })
+    await assertCompanyRoleChangeAllowed({
+      companyId,
+      actorUserId: admin.userId,
+      actorIsPlatformAdmin: isPlatformAdminContext(admin),
+      targetUserId: userId,
+      nextMembershipRole: membershipRole,
+    })
 
     const { data: membership, error: membershipLookupError } = await supabaseService
       .from('company_memberships')
