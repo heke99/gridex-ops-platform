@@ -92,7 +92,6 @@ function safeReturnPath(formData: FormData, fallback: string): string {
 
 function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
   revalidatePath('/admin/website-applications')
-  revalidatePath('/admin/customer-applications')
   revalidatePath(websiteApplicationDetailPath(application.id))
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
 }
