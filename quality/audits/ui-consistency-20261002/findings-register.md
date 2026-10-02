@@ -42,8 +42,17 @@ cleanup, network owners, outbound cards, webhook rows, portal nav); nav label
 duplicates; English and platform jargon shown to tenants.
 
 ## PR E — customer intake, contract creation, tenant onboarding
-Pending audit results (consistency across admin/website/API/import, RPC coverage,
-onboarding steps and lifecycle handling).
+| # | Finding | Status |
+|---|---|---|
+| E1 | intake/CSV could create contracts as `active`/`signed` without a signed agreement | fixed: intake creates only draft/pending_signature; signed only with the signed file |
+| E2 | a contract offer id that did not exist for the company silently fell back to a default contract | fixed: error |
+| E3 | partner-export, POA-scope and lifecycle-decision audit rows written without company_id | fixed |
+| E4 | tenant admins could change their own role and demote the last company administrator | fixed: `roleChangeGuard` in both role forms (+ tests); audit text no longer says "superadmin" for tenants |
+| E5 | website review fell back to bare site/metering-point inserts on any schema error, dropping grid owner/area fields | fixed: fallbacks removed, errors surface |
+| E6 | website review stored only raw UUID grid owners and dropped platform ids | fixed: `normalizeGridOwnerIdToOps` like admin intake |
+| E7 | website channel defaults (site/MP `active`, monthly reading, `variable_monthly`) differ from admin intake (`draft`, hourly, `variable_hourly`) | needs product decision: the defaults drive Ediel metering requests and site process checks; documented, not changed |
+| E8 | website review writes site, metering point and contract as separate statements (not one transaction) | open: needs a review RPC; each write is tenant-scoped and idempotent on re-save |
+
 
 ### PR B progress
 | # | Finding | Status |

@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
+import { assertCompanyRoleChangeAllowed } from '@/lib/tenant/roleChangeGuard'
 import {
   deactivateCompanyUserAccess,
   grantCompanyUserAccess,
@@ -604,8 +605,16 @@ export async function setCompanyUserRoleAction(
     const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(requestedRoleKey)
 
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
-    await assertCanManageCompanyUsers(companyId)
+    const context = await assertCanManageCompanyUsers(companyId)
     if (!userId) return { ok: false, message: 'Användare saknas.' }
+    const isPlatformAdmin = isPlatformAdminContext(context)
+    await assertCompanyRoleChangeAllowed({
+      companyId,
+      actorUserId,
+      actorIsPlatformAdmin: isPlatformAdmin,
+      targetUserId: userId,
+      nextMembershipRole: membershipRole,
+    })
 
     await grantCompanyUserAccess({
       companyId,
@@ -621,7 +630,7 @@ export async function setCompanyUserRoleAction(
       actorUserId,
       companyId,
       targetUserId: userId,
-      reason: 'Bolagsroll ändrades av superadmin',
+      reason: isPlatformAdmin ? 'Bolagsroll ändrades av Gridex support' : 'Bolagsroll ändrades av bolagets administratör',
       metadata: { membershipRole, roleKey },
     })
 
