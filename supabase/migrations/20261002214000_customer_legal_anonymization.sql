@@ -114,16 +114,12 @@ begin
       name = v_label,
       company_name = case when company_name is null then null else v_label end,
       personal_number = null,
-      normalized_personal_number = null,
       identity_number = null,
       org_number = null,
-      normalized_org_number = null,
       organization_number = null,
       email = null,
-      normalized_email = null,
       invoice_email = null,
       phone = null,
-      normalized_phone = null,
       apartment_number = null,
       billing_street = null,
       billing_postal_code = null,
@@ -135,7 +131,7 @@ begin
   where id = p_customer_id and company_id = p_company_id;
 
   update public.customer_contacts
-  set name = null, email = null, normalized_email = null, phone = null, normalized_phone = null, title = null,
+  set name = null, email = null, phone = null, title = null,
       updated_at = now()
   where customer_id = p_customer_id and company_id = p_company_id;
 
