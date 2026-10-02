@@ -7,7 +7,7 @@ import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/l
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
-import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
+import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
@@ -387,6 +387,9 @@ export async function processInboundUtiltsMessage(params: {
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
   const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  if (await holdCanonicalEvidenceGateBlocked({actorUserId,message,initialDecision})) {
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
   const canonicalPolicy = initialDecision.policy
   if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
     throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)

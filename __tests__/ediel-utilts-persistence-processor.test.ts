@@ -617,10 +617,21 @@ it.each(['object-first', 'point-first'] as const)('keeps a valid S01 %s object h
   expect(JSON.stringify(acknowledgements[0][0].draft)).toContain('260a')
   expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
 })
+it('holds an inbound E73 (outbound-only in the source catalog) for manual review: no rule basis can answer it', async () => {
+  const message = incoming(true, false, '2026-10-15')
+  message.message_code = 'E73'; message.application_reference = '23-DDQ-E66-S'
+  message.customer_id = null; message.site_id = null; message.metering_point_id = null
+  message.raw_payload = recountEdifactUnt(message.raw_payload!.replace('BGM+E66::260', 'BGM+E73::260').replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000008::9'))
+  io.get.mockResolvedValue(declaredTestSource(message))
+  const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
+  expect((await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })).internalReviewRequired).toBe(true)
+  expect(io.rpc.mock.calls.some(([name]) => name === 'gridex_persist_utilts_consumption_v1')).toBe(false)
+  expect(io.ack).not.toHaveBeenCalled()
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+})
 it.each([
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
-  ['E73', '23-DDQ-E66-S', 'LOC+175', '533', 'invalid'],
   ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
 ] as const)('persists %s request identity defect as tenant-bound negative APERAK', async (code, applicationReference, location, fieldCode, defect) => {
   const message = incoming(true, false, '2026-10-15')

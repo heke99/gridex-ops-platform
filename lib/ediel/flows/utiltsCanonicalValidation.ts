@@ -1,4 +1,5 @@
-import {finalizeCanonicalUtiltsRuntimeDecision,resolveCanonicalRuntimeDecisionWithRegistry,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {finalizeCanonicalUtiltsRuntimeDecision,isEvidenceGateBlockedDecision,resolveCanonicalRuntimeDecisionWithRegistry,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {createEdielMessageEvent} from '@/lib/ediel/db'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -29,4 +30,15 @@ export async function recordFinalCanonicalUtiltsDecision(input:{original:EdielMe
     await captureFreshEdielSourceRulePackEvidence(companyId,input.original.id)
   }
   return {decision,receipt}
+}
+
+/** The DB evidence gate blocked the initial decision (for example a message
+ * code this platform never receives) and no final owner exists. The source is
+ * held for manual review: no ACK, receipt, consumption or business effect. */
+export async function holdCanonicalEvidenceGateBlocked(input:{actorUserId:string;message:EdielMessageRow;initialDecision:CanonicalRuntimeDecision}):Promise<boolean> {
+  if(!isEvidenceGateBlockedDecision(input.initialDecision)) return false
+  await createEdielMessageEvent({actorUserId:input.actorUserId,edielMessageId:input.message.id,eventType:'validated',eventStatus:'warning',
+    message:'Källans regelunderlag blockerades vid mottagning. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',
+    payload:{reason:'ediel_canonical_evidence_gate_blocked',manualReviewRequired:true,decisionTrace:input.initialDecision.decisionTrace.slice(-1)}})
+  return true
 }

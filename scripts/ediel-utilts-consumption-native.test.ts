@@ -7,6 +7,7 @@ import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointReque
 import { utiltsNativeSourceFixture, utiltsRecountUnt, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import { resolveCanonicalRuntimeDecisionWithRegistry } from '@/lib/ediel/core/runtimeDecision'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
 import { buildUtiltsTransactionPersistencePayload, finalizeUtiltsTransactionAck, persistUtiltsTransactionResults, type UtiltsBoundPersistenceInput } from '@/lib/ediel/utilts/transactionPersistence'
 import { ingestBoundUtiltsMetering, createBoundUtiltsBilling } from '@/lib/ediel/utilts/consumptionSinks'
@@ -501,45 +502,30 @@ it.each(['missing', 'invalid-gs1', 'invalid-agency'] as const)('native E72 %s LO
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
 })
-it('native E73 point request rejects an unowned physical agency-89 point before receipt or positive ACK', async () => {
+it('native inbound E73 (outbound-only in the source catalog) is held before receipt, positive ACK or effect, also on retry', async () => {
   const f = await seed()
   const cleanRaw = f.original.raw_payload!
     .replace('BGM+E66::260', 'BGM+E73::260')
     .replace('23-DDQ-E66-T', '23-DDQ-E66-S').replaceAll('GRIDEX2607E66001', 'E73POINT001')
-  const raw = cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')
-  const source = await f.insertSource(raw, 'E73')
-  const input = await f.prepare(source, false, false)
-  expect(input.transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', seriesKind: 'request' }])
-  expect(input.contracts[0].observations).toEqual([])
-  const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
-  expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
-  for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
-    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
-    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
-  }
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
-  const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
-    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
-    .toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
-  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+  for (const raw of [cleanRaw, cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+172+735999260731000007::89')]) {
+    const source = await f.insertSource(raw, 'E73')
+    // E73 is sent by suppliers to grid owners; this platform never receives it.
+    const decision = await resolveCanonicalRuntimeDecisionWithRegistry(source)
+    expect(decision.applicationDecision).toBe('manual_review')
+    expect(decision.decisionTrace.at(-1)).toContain('canonical_source_direction_not_allowed:E73:inbound:outbound')
+    const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
+    expect((await run()).internalReviewRequired).toBe(true)
+    const before = snapshot(source.id)
+    expect(before).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+    expect(sql(`SELECT count(*) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND final_response_type IS NOT NULL`)).toBe(0)
+    expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
+    expect((await run()).internalReviewRequired).toBe(true)
+    expect(snapshot(source.id)).toEqual(before)
+  }
   expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  const before = snapshot(source.id)
-  expect((await run()).internalReviewRequired).toBe(true)
-  expect(snapshot(source.id)).toEqual(before)
-  const clean = await f.insertSource(cleanRaw, 'E73')
-  const cleanInput = await f.prepare(clean, false, false)
-  expect((await persistUtiltsTransactionResults(cleanInput))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
-  const object = await f.insertSource(cleanRaw.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'), 'E73')
-  // The service role can supply a formerly accepted point contract directly;
-  // its durable owner must still reject this different physical object source.
-  await expect(persistUtiltsTransactionResults({ ...cleanInput, sourceMessageId: object.id, rawPayload: object.raw_payload! }))
-    .rejects.toThrow('utilts_regulating_object_owner_unavailable')
-  expect(snapshot(object.id)).toEqual({ acks: null, series: null, contracts: null })
-  expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(object.id)}`)).toBe(0)
 })
 it('internal SQL storage failure rolls back receipt and ACK reservation, then permits an unchanged original retry', async () => {
   const f = await seed(), input = await f.prepare()
@@ -1571,7 +1557,7 @@ it.each(['object-first', 'point-first'] as const)(
 it.each([
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'invalid'],
   ['E72', '23-MDR-E30-S', 'LOC+172', '209', 'missing'],
-  ['E73', '23-DDQ-E66-S', 'LOC+175', '533', 'invalid'],
+  // Inbound E73 is outbound-only in the source catalog; see the E73 hold test.
   ['S06', '23-DDK-S01-S', 'LOC+175', '533', 'invalid'],
 ] as const)('native %s identity rejection retains final ACK and zero effects on retry', async (code, application, location, fieldCode, defect) => {
   const f = await seed()

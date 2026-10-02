@@ -635,6 +635,9 @@ function prodatResponseSourceIdentity(source:{id:unknown;company_id?:unknown;env
   raw:source.raw_payload,receivedAt:source.message_received_at,executionContext:source.execution_context_snapshot}))
 }
 const initialUtiltsOwners=new WeakMap<CanonicalRuntimeDecision,{sourceIdentity:string;decisionHash:string;policy:CanonicalEdielPolicy;hasWitness:boolean;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}>()
+// Initial decisions blocked because the source catalog does not allow this
+// message in this direction: no rule basis can ever exist to answer it.
+const evidenceGateBlockedDecisions=new WeakSet<CanonicalRuntimeDecision>()
 function immutableUtiltsSourceIdentity(message:EdielMessageRow):string {
   return evidenceHash(JSON.stringify({id:message.id,companyId:message.company_id,environment:message.environment,direction:message.direction,
     family:message.message_family,code:message.message_code,raw:message.raw_payload,receivedAt:message.message_received_at,executionContext:message.execution_context_snapshot}))
@@ -655,6 +658,13 @@ export function readCanonicalPeriodicReasonAuthority(input:{decision:CanonicalRu
   if(!owner||input.decision.policy!==owner.policy||immutableUtiltsSourceIdentity(input.message)!==owner.sourceIdentity
     ||evidenceHash(JSON.stringify(input.decision))!==owner.decisionHash)return null
   return owner.periodicReasonAuthority??null
+}
+
+/** Whether this exact initial decision was blocked because the source catalog
+ * does not allow the message in this direction. Grants nothing; it only lets
+ * callers hold the source for manual review. */
+export function isEvidenceGateBlockedDecision(decision:CanonicalRuntimeDecision):boolean {
+  return evidenceGateBlockedDecisions.has(decision)
 }
 
 /** Consume the real final UTILTS owner, retaining the initial whole-guide and
@@ -829,6 +839,7 @@ export async function resolveCanonicalRuntimeDecisionWithRegistry(message:EdielM
       decisionTrace,
       validationReport,
     }
+    if(description.startsWith('canonical_source_direction_not_allowed:'))evidenceGateBlockedDecisions.add(held)
     if(selectedPolicy.family==='UTILTS'&&base.syntaxDecision==='accepted'&&base.utiltsTransactionValidation
       &&base.utiltsTransactionValidation.transactions.every(transaction=>transaction.disposition!=='accepted')) {
       initialUtiltsOwners.set(held,{sourceIdentity:immutableUtiltsSourceIdentity(message),decisionHash:evidenceHash(JSON.stringify(held)),policy:selectedPolicy,hasWitness:false,issuerIdentityAuthority,periodicReasonAuthority})

@@ -4,7 +4,7 @@ import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
-import {initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
+import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { resolveUtiltsInboundBusinessOutcome } from '@/lib/ediel/utilts/inboundBusinessOutcome'
 import {
@@ -245,6 +245,9 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
 
   const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  if (await holdCanonicalEvidenceGateBlocked({actorUserId,message,initialDecision})) {
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
   const policy = resolveInboundPolicy(message, initialDecision.policy)
   const outcome = resolveUtiltsInboundBusinessOutcome(policy)
 
