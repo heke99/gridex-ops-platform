@@ -38,6 +38,7 @@
     "20261001210000_customer_contact_change_transaction.sql": "7a51c303c7ea10b391a6d546ac56564c8f512830e56d668eb00915a31562ffe4",
     "20261002080000_tenant_customer_identity_providers.sql": "ce9c4b3be1ed8e5ad2cdb8d060f46753692769011877b50269adf52a8dc794a5",
     "20261002100000_support_case_attachments.sql": "f1e5d8d7c0a07307f73608684cefefffcc64091bf84c651a147c48aea4816481",
-    "20261002120000_customer_identity_change_requests.sql": "6dc2b38b10b8e17aa17bc3a00ad740453c8b0d794a8ff8b810ca0648d4eb11b8"
+    "20261002120000_customer_identity_change_requests.sql": "6dc2b38b10b8e17aa17bc3a00ad740453c8b0d794a8ff8b810ca0648d4eb11b8",
+    "20261002140000_customer_billing_profile_revisions.sql": "a55e0370413a99efa0f806b578d01a08f8138dc759a9dce03c2461fa41a5bf01"
   }
 }
