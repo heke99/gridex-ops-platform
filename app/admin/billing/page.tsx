@@ -6,6 +6,9 @@ import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { listInvoiceReviewRows, type InvoiceReviewStatus } from '@/lib/billing/invoiceReviewData'
 import { parseBillingMonth, previousStockholmBillingMonth } from '@/lib/time/stockholm'
 import { approveAndSendReadyInvoicesAction } from './actions'
+import { createInvoiceFileAction } from './invoice-files/actions'
+import { listInvoiceFileCandidates, listInvoiceFiles, type InvoiceFileRecord } from '@/lib/billing/invoiceFileExport'
+import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +19,9 @@ type PageProps = {
     sent?: string
     failed?: string
     approved?: string
+    mode?: string
+    file?: string
+    file_error?: string
   }>
 }
 
@@ -27,6 +33,12 @@ const statusStyle: Record<InvoiceReviewStatus, string> = {
   approved: 'bg-blue-50 text-blue-800 ring-blue-200',
   sent: 'bg-slate-900 text-white ring-slate-900',
   failed: 'bg-rose-50 text-rose-800 ring-rose-200',
+}
+
+const FILE_ERRORS: Record<string, string> = {
+  invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil. Godkänn fakturorna först.',
+  invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ingen fil skapades; försök igen.',
+  invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad under Fakturering → Integrationer.',
 }
 
 function money(value: number | null) {
@@ -73,6 +85,15 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
   const flaggedCount = allRows.filter((row) => ['missing_meter_values', 'blocked', 'failed'].includes(row.status)).length
   const sendableCount = readyCount + approvedCount
   const missingMeterCount = allRows.filter((row) => row.status === 'missing_meter_values').length
+  const providerSelection = companyId ? await loadTenantInvoiceProviderSelection(companyId).catch(() => null) : null
+  const fileMode = providerSelection?.invoice_export_target_system === 'file_export'
+  const fileEnvironment = providerSelection?.billing_provider_environment ?? null
+  const [fileCandidates, invoiceFiles] = companyId && fileMode && fileEnvironment
+    ? await Promise.all([
+        listInvoiceFileCandidates(companyId, selectedMonth, fileEnvironment).catch(() => []),
+        listInvoiceFiles(companyId).catch((): InvoiceFileRecord[] => []),
+      ])
+    : [[], [] as InvoiceFileRecord[]]
 
   return (
     <div className="min-h-screen bg-slate-50/60">
@@ -91,7 +112,61 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
 
         {companyId && (params.sent || params.failed) ? (
           <section className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm shadow-sm">
-            Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.
+            {params.mode === 'file'
+              ? <>Batch klar: <strong>{params.approved ?? '0'} nygodkända</strong> och {params.failed ?? '0'} misslyckade. Skapa fakturafilen nedan för att skicka dem till fakturaleverantören.</>
+              : <>Batch klar: <strong>{params.sent ?? '0'} skickade</strong>, {params.failed ?? '0'} misslyckade och {params.approved ?? '0'} nygodkända.</>}
+          </section>
+        ) : null}
+
+        {companyId && fileMode ? (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="invoice-file-heading">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <h2 id="invoice-file-heading" className="font-semibold text-slate-950">Fakturafil till fakturaleverantör</h2>
+                <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
+                  Godkända fakturor läggs i en fil som du läser in hos fakturaleverantören. En faktura hamnar bara i en fil och markeras som skickad när filen skapas. Varje fil kan laddas ner igen med samma innehåll.
+                </p>
+                {fileEnvironment === 'test' ? <p className="mt-2 text-xs font-semibold text-amber-700">Testmiljö: filen är märkt för test.</p> : null}
+              </div>
+              <form action={createInvoiceFileAction}>
+                <input type="hidden" name="billing_month" value={selectedMonth} />
+                <button
+                  disabled={fileCandidates.length === 0 || providerSelection?.invoice_export_enabled !== true}
+                  className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Skapa fakturafil ({fileCandidates.length} godkända)
+                </button>
+              </form>
+            </div>
+            {providerSelection?.invoice_export_enabled !== true ? (
+              <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Aktivera utskick under <Link href="/admin/billing/integrations" className="underline">Fakturering → Integrationer</Link> innan filer kan skapas.</p>
+            ) : null}
+            {params.file ? (
+              <p role="status" className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">Fakturafilen är skapad. Ladda ner den nedan.</p>
+            ) : null}
+            {params.file_error ? (
+              <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{FILE_ERRORS[params.file_error] ?? 'Fakturafilen kunde inte skapas.'}</p>
+            ) : null}
+            {invoiceFiles.length > 0 ? (
+              <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
+                {invoiceFiles.map((file) => (
+                  <li key={file.id} className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${params.file === file.id ? 'bg-emerald-50/60' : ''}`}>
+                    <span>
+                      <span className="font-semibold text-slate-900">{file.billing_month}</span>
+                      <span className="ml-2 text-slate-600">{file.row_count} fakturor · {money(Number(file.total_inc_vat))}</span>
+                      <span className="ml-2 text-xs text-slate-500">{new Date(file.created_at).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' })}{file.environment === 'test' ? ' · test' : ''}</span>
+                    </span>
+                    <span className="flex gap-2">
+                      {(['csv', 'xlsx', 'json'] as const).map((format) => (
+                        <a key={format} href={`/admin/billing/invoice-files/${file.id}?format=${format}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
+                          {format === 'xlsx' ? 'Excel' : format.toUpperCase()}
+                        </a>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </section>
         ) : null}
 
@@ -121,7 +196,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
             <form action={approveAndSendReadyInvoicesAction}>
               <input type="hidden" name="billing_month" value={selectedMonth} />
               <button className="h-11 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800">
-                Godkänn och skicka {sendableCount} klara fakturor
+                {fileMode ? `Godkänn ${sendableCount} klara fakturor` : `Godkänn och skicka ${sendableCount} klara fakturor`}
               </button>
             </form>
           ) : null}

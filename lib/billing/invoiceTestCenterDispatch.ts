@@ -1,3 +1,4 @@
+import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { sendApprovedInvoiceExportRun } from '@/lib/billing/invoiceApprovedDispatch'
@@ -37,7 +38,20 @@ function sha256(value: unknown) {
   return createHash('sha256').update(stableJson(value)).digest('hex')
 }
 
+// The test send goes through the normal dispatch gates; check them before anything is approved so
+// a misconfigured tenant gets a clear message and no half-approved invoice.
+async function assertTenantSelectsCapwayTest(companyId: string) {
+  const row = ((await loadTenantInvoiceProviderSelection(companyId)) ?? {}) as Row
+  if (text(row.invoice_export_target_system) !== 'capway_aptic' || text(row.billing_provider_environment) !== 'test') {
+    throw new Error('Fakturatest blockerad: välj Capway i testmiljö under Fakturering → Integrationer.')
+  }
+  if (row.invoice_export_enabled !== true) {
+    throw new Error('Fakturatest blockerad: aktivera utskick för Capway (test) under Fakturering → Integrationer.')
+  }
+}
+
 async function assertReadyTestProviderConnection(companyId: string) {
+  await assertTenantSelectsCapwayTest(companyId)
   const result = await supabaseService
     .from('billing_provider_connections')
     .select('id,status,environment,provider,last_tested_at,last_test_result,readiness_issues')
