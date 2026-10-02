@@ -8,10 +8,12 @@ import {
   WEBSITE_INTEGRATION_CONTRACT_VERSION,
   WEBSITE_INTEGRATION_OPENAPI_URL,
   WEBSITE_INTEGRATION_VERSIONED_OPENAPI_URL,
+  MINIMUM_TENANT_INTEGRATION_VERSION,
 } from '@/lib/integrations/websiteIntegrationContract'
 import { serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
 
-export const OPENAPI_RELEASED_AT = '2026-10-02T20:00:00.000Z' as const
+// Deterministic release preparation instant; publication is verified separately after deployment.
+export const OPENAPI_RELEASED_AT = '2026-10-02T19:26:13.000Z' as const
 
 function sha256(document: unknown): string {
   return createHash('sha256')
@@ -56,7 +58,7 @@ export function buildOpenApiReleaseManifest() {
         sunset_at: '2026-10-31T23:59:59.000Z',
       },
     ],
-    minimum_tenant_integration_version: version,
+    minimum_tenant_integration_version: MINIMUM_TENANT_INTEGRATION_VERSION,
     specifications: {
       website: {
         contract_name: 'website-integration-v1',

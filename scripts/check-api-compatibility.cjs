@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const version = '2026-10-02.3'
+const version = '2026-10-02.4'
 const website = JSON.parse(
   fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8'),
 )
