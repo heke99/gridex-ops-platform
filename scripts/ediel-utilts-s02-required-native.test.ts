@@ -1,3 +1,5 @@
+import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
+import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -29,7 +31,14 @@ function sql<T>(statement: string): T {
 }
 beforeEach(() => { vi.restoreAllMocks(); vi.clearAllMocks() })
 
-async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: boolean, transform: (raw: string) => string = raw => raw) {
+async function seed(_label: string, defect: S02PlanningDefect, ownFirst: boolean, transform: (raw: string) => string = raw => raw) {
+  // Synthetic SMTP readiness only (technical ACK route check); no mail is sent.
+  for (const [k, v] of Object.entries({ EDIEL_SHARED_MAILBOX_ADDRESS: 'synthetic@example.invalid', EDIEL_APP_DKIM_ENABLED: 'false', EMAIL_PROVIDER: 'resend',
+    EDIEL_SMTP_FROM: 'synthetic@example.invalid', EDIEL_SMTP_USER: 'synthetic@example.invalid', EDIEL_SMTP_PASS: 'synthetic-only', EDIEL_EMAIL_PROVIDER: 'strato' })) vi.stubEnv(k, v)
+  // Each seed owns a unique receiver supplier identity and a unique issuer
+  // with its own synthetic approved issuer/transport-mandate version.
+  const { ediel: actorEdielId, issuer } = seedUtiltsConsumptionParties(sql, lit, randomUUID())
+  const smtp = assertEdielSmtpReadiness()
   const ids = { company: randomUUID(), actor: randomUUID(), route: randomUUID(), profile: randomUUID() }
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${lit(ids.company)},'Synthetic native S02 required fields','active');
     INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
@@ -50,25 +59,30 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
       VALUES(${lit(ids.company)},'test',${lit(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
     INSERT INTO public.ediel_actor_settings(company_id,environment,actor_name,actor_ediel_id,ediel_id)
       VALUES(${lit(ids.company)},'test','Synthetic native legal supplier',${lit(actorEdielId)},${lit(actorEdielId)});
-    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active)
-      VALUES(${lit(ids.route)},${lit(ids.company)},'Native S02 ACK route','ediel_ack','bilateral_test',true);
-    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-      VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact',${lit(actorEdielId)},'91100','23-DDQ-S02-S',true);`)
+    INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
+      VALUES(${lit(ids.route)},${lit(ids.company)},'Native S02 ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port)
+      VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact','edifact',${lit(actorEdielId)},${lit(issuer)},'23-DDQ-S02-S',true,true,${lit(smtp.from)},${lit(smtp.host)},${lit(smtp.port)});`)
   const fixture = s02PlanningFixture({ company: ids.company, receiver: actorEdielId, transactions: s02PlanningPair(defect, ownFirst) })
   const sourceId = randomUUID()
-  const { id, raw, parsed } = utiltsNativeSourceFixture(utiltsTestEnvironmentWire(transform(fixture.raw_payload!)).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
+  const { id, raw, parsed } = utiltsNativeSourceFixture(utiltsTestEnvironmentWire(transform(fixture.raw_payload!)).replaceAll('+91100:ZZ+', `+${issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${issuer}:`).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
   // No prefilled profile/rule-pack authority: the actual family/date capture
   // trigger must qualify this source. No individual customer graph is needed.
   sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
-    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},'91100',${lit(actorEdielId)},${lit(parsed.interchangeReference)});`)
+    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(issuer)},${lit(actorEdielId)},${lit(parsed.interchangeReference)});`)
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
   expect(error).toBeNull()
   expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
     databaseRole: 'evidence_only', family: 'UTILTS', code: 'S02', effectiveDate: '2026-10-01' })
   const source = data as EdielMessageRow
+  seedUtiltsIssuerHistoryGround(sql, lit, source.id, ids.actor)
+  await recordUtiltsTechnicalReception(source, ids.actor)
+  let recorded: Awaited<ReturnType<typeof recordUtiltsFinalRuntime>> | undefined
   expect(source.customer_id).toBeNull(); expect(source.site_id).toBeNull(); expect(source.metering_point_id).toBeNull()
   const prepare = async (forceAccepted = false): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
-    const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+    // Production order: the structurally qualified runtime is recorded once.
+    recorded ??= await recordUtiltsFinalRuntime(source)
+    const runtime = { ...recorded, transactionDispositions: [...recorded.transactionDispositions] }, policy = resolveCanonicalMessagePolicy(source)!
     expect(runtime.validation.syntaxOk).toBe(true)
     // Deliberately exercise the service caller's attempted positive override,
     // even after runtime guide rejection. Preserve each physical IDE's fields.
@@ -80,7 +94,7 @@ async function seed(actorEdielId: string, defect: S02PlanningDefect, ownFirst: b
       transactions: buildUtiltsTransactionPersistencePayload({ messageCode: 'S02', transactions: runtime.facts.transactions,
         dispositions: runtime.transactionDispositions, rawSegments: runtime.facts.rawSegments, matches: [] }) }
   }
-  return { ids, source, prepare, consume: () => processInboundUtiltsMessage({ actorUserId: ids.actor, edielMessageId: source.id }) }
+  return { ids, source, parties: { issuer, receiver: actorEdielId }, prepare, consume: () => processInboundUtiltsMessage({ actorUserId: ids.actor, edielMessageId: source.id }) }
 }
 
 type Ack = { id: string; message_family: string; ack_outcome: string; raw_payload: string; company_id: string;
@@ -270,7 +284,7 @@ it('native actual S02 agency89 stays guide-valid, held with syntax CONTRL only, 
   expect(technical).toMatchObject({ message_family: 'CONTRL', message_code: 'CONTRL',
     ack_outcome: 'positive', company_id: f.ids.company,
     source_operation_id: `ediel_ack:${f.source.id}:CONTRL:message` })
-  expect(technical.raw_payload).toContain(`UCI+${f.source.interchange_reference}+91100:ZZ+54374:ZZ+1'`)
+  expect(technical.raw_payload).toContain(`UCI+${f.source.interchange_reference}+${f.parties.issuer}:ZZ+${f.parties.receiver}:ZZ+1'`)
   expect(technical.parsed_payload.relatedTransactionReference).toBeNull()
   expect(technical.rule_pack_snapshot).toMatchObject({ authority: 'resolveCanonicalEdielPolicy',
     inheritedFromSourceMessage: true, sourceMessageId: f.source.id })
