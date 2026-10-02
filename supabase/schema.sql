@@ -12948,6 +12948,137 @@ end $$;
 COMMENT ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) IS 'Atomic idempotent contract archive RPC. Preserves history and qualifies every valid_to reference.';
 
 --
+-- Name: gridex_archive_customer_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer public.customers%rowtype;
+  v_after public.customers%rowtype;
+  v_reason text := coalesce(nullif(btrim(p_reason), ''), 'Arkiverad via kundkort.');
+  v_now timestamptz := now();
+  v_contract record;
+  v_sites integer := 0;
+  v_points integer := 0;
+  v_contracts integer := 0;
+  v_switch_ids uuid[] := '{}';
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_archive_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null then
+    raise exception using errcode = '22023', message = 'customer_archive_payload_invalid';
+  end if;
+
+  select * into v_customer
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  if v_customer.status = 'archived' then
+    return jsonb_build_object('customer', to_jsonb(v_customer), 'already_archived', true);
+  end if;
+
+  update public.customers
+  set status = 'archived',
+      archived_at = v_now,
+      archived_by = p_actor_user_id,
+      archive_reason = v_reason,
+      updated_at = v_now
+  where id = p_customer_id and company_id = p_company_id
+  returning * into v_after;
+
+  update public.customer_sites
+  set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_at = v_now
+  where company_id = p_company_id and customer_id = p_customer_id;
+  get diagnostics v_sites = row_count;
+
+  update public.metering_points mp
+  set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_at = v_now
+  where mp.company_id = p_company_id
+    and (mp.customer_id = p_customer_id
+      or mp.site_id in (
+        select s.id from public.customer_sites s
+        where s.company_id = p_company_id and s.customer_id = p_customer_id));
+  get diagnostics v_points = row_count;
+
+  for v_contract in
+    select c.id
+    from public.customer_contracts c
+    where c.company_id = p_company_id
+      and c.customer_id = p_customer_id
+      and c.status in ('draft', 'pending_signature', 'signature_failed', 'signed', 'active')
+    order by c.id
+  loop
+    perform public.gridex_record_customer_contract_event_v1(
+      p_company_id,
+      v_contract.id,
+      p_customer_id,
+      'cancelled',
+      v_now,
+      'Avtalet avslutades när kunden arkiverades.',
+      jsonb_build_object(
+        'ends_at', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD'),
+        'termination_notice_date', v_now,
+        'termination_reason', 'other',
+        'rejected_reason', v_reason
+      ),
+      p_actor_user_id,
+      null,
+      'customer-archive:' || p_customer_id::text || ':' || v_contract.id::text
+    );
+    v_contracts := v_contracts + 1;
+  end loop;
+
+  with failed as (
+    update public.supplier_switch_requests
+    set status = 'failed', failed_at = v_now, failure_reason = v_reason, updated_at = v_now
+    where company_id = p_company_id
+      and customer_id = p_customer_id
+      and status in ('draft', 'queued', 'submitted', 'accepted',
+        'cancellation_requested', 'cancellation_sent', 'manual_followup_required')
+    returning id
+  )
+  select coalesce(array_agg(id order by id), '{}') into v_switch_ids from failed;
+
+  insert into public.audit_logs (
+    actor_user_id, company_id, entity_type, entity_id, action,
+    old_values, new_values, metadata, previous_status, new_status
+  ) values (
+    p_actor_user_id, p_company_id, 'customer', p_customer_id::text, 'customer.archived',
+    to_jsonb(v_customer), to_jsonb(v_after),
+    jsonb_build_object(
+      'label', 'Arkiverade kund',
+      'reason', v_reason,
+      'retainedData', true,
+      'hardDelete', false,
+      'closedSites', v_sites,
+      'closedMeteringPoints', v_points,
+      'cancelledContracts', v_contracts,
+      'failedSwitchRequests', coalesce(array_length(v_switch_ids, 1), 0),
+      'source', 'gridex_archive_customer_v1'
+    ),
+    v_customer.status, 'archived'
+  );
+
+  return jsonb_build_object(
+    'customer', to_jsonb(v_after),
+    'already_archived', false,
+    'closed_sites', v_sites,
+    'closed_metering_points', v_points,
+    'cancelled_contracts', v_contracts,
+    'failed_switch_request_ids', to_jsonb(v_switch_ids)
+  );
+end
+$$;
+
+--
 -- Name: gridex_archive_draft_legal_template_version(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13158,6 +13289,32 @@ begin
     raise exception using errcode='42501',message='contract_permission_denied:'||coalesce(p_permission,'unknown');
   end if;
 end $$;
+
+--
+-- Name: gridex_assert_customer_not_archived_for_insert(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_customer_not_archived_for_insert() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_status text;
+begin
+  if new.customer_id is null then
+    return new;
+  end if;
+
+  select status into v_status from public.customers where id = new.customer_id;
+
+  if v_status = 'archived' then
+    raise exception 'Customer % is archived, new % rows are blocked', new.customer_id, tg_table_name
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end
+$$;
 
 --
 -- Name: gridex_assert_no_public_offer_fk_references(uuid[]); Type: FUNCTION; Schema: public; Owner: -
@@ -86883,6 +87040,12 @@ CREATE TRIGGER customer_contracts_bind_internal_publication BEFORE INSERT OR UPD
 CREATE TRIGGER customer_contracts_contract_availability BEFORE INSERT OR UPDATE OF status, contract_offer_id, contract_product_id, contract_product_version_id ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_contract_availability_and_capacity();
 
 --
+-- Name: customer_contracts customer_contracts_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_contracts_customer_archived_guard_trg BEFORE INSERT ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
+
+--
 -- Name: customer_contracts customer_contracts_lock_signed; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -86983,6 +87146,12 @@ CREATE TRIGGER customer_onboarding_legal_snapshots_immutable_tg BEFORE DELETE OR
 --
 
 CREATE TRIGGER customer_portal_identities_match_strength_normalize_tg BEFORE INSERT OR UPDATE OF match_strength ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_normalize_customer_portal_identity_match_strength();
+
+--
+-- Name: customer_sites customer_sites_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_sites_customer_archived_guard_trg BEFORE INSERT ON public.customer_sites FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
 
 --
 -- Name: customer_sites customer_sites_invalidate_operations_on_address_change; Type: TRIGGER; Schema: public; Owner: -
@@ -87563,6 +87732,12 @@ CREATE TRIGGER meter_reading_values_immutable_guard BEFORE DELETE OR UPDATE ON p
 CREATE TRIGGER meter_reading_values_tenant_guard BEFORE INSERT OR UPDATE ON public.meter_reading_values FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_meter_reading_value_tenant();
 
 --
+-- Name: metering_points metering_points_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER metering_points_customer_archived_guard_trg BEFORE INSERT ON public.metering_points FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
+
+--
 -- Name: metering_value_sources metering_value_sources_tenant_guard_v1; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -87723,6 +87898,12 @@ CREATE TRIGGER spot_price_monthly_locked_immutable BEFORE DELETE OR UPDATE ON pu
 --
 
 CREATE TRIGGER spot_price_monthly_server_aggregate_v1 BEFORE INSERT OR UPDATE ON public.spot_price_monthly_summaries FOR EACH ROW WHEN ((pg_trigger_depth() = 0)) EXECUTE FUNCTION public.gridex_enforce_spot_price_month_server_aggregate_v1();
+
+--
+-- Name: supplier_switch_requests supplier_switch_requests_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER supplier_switch_requests_customer_archived_guard_trg BEFORE INSERT ON public.supplier_switch_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
 
 --
 -- Name: tenant_counterparty_routes tenant_counterparty_routes_tenant_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -115072,6 +115253,13 @@ REVOKE ALL ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid,
 GRANT ALL ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_archive_draft_legal_template_version(p_version_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115120,6 +115308,13 @@ GRANT ALL ON FUNCTION public.gridex_assert_contract_channel_permission(p_company
 
 REVOKE ALL ON FUNCTION public.gridex_assert_contract_permission(p_actor_user_id uuid, p_permission text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_assert_contract_permission(p_actor_user_id uuid, p_permission text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_assert_customer_not_archived_for_insert(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_customer_not_archived_for_insert() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assert_customer_not_archived_for_insert() TO service_role;
 
 --
 -- Name: FUNCTION gridex_assert_no_public_offer_fk_references(p_public_offer_ids uuid[]); Type: ACL; Schema: public; Owner: -
