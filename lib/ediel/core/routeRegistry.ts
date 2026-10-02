@@ -112,6 +112,18 @@ async function resolveCommunicationRoute(params: {
   }
 }
 
+/** An ACK replies to the source's sender. When that sender is exactly one
+ * active grid owner of this tenant, its own ACK route is tried before the
+ * tenant's generic ACK route (findBestCommunicationRoute falls back). */
+async function replyGridOwnerId(companyId: string, receiverEdielId?: string | null): Promise<string | null> {
+  const ediel = trimOrNull(receiverEdielId)
+  if (!ediel) return null
+  const { supabaseService } = await import('@/lib/supabase/service')
+  const { data, error } = await supabaseService.from('grid_owners').select('id').eq('company_id', companyId).eq('ediel_id', ediel).eq('is_active', true).limit(2)
+  if (error) throw error
+  return data?.length === 1 ? (data[0] as { id: string }).id : null
+}
+
 export async function resolveCanonicalRouteContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: GridOwnerRow | null
@@ -129,7 +141,7 @@ export async function resolveCanonicalRouteContext(params: {
   const actor = await resolveCanonicalActorContext(environment, companyId)
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
-    gridOwnerId: params.gridOwner?.id ?? null,
+    gridOwnerId: params.gridOwner?.id ?? (params.requestType === 'ediel_ack' ? await replyGridOwnerId(companyId, params.receiverEdielId) : null),
     preferredRouteId: params.preferredRouteId ?? null,
     companyId,
     environment,

@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect} from 'vitest'
 import {raw,alphabets,type Parts} from './fixtures/prodat-register'
 import {head,own,source,z10} from './fixtures/prodat-identity'
@@ -16,26 +17,26 @@ for(const a of alphabets)it(`P94 missing226 names field and own227 under ${a.joi
 })
 it('P94 wrong format retains actual fault value and field name',()=>{
  const o=observe('normative',msg(object().map(p=>p[0]==='DTM'?['DTM',['92','202610010000','BAD']]:p)))
- expect(o.error).toContain('UNSM_MESSAGE_STRUCTURE_INVALID');expect(o.wire).toBeNull();expect(o.diagnostic?.texts[0].values[0]).toBe('Felaktigt Avtal, startdatum BAD')
+ expect(o.error).toBeNull();expect(o.wire?.texts[0].values[0]).toBe('Felaktigt Avtal, startdatum BAD') // P16B resolved
 })
 it('P94 wrong qualifier retains actual fault value under owning227',()=>{
  const o=observe('normative',msg(object().map(p=>p[0]==='NAD'?['NAD','UD',['OWN-A','BAD','89'],'','Synthetic','Street','City','','12345','SE']:p)))
- expect(o.error).toContain('UNSM_MESSAGE_STRUCTURE_INVALID');expect(o.wire).toBeNull();expect(o.diagnostic?.texts[0].values[0]).toBe('Felaktigt Kund-id BAD')
+ expect(o.error).toBeNull();expect(o.wire?.texts[0].values[0]).toBe('Felaktigt Kund-id BAD') // P16B resolved
 })
 it('actual submitted delimiters round trip without text loss or extra ERC',()=>{
  const text="Felaktigt Nätområdesid BAD:+?'ERC+100::260'"
  const params={sourceMessage:msg(object()),outcome:'negative' as const,applicationErrors:[{ercCode:'42',fieldCode:'260',text,referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE-A'}]}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const wire=extract(renderProdatAperakDiagnosticRaw(params))
  expect(wire.erc).toEqual(['42']);expect(wire.texts[0].values).toEqual([text])
 })
 it('positive100 stays OK',()=>{
- const o=observe('normative',source(raw(z10(),'Z10'),'Z10'));expect(o.error).toContain('UNSM_MESSAGE_STRUCTURE_INVALID');expect(o.wire).toBeNull();expect(o.diagnostic?.erc).toEqual(['100']);expect(o.diagnostic?.texts[0].values).toEqual(['OK'])
+ const o=observe('normative',source(raw(z10(),'Z10'),'Z10'));expect(o.error).toBeNull();expect(o.wire?.erc).toEqual(['100']);expect(o.wire?.texts[0].values).toEqual(['OK']) // P16B resolved
 })
 it('source40 fixed text survives',()=>{
  const text='Anläggningen kan inte identifieras'
  const params={sourceMessage:msg(object()),outcome:'negative' as const,applicationErrors:[{ercCode:'40',fieldCode:'105',text,referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE-A'}]}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const w=extract(renderProdatAperakDiagnosticRaw(params))
  expect(w.erc).toEqual(['40']);expect(w.texts[0].values).toEqual([text])
 })

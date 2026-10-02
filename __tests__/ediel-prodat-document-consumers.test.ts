@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseEdifactEnvelope } from '@/lib/ediel/transport/index.part-1'
 import { parseInboundProdat } from '@/lib/ediel/prodat/compatAdapter'
@@ -60,7 +61,7 @@ describe('real ingress, ACK and preflight read the same source BGM', () => {
       expect(rendered.segments).toContain('RFF+Z07:735999999999999999')
       expect(rendered.segments).toContain('RFF+LI:ORIGINAL-LI')
       expect(rendered.segments.some(segment=>segment.startsWith('RFF+ACW:STALE'))).toBe(false)
-      expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive' })).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+      expectOwnReferencePair([String((buildAckDraftForSource({ sourceMessage: source, ackFamily: 'APERAK', outcome: 'positive' })).rawPayload)])
       expect(JSON.stringify(source)).toBe(before)
       const preflight = preflightEdielPayload({ rawPayload: raw, messageStandard: 'edifact', mode: 'send' })
       expect(preflight.family).toBe('PRODAT'); expect(preflight.code).toBe('Z03')

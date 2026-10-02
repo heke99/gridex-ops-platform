@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {createHash} from 'node:crypto'
 import {beforeEach,it,expect,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -38,20 +39,20 @@ for(const a of alphabets)for(const [code,status,end,field] of [['Z14',"x:+",null
  const report=JSON.parse(JSON.stringify(state.message.validation_report)) as {responsePlan:{family:string;applicationErrors?:EdielAperakApplicationError[]}[]}
  const errors=report.responsePlan.flatMap(p=>p.applicationErrors??[]).filter(e=>e.fieldCode===field)
  expect(errors).toMatchObject([{ercCode:'42',fieldCode:field,prodatOccurrence:{lineIndex:0},prodatFieldDiagnostic:{kind:'field',fieldNumber:field},prodatAperakText:{kind:'ready'}}])
- // Full96A has SG4 C1/RFF M1 while the Swedish source requires both
- // original Z07 and LI. Preserve the typed own diagnosis and hold the wire;
- // never drop correlation, duplicate ERC or exempt the directory guard.
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
- expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
+ // P16B resolved: the Swedish E2SE6A reply carries both original Z07 and LI
+ // in one ERC; the typed own diagnosis reaches the wire.
+ const aperaks=state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload))
+ expectOwnReferencePair(aperaks);expect(aperaks.join('')).toContain(`FTX+AAO++${field}::260`)
+ expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(false)
  expect(state.message.raw_payload).toBe(m.raw_payload);expect(state.message.validation_report).toMatchObject({applicationDecision:'rejected'})
 })
 for(const [code,reason,status,end] of [['Z14','Z96','A76',null],['Z15','Z24','A74','E37'],['Z18','S17',null,'E37']] as const)it(`persisted positive ${code}/${reason}/${end}`,async()=>{
  await run(message(code,reason,status,end));expect(state.message.validation_report).toMatchObject({applicationDecision:'accepted',prodatProcessingDisposition:{kind:'continue'}})
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
  // Z14/Z15 positives need the native permission effect, which the declared
- // unit port does not apply; Z18 keeps the full96A dual-reference hold.
- if(code==='Z18')expect(state.events.some(e=>String(e.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
- else expect(state.events.some(e=>String(e.message).includes('inväntar granskning'))).toBe(true)
+ // unit port does not apply; Z18 sends its dual-reference ERC100 (P16B resolved).
+ const aperaks=state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload))
+ if(code==='Z18'){expectOwnReferencePair(aperaks);expect(aperaks.join('')).toContain('ERC+100::260')}
+ else{expect(aperaks).toEqual([]);expect(state.events.some(e=>String(e.message).includes('inväntar granskning'))).toBe(true)}
 })
 it('false322/324 remains accepted through stored response and raw evidence',async()=>{
  const body=object('Z13'),refs=body.findIndex(segment=>segment[0]==='RFF')

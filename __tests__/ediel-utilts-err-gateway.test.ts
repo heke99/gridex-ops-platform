@@ -218,7 +218,7 @@ function seed(transactions: Parameters<typeof utiltsErrGatewayFixture>[0]['trans
       messageProfile:{id:source.rule_profile_version_id,rule_pack_id:source.canonical_rule_pack_id,profile_key:profileKey},guideSources:[]}}
   database.sourceBases.set(source.id,{version:1,sourceMessage:structuredClone(source),sourceRulePackEvidence})
   for (const [table, rows] of Object.entries({
-    ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations,
+    ediel_messages: [source], ediel_message_events: [], ediel_ack_transaction_results: reservations, grid_owners: [],
     company_memberships:[{company_id:company,user_id:actor,status:'active',is_active:true,accepted_at:`${date}T00:00:00Z`}],
     user_profiles:[{id:actor,user_status:'active'}],
     ediel_actor_settings: [{ id: actor, company_id: company, environment: 'test', is_active: true, ediel_id: '21660', sender_subaddress: 'DDQ' }],

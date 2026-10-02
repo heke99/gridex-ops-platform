@@ -8,7 +8,7 @@ import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermiss
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {buildAckDraftForSource} from '@/lib/ediel/ack'
 import type {EdielMessageRow} from '@/lib/ediel/types'
-import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
+import {expectOwnReferencePair,expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
 vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('NO_LIVE_DB')}}}))
 function extract(path:string,names:string[],deps:Record<string,unknown>){const f=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true),code=f.statements.filter(s=>ts.isFunctionDeclaration(s)&&names.includes(s.name?.text??'')).map(s=>s.getText(f).replace(/^export /,'')).join('\n'),js=ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;return new Function(...Object.keys(deps),js+';return '+names[0])(...Object.values(deps))}
@@ -45,14 +45,14 @@ function manual(rows:EdielMessageRow[],records:PriorScopeRecords=scopeRecords())
  const events:unknown[]=[],drafts:unknown[]=[],r=resolver(rows,records as ReturnType<typeof scopeRecords>)
  const run=extract('app/admin/ediel/actions.part-3.ts',['resolveBackendAperakDecision'],{assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,assertPriorPermissionContext,resolveAndStoreProdatAperakErrors:()=>{throw Error('REGISTRY_BYPASS')},resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:r.run,createEdielMessageEvent:async(e:unknown)=>events.push(e)})
  const held:string[]=[]
- // A positive own APERAK for an object with both id and LI is the exact P16B
- // hold (D.96A SG4 C1); it is recorded as held and never becomes a draft.
+ // A positive own APERAK for an object with both id and LI carries Z07+LI
+ // (P16B resolved); any other structural failure is still held and asserted.
  return {events,drafts,held,run:async(m:EdielMessageRow)=>{const d=await run({actorUserId:'synthetic',sourceMessage:m,roleCode:'energy_service_company',fallbackOutcome:'positive'});p16bBlockedAperaks.length=0
   try{drafts.push(buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors}))}catch(error){if(!String(error).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))throw error;expectP16bHold(m.raw_payload!);held.push(...p16bBlockedAperaks)}
   return d}}
 }
 for(const field of ['322','324'])it('A7 actual manual internal hold retains ready '+field+' before event/draft',async()=>{const m=msg(field==='322'?'Z14':'Z15');m.raw_payload=m.raw_payload!.replace(field==='322'?'CAV+A74':'CAV+B79','CAV+X99');const r=manual([]);await expect(r.run(m)).rejects.toMatchObject({permissionFieldAssessment:{applicationErrors:[{ercCode:'42',fieldCode:field}]}});expect(r.events).toEqual([]);expect(r.drafts).toEqual([])})
-it('A8 actual manual positive follows correlation and is held only by exact P16B',async()=>{const r=manual([prior()]);expect((await r.run(msg())).outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.drafts).toEqual([]);expect(r.held).toHaveLength(1);expect(r.held[0]).toContain('ERC+100')})
+it('A8 actual manual positive follows correlation and renders the dual own-reference ERC100 (P16B resolved)',async()=>{const r=manual([prior()]);expect((await r.run(msg())).outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.held).toEqual([]);expect(r.drafts).toHaveLength(1);expectOwnReferencePair([String((r.drafts[0] as {rawPayload?:unknown}).rawPayload)]);expect(String((r.drafts[0] as {rawPayload?:unknown}).rawPayload)).toContain('ERC+100')})
 it('A8 manual null cannot bypass via submitted positive or TGT',async()=>{const run=extract('app/admin/ediel/actions.part-3.ts',['resolveBackendAperakDecision'],{assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,assertPriorPermissionContext,resolveAndStoreProdatAperakErrors:()=>{throw Error('REGISTRY')},resolveTgtTestDataForAckAction:async()=>({testData:{testCaseCode:'1.2.1'},selectedRow:null}),resolveProdatPermissionContextForAck:async()=>null,createEdielMessageEvent:()=>{throw Error('EVENT')}});await expect(run({sourceMessage:msg(),actorUserId:'synthetic',roleCode:'energy_service_company',fallbackOutcome:'positive'})).rejects.toThrow('PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED')})
 it('A8 unrelated qualified national40 still builds Swedish105',()=>{const d=buildAckDraftForSource({sourceMessage:msg(),ackFamily:'APERAK',outcome:'negative',applicationErrors:[{ercCode:'40',fieldCode:'105',text:'Anläggningen kan inte identifieras',lineItemReference:'CASE-ALPHA'}]});expect(d.rawPayload).toContain('ERC+40');expect(d.rawPayload).toContain('105');expect(d.rawPayload).toContain('Anläggningen kan inte identifieras')})
 it('A8 issued internal result cannot be mutated into success',async()=>{const m=msg(),c=await check(m,[]);c.kind='correlated';expect(()=>assertPriorPermissionContext(m,c,null)).toThrow('PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED')})
@@ -76,7 +76,7 @@ for(const [response,mode,request] of [['Z14','S17','Z13'],['Z15','S17','Z18'],['
   await expect(r.run(m)).rejects.toMatchObject({message:'PRODAT_PERMISSION_PRIOR_REVIEW_REQUIRED',reason:'wire_conflict',permissionFieldAssessment:{applicationErrors:[]}})
   expect(r.events).toEqual([]);expect(r.drafts).toEqual([])
  }else{
-  expect((await r.run(m)).outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.drafts).toEqual([]);expect(r.held).toHaveLength(1)
+  expect((await r.run(m)).outcome).toBe('positive');expect(r.events).toHaveLength(1);expect(r.held).toEqual([]);expect(r.drafts).toHaveLength(1);expectOwnReferencePair([String((r.drafts[0] as {rawPayload?:unknown}).rawPayload)])
  }
 })
 it('R-PF-1 contradictory later exact LI cannot hide beside an earlier match',async()=>{

@@ -3,6 +3,7 @@
 // Run with: node --experimental-vm-modules --test scripts/test-ediel-prodat-free-text.cjs
 'use strict'
 const assert = require('node:assert/strict')
+const ownPair=(build)=>{const raw=build().rawPayload;assert.match(raw,/APERAK:D:96A:UN:E2SE6A/);assert.match(raw,/RFF\+Z07:[^']*'RFF\+LI:/);return raw} // P16B resolved (owner decision 2026-10-02)
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
@@ -164,7 +165,7 @@ for (const alphabet of alphabets) {
         // other originals retain BOTH known point and LI; the directory/source
         // conflict holds their actual final wire, with no source alteration.
         if(code==='Z13')assert.ok(build().rawPayload.includes('ERC+100'))
-        else assert.throws(build,/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+        else ownPair(build)
       }
       assert.equal(JSON.stringify(s),before,'incoming evidence remains byte-identical')
     })
@@ -174,7 +175,7 @@ for (const alphabet of alphabets) {
     const s=row(wire('Z14',withObjectText(b,ftx()),[],alphabet),'Z14'), d=a.resolveCanonicalRuntimeDecision(s)
     const plan=d.responsePlan.find(p=>p.family==='APERAK'&&p.outcome==='negative');assert.ok(plan,issues(d))
     assert.ok(plan.applicationErrors?.some(e=>e.ercCode==='41'&&e.fieldCode==='322'),'own missing322 diagnosis is retained')
-    assert.throws(()=>a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+    ownPair(()=>a.buildAperakDraft({sourceMessage:s,outcome:plan.outcome,applicationErrors:plan.applicationErrors}))
     assert.ok(!plan.applicationErrors?.some(e=>e.fieldCode==='303'),'ignored303 must not pollute another national error')
   })
 }

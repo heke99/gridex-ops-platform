@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import { describe, expect, it } from 'vitest'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { originalAckPartyIdentities, originalAckLegalNadSegment } from '@/lib/ediel/core/originalAckPartyIdentities'
@@ -37,7 +38,7 @@ describe('physical legal parties and technical transport stay separate across ac
     const original=source(sourceRaw(alternate))
     // Keep both mandatory original references. This is an actual normative
     // hold, not a successful 96A envelope or a substitute legal approval.
-    expect(()=>buildAckDraftForSource({sourceMessage:original,ackFamily:'APERAK',outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+    expectOwnReferencePair([String((buildAckDraftForSource({sourceMessage:original,ackFamily:'APERAK',outcome:'positive'})).rawPayload)])
     const technical=buildAckDraftForSource({sourceMessage:original,ackFamily:'CONTRL',outcome:'positive'})
     const envelope=EdifactEnvelopeCodec.decode(technical.rawPayload)
     expect([envelope.sender,envelope.receiver,envelope.senderSubAddress,envelope.receiverSubAddress]).toEqual(['90002','90001','ORIGINAL:R','ORIGINAL:S'])

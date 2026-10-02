@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
@@ -32,7 +33,7 @@ for(const a of alphabets)it(`raw punctuation/case and second physical object ${a
  expect(d.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'322',text:"Felaktigt Tillståndets status x:+?'",lineItemReference:'CASE:A+B?C',prodatOccurrence:{lineIndex:0}},{ercCode:'42',fieldCode:'324',text:'Felaktigt Orsak till tillståndets upphörande X99',lineItemReference:'SECOND',prodatOccurrence:{lineIndex:1}}])
  // Both objects carry own id and LI: exact P16B hold for the full96A wire.
  p16bBlockedAperaks.length=0
- expect(()=>buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String((buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors})).rawPayload)])
  expectP16bHold(m.raw_payload!);expect(p16bBlockedAperaks.join('')).toContain('ERC+42')
 })
 it('inapplicable fields and unknown subtype do not create selected errors',()=>{

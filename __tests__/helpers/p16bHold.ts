@@ -1,5 +1,6 @@
 import {expect} from 'vitest'
-import {diagnoseProdatAperakOwnReferenceConflict} from '@/lib/ediel/core/unsmSourceConflicts'
+import {validateUnsmGrammar} from '@/lib/ediel/core/unsmGrammar'
+import {segmentComposite,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 
 /** Blocked send-mode APERAK payloads seen by the real payload preflight. Test
  * files route preflight through captureP16bPreflight (vi.mock delegating to the
@@ -10,21 +11,30 @@ export async function captureP16bPreflight(importOriginal: () => Promise<Record<
   const actual = await importOriginal() as {preflightEdielPayload: (input: {rawPayload?: string | null}) => {blocking: boolean}}
   return {...actual, preflightEdielPayload: (input: {rawPayload?: string | null}) => {
     const result = actual.preflightEdielPayload(input)
-    if (result.blocking && typeof input.rawPayload === 'string' && input.rawPayload.includes('APERAK:D:96A:UN')) p16bBlockedAperaks.push(input.rawPayload)
+    // P16B resolved: every rendered own APERAK E2SE6A is captured for assertion.
+    if (typeof input.rawPayload === 'string' && input.rawPayload.includes('APERAK:D:96A:UN')) p16bBlockedAperaks.push(input.rawPayload)
     return result
   }}
 }
 
-/** The documented P16B hold (P16B_APERAK96A_OWN_Z07_LI_CARDINALITY): the national
- * guide requires own RFF+Z07 and RFF+LI in one ERC, D.96A SG4 is C1. Until an
- * external normative clarification exists the own APERAK is held fail-closed:
- * every blocked APERAK must be exactly that diagnosed conflict, and at least one
- * must exist. Any other structural failure does not satisfy this helper. */
-export function expectP16bHold(sourceRaw: string, blocked: readonly string[] = p16bBlockedAperaks) {
-  expect(blocked.length, 'an own APERAK must actually have been rendered and held').toBeGreaterThan(0)
-  for (const raw of blocked) {
-    const conflicts = diagnoseProdatAperakOwnReferenceConflict(raw, sourceRaw)
-    expect(conflicts.length, 'held APERAK must be the exact P16B dual own-reference conflict').toBeGreaterThan(0)
-    expect(conflicts.every(conflict => conflict.blocking && conflict.conflictId === 'P16B_APERAK96A_OWN_Z07_LI_CARDINALITY')).toBe(true)
+/** P16B resolved (owner decision 2026-10-02): the formerly held dual
+ * own-reference APERAK is now rendered. Every captured APERAK must carry the
+ * Z07+LI pair in one ERC and pass the full grammar. */
+export function expectP16bHold(_sourceRaw: string, rendered: readonly string[] = p16bBlockedAperaks) {
+  expectOwnReferencePair(rendered)
+}
+
+/** P16B resolved (owner decision 2026-10-02, national guide P26A/16B p105):
+ * an own APERAK E2SE6A carries RFF+Z07 then RFF+LI in one ERC and passes the
+ * full D.96A grammar with only that pair widened. Asserts every given APERAK
+ * wire is such a valid dual-own-reference reply. */
+export function expectOwnReferencePair(raws: readonly string[]) {
+  expect(raws.length, 'an own APERAK must actually have been rendered').toBeGreaterThan(0)
+  for (const raw of raws) {
+    expect(raw).toContain('APERAK:D:96A:UN:E2SE6A')
+    const wire = tokenizeEdifact(raw), segments = wire.segments
+    const pairs = segments.flatMap((segment, at) => segment.tag !== 'ERC' ? [] : [segments.slice(at + 1).filter((next, i, rest) => rest.slice(0, i).every(prior => prior.tag !== 'ERC' && prior.tag !== 'UNT') && next.tag === 'RFF').map(ref => segmentComposite(ref, 1, wire.una)[0])])
+    expect(pairs.some(qualifiers => qualifiers.join(',') === 'Z07,LI'), 'an ERC carries RFF+Z07 then RFF+LI').toBe(true)
+    expect(validateUnsmGrammar(raw).issues.filter(issue => issue.severity === 'error')).toEqual([])
   }
 }

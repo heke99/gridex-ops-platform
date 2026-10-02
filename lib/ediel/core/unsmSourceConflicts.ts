@@ -20,7 +20,9 @@ export const prodatAperakDualReferenceConflict = {
       sourceFinding: 'P16B p103: godkänd ERC100 följs av FTX,RFF; p104 skiljer endast FTX för godkänd/avvisad; p105 har ingen negativ-ERC-avgränsning för de två RFF-villkoren.',
     },
   },
-  resolution: 'EXTERNAL_NORMATIVE_CLARIFICATION_REQUIRED',
+  // Owner decision 2026-10-02: follow the national guide (P26A/16B p105).
+  // APERAK E2SE6A may carry RFF+Z07 then RFF+LI in one SG4 (unsmGrammar.ts).
+  resolution: 'RESOLVED_NATIONAL_GUIDE_OWNER_DECISION_20261002',
 } as const
 
 export type UnsmOwnReferenceSourceConflict = {
@@ -29,11 +31,11 @@ export type UnsmOwnReferenceSourceConflict = {
   sourceLinSegmentIndex: number
   objectId: string
   lineReference: string
-  blocking: true
+  blocking: false
 }
 
-/** Read-only diagnostic for the exact original source contradiction. This
- * cannot authorize an ACK, change grammar cardinality or supply an outcome.
+/** Read-only diagnostic locating the resolved dual own reference. It never
+ * authorizes an ACK or supplies an outcome; the grammar decides validity.
  * Both references must belong to one actual physical original LIN and to one
  * physical response ERC. Caller metadata and neighbouring editions are unused. */
 export function diagnoseProdatAperakOwnReferenceConflict(ackRaw: string, sourceRaw: string): UnsmOwnReferenceSourceConflict[] {
@@ -72,7 +74,7 @@ export function diagnoseProdatAperakOwnReferenceConflict(ackRaw: string, sourceR
     const matches = originalObjects.filter(object => object.id === objectId && object.refs.length === 1
       && segmentComposite(object.refs[0], 1, source.una)[1] === lineReference)
     if (matches.length === 1) conflicts.push({ conflictId: prodatAperakDualReferenceConflict.id,
-      ackErcSegmentIndex: erc.index, sourceLinSegmentIndex: matches[0].lin.index, objectId, lineReference, blocking: true })
+      ackErcSegmentIndex: erc.index, sourceLinSegmentIndex: matches[0].lin.index, objectId, lineReference, blocking: false })
   }
   return conflicts
 }

@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect} from 'vitest'
 import {raw,alphabets,line,characteristic,input,rule,type Parts} from './fixtures/prodat-register'
 import {head,own,source} from './fixtures/prodat-identity'
@@ -45,7 +46,7 @@ for(const a of alphabets){
   const d=resolveCanonicalRuntimeDecision(message),errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
   expect(errors).toHaveLength(1);expect(errors[0].text).toBe(`Felaktigt Produkt id (Energiprodukt) ${value}`)
   const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors}
-  expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+  expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
   const rawDiagnostic=renderProdatAperakDiagnosticRaw(params)
   expect(texts(rawDiagnostic)).toEqual([[errors[0].text]])
   expect(tokenizeEdifact(rawDiagnostic).segments.filter(t=>t.tag==='ERC')).toHaveLength(1)
@@ -93,7 +94,7 @@ it('energy single qualifier failure uses bad qualifier; conflicts keep all submi
 for(const size of [69,70,71])it(`decoded ${size} typed characters; no truncation despite escape expansion`,()=>{
  const value=':'.repeat(size-'Felaktigt Produkt id (Energiprodukt) '.length),message=permissionMessage('Z14','S17',value),d=resolveCanonicalRuntimeDecision(message)
  const errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
- if(size<=70){expect(errors[0]?.text).toHaveLength(size);const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors};expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID');const wire=renderProdatAperakDiagnosticRaw(params);expect(texts(wire)).toEqual([[errors[0].text]])}
+ if(size<=70){expect(errors[0]?.text).toHaveLength(size);const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors};expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)]);const wire=renderProdatAperakDiagnosticRaw(params);expect(texts(wire)).toEqual([[errors[0].text]])}
  else {expect(errors).toEqual([]);expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}})}
 })
 it('stale/incomplete ready data is ineligible after persistence',()=>{
@@ -112,7 +113,7 @@ for(const a of alphabets)it(`actual ownLI ending in apostrophe survives read-onl
  const wire=raw([...head(),...body('OWN',"CASE'").filter(t=>t[0]!=='RFF'||(t[1] as string[])[0]!=='Z05')],'Z01',a)
  const message=source(wire),d=resolveCanonicalRuntimeDecision(message),errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
  const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const tokens=tokenizeEdifact(renderProdatAperakDiagnosticRaw(params))
  expect(tokens.segments.filter(t=>t.tag==='RFF').map(t=>segmentComposite(t,1,tokens.una))).toContainEqual(['LI',"CASE'"])
  expect(tokens.segments.filter(t=>t.tag==='UNT')).toHaveLength(1);expect(tokens.segments.filter(t=>t.tag==='UNZ')).toHaveLength(1)

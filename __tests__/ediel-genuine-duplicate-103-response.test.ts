@@ -1,3 +1,4 @@
+import { expectOwnReferencePair } from './helpers/p16bHold'
 // Finite external native-owner responses model IO only. The actual opaque
 // source-read capability, envelope, complete UNSM and national preflight run.
 import { createHash } from 'node:crypto'
@@ -66,10 +67,11 @@ describe('a genuine new reception has a separate 103 protocol response', () => {
     expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_prepare_duplicate_103_response_v1', expect.objectContaining({ p_smtp: null }))
     expect(io.smtp).not.toHaveBeenCalled(); expect(io.commits).toHaveLength(0)
   })
-  it('retains both known point and LI and truthfully holds strict full96A without attempted persistence', async () => {
+  it('retains both known point and LI in one E2SE6A ERC and commits the 103 response (P16B resolved)', async () => {
     install(true)
-    await expect(prepareDuplicate103Response(input)).rejects.toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
-    expect(io.commits).toHaveLength(0)
+    await prepareDuplicate103Response(input)
+    expect(io.commits).toHaveLength(1)
+    expectOwnReferencePair([JSON.stringify(io.commits[0]).match(/UNA[^"]*/)?.[0]?.replace(/\\'/g, "'") ?? ''])
   })
   it.each(['current_actor_denied', 'same_identity_different_original', 'captured_role_revoked', 'guide_cutoff_held'])('holds native %s without SMTP or effects', async error => {
     io.rpc.mockResolvedValueOnce({ data: null, error: Error(error) })

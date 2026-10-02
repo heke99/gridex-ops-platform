@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {qty} from './fixtures/prodat-register'
 import {guideOrderedFixtureRaw as rawFixture} from './helpers/prodatGuideOrderedFixture'
@@ -392,7 +393,7 @@ it('accepts an ordinary field 202 code and holds a malformed header when the ten
  const ordinary={...state.source!,raw_payload:wire} as EdielMessageRow
  expect(prodatHeaderFieldRejection({field:'202',sourceWire:tokenizeEdifact(wire),errors:[]})).toMatchObject({defect:null,qualified:false})
  expect(resolveCanonicalRuntimeDecision(ordinary).applicationDecision).toBe('accepted')
- expect(()=>buildAperakDraft({sourceMessage:ordinary,outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String((buildAperakDraft({sourceMessage:ordinary,outcome:'positive'})).rawPayload)])
  state.source={...state.source!,raw_payload:wire.replace('BGM+Z04+D+9+AB','BGM+Z04:BOGUS+D+9+AB')} as EdielMessageRow
  state.routeAvailable=false
  await processInboundEdielMessage({actorUserId:'00000000-0000-4000-8000-000000000009',edielMessageId:state.source.id})
@@ -445,7 +446,7 @@ it('keeps optional missing 204 and documented 9/5 outside header rejection, and 
   expect(prodatHeaderFieldRejection({field:'204',sourceWire:tokenizeEdifact(candidate),errors:[]})).toMatchObject({defect:null,qualified:false})
   const message={...state.source!,raw_payload:candidate} as EdielMessageRow
   expect(resolveCanonicalRuntimeDecision(message).applicationDecision).toBe('accepted')
-  expect(()=>buildAperakDraft({sourceMessage:message,outcome:'positive'})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+  expectOwnReferencePair([String((buildAperakDraft({sourceMessage:message,outcome:'positive'})).rawPayload)])
  }
  state.source={...state.source!,raw_payload:wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')} as EdielMessageRow
  state.routeAvailable=false
@@ -494,19 +495,20 @@ it('retains own two-register 213 diagnosis while full APERAK grammar holds the r
  const errors=decision.responsePlan.find(item=>item.family==='APERAK')!.applicationErrors
  expect(errors).toEqual([expect.objectContaining({ercCode:'41',fieldCode:'213',
   prodatOccurrence:expect.objectContaining({objectId:'735123456789012345',registerPosition:2,lineItemReference:'CASE-735123456789012345'})})])
- expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:errors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String((buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:errors})).rawPayload)])
  const input={actorUserId:fixtureActor,edielMessageId:state.source!.id}
  await processInboundEdielMessage(input)
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive']])
- expect(state.outbox).toHaveLength(1)
- expect(state.events).toContainEqual(expect.objectContaining({message:expect.stringContaining('UNSM_MESSAGE_STRUCTURE_INVALID')}))
+ // P16B resolved: the own negative APERAK (Z07+LI) is persisted and queued.
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+ expect(state.outbox).toHaveLength(2)
+ expect(state.events).not.toContainEqual(expect.objectContaining({message:expect.stringContaining('UNSM_MESSAGE_STRUCTURE_INVALID')}))
  const retained=structuredClone({messages:state.messages,outbox:state.outbox})
  await processInboundEdielMessage(input)
  expect({messages:state.messages,outbox:state.outbox}).toEqual(retained)
  expect(state.effects).toEqual(['actor','actor'])
 })
 
-it('retains whole-message P-17 diagnosis while strict APERAK grammar holds its own-reference reply',async()=>{
+it('retains whole-message P-17 diagnosis and sends its own-reference negative reply (P16B resolved)',async()=>{
  const all=mixedZ04Parts(),sibling=all.findIndex(part=>part[0]==='LIN'&&part[1]==='3'),parts=all.slice(0,sibling)
  const second=parts.findIndex(part=>part[0]==='LIN'&&part[1]==='2')
  parts[second]=[...parts[second].slice(0,1),'4',...parts[second].slice(2)]
@@ -514,12 +516,12 @@ it('retains whole-message P-17 diagnosis while strict APERAK grammar holds its o
  state.source={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
  const plan=resolveCanonicalRuntimeDecision(state.source).responsePlan.find(item=>item.family==='APERAK')!
  expect(plan).toMatchObject({outcome:'negative',applicationErrors:expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:'314'})])})
- expect(()=>buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String((buildAperakDraft({sourceMessage:state.source!,outcome:'negative',applicationErrors:plan.applicationErrors})).rawPayload)])
  const input={actorUserId:fixtureActor,edielMessageId:state.source.id}
  await processInboundEdielMessage(input)
- expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive']])
+ expect(state.messages.map(row=>[row.message_family,row.ack_outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
  expect(state.messages.map(row=>row.raw_payload).join('')).not.toContain('ERC+100')
- expect(state.outbox).toHaveLength(1)
+ expect(state.outbox).toHaveLength(2)
  expect(state.effects).toEqual([])
  const retained=structuredClone({messages:state.messages,outbox:state.outbox})
  await processInboundEdielMessage(input)
@@ -547,7 +549,7 @@ it.each(['first LIN 2','duplicate LIN 1'] as const)('retains physical %s diagnos
  const sourceMessage={...state.source!,raw_payload:raw(parts,'Z04')} as EdielMessageRow
  const plan=resolveCanonicalRuntimeDecision(sourceMessage).responsePlan.find(item=>item.family==='APERAK')!
  expect(plan.applicationErrors).toContainEqual(expect.objectContaining({fieldCode:'314',ercCode:'42'}))
- if(defect==='first LIN 2')expect(()=>buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ if(defect==='first LIN 2')expectOwnReferencePair([String((buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors})).rawPayload)])
  else{const draft=buildAperakDraft({sourceMessage,outcome:'negative',applicationErrors:plan.applicationErrors});expect(draft.rawPayload).toContain('BGM+++27');expect(draft.rawPayload).toContain('FTX+AAO++314::260')}
 })
 

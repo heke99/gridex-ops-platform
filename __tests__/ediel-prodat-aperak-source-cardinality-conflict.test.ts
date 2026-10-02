@@ -13,12 +13,12 @@ const source = wire(sourceBody, 'PRODAT:D:97A:UN:E2SE6A')
 const ack = (body = ackBody) => wire(body, 'APERAK:D:96A:UN:E2SE6A', '22222', '11111')
 
 describe('P16B and original96A exact own-reference source conflict', () => {
-  it.each(['100','40','41','42'])('keeps exact dual-own-reference hold for actual own ERC%s without treating positive100 as an exception', code => {
+  it.each(['100','40','41','42'])('accepts the national dual own reference for own ERC%s (owner decision, P26A/16B p105)', code => {
     const body=ackBody.map(segment=>segment==='ERC+100::260'?`ERC+${code}::260`:segment)
     const rawAck=ack(body)
     expect(diagnoseProdatAperakOwnReferenceConflict(rawAck,source)).toHaveLength(1)
-    expect(validateUnsmGrammar(rawAck).syntaxOk).toBe(false)
-    expect(preflightEdielPayload({rawPayload:rawAck,messageStandard:'edifact',mode:'send'}).blocking).toBe(true)
+    expect(validateUnsmGrammar(rawAck).syntaxOk).toBe(true)
+    expect(preflightEdielPayload({rawPayload:rawAck,messageStandard:'edifact',mode:'send'}).issues.filter(issue=>issue.code==='UNSM_MESSAGE_STRUCTURE_INVALID')).toEqual([])
     expect(prodatAperakDualReferenceConflict.national.ercApplicability.positiveCode).toBe('100')
     expect(prodatAperakDualReferenceConflict.national.ercApplicability.sourceFinding).toContain('p105 har ingen negativ-ERC-avgränsning')
   })
@@ -29,23 +29,18 @@ describe('P16B and original96A exact own-reference source conflict', () => {
     expect(prodatAperakDualReferenceConflict.national.liCondition).toContain('ärendereferens finns')
     expect(diagnoseProdatAperakOwnReferenceConflict(ack(), source)).toEqual([{
       conflictId: 'P16B_APERAK96A_OWN_Z07_LI_CARDINALITY', ackErcSegmentIndex: 6, sourceLinSegmentIndex: 4,
-      objectId: '735999888777777778', lineReference: 'OWN-LI', blocking: true,
+      objectId: '735999888777777778', lineReference: 'OWN-LI', blocking: false,
     }])
   })
 
-  it('keeps the actual send consumer blocking without authorizing persistence or transport effects', () => {
-    const original = { ack: ack(), source }
-    expect(validateUnsmGrammar(source).syntaxOk).toBe(true)
-    const syntax = validateUnsmGrammar(original.ack)
-    expect(syntax.syntaxOk).toBe(false)
-    expect(syntax.issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
-    const preflight = preflightEdielPayload({ rawPayload: original.ack, messageStandard: 'edifact', mode: 'send' })
-    expect(preflight.blocking).toBe(true)
-    expect(preflight.issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
-    diagnoseProdatAperakOwnReferenceConflict(original.ack, original.source)
-    expect(original).toEqual({ ack: ack(), source })
-    // This proves the pure actual preflight hold. Native no-write owner probes
-    // remain a separate frozen-candidate requirement; no fake DB is involved.
+  it('widens only the exact E2SE6A Z07-then-LI pair; every other SG4 shape keeps D.96A C1', () => {
+    expect(validateUnsmGrammar(ack()).syntaxOk).toBe(true)
+    const reversed = ack(ackBody.slice(0, -2).concat('RFF+LI:OWN-LI', 'RFF+Z07:735999888777777778'))
+    expect(validateUnsmGrammar(reversed).issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
+    expect(validateUnsmGrammar(ack(ackBody.concat('RFF+LI:THIRD'))).syntaxOk).toBe(false)
+    const otherSubset = ack().replace('APERAK:D:96A:UN:E2SE6A', 'APERAK:D:96A:UN')
+    expect(validateUnsmGrammar(otherSubset).issues.some(issue => issue.code === 'UNSM_MESSAGE_STRUCTURE_INVALID')).toBe(true)
+    expect(prodatAperakDualReferenceConflict.resolution).toBe('RESOLVED_NATIONAL_GUIDE_OWNER_DECISION_20261002')
   })
 
   it('does not invent an all-APERAK block for the directory-valid single own reference', () => {

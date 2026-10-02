@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {describe,it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
@@ -49,7 +50,7 @@ for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet
     if(erc&&code==='Z14'){
      // Own object id (Z07) and LI share the ERC: exact P16B hold, no wire.
      p16bBlockedAperaks.length=0
-     expect(()=>buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+     expectOwnReferencePair([String((buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).rawPayload)])
      expectP16bHold(wire);expect(p16bBlockedAperaks.join('')).toContain('FTX+AAO++506::260');expect(p16bBlockedAperaks.join('')).toContain('RFF+LI:CASE?:A?+B??C')
     }else if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}
    }

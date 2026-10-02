@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect} from 'vitest'
 import {raw,alphabets,type Parts} from '@/__tests__/fixtures/prodat-register'
 import {source,z10} from '@/__tests__/fixtures/prodat-identity'
@@ -19,7 +20,7 @@ for(const a of alphabets)for(const field of ['213','214'])for(const invalid of [
  }
  expect(d.syntaxDecision).toBe('accepted');expect(errors).toEqual([]);expect(d.applicationDecision).toBe('accepted')
  const params={sourceMessage:message,outcome:'positive' as const}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const parsed=tokenizeEdifact(renderProdatAperakDiagnosticRaw(params))
  expect(parsed.segments.filter(s=>s.tag==='FTX').map(s=>({field:segmentComposite(s,3,parsed.una)[0],text:segmentComposite(s,4,parsed.una)}))).toEqual([{field:'',text:['OK']}])
 })
@@ -35,7 +36,7 @@ for(const a of alphabets)for(const extra of [false,true])it(`310 adjacent CAV ${
  expect(p.applicationErrors).toHaveLength(1)
  expect(p.applicationErrors[0].text).toBe('Felaktigt Kundstatus Z41 / BAD')
  const params={sourceMessage:source(wire,'Z06'),outcome:'negative' as const,applicationErrors:p.applicationErrors}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const t=tokenizeEdifact(renderProdatAperakDiagnosticRaw(params))
  expect(t.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,4,t.una))).toContainEqual(['Felaktigt Kundstatus Z41 / BAD'])
 })

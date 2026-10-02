@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {guideOrderedFixtureRaw as raw} from './helpers/prodatGuideOrderedFixture'
 import {beforeEach,it,expect,vi} from 'vitest'
 import {line,qty,common,characteristic,type Parts} from './fixtures/prodat-register'
@@ -137,8 +138,9 @@ for(const [name,invalid,field] of [
  expect(retainedErrors()).toContainEqual(expect.objectContaining({fieldCode:field,ercCode:'42'}))
  const wire=state.drafts.map(d=>d.rawPayload).join('')
  expect(wire).not.toContain('ERC+100::260')
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
- expect(state.events.some(event=>String(event.message).includes(field==='314'?'UNSM_MESSAGE_STRUCTURE_INVALID':'aperak_prodat_requested_scope_unqualified'))).toBe(true)
+ // P16B resolved: field 314's own ERC renders with Z07+LI; others stay unqualified.
+ if(field==='314')expectOwnReferencePair(state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload)))
+ else{expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([]);expect(state.events.some(event=>String(event.message).includes('aperak_prodat_requested_scope_unqualified'))).toBe(true)}
  expect(state.effects).toEqual([])
 })
 it('holds an own QTY31/213 omission before the case writer without an invented positive response',async()=>{
@@ -182,7 +184,7 @@ it('internal review retains own special109 with both Z09D dates while full96A ho
  state.message={...state.message,...source(raw(body,'Z09'),'Z09')};state.inject=true;await run();
  expect(state.effects).toEqual([]);expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'internal_review'});
  expect(retainedErrors()).toContainEqual(expect.objectContaining({ercCode:'40',fieldCode:'109'}))
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
- expect(state.events.some(event=>String(event.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
+ expectOwnReferencePair(state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload))) // P16B resolved
+ expect(state.drafts.map(d=>d.rawPayload).join('')).toContain('ERC+40::260')
  expect(state.drafts.map(d=>d.rawPayload).join('')).not.toContain('ERC+100::260')
 })

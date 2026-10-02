@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
@@ -11,7 +12,7 @@ it('observes source-owned missing invoicee child in qualified actual Z03',async(
  const body:Parts[]=[...head(),...own('1','735123456789012345','CASE-A')];body.splice(6,0,...characteristic('Z04','Z01'));body.push(['NAD','Z02',['54321','160','SVK'],'','','','','','','SE'],['NAD','IV',['IVID','','89'],'',name,'Street','City','','12345','SE'])
  const wire=raw(body,'Z03'),msg=source(wire,'Z03'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(p=>p.family==='APERAK')
  const params={sourceMessage:msg,outcome:p?.outcome === 'negative' ? 'negative' as const : 'positive' as const,applicationErrors:p?.applicationErrors}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  const diagnostic=renderProdatAperakDiagnosticRaw(params)
  if(name){expect(d.applicationDecision).toBe('accepted');expect(diagnostic).toContain('ERC+100::260')}else {expect(p?.applicationErrors?.map(e=>[e.ercCode,e.fieldCode])).toEqual([['41','251']]);expect(diagnostic).toContain('FTX+AAO++251::260')}
  }

@@ -20,6 +20,28 @@ export type UnsmGrammarResult = {
   sources: { messageIndex: number; key: string; archiveSha256: string; members: Grammar['sources'] }[]
 }
 
+/** P16B_APERAK96A_OWN_Z07_LI_CARDINALITY, resolved by owner decision
+ * (2026-10-02) per the national guide (P26A/16B p105): the Swedish subset
+ * APERAK E2SE6A carries both own references of one acknowledged PRODAT object,
+ * RFF+Z07 then RFF+LI, in SG4 of one ERC. Only that pair widens D.96A SG4 from
+ * C1 to two repetitions; every other shape keeps the directory cardinality. */
+function withProdatOwnReferencePair(nodes: Node[]): Node[] {
+  return nodes.map(node => node.group === 4 ? { ...node, max: 2 }
+    : node.children ? { ...node, children: withProdatOwnReferencePair(node.children) } : node)
+}
+function ownReferencePairIssues(segments: EdifactTokenizedSegment[], tokens: EdifactTokenizeResult): UnsmGrammarIssue[] {
+  const issues: UnsmGrammarIssue[] = []
+  segments.forEach((segment, at) => {
+    if (segment.tag !== 'ERC') return
+    const end = segments.findIndex((next, i) => i > at && (next.tag === 'ERC' || next.tag === 'UNT'))
+    const refs = segments.slice(at + 1, end < 0 ? segments.length : end).filter(next => next.tag === 'RFF')
+    if (refs.length === 2 && (segmentComposite(refs[0], 1, tokens.una)[0] !== 'Z07' || segmentComposite(refs[1], 1, tokens.una)[0] !== 'LI'))
+      issues.push({ severity: 'error', code: 'UNSM_MESSAGE_STRUCTURE_INVALID', segmentIndex: refs[1].index,
+        description: 'APERAK:D:96A:UN:E2SE6A: två RFF i SG4 är endast tillåtna som eget RFF+Z07 följt av RFF+LI (P26A/16B s.105).' })
+  })
+  return issues
+}
+
 /** Match the complete directory tree, including optional groups with mandatory
  * children and repeated nested groups. End-position sets retain ambiguities;
  * an early optional RFF/NAD must not greedily consume a later group's trigger.
@@ -148,7 +170,9 @@ export function validateUnsmGrammar(input: string | EdifactTokenizeResult): Unsm
     }
     if (result.qualification !== 'unavailable') result.qualification = 'qualified'
     result.sources.push({ messageIndex: unh.index, key, archiveSha256: grammar.archiveSha256, members: grammar.sources })
-    const matched = matchStructure(grammar.structure, segments)
+    const nationalOwnReferences = key === 'APERAK:D:96A:UN' && identifier[4]?.toUpperCase() === 'E2SE6A'
+    const matched = matchStructure(nationalOwnReferences ? withProdatOwnReferencePair(grammar.structure) : grammar.structure, segments)
+    if (nationalOwnReferences) result.issues.push(...ownReferencePairIssues(segments, tokens))
     if (!matched.ok) result.issues.push({ severity: 'error', code: 'UNSM_MESSAGE_STRUCTURE_INVALID',
       segmentIndex: segments[Math.min(matched.furthest, segments.length - 1)].index,
       description: `${key}: fysisk segmentordning, obligatoriska segment/grupper eller kardinalitet avviker från full directory.` })

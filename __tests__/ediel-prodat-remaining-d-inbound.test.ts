@@ -20,7 +20,7 @@ vi.mock('@/lib/ediel/operationalVerification',()=>({buildSafeMasterdataProposal:
 vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielProcessingPipeline:async()=>null}))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
+import {expectOwnReferencePair,p16bBlockedAperaks} from './helpers/p16bHold'
 import {prodatFixtureSourceRpc,withProdatFixtureInsertContext} from './helpers/prodatInboundSourceFixture'
 
 import {permissionAckMessage as message,alphabets,characteristic} from './fixtures/prodat-permission-ack'
@@ -52,11 +52,10 @@ for(const a of alphabets)for(const cell of ['321','323','254','242','Z05-310','Z
  const report=JSON.parse(JSON.stringify(state.message.validation_report)) as {responsePlan:{family:string;applicationErrors?:EdielAperakApplicationError[]}[]}
  const errors=report.responsePlan.flatMap(p=>p.applicationErrors??[]).filter(e=>e.fieldCode===field)
  expect(errors).toEqual(expect.arrayContaining([expect.objectContaining({ercCode:field==='320'?'41':'42',fieldCode:field,prodatOccurrence:{...errors[0]?.prodatOccurrence,lineIndex:0},prodatFieldDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field}),prodatAperakText:expect.objectContaining({kind:'ready'})})]))
- // P16B: the own ERC needs both RFF+Z07 and RFF+LI; D.96A SG4 is C1, so the
- // actual APERAK is held fail-closed until external clarification.
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
- expectP16bHold(m.raw_payload!)
- for(const raw of p16bBlockedAperaks){const wire=tokenizeEdifact(raw);expect(wire.segments.filter(t=>t.tag==='FTX').map(t=>segmentComposite(t,3,wire.una)[0])).toContain(field);expect(raw).not.toContain('ERC+100')}
+ // P16B resolved: the own ERC carries both RFF+Z07 and RFF+LI (E2SE6A).
+ const aperaks=state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload))
+ expectOwnReferencePair(aperaks)
+ for(const raw of aperaks){const wire=tokenizeEdifact(raw);expect(wire.segments.filter(t=>t.tag==='FTX').map(t=>segmentComposite(t,3,wire.una)[0])).toContain(field);expect(raw).not.toContain('ERC+100')}
 })
 it('selected mixed321 F and323 text I survives persistence and prevents business',async()=>{
  const m=message('Z14','S18');m.raw_payload=m.raw_payload!.replace('202611010000','202602300000').replace('B72','X'.repeat(80));await run(m)

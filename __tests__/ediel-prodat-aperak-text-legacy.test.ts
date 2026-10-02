@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {raw,characteristic,type Parts} from './fixtures/prodat-register'
 import {source,z10} from './fixtures/prodat-identity'
@@ -22,7 +23,7 @@ it('actual legacy TGT registry preserves valid control and exact224 negative wit
   expect(isQualifiedProdatApplicationError(error)).toBe(true)
   // Own Z07 and LI share the ERC: exact P16B hold; the held wire keeps the text.
   p16bBlockedAperaks.length=0
-  expect(()=>buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:resolved.errors})).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+  expectOwnReferencePair([String((buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:resolved.errors})).rawPayload)])
   expectP16bHold(message.raw_payload!)
   const wire=tokenizeEdifact(p16bBlockedAperaks[0])
   expect(wire.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,4,wire.una))).toContainEqual(['Felaktigt Mätarnummer NEW'])

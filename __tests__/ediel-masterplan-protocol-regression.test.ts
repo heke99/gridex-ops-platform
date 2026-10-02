@@ -1,3 +1,4 @@
+import { expectOwnReferencePair } from './helpers/p16bHold'
 import { describe, expect, it } from 'vitest'
 import { buildAckDraftForSource } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -95,10 +96,9 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
     const prodatSource = { ...source, message_family: 'PRODAT', message_code: 'Z01',
       raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I++23-DDQ-PRODAT++1++1'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'DTM+137:202609101200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'RFF+LI:SOURCE-LI'UNT+9+M'UNZ+1+I'",
     } as EdielMessageRow
-    // Both known own references are preserved. The P16B/96A source conflict
-    // holds this actual final builder; it is not proof of a delivered ACK.
-    expect(() => buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' }))
-      .toThrow(/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+    // Both known own references are preserved in one ERC (P16B resolved,
+    // E2SE6A): the actual final builder renders the P-APERAK.
+    expectOwnReferencePair([String(buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' }).rawPayload)])
     expect(() => buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' }))
       .toThrow(expect.objectContaining({disposition:expect.objectContaining({code:'EDIEL_ACK_ORIGINAL_LEGAL_PARTIES_UNQUALIFIED'})}))
     expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'UTILTS_ERR' })).toThrow()

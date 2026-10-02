@@ -3,6 +3,7 @@
 // Run with: node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs
 'use strict'
 const assert = require('node:assert/strict')
+const ownPair=(build)=>{const raw=build().rawPayload;assert.match(raw,/APERAK:D:96A:UN:E2SE6A/);assert.match(raw,/RFF\+Z07:[^']*'RFF\+LI:/);return raw} // P16B resolved (owner decision 2026-10-02)
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
@@ -162,7 +163,7 @@ for (const family of ['PRODAT','UTILTS','UTILTS_ERR']) for (const outcome of ['p
   test(`${family}-origin ${outcome} final ACK either has real CONTRL request or remains scoped source-held`, async () => {
     const a = await api, original = source(family), before = JSON.stringify(original)
     assert.equal(a.validateEdifactSyntax(original).ok, true, 'source has a coherent envelope')
-    if(family==='PRODAT'){assert.throws(()=>a.buildAperakDraft({sourceMessage:original,outcome,applicationErrors:outcome==='negative'?ackErrors(family):null}),outcome==='negative'?/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/:/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/);assert.equal(JSON.stringify(original),before);return}
+    if(family==='PRODAT'&&outcome==='negative'){assert.throws(()=>a.buildAperakDraft({sourceMessage:original,outcome,applicationErrors:ackErrors(family)}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);assert.equal(JSON.stringify(original),before);return}
     const draft = a.buildAperakDraft({ sourceMessage: original, outcome, applicationErrors: outcome === 'negative'
       ? ackErrors(family) : null })
     assert.equal(finalWire(draft.rawPayload).unb[9], '1')
@@ -170,7 +171,7 @@ for (const family of ['PRODAT','UTILTS','UTILTS_ERR']) for (const outcome of ['p
   })
   test(`${family}-origin ${outcome} monitoring is never manufactured for a held final ACK`, async () => {
     const a = await api
-    if(family==='PRODAT'){assert.throws(()=>a.buildAperakDraft({sourceMessage:source(family),outcome,applicationErrors:outcome==='negative'?ackErrors(family):null}),outcome==='negative'?/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/:/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/);return}
+    if(family==='PRODAT'&&outcome==='negative'){assert.throws(()=>a.buildAperakDraft({sourceMessage:source(family),outcome,applicationErrors:ackErrors(family)}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);return}
     assertPending(a, a.buildAperakDraft({ sourceMessage:source(family), outcome, applicationErrors: outcome === 'negative'
       ? ackErrors(family) : null }), false)
   })
@@ -202,14 +203,14 @@ test('CONTRL opposing control neither requests nor awaits a new ACK', async () =
 })
 for (const alphabet of alphabets) test(`real P-APERAK preserves BOTH own references and holds final directory conflict ${alphabet.join('')}`, async () => {
   const a = await api, s = source('PRODAT', 1, alphabet), before = JSON.stringify(s)
-  assert.throws(()=>a.buildAperakDraft({sourceMessage:s}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+  ownPair(()=>a.buildAperakDraft({sourceMessage:s}))
   assert.equal(JSON.stringify(s),before)
 })
 test('caller payload booleans cannot bypass the actual P-APERAK directory hold', async () => {
   const a = await api, s = source()
   s.parsed_payload = { requiresContrl:false, acknowledgementRequest:false, ackRule:{technicalAck:'none'} }
   s.validation_report = { canonicalPolicy:{ackRule:{technicalAck:'none'}} }
-  assert.throws(()=>a.buildAperakDraft({sourceMessage:s}),/UNSM_MESSAGE_STRUCTURE_INVALID: APERAK:D:96A:UN/)
+  ownPair(()=>a.buildAperakDraft({sourceMessage:s}))
 })
 test('unsupported family has no manufactured default CONTRL request', async () => {
   const a = await api

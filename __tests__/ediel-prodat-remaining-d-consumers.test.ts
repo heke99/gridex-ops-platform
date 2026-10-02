@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 import {beforeEach,it,expect,vi} from 'vitest'
@@ -42,7 +43,10 @@ function assertHeldDraft(m:EdielMessageRow,d:{outcome:string;applicationErrors:P
  expect(d.applicationErrors).toContainEqual(expect.objectContaining({fieldCode:field,
   prodatFieldDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field})}))
  expect(d.applicationErrors?.some(e=>e.text==='HOSTILE'||e.ercCode==='100')).toBe(false)
- expect(()=>buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors})).toThrow(m.message_code==='Z14'?'UNSM_MESSAGE_STRUCTURE_INVALID':'Kvittensen kräver entydiga juridiska parter')
+ // P16B resolved: Z14's own ERC carries Z07+LI (E2SE6A) and renders; other
+ // sources still lack unambiguous legal parties.
+ if(m.message_code==='Z14')expectOwnReferencePair([String(buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors}).rawPayload)])
+ else expect(()=>buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors})).toThrow('Kvittensen kräver entydiga juridiska parter')
 }
 for(const [field,m] of fixtures())it(`bounded manual and system own ${m.message_code}/${field} diagnosis with final grammar HOLD`,async()=>{
  const manual=await backend({sourceMessage:m,actorUserId:'actor',roleCode:'supplier',fallbackOutcome:'positive'});assertHeldDraft(m,manual,field)
@@ -105,7 +109,7 @@ function action(entry:string,m:EdielMessageRow){return extract('app/admin/ediel/
 })}
 for(const entry of ['createAckDraftAction','createAndSendAckAction','createAndSendRecommendedAckAction'])for(const ready of [true,false])it(`actual ${entry} bounded readiness=${ready} still requires full final grammar`,async()=>{
  const m=reporting('323',ready?'BAD':'X'.repeat(80)),f=new FormData();f.set('sourceMessageId',m.id);f.set('ackType','APERAK');f.set('outcome','positive')
- if(ready){await expect(action(entry,m)(f)).rejects.toThrow('UNSM_MESSAGE_STRUCTURE_INVALID');expect(state.drafts).toEqual([]);expect(state.events.every(event=>event.eventStatus==='warning')).toBe(true);expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
+ if(ready){await action(entry,m)(f);expectOwnReferencePair(state.drafts.map(String));expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
  else {await expect(action(entry,m)(f)).rejects.toThrow('PRODAT_SELECTED_ACK_REVIEW_REQUIRED');expect(state.drafts).toEqual([]);expect(state.events).toEqual([]);expect(state.writes).toEqual([]);expect(state.effects).toEqual([])}
 })
 for(const ready of [true,false])it(`actual system-test manual draft readiness=${ready}`,async()=>{
@@ -116,7 +120,7 @@ for(const ready of [true,false])it(`actual system-test manual draft readiness=${
  listAckMessagesForSource:async()=>[],listBusinessAckMessagesForSource:async()=>[],createAckDraftForMessage:async(p:Record<string,unknown>)=>{const d=buildAckDraftForSource({...p,sourceMessage:m} as Parameters<typeof buildAckDraftForSource>[0]);state.drafts.push(d.rawPayload!);return {id:'ack',status:'draft',raw_payload:d.rawPayload}},auditSystemTestMaintenance:async()=>{},updateEdielMessageStatus:async()=>({id:'ack',status:'draft'}),revalidateSystemTests:()=>{},redirectToSystemTestAckResult:()=>{},createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e),
  })
  const f=new FormData();f.set('sourceMessageId',m.id);f.set('ackFamily','APERAK');f.set('outcome','positive');f.set('sendNow','false')
- if(ready){await expect(run(f)).rejects.toThrow('UNSM_MESSAGE_STRUCTURE_INVALID');expect(state.drafts).toEqual([]);expect(state.events.every(event=>event.eventStatus==='warning')).toBe(true);expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
+ if(ready){await run(f);expectOwnReferencePair(state.drafts.map(String));expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
  else{await expect(run(f)).rejects.toThrow('PRODAT_SELECTED_ACK_REVIEW_REQUIRED');expect(state.writes).toEqual([]);expect(state.events).toEqual([]);expect(state.drafts).toEqual([]);expect(state.effects).toEqual([])}
 })
 it('ambiguous own LI carries known323 plus internal disposition before all reads',async()=>{

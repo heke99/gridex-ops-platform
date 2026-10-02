@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {validateCanonicalPolicyFields} from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -19,7 +20,7 @@ it('keeps owner310 supplied-content42 under local U and ignores independently fa
  const wire=raw([...head(),...deathBody('E34',characteristic('Z17','BAD'))],'Z06')
  const p=check(wire,'Z06','E',['310']);expect(p.disposition.kind).toBe('continue');expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}])
  const params={sourceMessage:source(wire,'Z06'),outcome:'negative' as const,applicationErrors:p.applicationErrors}
- expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
  expect(renderProdatAperakDiagnosticRaw(params)).toContain('FTX+AAO++310::260')
  const notDeath=deathSelection('not_death')
  const scopedNotDeath={...notDeath,objects:notDeath.objects.map(object=>({...object,legalSupplier:{...object.legalSupplier,id:'54321',qualifier:'160',agency:'SVK'},legalGridOwner:{...object.legalGridOwner,id:'12345',qualifier:'160',agency:'SVK'}}))}
@@ -48,7 +49,7 @@ it('keeps repeated-register topology258 and sequence314 distinct with exact own 
   expect(p.disposition.kind).toBe('continue');expect(p.applicationErrors).toEqual(expect.arrayContaining([expect.objectContaining({ercCode:'42',fieldCode:want,prodatOccurrence:expect.objectContaining({lineNumber:want==='314'?'7':'2',registerPosition:2,objectId:'A'})})]))
   const params={sourceMessage:source(wire,'Z04'),outcome:'negative' as const,applicationErrors:p.applicationErrors}
   const ownError=p.applicationErrors.find(error=>error.fieldCode===want)!
-  if(ownError.referenceNumber&&ownError.lineItemReference){expect(()=>buildAperakDraft(params)).toThrow('UNSM_MESSAGE_STRUCTURE_INVALID')}
+  if(ownError.referenceNumber&&ownError.lineItemReference){expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])}
   else{expect(buildAperakDraft(params).rawPayload).toContain(`FTX+AAO++${want}::260`)}
   const diagnostic=renderProdatAperakDiagnosticRaw(params)
   expect(diagnostic).toContain(`FTX+AAO++${want}::260`);expect(diagnostic).not.toContain('CACHED-UNRELATED')

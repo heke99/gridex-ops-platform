@@ -21,7 +21,7 @@ vi.mock('@/lib/ediel/orchestrator/edielProcessingPipeline',()=>({analyzeEdielPro
 vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/inbound-mail/edielMailboxPoller',()=>({runInboundEdielMailEngine:async()=>null}))
 import {processInboundEdielMessage} from '@/lib/ediel/flows/inboundProcessing'
-import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
+import {expectOwnReferencePair,p16bBlockedAperaks} from './helpers/p16bHold'
 import {withProdatFixtureInsertContext} from './helpers/prodatInboundSourceFixture'
 
 import {permissionMessage} from './fixtures/prodat-energy-product'
@@ -41,8 +41,8 @@ for(const code of ['Z13','Z14'])for(const energy of [null,'INVALID','87168670000
   if(!erc)expect(aperaks.join('')).toContain('ERC+100::260')
   else for(const raw of aperaks){expect(raw).toContain(`ERC+${erc}::260`);expect(raw).toContain('FTX+AAO++506::260');expect(raw).toContain('RFF+LI:CASE?:A?+B??C');expect(raw).not.toContain('ERC+100')}
  }else if(erc){
-  // Z14 own object id and LI share the ERC: exact P16B hold, no APERAK wire.
-  expect(aperaks).toEqual([]);expectP16bHold(state.message.raw_payload!)
+  // Z14 own object id and LI share the ERC (P16B resolved): rendered E2SE6A pair.
+  expectOwnReferencePair(aperaks);for(const raw of aperaks){expect(raw).toContain(`ERC+${erc}::260`);expect(raw).toContain('FTX+AAO++506::260')}
  }else{
   // A Z14 positive needs the native permission effect, which the declared unit
   // port does not apply: the object awaits review and no positive is minted.
@@ -65,7 +65,7 @@ it('independent own fourth242 diagnosis survives false506 while full96A holds du
  await run(source(raw(body,'Z10'),'Z10'));const wire=state.drafts.map(d=>d.rawPayload).join('')
  const errors=(state.message.validation_report.responsePlan as {applicationErrors?:{fieldCode:string}[]}[]).flatMap(plan=>plan.applicationErrors??[])
  expect(errors).toContainEqual(expect.objectContaining({fieldCode:'242',ercCode:'42'}));expect(errors.some(error=>error.fieldCode==='506')).toBe(false)
- expect(state.drafts.filter(d=>d.messageFamily==='APERAK')).toEqual([])
- expect(state.events.some(event=>String(event.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(true)
- expect(wire).not.toContain('ERC+100::260');expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'continue'})
+ expectOwnReferencePair(state.drafts.filter(d=>d.messageFamily==='APERAK').map(d=>String(d.rawPayload)))
+ expect(state.events.some(event=>String(event.message).includes('UNSM_MESSAGE_STRUCTURE_INVALID'))).toBe(false)
+ expect(wire).toContain('ERC+42::260');expect(wire).not.toContain('ERC+100::260');expect(state.message.validation_report.prodatProcessingDisposition).toMatchObject({kind:'continue'})
 })
