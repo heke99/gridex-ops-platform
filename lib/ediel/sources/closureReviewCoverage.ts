@@ -39,8 +39,12 @@ export async function resolveClosureCoverage(seed:SourceOwnerSeed,wire:ClosureSo
     ||committed.sourcePayloadHash!==source.payloadHash||committed.companyId!==seed.evidence.companyId||committed.environment!==seed.evidence.environment
     ||['customerId','meteringPointId','siteId','switchRequestId','supplyPeriodId'].some(key=>committed[key]!==prior[key as keyof typeof prior])
     ||!isEvidenceRecord(committed.effectiveFrom)||!['market_calendar_day','market_minute'].includes(String(committed.effectiveFrom.committedDatePrecision))
-    ||!isDeepStrictEqual(committed.effectiveFrom,{
-      fieldNumber:'210',marketMinute:prior.wire.effectiveFrom.marketMinute,utc:coverage.validFrom,committedDatePrecision:committed.effectiveFrom.committedDatePrecision}))continue
+    // The committed proof stores ISO UTC; the coverage row is PostgreSQL
+    // timestamptz text. Same instant, different spelling: compare instants.
+    ||!isDeepStrictEqual(Object.keys(committed.effectiveFrom).sort(),['committedDatePrecision','fieldNumber','marketMinute','utc'])
+    ||committed.effectiveFrom.fieldNumber!=='210'||committed.effectiveFrom.marketMinute!==prior.wire.effectiveFrom.marketMinute
+    ||typeof committed.effectiveFrom.utc!=='string'||instant(committed.effectiveFrom.utc)===null
+    ||instant(committed.effectiveFrom.utc)!==instant(coverage.validFrom))continue
    // This protected reader rechecks the sole immutable source/current-version
    // authority. Mutable dates and operational status never recreate its proof.
    const {data:basis,error}=await supabaseService.rpc('ediel_read_source_supply_basis_v1',{

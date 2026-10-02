@@ -58,3 +58,10 @@ it('holds source reader errors rather than reconstructing authority from current
  const f=fixture();mocks.rpc.mockImplementation(()=>({abortSignal:async()=>({data:null,error:Error('held')})}))
  await expect(resolveClosureCoverage(f.seed,f.wire,f.readset,f.point,OWNER.actor)).rejects.toThrow('closure_baseline_ambiguous');expect(mocks.read).not.toHaveBeenCalled()
 })
+it('matches the committed start instant whatever its timestamptz spelling, and still holds a different instant',async()=>{
+ const f=fixture(),utc=f.prior.coverageWindow.validFrom
+ f.prior.coverageWindow.validFrom=new Date(utc).toISOString().replace('.000Z','+00:00')
+ await expect(resolveClosureCoverage(f.seed,f.wire,f.readset,f.point,OWNER.actor)).resolves.toMatchObject({source:{sourceMessageId:OWNER.source}})
+ const g=fixture();g.prior.coverageWindow.validFrom=new Date(Date.parse(g.prior.coverageWindow.validFrom)+60_000).toISOString().replace('.000Z','+00:00')
+ await expect(resolveClosureCoverage(g.seed,g.wire,g.readset,g.point,OWNER.actor)).rejects.toThrow('closure_baseline_ambiguous')
+})

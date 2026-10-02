@@ -36,6 +36,11 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
     for(const source of body.sources){
       const recorded=timeline.sources.find(item=>item.sourceMessageId===source.sourceMessageId)!
       if(!source.rawPayload||!source.payloadHash){result.unresolvedSources=true;continue}
+      // Received UTILTS shares the source ledger (20260930183539) but carries
+      // no PRODAT structure. Only a well-formed UTILTS message of exactly its
+      // recorded code is outside this universe; other bytes stay a global hold.
+      const utilts=singleMessage(source.rawPayload,'UTILTS')
+      if(utilts&&utilts.messages[0].messageCode===source.messageCode)continue
       const ast=singleMessage(source.rawPayload,'PRODAT')
       if(!ast||ast.messages[0].messageCode!==source.messageCode){result.unresolvedSources=true;continue}
       segments+=ast.segments.length

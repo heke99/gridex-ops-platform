@@ -1,5 +1,6 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
+import {recordUtiltsTechnicalReception} from './helpers/utiltsConsumptionParties'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture as originalClosureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
@@ -397,6 +398,9 @@ async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,c
  WHERE profile.message_code=${literal(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
  expect(error).toBeNull();expect(data).not.toBeNull()
+ // Production reception records the interchange's technical syntax decision
+ // before any business processing or reply read.
+ await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow,f.ids.actor)
  return data as unknown as EdielMessageRow
 }
 /** Active qualification binds its combined read to a genuine inbound message.
@@ -1159,8 +1163,16 @@ async function insertClosure(f:Awaited<ReturnType<typeof seed>>,reason='Z22',min
  SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},${literal(payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:Z05:${payload.subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ // Production reception captures the source's own rule-pack receipt before
+ // the business state machine (lib/ediel/flows/inboundProcessing.ts).
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
- expect(error).toBeNull();return data as unknown as EdielMessageRow
+ expect(error).toBeNull()
+ const message=data as unknown as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ if(decision.syntaxDecision==='accepted'&&decision.policy){
+  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
+  await captureFreshEdielSourceRulePackEvidence(f.ids.company,id)
+ }
+ return message
 }
 async function closureReview(f:Awaited<ReturnType<typeof seed>>,source:string){
  return reviewReceivedClosureSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true})
@@ -1241,11 +1253,21 @@ async function approvedClosureWithDiagnostics(f:Awaited<ReturnType<typeof seed>>
  try{result=await closureReview(f,source)}finally{observe.mockRestore()}
  const attempt=attempts.at(-1)
  const diagnostics=result.status==='recorded'&&result.sourceDisposition==='accepted'?null:
-  {rpcErrors:errors,attemptedObjects:attempt?JSON.parse(attempt.p_facts_text).objects.map((item:{disposition:string})=>item.disposition):[],sql:attempt?closureSqlDiagnostics(attempt):null}
+  {rpcErrors:errors,attemptedObjects:attempt?JSON.parse(attempt.p_facts_text).objects.map((item:Record<string,unknown>)=>({disposition:item.disposition,reason:item.reason,codes:item.reasonCodes??item.codes,business:item.business===null?null:'present',party:item.party===null?null:'present'})):[],sql:attempt?(()=>{try{return closureSqlDiagnostics(attempt)}catch(error){return {diagnosticsFailed:String(error instanceof Error?error.message:error).slice(0,600)}}})():null}
  expect(result,JSON.stringify(diagnostics)).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  return result
 }
-it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
+// Z23 is a requested bilateral LK closure: since 20261001085523 it can only
+// end our own period as the answer to an actually sent Z08. Without one it is
+// refused before any period mutation.
+it('native Z23 closure without our sent Z08 is refused and the period keeps its end',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const before=sql(`SELECT coalesce(jsonb_agg(end_date ORDER BY id),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)
+ const message=await insertClosure(f,'Z23')
+ await expect(applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).rejects.toMatchObject({message:expect.stringContaining('bilateral_closure_exact_sent_original_required')})
+ expect(sql(`SELECT coalesce(jsonb_agg(end_date ORDER BY id),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toEqual(before)
+})
+it.each(['Z22'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
  const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
@@ -1260,18 +1282,18 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
   FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(message.id)}`)).toEqual([{
    company:f.ids.company,customer:f.ids.customer,site:f.ids.site,point:f.ids.point,type:'other',reason:'final_metering_and_billing',status:'open',
-   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
+   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.',
    source:'ediel_inbound_state_machine',intent:'final_metering_and_billing'}])
+ // insertClosure already recorded and captured this source in production order.
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
- expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
  const unreviewed=await structuralSnapshot(f)
  expect(unreviewed.closureBlockers).toHaveLength(1)
  const compare=(snapshot:Awaited<ReturnType<typeof structuralSnapshot>>,period:string,meter='METER-1',ids=['101'])=>compareUtiltsStructure({
-  raw:utiltsStructureWire({period,meter,ids,point:snapshot.versions[0].wire.object.objectId!}),transactionIndex:0,
+  raw:utiltsStructureWire({period,meter,ids,sender:f.receiver,receiver:f.sender,point:snapshot.versions[0].wire.object.objectId!}),transactionIndex:0,
   cutoffAt:snapshot.timeline.cutoffAt!,ledgerStartedAt:snapshot.timeline.ledgerStartedAt!,readComplete:true,
   unresolvedSources:snapshot.unresolvedSources,versions:snapshot.versions,closures:snapshot.closures,closureBlockers:snapshot.closureBlockers})
- expect(compare(unreviewed,S('202610010000202610142359'))).toMatchObject({status:'matched',codes:[]})
+ expect(compare(unreviewed,S('202610010000202610142359')),JSON.stringify(unreviewed.closureBlockers)).toMatchObject({status:'matched',codes:[]})
  expect(compare(unreviewed,S('202610010000202610150000'))).toMatchObject({status:'unavailable',codes:[]})
  const pending=await approvedClosureWithDiagnostics(f,message.id)
  expect(pending,JSON.stringify(stored(message.id))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
@@ -1432,6 +1454,7 @@ it('a genuine non-midnight original is held by producer and direct append, even 
  const {evidenceHash}=await import('@/lib/ediel/utilts/durableSourceDiscovery')
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  const receipt=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})
+ await captureFreshEdielSourceRulePackEvidence(f.ids.company,message.id)
  const ownerSeed=takeReceivedSourceOwnerSeed(receipt)!
  expect(ownerSeed).not.toBeNull()
  const canonical=JSON.parse(ownerSeed.evidence.factsText)
