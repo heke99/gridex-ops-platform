@@ -106,14 +106,17 @@ async function seed() {
   const original = await insertSource(message.raw_payload!)
   const dataRequest = { id: ids.request, company_id: ids.company, customer_id: ids.customer, site_id: ids.site, metering_point_id: ids.point, grid_owner_id: ids.grid, request_scope: 'billing_underlay', response_payload: {} } as GridOwnerDataRequestRow
   const recorded = new Map<string, Awaited<ReturnType<typeof recordUtiltsFinalRuntime>>>()
-  const prepare = async (source = original, held = false, allowConsumption = true): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
+  // forge: a service caller supplying the provisional (unqualified) dispositions
+  // after the real final decision was recorded. Only forged-RPC probes use it.
+  const prepare = async (source = original, held = false, allowConsumption = true, forge = false): Promise<UtiltsBoundPersistenceInput & { actorUserId: string }> => {
     const policy = resolveCanonicalMessagePolicy(source)!
     // Production order (utiltsDataRequest.part-2): the structurally qualified
     // runtime is recorded as the canonical final decision once per source, and
     // the same runtime drives every persistence payload for that source.
     if (!recorded.has(source.id)) recorded.set(source.id, await recordUtiltsFinalRuntime(source))
     const runtime = { ...recorded.get(source.id)! }
-    expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
+    if (forge) runtime.transactionDispositions = runUtiltsRuntimeForMessage(source).transactionDispositions
+    else expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
     if (held) runtime.transactionDispositions = runtime.transactionDispositions.map(d => ({ ...d, disposition: 'internal_review', responseType: 'none', issueCodes: ['UTILTS_STRUCTURE_UNAVAILABLE'] }))
     const matches = runtime.facts.transactions.map(t => ({ transactionReference: t.transactionId, meteringPointId: ids.point, customerId: ids.customer, siteId: ids.site, gridOwnerId: ids.grid, externalMeteringPointId: t.meterPointId, externalGridAreaId: t.gridAreaId, matchStatus: 'matched' as const }))
     const contracts = await prepareUtiltsConsumptionContracts({ message: source, runtime, policy, matches, dataRequest: allowConsumption ? dataRequest : null,
@@ -264,24 +267,19 @@ it('a misplaced LOC+175 after SEQ cannot acquire a point or object-shaped positi
   expect(sql<boolean>(`SELECT gridex_utilts_binding.unowned_regulating_object_v1(${tokens},'GRIDEX2607E66001')`)).toBe(true)
   const forged = { ...supported, sourceMessageId: source.id, rawPayload: source.raw_payload! }
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(/utilts_(consumption_identity_unsupported|regulating_object_owner_unavailable)/)
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported|regulating_object_owner_unavailable'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   }
-  const processed = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect(processed.ingestedMeterValueIds).toEqual([])
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,
-   'final',final_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results
-   WHERE source_message_id=${lit(source.id)}`)).toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
-  expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
-  // A source-qualified technical CONTRL may acknowledge interchange syntax;
-  // this held transaction must not produce a positive market ACK.
-  expect(effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK' || call.ackFamily === 'UTILTS_ERR')).toHaveLength(0)
-  expect(effects.meter).not.toHaveBeenCalled()
-  expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  const before = snapshot(source.id)
-  await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  expect(snapshot(source.id)).toEqual(before)
+  // LOC after SEQ breaks the full-directory segment order: syntax-rejected at
+  // reception, so the business processor refuses it and no market ACK exists.
+  expect((await resolveCanonicalRuntimeDecisionWithRegistry(source)).syntaxDecision).toBe('rejected')
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+    expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
+  }
+  expect(effects.ack).not.toHaveBeenCalled()
+  expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(supported))[0].persistenceStatus).toBe('persisted')
 })
 it('a second physical LOC+172 after SEQ cannot reserve a point or link its source on retry', async () => {
@@ -372,15 +370,15 @@ it('native S01 valid LOC+175 cannot reserve a point series or positive ACK throu
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9').replaceAll('GRIDEX2607E66001', 'S01OBJECT001')
   const source = await f.insertSource(raw, 'S01')
-  const prepared = await f.prepare(source, false, false)
+  const prepared = await f.prepare(source, false, false, true)
   expect(prepared.transactions[0]).toMatchObject({ disposition: 'accepted', meteringPointId: null, externalMeteringPointId: null })
   const forged = structuredClone(prepared)
   forged.transactions[0].meteringPointId = f.ids.point
   forged.transactions[0].externalMeteringPointId = '735999260731000007'
   const wrongTenant = { ...forged, companyId: randomUUID() }
-  await expect(persistUtiltsTransactionResults(wrongTenant)).rejects.toThrow('utilts_execution_actor_forbidden')
+  await expect(persistUtiltsTransactionResults(wrongTenant)).rejects.toThrow('utilts_transaction_persistence_failed:utilts_source_binding_conflict')
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow('utilts_regulating_object_owner_unavailable')
+    await expect(persistUtiltsTransactionResults(forged)).rejects.toThrow(forgedRefusal('regulating_object_owner_unavailable'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
   }
@@ -409,26 +407,27 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
   // receive the individual customer/site/request links used by E66 fixtures.
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(unsupported.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
-  expect((await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: unsupported.id })).internalReviewRequired).toBe(true)
+  // LOC+172 agency 89 is a guide fault of the point field: negative APERAK, never consumption.
+  expect((await processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: unsupported.id })).internalReviewRequired).toBe(false)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id))
     FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(unsupported.id)}`))
-    .toEqual([{ disposition: 'internal_review', plan: 'none', final: null, series: null }])
+    .toEqual([{ disposition: 'guide_rejected', plan: 'negative_aperak', final: 'negative_aperak', series: null }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(unsupported.id)}`)).toBe(0)
-  expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
+  expect(effects.ack.mock.calls.map(([call]) => [call.ackFamily, call.outcome])).toEqual([['CONTRL', 'positive'], ['APERAK', 'negative']])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
   expect((await persistUtiltsTransactionResults(input))[0]).toMatchObject({ disposition: 'accepted', persistenceStatus: 'persisted' })
 })
 it('native E72 empty request refuses unowned agency 89 atomically and preserves actual held/positive retries', async () => {
   const f = await seed()
   const source = await f.insertSource(ownIdentity(e72PointRequestMessage(f.ids.company, '89').raw_payload!), 'E72')
-  const input = await f.prepare(source, false, false)
+  const input = await f.prepare(source, false, false, true) // forged: the real runtime holds this source
   expect(input.transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', seriesKind: 'request', quantities: [] }])
   expect(input.contracts[0].observations).toEqual([])
   const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
   await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_transaction_persistence_failed:utilts_source_binding_conflict') // tenant-scoped source before actor
   for (let attempt = 0; attempt < 2; attempt++) {
-    await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
+    await expect(persistUtiltsTransactionResults(input)).rejects.toThrow(forgedRefusal('consumption_identity_unsupported'))
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
     expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
     expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
@@ -449,7 +448,8 @@ it('native E72 empty request refuses unowned agency 89 atomically and preserves 
   expect(sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)).toEqual(receipt)
   expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
   effects.ack.mockClear()
-  const clean = await f.insertSource(ownIdentity(e72PointRequestMessage(f.ids.company).raw_payload!), 'E72')
+  // Field 505 is unique per issuer over time: the clean control is a new transaction.
+  const clean = await f.insertSource(ownIdentity(e72PointRequestMessage(f.ids.company).raw_payload!.replaceAll('GRIDEXE72TX001', 'GRIDEXE72TX002')), 'E72')
   expect((await run(clean.id)).internalReviewRequired).toBe(false)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('tenant',company_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type))
     FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(clean.id)}`))
