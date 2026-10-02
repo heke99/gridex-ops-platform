@@ -50451,7 +50451,7 @@ export type Database = {
           authorization_document_id: string | null
           automation_key: string | null
           automation_origin: string | null
-          company_id: string | null
+          company_id: string
           created_at: string
           created_by: string | null
           customer_id: string | null
@@ -50485,7 +50485,7 @@ export type Database = {
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
-          company_id?: string | null
+          company_id: string
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -50519,7 +50519,7 @@ export type Database = {
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
-          company_id?: string | null
+          company_id?: string
           created_at?: string
           created_by?: string | null
           customer_id?: string | null
@@ -92378,6 +92378,10 @@ export type Database = {
         }
         Returns: string
       }
+      gridex_create_grid_owner_data_request_v1: {
+        Args: { p_company_id: string; p_request: Json }
+        Returns: Json
+      }
       gridex_create_internal_customer_contract_v1: {
         Args: {
           p_actor_user_id: string
@@ -92793,6 +92797,10 @@ export type Database = {
         Returns: string
       }
       gridex_escalate_overdue_z01_responses: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      gridex_expire_overdue_powers_of_attorney_v1: {
         Args: { p_limit?: number }
         Returns: Json
       }

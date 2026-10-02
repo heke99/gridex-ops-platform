@@ -11179,7 +11179,7 @@ COMMENT ON TABLE public.external_contract_intakes IS 'Legacy/external intake sou
 
 CREATE TABLE public.grid_owner_data_requests (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
+    company_id uuid NOT NULL,
     customer_id uuid,
     site_id uuid,
     metering_point_id uuid,
@@ -20757,6 +20757,109 @@ end;
 $_$;
 
 --
+-- Name: gridex_create_grid_owner_data_request_v1(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_customer_id uuid := nullif(p_request->>'customer_id', '')::uuid;
+  v_site_id uuid := nullif(p_request->>'site_id', '')::uuid;
+  v_point_id uuid := nullif(p_request->>'metering_point_id', '')::uuid;
+  v_grid_owner_id uuid := nullif(p_request->>'grid_owner_id', '')::uuid;
+  v_operation_id uuid := nullif(p_request->>'operation_id', '')::uuid;
+  v_scope text := coalesce(nullif(p_request->>'request_scope', ''), 'customer_masterdata');
+  v_key text := nullif(p_request->>'automation_key', '');
+  v_existing public.grid_owner_data_requests%rowtype;
+  v_row public.grid_owner_data_requests%rowtype;
+  v_payload jsonb;
+  v_columns text;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'grid_owner_data_request_service_role_required';
+  end if;
+  if p_company_id is null or v_customer_id is null then
+    raise exception using errcode = '22023', message = 'grid_owner_data_request_payload_invalid';
+  end if;
+
+  perform 1 from public.customers
+  where id = v_customer_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+  if v_site_id is not null then
+    perform 1 from public.customer_sites
+    where id = v_site_id and company_id = p_company_id and customer_id = v_customer_id;
+    if not found then
+      raise exception using errcode = 'P0002', message = 'site_not_found_for_customer';
+    end if;
+  end if;
+  if v_point_id is not null then
+    perform 1 from public.metering_points mp
+    where mp.id = v_point_id
+      and mp.company_id = p_company_id
+      and (mp.customer_id = v_customer_id or mp.site_id = v_site_id
+           or mp.site_id in (select s.id from public.customer_sites s
+                             where s.customer_id = v_customer_id and s.company_id = p_company_id));
+    if not found then
+      raise exception using errcode = 'P0002', message = 'metering_point_not_found_for_customer';
+    end if;
+  end if;
+
+  -- Serialise concurrent creates of the same logical request.
+  if v_key is not null or v_operation_id is not null then
+    perform pg_advisory_xact_lock(hashtextextended(
+      'grid_owner_data_request:' || p_company_id::text || ':' || coalesce(v_key, v_operation_id::text || ':' || v_scope), 0));
+  end if;
+
+  if v_key is not null then
+    select * into v_existing
+    from public.grid_owner_data_requests
+    where company_id = p_company_id and automation_key = v_key and status in ('pending', 'sent')
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('request', to_jsonb(v_existing), 'existing', true);
+    end if;
+  end if;
+
+  if v_operation_id is not null then
+    select * into v_existing
+    from public.grid_owner_data_requests
+    where company_id = p_company_id
+      and operation_id = v_operation_id
+      and customer_id = v_customer_id
+      and request_scope = v_scope
+      and site_id is not distinct from v_site_id
+      and metering_point_id is not distinct from v_point_id
+      and grid_owner_id is not distinct from v_grid_owner_id
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('request', to_jsonb(v_existing), 'existing', true);
+    end if;
+  end if;
+
+  v_payload := (p_request - array['id', 'company_id', 'status', 'created_at', 'updated_at'])
+    || jsonb_build_object('company_id', p_company_id, 'status', 'pending', 'request_scope', v_scope);
+  select string_agg(quote_ident(key), ', ' order by key) into v_columns
+  from jsonb_object_keys(v_payload) as key
+  where key in (
+    select attname from pg_attribute
+    where attrelid = 'public.grid_owner_data_requests'::regclass and attnum > 0 and not attisdropped
+  );
+  execute format(
+    'insert into public.grid_owner_data_requests (%1$s) select %1$s from jsonb_populate_record(null::public.grid_owner_data_requests, $1) returning *',
+    v_columns
+  ) into v_row using v_payload;
+
+  return jsonb_build_object('request', to_jsonb(v_row), 'existing', false);
+end
+$_$;
+
+--
 -- Name: gridex_create_internal_customer_contract_v1(uuid, uuid, uuid, uuid, uuid, jsonb, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -26199,6 +26302,52 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit integer) IS 'Escalates/resolves only actionable outbound PRODAT Z01 SLA dimensions, preventing resolved history from starving newer cases; never resends Z01.';
+
+--
+-- Name: gridex_expire_overdue_powers_of_attorney_v1(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer DEFAULT 100) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_limit integer := least(greatest(coalesce(p_limit, 100), 1), 500);
+  v_expired integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'poa_expiry_service_role_required';
+  end if;
+
+  with due as (
+    select id
+    from public.powers_of_attorney
+    where status in ('signed', 'active', 'accepted', 'sent', 'draft')
+      and valid_to is not null
+      and valid_to < current_date
+    order by valid_to, id
+    limit v_limit
+    for update skip locked
+  ),
+  expired as (
+    update public.powers_of_attorney poa
+    set status = 'expired', updated_at = now()
+    from due
+    where poa.id = due.id
+    returning poa.id, poa.company_id, poa.valid_to
+  ),
+  events as (
+    insert into public.power_of_attorney_events (company_id, power_of_attorney_id, event_type, payload)
+    select company_id, id, 'expired',
+           jsonb_build_object('valid_to', valid_to, 'source', 'customer_operations_cron')
+    from expired
+    returning 1
+  )
+  select count(*) into v_expired from events;
+
+  return jsonb_build_object('expired', v_expired);
+end
+$$;
 
 --
 -- Name: gridex_fail_website_contract_signature(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -80608,6 +80757,12 @@ CREATE INDEX grid_owner_data_requests_company_site_status_facility_idx ON public
 CREATE INDEX grid_owner_data_requests_company_status_created_perf_idx ON public.grid_owner_data_requests USING btree (company_id, status, created_at DESC);
 
 --
+-- Name: grid_owner_data_requests_open_automation_key_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX grid_owner_data_requests_open_automation_key_uidx ON public.grid_owner_data_requests USING btree (company_id, automation_key) WHERE ((automation_key IS NOT NULL) AND (status = ANY (ARRAY['pending'::text, 'sent'::text])));
+
+--
 -- Name: grid_owner_information_requests_actor_route_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -117285,6 +117440,13 @@ REVOKE ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company
 GRANT ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_create_internal_customer_contract_v1(p_company_id uuid, p_customer_id uuid, p_contract_offer_id uuid, p_site_id uuid, p_metering_point_id uuid, p_selection jsonb, p_contract jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117787,6 +117949,13 @@ GRANT ALL ON FUNCTION public.gridex_ensure_internal_contract_publication(p_compa
 
 REVOKE ALL ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_expire_overdue_powers_of_attorney_v1(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer) TO service_role;
 
 --
 -- Name: FUNCTION gridex_fail_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_error_code text, p_error_stage text); Type: ACL; Schema: public; Owner: -
