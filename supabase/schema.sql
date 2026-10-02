@@ -59618,6 +59618,59 @@ CREATE TABLE public.customer_correction_requests (
 );
 
 --
+-- Name: customer_data_quality_open_issues; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.customer_data_quality_open_issues WITH (security_invoker='true') AS
+ SELECT c.company_id,
+    (c.id)::text AS entity_id,
+    c.id AS customer_id,
+    'customer'::text AS entity_type,
+    issue.issue_key,
+    issue.severity,
+    issue.message,
+    issue.evidence
+   FROM (public.customers c
+     CROSS JOIN LATERAL ( VALUES (
+                CASE
+                    WHEN ((c.personal_number IS NOT NULL) AND (regexp_replace(c.personal_number, '\D'::text, ''::text, 'g'::text) !~ '^\d{10}$|^\d{12}$'::text)) THEN 'invalid_personal_number'::text
+                    ELSE NULL::text
+                END,'critical'::text,'Personnummer har ogiltigt format.'::text,jsonb_build_object('personal_number', c.personal_number)), (
+                CASE
+                    WHEN ((c.org_number IS NOT NULL) AND (regexp_replace(c.org_number, '\D'::text, ''::text, 'g'::text) !~ '^\d{10}$|^\d{12}$'::text)) THEN 'invalid_org_number'::text
+                    ELSE NULL::text
+                END,'critical'::text,'Organisationsnummer har ogiltigt format.'::text,jsonb_build_object('org_number', c.org_number)), (
+                CASE
+                    WHEN ((c.email IS NOT NULL) AND (c.email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'::text)) THEN 'invalid_email'::text
+                    ELSE NULL::text
+                END,'warning'::text,'E-post har ogiltigt format.'::text,jsonb_build_object('email', c.email))) issue(issue_key, severity, message, evidence))
+  WHERE (issue.issue_key IS NOT NULL)
+UNION ALL
+ SELECT a.company_id,
+    (a.id)::text AS entity_id,
+    a.customer_id,
+    'customer_address'::text AS entity_type,
+    'invalid_postal_code'::text AS issue_key,
+    'warning'::text AS severity,
+    'Postnummer ska anges som 12345 eller 123 45.'::text AS message,
+    jsonb_build_object('postal_code', a.postal_code) AS evidence
+   FROM public.customer_addresses a
+  WHERE ((a.postal_code IS NOT NULL) AND (a.postal_code !~ '^\d{3}\s?\d{2}$'::text))
+UNION ALL
+ SELECT c.company_id,
+    (c.id)::text AS entity_id,
+    c.id AS customer_id,
+    'customer'::text AS entity_type,
+    'missing_signed_power_of_attorney'::text AS issue_key,
+    'warning'::text AS severity,
+    'Kunden saknar signerad fullmakt.'::text AS message,
+    '{}'::jsonb AS evidence
+   FROM public.customers c
+  WHERE (NOT (EXISTS ( SELECT 1
+           FROM public.powers_of_attorney p
+          WHERE ((p.customer_id = c.id) AND (p.company_id = c.company_id) AND (p.status = 'signed'::text)))));
+
+--
 -- Name: customer_data_tasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -64538,6 +64591,42 @@ CREATE TABLE public.grid_area_mappings (
     valid_to date,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
+);
+
+--
+-- Name: grid_owner_access_agreements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.grid_owner_access_agreements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    grid_owner_id uuid,
+    agreement_type text DEFAULT 'metering_access'::text NOT NULL,
+    agreement_scope text DEFAULT 'metering_access'::text NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    agreement_reference text,
+    external_agreement_number text,
+    valid_from date,
+    valid_to date,
+    signed_at timestamp with time zone,
+    document_id uuid,
+    document_path text,
+    requires_customer_authorization boolean DEFAULT true NOT NULL,
+    requires_metering_point_id boolean DEFAULT true NOT NULL,
+    requires_facility_id boolean DEFAULT false NOT NULL,
+    requires_customer_personal_number boolean DEFAULT false NOT NULL,
+    requires_report_period boolean DEFAULT false NOT NULL,
+    preferred_application_reference text,
+    preferred_message_version text,
+    preferred_receiver_ediel_id text,
+    preferred_receiver_sub_address text,
+    preferred_route_id uuid,
+    reference_requirements jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 --
@@ -72703,6 +72792,31 @@ CREATE TABLE public.tenant_ediel_profiles (
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: tenant_email_domains; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_email_domains (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    domain text NOT NULL,
+    provider text DEFAULT 'smtp'::text NOT NULL,
+    provider_domain_id text,
+    status text DEFAULT 'pending_dns'::text NOT NULL,
+    spf_status text DEFAULT 'pending'::text NOT NULL,
+    dkim_status text DEFAULT 'pending'::text NOT NULL,
+    dmarc_status text DEFAULT 'pending'::text NOT NULL,
+    bounce_status text DEFAULT 'pending'::text NOT NULL,
+    last_checked_at timestamp with time zone,
+    failure_reason text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tenant_email_domains_status_check CHECK ((status = ANY (ARRAY['pending_dns'::text, 'verifying'::text, 'verified'::text, 'failed'::text, 'disabled'::text])))
+);
+
+--
 -- Name: tenant_email_outbox_runs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -76224,6 +76338,13 @@ ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_pkey PRIMARY KEY (id);
 
 --
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_pkey PRIMARY KEY (id);
+
+--
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -77622,6 +77743,20 @@ ALTER TABLE ONLY public.tenant_ediel_profiles
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_email_domains tenant_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_email_domains tenant_email_domains_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_unique UNIQUE (company_id, domain);
 
 --
 -- Name: tenant_email_outbox tenant_email_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -85656,6 +85791,18 @@ CREATE INDEX idx_grid_area_mappings_grid_owner ON public.grid_area_mappings USIN
 CREATE INDEX idx_grid_area_mappings_postal_code ON public.grid_area_mappings USING btree (postal_code);
 
 --
+-- Name: idx_grid_owner_access_agreements_active_metering; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_active_metering ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_type, status, valid_from, valid_to);
+
+--
+-- Name: idx_grid_owner_access_agreements_company_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_company_scope ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_scope, status);
+
+--
 -- Name: idx_grid_owner_monthly_metrics_company_month; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -87532,6 +87679,12 @@ CREATE INDEX tenant_customer_sync_requests_company_status_idx ON public.tenant_c
 --
 
 CREATE INDEX tenant_customer_sync_requests_customer_idx ON public.tenant_customer_sync_requests USING btree (company_id, matched_customer_id, created_at DESC) WHERE (matched_customer_id IS NOT NULL);
+
+--
+-- Name: tenant_email_domains_company_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tenant_email_domains_company_status_idx ON public.tenant_email_domains USING btree (company_id, status, created_at DESC);
 
 --
 -- Name: tenant_email_outbox_case_idx; Type: INDEX; Schema: public; Owner: -
@@ -95100,6 +95253,13 @@ ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_grid_owner_id_fkey FOREIGN KEY (grid_owner_id) REFERENCES public.grid_owners(id);
 
 --
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -97268,6 +97428,27 @@ ALTER TABLE ONLY public.tenant_customer_sync_requests
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
 -- Name: tenant_email_outbox tenant_email_outbox_communication_log_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -101391,6 +101572,12 @@ ALTER TABLE public.forecast_runs ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.grid_area_mappings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: grid_owner_access_agreements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.grid_owner_access_agreements ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: grid_owner_contact_channels; Type: ROW SECURITY; Schema: public; Owner: -
@@ -109022,6 +109209,12 @@ CREATE POLICY tenant_customer_sync_requests_service_role_all ON public.tenant_cu
 ALTER TABLE public.tenant_ediel_profiles ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: tenant_email_domains; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_email_domains ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: tenant_email_outbox; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -110600,6 +110793,12 @@ CREATE POLICY tenant_lifecycle_delete_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_delete_guard ON public.grid_area_mappings AS RESTRICTIVE FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
 
 --
+-- Name: grid_owner_access_agreements tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_delete_guard ON public.grid_owner_access_agreements FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
+
+--
 -- Name: grid_owner_contact_channels tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -110970,6 +111169,12 @@ CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
+
+--
+-- Name: tenant_email_domains tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_email_domains FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
@@ -112268,6 +112473,12 @@ CREATE POLICY tenant_lifecycle_insert_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_insert_guard ON public.grid_area_mappings AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
+-- Name: grid_owner_access_agreements tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_insert_guard ON public.grid_owner_access_agreements FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
+
+--
 -- Name: grid_owner_contact_channels tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -112638,6 +112849,12 @@ CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
+
+--
+-- Name: tenant_email_domains tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_email_domains FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
@@ -113936,6 +114153,12 @@ CREATE POLICY tenant_lifecycle_select_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_select_guard ON public.grid_area_mappings AS RESTRICTIVE FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
 
 --
+-- Name: grid_owner_access_agreements tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_select_guard ON public.grid_owner_access_agreements FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
+
+--
 -- Name: grid_owner_contact_channels tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -114306,6 +114529,12 @@ CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
+
+--
+-- Name: tenant_email_domains tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_email_domains FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
@@ -115604,6 +115833,12 @@ CREATE POLICY tenant_lifecycle_update_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_update_guard ON public.grid_area_mappings AS RESTRICTIVE FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
+-- Name: grid_owner_access_agreements tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_update_guard ON public.grid_owner_access_agreements FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
+
+--
 -- Name: grid_owner_contact_channels tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -115974,6 +116209,12 @@ CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
+
+--
+-- Name: tenant_email_domains tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_email_domains FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
@@ -122280,6 +122521,12 @@ GRANT ALL ON TABLE public.customer_correction_requests TO authenticated;
 GRANT ALL ON TABLE public.customer_correction_requests TO service_role;
 
 --
+-- Name: TABLE customer_data_quality_open_issues; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_data_quality_open_issues TO service_role;
+
+--
 -- Name: TABLE customer_data_tasks; Type: ACL; Schema: public; Owner: -
 --
 
@@ -123527,6 +123774,13 @@ GRANT ALL ON TABLE public.forecast_run_items TO service_role;
 
 GRANT ALL ON TABLE public.grid_area_mappings TO authenticated;
 GRANT ALL ON TABLE public.grid_area_mappings TO service_role;
+
+--
+-- Name: TABLE grid_owner_access_agreements; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.grid_owner_access_agreements TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.grid_owner_access_agreements TO authenticated;
 
 --
 -- Name: TABLE grid_owner_contact_channels; Type: ACL; Schema: public; Owner: -
@@ -124904,6 +125158,13 @@ GRANT ALL ON TABLE public.tenant_customer_sync_requests TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_ediel_profiles TO service_role;
+
+--
+-- Name: TABLE tenant_email_domains; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.tenant_email_domains TO service_role;
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.tenant_email_domains TO authenticated;
 
 --
 -- Name: TABLE tenant_email_outbox_runs; Type: ACL; Schema: public; Owner: -
