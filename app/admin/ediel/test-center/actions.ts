@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { prepareEdielTestRunTransportMetadata } from '@/lib/ediel/testing/testRunTransportMetadata'
 import { resolveEdielTestCenterIsolation } from '@/lib/ediel/testing/testCenterSafety'
@@ -167,6 +167,7 @@ export async function prepareEdielTestCenterRunAction(formData: FormData) {
     revalidatePath('/admin/ediel/system-tests')
     revalidatePath('/admin/ediel/agt')
   } catch (error) {
+    unstable_rethrow(error)
     status = 'error'
     message = formatErrorMessage(error, 'Test-run kunde inte förberedas.')
   }
@@ -206,6 +207,7 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
         results.push(result)
         lastResult = result
       } catch (error) {
+        unstable_rethrow(error)
         if (run.expectation === 'blocked_missing_values') {
           const detail = formatErrorMessage(error, 'Missing-values-scenariot blockerades.')
           if (!detail.includes('Fakturatest kräver positiv fakturerbar periodenergi i QTY+136')) {
@@ -244,6 +246,7 @@ export async function importRawEdifactAndRunTestCenterAction(formData: FormData)
     revalidatePath('/admin/metering')
     revalidatePath('/admin/billing')
   } catch (error) {
+    unstable_rethrow(error)
     status = 'error'
     message = formatErrorMessage(error, 'EDIFACT-importen eller testkedjan misslyckades.')
   }
@@ -284,6 +287,7 @@ export async function runTestCenterMeteringToInvoiceAction(formData: FormData) {
     revalidatePath('/admin/metering')
     revalidatePath('/admin/billing')
   } catch (error) {
+    unstable_rethrow(error)
     status = 'error'
     message = formatErrorMessage(error, 'Testkedjan kunde inte köras.')
   }

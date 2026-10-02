@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -299,7 +300,7 @@ export default async function AdminWorkQueuePage() {
   const companyScope = await getOperationalCompanyScope(context.userId)
   const isPlatformAdmin = isPlatformAdminContext(context)
   const supabase = await createSupabaseServerClient()
-  const companyId = isPlatformAdmin ? null : companyScope.companyId
+  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
   const [dbQueueRows, operationEventRows, operationJobRows] = await Promise.all([
     listCompanyWorkQueue(supabase, companyId, { limit: 250 }),
     loadOperationEventActions(supabase, companyId),

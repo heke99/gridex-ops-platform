@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
@@ -594,6 +595,7 @@ export async function createProductionRouteFromWizardAction(
                 created_by: admin.userId,
               });
             } catch (error) {
+              unstable_rethrow(error)
               console.warn("Production route wizard history could not be written", error);
             }
 
@@ -610,6 +612,7 @@ export async function createProductionRouteFromWizardAction(
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     console.warn("Production route wizard failed", error);
     try {
       await supabaseService.from("production_route_wizard_runs").insert({

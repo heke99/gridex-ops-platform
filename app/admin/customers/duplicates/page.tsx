@@ -11,6 +11,13 @@ function customerName(row: { full_name: string | null; first_name: string | null
   return row.full_name || [row.first_name, row.last_name].filter(Boolean).join(' ').trim() || row.company_name || row.email || 'Kund'
 }
 
+// Personal identity numbers are never shown in full in lists.
+function maskIdentity(value: string | null): string | null {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (digits.length < 4) return null
+  return `••••••••-${digits.slice(-4)}`
+}
+
 export default async function CustomerDuplicatesPage() {
   const admin = await requireAdminPageKeyAccess('customers.list')
   const scope = await resolveAdminTenantReadScope(admin)
@@ -46,7 +53,6 @@ export default async function CustomerDuplicatesPage() {
                   <h3 className="text-sm font-semibold text-slate-950">{group.reason}</h3>
                   <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700">{group.candidates.length} kunder</span>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">Nyckel: {group.groupKey}</p>
                 <div className="mt-4 space-y-3">
                   {group.candidates.map((candidate) => (
                     <div key={candidate.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -54,7 +60,7 @@ export default async function CustomerDuplicatesPage() {
                       <div className="mt-1 grid gap-1 text-xs text-slate-600">
                         <div>Kundnr: {candidate.customer_number ?? '—'}</div>
                         <div>E-post: {candidate.email ?? '—'}</div>
-                        <div>ID/orgnr: {candidate.personal_number ?? candidate.org_number ?? '—'}</div>
+                        <div>ID/orgnr: {maskIdentity(candidate.personal_number) ?? candidate.org_number ?? '—'}</div>
                       </div>
                       <Link href={`/admin/customers/${candidate.id}`} className="mt-3 inline-flex rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Öppna kundkort</Link>
                     </div>

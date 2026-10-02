@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
@@ -143,6 +144,7 @@ export async function saveManualMailboxAction(formData: FormData): Promise<void>
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     redirectWith("error", error instanceof Error ? error.message : "Kunde inte spara brevlådan.");
   }
 
@@ -163,6 +165,7 @@ export async function toggleManualMailboxAction(formData: FormData): Promise<voi
       .eq("id", mailboxId);
     if (error) throw error;
   } catch (error) {
+    unstable_rethrow(error)
     redirectWith("error", error instanceof Error ? error.message : "Kunde inte uppdatera brevlådan.");
   }
 

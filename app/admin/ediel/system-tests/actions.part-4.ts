@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 import {hasReportingPermissionMessage} from '@/lib/ediel/prodat/prodatReportingPermissionAuthority'
 import {requireTgtReportingSendAssociation} from '@/lib/ediel/testing/tgtReportingPermissionContext'
 import {requireCompanyScopedActionAccess} from '@/lib/admin/guards'
@@ -118,6 +119,7 @@ export async function sendSystemTestOutboundMessageAction(formData: FormData) {
       `${sentMessage.message_family} ${sentMessage.message_code} skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
     );
   } catch (error) {
+    unstable_rethrow(error)
     const sendFailure = errorMessage(error);
     await auditSystemTestMaintenance({
       actorUserId: context.userId,
@@ -263,6 +265,7 @@ export async function createAndSendSystemTestOutboundForRunAction(formData: Form
       `${sentMessage.message_family} ${sentMessage.message_code} skapades/kopplades och skickades från Systemtest. Hämta sedan portalens CONTRL/APERAK via IMAP.`,
     );
   } catch (error) {
+    unstable_rethrow(error)
     const sendFailure = errorMessage(error);
     await auditSystemTestMaintenance({
       actorUserId: context.userId,

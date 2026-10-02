@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createHash } from "crypto";
@@ -920,6 +921,7 @@ async function importEdielP12Certificate(
       });
       mailboxDefaultApplied = true;
     } catch (error) {
+      unstable_rethrow(error)
       if (!isSchemaCompatibilityError(error)) throw error;
       mailboxDefaultApplied = false;
     }
@@ -1128,6 +1130,7 @@ export async function validateEdielP12EnvCertificateAction(formData: FormData) {
       displayName: firstString(row.display_name, metadataValue(row, "displayName")),
     });
   } catch (error) {
+    unstable_rethrow(error)
     const existingMetadata =
       row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
         ? (row.metadata as Record<string, unknown>)
@@ -1263,6 +1266,7 @@ export async function archiveEdielCertificateAction(formData: FormData) {
   try {
     await archiveCertificate({ certificateId, actorUserId: context.userId });
   } catch (error) {
+    unstable_rethrow(error)
     certificateRedirect(
       "error",
       formatErrorMessage(error, "Certifikatet kunde inte arkiveras."),
@@ -1281,6 +1285,7 @@ export async function deleteEdielCertificateAction(formData: FormData) {
   try {
     await hardDeleteCertificate({ certificateId, actorUserId: context.userId });
   } catch (error) {
+    unstable_rethrow(error)
     certificateRedirect(
       "error",
       formatErrorMessage(
@@ -1299,6 +1304,7 @@ export async function importEdielP12CertificateAction(formData: FormData) {
   try {
     result = await importEdielP12Certificate(formData);
   } catch (error) {
+    unstable_rethrow(error)
     const message = formatErrorMessage(
       error,
       "Certifikatet kunde inte importeras.",
