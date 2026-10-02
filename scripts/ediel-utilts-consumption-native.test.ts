@@ -626,7 +626,7 @@ it('native accepted S01 persists only SG5 field 532 and no individual consumptio
 })
 it('cross-environment equal legacy identity cannot reuse test consumption authority', async () => {
   const f = await seed(), first = await persistUtiltsTransactionResults(await f.prepare())
-  const production = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'PROD'+f.original.interchange_reference!), 'E66', 'production')
+  const production = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'PROD'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66PRO'), 'E66', 'production')
   const next = await persistUtiltsTransactionResults(await f.prepare(production))
   expect(next[0].seriesId).not.toBe(first[0].seriesId)
   expect(next[0].consumptionContract?.environment).toBe('production')
@@ -656,7 +656,7 @@ it.each([{ resolution: '1:805', end: '202607010200', second: '202607010100', bou
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", `DTM+597:${fixture.second}:203'`, "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
-  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!), 'E30'), input = await f.prepare(source)
+  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66E30'), 'E30'), input = await f.prepare(source)
   expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
   expect(input.contracts[0].observations[0].periodEnd).toBe(fixture.boundary)
   expect(input.contracts[0].observations[1].periodStart).toBe(fixture.boundary)
@@ -681,7 +681,7 @@ it('distinguishable observation order is immutable, not a set comparison', async
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
-  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'ORDER'+f.original.interchange_reference!)), input = await f.prepare(source)
+  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'ORDER'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66ORD')), input = await f.prepare(source)
   expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
   await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
   const changed = structuredClone(input)
@@ -1115,7 +1115,7 @@ it.each(['customer', 'site', 'customer-site', 'grid', 'request', 'resolution', '
     const updates: Record<string, string> = { site: 'site_id=NULL', 'customer-site': 'customer_site_id=NULL', grid: 'grid_owner_id=NULL', request: 'source_request_id=NULL', resolution: "resolution='PT1H'", 'read-at': "read_at=read_at+interval '1 minute'", 'reading-type': "reading_type='estimated'", 'normalized-quantity': 'quantity_kwh=501', 'normalized-facility': "facility_id='other'", 'normalized-resolution': "resolution='PT1H'", 'normalized-site': 'site_id=NULL' }
     sql(`UPDATE public.${field.startsWith('normalized') ? 'normalized_metering_values' : 'metering_values'} SET ${updates[field]} WHERE company_id=${lit(f.ids.company)}`)
   }
-  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'REUSE'+f.original.interchange_reference!))
+  const source = await f.insertSource(f.original.raw_payload!.replaceAll(f.original.interchange_reference!, 'REUSE'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66REU'))
   await persistUtiltsTransactionResults(await f.prepare(source))
   const before = sinkState(f.ids.company), persisted = snapshot(source.id)
   await realSinks()
