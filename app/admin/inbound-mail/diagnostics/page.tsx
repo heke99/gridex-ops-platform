@@ -22,7 +22,7 @@ export default async function InboundMailDiagnosticsPage() {
     <div>
       <AdminHeader
         title="Inbound Mail diagnostics"
-        subtitle="Platform-only smoke tests för Batch 7A.1: parser, tabeller, cron-secret och driftberedskap."
+        subtitle="Självtester för inkommande e-post: tolkning, tabeller, schemalagda jobb och driftberedskap."
         userEmail={admin.email}
         workspaceMode="platform"
       />

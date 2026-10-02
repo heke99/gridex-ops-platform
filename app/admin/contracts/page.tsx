@@ -946,7 +946,7 @@ export default async function AdminContractsPage({
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Avtal och kampanjer – platformstyrda"
+        title="Avtal och kampanjer"
         subtitle="Endast platform admin får skapa, ändra och publicera avtalsmallar, kampanjer och prisvillkor. Elbolagsadmin arbetar med kunder och publicerade avtal men äger inte pris-/avtalslogiken."
         userEmail={admin.email}
       />

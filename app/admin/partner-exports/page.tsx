@@ -57,7 +57,7 @@ export default async function AdminPartnerExportsPage({
  return (
  <div className="min-h-screen">
  <AdminHeader
- title="Partner exports"
+ title="Partnerexporter"
  subtitle="Queue, statusuppföljning och ack/felhantering mot externa partnerflöden."
  userEmail={context.email}
  />

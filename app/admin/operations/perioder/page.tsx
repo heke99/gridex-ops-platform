@@ -40,7 +40,7 @@ export default async function OperationsPeriodsPage() {
       <div className="space-y-6 p-8">
         <section className="grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]">
           <form action={runBatch2CPeriodMotorAction} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Batch 2C</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-800">Automatisk periodkontroll</p>
             <h2 className="mt-2 text-lg font-semibold text-slate-950">Skanna periodintervall</h2>
             <p className="mt-2 text-sm leading-6 text-slate-700">Motor skannar alla mätpunkter i bolaget och skapar requests/cases för perioder där mätvärden saknas.</p>
             <div className="mt-5 grid gap-3">

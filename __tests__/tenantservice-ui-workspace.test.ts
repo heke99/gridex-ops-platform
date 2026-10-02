@@ -68,7 +68,8 @@ describe('customer card for tenant staff (P5b)', () => {
     expect(page).toContain('sticky top-0')
     expect(page).toContain('>\n                Registrera kontakt')
     expect(page).toContain('Ändra uppgifter')
-    expect(page).toContain('Fler åtgärder')
+    // The tab bar is the navigation; a header menu repeating the tabs was removed.
+    expect(page).not.toContain('Fler åtgärder')
     expect(page).toContain('anyOf: ["cases.write"]')
     expect(page).toContain('anyOf: ["masterdata.write"]')
     expect(page).toContain('customer.status !== "archived" ?')

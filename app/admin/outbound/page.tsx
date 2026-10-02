@@ -678,7 +678,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
 
  {request.channel_type === 'unresolved' ? (
  <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ">
- Den här requesten saknar aktiv route. Sweep 7.8 försöker lösa om route finns nu, annars ligger den kvar för manuell route-fix.
+ Den här requesten saknar aktiv route. Den automatiska omkörningen försöker igen om en route finns nu, annars ligger den kvar för manuell route-fix.
  </div>
  ) : null}
 
@@ -695,7 +695,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  {request.failure_reason ??
  'Dispatch misslyckades och kräver ny åtgärd.'}{' '}
  {request.attempts_count < 3
- ? 'Sweep 7.8 kan återköa den efter cooldown.'
+ ? 'Den automatiska omkörningen kan köa den igen efter en väntetid.'
  : 'Retry-taket är uppnått och kräver manuell insats.'}
  </div>
  ) : null}
