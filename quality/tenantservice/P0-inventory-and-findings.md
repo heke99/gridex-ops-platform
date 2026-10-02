@@ -255,9 +255,9 @@
 | P8: backfill for `invoice_distribution_missing` | **Not needed** | Live read 2026-10-02: 0 customers with only a contact email; 0 open billing underlays |
 | Live RLS/grant verification | **Done (read-only, production)** | All public tables have RLS; no write policy for anon/public is `true`. See the note below. |
 | P7: perf baseline | **Done + first optimization** | `perf-baseline-2026-10-02.md`; #435 instrumentation; #436 parallel reads |
-| F12: legal identity fields (personal and org number) in the ordinary OPS profile | **Open** | Needs a product decision on the high-risk flow (who may change them, approval, audit) |
-| P3: versioned billing profile with revision on the item | **Open** | Needs a migration and a design decision |
-| P5b: restructure the customer card (header, 5 tabs, shared edit panel) | **Open** | Large UI change; needs prioritization |
+| F12: legal identity fields (personal and org number) in the ordinary OPS profile | **Done** | #437, live. Customer approves via a link + PDF sent only to the card's e-mail; binding contract/notice → new customer must accept the takeover, contract and terms; append-only audit history |
+| P3: versioned billing profile with revision on the item | **Done** | #437, live. Backfill 4/4; the revision is locked on billing_export_run_items |
+| P5b: restructure the customer card (header, 5 tabs, shared edit panel) | **Done** | Header/actions/groups in #425; billing revision history in #438 |
 | Browser verification (mobile/keyboard) | **Blocked** | Needs a running app with login and DB in the session |
 | node-forge GHSA-86w9-cpqp-85rv | **Exception until 2026-11-01** | No fixed release yet |
 
