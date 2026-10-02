@@ -14,12 +14,12 @@ export default async function BillingUnderlayDetailPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   const scope = user ? await getOperationalCompanyScope(user.id) : null
   const companyId = scope?.companyId ?? null
-  const underlays = (await safeListRows('billing_underlays', companyId, '*', 500)).filter((row) => row.id === id)
+  const underlays = await safeListRows('billing_underlays', companyId, '*', 1, { id })
   const underlay = underlays[0] ?? null
   const [items, pricingRuns, allPreviewLines] = await Promise.all([
-    safeListRows('billing_underlay_items', companyId, '*', 200).then((rows) => rows.filter((row) => row.billing_underlay_id === id)),
-    safeListRows('pricing_runs', companyId, '*', 50).then((rows) => rows.filter((row) => row.billing_underlay_id === id)),
-    safeListRows('pricing_preview_lines', companyId, '*', 1000).then((rows) => rows.filter((row) => row.billing_underlay_id === id)),
+    safeListRows('billing_underlay_items', companyId, '*', 1000, { billing_underlay_id: id }),
+    safeListRows('pricing_runs', companyId, '*', 200, { billing_underlay_id: id }),
+    safeListRows('pricing_preview_lines', companyId, '*', 5000, { billing_underlay_id: id }),
   ])
 
   // Provenance view: show the lines of the newest active run (locked > success > latest).

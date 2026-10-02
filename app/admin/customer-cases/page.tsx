@@ -73,7 +73,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
               <article key={row.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <Link href={`/admin/customer-cases/${row.id}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">{row.title}</Link>
+                    {scope.companyId ? <Link href={`/admin/customer-cases/${row.id}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">{row.title}</Link> : <span className="font-semibold text-slate-950" title="Välj bolaget för att öppna ärendet">{row.title}</span>}
                     <p className="mt-1 text-sm text-slate-600">{row.customer_name ?? row.customer_number ?? row.customer_id}</p>
                     {row.description ? <p className="mt-2 max-w-3xl text-sm text-slate-700">{row.description}</p> : null}
                     <p className="mt-2 text-xs text-slate-500">{row.reason_category ?? 'support'} · {row.source ?? 'support'} · {formatDate(row.created_at)}</p>

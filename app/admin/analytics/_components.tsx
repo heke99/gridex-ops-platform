@@ -32,7 +32,10 @@ export function AnalyticsFilters({
   meteringMethods = [],
   statuses = [],
   selected = {},
+  monthOnly = false,
 }: {
+  /** Pages whose data is only split by month render just the month picker. */
+  monthOnly?: boolean
   month: string
   biddingZones: string[]
   gridOwners: Array<{ id: string; name: string }>
@@ -47,11 +50,12 @@ export function AnalyticsFilters({
   }
 }) {
   return (
-    <form className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3 xl:grid-cols-7">
+    <form className={`grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm ${monthOnly ? 'sm:grid-cols-[minmax(0,16rem)_auto] sm:justify-start' : 'md:grid-cols-3 xl:grid-cols-7'}`}>
       <label className="text-sm font-bold text-slate-700">
         Månad / period
         <input name="month" type="month" defaultValue={month.slice(0, 7)} className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2" />
       </label>
+      {monthOnly ? null : <>
       <label className="text-sm font-bold text-slate-700">
         SE-område
         <select name="biddingZoneCode" className="mt-1 w-full rounded-2xl border border-slate-200 px-3 py-2" defaultValue={selected.biddingZoneCode ?? ''}>
@@ -88,6 +92,7 @@ export function AnalyticsFilters({
           {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
         </select>
       </label>
+      </>}
       <button className="self-end rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Filtrera</button>
     </form>
   )

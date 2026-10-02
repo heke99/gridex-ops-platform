@@ -56,3 +56,7 @@ onboarding steps and lifecycle handling).
 | B6 | work queue filtered customer_info_requests by statuses not in its DB check (open, new, pending_review…), hiding real open requests | fixed: list mirrors the DB check minus terminal states |
 | B7 | dead `app/admin/billing/_components.tsx`, unused export-center actions, nav entry to a redirect-only page | fixed: removed |
 | B8 | company-settings: environment select had no name (change ignored); membership-role select ignored by action; empty phone field wiped user phone on every save | fixed |
+| B9 | customer-cases list linked platform admins (no company) to a detail page that 404s by design | fixed: title is plain text until a company is selected |
+| B10 | `customer-applications` and `external-contract-intakes` duplicated the website-applications page | fixed: redirect (query preserved); company link points to canonical page |
+| B11 | analytics overview/reports showed filters their data ignores | fixed: month-only picker there; forecast keeps full filters |
+| B12 | underlay detail fetched first 500/200/50/1000 rows and filtered in JS (older underlays rendered empty) | fixed: queried by id |
