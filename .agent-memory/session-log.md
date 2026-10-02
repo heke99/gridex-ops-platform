@@ -396,3 +396,9 @@ Side track, separate from the Ediel campaign.
 - Merged #427 (security dependency upgrades) and #428 (F16: support cases stopped billing/onboarding).
 - Opened #429 to make the Ediel source-owner native fixtures run-relative (replay red since 2026-10-01 on every branch).
 - #425 carries P0–P8 behind production-safe flags. Draft until #429 and P2b are done and CI is green.
+
+## 2026-10-02 — Tenant/customer RPC side track (see tenant-customer-rpc-workstream.md)
+Side track, separate from the Ediel campaign.
+- Merged #449–#455 and #457: tenant/customer/billing write flows moved to tenant-bound RPCs; all register items fixed or accepted.
+- Hosted DB carries every migration through 20261002226000; the owner ran 20261002211000 in the SQL Editor (MCP cannot run DELETE-bearing SQL).
+- #457 fixed the `full` E2E parity failure on main (support-attachment headers, contract 2026-10-02.3).
