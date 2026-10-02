@@ -12,6 +12,8 @@ DECLARE
   mp uuid := gen_random_uuid();
   sw uuid;
   res jsonb;
+  open_period uuid := gen_random_uuid();
+  future_period uuid := gen_random_uuid();
 BEGIN
   INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
   VALUES(actor,'authenticated','authenticated','lifecycle-actor@example.invalid',now(),'{}','{}',now(),now(),false,false);
@@ -24,6 +26,9 @@ BEGIN
   VALUES(mp,c,customer,site,'735999999999999992','monthly','consumption',true,'active');
   INSERT INTO public.supplier_switch_requests(company_id,customer_id,site_id,metering_point_id,request_type,status)
   VALUES(c,customer,site,mp,'switch','draft') RETURNING id INTO sw;
+  INSERT INTO public.customer_supply_periods(id,company_id,customer_id,metering_point_id,start_date,status,source)
+  VALUES (open_period,c,customer,mp,DATE '2026-01-01','active','manual'),
+         (future_period,c,customer,mp,DATE '2026-12-01','active','manual');
 
   PERFORM set_config('request.jwt.claims', '{"role":"authenticated"}', true);
   BEGIN
@@ -47,6 +52,17 @@ BEGIN
   END IF;
   IF (SELECT status FROM public.metering_points WHERE id = mp AND end_date = DATE '2026-11-01') IS DISTINCT FROM 'closed' THEN
     RAISE EXCEPTION 'metering point not closed';
+  END IF;
+  -- Billing stops at the move-out date: the open period ends on it, a later one is cancelled.
+  IF (SELECT end_date FROM public.customer_supply_periods WHERE id = open_period) IS DISTINCT FROM DATE '2026-11-01'
+     OR (SELECT status FROM public.customer_supply_periods WHERE id = open_period) <> 'active' THEN
+    RAISE EXCEPTION 'open supply period not ended on move-out date';
+  END IF;
+  IF (SELECT status FROM public.customer_supply_periods WHERE id = future_period) <> 'cancelled' THEN
+    RAISE EXCEPTION 'future supply period not cancelled';
+  END IF;
+  IF (res->>'supply_periods_ended')::int <> 1 OR (res->>'supply_periods_cancelled')::int <> 1 THEN
+    RAISE EXCEPTION 'supply period counts not returned';
   END IF;
   IF (SELECT status FROM public.supplier_switch_requests WHERE id = sw) <> 'failed' THEN
     RAISE EXCEPTION 'switch not stopped';

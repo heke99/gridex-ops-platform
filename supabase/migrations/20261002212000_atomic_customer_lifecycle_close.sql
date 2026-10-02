@@ -75,6 +75,8 @@ declare
   v_contracts integer := 0;
   v_switch_ids uuid[] := '{}';
   v_metadata jsonb;
+  v_supply_ended integer := 0;
+  v_supply_cancelled integer := 0;
 begin
   if auth.role() <> 'service_role' then
     raise exception using errcode = '42501', message = 'customer_lifecycle_service_role_required';
@@ -129,6 +131,39 @@ begin
       closed_reason = v_close_reason, updated_by = p_actor_user_id
   where company_id = p_company_id and site_id = any (v_site_ids);
   get diagnostics v_points = row_count;
+
+  -- Billing follows customer_supply_periods. Supply ends on the move-out date
+  -- (inclusive) so the period up to the move is still invoiced and nothing
+  -- after it. A period that had not started yet is cancelled. The grid owner's
+  -- end-of-supply message later confirms the actual date.
+  update public.customer_supply_periods
+  set end_date = p_move_out_date,
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+        'planned_end_source', 'customer_lifecycle_close',
+        'planned_end_reason', p_mode,
+        'planned_end_recorded_at', v_now
+      ),
+      updated_at = v_now
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and start_date <= p_move_out_date
+    and (end_date is null or end_date > p_move_out_date);
+  get diagnostics v_supply_ended = row_count;
+
+  update public.customer_supply_periods
+  set status = 'cancelled',
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+        'cancelled_by', 'customer_lifecycle_close',
+        'cancelled_reason', p_mode,
+        'cancelled_at', v_now
+      ),
+      updated_at = v_now
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and start_date > p_move_out_date;
+  get diagnostics v_supply_cancelled = row_count;
 
   for v_contract in
     select c.id, c.status
@@ -225,6 +260,8 @@ begin
     v_metadata || jsonb_build_object(
       'affectedSites', cardinality(v_site_ids),
       'affectedMeteringPoints', v_points,
+      'supplyPeriodsEnded', v_supply_ended,
+      'supplyPeriodsCancelled', v_supply_cancelled,
       'terminatedContracts', v_contracts,
       'cancelledSwitchRequests', cardinality(v_switch_ids),
       'followUpTaskCreated', p_create_follow_up_task
@@ -237,6 +274,8 @@ begin
     'customer', to_jsonb(v_after),
     'closed_sites', cardinality(v_site_ids),
     'closed_metering_points', v_points,
+    'supply_periods_ended', v_supply_ended,
+    'supply_periods_cancelled', v_supply_cancelled,
     'closed_contracts', v_contracts,
     'failed_switch_request_ids', to_jsonb(v_switch_ids),
     'lifecycle', v_metadata
