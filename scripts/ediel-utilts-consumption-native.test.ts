@@ -575,7 +575,7 @@ it('native accepted S01 persists only SG5 field 532 and no individual consumptio
   segments[unt] = `UNT+${unt - unh + 1}+1'`
   const source = await f.insertSource(ownIdentity(segments.join('\n')), 'S01')
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
-  const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
+  const runtime = await recordUtiltsFinalRuntime(source) /* production order */, policy = resolveCanonicalMessagePolicy(source)!
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
   expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak' }])
   const input: UtiltsBoundPersistenceInput & { actorUserId: string } = { actorUserId: f.ids.actor, companyId: f.ids.company, environment: source.environment, sourceMessageId: source.id,
@@ -623,14 +623,23 @@ it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption
 })
 it.each([{ resolution: '15:806', end: '202607010030', second: '202607010015', boundary: '2026-06-30T23:15:00.000Z' }, // U p36: E30 energy is quarter, month or year
 
-  { resolution: '1:802', end: '202609010000', second: '202608010000', boundary: '2026-07-31T23:00:00.000Z' }])('native accepted E30 $resolution creates two distinct stored intervals', async fixture => {
+  { resolution: '1:802', end: '202609010000', second: '202608010000', boundary: '2026-07-31T23:00:00.000Z' }])('native E30 $resolution creates two distinct stored intervals, or is held without approved structure', async fixture => {
   const f = await seed()
   const lines = f.original.raw_payload!.replace('BGM+E66', 'BGM+E30').replace('23-DDQ-E66-T', '23-MDR-E30-T').replace('15:806', fixture.resolution)
     .replace('202607010000202607010015:719', `202607010000${fixture.end}:719`).split('\n').filter(line => line !== "MEA+AAZ++KWH'") // U s85: no SG5/MEA in E30
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", `DTM+597:${fixture.second}:203'`, "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
-  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66E30'), 'E30'), input = await f.prepare(source)
+  const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66E30'), 'E30')
+  if (fixture.resolution === '1:802') {
+    // Monthly energy is compared against approved PRODAT structure (25-A-4);
+    // without that structure the transaction is held and nothing is stored.
+    const runtime = await recordUtiltsFinalRuntime(source)
+    expect(runtime.transactionDispositions).toMatchObject([{ disposition: 'internal_review', responseType: 'none', issueCodes: expect.arrayContaining(['UTILTS_STRUCTURE_UNAVAILABLE']) }])
+    expect(sql(`SELECT count(*) FROM public.metering_values WHERE company_id=${lit(f.ids.company)}`)).toBe(0)
+    return
+  }
+  const input = await f.prepare(source)
   expect(input.contracts[0].observations.map(o => o.quantity)).toEqual(['500', '7']) // exact decimal strings
   expect(input.contracts[0].observations[0].periodEnd).toBe(fixture.boundary)
   expect(input.contracts[0].observations[1].periodStart).toBe(fixture.boundary)
@@ -792,7 +801,7 @@ it.each(['point-grid', 'point-site', 'point-customer-site', 'site-grid', 'reques
 const sinkRpc = (input: UtiltsBoundPersistenceInput, sink: 'metering' | 'billing') => {
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>
   return Promise.resolve(rpc(`gridex_consume_utilts_${sink}_v1`, { p_company_id: input.companyId, p_source_message_id: input.sourceMessageId, p_actor_id: null,
-    ...(sink === 'metering' ? { p_transaction_id: 'GRIDEX2607E66001', p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
+    ...(sink === 'metering' ? { p_transaction_id: input.transactions[0].transactionId, p_observation_ordinal: 0, p_expected_contract: input.contracts[0] } : { p_expected_contracts: input.contracts }) }))
 }
 it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated returned projection instead of reinterpreting it', async sink => {
   const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
