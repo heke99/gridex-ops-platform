@@ -167,7 +167,7 @@ function snapshot(source: string) {
 it('real persisted interruption + natural changed-byte dedup cannot consume old success, identical retry consumes stored content', async () => {
   const f = await seed(), input = await f.prepare()
   const first = await persistUtiltsTransactionResults(input), before = snapshot(f.original.id)
-  expect(first[0].consumptionContract?.observations[0].quantity).toBe(500)
+  expect(first[0].consumptionContract?.observations[0].quantity).toBe('500')
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const changed = f.original.raw_payload!.replace('QTY+136:500', 'QTY+136:999')
   await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', inboundEmailMessageId: '', parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('INBOUND_UTILTS_SOURCE_CONFLICT')
@@ -633,7 +633,7 @@ it('cross-environment equal legacy identity cannot reuse test consumption author
 })
 it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption capability', async code => {
   const f = await seed(), application = code === 'E30' ? '23-MDR-E30-T' : '23-DDQ-S07-T'
-  const raw = f.original.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260')
+  const raw = f.original.raw_payload!.replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : 'BGM+E30::260').replace(code === 'E30' ? "\nMEA+AAZ++KWH'" : '\u0000', '')
     .replace('23-DDQ-E66-T', application).replaceAll(f.original.interchange_reference!, code+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', code+'CONTROL001')
   const source = await f.insertSource(raw, code), input = await f.prepare(source, false, code === 'E30')
   const rows = await persistUtiltsTransactionResults(input)
@@ -647,17 +647,17 @@ it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption
     expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   }
 })
-it.each([{ resolution: '1:805', end: '202607010200', second: '202607010100', boundary: '2026-07-01T00:00:00.000Z' },
-  { resolution: '30:806', end: '202607010100', second: '202607010030', boundary: '2026-06-30T23:30:00.000Z' },
+it.each([{ resolution: '15:806', end: '202607010030', second: '202607010015', boundary: '2026-06-30T23:15:00.000Z' }, // U p36: E30 energy is quarter, month or year
+
   { resolution: '1:802', end: '202609010000', second: '202608010000', boundary: '2026-07-31T23:00:00.000Z' }])('native accepted E30 $resolution creates two distinct stored intervals', async fixture => {
   const f = await seed()
   const lines = f.original.raw_payload!.replace('BGM+E66', 'BGM+E30').replace('23-DDQ-E66-T', '23-MDR-E30-T').replace('15:806', fixture.resolution)
-    .replace('202607010000202607010015:719', `202607010000${fixture.end}:719`).split('\n')
+    .replace('202607010000202607010015:719', `202607010000${fixture.end}:719`).split('\n').filter(line => line !== "MEA+AAZ++KWH'") // U s85: no SG5/MEA in E30
   const at = lines.findIndex(line => line.startsWith('UNT+'))
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", `DTM+597:${fixture.second}:203'`, "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
   const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'E30'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66E30'), 'E30'), input = await f.prepare(source)
-  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
+  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual(['500', '7']) // exact decimal strings
   expect(input.contracts[0].observations[0].periodEnd).toBe(fixture.boundary)
   expect(input.contracts[0].observations[1].periodStart).toBe(fixture.boundary)
   const outcomes = await persistUtiltsTransactionResults(input)
@@ -682,7 +682,7 @@ it('distinguishable observation order is immutable, not a set comparison', async
   lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
   lines[at + 4] = `UNT+${at + 3}+1'`
   const source = await f.insertSource(lines.join('\n').replaceAll(f.original.interchange_reference!, 'ORDER'+f.original.interchange_reference!).replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66ORD')), input = await f.prepare(source)
-  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual([500, 7])
+  expect(input.contracts[0].observations.map(o => o.quantity)).toEqual(['500', '7'])
   await persistUtiltsTransactionResults(input); const before = snapshot(source.id)
   const changed = structuredClone(input)
   changed.contracts[0].observations.reverse().forEach((o, i) => { o.ordinal = i })
