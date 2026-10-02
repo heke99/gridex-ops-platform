@@ -1,5 +1,6 @@
 import { listAckMessagesForSource } from '@/lib/ediel/db'
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
+import { unstable_rethrow } from 'next/navigation'
 import { validateProdatPermissionMessage } from '@/lib/ediel/testing/prodatPermissionEngine'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
@@ -805,6 +806,7 @@ export async function createAndSendSystemTestAckAction(formData: FormData) {
         },
       });
     } catch (error) {
+      unstable_rethrow(error)
       const sendFailure = errorMessage(error);
       await updateEdielMessageStatus({
         actorUserId: context.userId,

@@ -2,7 +2,7 @@
 
 import { verifyElRegistryActor } from '@/lib/actor-registry/registryMarketSource'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { materializePlatformActorRoute, materializeCompanyGridOwnerRoute } from '@/lib/ediel/routeMaterializer'
@@ -137,6 +137,7 @@ export async function materializeCompanyGridOwnerRouteAction(formData: FormData)
         : { kind: 'error', code: result.reasonCode ?? 'route_materialization_failed' }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.company_route_materialize_failed',
@@ -209,6 +210,7 @@ export async function bulkMaterializeOperationalRoutesAction(formData: FormData)
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.bulk_materialize_failed',
@@ -263,6 +265,7 @@ export async function approveFirstProductionSendAction(formData: FormData) {
       }
     }
   } catch (error) {
+    unstable_rethrow(error)
     await auditLaunchAction({
       actorUserId: context.userId,
       action: 'route_readiness.production_approval_failed',

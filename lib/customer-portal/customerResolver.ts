@@ -770,6 +770,18 @@ export async function resolvePortalCustomer(input: {
     return { ok: false, status: 422, code: 'missing_customer_identifier', error: 'Kundidentifierare saknas.', identifiers }
   }
 
+  const authUserId = clean(identifiers.authUserId)
+  const portalUserId = clean(identifiers.customerPortalUserId)
+  if (authUserId && portalUserId && authUserId !== portalUserId) {
+    return {
+      ok: false,
+      status: 422,
+      code: 'portal_identity_mismatch',
+      error: 'Portalanvändarens identifierare måste vara identiska.',
+      identifiers,
+    }
+  }
+
   try {
     const userId = clean(identifiers.customerPortalUserId) ?? clean(identifiers.authUserId)
     const linkedAccount = userId ? await linkedByAccount(input.client.company_id, userId) : null
@@ -813,6 +825,21 @@ export async function resolvePortalCustomer(input: {
         error: 'Första kundportalkopplingen kräver redan länkad användare eller minst två matchande kunduppgifter.',
         identifiers,
       }
+    }
+
+    // Report mode retains the identifier read fallback, but never turns a read into a link.
+    // Preserve the existing blocked-link refusal without running the mutating link operation.
+    if (mode === 'read') {
+      if (userId && await hasBlockedPortalLink(input.client.company_id, resolved.customer_id, userId)) {
+        return {
+          ok: false,
+          status: 403,
+          code: 'customer_portal_link_blocked',
+          error: 'Kundportalkopplingen är spärrad och kan inte aktiveras via API.',
+          identifiers,
+        }
+      }
+      return { ok: true, customer: resolved, binding: 'identifier_match' }
     }
 
     const linked = userId

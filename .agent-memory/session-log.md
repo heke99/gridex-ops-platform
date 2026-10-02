@@ -656,3 +656,8 @@ Skill-routing: aktiva — systematic-debugging (varje rött test till rotorsak),
 - Native: S02 26/26; source-owner 47/48; consumption 103/143. Product fixes: structural readset skips UTILTS (with unit test), closure coverage instant compare (with unit test), ACK inherited basis (20261002080000).
 - Fixture lessons: production record->capture order; technical reception before reply reads; issuer registration; field 505 unique per issuer over time; 14-day 25-A-3 grace (strict 25-A-4 tests receive after 2026-10-14); E30 has no SG5/MEA and only 15:806/1:801/1:802; exact decimal strings; UNB test flag for env=test; PRODAT LIN group order CCI before RFF/NAD.
 - Owner decisions needed: bilateral H/LK profiles absent; field-208 reply for unresolved receiver; inbound cases schema drift (pre-existing on main).
+## 2026-10-02 — Tenant/customer RPC side track (see tenant-customer-rpc-workstream.md)
+Side track, separate from the Ediel campaign.
+- Merged #449–#455 and #457: tenant/customer/billing write flows moved to tenant-bound RPCs; all register items fixed or accepted.
+- Hosted DB carries every migration through 20261002226000; the owner ran 20261002211000 in the SQL Editor (MCP cannot run DELETE-bearing SQL).
+- #457 fixed the `full` E2E parity failure on main (support-attachment headers, contract 2026-10-02.3).

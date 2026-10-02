@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { createInvoiceFile } from '@/lib/billing/invoiceFileExport'
 import { InvoiceProviderConfigError } from '@/lib/billing/providers/registry'
@@ -24,6 +24,7 @@ export async function createInvoiceFileAction(formData: FormData): Promise<void>
     const result = await createInvoiceFile({ companyId, billingMonth, actorUserId: user.id })
     target = `/admin/billing?month=${billingMonth}&file=${result.fileId}`
   } catch (error) {
+    unstable_rethrow(error)
     if (!(error instanceof InvoiceProviderConfigError)) throw error
     target = `/admin/billing?month=${billingMonth}&file_error=${encodeURIComponent(error.code)}`
   }

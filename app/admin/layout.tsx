@@ -3,7 +3,7 @@ import { cookies } from 'next/headers'
 import { isPlatformAdminContext, requireAdminAccess } from '@/lib/admin/guards'
 import { logoutAction } from '@/lib/auth/logoutAction'
 import AdminSidebar from '@/components/admin/AdminSidebar'
-import { getOperationalCompanyScope } from '@/lib/tenant/scope'
+import { getOperationalCompanyScope, TENANT_COMPANY_REQUIRED_MESSAGE, TenantCompanyRequiredError } from '@/lib/tenant/scope'
 import { getTenantLiveAccessForAdmin } from '@/lib/tenant/liveAccess'
 import {
  ADMIN_NAVIGATION_MODE_COOKIE,
@@ -19,11 +19,31 @@ export default async function AdminLayout({
 }) {
  const admin = await requireAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(admin)
+ let shell: {
+ cookieStore: Awaited<ReturnType<typeof cookies>>
+ scope: Awaited<ReturnType<typeof getOperationalCompanyScope>>
+ liveAccess: Awaited<ReturnType<typeof getTenantLiveAccessForAdmin>>
+ }
+ try {
  const [cookieStore, scope, liveAccess] = await Promise.all([
  cookies(),
  getOperationalCompanyScope(admin.userId),
  getTenantLiveAccessForAdmin(admin),
  ])
+ shell = { cookieStore, scope, liveAccess }
+ } catch (error) {
+ if (!(error instanceof TenantCompanyRequiredError)) throw error
+ // A tenant user without an active company sees no tenant data at all.
+ return (
+ <div className="flex min-h-screen items-center justify-center bg-[#f7fbf8] p-6 text-slate-900">
+ <div className="max-w-md rounded-3xl border border-amber-200 bg-white p-8 shadow-sm">
+ <h1 className="text-lg font-black">Inget aktivt bolag</h1>
+ <p className="mt-2 text-sm leading-6 text-slate-700">{TENANT_COMPANY_REQUIRED_MESSAGE}</p>
+ </div>
+ </div>
+ )
+ }
+ const { cookieStore, scope, liveAccess } = shell
  const preferredMode = isPlatformAdmin
  ? normalizeAdminNavigationMode(cookieStore.get(ADMIN_NAVIGATION_MODE_COOKIE)?.value) ?? 'platform_view'
  : 'company_view'

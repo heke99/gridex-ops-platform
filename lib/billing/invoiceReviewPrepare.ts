@@ -346,7 +346,9 @@ async function createDraft(input: {
     amount_inc_vat: pricing.totalSekIncVat,
     metadata: { source: 'invoice_review_v1', approval, calculation_snapshot_sha256: calculationHash, customer_number: customerNumber },
   }
-  const created = await supabaseService.rpc('gridex_create_invoice_export_graph_v1', {
+  // Export graph and calculation snapshot are written in one transaction; a failure leaves no reservation.
+  const created = await supabaseService.rpc('gridex_create_invoice_review_draft_v1', {
+    p_company_id: input.companyId,
     p_run: {
       id: runId,
       company_id: input.companyId,
@@ -363,12 +365,8 @@ async function createDraft(input: {
     },
     p_items: [canonicalItem],
     p_invoices: [canonicalInvoice],
-  })
-  if (created.error) throw created.error
-
-  const invoiceUpdate = await supabaseService
-    .from('customer_invoices')
-    .update({
+    p_enrichment: {
+      invoice_export_item_id: itemId,
       price_plan_version_id: text(input.underlay.price_plan_version_id) ?? text(input.contract.price_plan_version_id),
       price_area_code: calculationSnapshot.price_area,
       consumption_kwh: num(input.underlay.total_kwh),
@@ -376,37 +374,9 @@ async function createDraft(input: {
       calculation_snapshot: calculationSnapshot,
       calculation_snapshot_sha256: calculationHash,
       metadata: canonicalInvoice.metadata,
-      updated_at: now,
-    })
-    .eq('company_id', input.companyId)
-    .eq('invoice_export_item_id', itemId)
-    .select('id')
-    .maybeSingle()
-  if (invoiceUpdate.error || !invoiceUpdate.data) {
-    // Compensate incomplete reservation so prepare can retry instead of sticking forever.
-    await supabaseService
-      .from('invoice_export_items')
-      .update({
-        status: 'cancelled',
-        error_code: 'calculation_snapshot_enrichment_failed',
-        error_payload: { message: invoiceUpdate.error?.message ?? 'Draftfakturan kunde inte verifieras efter skapande.' },
-        updated_at: now,
-      })
-      .eq('company_id', input.companyId)
-      .eq('id', itemId)
-      .then(() => null)
-    await supabaseService
-      .from('customer_invoices')
-      .update({
-        status: 'cancelled',
-        updated_at: now,
-      })
-      .eq('company_id', input.companyId)
-      .eq('invoice_export_item_id', itemId)
-      .then(() => null)
-    if (invoiceUpdate.error) throw invoiceUpdate.error
-    throw new Error('Draftfakturan kunde inte verifieras efter skapande.')
-  }
+    },
+  })
+  if (created.error) throw created.error
 
   await emitDomainEvent({
     companyId: input.companyId,

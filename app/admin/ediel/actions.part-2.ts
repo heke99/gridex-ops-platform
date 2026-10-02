@@ -1,4 +1,5 @@
 import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
+import { unstable_rethrow } from 'next/navigation'
 import {resolveTgtReportingBuildContext} from '@/lib/ediel/testing/tgtReportingPermissionContext'
 import {assertTgtReportingDraft} from '@/lib/ediel/testing/tgtReportingPermissionDraft'
 import {resolveTgtDateEventRoute,resolveTgtDateEventBuildContext,dateEventRuntimeSuite} from '@/lib/ediel/testing/tgtDateEventContext'
@@ -241,6 +242,7 @@ export async function sendEdielMessageAction(formData: FormData) {
 
     await revalidateRelatedMessage(edielMessageId);
   } catch (error) {
+    unstable_rethrow(error)
     const errorMessage = error instanceof Error ? error.message : String(error);
 
     try {
@@ -632,6 +634,7 @@ export async function createEdielTgtRunFromTemplateAction(formData: FormData) {
       testRunId: testRun.id,
     });
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? error.message : String(error);
     await updateEdielTestRunStatus({
       actorUserId: context.userId,

@@ -1,6 +1,7 @@
 import { readBusinessAckStatusForDisplay, businessAckStatusPresentation } from '@/lib/ediel/inbound/businessAckReadModel'
 // app/admin/ediel/messages/[id]/page.tsx
 
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import ReceivedStructureReview from '@/components/admin/ediel/ReceivedStructureReview'
@@ -340,7 +341,7 @@ export default async function AdminEdielMessageDetailPage({
  )
  }
 
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
 
  const [message, events] = await Promise.all([
  getEdielMessageById(id, { companyId }),

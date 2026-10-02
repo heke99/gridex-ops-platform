@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
@@ -95,7 +96,7 @@ export default async function SystemHealthPage() {
   const context = await requireAdminPageAccess(['admin.dashboard.read'])
   const isPlatformAdmin = isPlatformAdminContext(context)
   const scope = await getOperationalCompanyScope(context.userId)
-  const companyId = isPlatformAdmin ? null : scope.companyId
+  const companyId = tenantReadCompanyId(isPlatformAdmin, scope.companyId)
 
   const [
     apiErrors,
@@ -121,10 +122,13 @@ export default async function SystemHealthPage() {
     safeCount('ediel_messages', companyId, [{ column: 'status', operator: 'eq', value: 'unresolved' }]).catch(() => 0),
     safeCount('ediel_messages', companyId, [{ column: 'direction', operator: 'eq', value: 'outbound' }, { column: 'status', operator: 'in', value: ['blocked', 'failed'] }]).catch(() => 0),
     safeCount('billing_underlays', companyId, [{ column: 'readiness_status', operator: 'in', value: ['blocked', 'failed', 'needs_review'] }]).catch(() => 0),
-    safeCount('gridex_route_readiness_v', null, [{ column: 'readiness_status', operator: 'in', value: ['critical_missing_route', 'recommended_missing_route', 'not_sendable', 'needs_review'] }]).catch(() => 0),
-    safeCount('platform_actor_import_issues', null, [{ column: 'status', operator: 'eq', value: 'open' }]).catch(() => 0),
+    // Platform-wide signal: never computed or shown for a tenant.
+    isPlatformAdmin ? safeCount('gridex_route_readiness_v', null, [{ column: 'readiness_status', operator: 'in', value: ['critical_missing_route', 'recommended_missing_route', 'not_sendable', 'needs_review'] }]).catch(() => 0) : Promise.resolve(0),
+    // Platform-wide signal: never computed or shown for a tenant.
+    isPlatformAdmin ? safeCount('platform_actor_import_issues', null, [{ column: 'status', operator: 'eq', value: 'open' }]).catch(() => 0) : Promise.resolve(0),
     safeCount('communication_logs', companyId, [{ column: 'status', operator: 'in', value: ['failed', 'bounced'] }]).catch(() => 0),
-    safeCount('gridex_launch_db_security_warnings_v', null, [{ column: 'severity', operator: 'in', value: ['critical', 'warning'] }]).catch(() => 0),
+    // Platform-wide signal: never computed or shown for a tenant.
+    isPlatformAdmin ? safeCount('gridex_launch_db_security_warnings_v', null, [{ column: 'severity', operator: 'in', value: ['critical', 'warning'] }]).catch(() => 0) : Promise.resolve(0),
     // Real stuck-job sources: e-mail outboxes with failed/uncertain deliveries.
     // (The legacy event_outbox queue had no processor and was removed from the
     // emit path — counting it here only produced a permanently red metric.)
@@ -147,26 +151,30 @@ export default async function SystemHealthPage() {
   return (
     <main className="space-y-6">
       <AdminHeader
-        title="System Health"
-        subtitle="Launch-kontroll för API, webhooks, Ediel, mail, route-readiness, billing och datakvalitet."
+        title="Driftstatus"
+        subtitle="Fel och blockeringar i API, webhooks, Ediel, e-post och fakturering."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : scope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
       />
 
       <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Card label="API-fel" value={apiErrors} hint="Externa API-anrop med felstatus" danger />
-        <Card label="Webhook-fel" value={webhookFailures} hint="Retries/failure i webhook deliveries" danger />
-        <Card label="Rate limit" value={rateLimitEvents} hint="Ska hanteras med backoff/cooldown" danger />
+        <Card label="API-fel" value={apiErrors} hint="Externa API-anrop som misslyckades" danger />
+        <Card label="Webhook-fel" value={webhookFailures} hint="Utskick som misslyckades eller gav upp" danger />
+        <Card label="Begränsade anrop" value={rateLimitEvents} hint="Anrop som stoppades av anropsgränsen" danger />
         <Card label="Ediel-fel" value={edielFailures} hint="Blockerade eller misslyckade meddelanden" danger />
-        <Card label="Unresolved inbound" value={unresolvedInbound} hint="Kräver tenant/route-matchning" danger />
-        <Card label="Blocked outbound" value={blockedOutbound} hint="Ska inte skickas före readiness" danger />
-        <Card label="Billing blockers" value={billingBlocked} hint="Fakturering får inte gå på overifierad data" danger />
-        <Card label="Route blockers" value={missingRoutes} hint="Actor routes saknas/verifieras" danger />
-        <Card label="Import issues" value={importIssues} hint="Actor/masterdata-konflikter" danger />
-        <Card label="Mailfel" value={emailFailures} hint="Kundmail och switch-notiser" danger />
-        <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon grants och security-definer" danger />
-        <Card label="Failed jobs" value={failedJobs} hint="Outbox/jobb som behöver retry eller manuell åtgärd" danger />
+        <Card label="Omatchade inkommande" value={unresolvedInbound} hint="Meddelanden som inte kunnat kopplas" danger />
+        <Card label="Stoppade utgående" value={blockedOutbound} hint="Skickas inte förrän uppgifterna är kompletta" danger />
+        <Card label="Faktureringsstopp" value={billingBlocked} hint="Underlag som behöver kontrolleras" danger />
+        <Card label="E-postfel" value={emailFailures} hint="Kundmejl och notiser som inte gick fram" danger />
+        <Card label="Fastnade utskick" value={failedJobs} hint="Utskick som behöver nytt försök eller hantering" danger />
+        {isPlatformAdmin ? (
+          <>
+            <Card label="Saknade rutter" value={missingRoutes} hint="Aktörsrutter saknas eller är overifierade" danger />
+            <Card label="Importkonflikter" value={importIssues} hint="Konflikter i aktörs- och masterdata" danger />
+            <Card label="DB-varningar" value={dbSecurityWarnings} hint="RLS, anon-behörigheter och security definer" danger />
+          </>
+        ) : null}
       </section>
 
 

@@ -211,6 +211,9 @@ jobs:
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-source-followup-regression.sql; then
             NATIVE_SUITE_FAILED=1
           fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql; then
+            NATIVE_SUITE_FAILED=1
+          fi
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help

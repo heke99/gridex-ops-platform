@@ -239,38 +239,19 @@ export async function lockBillingPeriod(input: {
   reason?: string | null
   metadata?: Record<string, unknown>
 }) {
-  const { billingMonth, year, month } = monthParts(input.billingMonth)
-  const status = input.status ?? 'locked'
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
-    company_id: input.companyId,
-    billing_year: year,
-    billing_month: month,
-    status,
-    locked_by: input.actorUserId ?? null,
-    locked_at: now,
-    unlocked_by: null,
-    unlocked_at: null,
-    lock_reason: input.reason ?? 'Fakturaperioden är låst.',
-    metadata: input.metadata ?? {},
-    updated_at: now,
-  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
-
-  if (error && !isMissingRelationError(error)) throw error
-
-  await supabaseService.from('price_period_locks').upsert({
-    company_id: input.companyId,
-    billing_month: billingMonth,
-    lock_scope: 'billing_period',
-    status: 'locked',
-    locked_by: input.actorUserId ?? null,
-    locked_at: now,
-    reason: input.reason ?? 'Fakturaperioden är låst.',
-    metadata: input.metadata ?? {},
-  }, { onConflict: 'company_id,billing_month,lock_scope' }).then(() => null)
-
-  return data
+  const { billingMonth } = monthParts(input.billingMonth)
+  // Billing lock and price lock are written together; neither can drift from the other.
+  const { data, error } = await supabaseService.rpc('gridex_set_billing_period_lock_v1', {
+    p_company_id: input.companyId,
+    p_billing_month: billingMonth,
+    p_locked: true,
+    p_status: input.status ?? 'locked',
+    p_actor_user_id: input.actorUserId ?? null,
+    p_reason: input.reason ?? null,
+    p_metadata: input.metadata ?? {},
+  })
+  if (error) throw error
+  return (data as { lock?: unknown } | null)?.lock ?? null
 }
 
 export async function unlockBillingPeriod(input: {
@@ -279,44 +260,19 @@ export async function unlockBillingPeriod(input: {
   actorUserId?: string | null
   reason?: string | null
 }) {
-  const { billingMonth, year, month } = monthParts(input.billingMonth)
-  const now = new Date().toISOString()
-
-  const { data, error } = await supabaseService.from('billing_period_locks').upsert({
-    company_id: input.companyId,
-    billing_year: year,
-    billing_month: month,
-    status: 'reopened',
-    unlocked_by: input.actorUserId ?? null,
-    unlocked_at: now,
-    lock_reason: input.reason ?? 'Fakturaperioden har låsts upp.',
-    updated_at: now,
-  }, { onConflict: 'company_id,billing_year,billing_month' }).select('*').maybeSingle()
-
-  if (error && !isMissingRelationError(error)) throw error
-
-  await supabaseService
-    .from('price_period_locks')
-    .update({
-      status: 'unlocked',
-      reason: input.reason ?? 'Fakturaperioden har låsts upp.',
-    })
-    .eq('company_id', input.companyId)
-    .eq('billing_month', billingMonth)
-    .in('lock_scope', ['billing_period', 'invoice_export'])
-    .then(() => null)
-
-  // Locked pricing runs are DB-trigger protected; the only supported unlock path
-  // is this audited RPC. Tolerate its absence until Migration B has been applied.
-  const unlockRuns = await supabaseService.rpc('gridex_unlock_pricing_runs_for_month', {
+  const { billingMonth } = monthParts(input.billingMonth)
+  // Reopening also unlocks the price lock and the month's pricing runs, atomically.
+  const { data, error } = await supabaseService.rpc('gridex_set_billing_period_lock_v1', {
     p_company_id: input.companyId,
     p_billing_month: billingMonth,
+    p_locked: false,
+    p_status: null,
     p_actor_user_id: input.actorUserId ?? null,
-    p_reason: input.reason ?? 'billing_period_unlocked',
+    p_reason: input.reason ?? null,
+    p_metadata: {},
   })
-  if (unlockRuns.error && !isMissingRelationError(unlockRuns.error)) throw unlockRuns.error
-
-  return data
+  if (error) throw error
+  return (data as { lock?: unknown } | null)?.lock ?? null
 }
 
 export async function lockBillingPeriodForInvoiceExport(input: {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
-import { requireCompanyScopedActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireCompanyScopedActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { getCompanyProductionStatus } from '@/lib/tenant/companyProductionStatus'
@@ -181,10 +181,15 @@ export async function updateCompanySettingsAction(
         billing_city: optionalText(formData.get('billing_city')),
         billing_country_code: billingCountryCode,
         billing_terms_summary: optionalText(formData.get('billing_terms_summary')),
-        ediel_id: normalizeUpper(formData.get('ediel_id')),
-        actor_role: normalizeUpper(formData.get('actor_role')),
-        sender_sub_address: normalizeUpper(formData.get('sender_sub_address')),
-        ediel_mailbox: optionalText(formData.get('ediel_mailbox')),
+        // The Ediel market identity drives routing and go-live; only the platform changes it.
+        ...(isPlatformAdminContext(admin)
+          ? {
+              ediel_id: normalizeUpper(formData.get('ediel_id')),
+              actor_role: normalizeUpper(formData.get('actor_role')),
+              sender_sub_address: normalizeUpper(formData.get('sender_sub_address')),
+              ediel_mailbox: optionalText(formData.get('ediel_mailbox')),
+            }
+          : {}),
         operating_environment: operatingEnvironment,
         branding,
       },
@@ -251,7 +256,9 @@ export async function updateCompanyResponsibleUserAction(
     if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     if (!userId) return { ok: false, message: 'Användare saknas.' }
     if (!email) return { ok: false, message: 'E-post krävs.' }
-    const admin = await assertCanManageCompany(companyId)
+    // Granting roles and changing a member's login e-mail needs users.write;
+    // tenants.invite alone only allows inviting.
+    const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['users.write'] })
 
     const { data: membership, error: membershipLookupError } = await supabaseService
       .from('company_memberships')
@@ -275,6 +282,11 @@ export async function updateCompanyResponsibleUserAction(
     }
 
     if ((authUser.user?.email ?? '').toLowerCase() !== email) {
+      // Auth users are global across tenants: changing a login e-mail from a
+      // tenant would let one tenant take over an account shared with others.
+      if (!isPlatformAdminContext(admin)) {
+        return { ok: false, message: 'Inloggningsadressen kan bara ändras av användaren själv eller av Gridex support.' }
+      }
       updatePayload.email = email
       updatePayload.email_confirm = false
     }

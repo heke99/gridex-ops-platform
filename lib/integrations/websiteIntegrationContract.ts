@@ -6,7 +6,9 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-02.2' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-02.4' as const
+// Schema-only correction: integrations built for the preceding release remain supported.
+export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
 export const WEBSITE_INTEGRATION_ORIGIN = 'https://app.gridex.se' as const
 export const WEBSITE_INTEGRATION_BASE_PATH = '/api/v1' as const
@@ -40,11 +42,19 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  */
 
 /**
+ * 2026-10-02.3 documents the runtime contract-version and request-id headers on
+ * customer support attachment downloads. This release is retained unchanged.
+ */
+
+/**
  * 2026-10-02.2 documents the optional `x-gridex-customer-assertion` header (verified customer
  * login, configured per tenant in OPS) on every customer API operation, and its 403 outcomes.
  */
 
 /**
+ * 2026-10-02.4 corrects the closed support-case detail and release-manifest schemas.
+ * Business fields remain unchanged; compatibility is relative to the preceding .3 release.
+ *
  * 2026-08-22.2 makes website settlement semantics explicit: only fixed contracts
  * lock the energy price at signup. Market monthly/hourly/quarter-hour, portfolio
  * and mixed products accept a pricing model and settle later from actual metered
@@ -52,9 +62,9 @@ export const WEBSITE_APPLICATION_REFERENCE_LOCATION = 'top_level' as const
  * metadata and does not expire a customer-visible quote by wall-clock time.
  */
 export const API_COMPATIBILITY_CLASSIFICATION = {
-  release: 'breaking-client-update-required',
-  website: 'breaking-client-update-required',
-  customerPortal: 'breaking-client-update-required',
+  release: 'backward-compatible',
+  website: 'backward-compatible',
+  customerPortal: 'backward-compatible',
 } as const
 export type CompatibilityClassification =
   (typeof API_COMPATIBILITY_CLASSIFICATION)[keyof typeof API_COMPATIBILITY_CLASSIFICATION]
