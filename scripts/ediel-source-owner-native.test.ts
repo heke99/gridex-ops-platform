@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
-import {recordUtiltsTechnicalReception} from './helpers/utiltsConsumptionParties'
+import {recordUtiltsTechnicalReception,registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture as originalClosureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
@@ -392,6 +392,9 @@ async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sq
 async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,code:'E66'|'E30'|'S07'='E66'){
  const original=utiltsNativeSourceFixture(scopedWire(f,raw),randomUUID())
  const {id,parsed}=original
+ // The grid-owner issuer named in NAD+MS holds an approved issuer/mandate version.
+ const issuer=/NAD\+MS\+([0-9]+):/.exec(original.raw)?.[1]
+ expect(issuer).toBeDefined();registerUtiltsIssuer(sql,literal,issuer!,f.ids.actor)
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?S('2026-09-30T20:00:00Z'):S('2026-10-01T20:00:00Z'))},'{}',${literal(parsed.applicationReference)},${literal(f.receiver)},${literal(f.sender)},${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
@@ -401,6 +404,7 @@ async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,c
  // Production reception records the interchange's technical syntax decision
  // before any business processing or reply read.
  await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow,f.ids.actor)
+ seedUtiltsIssuerHistoryGround(sql,literal,id,f.ids.actor)
  return data as unknown as EdielMessageRow
 }
 /** Active qualification binds its combined read to a genuine inbound message.
@@ -686,7 +690,7 @@ it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses r
   expect(utiltsEffects.ack.mock.calls.every(([call])=>call.ackFamily==='CONTRL')).toBe(true)
   expect(utiltsEffects.meter).not.toHaveBeenCalled()
  }else if(outcome==='matched'){
-  expect(rows[0]).toMatchObject({disposition:'accepted',plan:'positive_aperak'})
+  expect(rows[0],JSON.stringify({rows,result:{internal:result.internalReviewRequired,issues:(result as {validationIssues?:unknown}).validationIssues}})).toMatchObject({disposition:'accepted',plan:'positive_aperak'})
   expect(rows[0].series).not.toBeNull()
   expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='APERAK')).toBe(true)
  }else{

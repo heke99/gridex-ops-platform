@@ -23,15 +23,22 @@ export function seedUtiltsConsumptionParties(sql: Sql, lit: Lit, actor: string):
   const issuer = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
    SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999) n WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||n::text);
    COMMIT;`)
-  sql(`BEGIN;
-   WITH ns AS (INSERT INTO gridex_utilts_issuer.namespaces(id,environment,registry_actor_key,created_at) VALUES(gen_random_uuid(),'test','SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)},clock_timestamp()-interval '1 day') RETURNING id),
+  registerUtiltsIssuer(sql, lit, issuer, actor)
+  return { ediel, issuer }
+}
+
+/** Synthetic approved issuer and transport mandate for one grid-owner issuer
+ * identity. Idempotent: an issuer registered by an earlier fixture is reused. */
+export function registerUtiltsIssuer(sql: Sql, lit: Lit, issuer: string, actor: string) {
+  sql(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_issuer_registration',0));
+   WITH ns AS (INSERT INTO gridex_utilts_issuer.namespaces(id,environment,registry_actor_key,created_at) SELECT gen_random_uuid(),'test','SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)},clock_timestamp()-interval '1 day'
+     WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.environment='test' AND x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)}) RETURNING id),
    iv AS (INSERT INTO gridex_utilts_issuer.issuer_versions(id,namespace_id,legal_identity,registry_version,registry_original_uri,registry_original_bytes,registry_sha256,legal_decision_ref,legal_decision_version,legal_decision_bytes,legal_decision_sha256,valid_from,approved_at,approved_by)
     SELECT gen_random_uuid(),ns.id,jsonb_build_array(${lit(issuer)},'SVK','260'),'SYNTHETIC-1','synthetic://native/issuer/'||${lit(issuer)},convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8'),encode(sha256(convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8')),'hex'),
      'SYNTHETIC-DECISION','1',convert_to('SYNTHETIC native decision','UTF8'),encode(sha256(convert_to('SYNTHETIC native decision','UTF8')),'hex'),clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day',${lit(actor)} FROM ns RETURNING id)
    INSERT INTO gridex_utilts_issuer.transport_mandate_versions(id,issuer_version_id,transport_sender,mandate_ref,mandate_version,mandate_original_uri,mandate_original_bytes,mandate_sha256,valid_from,approved_at,approved_by)
     SELECT gen_random_uuid(),iv.id,jsonb_build_array(${lit(issuer)},'ZZ'),'SYNTHETIC-MANDATE','1','synthetic://native/mandate/'||${lit(issuer)},convert_to('SYNTHETIC native mandate','UTF8'),encode(sha256(convert_to('SYNTHETIC native mandate','UTF8')),'hex'),clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day',${lit(actor)} FROM iv;
    COMMIT;`)
-  return { ediel, issuer }
 }
 
 /** Reviewed history-coverage ground bound to the source's actual issuer admission. */
