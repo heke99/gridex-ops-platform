@@ -52,6 +52,14 @@ function decideRpc(params: Row) {
   if (!request) return { data: null, error: { message: 'identity_change_not_found' } }
   if (request.status !== 'pending_customer_approval') return { data: null, error: { message: 'identity_change_not_pending' } }
   if (params.p_outcome === 'applied' && request.approval_required && params.p_decided_by !== 'customer') return { data: null, error: { message: 'identity_change_requires_customer_approval' } }
+  if (params.p_outcome === 'applied' && request.takeover_required) {
+    const acceptance = params.p_acceptance as { snapshot_sha256?: string; confirmations?: Record<string, boolean> } | null
+    const c = acceptance?.confirmations
+    if (!acceptance || acceptance.snapshot_sha256 !== request.takeover_snapshot_sha256 || !c?.identity || !c.contracts || !c.terms) {
+      return { data: null, error: { message: 'identity_change_takeover_acceptance_required' } }
+    }
+    request.acceptance_evidence = acceptance
+  }
   if (params.p_outcome === 'applied') {
     const customer = db.customers.find((c) => c.id === request.customer_id && c.company_id === request.company_id) as Row
     if ((customer[request.field as string] ?? null) !== request.previous_value) return { data: null, error: { message: 'identity_change_stale' } }
@@ -91,7 +99,12 @@ const STAFF = '000000f1-0000-4000-8000-000000000000'
 
 beforeEach(() => {
   for (const key of Object.keys(db)) delete db[key]
-  db.customers = [{ id: CUSTOMER, company_id: A, customer_type: 'private', personal_number: '19121212-1212', org_number: null, email: 'Kund@Example.test', full_name: 'Test Kund', status: 'active' }]
+  db.customers = [{ id: CUSTOMER, company_id: A, customer_type: 'private', customer_number: 'K-1001', personal_number: '19121212-1212', org_number: null, email: 'Kund@Example.test', full_name: 'Test Kund', status: 'active' }]
+  db.legal_bundle_versions = [{ id: 'lb1', company_id: A }, { id: 'lbX', company_id: B }]
+  db.legal_bundle_version_documents = [
+    { legal_bundle_version_id: 'lb1', title: 'Allmänna avtalsvillkor', content_sha256: 'a'.repeat(64), sort_order: 1, rendered_body: 'Villkorstext A' },
+    { legal_bundle_version_id: 'lbX', title: 'Annan tenants villkor', content_sha256: 'b'.repeat(64), sort_order: 1, rendered_body: 'Får inte visas' },
+  ]
   db.companies = [{ id: A, name: 'Elbolaget' }]
   db.customer_contracts = []
   db.customer_identity_change_requests = []
@@ -141,14 +154,14 @@ describe('F12 identity change', () => {
     expect(request.token_hash).toBe(createHash('sha256').update(token).digest('hex'))
     expect(JSON.stringify(request)).not.toContain(token)
     expect(String(sent[0].htmlBody)).not.toContain('19811218')
-    expect(String(sent[0].htmlBody)).toContain('••••9876')
+    expect(String(sent[0].htmlBody)).toContain('bifogad PDF')
 
     // Staff cannot apply it on the customer's behalf.
     await expect(mod.cancelCustomerIdentityChange).toBeDefined()
     expect(decideRpc({ p_company_id: A, p_request_id: request.id, p_outcome: 'applied', p_decided_by: 'staff' }).error).toBeTruthy()
 
     const view = await mod.loadIdentityChangeForApproval(token)
-    expect(view).toMatchObject({ status: 'pending', previousMasked: '••••1212', newMasked: '••••9876', contractCount: 1, companyName: 'Elbolaget' })
+    expect(view).toMatchObject({ status: 'pending', previousMasked: '••••1212', newValue: '19811218-9876', contractCount: 1, companyName: 'Elbolaget' })
 
     expect(await mod.decideIdentityChangeByToken(token, 'approve')).toBe('applied')
     expect(db.customers[0].personal_number).toBe('19811218-9876')
@@ -191,6 +204,64 @@ describe('F12 identity change', () => {
     const mod = await import('@/lib/customer-service/identityChange')
     await expect(mod.loadIdentityChangeForApproval('../../etc')).rejects.toMatchObject({ code: 'identity_change_link_invalid' })
     await expect(mod.decideIdentityChangeByToken('a'.repeat(64), 'approve')).rejects.toMatchObject({ code: 'identity_change_link_invalid' })
+  })
+})
+
+describe('F12 takeover of binding contracts, PDF and recipient', () => {
+  const binding = { id: 'k1', company_id: A, customer_id: CUSTOMER, status: 'active', contract_type: 'variable_monthly', contract_number: 'AV-1', binding_months: 24, notice_months: 1, actual_start_at: '2026-09-01', legal_bundle_version_id: 'lb1' }
+
+  it('sends the e-mail only to the customer card address, with a PDF built from the customer card', async () => {
+    db.customer_contracts = [{ ...binding, binding_months: null, notice_months: null }]
+    const mod = await import('@/lib/customer-service/identityChange')
+    const result = await mod.requestCustomerIdentityChange({ ...base, newValue: '811218-9876' })
+    expect(result).toMatchObject({ status: 'pending_customer_approval', takeoverRequired: false })
+    expect(sent[0].toEmail).toBe('kund@example.test')
+    const attachments = sent[0].attachments as Array<{ filename: string; content: string; contentType: string }>
+    expect(attachments).toHaveLength(1)
+    expect(attachments[0].contentType).toBe('application/pdf')
+    const pdf = Buffer.from(attachments[0].content, 'base64')
+    expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-')
+    const text = pdf.toString('latin1')
+    expect(text).toContain('19121212-1212')
+    expect(text).toContain('19811218-9876')
+    expect(text).toContain('K-1001')
+    expect(text).toContain('Test Kund')
+    expect(db.customer_identity_change_requests[0].document_sha256).toBe(createHash('sha256').update(pdf).digest('hex'))
+  })
+
+  it('a binding contract or notice period is a takeover: stops unless the new party accepts contracts and terms', async () => {
+    db.customer_contracts = [binding, { ...binding, id: 'k2', contract_number: 'AV-2', binding_months: null, notice_months: null, legal_bundle_version_id: 'lbX' }]
+    const mod = await import('@/lib/customer-service/identityChange')
+    const result = await mod.requestCustomerIdentityChange({ ...base, newValue: '811218-9876' })
+    expect(result).toMatchObject({ status: 'pending_customer_approval', takeoverRequired: true, contractCount: 2 })
+    const request = db.customer_identity_change_requests[0]
+    const snapshot = request.takeover_snapshot as { contracts: Array<{ contract_number: string; binding_ends_on: string | null; notice_months: number | null }>; terms: Array<{ title: string }> }
+    // Only the committed contract is taken over; another tenant's terms are never included.
+    expect(snapshot.contracts.map((c) => c.contract_number)).toEqual(['AV-1'])
+    expect(snapshot.contracts[0]).toMatchObject({ binding_ends_on: '2028-09-01', notice_months: 1 })
+    expect(snapshot.terms.map((t) => t.title)).toEqual(['Allmänna avtalsvillkor'])
+    expect(request.takeover_snapshot_sha256).toBe(createHash('sha256').update(JSON.stringify(snapshot)).digest('hex'))
+    const pdfText = Buffer.from((sent[0].attachments as Array<{ content: string }>)[0].content, 'base64').toString('latin1')
+    expect(pdfText).toContain('AV-1')
+    expect(pdfText).toContain('Allm')
+
+    const token = /\/confirm\/identity\/([0-9a-f]{64})/.exec(String(sent[0].htmlBody))?.[1] as string
+    const view = await mod.loadIdentityChangeForApproval(token)
+    expect(view.newValue).toBe('19811218-9876')
+    expect(view.takeover?.terms).toEqual([{ title: 'Allmänna avtalsvillkor', contentSha256: 'a'.repeat(64), body: 'Villkorstext A' }])
+
+    // Approve without all confirmations: refused, nothing changes.
+    await expect(mod.decideIdentityChangeByToken(token, 'approve', { confirmations: { identity: true, contracts: true, terms: false }, snapshotSha256: view.takeover?.snapshotSha256 }))
+      .rejects.toMatchObject({ code: 'identity_change_takeover_acceptance_required' })
+    await expect(mod.decideIdentityChangeByToken(token, 'approve')).rejects.toMatchObject({ code: 'identity_change_takeover_acceptance_required' })
+    // A changed or forged snapshot is refused.
+    await expect(mod.decideIdentityChangeByToken(token, 'approve', { confirmations: { identity: true, contracts: true, terms: true }, snapshotSha256: 'f'.repeat(64) }))
+      .rejects.toMatchObject({ code: 'identity_change_takeover_changed' })
+    expect(db.customers[0].personal_number).toBe('19121212-1212')
+
+    expect(await mod.decideIdentityChangeByToken(token, 'approve', { confirmations: { identity: true, contracts: true, terms: true }, snapshotSha256: view.takeover?.snapshotSha256, ipHash: 'h', userAgent: 'UA' })).toBe('applied')
+    expect(db.customers[0].personal_number).toBe('19811218-9876')
+    expect(request.acceptance_evidence).toMatchObject({ snapshot_sha256: request.takeover_snapshot_sha256, confirmations: { identity: true, contracts: true, terms: true }, ip_hash: 'h', user_agent: 'UA' })
   })
 })
 

@@ -28,9 +28,21 @@ CREATE TABLE public.customer_identity_change_requests (
   status text NOT NULL CHECK (status IN ('pending_customer_approval', 'applied', 'rejected', 'expired', 'cancelled')),
   decided_at timestamptz,
   decided_by text CHECK (decided_by IS NULL OR decided_by IN ('customer', 'staff', 'system')),
+  -- Binding contracts / notice periods: the change moves the contracts to another person, so the
+  -- new party must accept taking over the contracts and their terms (takeover_snapshot, fixed at
+  -- request time and identified by its SHA-256).
+  takeover_required boolean NOT NULL DEFAULT false,
+  takeover_snapshot jsonb,
+  takeover_snapshot_sha256 text CHECK (takeover_snapshot_sha256 IS NULL OR takeover_snapshot_sha256 ~ '^[0-9a-f]{64}$'),
+  -- SHA-256 of the PDF sent to the customer, and the customer's recorded acceptance.
+  document_sha256 text CHECK (document_sha256 IS NULL OR document_sha256 ~ '^[0-9a-f]{64}$'),
+  acceptance_evidence jsonb,
   CONSTRAINT customer_identity_change_requests_company_customer_fkey FOREIGN KEY (company_id, customer_id)
     REFERENCES public.customers(company_id, id),
   CONSTRAINT customer_identity_change_requests_company_token_key UNIQUE (company_id, token_hash),
+  CONSTRAINT customer_identity_change_requests_takeover_shape CHECK (
+    NOT takeover_required OR (approval_required AND takeover_snapshot IS NOT NULL AND takeover_snapshot_sha256 IS NOT NULL)
+  ),
   CONSTRAINT customer_identity_change_requests_approval_shape CHECK (
     (approval_required AND recipient_email IS NOT NULL AND token_hash IS NOT NULL AND expires_at IS NOT NULL)
     OR (NOT approval_required AND token_hash IS NULL)
@@ -101,7 +113,8 @@ CREATE FUNCTION public.gridex_decide_customer_identity_change_v1(
   p_request_id uuid,
   p_outcome text,
   p_decided_by text,
-  p_actor_user_id uuid DEFAULT NULL
+  p_actor_user_id uuid DEFAULT NULL,
+  p_acceptance jsonb DEFAULT NULL
 )
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
 DECLARE
@@ -134,6 +147,18 @@ BEGIN
     RETURN jsonb_build_object('status', 'expired', 'request_id', r.id);
   END IF;
 
+  -- A takeover of binding contracts needs the new party's explicit acceptance of exactly the
+  -- contracts and terms that were shown (same snapshot hash), each confirmation separately.
+  IF p_outcome = 'applied' AND r.takeover_required THEN
+    IF p_acceptance IS NULL
+       OR p_acceptance->>'snapshot_sha256' IS DISTINCT FROM r.takeover_snapshot_sha256
+       OR (p_acceptance->'confirmations'->>'identity') IS DISTINCT FROM 'true'
+       OR (p_acceptance->'confirmations'->>'contracts') IS DISTINCT FROM 'true'
+       OR (p_acceptance->'confirmations'->>'terms') IS DISTINCT FROM 'true' THEN
+      RAISE EXCEPTION 'identity_change_takeover_acceptance_required' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+
   IF p_outcome = 'applied' THEN
     -- The value must still be what the request was based on; otherwise someone changed it meanwhile.
     EXECUTE format('SELECT %I FROM public.customers WHERE company_id = $1 AND id = $2 FOR UPDATE', r.field)
@@ -146,7 +171,10 @@ BEGIN
   END IF;
 
   UPDATE public.customer_identity_change_requests
-     SET status = p_outcome, decided_at = now(), decided_by = p_decided_by
+     SET status = p_outcome, decided_at = now(), decided_by = p_decided_by,
+         acceptance_evidence = CASE WHEN p_outcome = 'applied' AND p_decided_by = 'customer' AND p_acceptance IS NOT NULL
+                                    THEN p_acceptance || jsonb_build_object('accepted_at', now())
+                                    ELSE acceptance_evidence END
    WHERE id = r.id;
 
   IF r.approval_required AND p_outcome IN ('applied', 'rejected') THEN
@@ -160,7 +188,9 @@ BEGIN
           CASE p_outcome WHEN 'applied' THEN 'applied' WHEN 'rejected' THEN 'rejected' ELSE p_outcome END,
           p_decided_by, p_actor_user_id, r.field,
           public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value),
-          jsonb_build_object('affected_contract_count', r.affected_contract_count, 'approval_required', r.approval_required));
+          jsonb_build_object('affected_contract_count', r.affected_contract_count, 'approval_required', r.approval_required,
+                             'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
+                             'document_sha256', r.document_sha256));
 
   INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, system_actor, entity_type, entity_id, action,
                                  old_values, new_values, metadata, request_id, correlation_id, resource_type, resource_id)
@@ -171,7 +201,9 @@ BEGIN
           jsonb_build_object(r.field, public.gridex_mask_identity_number(r.previous_value)),
           jsonb_build_object(r.field, public.gridex_mask_identity_number(r.new_value)),
           jsonb_build_object('identity_change_request_id', r.id, 'decided_by', p_decided_by,
-                             'approval_required', r.approval_required, 'affected_contract_count', r.affected_contract_count),
+                             'approval_required', r.approval_required, 'affected_contract_count', r.affected_contract_count,
+                             'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
+                             'document_sha256', r.document_sha256),
           r.id::text, r.id::text, 'customer_identity_change_request', r.id::text);
 
   RETURN jsonb_build_object('status', p_outcome, 'request_id', r.id, 'customer_id', r.customer_id, 'field', r.field);
@@ -181,9 +213,11 @@ END $$;
 -- token hash or the recipient), so the app needs no cross-tenant table access for this path.
 CREATE FUNCTION public.gridex_find_customer_identity_change_by_token_v1(p_token_hash text)
 RETURNS TABLE (id uuid, company_id uuid, customer_id uuid, field text, previous_value text, new_value text,
-               status text, expires_at timestamptz, affected_contract_count integer)
+               status text, expires_at timestamptz, affected_contract_count integer,
+               takeover_required boolean, takeover_snapshot jsonb, takeover_snapshot_sha256 text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$
-  SELECT r.id, r.company_id, r.customer_id, r.field, r.previous_value, r.new_value, r.status, r.expires_at, r.affected_contract_count
+  SELECT r.id, r.company_id, r.customer_id, r.field, r.previous_value, r.new_value, r.status, r.expires_at, r.affected_contract_count,
+         r.takeover_required, r.takeover_snapshot, r.takeover_snapshot_sha256
     FROM public.customer_identity_change_requests r
    WHERE p_token_hash ~ '^[0-9a-f]{64}$' AND r.token_hash = p_token_hash
    LIMIT 2
@@ -195,8 +229,8 @@ REVOKE ALL ON TABLE public.customer_identity_change_requests FROM PUBLIC, anon, 
 REVOKE ALL ON TABLE public.customer_identity_change_events FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON TABLE public.customer_identity_change_requests TO service_role;
 GRANT SELECT, INSERT ON TABLE public.customer_identity_change_events TO service_role;
-REVOKE ALL ON FUNCTION public.gridex_decide_customer_identity_change_v1(uuid, uuid, text, text, uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.gridex_decide_customer_identity_change_v1(uuid, uuid, text, text, uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.gridex_decide_customer_identity_change_v1(uuid, uuid, text, text, uuid, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.gridex_decide_customer_identity_change_v1(uuid, uuid, text, text, uuid, jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.gridex_find_customer_identity_change_by_token_v1(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.gridex_find_customer_identity_change_by_token_v1(text) TO service_role;
 REVOKE ALL ON FUNCTION public.gridex_customer_identity_events_append_only() FROM PUBLIC, anon, authenticated;

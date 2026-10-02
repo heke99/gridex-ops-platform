@@ -104,6 +104,35 @@ BEGIN
   SELECT personal_number INTO v FROM public.customers WHERE id = customer;
   IF v <> '19811218-9876' THEN RAISE EXCEPTION 'F12 expired link changed the number'; END IF;
 
+  -- F12 takeover: binding contracts need all three confirmations against the exact snapshot.
+  INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,affected_contract_count,recipient_email,token_hash,expires_at,status,takeover_required,takeover_snapshot,takeover_snapshot_sha256)
+  VALUES(c,customer,'personal_number','19811218-9876','20000101-0008','Övertagande',staff,true,1,'kund@example.test',repeat('d',64),now() + interval '1 day','pending_customer_approval',
+         true,'{"contracts":[],"terms":[]}'::jsonb,repeat('e',64))
+  RETURNING id INTO req;
+  BEGIN
+    PERFORM public.gridex_decide_customer_identity_change_v1(c, req, 'applied', 'customer', NULL, NULL);
+    RAISE EXCEPTION 'F12 takeover applied without acceptance';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM public.gridex_decide_customer_identity_change_v1(c, req, 'applied', 'customer', NULL,
+      jsonb_build_object('snapshot_sha256', repeat('e',64), 'confirmations', jsonb_build_object('identity', true, 'contracts', true, 'terms', false)));
+    RAISE EXCEPTION 'F12 takeover applied without terms acceptance';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM public.gridex_decide_customer_identity_change_v1(c, req, 'applied', 'customer', NULL,
+      jsonb_build_object('snapshot_sha256', repeat('f',64), 'confirmations', jsonb_build_object('identity', true, 'contracts', true, 'terms', true)));
+    RAISE EXCEPTION 'F12 takeover applied against another snapshot';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  res := public.gridex_decide_customer_identity_change_v1(c, req, 'applied', 'customer', NULL,
+    jsonb_build_object('snapshot_sha256', repeat('e',64), 'confirmations', jsonb_build_object('identity', true, 'contracts', true, 'terms', true), 'ip_hash', 'h'));
+  IF res->>'status' <> 'applied' THEN RAISE EXCEPTION 'F12 takeover approve returned %', res; END IF;
+  IF (SELECT acceptance_evidence->>'snapshot_sha256' FROM public.customer_identity_change_requests WHERE id = req) <> repeat('e',64)
+     OR (SELECT acceptance_evidence ? 'accepted_at' FROM public.customer_identity_change_requests WHERE id = req) IS NOT TRUE THEN
+    RAISE EXCEPTION 'F12 takeover acceptance evidence missing';
+  END IF;
+  SELECT personal_number INTO v FROM public.customers WHERE id = customer;
+  IF v <> '20000101-0008' THEN RAISE EXCEPTION 'F12 takeover number not applied: %', v; END IF;
+
   RAISE NOTICE 'tenantservice F12 + P3 native regression passed';
 END $$;
 
