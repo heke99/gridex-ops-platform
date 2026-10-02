@@ -16,6 +16,7 @@ import {
 } from '@/app/admin/operations/control-actions'
 import { getBillingExportReadiness } from '@/lib/operations/controlTower'
 import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -544,7 +545,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -618,7 +619,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  className="text-emerald-700 underline-offset-2 hover:underline "
  >
  {linkedMessage.message_family} {linkedMessage.message_code} ·{' '}
- {linkedMessage.status}
+ {formatStatusLabel(linkedMessage.status)}
  </Link>
  ) : (
  '—'

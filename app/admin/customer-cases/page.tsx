@@ -6,6 +6,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,7 +79,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
                     {row.description ? <p className="mt-2 max-w-3xl text-sm text-slate-700">{row.description}</p> : null}
                     <p className="mt-2 text-xs text-slate-500">{row.reason_category ?? 'support'} · {row.source ?? 'support'} · {formatDate(row.created_at)}</p>
                   </div>
-                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority} · {row.status}</span>
+                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority)} · {formatStatusLabel(row.status)}</span>
                 </div>
                 {!['resolved', 'closed', 'cancelled'].includes(row.status) && !scope.isPlatformAdmin ? (
                   <div className="mt-4 flex flex-wrap gap-2">

@@ -23,6 +23,7 @@ import {
 } from '@/app/admin/operations/actions'
 import { queueSupplierSwitchOutboundAction } from '@/app/admin/cis/actions'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 type SwitchesPageProps = {
  searchParams: Promise<{
@@ -495,7 +496,7 @@ export default async function AdminOperationsSwitchesPage({
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -513,7 +514,7 @@ export default async function AdminOperationsSwitchesPage({
  outbound.status
  )}`}
  >
- outbound: {outbound.status}
+ outbound: {formatStatusLabel(outbound.status)}
  </span>
  ) : null}
  </div>

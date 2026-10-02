@@ -43,6 +43,7 @@ import type {
 } from '@/lib/operations/types'
 import type { CustomerSiteRow, MeteringPointRow, GridOwnerRow } from '@/lib/masterdata/types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -373,7 +374,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div>
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(request.status)}`}>
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(lifecycle.stage)}`}>
  {lifecycle.label}
@@ -666,7 +667,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Ärendestatus</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.status}
+ {formatStatusLabel(request.status)}
  </div>
  </div>
 
@@ -718,7 +719,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Status</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {outboundRequest.status}
+ {formatStatusLabel(outboundRequest.status)}
  </div>
  </div>
 
@@ -885,7 +886,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  <div>
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(message.status)}`}>
- {message.status}
+ {formatStatusLabel(message.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {message.direction}
@@ -963,7 +964,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
 
  <div className="text-right">
  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone(entry.status)}`}>
- {entry.status}
+ {formatStatusLabel(entry.status)}
  </span>
  <div className="mt-2 text-xs text-slate-700 ">
  {formatDateTime(entry.occurredAt)}

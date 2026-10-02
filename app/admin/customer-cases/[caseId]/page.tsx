@@ -9,6 +9,7 @@ import { getCustomerCaseById, listCustomerCaseEvents } from '@/lib/customer-case
 import { PHONE_VERIFICATION_METHODS, SUPPORT_EVENT_TYPES, publicSupportStatus } from '@/lib/customer-service/supportConversation'
 import { listSupportAttachments } from '@/lib/customer-service/supportAttachments'
 import { addInternalNoteAction, recordPhoneInteractionAction, replyToCustomerAction, uploadSupportAttachmentAction } from '../actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export default async function SupportCaseDetailPage({ params }: { params: Promis
         </nav>
         <section className="flex flex-wrap items-center gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <Link href={`/admin/customers/${supportCase.customer_id}`} className="font-semibold text-sky-700 hover:underline">Öppna kundkort</Link>
-          <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Internt: {supportCase.status}</span>
+          <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Internt: {formatStatusLabel(supportCase.status)}</span>
           <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700">Kunden ser: {publicSupportStatus(supportCase.status)}</span>
           <span className="text-xs text-slate-500">Skapat {formatDate(supportCase.created_at)}</span>
         </section>

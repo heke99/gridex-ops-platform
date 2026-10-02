@@ -3,6 +3,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { saveMarketSourcePolicyAction, testMarketSourceConnectionAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +75,7 @@ export default async function MarketSourcesPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">{row.source_name}</h2>
-                <p className="mt-1 text-sm text-slate-600">{row.source_key} · providerstatus {row.status}</p>
+                <p className="mt-1 text-sm text-slate-600">{row.source_key} · providerstatus {formatStatusLabel(row.status)}</p>
               </div>
               <div className={`rounded-full px-3 py-1 text-xs font-semibold ${row.last_error ? 'bg-red-100 text-red-800' : row.last_success_at ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
                 {row.last_error ? 'Senaste test misslyckades' : row.last_success_at ? 'Anslutning verifierad' : 'Inte testad'}

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { runInboundMailSmokeTests } from '@/lib/inbound-mail/smokeTests'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,7 @@ export default async function InboundMailDiagnosticsPage() {
             {results.map((result) => (
               <div key={result.name} className="grid gap-3 p-4 md:grid-cols-[220px_120px_1fr] md:items-start">
                 <div className="font-semibold text-slate-950">{result.name}</div>
-                <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${tone(result.status)}`}>{result.status}</span>
+                <span className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold ${tone(result.status)}`}>{formatStatusLabel(result.status)}</span>
                 <div className="text-sm text-slate-700">
                   {result.message}
                   {result.details ? <pre className="mt-2 max-h-40 overflow-auto rounded-2xl bg-slate-50 p-3 text-xs text-slate-600">{JSON.stringify(result.details, null, 2)}</pre> : null}

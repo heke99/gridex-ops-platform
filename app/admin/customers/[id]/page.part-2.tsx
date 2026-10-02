@@ -53,6 +53,7 @@ import { intakeStatusLabel as applicationIntakeStatusLabel, sourceLabel } from "
 import { humanizeMissingField } from "@/lib/customers/customerCardSnapshot"
 import type { CustomerRow, PowerOfAttorneyScopeRow } from './page.part-1'
 import { ActorCell, actionLabel, blockerSimpleLabel, blockerToneClass, compactJson, entityLabel, formatDateTime } from './page.part-1'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export function CustomerBlockersBanner({
   blockers,
@@ -87,7 +88,7 @@ export function CustomerBlockersBanner({
               {blocker.title || blockerSimpleLabel(blocker.blocker_type)}
             </div>
             <div className="mt-1 text-xs opacity-80">
-              {blockerSimpleLabel(blocker.blocker_type)} · {blocker.status}
+              {blockerSimpleLabel(blocker.blocker_type)} · {formatStatusLabel(blocker.status)}
             </div>
             {blocker.description ? (
               <p className="mt-2 leading-5">{blocker.description}</p>
@@ -122,7 +123,7 @@ export function LifecycleDecisionSection({
         <optgroup label="Avtal">
           {contracts.map((contract) => (
             <option key={`contract-${contract.id}`} value={`contract:${contract.id}`}>
-              {contract.contract_name} · {contract.status}
+              {contract.contract_name} · {formatStatusLabel(contract.status)}
             </option>
           ))}
         </optgroup>
@@ -140,7 +141,7 @@ export function LifecycleDecisionSection({
         <optgroup label="Mätpunkter">
           {meteringPoints.map((point) => (
             <option key={`point-${point.id}`} value={`metering_point:${point.id}`}>
-              {point.meter_point_id} · {point.status}
+              {point.meter_point_id} · {formatStatusLabel(point.status)}
             </option>
           ))}
         </optgroup>
@@ -364,7 +365,7 @@ export function PowerOfAttorneyScopesSection({
             <option value="">Välj fullmakt</option>
             {powersOfAttorney.map((power) => (
               <option key={power.id} value={power.id}>
-                {power.reference ?? power.id} · {power.status}
+                {power.reference ?? power.id} · {formatStatusLabel(power.status)}
               </option>
             ))}
           </select>

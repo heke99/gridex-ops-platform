@@ -22,6 +22,7 @@ import {
  siteLabel,
  tone,
 } from './helpers'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export default function UnresolvedRequestsList({
  requests,
@@ -81,7 +82,7 @@ export default function UnresolvedRequestsList({
  unresolved
  </span>
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(request.status)}`}>
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_type}
@@ -215,7 +216,7 @@ export default function UnresolvedRequestsList({
  <div>
  Switchstatus:{' '}
  <span className="font-medium">
- {relatedSwitchRequest.status}
+ {formatStatusLabel(relatedSwitchRequest.status)}
  </span>
  </div>
  ) : null}
@@ -223,7 +224,7 @@ export default function UnresolvedRequestsList({
  <div>
  Data request-status:{' '}
  <span className="font-medium">
- {relatedDataRequest.status}
+ {formatStatusLabel(relatedDataRequest.status)}
  </span>
  </div>
  ) : null}

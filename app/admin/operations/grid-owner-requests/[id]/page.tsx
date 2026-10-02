@@ -30,6 +30,7 @@ import type {
 } from '@/lib/masterdata/types'
 import type { CustomerAuthorizationDocumentRow } from '@/lib/operations/types'
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -313,7 +314,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <span
  className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(request.status)}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {request.request_scope}
@@ -351,7 +352,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm ">
  <div className="text-sm text-slate-700 ">Status</div>
  <div className="mt-2 text-lg font-semibold text-slate-950 ">
- {request.status}
+ {formatStatusLabel(request.status)}
  </div>
  <div className="mt-2 text-sm text-slate-700 ">
  {request.request_scope}
@@ -501,7 +502,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  Typ: <span className="font-medium">{document.document_type}</span>
  </div>
  <div>
- Status: <span className="font-medium">{document.status}</span>
+ Status: <span className="font-medium">{formatStatusLabel(document.status)}</span>
  </div>
  <div>
  Checksum:{' '}
@@ -558,7 +559,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <span
  className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(outbound.status)}`}
  >
- {outbound.status}
+ {formatStatusLabel(outbound.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {outbound.channel_type}
@@ -655,7 +656,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <div>
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${tone(message.status)}`}>
- {message.status}
+ {formatStatusLabel(message.status)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {message.direction}
@@ -901,7 +902,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  <span
  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${tone(entry.status)}`}
  >
- {entry.status}
+ {formatStatusLabel(entry.status)}
  </span>
  <div className="mt-2 text-xs text-slate-700 ">
  {formatDateTime(entry.occurredAt)}

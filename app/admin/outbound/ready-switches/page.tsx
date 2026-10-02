@@ -8,6 +8,7 @@ import {
 } from '@/app/admin/cis/actions'
 import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
 import { listOutboundRequests } from '@/lib/cis/db'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -177,7 +178,7 @@ export default async function ReadySwitchesPage() {
  className="border-b border-slate-100 "
  >
  <td className="px-6 py-4 text-slate-700 ">
- {request.status}
+ {formatStatusLabel(request.status)}
  </td>
  <td className="px-6 py-4 text-slate-700 ">
  {request.customer_id}

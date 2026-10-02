@@ -11,6 +11,7 @@ import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
 import { listOutboundRequests } from '@/lib/cis/db'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -234,7 +235,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span
  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(

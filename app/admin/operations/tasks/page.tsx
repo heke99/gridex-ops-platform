@@ -19,6 +19,7 @@ import type {
  CustomerOperationTaskRow,
  PowerOfAttorneyRow,
 } from '@/lib/operations/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -345,10 +346,10 @@ export default async function AdminOperationsTasksPage({
  >
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(task.status)}`}>
- {task.status}
+ {formatStatusLabel(task.status)}
  </span>
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyle(task.priority)}`}>
- {task.priority}
+ {formatStatusLabel(task.priority)}
  </span>
  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 ">
  {task.task_type}
@@ -424,10 +425,10 @@ export default async function AdminOperationsTasksPage({
  >
  <div className="flex flex-wrap items-center gap-2">
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle(task.status)}`}>
- {task.status}
+ {formatStatusLabel(task.status)}
  </span>
  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${priorityStyle(task.priority)}`}>
- {task.priority}
+ {formatStatusLabel(task.priority)}
  </span>
  <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-emerald-800 ">
  auto-resolve kandidat
@@ -551,7 +552,7 @@ export default async function AdminOperationsTasksPage({
  task.status
  )}`}
  >
- {task.status}
+ {formatStatusLabel(task.status)}
  </span>
  </td>
 
@@ -561,7 +562,7 @@ export default async function AdminOperationsTasksPage({
  task.priority
  )}`}
  >
- {task.priority}
+ {formatStatusLabel(task.priority)}
  </span>
  </td>
 
