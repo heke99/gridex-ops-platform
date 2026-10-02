@@ -297,10 +297,9 @@ export default async function EdielControlTowerPage() {
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Batch 2.5D-1</p>
-              <h2 className="mt-1 text-xl font-semibold text-slate-950">Production Operations Foundation</h2>
+              <h2 className="text-xl font-semibold text-slate-950">Driftläge</h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-                Den här vyn bygger drift- och skyddslagret före full regression. Den visar mailbox/SMTP-health, ACK-övervakning, payload-preflight, route-resolution, tenant send-lock och audit. Nya tekniska regler ska fortfarande inte aktiveras som live-regler innan Batch 2.5C regression är grön.
+                Mailbox och SMTP, kvittensövervakning, kontroll före skick, routes och sändspärr för bolaget.
               </p>
             </div>
             <div className={`rounded-3xl border p-4 text-sm ${statusClass(operations.sendLock.status)}`}>
@@ -314,9 +313,9 @@ export default async function EdielControlTowerPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Ediel-meddelanden" value={totalMessages} href="/admin/ediel/messages" tone="info" />
           <StatCard label="Misslyckade" value={failedMessages} href="/admin/ediel/messages?status=failed" tone={failedMessages > 0 ? 'danger' : 'success'} />
-          <StatCard label="Försenade kvittenser" value={overdueAcks} href="/admin/ediel/messages" tone={overdueAcks > 0 ? 'danger' : 'success'} />
-          <StatCard label="Negativa APERAK" value={negativeAperaks} href="/admin/ediel/messages" tone={negativeAperaks > 0 ? 'warning' : 'success'} />
-          <StatCard label="Dubblett/blockerat" value={duplicateBlocked} href="/admin/ediel/messages" tone={duplicateBlocked > 0 ? 'warning' : 'success'} />
+          <StatCard label="Försenade kvittenser" value={overdueAcks} tone={overdueAcks > 0 ? 'danger' : 'success'} />
+          <StatCard label="Negativa APERAK" value={negativeAperaks} tone={negativeAperaks > 0 ? 'warning' : 'success'} />
+          <StatCard label="Dubblett/blockerat" value={duplicateBlocked} tone={duplicateBlocked > 0 ? 'warning' : 'success'} />
           <StatCard label="Oupplösta Ediel" value={unresolvedEdielItems} href="/admin/ediel/unresolved" tone={unresolvedEdielItems > 0 ? 'danger' : 'success'} />
           <StatCard label="Outbound köad" value={outboundQueued} href="/admin/ediel/messages?direction=outbound" tone={outboundQueued > 0 ? 'warning' : 'success'} />
           <StatCard label="Outbound saknar route" value={unresolvedRoutes} href="/admin/outbound/unresolved" tone={unresolvedRoutes > 0 ? 'danger' : 'success'} />
@@ -390,7 +389,6 @@ export default async function EdielControlTowerPage() {
 
           <aside className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Snabblänkar</h2>
-            <Link href="/admin/ediel/messages" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Live-meddelanden</Link>
             {tenantScope.isPlatformAdmin ? (
               <>
                 <Link href="/admin/ediel/routes" className="block rounded-2xl border border-slate-200 p-4 text-sm font-semibold text-slate-800 hover:bg-slate-50">Adressering & routes</Link>

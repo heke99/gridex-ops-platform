@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatAdminDate } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,26 +32,29 @@ export default async function PlatformEdielRulesPage() {
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Globala Ediel-regler" subtitle="Platform-only rule governance. Company admins ska inte se eller ändra dessa regler." userEmail={admin.email} />
+      <AdminHeader title="Globala Ediel-regler" subtitle="Gemensamma regler för meddelandeversioner och riktning. Visas bara för plattformsadmin." userEmail={admin.email} />
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-950">Message rules</h2>
+          <h2 className="text-lg font-semibold text-slate-950">Meddelanderegler</h2>
           <p className="mt-1 text-sm text-slate-700">Reglerna styr versioner, riktning och runtime-beteende för Ediel-meddelanden.</p>
           <div className="mt-5 overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-600">
-                <tr><th className="px-3 py-3">Family</th><th className="px-3 py-3">Kod</th><th className="px-3 py-3">Standard</th><th className="px-3 py-3">Version</th><th className="px-3 py-3">Riktning</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Giltig</th></tr>
+                <tr><th className="px-3 py-3">Familj</th><th className="px-3 py-3">Kod</th><th className="px-3 py-3">Standard</th><th className="px-3 py-3">Version</th><th className="px-3 py-3">Riktning</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Giltig</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {rules.length === 0 ? (
+                  <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-600">Inga regler registrerade.</td></tr>
+                ) : null}
                 {rules.map((rule) => (
                   <tr key={rule.id}>
                     <td className="px-3 py-3 font-semibold text-slate-900">{rule.message_family ?? '–'}</td>
                     <td className="px-3 py-3">{rule.message_code ?? '–'}</td>
                     <td className="px-3 py-3">{rule.message_standard ?? '–'}</td>
                     <td className="px-3 py-3">{rule.version_code ?? '–'}</td>
-                    <td className="px-3 py-3">{rule.direction ?? '–'}</td>
+                    <td className="px-3 py-3">{rule.direction === 'inbound' ? 'Inkommande' : rule.direction === 'outbound' ? 'Utgående' : rule.direction === 'both' ? 'Båda' : (rule.direction ?? '–')}</td>
                     <td className="px-3 py-3">{rule.is_active ? 'Aktiv' : 'Inaktiv'}</td>
-                    <td className="px-3 py-3">{rule.valid_from ?? '–'} → {rule.valid_to ?? '–'}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{formatAdminDate(rule.valid_from, '–')} – {formatAdminDate(rule.valid_to, 'tills vidare')}</td>
                   </tr>
                 ))}
               </tbody>
