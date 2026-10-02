@@ -648,3 +648,8 @@ Lokal harness: `/tmp/claude-0/native-harness-ref.sh` (HARNESS_HOLD=1; släpp med
 
 Skill-routing: aktiva — systematic-debugging (varje rött test till rotorsak), verification-before-completion (inget "klart" utan körning), supabase + supabase-postgres-best-practices (forward-migrationer, RLS/grants), test-driven-development (fixturer före kod), fp-check (före produktfix), receiving-code-review/finishing-a-development-branch (vid merge). Villkorliga: variant-analysis (samma felklass i andra buckets, NATIVE-OPEN-10), security-threat-model vid nya grants. Överhoppade: web-design-guidelines, performance-*, writing-skills — ingen UI/prestanda/skill-ändring i scope.
 
+
+## 2026-10-02 (continued)
+- 20261002070000 outbound reply creation repairs; 20261002080000 ACK inherited rule basis. S02 native 26/26 (71740854).
+- node-forge GHSA-86w9-cpqp-85rv: owner-approved exception until 2026-11-15, void on verify usage (23006a6b).
+- clean-migration-replay also fails db:schema:check: supabase/schema.sql is far behind (602 vs 948 relations); regenerate at freeze.
