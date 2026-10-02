@@ -6,6 +6,7 @@ import {
 
 export type DuplicateCustomerCandidate = {
   id: string
+  company_id: string | null
   customer_number: string | null
   full_name: string | null
   first_name: string | null
@@ -54,7 +55,7 @@ function pushGroup(
 export async function listDuplicateCustomerGroups(companyId: string | null): Promise<DuplicateCustomerGroup[]> {
   let query = supabaseService
     .from('customers')
-    .select('id, customer_number, full_name, first_name, last_name, company_name, email, personal_number, org_number, created_at')
+    .select('id, company_id, customer_number, full_name, first_name, last_name, company_name, email, personal_number, org_number, created_at')
     .order('created_at', { ascending: false })
     .limit(1200)
 
@@ -70,14 +71,18 @@ export async function listDuplicateCustomerGroups(companyId: string | null): Pro
   const byName = new Map<string, DuplicateCustomerCandidate[]>()
 
   for (const row of rows) {
-    const email = normalizeMatchEmail(row.email)
-    const personal = normalizeIdentityDigits(row.personal_number)
-    const org = normalizeIdentityDigits(row.org_number)
-    const name = normalizeName(displayName(row))
+    // Duplicates are only meaningful (and mergeable) inside one tenant.
+    const tenant = row.company_id ?? 'none'
+    const scoped = (value: string | null) => (value ? `${tenant}:${value}` : null)
+    const email = scoped(normalizeMatchEmail(row.email))
+    const personal = scoped(normalizeIdentityDigits(row.personal_number))
+    const org = scoped(normalizeIdentityDigits(row.org_number))
+    const rawName = normalizeName(displayName(row))
+    const name = rawName && rawName.length > 6 ? scoped(rawName) : null
     if (email) byEmail.set(email, [...(byEmail.get(email) ?? []), row])
     if (personal) byPersonal.set(personal, [...(byPersonal.get(personal) ?? []), row])
     if (org) byOrg.set(org, [...(byOrg.get(org) ?? []), row])
-    if (name && name.length > 6) byName.set(name, [...(byName.get(name) ?? []), row])
+    if (name) byName.set(name, [...(byName.get(name) ?? []), row])
   }
 
   const groups: DuplicateCustomerGroup[] = []

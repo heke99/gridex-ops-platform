@@ -137,6 +137,16 @@ export const listOperationalCompaniesForUser = cache(async function listOperatio
     .filter((row) => isCompanyVisibleInTenantWorkspace(row.companyStatus))
 })
 
+export const TENANT_COMPANY_REQUIRED_MESSAGE =
+  'Kontot saknar ett bolag som är aktivt, under onboarding eller tillfälligt pausat. Kontakta er administratör för att få tillgång.'
+
+export class TenantCompanyRequiredError extends Error {
+  constructor() {
+    super(TENANT_COMPANY_REQUIRED_MESSAGE)
+    this.name = 'TenantCompanyRequiredError'
+  }
+}
+
 export const getOperationalCompanyScope = cache(async function getOperationalCompanyScope(
   userId: string
 ): Promise<OperationalCompanyScope> {
@@ -155,6 +165,11 @@ export const getOperationalCompanyScope = cache(async function getOperationalCom
   }
 
   if (memberships.length === 0) {
+    // Callers read companyId=null as "all companies" (platform view). A tenant
+    // user without an operational company must never get that, so fail closed.
+    if (!(await isPlatformAdminUser(userId))) {
+      throw new TenantCompanyRequiredError()
+    }
     return {
       companyId: null,
       companyName: null,

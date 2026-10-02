@@ -1,7 +1,7 @@
 // app/admin/operations/integrity/actions.ts
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import {
   bulkQueueMissingBillingUnderlaysAction,
   bulkQueueMissingMeterValuesAction,
@@ -59,6 +59,7 @@ export async function runBulkQueueMissingMeterValuesFromIntegrityAction(
       batchKey: result.batchKey,
     })
   } catch (error) {
+    unstable_rethrow(error)
     target = buildRedirectUrl({
       status: 'error',
       action: 'bulk_queue_missing_meter_values',
@@ -85,6 +86,7 @@ export async function runBulkQueueMissingBillingUnderlaysFromIntegrityAction(
       batchKey: result.batchKey,
     })
   } catch (error) {
+    unstable_rethrow(error)
     target = buildRedirectUrl({
       status: 'error',
       action: 'bulk_queue_missing_billing_underlays',
@@ -107,6 +109,7 @@ export async function runBulkQueueReadySupplierSwitchesFromIntegrityAction(): Pr
       batchKey: result.batchKey,
     })
   } catch (error) {
+    unstable_rethrow(error)
     target = buildRedirectUrl({
       status: 'error',
       action: 'bulk_queue_ready_supplier_switches',
@@ -133,6 +136,7 @@ export async function runBulkQueueReadyBillingExportsFromIntegrityAction(
       batchKey: result.batchKey,
     })
   } catch (error) {
+    unstable_rethrow(error)
     target = buildRedirectUrl({
       status: 'error',
       action: 'bulk_queue_ready_billing_exports',

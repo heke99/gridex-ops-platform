@@ -40,3 +40,10 @@ rolled-back probe (real customer blocked, test customer + site deleted, audit ro
 ## Open
 None in the register. Accepted (idempotent, tenant-scoped, no RPC): tenant sync,
 admin application review save, missing facility information request.
+
+## 2026-10-02 (later) — UI/DB/tenant consistency audit (active)
+Register: `quality/audits/ui-consistency-20261002/findings-register.md`.
+Branch `claude/ui-audit`: PR A (security) in progress. Order: A security → B broken
+→ C DB mismatch/raw codes → D clutter/wording → E intake/contracts/onboarding.
+Owner granted full Supabase approval (2026-10-02) and asked to proceed stepwise.
+Next action: finish S4–S8, run tsc + vitest, push PR A, merge when CI green.

@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { retryReviewableInvoiceProviderEvents } from '@/lib/billing/providerEventProcessor'
@@ -59,6 +59,7 @@ export async function selectInvoiceProviderAction(formData: FormData): Promise<v
   try {
     await selectTenantInvoiceProvider({ companyId, provider, environment, actorUserId: context.userId })
   } catch (error) {
+    unstable_rethrow(error)
     if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
     throw error
   }
@@ -71,6 +72,7 @@ export async function setInvoiceDispatchEnabledAction(formData: FormData): Promi
   try {
     await setTenantInvoiceDispatchEnabled({ companyId, enabled, actorUserId: context.userId })
   } catch (error) {
+    unstable_rethrow(error)
     if (error instanceof InvoiceProviderConfigError) providerSettingsRedirect(error.code)
     throw error
   }
@@ -146,6 +148,7 @@ export async function testCapwayConnectionAction(): Promise<void> {
       source: 'billing_integrations',
     }).catch(() => undefined)
   } catch (error) {
+    unstable_rethrow(error)
     const message = safeProviderError(error)
     const { data: existing } = await supabaseService
       .from('billing_provider_connections')

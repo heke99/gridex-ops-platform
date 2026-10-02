@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -272,7 +273,7 @@ export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await getOperationalCompanyScope(context.userId)
   const isPlatformAdmin = isPlatformAdminContext(context)
-  const companyId = isPlatformAdmin ? null : companyScope.companyId
+  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 

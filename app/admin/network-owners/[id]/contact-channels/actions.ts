@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdminActionAccess } from "@/lib/admin/guards";
@@ -128,6 +129,7 @@ export async function upsertGridOwnerContactChannelAction(formData: FormData): P
       userId,
     });
   } catch (error) {
+    unstable_rethrow(error)
     redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte spara kontaktväg.");
   }
 
@@ -183,6 +185,7 @@ export async function saveGridOwnerContactChannelsMultiAction(formData: FormData
       });
     }
   } catch (error) {
+    unstable_rethrow(error)
     redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte spara kontaktvägar.");
   }
 
@@ -205,6 +208,7 @@ export async function toggleGridOwnerContactChannelAction(formData: FormData): P
       .eq("grid_owner_id", gridOwnerId);
     if (error) throw error;
   } catch (error) {
+    unstable_rethrow(error)
     redirectWith(gridOwnerId, "error", error instanceof Error ? error.message : "Kunde inte uppdatera kontaktväg.");
   }
 

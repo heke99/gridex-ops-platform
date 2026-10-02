@@ -433,6 +433,9 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
+  // The customer comes from the tenant-checked outbound request, never from the form.
+  const savedCustomerId = saved.customer_id ?? customerId
+
   const syncedSwitch = await syncSwitchRequestFromOutbound({
     outboundRequest: saved,
     actorUserId: actor.id,
@@ -450,7 +453,7 @@ export async function updateOutboundRequestStatusAction(
     action: 'outbound_request_status_updated',
     newValues: saved,
     metadata: {
-      customerId,
+      customerId: savedCustomerId,
       status: saved.status,
       syncedSwitchRequestId: syncedSwitch?.id ?? null,
       syncedSwitchStatus: syncedSwitch?.status ?? null,
@@ -459,13 +462,13 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(customerId)
+  await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/outbound/ready-switches')
   revalidatePath('/admin/outbound/unresolved')
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${savedCustomerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
