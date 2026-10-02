@@ -61,15 +61,15 @@ async function seed(_label: string, defect: S02PlanningDefect, ownFirst: boolean
       VALUES(${lit(ids.company)},'test','Synthetic native legal supplier',${lit(actorEdielId)},${lit(actorEdielId)});
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
       VALUES(${lit(ids.route)},${lit(ids.company)},'Native S02 ACK route','ediel_ack','bilateral_test',true,'recipient@example.invalid');
-    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port)
-      VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact','edifact',${lit(actorEdielId)},${lit(issuer)},'23-DDQ-S02-S',true,true,${lit(smtp.from)},${lit(smtp.host)},${lit(smtp.port)});`)
+    INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port,smtp_to,receiver_email)
+      VALUES(${lit(ids.profile)},${lit(ids.company)},${lit(ids.route)},'Native S02 ACK profile','test','edifact','edifact',${lit(actorEdielId)},${lit(issuer)},'23-DDQ-S02-S',true,true,${lit(smtp.from)},${lit(smtp.host)},${lit(smtp.port)},'recipient@example.invalid','recipient@example.invalid');`)
   const fixture = s02PlanningFixture({ company: ids.company, receiver: actorEdielId, transactions: s02PlanningPair(defect, ownFirst) })
   const sourceId = randomUUID()
   const { id, raw, parsed } = utiltsNativeSourceFixture(utiltsTestEnvironmentWire(transform(fixture.raw_payload!)).replaceAll('+91100:ZZ+', `+${issuer}:ZZ+`).replaceAll('NAD+MS+91100:', `NAD+MS+${issuer}:`).replace('S02-DOCUMENT-001', `S02DOC${sourceId.replaceAll('-', '').slice(0, 14)}`), sourceId)
   // No prefilled profile/rule-pack authority: the actual family/date capture
   // trigger must qualify this source. No individual customer graph is needed.
-  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
-    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(issuer)},${lit(actorEdielId)},${lit(parsed.interchangeReference)});`)
+  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,sender_email,receiver_email,mailbox)
+    VALUES(${lit(id)},${lit(ids.company)},'test','inbound','edifact','UTILTS','S02','received',${lit(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${lit(parsed.applicationReference)},${lit(issuer)},${lit(actorEdielId)},${lit(parsed.interchangeReference)},'recipient@example.invalid',${lit(smtp.from)},${lit(smtp.from)});`)
   const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
   expect(error).toBeNull()
   expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
