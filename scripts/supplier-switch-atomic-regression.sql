@@ -23,7 +23,7 @@ BEGIN
   PERFORM set_config('request.jwt.claims', '{"role":"authenticated"}', true);
   BEGIN
     PERFORM public.gridex_create_supplier_switch_v1(c,
-      jsonb_build_object('customer_id',cust,'site_id',site,'metering_point_id',mp,'request_type','switch','status','queued'),
+      jsonb_build_object('customer_id',cust,'site_id',site,'metering_point_id',mp,'request_type','switch','status','draft'),
       '{}'::jsonb);
     RAISE EXCEPTION 'non-member created a switch';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
@@ -32,7 +32,7 @@ BEGIN
   -- The tenant always comes from the parameter, never from the payload.
   res := public.gridex_create_supplier_switch_v1(c,
     jsonb_build_object('company_id',other_c,'customer_id',cust,'site_id',site,'metering_point_id',mp,
-      'request_type','switch','status','queued','automation_key','synthetic-key'),
+      'request_type','switch','status','draft','automation_key','synthetic-key'),
     jsonb_build_object('message','created'));
   req := (res->'request'->>'id')::uuid;
   IF (SELECT company_id FROM public.supplier_switch_requests WHERE id = req) <> c THEN
@@ -44,7 +44,7 @@ BEGIN
 
   -- Same automation key returns the existing open request.
   res := public.gridex_create_supplier_switch_v1(c,
-    jsonb_build_object('customer_id',cust,'site_id',site,'metering_point_id',mp,'request_type','switch','status','queued','automation_key','synthetic-key'),
+    jsonb_build_object('customer_id',cust,'site_id',site,'metering_point_id',mp,'request_type','switch','status','draft','automation_key','synthetic-key'),
     '{}'::jsonb);
   IF NOT (res->>'existing')::boolean OR (res->'request'->>'id')::uuid <> req THEN
     RAISE EXCEPTION 'automation key not idempotent';
@@ -63,7 +63,7 @@ BEGIN
     RAISE EXCEPTION 'identity column patched';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   BEGIN
-    PERFORM public.gridex_transition_supplier_switch_v1(other_c, req, jsonb_build_object('status','queued'), null);
+    PERFORM public.gridex_transition_supplier_switch_v1(other_c, req, jsonb_build_object('status','draft'), null);
     RAISE EXCEPTION 'cross-tenant transition allowed';
   EXCEPTION WHEN no_data_found THEN NULL; END;
 
