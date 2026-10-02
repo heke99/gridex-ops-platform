@@ -244,9 +244,17 @@ it('the semantic runtime key cannot impersonate the actual activation-row key in
   expect(evidence.profileKey).not.toBe(evidence.databaseProfileKey)
   const wrongNamespace=structuredClone(decision)
   delete (wrongNamespace.validationReport.rulePackEvidence as Record<string,unknown>).databaseProfileKey
-  const wrong=buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision:wrongNamespace})
-  expect(wrong).not.toBeNull()
-  const {error}=await supabaseService.rpc('gridex_record_source_validation_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:wrong!.sourcePayloadHash,p_facts_text:wrong!.factsText})
+  // The TypeScript adapter already refuses to build such evidence.
+  expect(buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision:wrongNamespace})).toBeNull()
+  // SQL must refuse it independently: genuine evidence carries the activation
+  // row key; substitute the semantic runtime key in the appended facts.
+  const genuine=buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision})
+  expect(genuine).not.toBeNull()
+  const facts=JSON.parse(genuine!.factsText) as {rulePackEvidence:Record<string,unknown>}
+  expect(facts.rulePackEvidence.profileKey).toBe('PRODAT:Z04:L:26.A:r3')
+  facts.rulePackEvidence.profileKey=evidence.profileKey
+  const wrong={sourcePayloadHash:genuine!.sourcePayloadHash,factsText:JSON.stringify(facts)}
+  const {error}=await supabaseService.rpc('gridex_record_source_validation_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:wrong.sourcePayloadHash,p_facts_text:wrong.factsText})
   expect(error?.code).toBe('23514');expect(error?.message).toBe('received_validation_rule_evidence_unavailable')
   await prepare(f)
 })
@@ -574,6 +582,11 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ // E30 (collected metering) is addressed to the grid-owner role in the
+ // catalog edition; the receiving tenant also holds that role.
+ if(code==='E30')sql(`INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
+  SELECT company_id,environment,actor_id,'grid_owner',clock_timestamp()-interval '1 day' FROM public.tenant_actor_roles
+  WHERE company_id=${literal(f.ids.company)} AND role_code='electricity_supplier' AND valid_to IS NULL`)
  const inbound=await insertPriorUtilts(f,utilts.raw_payload!,code)
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
@@ -785,7 +798,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   ${literal(f.ids.company)},old_fact,new_fact,captured_at,
   ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
   FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
-   AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+   AND company_id=${literal(f.ids.company)} AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
  const unrelatedArchive=sql<{requestId:string;eventAt:string;requestFacts:{operation:string;customer:string|null;company:string|null;capturedAt:string}[]}>(`SELECT
   jsonb_build_object('requestId',e.new_fact->>'switch_request_id','eventAt',e.captured_at,
    'requestFacts',(SELECT coalesce(jsonb_agg(jsonb_build_object('operation',r.operation,
@@ -795,7 +808,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
     WHERE r.table_name='supplier_switch_requests'
      AND r.row_id=(e.new_fact->>'switch_request_id')::uuid))
   FROM gridex_correction_process.facts e WHERE e.table_name='supplier_switch_events'
-   AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+   AND e.company_id=${literal(f.ids.company)} AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
  expect(priorEventScope).toBe(true)
  expect(unrelatedEventScope).toBe(false)
  expect(sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
