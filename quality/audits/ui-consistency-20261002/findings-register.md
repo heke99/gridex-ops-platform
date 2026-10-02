@@ -60,7 +60,6 @@ onboarding steps and lifecycle handling).
 | B10 | `customer-applications` and `external-contract-intakes` duplicated the website-applications page | fixed: redirect (query preserved); company link points to canonical page |
 | B11 | analytics overview/reports showed filters their data ignores | fixed: month-only picker there; forecast keeps full filters |
 | B12 | underlay detail fetched first 500/200/50/1000 rows and filtered in JS (older underlays rendered empty) | fixed: queried by id |
-<<<<<<< HEAD
 
 ### PR C progress
 | # | Finding | Status |
@@ -68,5 +67,3 @@ onboarding steps and lifecycle handling).
 | C1 | raw status/priority/severity codes rendered in ~36 admin/portal views (webhook `blocked_tenant_state`/`delivery_uncertain`, info-request statuses, tasks, switches, cases…) | fixed: shared `formatStatusLabel` covers DB check values and humanizes unknown codes; applied across views (Ediel left to masterplan agent) |
 | C2 | raw customer UUIDs shown in outbound, switches, tasks, grid-owner requests, ready-to-execute, cases | fixed: shared `<CustomerName>` (name + customer number) |
 | C3 | free-text company UUID inputs (audit filter, manual mailboxes, contact channels) | fixed: shared `<CompanySelect>`; "tenant-override" wording → "bolagsspecifik" |
-=======
->>>>>>> origin/main
