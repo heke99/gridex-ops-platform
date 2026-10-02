@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { assertBillingUnderlayTenant, assertContractTenant, assertCustomerSiteTenant, assertMeteringPointTenant, assertPowerOfAttorneyTenant, loadCustomerTenantContext } from "@/lib/tenant/entityGuards"
+import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 
 
@@ -121,7 +122,10 @@ export async function requireCustomerMutationContext(
   customer: { id: string; company_id: string; status: string | null };
   companyId: string;
 }> {
-  return loadCustomerTenantContext(customerId, guard);
+  const context = await loadCustomerTenantContext(customerId, guard);
+  // Reads of a paused company stay allowed; writes require an operational company.
+  await assertUserCanOperateCompany(guard.userId, context.companyId);
+  return context;
 }
 
 export async function insertLifecycleFollowUpTask(params: {
