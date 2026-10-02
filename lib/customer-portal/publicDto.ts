@@ -35,12 +35,11 @@ export function publicPortalCustomer(
     customer_number?: string | null
     email?: string | null
   },
+  companyId: string,
 ): JsonRecord {
   const row = record(customer)
   return {
-    customer_reference:
-      text(identity.external_customer_id) ??
-      text(identity.customer_number),
+    customer_reference: publicReference('customer', companyId, row.id),
     customer_number:
       text(identity.customer_number) ?? text(row.customer_number),
     external_customer_id: text(identity.external_customer_id),

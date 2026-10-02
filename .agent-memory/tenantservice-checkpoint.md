@@ -120,3 +120,11 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - lib/billing/providers/registry.ts: no default provider/env; dispatch requires enabled + run provider/env match.
 - Vercel prod+preview: GRIDEX_INVOICE_DELIVERY_RESOLVER=shared, GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce (user approved 2026-10-02).
 - User decisions 2026-10-02: Nordfin NOT built now (stays listed, would be a tenant option later). Capway runs in TEST only. Add file-based invoicing: tenant downloads a file the invoice provider imports.
+
+## Independent Gridex Web integration dependency (2026-10-02 ~17:45 UTC), unpublished candidate
+
+- Isolated branch `fix/portal-identity-contract-2026-10-02` from origin/main `e98cef3aeefd0c564a4436e2e409bb0a5262c866` (remote rechecked unchanged). No Ediel checkpoint/branch, existing PR, rollout flag or production migration/data modified.
+- Four executable-confirmed defects corrected: conflicting supplied portal/auth IDs; report-mode reads creating links; first-strong/silently truncated sync candidate matching; caller UUID wrongly used as public customer reference causing a response-safety 500 after linking (including related profile/bundle/sync/event paths).
+- Report-mode read fallback remains available without writes; strict support routes and controlled link mode retain existing enforcement. Saturated/nonunique factor matching fails closed before identity writes. Public customer reference uses verified company + resolved OPS customer, while `external_customer_id` stays available separately.
+- Local verification: 103 affected/adjacent unit tests + 31 quality functional tests, app/tests TypeScript, scoped lint, full `api:docs`, two sync error scripts, tenant service-role ratchet and diff check pass. Final 103+31 targeted rerun also passes on supported Node22.23.3. Full/native/exact-head CI and root review pending. Root authorized a local checkpoint commit; no push before root review.
+- Evidence: `quality/tenantservice/portal-identity-contract-fixes-2026-10-02.md`. Next: root review, then separate OPS PR/exact-head CI; do not merge active masterplan work as part of this candidate.
