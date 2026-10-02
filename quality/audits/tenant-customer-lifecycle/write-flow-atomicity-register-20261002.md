@@ -61,16 +61,16 @@ through website application/switch).
 | 12 | Fixed | #451: gridex_record_invoice_purchase_request_v1; provider-status/dispute now fail on lost local update |
 | 13–14 | Partly fixed | Provider webhook retries now always drain `received` events (lost-event bug); send-result/processor left as is (idempotent claim-based processor) |
 | 15 | Fixed | gridex_create_invoice_review_draft_v1 (graph + calculation snapshot in one transaction) |
-| 16 | Open | billing period lock, low traffic; next batch |
+| 16 | Fixed | gridex_set_billing_period_lock_v1: billing lock, price lock and (on reopen) pricing-run unlock in one transaction |
 | 17 | Fixed | #451: gridex_import_billing_underlays_v1 (savepoint per row, once per content) |
 | 18 | Accepted | tenantSync / ensureCustomerPortalUserLink are idempotent convergent upserts, every write is company_id + customer_id scoped, failures throw; a retry completes the graph |
 | 19 | Fixed (tenant scope) | website application response update and POA document link now company-scoped; a failed POA document link fails the application |
-| 20 | Open | admin review save, single-tenant admin path; next batch |
+| 20 | Accepted | every update is company_id + id scoped after authorizeForCompany; site/metering-point/contract upserts reuse existing rows, so a repeated save converges |
 | 21 | Fixed | #452: gridex_merge_customers_v1; canonical merge columns converged |
 | 22 | Partly fixed | #450: POA expiry status+event atomic; POA save chain still multi-call |
-| 23 | Open | missing facility information request; next batch |
+| 23 | Accepted | open-request and outbox unique indexes make every step replay-safe; a retry after interruption completes the request; all writes company-scoped |
 | 24 | Fixed | #453: gridex_approve_portal_claim_v1; canonical claim/event columns converged |
-| 25 | Open | tenant website integration finalisation; platform-admin only |
+| 25 | Fixed (tenant scope) | client provisioning is RPC-backed; receipt and client readiness updates now also filter by company_id |
 | — | Fixed | Invoice test-center approval: gridex_approve_invoice_test_item_v1 |
 
 Hosted DB (gridex-ops-dev) has every migration through 20261002225000 applied
