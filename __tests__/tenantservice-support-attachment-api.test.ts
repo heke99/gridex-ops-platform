@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Support attachments step B (contract 2026-10-02.3): the mounted customer attachment routes end
+ * Support attachments step B (contract 2026-10-02.4): the mounted customer attachment routes end
  * to end through the real handlers, the quarantine domain and customerPortalJson, with an
  * in-memory database and storage. Authentication and identity resolution are stubbed.
  */
@@ -190,7 +190,7 @@ describe('mounted customer support attachment routes', () => {
     const created = await route.POST(upload(reference, pdf(), { name: '../faktura maj.exe' }), params(reference))
     expect(created.status).toBe(201)
     const body = await created.json()
-    expect(body.contract_schema_version).toBe('2026-10-02.3')
+    expect(body.contract_schema_version).toBe('2026-10-02.4')
     expect(body.data).toMatchObject({ file_name: 'faktura maj.pdf', mime_type: 'application/pdf', uploaded_by: 'customer', byte_size: pdf().length })
     expect(body.data.attachment_reference).toMatch(/^support_attachment_/)
     expect(JSON.stringify(body.data)).not.toMatch(UUID)
@@ -210,6 +210,14 @@ describe('mounted customer support attachment routes', () => {
     expect(download.headers.get('x-content-type-options')).toBe('nosniff')
     expect(download.headers.get('content-security-policy')).toContain('sandbox')
     expect(download.headers.get('x-gridex-sha256')).toBe(body.data.sha256)
+    expect(download.headers.get('x-gridex-contract-version')).toBe('2026-10-02.4')
+    expect(download.headers.get('x-request-id')).toMatch(UUID)
+    expect(download.headers.get('cache-control')).toBe('private, no-store')
+    const fileUrl = `https://app.gridex.se/api/v1/customer/support/cases/${reference}/attachments/${body.data.attachment_reference}`
+    const echoed = await fileRoute.GET(new NextRequest(fileUrl, { headers: { 'x-request-id': 'request-from-tenant' } }), fileParams(reference, body.data.attachment_reference))
+    expect(echoed.headers.get('x-request-id')).toBe('request-from-tenant')
+    const blank = await fileRoute.GET(new NextRequest(fileUrl, { headers: { 'x-request-id': ' ' } }), fileParams(reference, body.data.attachment_reference))
+    expect(blank.headers.get('x-request-id')).toMatch(UUID)
   })
 
   it('rejects active PDF content with 422 and never lists or serves it', async () => {

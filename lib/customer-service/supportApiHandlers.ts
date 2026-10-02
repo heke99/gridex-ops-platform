@@ -259,7 +259,7 @@ export async function getSupportAttachmentFile(request: NextRequest, contextInpu
         'Cache-Control': 'private, no-store',
         'X-Gridex-Sha256': row.sha256,
         'X-Gridex-Contract-Version': WEBSITE_INTEGRATION_CONTRACT_VERSION,
-        'X-Request-ID': request.headers.get('x-request-id') ?? randomUUID(),
+        'X-Request-ID': request.headers.get('x-request-id')?.trim() || randomUUID(),
       },
     })
   } catch (error) {

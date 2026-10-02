@@ -135,3 +135,26 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Fresh Node 22.23.3 checks pass: 103/103 affected/adjacent tests, 31/31 quality functional tests, app/test TypeScript, scoped lint, seven API docs checks, both customer sync error scripts, service-role ratchet (2,337 vs 2,353), diff check. No full/native/production verification or git push claimed.
 - Separate inherited merge lifecycle gap reported to root: active portal links stay on merged sources while sites/contracts/cases move to primary; resolver still accepts the company-bound source and matching does not exclude merged candidates. Previous merge omitted the same tables. No identity patch scope expansion or tenant predicate weakening.
 - Next: root publishes the prepared tree to existing draft PR #454 and verifies required CI; support schema .3 and merge lifecycle work stay separate. Evidence updated in `quality/tenantservice/portal-identity-contract-fixes-2026-10-02.md`.
+
+
+## 2026-10-02 — .4 support schema correction after live .3
+
+- Main `d9dda64a19e5733e0324600ce072c36b38c716c7` published PR457's attachment-header `.3`; direct live manifest/immutable fetches matched its exact normalized bytes and digests.
+- Preserve all `.2`/`.3` archives, routes and fixtures plus the `.3` prep script. Original PR456 branch is unchanged; replacement branch `fix/support-schema-combined-2026-10-02.4` advances closed Detail/manifest fixes to `.4`.
+- Minimum supported integration remains actual live `.3`; `.4` is backward-compatible relative to `.3`. `.2` is historical, not newly advertised as supported. Binary header correction is retained, blank request IDs receive UUIDs, and historical document/catalog headers use each document's version.
+- Node22.23.3: 12 affected suites/66 tests, quality31, app/test TypeScript, scoped TS lint/generator syntax, api:docs/compatibility/release/runtime-parity, mechanical, multitenant flow and diff checks passed.
+- Evidence: `quality/tenantservice/support-detail-schema-release-2026-10-02.4.md`. No `.4` deployment, prod DB/flags/scopes/secrets/domain activation is claimed.
+
+## Current-main `.4` publication candidate (2026-10-02)
+
+- Cherry-picked unchanged correction onto main `61fc46fe` in isolated branch `fix/support-closed-schema-release-2026-10-02.4`; preserves #459 memory/#460 metering test and published immutable `.3`. Fresh direct live manifest has that same build SHA and `.3` release/minimum. Support detail and actual manifest still fail their closed `.3` schemas; replacement is necessary.
+- Fresh Node22.23.3: nine affected suites58/58; app/test TypeScript; api:docs, compatibility, immutable release verification and runtime/OpenAPI parity pass. Diff clean. Full exact-head CI remains pending after new draft publication; no merge/deploy/production DDL.
+- Separately published PR458 cleanup correction head `71f36b2b9261243b0debedb9f12188b6cb0414d9` fast-forwards parent356211e4 with exact local treee3a97a1137c6646a24ab705b8349921f887b9daa. It fixes only immutable legal-fixture cleanup and records native proof; its new CI remains pending. Root owns integration/release and superseding old PR456 after replacement is linked.
+
+## Current-main identity and .4 integration (2026-10-02)
+
+- PR454 merged from exact head `0351df42a908ff6b939c7f9f3e624b42ff571bee` as main `766fdd423344ef1c93938372d212cc234ec24b28`. Its exact-head OPS/native/quality/build, browser and full E2E checks pass; latest-main-before-merge identity composition additionally passed 71 affected tests and app/test TypeScript. Historical pending status above is SUPERSEDED.
+- PR461 original head `01e91fe10393567a1d65cf45e9986efef5d7d874` passed every applicable exact-head workflow, including full native replay/types/tenant invariants/parity. Integrating actual main766fdd42 requires only retaining both append-only checkpoint histories; all API source and immutable .4 bytes merge unchanged. Fresh composition checks and new-head CI remain required after publication.
+- PR456 is closed unmerged at 2026-10-02T20:21:08Z; its original head `f73b57277a6f916c978f0826a216e77ff0bc1d8f` is preserved. Replacement PR461 is linked. No production release or mutation is claimed.
+
+- Fresh resolved main766fdd42 + .4 composition on Node22.23.3 passes82 tests/11 affected suites, application/test TypeScript, api:docs, compatibility, immutable release verification, runtime/OpenAPI parity and diff checks. .2/.3/.4 archives are unchanged. New-head exact CI remains required.
