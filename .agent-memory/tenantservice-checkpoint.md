@@ -76,3 +76,10 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 ## T10 per-customer support quotas (2026-10-01 ~22:15 UTC)
 - `SUPPORT_CUSTOMER_QUOTAS` in `lib/customer-service/supportConversation.ts`: 10 new customer cases/24 h, 30 customer messages/h; `429 support_quota_exceeded` (contract already declares 429; no new OpenAPI release). Idempotent replays bypass the case quota. `tenantSelect` gained optional count/head options.
 - Production migration queue: files 1–24 + 26 applied; drift repair added 5 canonical columns (permissions.category, roles.updated_at, customer_contacts.created_by/updated_by, customer_sites.annual_production_kwh); resume from file 25 strictly sequentially (in progress via subagent, user approves each Supabase call).
+
+## Production migration queue COMPLETE (2026-10-02 ~07:00 UTC)
+- Project `piidsfebjqjmnepdpnas` (gridex-ops-dev) IS production (user-confirmed).
+- All 61 pending repo migrations (20260921171346 … 20261001210000) applied; ledger count 341. All 21 previously-missing public functions present; F9 index and customers.invoice_email present.
+- Deviations to know: (1) drift repair `schema_drift_repair_canonical_columns_20261001` added permissions.category, roles.updated_at, customer_contacts.created_by/updated_by, customer_sites.annual_production_kwh; (2) files 42–44 applied in equivalent form (identical function bodies; `ALTER COLUMN scope_point SET EXPRESSION` instead of DROP/ADD COLUMN, because the Supabase MCP times out on DROP COLUMN; table had 0 rows, identical index already present); (3) file 26 applied before 25; (4) ledger versions are apply timestamps, not file versions — reconcile with `supabase migration repair` before any `db push`.
+- Files 45–61 verified byte-identical (md5) with repo files.
+- Open: node-forge GHSA-86w9-cpqp-85rv (no fixed release) blocks `security:audit-production` on every PR — user decision pending (documented exception vs replace library). Quotas raised to 50/day + 150/h in PR #432. P1c (provider-agnostic OIDC/JWT end-customer proof) proposed, awaiting go.
