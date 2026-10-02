@@ -304,6 +304,28 @@
       "severity": "medium",
       "cause": "UTILTS consumption tests feed E30/E72/E73/S01/S06 to a supplier fixture; the source-edition catalog allows only grid_owner/metering_collector/balance_responsible/ISR receivers for those codes, so inbound legal context correctly holds them. Remaining ~95 consumption failures also include issuer message-reference reuse across derived sources and R1-R4 collision cases.",
       "fix": "Per-test receiver role matching the catalog, distinct document references for distinct derived messages; continue cluster by cluster. CI runs the full native suite as an absolute gate."
+    },
+    {
+      "id": "NATIVE-BLOCKED-BILATERAL-H-PROFILES",
+      "status": "blocked",
+      "severity": "high",
+      "suites": [
+        "scripts/ediel-bilateral-prodat-h-original-native.test.ts (19)",
+        "scripts/ediel-bilateral-prodat-profile-native.test.ts (3)"
+      ],
+      "summary": "PRODAT 26.A rule pack has no Z03/H, Z04/H, Z05/H or Z08/LK message profiles. 20261001013034 and the bilateral fixture require them; no migration seeds them.",
+      "evidence": "ediel_message_profiles for PRODAT 26.A r3: Z03 C/L/LK, Z04 A/C/D/L/LK, Z05 C/L/LK, Z08 H only; git log -S finds no seed",
+      "needed": "Owner-provided authoritative bilateral profile definitions (guide source, field matrix) for these subtypes; not invented by the agent."
+    },
+    {
+      "id": "NATIVE-OPEN-Z08H-MANDATE",
+      "status": "open",
+      "severity": "medium",
+      "suites": [
+        "scripts/ediel-correction-context-native.test.ts (41)"
+      ],
+      "summary": "Z08/H (reason Z25) outbound now requires a reviewed national supply rescission mandate (20261001093425); the correction-context dispatch fixture sends Z08/H without one.",
+      "next": "Reuse the H-original mandate setup as a shared native helper once its fixture is unblocked."
     }
   ],
   "authority": "Local disposable Supabase CLI 2.101.0 / postgres 17.6.1.155; not CI, not hosted, no authentic issuer or counterparty traffic."
