@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * Support attachments step B (contract 2026-10-02.1): the mounted customer attachment routes end
+ * Support attachments step B (contract 2026-10-02.2): the mounted customer attachment routes end
  * to end through the real handlers, the quarantine domain and customerPortalJson, with an
  * in-memory database and storage. Authentication and identity resolution are stubbed.
  */
@@ -190,7 +190,7 @@ describe('mounted customer support attachment routes', () => {
     const created = await route.POST(upload(reference, pdf(), { name: '../faktura maj.exe' }), params(reference))
     expect(created.status).toBe(201)
     const body = await created.json()
-    expect(body.contract_schema_version).toBe('2026-10-02.1')
+    expect(body.contract_schema_version).toBe('2026-10-02.2')
     expect(body.data).toMatchObject({ file_name: 'faktura maj.pdf', mime_type: 'application/pdf', uploaded_by: 'customer', byte_size: pdf().length })
     expect(body.data.attachment_reference).toMatch(/^support_attachment_/)
     expect(JSON.stringify(body.data)).not.toMatch(UUID)

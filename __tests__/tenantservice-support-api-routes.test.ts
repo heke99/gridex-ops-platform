@@ -140,7 +140,7 @@ describe('mounted customer support routes', () => {
     expect(created.status).toBe(201)
     const createdBody = await created.json()
     expect(createdBody.data.case_reference).toMatch(/^support_case_/)
-    expect(createdBody.contract_schema_version).toBe('2026-10-02.1')
+    expect(createdBody.contract_schema_version).toBe('2026-10-02.2')
     expect(createdBody.data.status).toBe('received')
     expect(JSON.stringify(createdBody.data)).not.toMatch(UUID)
 

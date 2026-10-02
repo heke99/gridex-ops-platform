@@ -3,7 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const VERSION = '2026-10-02.1'
+const VERSION = '2026-10-02.2'
 const SPEC_FILES = [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',

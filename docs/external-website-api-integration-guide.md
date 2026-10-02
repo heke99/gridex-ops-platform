@@ -1,6 +1,6 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-02.1**
+Current contract: **2026-10-02.2**
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 
@@ -107,7 +107,7 @@ Before deploying an integration update, read:
 
 Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
 
-For contract **2026-10-02.1**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For contract **2026-10-02.2**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
 
 ## Production checklist
 
