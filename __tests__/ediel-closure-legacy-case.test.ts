@@ -2,7 +2,9 @@ import {beforeEach,expect,it,vi} from 'vitest'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const io=vi.hoisted(()=>({writes:[] as {table:string;row:Record<string,unknown>}[],failSupply:false,failCase:false,supplyRows:[] as Record<string,unknown>[]}))
 const validCaseTypes=new Set(['withdrawal','rejected_customer','onboarding_aborted','supplier_switch_aborted','sales_misunderstanding','dual_invoice_concern','binding_period_too_long','incorrect_identity','incorrect_site_data','missing_authorization','credit_risk','technical_blocker','business_rejection','technical_rejection','metering_values_error','supplier_switch_review','other'])
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{
+ rpc:async(name:string,args:Record<string,unknown>)=>{io.writes.push({table:`rpc:${name}`,row:args});return io.failSupply?{data:null,error:Error('supply unavailable')}:{data:{supply_period_id:'supply'},error:null}},
+ from:(table:string)=>{
  let values:Record<string,unknown>|null=null
  const q={select:()=>q,eq:()=>q,is:()=>q,order:()=>q,limit:()=>q,
   update:(row:Record<string,unknown>)=>{values=row;io.writes.push({table,row});return q},
@@ -20,10 +22,10 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 function message(subtype='L'){return {id:'source',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',message_family:'PRODAT',message_code:'Z05',direction:'inbound',raw_payload:null,parsed_payload:{subtype,end_date:'2026-10-15'}} as unknown as EdielMessageRow}
 beforeEach(()=>{io.writes=[];io.failSupply=false;io.failCase=false;io.supplyRows=[]})
-it.each(['L','LK'])('completes %s closure and retains a schema-valid tenant/point-linked final-work case',async subtype=>{
+it.each([['L','supplier_switch'],['LK','move_out']] as const)('completes %s closure and retains a schema-valid tenant/point-linked final-work case',async(subtype,reason)=>{
  const result=await applyInboundBusinessStateMachine({message:message(subtype),actorUserId:'actor'})
- expect(result).toMatchObject({outcome:'supply_terminated',updated:['customer_supply_periods','customer_cases']})
- expect(io.writes[0]).toMatchObject({table:'customer_supply_periods',row:{status:'ended',source_message_id:'source',end_date:'2026-10-15'}})
+ expect(result).toMatchObject({outcome:'supply_terminated',updated:['customer_supply_periods','customer_contracts','customer_operation_tasks','customers','customer_cases']})
+ expect(io.writes[0]).toMatchObject({table:'rpc:gridex_end_customer_supply_v1',row:{p_company_id:'company',p_customer_id:'customer',p_metering_point_id:'point',p_end_date:'2026-10-15',p_end_reason:reason,p_source_message_id:'source'}})
  expect(io.writes[1]).toMatchObject({table:'customer_cases',row:{company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'point',
   case_type:'other',status:'open',reason_category:'final_metering_and_billing',source:'ediel_inbound_state_machine',
   title:'Leveransen upphör – slutför mätvärden och fakturering',next_action:'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
@@ -33,12 +35,12 @@ it.each(['L','LK'])('completes %s closure and retains a schema-valid tenant/poin
 it('still propagates a failed supply write before creating a review case',async()=>{
  io.failSupply=true
  await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:'actor'})).rejects.toThrow('supply unavailable')
- expect(io.writes.map(item=>item.table)).toEqual(['customer_supply_periods'])
+ expect(io.writes.map(item=>item.table)).toEqual(['rpc:gridex_end_customer_supply_v1'])
 })
 it('does not hide a failed case write after the persisted legacy end',async()=>{
  io.failCase=true
  await expect(applyInboundBusinessStateMachine({message:message(),actorUserId:'actor'})).rejects.toThrow('case unavailable')
- expect(io.writes.map(item=>item.table)).toEqual(['customer_supply_periods','customer_cases'])
+ expect(io.writes.map(item=>item.table)).toEqual(['rpc:gridex_end_customer_supply_v1','customer_cases'])
 })
 it.each([
  ['C','Z05','supply_continuation_confirmed','supply_continuation_review','Leveransen ska fortsätta – kontroll krävs','Verifiera leveransperioden och återställ den endast om Z05C refererar till samma avslut.'],

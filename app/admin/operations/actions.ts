@@ -348,20 +348,24 @@ export async function validateSupplierSwitchBeforeProcessingAction(
       requestId: saved.id,
       status: 'queued',
       externalReference: saved.external_reference,
+      event: {
+        eventType: 'validation_passed',
+        eventStatus: 'ready_for_processing',
+        message: 'Validering godkänd. Ärendet flyttades från draft till queued och är redo för processing.',
+        payload: validationSnapshot,
+      },
+    })
+  } else {
+    await createSupplierSwitchEvent(supabase, {
+      switchRequestId: saved.id,
+      eventType: readiness.isReady ? 'validation_passed' : 'validation_failed',
+      eventStatus: readiness.isReady ? 'ready_for_processing' : 'pending_review',
+      message: readiness.isReady
+        ? 'Validering godkänd. Ärendet är redo för processing.'
+        : 'Validering hittade blockerare. Ärendet kräver fortsatt review innan processing.',
+      payload: validationSnapshot,
     })
   }
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId: saved.id,
-    eventType: readiness.isReady ? 'validation_passed' : 'validation_failed',
-    eventStatus: readiness.isReady ? 'ready_for_processing' : 'pending_review',
-    message: readiness.isReady
-      ? saved.status === 'queued' && request.status === 'draft'
-        ? 'Validering godkänd. Ärendet flyttades från draft till queued och är redo för processing.'
-        : 'Validering godkänd. Ärendet är redo för processing.'
-      : 'Validering hittade blockerare. Ärendet kräver fortsatt review innan processing.',
-    payload: validationSnapshot,
-  })
 
   await insertAuditLog({
     actorUserId: actor.id,
@@ -535,17 +539,15 @@ export async function retryOutboundFromSwitchDetailAction(
       reset.external_reference ??
       formValue(formData, 'external_reference') ??
       null,
-  })
-
-  await createSupplierSwitchEvent(supabase, {
-    switchRequestId,
-    eventType: 'manual_retry_queued',
-    eventStatus: reset.status,
-    message: `Outbound ${reset.id} återköades manuellt från switch detail.`,
-    payload: {
-      outboundRequestId: reset.id,
-      customerId,
-      attemptsCount: reset.attempts_count,
+    event: {
+      eventType: 'manual_retry_queued',
+      eventStatus: reset.status,
+      message: `Outbound ${reset.id} återköades manuellt från switch detail.`,
+      payload: {
+        outboundRequestId: reset.id,
+        customerId,
+        attemptsCount: reset.attempts_count,
+      },
     },
   })
 

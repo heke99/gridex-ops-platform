@@ -250,7 +250,7 @@ async function loadSupplyPeriods(
       .from("customer_supply_periods")
       .select("*")
       .eq("company_id", companyId)
-      .in("status", ["active", "confirmed_by_grid_owner"])
+      .in("status", ["active", "confirmed_by_grid_owner", "ended"])
       .lte("start_date", endDateInclusive)
       .or(`end_date.is.null,end_date.gte.${startDate}`)
       .order("start_date", { ascending: true })
@@ -273,7 +273,9 @@ async function loadContract(
     .select("*")
     .eq("company_id", companyId)
     .eq("id", contractId)
-    .in("status", ["active", "signed"])
+    // A terminated contract still covers supply up to its end date (move-out
+    // or switch away), so the final period is billed instead of reviewed.
+    .in("status", ["active", "signed", "terminated"])
     .maybeSingle();
   if (response.error) throw response.error;
   return (response.data as JsonRecord | null) ?? null;
@@ -315,7 +317,15 @@ function contractCoversSegment(
 ): boolean {
   if (!contract) return false;
   const startsAt = text(contract.starts_at) ?? text(contract.start_date);
-  const endsAt = text(contract.ends_at) ?? text(contract.end_date);
+  const plannedEnd = text(contract.ends_at) ?? text(contract.end_date);
+  const actualEnd = text(contract.ended_at);
+  // The earliest of the planned and the actual end bounds the contract.
+  const endsAt =
+    plannedEnd && actualEnd
+      ? stockholmCivilDate(plannedEnd) <= stockholmCivilDate(actualEnd)
+        ? plannedEnd
+        : actualEnd
+      : (plannedEnd ?? actualEnd);
   const segmentStartDate = stockholmCivilDate(segmentStart);
   const segmentEndExclusiveDate = stockholmCivilDate(segmentEnd);
   const contractStartDate = startsAt ? stockholmCivilDate(startsAt) : null;
