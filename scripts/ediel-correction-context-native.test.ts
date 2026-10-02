@@ -378,7 +378,7 @@ it.each(['raw','attachment'] as const)('outbound helper callback denial prevents
  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
  provider.mockReset();provider.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[]})
  const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail')
- const input=mode==='raw'?{raw:Buffer.from('Subject: synthetic\r\n\r\nBody'),to:'recipient@example.invalid'}:
+ const input=mode==='raw'?{raw:Buffer.from(`Message-ID: <synthetic-${randomUUID()}@example.invalid>\r\nSubject: synthetic\r\n\r\nBody`),to:'recipient@example.invalid'}:
   {to:'recipient@example.invalid',subject:'synthetic',text:''}
  // Every provider entry archives the exact bytes of an actual own message first.
  const f=await outboundSeed(),archiveContext={companyId:f.companyId,messageId:f.messageId}
@@ -515,6 +515,8 @@ async function outboundBinding(f:Awaited<ReturnType<typeof outboundSeed>>){
  const {getEdielMessageById}=await import('@/lib/ediel/db')
  const {assertRegistryRulebookAllowsSend}=await import('@/lib/ediel/rulebook/sendGuards')
  const {captureEdielSourceRulePackEvidence}=await import('@/lib/ediel/core/sourceRulePackEvidence')
+ const {prepareEdielBusinessExpectationPlan}=await import('@/lib/ediel/businessExpectations')
+ const {prepareEdielTechnicalExpectationPlan}=await import('@/lib/ediel/technicalExpectations')
  const message=await getEdielMessageById(f.messageId,{companyId:f.companyId})
  expect(message).not.toBeNull()
  // Same admission inputs as the actual transport: its fresh send sources and
@@ -528,6 +530,8 @@ async function outboundBinding(f:Awaited<ReturnType<typeof outboundSeed>>){
  const payload=Buffer.from(f.wire,'latin1')
  return {originalHash:createHash('sha256').update(f.wire).digest('hex'),routeId:f.routeId,to:'recipient@example.invalid',from:'synthetic@example.invalid',
   encoding:'latin1',mimeMode:'ediel-singlepart-compact',payloadBase64:payload.toString('base64'),payloadHash:createHash('sha256').update(payload).digest('hex'),payloadLength:payload.length,
+  // The transport derives the expectation plans from the same admitted policy.
+  businessExpectationPlan:prepareEdielBusinessExpectationPlan(message!,policy),technicalExpectationPlan:prepareEdielTechnicalExpectationPlan(message!,policy),
   sourceRulePackEvidence,technicalSyntaxAckEvidence:null,admissionDecision:{version:1,referenceDate:policy.referenceDate,family:policy.family,code:policy.code,
    subtype:policy.subtype,profileKey:policy.profileKey,guide:policy.guide,associationAssignedCode:policy.associationAssignedCode,sourceTrace:policy.sourceTrace}}
 }
@@ -536,7 +540,7 @@ async function preparedOutbound(f:Awaited<ReturnType<typeof outboundSeed>>,owner
  const identity={companyId:f.companyId,environment:'test',messageId:f.messageId,actorUserId:f.actorUserId,attemptId}
  const binding=await outboundBinding(f)
  const prepared=await dispatchCall({...identity,action:'prepare',owner,binding})
- expect(prepared.error).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
+ expect(prepared.error,JSON.stringify(prepared.error)).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
  return {identity,binding,prepared:prepared.data as {eventId:string}}
 }
 it.each(['missing','altered'] as const)('native fresh sealed Z08 %s protected basis rolls back every transport journal effect',async variant=>{
@@ -706,7 +710,7 @@ it('native fresh CONTRL cannot enter SMTP when the actual prepare request loses 
 })
 it('outbound helper archive preparation failure never reaches callback or provider',async()=>{
  const f=await outboundSeed();smtpFixture();const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail');let entered=false
- try{await expect(sendEdielEmail({to:'recipient@example.invalid',raw:Buffer.from('Content-Type: application/pkcs7-mime\r\n\r\ninvalid!')},{archiveContext:{companyId:f.companyId,messageId:f.messageId},beforeProviderCall:async()=>{entered=true}})).rejects.toThrow('smime_archive_body_not_base64');expect(entered).toBe(false);expect(provider).not.toHaveBeenCalled()}
+ try{await expect(sendEdielEmail({to:'recipient@example.invalid',raw:Buffer.from(`Message-ID: <synthetic-${randomUUID()}@example.invalid>\r\nContent-Type: application/pkcs7-mime\r\n\r\ninvalid!`)},{archiveContext:{companyId:f.companyId,messageId:f.messageId},beforeProviderCall:async()=>{entered=true}})).rejects.toThrow('smime_archive_body_not_base64');expect(entered).toBe(false);expect(provider).not.toHaveBeenCalled()}
  finally{vi.unstubAllEnvs()}
 })
 it('outbound fixture preflight retains actual Z08H wire validation',async()=>{

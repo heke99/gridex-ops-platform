@@ -1168,3 +1168,15 @@ One active work item: publish the locally RED/GREEN late-LOC+175 physical IDE co
 First actual CI failure on `97342339` is native 393/394: the new test counted a permissible positive technical CONTRL as forbidden ACK. Publish the corrected market-family-only assertion plus accurate UTC checkpoint as a substantive test correction, fast-forward from checked remote, then require all five new-head workflows, native 394/394, clean replay and generated parity. No product SQL change from `97342339`.
 
 Older Current sections above are historical and SUPERSEDED.
+
+### Native-felregister från CI run 37067399812 (head d4ca1ff1) — 130/581 + 11 browser-native
+Källa: /tmp/claude-0/ci-fails.json (extraherat ur artefakt gridex-rem-002-clean-replay). Status per svit:
+- correction-context 49: seed ersatt med äkta nationell kedja (af58c8e7, 150abd33). Lokalt kvar under arbete: outbound-delmängd (binding behöver expectation plans — fixat lokalt, ej pushat).
+- service-evidence 15: 13× status 'held' i st f 'authorized' (gemensam granskningsfixtur), 2× internal_review vs processability_rejected.
+- document-reference 12: StorageApiError P0 (3), unavailable-status (2), 268 vs 0 (global räkning), supply_rescission_atomic_original_required (rå Z08-insert), capture stage.
+- err-gateway 8: ediel_existing_ack_original_read_unavailable (4), final_utilts_owner_unavailable, guide_rejected-ordning.
+- z06f 8: 'unconfirmed' i st f 'recorded'.
+- z04-ack 6 + prodat-mixed 3: QTY+31 krävs för PRODAT Z04 (fixtur), UNSM BGM/C002/1131 längd, P0001.
+- source-owner 4, transport-exception 4 (permission denied to set role gridex_ediel_transport_except…, rollen har 1 medlem), outbound-ack-replay 3 (23502 not-null), övriga 1–2 st.
+- browser-native 11 sviter × 1 fel: ej analyserade.
+Lokalt test: `T=3000 TT='<regex>' bash /tmp/claude-0/s02run.sh <fil>`; resultat i /tmp/claude-0/s02.json.
