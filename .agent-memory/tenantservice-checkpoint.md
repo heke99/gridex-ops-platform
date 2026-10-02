@@ -120,3 +120,12 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - lib/billing/providers/registry.ts: no default provider/env; dispatch requires enabled + run provider/env match.
 - Vercel prod+preview: GRIDEX_INVOICE_DELIVERY_RESOLVER=shared, GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce (user approved 2026-10-02).
 - User decisions 2026-10-02: Nordfin NOT built now (stays listed, would be a tenant option later). Capway runs in TEST only. Add file-based invoicing: tenant downloads a file the invoice provider imports.
+
+
+## 2026-10-02 — support detail schema correction prepared (.3)
+
+- Separate source branch `fix/support-detail-schema-2026-10-02`, based on main `d8a5a111c02c1805b0be4a03284ecd178b40c947`.
+- Closed `CustomerSupportCaseDetail` flattened to include required `messages`; base case and message closure retained. Actual release-manifest schemas corrected to match runtime fields. Historical immutable document headers now use the document version.
+- New immutable release `2026-10-02.3`; minimum supported integration remains `2026-10-02.2`, backward-compatible relative to `.2`. Current business payload fields and request requirements unchanged; version metadata advances. Old `.2` snapshot/route/fixture bytes untouched.
+- Supported Node 22.23.3: affected 12 files / 64 tests, quality functional 31 tests, app/test TypeScript, scoped TS lint, generator syntax, seven API documentation gates, compatibility/release verification, multitenant flow regression and diff check passed.
+- Evidence: `quality/tenantservice/support-detail-schema-release-2026-10-02.3.md`. Prepared locally; deployment/native CI and tenant activation are not claimed. No production DB, flags, scopes, secrets or domains changed.
