@@ -32,15 +32,18 @@ const assignments=`jsonb_build_object(
  'roles',(SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY id),'[]'::jsonb) FROM public.role_permissions r),
  'users',(SELECT coalesce(jsonb_agg(to_jsonb(u) ORDER BY id),'[]'::jsonb) FROM public.user_permissions u),
  'overrides',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]'::jsonb) FROM public.user_permission_overrides o))`
-// Run before this file creates synthetic grants. The ordinary clean replay,
-// not fixture INSERTs, must have materialized both canonical registry rows.
+// The ordinary clean replay, not fixture INSERTs, must have materialized both
+// canonical registry rows. Other native files may already have created synthetic
+// (@example.invalid) grants; no migration may have assigned the keys to anyone else.
 it('canonical communication keys materialize once without creating any assignments',()=>{
  expect(sql(`SELECT jsonb_object_agg(key,n) FROM (SELECT key,count(*) n FROM public.permissions
   WHERE key IN ('communication.read','communication.send') GROUP BY key) p`)).toEqual({'communication.read':1,'communication.send':1})
  expect(sql(`SELECT jsonb_build_object(
   'roles',(SELECT count(*) FROM public.role_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
-  'users',(SELECT count(*) FROM public.user_permissions WHERE permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send'))),
-  'overrides',(SELECT count(*) FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send')))`)).toEqual({roles:0,users:0,overrides:0})
+  'users',(SELECT count(*) FROM public.user_permissions WHERE (permission_key IN ('communication.read','communication.send') OR permission_id IN (SELECT id FROM public.permissions WHERE key IN ('communication.read','communication.send')))
+   AND NOT EXISTS(SELECT FROM auth.users au WHERE au.id=user_id AND au.email LIKE '%@example.invalid')),
+  'overrides',(SELECT count(*) FROM public.user_permission_overrides WHERE permission_key IN ('communication.read','communication.send')
+   AND NOT EXISTS(SELECT FROM auth.users au WHERE au.id=user_id AND au.email LIKE '%@example.invalid')))`)).toEqual({roles:0,users:0,overrides:0})
  const source=committedMigration(registryMigration)
  expect(sql(`BEGIN; CREATE TEMP TABLE before_registry AS SELECT ${assignments} AS state;
   DELETE FROM public.permissions WHERE key IN ('communication.read','communication.send');
@@ -159,7 +162,8 @@ it('original byte/hash substitution and source ID reuse cannot relabel a capture
  const f=await seed(),receipt=await captureCorrectionContext(f)
  expect(receipt).toMatchObject({status:'recorded'})
  expect(()=>sql(`UPDATE public.ediel_messages SET raw_payload=raw_payload||' ' WHERE id=${literal(f.sourceMessageId)}`)).toThrow()
- expect(()=>sql(`UPDATE gridex_received_sources.sources SET payload_hash=repeat('0',64) WHERE source_message_id=${literal(f.sourceMessageId)}`)).toThrow(/append_only/)
+ // The retention guard now refuses first; either owner rejects the relabel.
+ expect(()=>sql(`UPDATE gridex_received_sources.sources SET payload_hash=repeat('0',64) WHERE source_message_id=${literal(f.sourceMessageId)}`)).toThrow(/append_only|received_original_immutable_without_native_retention/)
  const original=sql<Record<string,unknown>>(`SELECT to_jsonb(m) FROM public.ediel_messages m WHERE id=${literal(f.sourceMessageId)}`)
  sql(`DELETE FROM public.ediel_messages WHERE id=${literal(f.sourceMessageId)}`)
  expect(await captureCorrectionContext(f)).toEqual(receipt)
@@ -318,12 +322,16 @@ it.each(['status','is_active'] as const)('a direct company grant requires active
  expect(sql(`SELECT to_jsonb('communication.send'=ANY(public.gridex_get_user_permissions_in_company(${literal(actor)},${literal(f.companyId)})))`)).toBe(false)
  await deniedCapture(f,actor)
 })
-it('valid role grants stay company scoped and independent of a deny-only direct row',async()=>{
+it('valid role grants stay company scoped and an active direct deny overrides them',async()=>{
  const a=await seed(),b=await seed(),actor=limitedActor([a.companyId,b.companyId])
- grantCompanyRole(actor,a.companyId);grantDirect(actor,a.companyId,{effect:'deny'})
+ grantCompanyRole(actor,a.companyId)
  expect(await effective(actor,a.companyId)).toBe(true)
  await deniedCapture(b,actor)
  expect(await captureCorrectionContext({...a,actorUserId:actor})).toMatchObject({status:'recorded',disposition:'unreviewed'})
+ // The resolver applies an active direct deny over every allow (fail closed).
+ grantDirect(actor,a.companyId,{effect:'deny'})
+ expect(await effective(actor,a.companyId)).toBe(false)
+ expect(await captureCorrectionContext({...a,actorUserId:actor})).toEqual({status:'unconfirmed',disposition:'unreviewed'})
 })
 it.each(['role_inactive','assignment_inactive','assignment_removed','membership_inactive'] as const)('role behavior remains closed for %s',async variant=>{
  const f=await seed(),actor=limitedActor([f.companyId]),role=grantCompanyRole(actor,f.companyId)
@@ -363,7 +371,8 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}})
 // session; only the browser-cookie client factory is replaced.
 const sourceSession=vi.hoisted(()=>({client:null as SupabaseClient|null}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{if(!sourceSession.client)throw Error('native_actual_source_session_required');return sourceSession.client}}))
-const rescission=nationalRescissionNativeChain({provider,sourceSession})
+// A non-ASCII own customer name exercises the latin1 wire encoding.
+const rescission=nationalRescissionNativeChain({provider,sourceSession,customerName:'Ångström Own Customer'})
 it.each(['raw','attachment'] as const)('outbound helper callback denial prevents %s provider entry',async mode=>{
  vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
@@ -371,7 +380,9 @@ it.each(['raw','attachment'] as const)('outbound helper callback denial prevents
  const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail')
  const input=mode==='raw'?{raw:Buffer.from('Subject: synthetic\r\n\r\nBody'),to:'recipient@example.invalid'}:
   {to:'recipient@example.invalid',subject:'synthetic',text:''}
- try{await expect(sendEdielEmail(input,{beforeProviderCall:async()=>{throw Error('entry_denied')}})).rejects.toThrow('entry_denied');expect(provider).not.toHaveBeenCalled()}
+ // Every provider entry archives the exact bytes of an actual own message first.
+ const f=await outboundSeed(),archiveContext={companyId:f.companyId,messageId:f.messageId}
+ try{await expect(sendEdielEmail(input,{archiveContext,beforeProviderCall:async()=>{throw Error('entry_denied')}})).rejects.toThrow('entry_denied');expect(provider).not.toHaveBeenCalled()}
  finally{vi.unstubAllEnvs()}
 })
 
@@ -396,8 +407,11 @@ async function outboundSeed(){
  const marketActor=n.marketActorId,marketActorName=sql<string>(`SELECT to_jsonb(name) FROM public.platform_market_actors WHERE id=${literal(marketActor)}`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(n.original.id)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
+ // The producer queued exactly one outbox item for its original.
+ const outboxId=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(n.companyId)} AND ediel_message_id=${literal(n.original.id)} AND status='queued'`)
+ expect(outboxId).toMatch(/^[0-9a-f-]{36}$/)
  sourceSession.client=null;provider.mockReset()
- return {...concern,messageId:n.original.id,routeId:n.routeId,wire,point,marketActor,marketActorName,receiver:n.receiver,sender:n.sender}
+ return {...concern,outboxId,messageId:n.original.id,routeId:n.routeId,wire,point,marketActor,marketActorName,receiver:n.receiver,sender:n.sender}
 }
 function smtpFixture(){
  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid');vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
@@ -472,8 +486,7 @@ function observeReservationContention(messageId:string){
  },restore(){clearTimeout(timer);arrivalsReady();decisionsReady();entryReady();spy.mockRestore()}}
 }
 it('outbound direct and actual worker claim race admits only one provider call',async()=>{
- const f=await outboundSeed(),outboxId=randomUUID();smtpFixture()
- sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const f=await outboundSeed(),outboxId=f.outboxId;smtpFixture()
  const {processEdielOutbox}=await import('@/lib/ediel/outbox/processEdielOutbox')
  const contention=observeReservationContention(f.messageId)
  try{
@@ -489,8 +502,7 @@ it('outbound direct and actual worker claim race admits only one provider call',
  }finally{contention.restore();vi.unstubAllEnvs()}
 })
 it('outbound independently claimed worker retains acceptance despite later mutable reset',async()=>{
- const f=await outboundSeed(),outboxId=randomUUID();smtpFixture()
- sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const f=await outboundSeed(),outboxId=f.outboxId;smtpFixture()
  const {sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
  try{await sendOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId});expect(provider).toHaveBeenCalledTimes(1)
   sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)}; UPDATE public.ediel_outbox SET status='queued' WHERE id=${literal(outboxId)};`)
@@ -505,7 +517,11 @@ async function outboundBinding(f:Awaited<ReturnType<typeof outboundSeed>>){
  const {captureEdielSourceRulePackEvidence}=await import('@/lib/ediel/core/sourceRulePackEvidence')
  const message=await getEdielMessageById(f.messageId,{companyId:f.companyId})
  expect(message).not.toBeNull()
- const admission=await assertRegistryRulebookAllowsSend(message!)
+ // Same admission inputs as the actual transport: its fresh send sources and
+ // current execution actor (a national H rescission requires both).
+ const {readFreshEdielSendValidationSources}=await import('@/lib/ediel/production/sendValidationSources')
+ const fresh=await readFreshEdielSendValidationSources(message!,f.actorUserId)
+ const admission=await assertRegistryRulebookAllowsSend(message!,undefined,undefined,undefined,fresh.deathStatusContext,fresh.ackSourceQualification??undefined,fresh.customerMasterdataContext,undefined,f.actorUserId)
  const policy=admission!.canonicalPolicy!
  const sourceRulePackEvidence=await captureEdielSourceRulePackEvidence(f.companyId,f.messageId)
  expect(sourceRulePackEvidence.profileKey).toBe(admission!.rulePackSnapshot!.profileKey)
@@ -569,10 +585,10 @@ it('outbound private facts deny DML and tenant/actor/claim impersonation',async(
  expect(sql(`SELECT to_jsonb(complete) FROM gridex_outbound_dispatch.epoch`)).toBe(false)
 })
 it.each(['provider_result','message_status','message_event','outbox_status'] as const)('outbound %s persistence failure cannot produce a second send',async failure=>{
- const f=await outboundSeed(),outboxId=randomUUID(),suffix=randomUUID().replaceAll('-','');smtpFixture()
+ const f=await outboundSeed(),outboxId=f.outboxId,suffix=randomUUID().replaceAll('-','');smtpFixture()
  const table=failure==='provider_result'?'gridex_outbound_dispatch.events':failure==='message_status'?'public.ediel_messages':failure==='message_event'?'public.ediel_message_events':'public.ediel_outbox'
  const condition=failure==='provider_result'?`NEW.message_id=${literal(f.messageId)}::uuid AND NEW.kind='provider_result'`:failure==='message_status'?`NEW.id=${literal(f.messageId)}::uuid AND NEW.status='sent'`:failure==='message_event'?`NEW.ediel_message_id=${literal(f.messageId)}::uuid AND NEW.event_type='sent'`:`NEW.id=${literal(outboxId)}::uuid AND NEW.status='sent'`
- sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});
+ sql(`
  CREATE FUNCTION public.native_fail_${suffix}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF ${condition} THEN RAISE EXCEPTION 'synthetic_persistence_failure'; END IF; RETURN NEW; END $$;
  CREATE TRIGGER native_fail_${suffix} BEFORE INSERT OR UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION public.native_fail_${suffix}();`)
  const {sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
@@ -614,6 +630,8 @@ async function nativeTechnicalAck(){
   .replace("+23-DDQ-PRODAT'","+23-DDQ-PRODAT++++1'")
   .replaceAll('12345:14',`${f.receiver}:14`).replaceAll('12345:160:SVK',`${f.receiver}:160:SVK`)
   .replaceAll('54321:14',`${f.sender}:14`).replaceAll('54321:160:SVK',`${f.sender}:160:SVK`)
+  // Own interchange reference: the bare fixture 'I' is not unique once real parties appear.
+  .replace(/\+I(\+\+23-DDQ-PRODAT)/,`+X${sourceId.replaceAll('-','').slice(0,12)}$1`).replace(/UNZ\+1\+I'/,`UNZ+1+X${sourceId.replaceAll('-','').slice(0,12)}'`)
  const wire=utiltsNativeSourceFixture(incoming,sourceId).raw
  const {assertEdielSmtpReadiness}=await import('@/lib/ediel/mailReadiness'),smtp=assertEdielSmtpReadiness()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
@@ -687,8 +705,8 @@ it('native fresh CONTRL cannot enter SMTP when the actual prepare request loses 
  }finally{spy.mockRestore();vi.unstubAllEnvs()}
 })
 it('outbound helper archive preparation failure never reaches callback or provider',async()=>{
- smtpFixture();const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail');let entered=false
- try{await expect(sendEdielEmail({to:'recipient@example.invalid',raw:Buffer.from('Content-Type: application/pkcs7-mime\r\n\r\ninvalid!')},{beforeProviderCall:async()=>{entered=true}})).rejects.toThrow('smime_archive_body_not_base64');expect(entered).toBe(false);expect(provider).not.toHaveBeenCalled()}
+ const f=await outboundSeed();smtpFixture();const {sendEdielEmail}=await import('@/lib/email/sendEdielEmail');let entered=false
+ try{await expect(sendEdielEmail({to:'recipient@example.invalid',raw:Buffer.from('Content-Type: application/pkcs7-mime\r\n\r\ninvalid!')},{archiveContext:{companyId:f.companyId,messageId:f.messageId},beforeProviderCall:async()=>{entered=true}})).rejects.toThrow('smime_archive_body_not_base64');expect(entered).toBe(false);expect(provider).not.toHaveBeenCalled()}
  finally{vi.unstubAllEnvs()}
 })
 it('outbound fixture preflight retains actual Z08H wire validation',async()=>{
@@ -747,8 +765,7 @@ it('outbound historical sent status is uninstrumented and scoped unrelated origi
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.events WHERE message_id=${literal(f.messageId)}`)).toBe(0)
 })
 it('outbound duplicate already-claimed invocations share the actual worker fence',async()=>{
- const f=await outboundSeed(),outboxId=randomUUID(),workerId='native-duplicate-worker';smtpFixture()
- sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const f=await outboundSeed(),outboxId=f.outboxId,workerId='native-duplicate-worker';smtpFixture()
  const {claimEdielOutboxItem}=await import('@/lib/ediel/outbox/claimOutboxItems'),{sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
  const claimed=await claimEdielOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId});expect(claimed?.current_send_attempt_id).toBeTruthy()
  const params={outboxItemId:outboxId,actorUserId:f.actorUserId,workerId,sendAttemptId:claimed!.current_send_attempt_id,alreadyClaimed:true}
@@ -814,8 +831,7 @@ it.each([{bytes:262145,count:1,reason:'scoped_original_bytes_overflow'},{bytes:2
 })
 
 it('outbound genuinely claimed worker loses entry when its claim changes after preparation',async()=>{
- const f=await outboundSeed(),outboxId=randomUUID(),workerId='native-stale-worker';smtpFixture()
- sql(`INSERT INTO public.ediel_outbox(id,company_id,environment,ediel_message_id,status,lock_key) VALUES(${literal(outboxId)},${literal(f.companyId)},'test',${literal(f.messageId)},'queued',${literal(outboxId)});`)
+ const f=await outboundSeed(),outboxId=f.outboxId,workerId='native-stale-worker';smtpFixture()
  const {claimEdielOutboxItem}=await import('@/lib/ediel/outbox/claimOutboxItems'),{sendOutboxItem}=await import('@/lib/ediel/outbox/sendOutboxItem')
  const claimed=await claimEdielOutboxItem({outboxItemId:outboxId,actorUserId:f.actorUserId,workerId})
  expect(claimed?.current_send_attempt_id).toBeTruthy()
@@ -1000,7 +1016,9 @@ it('a TRUNCATE cannot silently erase a process producer or its history', () => {
  sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic truncate guard','active');
   INSERT INTO public.customer_operation_tasks(id,company_id,task_type,title,status)
   VALUES(${literal(taskId)},${literal(companyId)},'follow_up','Preserved task','open');`)
- expect(()=>sql(`TRUNCATE public.customer_operation_tasks`)).toThrow(/correction_process_append_only/)
+ // CASCADE reaches the statement guard past the dependent-table FK refusal;
+ // the guard's exception rolls the whole statement back.
+ expect(()=>sql(`TRUNCATE public.customer_operation_tasks CASCADE`)).toThrow(/correction_process_append_only/)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_operation_tasks WHERE id=${literal(taskId)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
   WHERE table_name='customer_operation_tasks' AND row_id=${literal(taskId)}`)).toBe(1)
@@ -1551,16 +1569,17 @@ it('customer, site, point, contract and supply graph writes retain process links
 
  // The archive path commits separate deletes. Every successful child and
  // parent mutation must leave its own OLD-side identity after the row is gone.
+ // Contracts are retention-classed: only the native retention purge removes
+ // them (customer_record_native_class_retention_required), never a raw DELETE.
  sql(`DELETE FROM public.customer_contract_events WHERE id IN (${literal(contractEventId)},${literal(routedEventId)});
   DELETE FROM public.customer_cases WHERE id=${literal(caseId)};
   DELETE FROM public.customer_operation_events WHERE id=${literal(operationEventId)};
   DELETE FROM public.customer_operation_jobs WHERE id=${literal(jobId)};
   DELETE FROM public.supplier_switch_requests WHERE id=${literal(switchId)};
-  DELETE FROM public.customer_contracts WHERE id=${literal(contractId)};
   DELETE FROM public.metering_points WHERE id=${literal(pointId)};
   DELETE FROM public.customer_sites WHERE id IN (${literal(siteId)},${literal(nextSiteId)});`)
  const removed=[contractEventId,routedEventId,caseEventId,caseId,operationEventId,jobId,
-  switchId,contractId,pointId,siteId,nextSiteId]
+  switchId,pointId,siteId,nextSiteId]
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_correction_process.facts
   WHERE operation='DELETE' AND company_id=${literal(companyId)}
    AND row_id IN (${removed.map(literal).join(',')})`)).toBe(removed.length)

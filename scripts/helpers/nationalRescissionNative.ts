@@ -25,9 +25,9 @@ import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runt
 import {prepareAndQueueSupplyRescissionZ08} from '@/lib/ediel/flows/prodatSupplyRescission'
 import {readSupplyRescissionScope,archiveSupplyRescission,reviewSupplyRescission} from '@/lib/ediel/production/supplyRescissionIntake'
 
-export function nationalRescissionNativeChain(deps:{provider:Mock;sourceSession:{client:SupabaseClient|null}}){
+export function nationalRescissionNativeChain(deps:{provider:Mock;sourceSession:{client:SupabaseClient|null};customerName?:string}){
  const {provider,sourceSession}=deps
-async function stage(){const f=await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15',deferOriginal:true,initialSubtype:'H'});sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key IN('communication.read','communication.write','communication.send','contracts.read','metering.read','metering.write');`);return f}
+async function stage(){const f=await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15',deferOriginal:true,initialSubtype:'H',customerName:deps.customerName});sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key IN('communication.read','communication.write','communication.send','contracts.read','metering.read','metering.write');`);return f}
 async function authorized(){
  const f=await createBilateralProdatGroundNativeFixture(await stage()),artifact=await archiveBilateralProdatGround({companyId:f.companyId,actorUserId:f.actorUserId,...f.signed()}),review=await reviewBilateralProdatGround({companyId:f.companyId,actorUserId:f.reviewer,artifactId:String(artifact.artifactId),sourceHash:String(artifact.sourceHash),scopeHash:String(artifact.scopeHash),decision:'approve',reason:'Independent review of synthetic original; mechanism only'})
  expect(review.status,JSON.stringify(review)).toBe('authorized');return {...f,profileVersionId:String(review.profileVersionId)}
