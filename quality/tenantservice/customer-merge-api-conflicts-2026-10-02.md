@@ -1,0 +1,20 @@
+# Customer merge public API conflict boundaries
+
+The migration is unchanged at SHA256836c083fad0f231a145cf4117527057a20bdc2f73d094c3fbaa53fbab525a4c9. This bounded application correction sits on published b08/tree388ab34a and actual main472d703e. Only SQLSTATE23514 plus the exact message customer_merged_write_conflict becomes the established409 portal_identity_customer_conflict. Other SQL errors, permission errors, validation/authentication and successful responses retain their existing behavior.
+
+A real first link to an active same-owner identity with no bound subject executes account INSERT then direct identity UPDATE. Before this correction, the raw guard escaped the exported resolver and both real context factories. Runtime RED had3 failures; GREEN24 passes includes both factories and unrelated error controls. The mounted customer/sync route already caught that raw error itself; no shipped sync500 claim is made.
+
+The two mounted event routes had separate generic error handling. Corrected synthetic transport proves one actual guarded INSERT at each of the four idempotency/event/case/case-event boundaries per route; all8 returned500 before and409 after. Normal accepted events and unknown23514/permission controls remain unchanged. Existing sequential event/support work is not claimed to roll back as one database transaction.
+
+The real cached website application loader/resume still attempts its historical customer ID in an identity UPSERT after an unsigned/partial application customer is merged. Its existing stage wrapped the guard into WebsiteApplicationError500/code23514. GREEN4 now retains the application error response shape with409/codeportal_identity_customer_conflict and preserves three unknown controls. A staged error contract suite also covers portal_identity_create, portal_user_link and idempotency.
+
+Actual public partner business-to-simple site dispatch and legacy core /sites reach the shared customer-bound idempotency INSERT. GREEN33 proves exact409, near/unknown errors500, valid201, auth401, validation422, missingkey400 and tenant-scoped missingcustomer404. Every failed claim proves exactly one tenant/client/customer/operation-scoped INSERT and no business mutation or completion update.
+
+Fresh focused80 tests pass across4 suites, and the affected/adjacent200 test run passes across23 suites. Independent review reran47 focused tests and independently established the33 partner controls. Application/test types, scoped ESLint, source budget and API docs/compatibility/immutable release/runtime parity pass. The SQL source, generated schema/types/provenance and .2/.3/.4 archive files have no diff.
+
+Production order is application first, exact production READY/alias proof, then the single reviewed migration and read-only catalog checks. Independent nativePG17.6 disproves the inferred active UPSERT failure and confirms conservative direct UPDATE refusal/retry. The case-status/merge deadlock is unchanged from its old FK baseline. See the production-boundary receipt and db_review's before snapshot/postapply assertions; no whole live parity claim is made for the unknown227000 ledger body.
+
+Publication will fast-forward expected remote b08 without force. **Exact new-head CI, production READY and postapply catalog checks remain pending at this publication.** No production DDL or business fixture was run.
+
+
+Before publication, actual main advanced to889a2378411f826026336a593e3fde1ba8ba7258 (PR463), bringing227000 and a new authentic complete capture. The app patch composes without source conflicts and both immutable migration histories are preserved. Authentic latest-main type bytes272c9783… and canonical snapshot8cfd07b3… are explicitly historical until the real combined native replay; no hashes are manually synthesized. First replay may fail the historical schema comparison after generating the genuine combined artifact. Import that artifact byte-for-byte, then require a final all-green published-head replay and other CI. Root rechecked production target catalog exactly unchanged after889a READY.

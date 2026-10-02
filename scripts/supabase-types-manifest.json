@@ -1,12 +1,12 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-10-02T20:38:14Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run37060952835-artifact11250727412",
+  "generated_at": "2026-10-02T21:05:00Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run37063059651-artifact11251413836",
   "generated_types": "supabase/database.types.ts",
-  "sha256": "58bcc698c17fb45495f6e99cc07c03126dbeb88addc0044709b58a2267871180",
+  "sha256": "272c9783b3ab08f95951147abdadef22115a780589b9abecbea8282912d2a9b5",
   "latest_migration": "20261002230000_customer_merge_portal_lifecycle.sql",
-  "latest_migration_schema_effect": "Changes 14 FK deferral modes, adds a trigger-only merged-customer write guard, and replaces existing merge/contact RPC bodies without changing their signatures or table columns. Complete native clean replay, type generation, tenant invariants, injected-drift selftests and final canonical schema comparison passed in run37060952835. Authentic artifact11250727412 types and schema were imported byte-for-byte; they match the existing captured files. No generated types or schema were edited by hand.",
-  "generated_from_commit": "8841add6171be0872044feb54fc4536d1a2fb713",
-  "generated_from_tree": "8bc61df8cd6e33b85dce6b817b08a319db3040be",
-  "generated_from_pr_head": "f65f3fbc3b05e72b9bbf8358b7c2b0a04ccdc044"
+  "latest_migration_schema_effect": "Current generated type bytes and full canonical snapshot remain the authentic main889a/PR463 capture including227000. Lifecycle230000 changes14 FK deferral modes, adds a trigger-only guard and replaces merge/contact bodies without changing RPC signatures/table columns; it does not affect generated type shapes. Combined full native schema capture and exact-head canonical comparison are PENDING. The historical main snapshot is intentionally retained for first replay capture, not claimed as the combined fingerprint.",
+  "composition_capture_pending": true,
+  "composition_base_commit": "889a2378411f826026336a593e3fde1ba8ba7258",
+  "composition_prior_lifecycle_head": "b08c77e60f4bc0a1c42de2e10ad3fb984b1a808d"
 }

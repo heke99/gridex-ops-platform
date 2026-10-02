@@ -44,3 +44,19 @@ duplicates; English and platform jargon shown to tenants.
 ## PR E — customer intake, contract creation, tenant onboarding
 Pending audit results (consistency across admin/website/API/import, RPC coverage,
 onboarding steps and lifecycle handling).
+
+### PR B progress
+| # | Finding | Status |
+|---|---|---|
+| B1 | grid_owner_access_agreements, tenant_email_domains, customer_data_quality_open_issues exist only via legacy migrations (fresh env: agreements page crashes, data-quality silently green) | fixed: forward migration 20261002227000 converges them; applied to hosted |
+| B2 | hosted-only policy `gridex_perf_authenticated_select_v` (select to authenticated using true) exposed every tenant's grid-owner agreements | fixed: dropped; both tables now service-role only (no client grants), hosted + migration |
+| B3 | data-quality view (personnummer) readable by authenticated without RLS (security definer view) | fixed: security_invoker, service_role only |
+| B4 | data-quality page rendered "no issues" when a check failed | fixed: fails closed |
+| B5 | contracts page anchors `#tenant-assignment`/`#website-publication` point to sections only rendered in tenant view | fixed: point to create/offers sections |
+| B6 | work queue filtered customer_info_requests by statuses not in its DB check (open, new, pending_review…), hiding real open requests | fixed: list mirrors the DB check minus terminal states |
+| B7 | dead `app/admin/billing/_components.tsx`, unused export-center actions, nav entry to a redirect-only page | fixed: removed |
+| B8 | company-settings: environment select had no name (change ignored); membership-role select ignored by action; empty phone field wiped user phone on every save | fixed |
+| B9 | customer-cases list linked platform admins (no company) to a detail page that 404s by design | fixed: title is plain text until a company is selected |
+| B10 | `customer-applications` and `external-contract-intakes` duplicated the website-applications page | fixed: redirect (query preserved); company link points to canonical page |
+| B11 | analytics overview/reports showed filters their data ignores | fixed: month-only picker there; forecast keeps full filters |
+| B12 | underlay detail fetched first 500/200/50/1000 rows and filtered in JS (older underlays rendered empty) | fixed: queried by id |

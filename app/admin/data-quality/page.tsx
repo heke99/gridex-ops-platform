@@ -38,17 +38,10 @@ type EmailDomainRow = {
   failure_reason: string | null
 }
 
-function isMissingReadinessSchema(error: unknown): boolean {
-  const code = (error as { code?: string } | null)?.code ?? ''
-  return ['42P01', '42703', 'PGRST205'].includes(code)
-}
-
 async function safeRows<T>(query: PromiseLike<{ data: T[] | null; error: unknown }>): Promise<T[]> {
   const { data, error } = await query
-  if (error) {
-    if (isMissingReadinessSchema(error)) return []
-    throw error
-  }
+  // Fail closed: a check that cannot run must not render as "no issues".
+  if (error) throw error
   return data ?? []
 }
 
@@ -119,7 +112,7 @@ export default async function DataQualityPage() {
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Data quality"
+        title="Datakvalitet"
         subtitle="Felaktiga kundfält, saknade fullmakter, trasiga webhooks och e-postdomäner som behöver åtgärdas."
         userEmail={admin.email}
         workspaceName={scope.companyName}

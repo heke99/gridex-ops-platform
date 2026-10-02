@@ -45,6 +45,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <AnalyticsTabs active="overview" />
         <AnalyticsFilters
+          monthOnly
           month={month}
           biddingZones={filterOptions.biddingZones}
           gridOwners={filterOptions.gridOwners}

@@ -885,6 +885,10 @@ export async function resolvePortalCustomer(input: {
 
     return { ok: true, customer: resolved, binding: 'identifier_match' }
   } catch (error) {
+    const databaseError = error as { code?: string; message?: string } | null
+    if (databaseError?.code === '23514' && databaseError.message === 'customer_merged_write_conflict') {
+      return { ok: false, status: 409, code: 'portal_identity_customer_conflict', error: 'Kundkopplingen har ändrats. Hämta aktuella kunduppgifter och försök igen.', identifiers }
+    }
     if (isMissingPortalSchemaError(error)) {
       return { ok: false, status: 503, code: 'customer_portal_schema_missing', error: 'Kundportalens datamodell är inte färdig i OPS.', identifiers }
     }

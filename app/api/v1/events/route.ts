@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { ApiInputError, readJsonObject } from '@/lib/api/strictRequest'
+import { ApiInputError, customerPortalWriteError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
 import { listDomainEventsForCompany } from '@/lib/events/domainEvents'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
@@ -111,12 +111,13 @@ export async function POST(request: NextRequest) {
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { event_reference: data.event_reference, event_type: data.event_type, customer_id: internalCustomerId, idempotency_replay: data.replayed, support_case_reused: supportCaseReused } })
     return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
   } catch (error) {
-    const controlled = error instanceof ApiInputError
-    const status = controlled ? error.status : 500
-    const code = controlled ? error.code : 'customer_event_failed'
-    const message = controlled ? error.message : 'The customer event could not be processed at this time.'
+    const writeError = customerPortalWriteError(error)
+    const controlled = writeError instanceof ApiInputError
+    const status = controlled ? writeError.status : 500
+    const code = controlled ? writeError.code : 'customer_event_failed'
+    const message = controlled ? writeError.message : 'The customer event could not be processed at this time.'
     console.error('[events-write] failed', { requestId, error })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })
-    return customerPortalJson(canonicalApiError({ code, message, requestId, field: controlled ? error.field : null }), { status })
+    return customerPortalJson(canonicalApiError({ code, message, requestId, field: controlled ? writeError.field : null }), { status })
   }
 }

@@ -1538,7 +1538,7 @@ export default async function CompanyDetailPage({
               <h2 className="mt-2 text-xl font-black text-slate-950">Ansökningar, automatisk pipeline och tenant-spårning</h2>
               <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-700">Kedjan ska vara spårbar per tenant: ansökan → kund → avtal/prisversion → juridik/fullmakt → nätägare → Ediel-readiness → mail. Mismatch ska bli åtgärd, inte krasch eller felaktigt EDIFACT.</p>
             </div>
-            <Link href={`/admin/external-contract-intakes?company_id=${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Öppna ansökningar</Link>
+            <Link href={`/admin/website-applications?company_id=${company.id}`} className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-black text-white">Öppna ansökningar</Link>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <StatCard label="Totalt" value={tenantIntakeTracking?.total_applications ?? 0} />
