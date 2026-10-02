@@ -102,3 +102,10 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - OPS: case detail lists attachments + upload (≤4 MB because server action body limit is 5 MB) + download route with nosniff/CSP sandbox/attachment disposition.
 - Step B (open): customer support API endpoints for attachments = new OpenAPI release.
 - Then: perf baseline, then ledger reconciliation (user order).
+
+## PR #433 in CI (2026-10-02 ~09:15 UTC)
+- Added on top of step A: perf baseline (`quality/tenantservice/perf-baseline-2026-10-02.md`), ledger reconciliation (`quality/tenantservice/migration-ledger-reconciliation-2026-10-02.md`), regenerated types/schema snapshot from clean replay.
+- DECISION: no `supabase migration repair` — docs/migration-provenance.md forbids manual ledger writes. Never run `supabase db push` against production; apply file by file and verify.
+- Fix from CI: tenant invariant F-8/F-10 → attachment unique keys are now (company_id, public_reference) and (company_id, storage_path). Migration edited in place (never applied anywhere); checksum updated.
+- Ediel `ediel-document-reference-native` root cause (likely): app clock vs DB clock skew made startedAt < attempt.recorded_at → observe rejected → 1 attempt / 0 outcomes. Fix: `alignObservationToAttempt` in lib/ediel/sources/documentReferenceCapture.ts (+ unit test). If it still fails, investigate further.
+- Next: merge #433 when green → apply 20261002100000 in production (verify md5/RLS/grants) → reset branch from main → attachments step B (customer API + OpenAPI release 2026-10-02.1) → profile public-contracts.
