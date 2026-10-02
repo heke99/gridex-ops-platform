@@ -316,7 +316,7 @@ it('an S01 point with a second LOC+172 after SEQ holds its final ACK and series 
     .replace('23-DDQ-E66-T', '23-DDK-S01-S')
     .replace("SEQ++1'", "SEQ++1'\nLOC+172+735999260731000014::9'")
     .replace(/UNT\+(\d+)\+1'/, (_, count: string) => `UNT+${Number(count) + 1}+1'`)
-  const source = await f.insertSource(raw, 'S01')
+  const source = await f.insertSource(ownIdentity(raw), 'S01')
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
@@ -434,7 +434,7 @@ it('native S01 empty contract cannot turn an agency-89 point into positive aggre
 })
 it('native E72 empty request refuses unowned agency 89 atomically and preserves actual held/positive retries', async () => {
   const f = await seed()
-  const source = await f.insertSource(e72PointRequestMessage(f.ids.company, '89').raw_payload!, 'E72')
+  const source = await f.insertSource(ownIdentity(e72PointRequestMessage(f.ids.company, '89').raw_payload!), 'E72')
   const input = await f.prepare(source, false, false)
   expect(input.transactions).toMatchObject([{ disposition: 'accepted', responseType: 'positive_aperak', seriesKind: 'request', quantities: [] }])
   expect(input.contracts[0].observations).toEqual([])
@@ -463,7 +463,7 @@ it('native E72 empty request refuses unowned agency 89 atomically and preserves 
   expect(sql(`SELECT to_jsonb(r) FROM gridex_utilts_binding.receipts r WHERE source_message_id=${lit(source.id)}`)).toEqual(receipt)
   expect(effects.ack.mock.calls.every(([call]) => call.ackFamily === 'CONTRL')).toBe(true)
   effects.ack.mockClear()
-  const clean = await f.insertSource(e72PointRequestMessage(f.ids.company).raw_payload!, 'E72')
+  const clean = await f.insertSource(ownIdentity(e72PointRequestMessage(f.ids.company).raw_payload!), 'E72')
   expect((await run(clean.id)).internalReviewRequired).toBe(false)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('tenant',company_id,'disposition',disposition,'plan',planned_response_type,'final',final_response_type))
     FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(clean.id)}`))
@@ -482,7 +482,7 @@ it.each(['missing', 'invalid-gs1', 'invalid-agency'] as const)('native E72 %s LO
   const raw = e72PointRequestMessage(f.ids.company).raw_payload!
     .replace("LOC+172+735999260731000007::9'", defect === 'missing' ? '' : defect === 'invalid-gs1' ? "LOC+172+735999260731000008::9'" : "LOC+172+735999260731000007::160'")
     .replace('UNT+14+1', defect === 'missing' ? 'UNT+13+1' : 'UNT+14+1')
-  const source = await f.insertSource(raw, 'E72')
+  const source = await f.insertSource(raw, 'E72', 'test', '2026-10-15T20:00:00Z') // strict 25-A-4
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect((await run()).internalReviewRequired).toBe(false)
@@ -599,7 +599,7 @@ it('native accepted S01 persists only SG5 field 532 and no individual consumptio
   const unh = segments.findIndex(segment => segment.startsWith('UNH+'))
   const unt = segments.findIndex(segment => segment.startsWith('UNT+'))
   segments[unt] = `UNT+${unt - unh + 1}+1'`
-  const source = await f.insertSource(segments.join('\n'), 'S01')
+  const source = await f.insertSource(ownIdentity(segments.join('\n')), 'S01')
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const runtime = runUtiltsRuntimeForMessage(source), policy = resolveCanonicalMessagePolicy(source)!
   expect(runtime.validation.ok, JSON.stringify(runtime.validation.issues)).toBe(true)
@@ -1206,8 +1206,8 @@ it.each(['energy', 'readings', 'E30-energy', 'E30-readings', 'S07-policy'] as co
   raw = raw.replace('?+0200:406', '?+0100:406').replace('QTY+220:11000', 'QTY+220:10500')
     .replace('735999260731000007::9', '735999260731000007::89')
     .replace('BGM+E66::260', code === 'S07' ? 'BGM+S07:SVK:260' : `BGM+${code}::260`)
-    .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`)
-  const source = await f.insertSource(raw, code)
+    .replace(/23-DDQ-E66-[ST]/g, code === 'E30' ? '23-MDR-E30-T' : `23-DDQ-${code}-T`).replace(code === 'E30' ? "\nMEA+AAZ++KWH'" : '\u0000', '') // U s85
+  const source = await f.insertSource(ownIdentity(raw), code)
   await realSinks()
   const result = await (shape === 'S07-policy' ? processInboundUtiltsMessageByCanonicalPolicy : processInboundUtiltsMessage)({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.internalReviewRequired).toBe(true); expect(result.ingestedMeterValueIds).toEqual([])
@@ -1733,7 +1733,7 @@ it.each([false, true])('R4 real permission/no-request processor holds failed wri
     const at = lines.findIndex(line => line.startsWith('UNT+'))
     lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
     lines[at + 4] = `UNT+${at + 3}+1'`
-    source = await f.insertSource(lines.join('\n'), 'E30')
+    source = await f.insertSource(ownIdentity(lines.join('\n')), 'E30')
   }
   sql(`UPDATE public.ediel_messages SET grid_owner_data_request_id=NULL WHERE company_id=${lit(f.ids.company)};
    DELETE FROM public.grid_owner_data_requests WHERE id=${lit(f.ids.request)};
