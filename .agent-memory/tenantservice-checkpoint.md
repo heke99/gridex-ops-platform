@@ -114,3 +114,9 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - #434 attachments API (contract 2026-10-02.1), #435 public-contracts timings, #436 parallel reads + contract 2026-10-02.2 + F13, #437 F12 identity change (customer approval by e-mail link + PDF, takeover of binding contract requires new customer to accept contract + terms) + P3 billing profile revisions.
 - Production: migrations customer_identity_change_requests + customer_billing_profile_revisions applied. Verified: RLS on, 0 anon/authenticated grants, 5 triggers, backfill 4/4 customers at revision 1, ledger 345.
 - Next: P5b customer card restructure (fixed header + action menu, tabs Översikt/Uppgifter/Avtal & anläggningar/Fakturor/Ärenden & historik). Scheduled timings analysis 2026-10-03 (trig_019oygjwmFvjcbFofRRYwn13). node-forge before 2026-11-01.
+
+## Invoice provider per tenant + flags (2026-10-02 ~13:30 UTC), #439 MERGED (dc7d950)
+- Migration tenant_invoice_provider_selection applied in prod (ledger 346): invoice_provider_catalog (capway_aptic selectable, nordfin listed/not selectable), RPCs gridex_select_invoice_provider_v1 / gridex_set_invoice_dispatch_enabled_v1 (audited; switch blocked while runs draft/processing; enable needs connection ready/active), companies.billing_provider_environment now in migrations.
+- lib/billing/providers/registry.ts: no default provider/env; dispatch requires enabled + run provider/env match.
+- Vercel prod+preview: GRIDEX_INVOICE_DELIVERY_RESOLVER=shared, GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce (user approved 2026-10-02).
+- User decisions 2026-10-02: Nordfin NOT built now (stays listed, would be a tenant option later). Capway runs in TEST only. Add file-based invoicing: tenant downloads a file the invoice provider imports.
