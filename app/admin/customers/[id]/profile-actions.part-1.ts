@@ -104,34 +104,6 @@ export function isDatabaseShapeError(error: unknown): boolean {
   );
 }
 
-export async function runBestEffortCustomerArchiveStep(
-  step: string,
-  fn: () => Promise<void>,
-): Promise<void> {
-  try {
-    await fn();
-  } catch (error) {
-    if (!isDatabaseShapeError(error)) {
-      console.warn(`[customer-archive] ${step} failed`, error);
-      return;
-    }
-
-    console.warn(`[customer-archive] ${step} skipped because schema differs`, error);
-  }
-}
-
-export async function getBestEffortArchiveIds(
-  step: string,
-  fn: () => Promise<string[]>,
-): Promise<string[]> {
-  try {
-    return await fn();
-  } catch (error) {
-    console.warn(`[customer-archive] ${step} lookup failed`, error);
-    return [];
-  }
-}
-
 export function normalizeCustomerType(
   value: string | null | undefined,
 ): "private" | "business" | "association" {

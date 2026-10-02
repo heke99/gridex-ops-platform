@@ -89651,6 +89651,15 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_archive_customer_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
       gridex_archive_draft_legal_template_version: {
         Args: { p_version_id: string }
         Returns: string

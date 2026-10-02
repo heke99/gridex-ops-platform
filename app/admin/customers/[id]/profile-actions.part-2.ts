@@ -6,11 +6,10 @@ import { requirePlatformAdminActionAccess } from "@/lib/admin/guards"
 
 import { supabaseService } from "@/lib/supabase/service"
 import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
-import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 
 import { logUsageEvent } from "@/lib/audit/actionLogger"
 import type { CustomerActionState } from "./customer-action-state"
-import { CustomerActionError, collectManualFlowDeleteGraph, deleteByColumn, deleteByColumnSafe, deleteByCustomerId, deleteByCustomerIdSafe, deleteByIds, deleteByIdsSafe, getActorUserId, getBestEffortArchiveIds, getNullableString, getString, insertAuditLog, isDatabaseShapeError, runBestEffortCustomerArchiveStep, runCustomerCardAction, selectIds, selectIdsByCustomerId } from './profile-actions.part-1'
+import { CustomerActionError, collectManualFlowDeleteGraph, deleteByColumn, deleteByColumnSafe, deleteByCustomerId, deleteByCustomerIdSafe, deleteByIds, deleteByIdsSafe, getActorUserId, getNullableString, getString, insertAuditLog, runCustomerCardAction, selectIds, selectIdsByCustomerId } from './profile-actions.part-1'
 
 export async function deleteStorageObjectsForCustomer(
   customerId: string,
@@ -280,64 +279,17 @@ export async function markCustomerAsTestDataImpl(
   return { status: "success", message: "Kunden har markerats som testdata." };
 }
 
-export async function updateCustomerArchiveRow(
-  customerId: string,
-  companyId: string,
-  actorUserId: string,
-  nowIso: string,
-  archiveReason: string,
-): Promise<Record<string, unknown>> {
-  const fullPayload = {
-    status: "archived",
-    archived_at: nowIso,
-    archived_by: actorUserId,
-    archive_reason: archiveReason,
-    updated_at: nowIso,
-  };
-
-  const fullUpdate = await supabaseService
-    .from("customers")
-    .update(fullPayload)
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (!fullUpdate.error) {
-    return (fullUpdate.data ?? fullPayload) as unknown as Record<string, unknown>;
-  }
-
-  if (!isDatabaseShapeError(fullUpdate.error)) {
-    throw fullUpdate.error;
-  }
-
-  console.warn(
-    "[customer-archive] archive.customers.full_payload_failed; retrying minimal customer archive payload",
-    fullUpdate.error,
-  );
-
-  const minimalPayload = { status: "archived" };
-  const minimalUpdate = await supabaseService
-    .from("customers")
-    .update(minimalPayload)
-    .eq("id", customerId)
-    .eq("company_id", companyId)
-    .select("*")
-    .single();
-
-  if (minimalUpdate.error) {
-    throw minimalUpdate.error;
-  }
-
-  return (minimalUpdate.data ?? minimalPayload) as unknown as Record<string, unknown>;
-}
-
 export async function archiveCustomerAction(
   _prevState: CustomerActionState,
   formData: FormData,
 ): Promise<CustomerActionState> {
   return runCustomerCardAction(() => archiveCustomerImpl(formData));
 }
+
+type ArchiveCustomerRpcResult = {
+  already_archived?: boolean;
+  failed_switch_request_ids?: string[];
+};
 
 export async function archiveCustomerImpl(
   formData: FormData,
@@ -359,7 +311,7 @@ export async function archiveCustomerImpl(
 
   const { data: customerBefore, error: customerError } = await supabaseService
     .from("customers")
-    .select("*")
+    .select("company_id")
     .eq("id", customerId)
     .single();
 
@@ -370,172 +322,38 @@ export async function archiveCustomerImpl(
     typeof customerBefore.company_id === "string" ? customerBefore.company_id : null,
   );
 
-  const nowIso = new Date().toISOString();
   const archiveReason = reason ?? "Arkiverad via kundkort.";
 
-  // The customer row itself is the only mandatory write. Older/live databases
-  // can lag optional audit columns such as archived_at/archived_by/archive_reason
-  // or PostgREST can keep a stale schema cache. We first write the full archive
-  // audit payload and fall back to the minimal guaranteed payload (status only)
-  // on schema-shape errors. The action must only fail if the customer cannot be
-  // marked archived at all.
-  const customerAfter = await updateCustomerArchiveRow(
-    customerId,
-    companyId,
-    actorUserId,
-    nowIso,
-    archiveReason,
-  );
-
-  await runBestEffortCustomerArchiveStep("archive.customer_sites.close_failed", async () => {
-    const { error } = await supabaseService
-      .from("customer_sites")
-      .update({
-        status: "closed",
-        closed_at: nowIso,
-        closed_reason: archiveReason,
-        updated_at: nowIso,
-      })
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId);
-
-    if (error) throw error;
+  // Customer, sites, metering points, contracts, switch requests and the
+  // audit row are written in one transaction; any failure rolls back all.
+  const { data, error } = await supabaseService.rpc("gridex_archive_customer_v1", {
+    p_company_id: companyId,
+    p_customer_id: customerId,
+    p_actor_user_id: actorUserId,
+    p_reason: archiveReason,
   });
 
-  const siteIds = await getBestEffortArchiveIds("customer_sites", async () => {
-    const { data, error } = await supabaseService
-      .from("customer_sites")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId);
+  if (error) throw error;
 
-    if (error) throw error;
-    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-  });
+  const result = (data ?? {}) as ArchiveCustomerRpcResult;
+  const switchIds = result.failed_switch_request_ids ?? [];
 
-  if (siteIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("archive.metering_points.close_failed", async () => {
-      const { error } = await supabaseService
-        .from("metering_points")
-        .update({
-          status: "closed",
-          closed_at: nowIso,
-          closed_reason: archiveReason,
-          updated_at: nowIso,
-        })
-        .eq("company_id", companyId)
-        .in("site_id", siteIds);
-
-      if (error) throw error;
-    });
-  }
-
-  const contractIds = await getBestEffortArchiveIds("customer_contracts", async () => {
-    const { data, error } = await supabaseService
-      .from("customer_contracts")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("status", ["draft", "pending_signature", "signature_failed", "signed", "active"]);
-
-    if (error) throw error;
-    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-  });
-
-  if (contractIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("archive.contracts.cancel_failed", async () => {
-      for (const contractId of contractIds) {
-        await addCustomerContractEvent({
-          companyId,
-          customerContractId: contractId,
-          customerId,
-          eventType: "cancelled",
-          happenedAt: nowIso,
-          note: "Avtalet avslutades när kunden arkiverades.",
-          metadata: {
-            ends_at: nowIso.slice(0, 10),
-            termination_reason: "other",
-            rejected_reason: archiveReason,
-          },
-          actorUserId,
-        });
-      }
-    });
-  }
-
-  const switchIds = await getBestEffortArchiveIds("supplier_switch_requests", async () => {
-    const { data, error } = await supabaseService
-      .from("supplier_switch_requests")
-      .select("id")
-      .eq("company_id", companyId)
-      .eq("customer_id", customerId)
-      .in("status", [
-        "draft",
-        "queued",
-        "submitted",
-        "accepted",
-        "cancellation_requested",
-        "cancellation_sent",
-        "manual_followup_required",
-      ]);
-
-    if (error) throw error;
-    return (data ?? []).map((row: { id: string }) => row.id).filter(Boolean);
-  });
-
-  if (switchIds.length > 0) {
-    await runBestEffortCustomerArchiveStep("archive.switch_requests.fail_failed", async () => {
-      const { error } = await supabaseService
-        .from("supplier_switch_requests")
-        .update({
-          status: "failed",
-          failed_at: nowIso,
-          failure_reason: archiveReason,
-          updated_at: nowIso,
-        })
-        .eq("company_id", companyId)
-        .eq("customer_id", customerId)
-        .in("id", switchIds);
-
-      if (error) throw error;
-    });
-
-    await runBestEffortCustomerArchiveStep("archive.usage_event_failed", async () => {
-      await logUsageEvent({
-        companyId,
-        actorUserId,
-        customerId,
-        entityType: "supplier_switch_request",
-        entityId: customerId,
-        eventKey: "switch.cancelled",
-        actionLabel: "Leverantörsbyte stoppat vid arkivering",
-        source: "customer_archive",
-        billable: true,
-        billableQuantity: switchIds.length,
-        billingUnit: "switch_request",
-        metadata: { reason: archiveReason, switchIds },
-      });
-    });
-  }
-
-  await runBestEffortCustomerArchiveStep("archive.audit_log_failed", async () => {
-    await insertAuditLog({
-      actorUserId,
-      entityType: "customer",
-      entityId: customerId,
-      action: "customer.archived",
-      label: "Arkiverade kund",
+  if (!result.already_archived && switchIds.length > 0) {
+    await logUsageEvent({
       companyId,
-      oldValues: customerBefore,
-      newValues: customerAfter,
-      metadata: {
-        reason: archiveReason,
-        retainedData: true,
-        hardDelete: false,
-        cascadedToSitesAndMeteringPoints: true,
-      },
+      actorUserId,
+      customerId,
+      entityType: "supplier_switch_request",
+      entityId: customerId,
+      eventKey: "switch.cancelled",
+      actionLabel: "Leverantörsbyte stoppat vid arkivering",
+      source: "customer_archive",
+      billable: true,
+      billableQuantity: switchIds.length,
+      billingUnit: "switch_request",
+      metadata: { reason: archiveReason, switchIds },
     });
-  });
+  }
 
   revalidatePath(`/admin/customers/${customerId}`);
   revalidatePath("/admin/customers");
@@ -543,7 +361,9 @@ export async function archiveCustomerImpl(
 
   return {
     status: "success",
-    message: "Kunden har arkiverats. Historiken sparas för spårbarhet.",
+    message: result.already_archived
+      ? "Kunden var redan arkiverad."
+      : "Kunden har arkiverats. Historiken sparas för spårbarhet.",
   };
 }
 
