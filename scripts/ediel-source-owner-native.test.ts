@@ -52,6 +52,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
@@ -138,14 +139,14 @@ async function seed(delegated=false, structural=false) {
     customerIdentity:native.customerIdentity,requestedStartDate,gridArea:native.gridAreaCode,brpEdielId:native.brpEdielId}
   const input=structural?structuralOwnerSource():ownerSource()
   let wire=scopedWire(scope,String(input.raw_payload))
-  if(!structural)wire=wire.replaceAll('DTM+92:202610010000:203',`DTM+92:${requestedStartDate.replaceAll('-','')}0000:203`)
+  if(!structural)wire=wire.replaceAll(`DTM+92:${S('2026-10-01').replaceAll('-','')}0000:203`,`DTM+92:${requestedStartDate.replaceAll('-','')}0000:203`)
   const transportEdiel=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(90000,99999) n
     WHERE NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=n::text)`)
   if(delegated)wire=wire.replace(`+${native.sender}:14+`,`+${transportEdiel}:14+`)
   sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
-    VALUES(${p('reviewer')},'authenticated','authenticated',${literal(`e035-native-reviewer-${caseNo}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+    VALUES(${p('reviewer')},'authenticated','authenticated',${literal(`e035-native-reviewer-${reviewer}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
     INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
-    VALUES(${p('reviewer')},${literal(`e035-native-reviewer-${caseNo}@example.invalid`)},'Synthetic E035 scoped reviewer','active',now(),now())
+    VALUES(${p('reviewer')},${literal(`e035-native-reviewer-${reviewer}@example.invalid`)},'Synthetic E035 scoped reviewer','active',now(),now())
     ON CONFLICT(id) DO UPDATE SET user_status='active';
     INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
     VALUES(${p('company')},${p('reviewer')},'member','active',now(),'{}','member',true,now(),'member');
@@ -180,6 +181,9 @@ async function prepare(f:Awaited<ReturnType<typeof seed>>) {
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
   const canonical=await recordReceivedSourceValidation({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision})
   expect(canonical, JSON.stringify({rulePackEvidence:decision.validationReport.rulePackEvidence,sourceReceivedAt:f.original.message_received_at,context:f.original.execution_context_snapshot})).toMatchObject({status:'recorded'})
+  // Production order (lib/ediel/flows/inboundProcessing.ts): an accepted
+  // PRODAT source's own rule-pack receipt is captured right after its record.
+  await captureFreshEdielSourceRulePackEvidence(f.ids.company,f.original.id)
   const session=createReceivedSourceOwnerSession(canonical)
   expect(session).not.toBeNull()
   return {canonical,session:session!}
@@ -187,7 +191,7 @@ async function prepare(f:Awaited<ReturnType<typeof seed>>) {
 async function complete(f:Awaited<ReturnType<typeof seed>>,given?:Awaited<ReturnType<typeof prepare>>) {
   const prepared=given ?? await prepare(f)
   const result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
-  expect(result.outcome).toBe('supplier_switch_accepted')
+  expect(result.outcome, JSON.stringify(result)).toBe('supplier_switch_accepted')
   return prepared.session.finish()
 }
 function stored(source:string) {
