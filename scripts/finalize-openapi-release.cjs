@@ -2,7 +2,7 @@
 const fs = require('node:fs')
 const crypto = require('node:crypto')
 
-const version = '2026-10-02.3'
+const version = '2026-10-02.4'
 const websitePath = 'docs/openapi/website-integration-v1.json'
 const portalPath = 'docs/openapi/customer-portal-v1.json'
 const website = JSON.parse(fs.readFileSync(websitePath, 'utf8'))
@@ -20,7 +20,7 @@ const dateTime = { type: 'string', format: 'date-time' }
 const contractVersion = { type: 'string', const: version }
 
 const priorVersion = '2026-08-20.2'
-const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, version]
+const publishedVersions = ['2026-08-02.1', '2026-08-03.1', '2026-08-04.3', '2026-08-05.1', '2026-08-05.2', '2026-08-10.1', priorVersion, '2026-10-02.2', '2026-10-02.3', version]
 const legacyApiKeySunset = '2026-10-31T23:59:59.000Z'
 const customerPortalReadScopes = [
   'customer_profile.read',
@@ -1484,59 +1484,8 @@ website.components.schemas.PublicationChangedWebhook = {
   },
 }
 
-website.components.schemas.OpenApiReleaseManifest = {
-  type: 'object',
-  additionalProperties: false,
-  required: [
-    'release_version',
-    'website_openapi_version',
-    'customer_portal_openapi_version',
-    'runtime_contract_version',
-    'guide_version',
-    'released_at',
-    'specifications',
-  ],
-  properties: {
-    release_version: contractVersion,
-    website_openapi_version: contractVersion,
-    customer_portal_openapi_version: contractVersion,
-    runtime_contract_version: contractVersion,
-    guide_version: contractVersion,
-    released_at: dateTime,
-    specifications: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['website', 'customer_portal'],
-      properties: {
-        website: { $ref: '#/components/schemas/OpenApiReleaseSpecification' },
-        customer_portal: {
-          $ref: '#/components/schemas/OpenApiReleaseSpecification',
-        },
-      },
-    },
-  },
-}
-website.components.schemas.OpenApiReleaseSpecification = {
-  type: 'object',
-  additionalProperties: false,
-  required: [
-    'contract_name',
-    'contract_version',
-    'url',
-    'sha256',
-    'compatibility',
-  ],
-  properties: {
-    contract_name: string,
-    contract_version: contractVersion,
-    url: { type: 'string', format: 'uri' },
-    sha256: { type: 'string', pattern: '^[a-f0-9]{64}$' },
-    compatibility: {
-      type: 'string',
-      enum: ['backward-compatible', 'breaking'],
-    },
-  },
-}
+Object.assign(website.components.schemas, require('./lib/openapi-release-schemas.cjs')
+  .releaseManifestSchemas(version, '2026-10-02.3'))
 website.paths['/api/v1/openapi/release-manifest.json'] = {
   get: {
     operationId: 'getOpenApiReleaseManifest',

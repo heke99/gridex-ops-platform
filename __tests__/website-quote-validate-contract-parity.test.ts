@@ -20,7 +20,7 @@ describe('website quote validation contract parity', () => {
     const required =
       openApi.components?.schemas?.WebsiteQuoteValidationData?.required ?? []
 
-    expect(openApi.info?.version).toBe('2026-10-02.3')
+    expect(openApi.info?.version).toBe('2026-10-02.4')
     expect(required).toContain('valid_until')
     expect(route).toContain('valid_until: quote.valid_until')
     expect(route).toContain(

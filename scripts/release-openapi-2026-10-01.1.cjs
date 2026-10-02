@@ -92,16 +92,6 @@ const SUPPORT_SCHEMAS = {
       created_at: DATE_TIME,
     },
   },
-  CustomerSupportCaseDetail: {
-    allOf: [
-      { $ref: '#/components/schemas/CustomerSupportCase' },
-      {
-        type: 'object',
-        required: ['messages'],
-        properties: { messages: { type: 'array', items: { $ref: '#/components/schemas/CustomerSupportMessage' } } },
-      },
-    ],
-  },
   CustomerSupportCaseCreateRequest: {
     type: 'object',
     additionalProperties: true,
@@ -131,6 +121,8 @@ const SUPPORT_SCHEMAS = {
     },
   },
 }
+SUPPORT_SCHEMAS.CustomerSupportCaseDetail = require('./lib/openapi-release-schemas.cjs')
+  .customerSupportCaseDetail(SUPPORT_SCHEMAS.CustomerSupportCase)
 
 function envelope(dataSchema, withPage = false) {
   const properties = {
