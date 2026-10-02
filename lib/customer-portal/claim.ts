@@ -300,28 +300,6 @@ async function insertClaim(params: {
   if (error) throw error
 }
 
-async function insertPortalEvent(params: {
-  customerId: string
-  companyId?: string | null
-  userId: string
-  userEmail: string | null
-  eventType: string
-  message: string
-  metadata?: Record<string, unknown>
-}) {
-  const { error } = await supabaseService.from('customer_portal_events').insert({
-    company_id: params.companyId ?? null,
-    customer_id: params.customerId,
-    user_id: params.userId,
-    event_type: params.eventType,
-    message: params.message,
-    metadata: params.metadata ?? {},
-  })
-
-  // Do not block account linking if an older environment lacks event columns/table shape.
-  if (error && error.code !== '42P01' && error.code !== '42703') throw error
-}
-
 export async function claimPortalCustomerAction(
   _prevState: PortalClaimActionState,
   formData: FormData
@@ -526,63 +504,39 @@ export async function claimPortalCustomerAction(
 
   if (fullMatches.length === 1) {
     const { customer, matchSnapshot, installationMatch } = fullMatches[0]
-    const now = new Date().toISOString()
 
-    const { error: accountError } = await supabaseService
-      .from('customer_portal_accounts')
-      .upsert(
-        {
-          company_id: customer.company_id,
-          user_id: user.id,
-          user_email: authEmail,
-          customer_id: customer.id,
-          role: 'owner',
-          is_active: true,
-          activated_at: now,
-          verified_at: now,
-          match_method: 'self_claim_strict_identity',
-          verified_identity_snapshot: {
-            ...matchSnapshot,
-            userEmail: authEmail,
-            personalNumberLast4: normalizeDigits(personalNumber).slice(-4),
-            inputName: fullName || [firstName, lastName].filter(Boolean).join(' '),
-            inputInstallationId: installationId,
-          },
-          updated_at: now,
+    // Account link, approved claim and event are written together for the customer's tenant.
+    const { error: claimError } = await supabaseService.rpc('gridex_approve_portal_claim_v1', {
+      p_company_id: customer.company_id,
+      p_customer_id: customer.id,
+      p_user_id: user.id,
+      p_account: {
+        user_email: authEmail,
+        match_method: 'self_claim_strict_identity',
+        verified_identity_snapshot: {
+          ...matchSnapshot,
+          userEmail: authEmail,
+          personalNumberLast4: normalizeDigits(personalNumber).slice(-4),
+          inputName: fullName || [firstName, lastName].filter(Boolean).join(' '),
+          inputInstallationId: installationId,
         },
-        { onConflict: 'user_id,customer_id' }
-      )
-
-    if (accountError) throw accountError
-
-    await insertClaim({
-      userId: user.id,
-      userEmail: authEmail,
-      companyId: customer.company_id,
-      customerId: customer.id,
-      status: 'approved',
-      personalNumber,
-      inputSnapshot,
-      matchSnapshot,
-      flags: {
-        emailMatched: true,
-        nameMatched: true,
-        personalNumberMatched: true,
-        installationMatched: true,
       },
-      matchedSiteId: installationMatch.site?.id ?? null,
-      matchedMeteringPointId: installationMatch.meteringPoint?.id ?? null,
+      p_claim: {
+        match_method: 'self_claim_strict_identity',
+        personal_number_last4: normalizeDigits(personalNumber).slice(-4) || null,
+        matched_site_id: installationMatch.site?.id ?? null,
+        matched_metering_point_id: installationMatch.meteringPoint?.id ?? null,
+        input_snapshot: inputSnapshot,
+        match_snapshot: matchSnapshot,
+      },
+      p_event: {
+        event_type: 'portal_account_verified',
+        message: 'Kundportal kopplades automatiskt via personnummer, e-post, namn och anläggnings-ID.',
+        metadata: matchSnapshot,
+      },
     })
 
-    await insertPortalEvent({
-      customerId: customer.id,
-      companyId: customer.company_id,
-      userId: user.id,
-      userEmail: authEmail,
-      eventType: 'portal_account_verified',
-      message: 'Kundportal kopplades automatiskt via personnummer, e-post, namn och anläggnings-ID.',
-      metadata: matchSnapshot,
-    })
+    if (claimError) throw claimError
 
     revalidatePath('/portal')
     revalidatePath('/portal/fakturor')
