@@ -23,8 +23,25 @@ export function utiltsTestEnvironmentWire(raw: string) {
   if (unb.length !== 1) throw new Error('native_source_unb_shape')
   const span = segmentSourceSpan(unb[0])
   if (!span) throw new Error('native_source_unb_shape')
-  const parts = unb[0].raw.split(t.una.dataElementSeparator)
+  // Rewrite only the UNB segment bytes; surrounding line layout is preserved.
+  const segment = raw.slice(span.startOffset, span.endOffset), lead = segment.match(/^\s*/)![0], body = segment.slice(lead.length)
+  const terminator = body.endsWith(t.una.segmentTerminator) ? t.una.segmentTerminator : ''
+  const parts = body.slice(0, body.length - terminator.length).split(t.una.dataElementSeparator)
   while (parts.length < 12) parts.push('')
   parts[9] = '1'; parts[11] = '1'
-  return raw.slice(0, span.startOffset) + parts.join(t.una.dataElementSeparator) + raw.slice(span.endOffset)
+  return raw.slice(0, span.startOffset) + lead + parts.join(t.una.dataElementSeparator) + terminator + raw.slice(span.endOffset)
+}
+
+/** Recompute UNT/0074 from the actual UNH..UNT segment count. Fixture edits
+ * insert or remove segments; the count is a mechanical envelope fact. */
+export function utiltsRecountUnt(raw: string) {
+  const t = tokenizeEdifact(raw), unh = t.segments.findIndex(s => s.tag === 'UNH'), untIndex = t.segments.findIndex(s => s.tag === 'UNT')
+  if (unh < 0 || untIndex < unh || t.segments.filter(s => s.tag === 'UNT').length !== 1) return raw
+  const unt = t.segments[untIndex], span = segmentSourceSpan(unt)
+  if (!span) return raw
+  const segment = raw.slice(span.startOffset, span.endOffset), lead = segment.match(/^\s*/)![0], body = segment.slice(lead.length)
+  const terminator = body.endsWith(t.una.segmentTerminator) ? t.una.segmentTerminator : ''
+  const parts = body.slice(0, body.length - terminator.length).split(t.una.dataElementSeparator)
+  parts[1] = String(untIndex - unh + 1)
+  return raw.slice(0, span.startOffset) + lead + parts.join(t.una.dataElementSeparator) + terminator + raw.slice(span.endOffset)
 }

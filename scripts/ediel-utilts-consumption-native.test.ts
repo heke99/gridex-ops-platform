@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from '../__tests__/helpers/utiltsObservationHandoff'
 import { e72PointRequestMessage } from '../__tests__/helpers/utiltsE72PointRequest'
-import { utiltsNativeSourceFixture, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
+import { utiltsNativeSourceFixture, utiltsRecountUnt, utiltsTestEnvironmentWire } from '../__tests__/helpers/utiltsNativeSourceFixture'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptionPreparation'
@@ -89,7 +89,7 @@ async function seed() {
     setUtiltsReceiverRole(sql, lit, ids.company, ids.actor, code)
     // Each inserted source is a new issued message with its own BGM 1004 reference.
     const sourceId = randomUUID(); raw = raw.replace(/(BGM\+[^+']*\+)[^+']+/, `$1M${sourceId.replaceAll('-', '').slice(0, 20)}`)
-    const fixture = utiltsNativeSourceFixture(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw, sourceId)
+    const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw), sourceId)
     const { id, parsed } = fixture
     raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
