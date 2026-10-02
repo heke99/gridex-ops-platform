@@ -58,6 +58,12 @@ BEGIN
     RAISE EXCEPTION 'duplicate import created underlays';
   END IF;
 
+  -- An invoice purchase can only be recorded on the tenant's own export item.
+  BEGIN
+    PERFORM public.gridex_record_invoice_purchase_request_v1(a, gen_random_uuid(), 'factoring_without_recourse', '{}'::jsonb, actor);
+    RAISE EXCEPTION 'purchase recorded on an unknown export item';
+  EXCEPTION WHEN no_data_found THEN NULL; END;
+
   RAISE NOTICE 'billing import atomic regression: ok';
 END $$;
 
