@@ -38,21 +38,33 @@ export async function prepareUtiltsConsumptionContracts(input: {
   // arithmetic. Otherwise E30's local Date input would depend on the host TZ.
   const acceptedIds = new Set(runtime.transactionDispositions.flatMap((d, i) => d.disposition === 'accepted' ? [resolveUtiltsTransactionId(d.transactionId, i)] : []))
   const sourceTransactions = Array.isArray(runtime.normalizedPayload.transactions) ? runtime.normalizedPayload.transactions : []
+  // The normalized payload carries one entry per observation interval, so
+  // several entries can belong to one physical IDE transaction. Each entry is
+  // bound to its physical transaction by reference (by position only when the
+  // shapes coincide), and quantity membership advances one cursor per physical
+  // transaction so no physical quantity is consumed twice.
+  const physicalCursors = new Map<object, number>()
+  const physicalFor = (tx: Record<string, unknown>, index: number) => {
+    const reference = physicalUtiltsReference(tx.transactionId)
+    const owned = reference ? sourceTransactionsPhysical.filter(transaction => transaction.transactionId === reference) : []
+    if (owned.length === 1) return owned[0]
+    return !reference && sourceTransactions.length === sourceTransactionsPhysical.length ? sourceTransactionsPhysical[index] : undefined
+  }
   const projected = sourceTransactions.flatMap((value, index) => {
     const tx = value as Record<string, unknown>
     if (!input.allowConsumption || !acceptedIds.has(resolveUtiltsTransactionId(physicalUtiltsReference(tx.transactionId), index))) return []
     if (policy.code === 'E30' || policy.code === 'E66') {
       const resolution = normalizeEdifactResolution({ value: stringOrNull(tx.resolution), format: stringOrNull(tx.resolutionFormat) })
       const quantities = Array.isArray(tx.quantities) ? tx.quantities.filter(quantity => (quantity as Record<string,unknown>).qualifier === '136') : []
-      const physical = sourceTransactionsPhysical[index]
-      const physicalQuantities = physical?.observations.flatMap(observation => observation.quantities) ?? []
+      const physical = physicalFor(tx, index)
+      if (!physical) consumptionConflict('physical_quantity_membership')
+      const physicalQuantities = physical.observations.flatMap(observation => observation.quantities)
       const seriesOrdinals = new Map<string | null, number>()
-      let cursor = 0
       return quantities.map(quantity => {
-        const source = quantity as Record<string, unknown>
+        const source = quantity as Record<string, unknown>, cursor = physicalCursors.get(physical) ?? 0
         const at = physicalQuantities.findIndex((candidate, position) => position >= cursor && candidate.raw === source.raw && candidate.qualifier === '136')
         if (at < 0) consumptionConflict('physical_quantity_membership')
-        cursor = at + 1
+        physicalCursors.set(physical, at + 1)
         const observation = physical.observations.find(observation => observation.quantities.includes(physicalQuantities[at]))!
         const register = observation.references.find(reference => reference.qualifier === 'AES' && reference.directReferenceSlot)?.value ?? null
         const ordinal = seriesOrdinals.get(register) ?? 0

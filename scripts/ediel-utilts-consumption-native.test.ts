@@ -145,17 +145,17 @@ it.each(['quantity', 'timezone', 'resolution-format'])('full processor persisted
   expect(runtime.validation.ok).toBe(true)
   await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', actorUserId: f.ids.actor, ...receiveUtiltsRetry(sql, lit, { companyId: f.ids.company, actorUserId: f.ids.actor, raw: changed, parsed: parseInboundEmailContent({ attachmentText: changed })! }), parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('same_identity_different_original_requires_review')
   // A read-to-persist race must also fail even if a stale upstream snapshot
-  // bypassed the natural dedup call; the locked database bytes remain authority.
+  // bypassed the natural dedup call: the initial owner is bound to the locked bytes.
   effects.readRaw = changed
-  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })).rejects.toThrow('ediel_initial_utilts_owner_unavailable')
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.ack).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled(); expect(effects.outbound).not.toHaveBeenCalled()
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   effects.readRaw = null
   const replay = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: f.original.id })
   expect(replay.ingestedMeterValueIds).toEqual(['observed-meter'])
-  expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
-  expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500, underlayMonth: 6 }))
+  expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
+  expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6 }))
   expect(effects.complete).toHaveBeenCalledTimes(1)
   expect(effects.ack.mock.calls.some(([call]) => call.ackFamily === 'APERAK')).toBe(true)
 })
@@ -171,7 +171,8 @@ it('real persisted interruption + natural changed-byte dedup cannot consume old 
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const changed = f.original.raw_payload!.replace('QTY+136:500', 'QTY+136:999')
   await expect(createInboundEdielMessage({ companyId: f.ids.company, environment: 'test', actorUserId: f.ids.actor, ...receiveUtiltsRetry(sql, lit, { companyId: f.ids.company, actorUserId: f.ids.actor, raw: changed, parsed: parseInboundEmailContent({ attachmentText: changed })! }), parsed: parseInboundEmailContent({ attachmentText: changed })! })).rejects.toThrow('same_identity_different_original_requires_review')
-  await expect(persistUtiltsTransactionResults(await f.prepare({ ...f.original, raw_payload: changed }))).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(f.prepare({ ...f.original, raw_payload: changed }).then(persistUtiltsTransactionResults)).rejects.toThrow('utilts_consumption_binding_conflict:physical_quantity_membership')
+  expect((await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', { p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: f.original.id, p_message_code: 'E66', p_raw_payload: changed, p_actor_user_id: f.ids.actor, p_transactions: input.transactions.map((t, i) => ({ ...t, consumptionContract: input.contracts[i] })) })).error?.message).toMatch(/utilts_source_binding_conflict/)
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
   const replay = await persistUtiltsTransactionResults(input)
@@ -179,8 +180,8 @@ it('real persisted interruption + natural changed-byte dedup cannot consume old 
   replay[0].consumptionContract!.observations[0].quantity = 999
   await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: replay })
   await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: f.original, boundOutcomes: replay, existingBillingUnderlayId: null })
-  expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
-  expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500, underlayMonth: 6, underlayYear: 2026 }))
+  expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
+  expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500', underlayMonth: 6, underlayYear: 2026 }))
   expect(snapshot(f.original.id)).toEqual(before)
 })
 it.each(['quantity', 'timezone', 'resolutionFormat', 'customer', 'request', 'point', 'billing-period', 'unknown-version'])('native immutable comparison rejects %s without replacing ACK/series/contract', async kind => {
@@ -440,7 +441,7 @@ it('native E72 empty request refuses unowned agency 89 atomically and preserves 
   expect(input.contracts[0].observations).toEqual([])
   const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(input.transactions[0].transactionId)})),'null'::jsonb)`)).toBeNull()
-  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_execution_actor_forbidden')
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_transaction_persistence_failed:utilts_source_binding_conflict') // tenant-scoped source before actor
   for (let attempt = 0; attempt < 2; attempt++) {
     await expect(persistUtiltsTransactionResults(input)).rejects.toThrow('utilts_consumption_identity_unsupported')
     expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
@@ -640,8 +641,8 @@ it.each(['E30', 'S07'])('native %s control keeps the actual prepared consumption
   await ingestBoundUtiltsMetering({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows })
   await createBoundUtiltsBilling({ actorUserId: f.ids.actor, message: source, boundOutcomes: rows, existingBillingUnderlayId: null })
   if (code === 'E30') {
-    expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: 500, periodStart: '2026-06-30T23:00:00.000Z' }))
-    expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: 500 }))
+    expect(effects.meter).toHaveBeenCalledWith(expect.objectContaining({ quantityKwh: '500', periodStart: '2026-06-30T23:00:00.000Z' }))
+    expect(effects.bill).toHaveBeenCalledWith(expect.objectContaining({ totalKwh: '500' }))
   } else {
     expect(rows[0].consumptionContract).toMatchObject({ observations: [], metering: { capability: 'skip' }, billing: { capability: 'skip' } })
     expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
@@ -671,9 +672,9 @@ it('JSONB key order is immaterial and wrong source code/environment fail interna
   const f = await seed(), input = await f.prepare(), first = await persistUtiltsTransactionResults(input)
   const reordered = { ...input, contracts: input.contracts.map(c => Object.fromEntries(Object.entries(c).reverse()) as typeof c) }
   expect((await persistUtiltsTransactionResults(reordered))[0].seriesId).toBe(first[0].seriesId)
-  await expect(persistUtiltsTransactionResults({ ...input, messageCode: 'E30' })).rejects.toThrow('utilts_source_binding_conflict')
+  await expect(persistUtiltsTransactionResults({ ...input, messageCode: 'E30' })).rejects.toThrow('utilts_consumption_binding_conflict:physical_quantity_unit'); expect((await nativePersistenceRpc('gridex_persist_utilts_consumption_v1', { p_company_id: f.ids.company, p_environment: 'test', p_source_message_id: f.original.id, p_message_code: 'E30', p_raw_payload: f.original.raw_payload!, p_actor_user_id: f.ids.actor, p_transactions: input.transactions.map((t, i) => ({ ...t, consumptionContract: input.contracts[i] })) })).error?.message).toMatch(/utilts_source_binding_conflict/)
   await expect(persistUtiltsTransactionResults({ ...input, environment: 'production' })).rejects.toThrow('utilts_source_binding_conflict')
-  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_execution_actor_forbidden')
+  await expect(persistUtiltsTransactionResults({ ...input, companyId: randomUUID() })).rejects.toThrow('utilts_transaction_persistence_failed:utilts_source_binding_conflict') // tenant-scoped source before actor
 })
 it('distinguishable observation order is immutable, not a set comparison', async () => {
   const f = await seed()
