@@ -593,9 +593,24 @@
     "base_commit": "889a2378411f826026336a593e3fde1ba8ba7258",
     "production_ready_deployment_root_verified": "dpl_9hPQwbGu8unuE24M5QXxpZTjcg8Q",
     "preflight_matches_frozen_before_json": true,
-    "actual_combined_capture_pending": true,
+    "actual_combined_capture_pending": false,
     "historical_latest_main_types_sha256": "272c9783b3ab08f95951147abdadef22115a780589b9abecbea8282912d2a9b5",
     "historical_latest_main_fingerprint": "8cfd07b378d61dc564d9d43d1ab55895a4f8bd5268ad2e90aba478f81dd7794f",
-    "canonical_artifact_plan": "Retain authentic latest-main capture during first complete replay; import genuine combined artifact byte-for-byte, then publish and require final exact-head green CI. Never bypass schema comparison or hand-build section hashes."
+    "canonical_artifact_plan": "Authentic combined schema/fingerprint/types imported byte-for-byte from11254046371. Native capture passes all preceding gates and correctly fails only historical baseline comparison. Final exact-head green CI is mandatory before app-first production READY and controlled230000 application.",
+    "integration_base_commit": "276b9e6155ef2cd83b5d75a61283fc4d99d9f184",
+    "combined_capture": {
+      "workflow_run": 37068613316,
+      "job": 111042463333,
+      "artifact_id": 11254046371,
+      "artifact_zip_sha256": "16daef10057ba44aef6a491879a70df4574be2fd3cf256311b891a8bdae5ec15",
+      "pull_request_head": "53080e7d74b5a44e275c8aed7eb19a506a290084",
+      "actual_checkout_commit": "a6a085ee440ee90c53c7bff65d57f2536b5278fa",
+      "actual_checkout_tree": "332590e25bf9058b39d24280c6cbc7912e9c14b7",
+      "schema_file_sha256": "c172f3458e522e50f75fb55a91e8fa7a6b1de6f619a3586708178f0ee5d000fb",
+      "fingerprint_file_sha256": "c9aaddabd93cd8d85f281232caaada044a6da49936d827efaff695409562b7fa",
+      "schema_fingerprint": "cc62d4a7c0c099fe0cac3dff838388f59c605f82639c0d55f8381a7ba0765da7",
+      "qualification": "All native stages through snapshot generation pass. The capture run correctly fails only final comparison to historical main baseline8cfd07b3; import this genuine capture and require fresh exact-head green CI. Main79d changes no migration, schema, type-generator or replay inputs. Main276b/PR465 likewise changes only UI/navigation/history; all database and affected API inputs remain unchanged."
+    },
+    "final_published_head_ci": "pending after authentic artifact import publication"
   }
 }

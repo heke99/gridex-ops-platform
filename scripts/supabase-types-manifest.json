@@ -1,12 +1,26 @@
 {
   "project_id": "piidsfebjqjmnepdpnas",
-  "generated_at": "2026-10-02T21:05:00Z",
-  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run37063059651-artifact11251413836",
+  "generated_at": "2026-10-02T21:53:14Z",
+  "generated_with": "supabase-cli-2.101.0-empty-replay-typegen-run37068613316-artifact11254046371",
   "generated_types": "supabase/database.types.ts",
   "sha256": "272c9783b3ab08f95951147abdadef22115a780589b9abecbea8282912d2a9b5",
   "latest_migration": "20261002230000_customer_merge_portal_lifecycle.sql",
-  "latest_migration_schema_effect": "Current generated type bytes and full canonical snapshot remain the authentic main889a/PR463 capture including227000. Lifecycle230000 changes14 FK deferral modes, adds a trigger-only guard and replaces merge/contact bodies without changing RPC signatures/table columns; it does not affect generated type shapes. Combined full native schema capture and exact-head canonical comparison are PENDING. The historical main snapshot is intentionally retained for first replay capture, not claimed as the combined fingerprint.",
-  "composition_capture_pending": true,
+  "latest_migration_schema_effect": "Authentic combined replay includes main889a/PR463 migration227000 and lifecycle230000. The latter changes14 FK deferral modes, adds13 trigger bindings and a trigger-only guard, and replaces merge/contact bodies; generated RPC/table type shapes remain byte-identical to current main. The complete combined schema/fingerprint is imported byte-for-byte from artifact11254046371. Capture run passes all preceding native checks and intentionally fails only the historical canonical-baseline comparison; final exact published-head all-green comparison remains required.",
+  "composition_capture_pending": false,
   "composition_base_commit": "889a2378411f826026336a593e3fde1ba8ba7258",
-  "composition_prior_lifecycle_head": "b08c77e60f4bc0a1c42de2e10ad3fb984b1a808d"
+  "composition_prior_lifecycle_head": "b08c77e60f4bc0a1c42de2e10ad3fb984b1a808d",
+  "composition_integration_base_commit": "276b9e6155ef2cd83b5d75a61283fc4d99d9f184",
+  "capture": {
+    "workflow_run": 37068613316,
+    "job": 111042463333,
+    "artifact_id": 11254046371,
+    "artifact_zip_sha256": "16daef10057ba44aef6a491879a70df4574be2fd3cf256311b891a8bdae5ec15",
+    "pull_request_head": "53080e7d74b5a44e275c8aed7eb19a506a290084",
+    "actual_checkout_commit": "a6a085ee440ee90c53c7bff65d57f2536b5278fa",
+    "actual_checkout_tree": "332590e25bf9058b39d24280c6cbc7912e9c14b7",
+    "schema_file_sha256": "c172f3458e522e50f75fb55a91e8fa7a6b1de6f619a3586708178f0ee5d000fb",
+    "fingerprint_file_sha256": "c9aaddabd93cd8d85f281232caaada044a6da49936d827efaff695409562b7fa",
+    "schema_fingerprint": "cc62d4a7c0c099fe0cac3dff838388f59c605f82639c0d55f8381a7ba0765da7",
+    "qualification": "All native stages through snapshot generation pass. The capture run correctly fails only final comparison to historical main baseline8cfd07b3; import this genuine capture and require fresh exact-head green CI. Main79d changes no migration, schema, type-generator or replay inputs. Main276b/PR465 likewise changes only UI/navigation/history; all database and affected API inputs remain unchanged."
+  }
 }

@@ -6,6 +6,7 @@ import { getOperationalCompanyScope, isMissingRelationError } from '@/lib/tenant
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -646,7 +647,7 @@ export default async function AdminWorkQueuePage() {
                       </td>
                       <td className="px-6 py-4 text-slate-700">{statusLabel(item.status)}</td>
                       <td className="px-6 py-4">
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
                       </td>
                       <td className="px-6 py-4 text-slate-700">{formatDate(item.createdAt)}</td>
                       <td className="px-6 py-4">

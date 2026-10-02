@@ -3,6 +3,7 @@ import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 import { supabaseService } from '@/lib/supabase/service'
 import { importBillingUnderlayFileAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,7 +63,7 @@ export default async function BillingImportPage({ searchParams }: { searchParams
               {(batches ?? []).length === 0 ? <p className="text-sm text-slate-600">Inga importer finns ännu.</p> : (batches ?? []).map((batch: { id: string; file_name: string | null; status: string; rows_total: number; rows_imported: number; rows_failed: number; created_at: string }) => (
                 <article key={batch.id} className="rounded-2xl border border-slate-200 p-4 text-sm">
                   <div className="font-semibold text-slate-950">{batch.file_name ?? 'Inklistrat underlag'}</div>
-                  <div className="mt-1 text-xs text-slate-500">{batch.status} · {new Date(batch.created_at).toLocaleString('sv-SE')}</div>
+                  <div className="mt-1 text-xs text-slate-500">{formatStatusLabel(batch.status)} · {new Date(batch.created_at).toLocaleString('sv-SE')}</div>
                   <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-slate-700">
                     <span>Total {batch.rows_total}</span>
                     <span>Importerade {batch.rows_imported}</span>

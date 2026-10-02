@@ -759,17 +759,6 @@ export async function CustomerAdminDetailPage({
                 Ändra uppgifter
               </Link>
             ) : null}
-            <details className="relative">
-              <summary className="cursor-pointer list-none rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">
-                Fler åtgärder
-              </summary>
-              <div className="absolute right-0 z-30 mt-2 grid min-w-56 gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-lg">
-                <Link href={customerTabHref(id, "communication")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Ärenden &amp; historik</Link>
-                <Link href={customerTabHref(id, "billing-metering")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Fakturor</Link>
-                {canReadContracts ? <Link href={customerTabHref(id, "contracts")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Avtal</Link> : null}
-                <Link href={customerTabHref(id, "sites")} className="rounded-lg px-3 py-2 hover:bg-slate-50">Anläggningar</Link>
-              </div>
-            </details>
           </div>
         ) : null}
         </div>

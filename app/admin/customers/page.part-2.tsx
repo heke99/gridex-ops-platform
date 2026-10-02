@@ -295,24 +295,10 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
  {companyScope.companyName ?? 'Bolagskoppling saknas'}
  </h2>
  <p className="mt-3 text-sm leading-6 text-slate-700 ">
- Kundregistret visar kunder för ditt aktiva elhandelsbolag. Ny kund, anläggning, mätpunkt och avtal registreras via kundintaget så all data sparas i rätt bolag.
+ Kundregistret visar kunder för ditt aktiva elhandelsbolag. Ny kund, anläggning, mätpunkt och avtal registreras via Kundintag ovan så all data sparas i rätt bolag.
  </p>
  {companyScope.message ? (
  <p className="mt-3 text-sm font-semibold text-amber-700 ">{companyScope.message}</p>
- ) : null}
- <Link
- href="/admin/customers/intake"
- className="mt-5 inline-flex w-full justify-center rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 "
- >
- Starta kundintag
- </Link>
- {canReadContracts ? (
- <Link
- href="/admin/contracts"
- className="mt-3 inline-flex w-full justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 "
- >
- {tenantScope.isPlatformAdmin ? 'Hantera avtalsmallar och kampanjer' : 'Öppna tecknade avtal'}
- </Link>
  ) : null}
  </section>
 

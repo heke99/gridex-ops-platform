@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import { randomUUID } from 'node:crypto'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -6,6 +7,7 @@ import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
 import { createCustomerCaseFromFormAction, updateCustomerCaseStatusAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,11 +76,11 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     {scope.companyId ? <Link href={`/admin/customer-cases/${row.id}`} className="font-semibold text-slate-950 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600">{row.title}</Link> : <span className="font-semibold text-slate-950" title="Välj bolaget för att öppna ärendet">{row.title}</span>}
-                    <p className="mt-1 text-sm text-slate-600">{row.customer_name ?? row.customer_number ?? row.customer_id}</p>
+                    <p className="mt-1 text-sm text-slate-600">{row.customer_name ?? row.customer_number ?? <CustomerName id={row.customer_id} />}</p>
                     {row.description ? <p className="mt-2 max-w-3xl text-sm text-slate-700">{row.description}</p> : null}
                     <p className="mt-2 text-xs text-slate-500">{row.reason_category ?? 'support'} · {row.source ?? 'support'} · {formatDate(row.created_at)}</p>
                   </div>
-                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{row.priority} · {row.status}</span>
+                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority)} · {formatStatusLabel(row.status)}</span>
                 </div>
                 {!['resolved', 'closed', 'cancelled'].includes(row.status) && !scope.isPlatformAdmin ? (
                   <div className="mt-4 flex flex-wrap gap-2">
