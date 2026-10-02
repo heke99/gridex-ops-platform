@@ -6,7 +6,7 @@ import { tenantDb } from '@/lib/supabase/tenantDb'
  * (invoice_provider_catalog) decides which are selectable; this registry decides which have a
  * dispatch implementation in this build. A provider must be both to be used.
  */
-export const DISPATCH_IMPLEMENTED_PROVIDERS = ['capway_aptic'] as const
+export const DISPATCH_IMPLEMENTED_PROVIDERS = ['capway_aptic', 'file_export'] as const
 export type DispatchProvider = (typeof DISPATCH_IMPLEMENTED_PROVIDERS)[number]
 export type InvoiceProviderEnvironment = 'test' | 'production'
 
@@ -93,10 +93,13 @@ const RPC_ERRORS: Record<string, string> = {
   invoice_provider_environment_invalid: 'Ogiltig miljö.',
   invoice_provider_switch_blocked_open_exports: 'Det finns pågående fakturaexporter. Byt leverantör när de är klara.',
   invoice_provider_not_selected: 'Välj en fakturaleverantör först.',
+  invoice_file_provider_not_active: 'Filexport är inte vald och aktiverad för bolaget.',
+  invoice_file_items_changed: 'Någon faktura ändrades medan filen skapades. Ladda om och försök igen.',
+  invoice_file_empty: 'Det finns inga godkända fakturor att lägga i en fil.',
   invoice_provider_connection_not_ready: 'Kopplingen till leverantören måste testas och godkännas innan utskick aktiveras.',
 }
 
-function rpcError(error: { message?: string } | null) {
+export function rpcError(error: { message?: string } | null) {
   const code = Object.keys(RPC_ERRORS).find((key) => error?.message?.includes(key))
   return code ? new InvoiceProviderConfigError(code, RPC_ERRORS[code]) : new Error(error?.message ?? 'Okänt fel')
 }

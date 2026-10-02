@@ -29,12 +29,13 @@ export async function POST(request: Request) {
       .maybeSingle()
     if (company.error) throw company.error
     if (!company.data) throw new Error('Tenant saknas.')
-    const { environment } = requireTenantInvoiceProvider(company.data)
+    const { environment, provider } = requireTenantInvoiceProvider(company.data)
 
     const result = await prepareInvoiceDraftsForReview({
       companyId,
       billingMonth,
       environment,
+      provider,
       actorUserId: access.guard.userId,
     })
     return NextResponse.json({

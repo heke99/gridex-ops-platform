@@ -3,6 +3,7 @@
 --      expiry, single use, audit) and the append-only identity history.
 -- P3:  billing profile revisions by trigger and the locked revision on billing items.
 -- Invoice provider: per-tenant selection, dispatch enable gate, open-export switch block, audit.
+-- Invoice file export: file provider readiness and fail-closed file creation.
 \set ON_ERROR_STOP on
 BEGIN;
 
@@ -214,6 +215,41 @@ BEGIN
   END IF;
 
   RAISE NOTICE 'tenant invoice provider selection native regression passed';
+END $$;
+
+-- Invoice file export: file provider is ready without credentials; file creation fails closed.
+DO $$
+DECLARE
+  c uuid := gen_random_uuid();
+  actor uuid := gen_random_uuid();
+BEGIN
+  INSERT INTO public.companies(id,name,status) VALUES(c,'File export synthetic','active');
+  PERFORM public.gridex_select_invoice_provider_v1(c, 'file_export', 'test', actor);
+  IF (SELECT status FROM public.billing_provider_connections WHERE company_id = c AND provider = 'file_export' AND environment = 'test') <> 'ready' THEN
+    RAISE EXCEPTION 'file export: connection should be ready without credentials';
+  END IF;
+
+  BEGIN
+    PERFORM public.gridex_create_invoice_export_file_v1(c, '2026-09', 'test', actor,
+      jsonb_build_array(jsonb_build_object('invoice_export_item_id', gen_random_uuid(), 'amount_inc_vat', 1)), repeat('a', 64));
+    RAISE EXCEPTION 'file export: file created while dispatch disabled';
+  EXCEPTION WHEN object_not_in_prerequisite_state THEN
+    IF SQLERRM <> 'invoice_file_provider_not_active' THEN RAISE; END IF;
+  END;
+
+  PERFORM public.gridex_set_invoice_dispatch_enabled_v1(c, true, actor);
+  BEGIN
+    PERFORM public.gridex_create_invoice_export_file_v1(c, '2026-09', 'test', actor,
+      jsonb_build_array(jsonb_build_object('invoice_export_item_id', gen_random_uuid(), 'amount_inc_vat', 1)), repeat('a', 64));
+    RAISE EXCEPTION 'file export: unknown invoice accepted';
+  EXCEPTION WHEN serialization_failure THEN
+    IF SQLERRM <> 'invoice_file_items_changed' THEN RAISE; END IF;
+  END;
+  IF EXISTS (SELECT 1 FROM public.invoice_export_files WHERE company_id = c) THEN
+    RAISE EXCEPTION 'file export: rejected claim left a file row';
+  END IF;
+
+  RAISE NOTICE 'invoice file export native regression passed';
 END $$;
 
 ROLLBACK;

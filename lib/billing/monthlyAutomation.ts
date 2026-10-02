@@ -51,7 +51,7 @@ function validateCompany(company: JsonRecord) {
   if (company.is_active !== true || String(company.status) !== 'active') throw new Error('Tenant är inte aktiv.')
   if (company.billing_automation_enabled !== true) throw new Error('Faktureringsautomation är inte aktiverad för tenant.')
   if (company.invoice_export_enabled !== true) throw new Error('Fakturaförberedelse är inte aktiverad för tenant.')
-  return requireTenantInvoiceProvider(company).environment
+  return requireTenantInvoiceProvider(company)
 }
 
 async function insertRun(input: { companyId: string; periodMonth: string; actorUserId: string | null; lockKey: string; lockToken: string }) {
@@ -73,7 +73,7 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
   const actorUserId = text(input.actorUserId) ?? text(process.env.GRIDEX_AUTOMATION_USER_ID)
   if (!actorUserId) throw new Error('GRIDEX_AUTOMATION_USER_ID krävs för mätvärdes- och faktureringsautopilot.')
   const company = input.companyConfig ?? (await listCompanies(input.companyId))[0]
-  const environment = validateCompany(company)
+  const { environment, provider } = validateCompany(company)
   const lockKey = `billing-monthly-prepare:${input.companyId}:${periodMonth}`
 
   return withAutomationLock({
@@ -92,7 +92,7 @@ export async function runMonthlyBillingAutomationForCompany(input: { companyId: 
 
         const metering = await runMeteringMarketDataAutopilot({ companyId: input.companyId, billingMonth: periodMonth, actorUserId })
         const underlayResult = await generateBillingUnderlaysForMonth({ companyId: input.companyId, billingMonth: periodMonth, createdBy: actorUserId })
-        const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: periodMonth, environment, actorUserId })
+        const preparation = await prepareInvoiceDraftsForReview({ companyId: input.companyId, billingMonth: periodMonth, environment, provider, actorUserId })
         const meteringBlockers = metering.review + metering.stopped + metering.requested
         const status: MonthlyBillingAutomationStatus = meteringBlockers > 0 || preparation.blocked > 0 || preparation.failed > 0 ? 'completed_with_blockers' : 'completed'
         await finishRun({ companyId: input.companyId, automationRunId, actorUserId, status, totalUnderlays: preparation.underlays, totalBlocked: preparation.blocked + meteringBlockers, totalPrepared: preparation.created, metadata: { source: 'monthly_billing_prepare_only_v3', approval_required: true, metering_autopilot: metering, underlay_result: underlayResult, preparation } })

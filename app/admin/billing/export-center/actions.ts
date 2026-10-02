@@ -28,11 +28,12 @@ export async function createBillingExportRunAction(formData: FormData) {
   const company = await supabase.from('companies').select('billing_provider_environment,invoice_export_target_system').eq('id', companyId).maybeSingle()
   if (company.error) throw company.error
   if (!company.data) throw new Error('Tenant saknas.')
-  const { environment } = requireTenantInvoiceProvider(company.data)
+  const { environment, provider } = requireTenantInvoiceProvider(company.data)
   await prepareInvoiceDraftsForReview({
     companyId,
     billingMonth: periodMonth,
     environment,
+    provider,
     actorUserId: user.id,
   })
   revalidatePath('/admin/billing/export-center')

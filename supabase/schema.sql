@@ -20331,6 +20331,101 @@ end
 $$;
 
 --
+-- Name: gridex_create_invoice_export_file_v1(uuid, text, text, uuid, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_invoice_export_file_v1(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_rows jsonb, p_rows_sha256 text) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  c record;
+  v_ids uuid[];
+  v_locked integer;
+  v_file_id uuid := gen_random_uuid();
+  v_total numeric;
+  r jsonb;
+BEGIN
+  IF p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'invoice_file_actor_required' USING ERRCODE = '22023';
+  END IF;
+  IF jsonb_typeof(p_rows) <> 'array' OR jsonb_array_length(p_rows) = 0 THEN
+    RAISE EXCEPTION 'invoice_file_empty' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT invoice_export_target_system, billing_provider_environment, invoice_export_enabled
+    INTO c FROM public.companies WHERE id = p_company_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'company_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF c.invoice_export_target_system IS DISTINCT FROM 'file_export'
+     OR c.billing_provider_environment IS DISTINCT FROM p_environment
+     OR c.invoice_export_enabled IS NOT TRUE THEN
+    RAISE EXCEPTION 'invoice_file_provider_not_active' USING ERRCODE = '55000';
+  END IF;
+
+  SELECT array_agg((x->>'invoice_export_item_id')::uuid) INTO v_ids FROM jsonb_array_elements(p_rows) x;
+  IF v_ids IS NULL OR cardinality(v_ids) <> (SELECT count(DISTINCT u) FROM unnest(v_ids) u) THEN
+    RAISE EXCEPTION 'invoice_file_rows_invalid' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT count(*) INTO v_locked FROM (
+    SELECT i.id FROM public.invoice_export_items i
+      JOIN public.invoice_export_runs run ON run.id = i.export_run_id AND run.company_id = i.company_id
+     WHERE i.company_id = p_company_id
+       AND i.id = ANY (v_ids)
+       AND i.status = 'pending'
+       AND i.export_file_id IS NULL
+       AND i.metadata->'approval'->>'status' = 'approved'
+       AND run.provider = 'file_export'
+       AND run.environment = p_environment
+       AND run.billing_month = p_billing_month
+     FOR UPDATE OF i
+  ) locked;
+  IF v_locked <> cardinality(v_ids) THEN
+    RAISE EXCEPTION 'invoice_file_items_changed' USING ERRCODE = '40001';
+  END IF;
+
+  SELECT coalesce(sum((x->>'amount_inc_vat')::numeric), 0) INTO v_total FROM jsonb_array_elements(p_rows) x;
+
+  INSERT INTO public.invoice_export_files (id, company_id, billing_month, environment, row_count, total_inc_vat, rows, rows_sha256, created_by)
+  VALUES (v_file_id, p_company_id, p_billing_month, p_environment, cardinality(v_ids), v_total, p_rows, p_rows_sha256, p_actor_user_id);
+
+  FOR r IN SELECT * FROM jsonb_array_elements(p_rows) LOOP
+    UPDATE public.invoice_export_items
+       SET status = 'sent', export_file_id = v_file_id, provider_status = 'exported_to_file',
+           sent_at = now(), next_retry_at = NULL, error_code = NULL, updated_at = now()
+     WHERE company_id = p_company_id AND id = (r->>'invoice_export_item_id')::uuid;
+    UPDATE public.customer_invoices
+       SET status = 'sent', issued_at = (r->>'invoice_date')::date, due_date = (r->>'due_date')::date,
+           partner_invoice_reference = 'file:' || v_file_id::text, updated_at = now()
+     WHERE company_id = p_company_id AND invoice_export_item_id = (r->>'invoice_export_item_id')::uuid
+       AND status = 'draft';
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'invoice_file_invoice_mirror_missing' USING ERRCODE = '40001';
+    END IF;
+  END LOOP;
+
+  UPDATE public.invoice_export_runs run
+     SET status = 'sent', sent_items = (SELECT count(*) FROM public.invoice_export_items i
+                                         WHERE i.company_id = run.company_id AND i.export_run_id = run.id AND i.status = 'sent'),
+         finished_at = now(), updated_at = now()
+   WHERE run.company_id = p_company_id
+     AND run.id IN (SELECT export_run_id FROM public.invoice_export_items WHERE company_id = p_company_id AND id = ANY (v_ids))
+     AND NOT EXISTS (SELECT 1 FROM public.invoice_export_items i
+                      WHERE i.company_id = run.company_id AND i.export_run_id = run.id AND i.status <> 'sent');
+
+  INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, entity_type, entity_id, action,
+                                 new_values, metadata, resource_type, resource_id)
+  VALUES (p_company_id, p_actor_user_id, 'user', 'invoice_export_file', v_file_id::text, 'invoice_file_created',
+          jsonb_build_object('billing_month', p_billing_month, 'row_count', cardinality(v_ids), 'total_inc_vat', v_total),
+          jsonb_build_object('environment', p_environment, 'rows_sha256', p_rows_sha256),
+          'invoice_export_file', v_file_id::text);
+
+  RETURN v_file_id;
+END $$;
+
+--
 -- Name: gridex_create_invoice_export_graph_v1(jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -29780,6 +29875,21 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_invoice_export_files_append_only(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_invoice_export_files_append_only() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+  IF TG_OP = 'DELETE' AND pg_trigger_depth() > 1 THEN
+    RETURN OLD;
+  END IF;
+  RAISE EXCEPTION 'invoice_export_files_append_only' USING ERRCODE = '42501';
+END $$;
 
 --
 -- Name: gridex_invoice_fee_readiness(jsonb, numeric); Type: FUNCTION; Schema: public; Owner: -
@@ -44390,6 +44500,7 @@ DECLARE
   cat record;
   v_open integer;
   v_connection_id uuid;
+  v_file boolean := p_provider = 'file_export';
 BEGIN
   IF p_environment NOT IN ('test', 'production') THEN
     RAISE EXCEPTION 'invoice_provider_environment_invalid' USING ERRCODE = '22023';
@@ -44418,8 +44529,9 @@ BEGIN
   END IF;
 
   INSERT INTO public.billing_provider_connections (company_id, provider, environment, status, display_name, readiness_issues)
-  VALUES (p_company_id, p_provider, p_environment, 'incomplete', cat.label,
-          jsonb_build_array(jsonb_build_object('code', 'connection_test_required')))
+  VALUES (p_company_id, p_provider, p_environment,
+          CASE WHEN v_file THEN 'ready' ELSE 'incomplete' END, cat.label,
+          CASE WHEN v_file THEN '[]'::jsonb ELSE jsonb_build_array(jsonb_build_object('code', 'connection_test_required')) END)
   ON CONFLICT (company_id, provider, environment) DO NOTHING
   RETURNING id INTO v_connection_id;
 
@@ -53172,7 +53284,7 @@ CREATE TABLE public.billing_provider_connections (
     created_by uuid,
     updated_by uuid,
     CONSTRAINT billing_provider_connections_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT billing_provider_connections_provider_check CHECK ((provider = ANY (ARRAY['capway_aptic'::text, 'nordfin'::text, 'fortnox'::text, 'billogram'::text, 'manual_export'::text, 'custom'::text]))),
+    CONSTRAINT billing_provider_connections_provider_check CHECK ((provider = ANY (ARRAY['capway_aptic'::text, 'nordfin'::text, 'file_export'::text, 'fortnox'::text, 'billogram'::text, 'manual_export'::text, 'custom'::text]))),
     CONSTRAINT billing_provider_connections_status_check CHECK ((status = ANY (ARRAY['incomplete'::text, 'ready'::text, 'active'::text, 'paused'::text, 'disabled'::text, 'needs_review'::text])))
 );
 
@@ -67558,6 +67670,34 @@ CREATE TABLE public.invoice_export_attempts (
 );
 
 --
+-- Name: invoice_export_files; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.invoice_export_files (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    billing_month text NOT NULL,
+    environment text NOT NULL,
+    row_count integer NOT NULL,
+    total_inc_vat numeric NOT NULL,
+    rows jsonb NOT NULL,
+    rows_sha256 text NOT NULL,
+    created_by uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT invoice_export_files_billing_month_check CHECK ((billing_month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text)),
+    CONSTRAINT invoice_export_files_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT invoice_export_files_row_count_check CHECK ((row_count > 0)),
+    CONSTRAINT invoice_export_files_rows_check CHECK ((jsonb_typeof(rows) = 'array'::text)),
+    CONSTRAINT invoice_export_files_rows_sha256_check CHECK ((rows_sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
+-- Name: TABLE invoice_export_files; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.invoice_export_files IS 'Immutable invoice files handed to the tenant''s invoice provider. rows is the exact file content source.';
+
+--
 -- Name: invoice_export_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -67613,6 +67753,7 @@ CREATE TABLE public.invoice_export_items (
     total_kwh numeric,
     currency text DEFAULT 'SEK'::text NOT NULL,
     billing_export_run_item_id uuid,
+    export_file_id uuid,
     CONSTRAINT invoice_export_items_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
     CONSTRAINT invoice_export_items_financing_mode_check CHECK ((financing_mode = ANY (ARRAY['invoice_service'::text, 'factoring_without_recourse'::text, 'factoring_with_recourse'::text, 'manual'::text]))),
     CONSTRAINT invoice_export_items_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'cancelled'::text, 'credited'::text, 'disputed'::text, 'rejected'::text, 'configuration_error'::text, 'failed_retryable'::text, 'needs_review'::text])))
@@ -74331,6 +74472,20 @@ ALTER TABLE ONLY public.invoice_documents
 
 ALTER TABLE ONLY public.invoice_export_attempts
     ADD CONSTRAINT invoice_export_attempts_pkey PRIMARY KEY (id);
+
+--
+-- Name: invoice_export_files invoice_export_files_company_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_export_files
+    ADD CONSTRAINT invoice_export_files_company_id_key UNIQUE (company_id, id);
+
+--
+-- Name: invoice_export_files invoice_export_files_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_export_files
+    ADD CONSTRAINT invoice_export_files_pkey PRIMARY KEY (id);
 
 --
 -- Name: invoice_export_items invoice_export_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -83995,6 +84150,12 @@ CREATE INDEX invoice_export_attempts_item_idx ON public.invoice_export_attempts 
 CREATE INDEX invoice_export_attempts_run_idx ON public.invoice_export_attempts USING btree (company_id, export_run_id, created_at DESC);
 
 --
+-- Name: invoice_export_files_company_month_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invoice_export_files_company_month_idx ON public.invoice_export_files USING btree (company_id, billing_month, created_at DESC);
+
+--
 -- Name: invoice_export_items_company_id_id_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -84011,6 +84172,12 @@ CREATE UNIQUE INDEX invoice_export_items_company_legacy_bridge_uidx ON public.in
 --
 
 CREATE UNIQUE INDEX invoice_export_items_company_provider_idempotency_uidx ON public.invoice_export_items USING btree (company_id, provider, idempotency_key) WHERE (idempotency_key IS NOT NULL);
+
+--
+-- Name: invoice_export_items_export_file_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX invoice_export_items_export_file_idx ON public.invoice_export_items USING btree (company_id, export_file_id) WHERE (export_file_id IS NOT NULL);
 
 --
 -- Name: invoice_export_items_provider_guid_idx; Type: INDEX; Schema: public; Owner: -
@@ -87310,6 +87477,12 @@ CREATE TRIGGER integration_api_clients_tenant_website_activation_guard BEFORE IN
 --
 
 CREATE TRIGGER integration_api_clients_tenant_website_receipt_completion AFTER UPDATE OF launch_ready, launch_blockers, metadata, status ON public.integration_api_clients FOR EACH ROW WHEN (((new.profile_key = 'tenant_website'::text) AND (new.status = 'active'::text) AND (new.launch_ready IS TRUE))) EXECUTE FUNCTION private.gridex_complete_tenant_website_receipt_on_launch_ready_v1();
+
+--
+-- Name: invoice_export_files invoice_export_files_no_update; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER invoice_export_files_no_update BEFORE DELETE OR UPDATE ON public.invoice_export_files FOR EACH ROW EXECUTE FUNCTION public.gridex_invoice_export_files_append_only();
 
 --
 -- Name: invoice_export_items invoice_export_items_customer_chain_v1; Type: TRIGGER; Schema: public; Owner: -
@@ -93137,6 +93310,13 @@ ALTER TABLE ONLY public.invoice_export_attempts
     ADD CONSTRAINT invoice_export_attempts_invoice_export_item_id_fkey FOREIGN KEY (invoice_export_item_id) REFERENCES public.invoice_export_items(id) ON DELETE CASCADE;
 
 --
+-- Name: invoice_export_files invoice_export_files_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_export_files
+    ADD CONSTRAINT invoice_export_files_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: invoice_export_items invoice_export_items_company_customer_contract_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -93170,6 +93350,13 @@ ALTER TABLE ONLY public.invoice_export_items
 
 ALTER TABLE ONLY public.invoice_export_items
     ADD CONSTRAINT invoice_export_items_company_underlay_fkey FOREIGN KEY (company_id, billing_underlay_id) REFERENCES public.billing_underlays(company_id, id);
+
+--
+-- Name: invoice_export_items invoice_export_items_export_file_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.invoice_export_items
+    ADD CONSTRAINT invoice_export_items_export_file_fkey FOREIGN KEY (company_id, export_file_id) REFERENCES public.invoice_export_files(company_id, id);
 
 --
 -- Name: invoice_export_items invoice_export_items_export_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -105293,6 +105480,12 @@ ALTER TABLE public.invoice_export_attempts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY invoice_export_attempts_service_role_all ON public.invoice_export_attempts TO service_role USING (true) WITH CHECK (true);
 
 --
+-- Name: invoice_export_files; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.invoice_export_files ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: invoice_export_items; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -115618,6 +115811,13 @@ REVOKE ALL ON FUNCTION public.gridex_create_internal_customer_contract_v1(p_comp
 GRANT ALL ON FUNCTION public.gridex_create_internal_customer_contract_v1(p_company_id uuid, p_customer_id uuid, p_contract_offer_id uuid, p_site_id uuid, p_metering_point_id uuid, p_selection jsonb, p_contract jsonb, p_actor_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_create_invoice_export_file_v1(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_rows jsonb, p_rows_sha256 text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_invoice_export_file_v1(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_rows jsonb, p_rows_sha256 text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_invoice_export_file_v1(p_company_id uuid, p_billing_month text, p_environment text, p_actor_user_id uuid, p_rows jsonb, p_rows_sha256 text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_create_invoice_export_graph_v1(p_run jsonb, p_items jsonb, p_invoices jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116475,6 +116675,13 @@ GRANT ALL ON FUNCTION public.gridex_insert_jsonb_row(p_table regclass, p_payload
 
 REVOKE ALL ON FUNCTION public.gridex_invalidate_site_operations_on_address_change() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_invalidate_site_operations_on_address_change() TO service_role;
+
+--
+-- Name: FUNCTION gridex_invoice_export_files_append_only(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_invoice_export_files_append_only() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_invoice_export_files_append_only() TO service_role;
 
 --
 -- Name: FUNCTION gridex_invoice_fee_readiness(p_snapshot jsonb, p_row_amount numeric); Type: ACL; Schema: public; Owner: -
@@ -121715,6 +121922,12 @@ GRANT ALL ON TABLE public.invoice_documents TO service_role;
 GRANT ALL ON TABLE public.invoice_export_attempts TO anon;
 GRANT ALL ON TABLE public.invoice_export_attempts TO authenticated;
 GRANT ALL ON TABLE public.invoice_export_attempts TO service_role;
+
+--
+-- Name: TABLE invoice_export_files; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.invoice_export_files TO service_role;
 
 --
 -- Name: TABLE invoice_export_items; Type: ACL; Schema: public; Owner: -

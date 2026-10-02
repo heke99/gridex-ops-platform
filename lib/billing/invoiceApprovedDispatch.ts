@@ -1,4 +1,5 @@
-import { requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
+import { InvoiceProviderConfigError, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
+import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertOutboundAllowed } from '@/lib/platform/outboundFreeze'
@@ -45,7 +46,7 @@ function sha256(value: unknown) {
   return createHash('sha256').update(stableJson(value)).digest('hex')
 }
 
-function approval(metadata: unknown): Row {
+export function approval(metadata: unknown): Row {
   return objectValue(objectValue(metadata).approval)
 }
 
@@ -63,7 +64,7 @@ function configuredPaymentDays(config: Awaited<ReturnType<typeof resolveCapwayCo
   return Math.max(1, configured ?? 20)
 }
 
-async function loadItemContext(companyId: string, itemId: string) {
+export async function loadItemContext(companyId: string, itemId: string) {
   const itemResult = await supabaseService.from('invoice_export_items').select('*').eq('company_id', companyId).eq('id', itemId).single()
   if (itemResult.error) throw itemResult.error
   const item = itemResult.data as Row
@@ -94,7 +95,7 @@ async function loadItemContext(companyId: string, itemId: string) {
   }
 }
 
-async function assertItemStillReady(context: Awaited<ReturnType<typeof loadItemContext>>) {
+export async function assertItemStillReady(context: Awaited<ReturnType<typeof loadItemContext>>) {
   if (context.underlay.status !== 'validated' || context.underlay.readiness_status !== 'ready') throw new Error('Faktureringsunderlaget är inte längre klart.')
   if ((num(context.underlay.missing_values_count) ?? 0) > 0) throw new Error('Mätvärden saknas fortfarande för kunden.')
   if (context.pricingRun.status !== 'locked' || !context.pricingRun.locked_at) throw new Error('Prisberäkningen är inte låst.')
@@ -172,7 +173,7 @@ async function approveItem(companyId: string, itemId: string, actorUserId: strin
   return loadItemContext(companyId, itemId)
 }
 
-async function updateLegacyProjection(input: { companyId: string; runId: string; itemId: string; status: 'sent' | 'failed'; error?: string | null }) {
+export async function updateLegacyProjection(input: { companyId: string; runId: string; itemId: string; status: 'sent' | 'failed'; error?: string | null }) {
   const now = new Date().toISOString()
   await supabaseService.from('billing_export_run_items').update({
     status: input.status === 'sent' ? 'sent' : 'ready_for_retry',
@@ -220,7 +221,7 @@ async function recordAttempt(input: {
   }).then(() => null)
 }
 
-async function maybeLockCompleteMonth(input: { companyId: string; billingMonth: string; actorUserId: string; exportRunId: string }) {
+export async function maybeLockCompleteMonth(input: { companyId: string; billingMonth: string; actorUserId: string; exportRunId: string }) {
   const [year, month] = input.billingMonth.split('-').map(Number)
   const underlays: Row[] = []
   for (let from = 0; ; from += 1_000) {
@@ -252,6 +253,18 @@ async function maybeLockCompleteMonth(input: { companyId: string; billingMonth: 
   return true
 }
 
+// A provider/selection mismatch is not transient: retrying cannot fix it, so the item leaves the
+// retry queue until an operator corrects the setup and resets it.
+async function parkConfigurationError(companyId: string, itemId: string, error: InvoiceProviderConfigError) {
+  await tenantUpdate(companyId, 'invoice_export_items', {
+    status: 'configuration_error',
+    error_code: error.code,
+    error_payload: { message: error.message, error_code: error.code },
+    next_retry_at: null,
+    updated_at: new Date().toISOString(),
+  }).eq('id', itemId).eq('status', 'failed_retryable')
+}
+
 async function sendApprovedItem(input: { companyId: string; itemId: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
   await assertOutboundAllowed({ companyId: input.companyId, channel: 'invoice_export' })
@@ -270,10 +283,11 @@ async function sendApprovedItem(input: { companyId: string; itemId: string; acto
       // Send only through the provider and environment the tenant has selected and enabled; a run
       // prepared for another provider or environment is never re-routed.
       const selected = requireTenantInvoiceProvider(context.company ?? {})
-      if (context.company?.invoice_export_enabled !== true) throw new Error('Utskick via fakturaleverantör är inte aktiverat för bolaget.')
-      if ((text(context.run.provider) ?? 'capway_aptic') !== selected.provider) throw new Error('Exportkörningen gäller en annan fakturaleverantör än den bolaget har valt.')
+      if (context.company?.invoice_export_enabled !== true) throw new InvoiceProviderConfigError('invoice_dispatch_disabled', 'Utskick via fakturaleverantör är inte aktiverat för bolaget.')
+      if ((text(context.run.provider) ?? 'capway_aptic') !== selected.provider) throw new InvoiceProviderConfigError('invoice_provider_mismatch', 'Exportkörningen gäller en annan fakturaleverantör än den bolaget har valt.')
+      if (selected.provider !== 'capway_aptic') throw new InvoiceProviderConfigError('invoice_provider_file_export', 'Fakturor via fil skickas genom att skapa en fakturafil under Fakturering.')
       const environment = (text(context.run.environment) as CapwayEnvironment) ?? 'test'
-      if (environment !== selected.environment) throw new Error('Exportkörningen gäller en annan miljö än den bolaget har valt.')
+      if (environment !== selected.environment) throw new InvoiceProviderConfigError('invoice_environment_mismatch', 'Exportkörningen gäller en annan miljö än den bolaget har valt.')
       const financingMode = (text(context.run.financing_mode) as CapwayFinancingMode) ?? 'invoice_service'
       const billingMonth = text(context.run.billing_month)
       const runId = text(context.run.id)
@@ -395,13 +409,21 @@ export async function sendApprovedInvoiceExportRun(input: { companyId: string; e
   const results = []
   for (const item of items) {
     const itemId = text(item.id)
-    if (itemId) results.push(await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId }))
+    if (!itemId) continue
+    try {
+      results.push(await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId }))
+    } catch (error) {
+      if (!(error instanceof InvoiceProviderConfigError)) throw error
+      results.push({ itemId, runId: input.exportRunId, status: 'configuration_error' as const, error: error.message, errorCode: error.code })
+    }
   }
   return { exportRunId: input.exportRunId, results, sent: results.filter((row) => row.status === 'sent').length, failed: results.filter((row) => row.status !== 'sent').length }
 }
 
 export async function approveAndSendReadyInvoicesForMonth(input: { companyId: string; billingMonth: string; actorUserId: string }) {
   await requireCompanyOperationalForWrites(input.companyId)
+  // A file provider receives approved invoices through an invoice file, not per-invoice sends.
+  const approveOnly = requireTenantInvoiceProvider((await loadTenantInvoiceProviderSelection(input.companyId)) ?? {}).provider === 'file_export'
   const runs = await supabaseService.from('invoice_export_runs').select('id').eq('company_id', input.companyId).eq('billing_month', input.billingMonth).order('created_at', { ascending: true })
   if (runs.error) throw runs.error
   const runIds = (runs.data ?? []).map((row) => String(row.id))
@@ -424,6 +446,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
         await approveItem(input.companyId, itemId, input.actorUserId)
         approved += 1
       }
+      if (approveOnly) continue
       const result = await sendApprovedItem({ companyId: input.companyId, itemId, actorUserId: input.actorUserId })
       if (result.status === 'sent') sent += 1
       else {
@@ -435,7 +458,7 @@ export async function approveAndSendReadyInvoicesForMonth(input: { companyId: st
       errors.push({ invoiceExportItemId: itemId, error: error instanceof Error ? error.message : 'Fakturan kunde inte godkännas/skickas.' })
     }
   }
-  return { approved, sent, failed, errors }
+  return { approved, sent, failed, errors, approveOnly }
 }
 
 export async function processDueApprovedInvoiceRetries(input: { companyId?: string | null; limit?: number } = {}) {
@@ -452,9 +475,14 @@ export async function processDueApprovedInvoiceRetries(input: { companyId?: stri
     if (!companyId || !itemId || approval(item.metadata).status !== 'approved') continue
     const actor = text(approval(item.metadata).approved_by)
     if (!actor) continue
-    const outcome = await sendApprovedItem({ companyId, itemId, actorUserId: actor })
-    if (outcome.status === 'sent') sent += 1
-    else failed += 1
+    try {
+      const outcome = await sendApprovedItem({ companyId, itemId, actorUserId: actor })
+      if (outcome.status === 'sent') sent += 1
+      else failed += 1
+    } catch (error) {
+      failed += 1
+      if (error instanceof InvoiceProviderConfigError) await parkConfigurationError(companyId, itemId, error)
+    }
   }
   return { processed: sent + failed, sent, failed }
 }
