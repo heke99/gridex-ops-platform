@@ -199,18 +199,21 @@ it.each(['quantity', 'timezone', 'resolutionFormat', 'customer', 'request', 'poi
   if (kind === 'request') c.billing.sourceRequestId = randomUUID()
   if (kind === 'point') c.metering.meteringPointId = randomUUID()
   if (kind === 'billing-period') { c.billing.periodEnd = '2026-07-01T00:00:00.000Z'; c.billing.month = 7 }
-  if (kind === 'unknown-version') Object.assign(c, { version: 2 })
+  if (kind === 'unknown-version') Object.assign(c, { version: 99 }) // current contracts are v2
   await expect(persistUtiltsTransactionResults(changed)).rejects.toThrow(/utilts_(consumption|transaction_persistence)/)
   expect(snapshot(f.original.id)).toEqual(before)
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled()
 })
-it('bound held source releases only on identical bytes and membership', async () => {
+it('a held payload contradicting the recorded outcome seals nothing; the genuine outcome binds immutable bytes', async () => {
   const f = await seed(), held = await f.prepare(f.original, true)
-  const first = await persistUtiltsTransactionResults(held), again = await persistUtiltsTransactionResults(held)
-  expect(first[0].persistenceStatus).toBe('not_applicable'); expect(again[0].sourceBinding).toEqual(first[0].sourceBinding)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await expect(persistUtiltsTransactionResults(held)).rejects.toThrow('utilts_transaction_owner_outcome_mismatch')
+    expect(snapshot(f.original.id)).toEqual({ acks: null, series: null, contracts: null })
+    expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(f.original.id)}`)).toBe(0)
+  }
   expect(await persistUtiltsTransactionResults(await f.prepare())).toMatchObject([{ persistenceStatus: 'persisted' }])
   const { error } = await supabaseService.from('ediel_messages').update({ raw_payload: f.original.raw_payload!.replace('500', '999') }).eq('id', f.original.id)
-  expect(error?.code).toBe('P0U01')
+  expect([error?.code, error?.message]).toEqual(['23514', 'immutable_ediel_payload_cannot_change']) // received bytes are immutable
   const status = await supabaseService.from('ediel_messages').update({ failure_reason: 'diagnostic-only' }).eq('id', f.original.id)
   expect(status.error).toBeNull()
 })
@@ -850,9 +853,12 @@ it('dedupe conflict after an earlier sibling insert rolls the entire batch back,
   const raw = (original.slice(0, start) + added + original.slice(start).replace('QTY+136:500', 'QTY+136:999')).replaceAll(f.original.interchange_reference!, 'BATCH'+f.original.interchange_reference!)
   const segments = raw.split('\n'), unt = segments.findIndex(line => line.startsWith('UNT+'))
   segments[unt] = `UNT+${unt - 1}+1'`
-  const source = await f.insertSource(segments.join('\n')), incoming = await f.prepare(source)
+  // The qualified runtime already rejects the reused field 505 in the issuer
+  // namespace; a forged accepted payload must still be refused by the database.
+  const source = await f.insertSource(segments.join('\n')), incoming = await f.prepare(source, false, true, true)
+  expect((await recordUtiltsFinalRuntime(source)).validation.issues.map(issue => issue.code)).toContain('UTILTS_ISSUER_TRANSACTION_REFERENCE_DUPLICATE')
   const before = snapshot(f.original.id)
-  await expect(persistUtiltsTransactionResults(incoming)).rejects.toThrow('utilts_consumption_raw_conflict')
+  await expect(persistUtiltsTransactionResults(incoming)).rejects.toThrow(forgedRefusal('consumption_raw_conflict'))
   expect(snapshot(f.original.id)).toEqual(before)
   expect(snapshot(source.id)).toEqual({ acks: null, series: null, contracts: null })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(0)
