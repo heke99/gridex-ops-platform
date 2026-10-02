@@ -56343,6 +56343,48 @@ CREATE TABLE public.customer_authorization_documents (
 COMMENT ON COLUMN public.customer_authorization_documents.customer_contract_id IS 'Optional customer contract bound to an uploaded authorization/agreement document; canonical signed imports verify company/customer/contract ownership before finalization.';
 
 --
+-- Name: customer_case_attachments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_case_attachments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    customer_id uuid NOT NULL,
+    customer_case_id uuid NOT NULL,
+    public_reference text NOT NULL,
+    file_name text NOT NULL,
+    declared_mime_type text,
+    detected_mime_type text,
+    byte_size integer NOT NULL,
+    sha256 text NOT NULL,
+    storage_path text NOT NULL,
+    visibility text NOT NULL,
+    uploaded_by_kind text NOT NULL,
+    uploaded_by_user_id uuid,
+    api_client_id uuid,
+    scan_status text DEFAULT 'quarantined'::text NOT NULL,
+    scan_reason text,
+    scanned_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_case_attachments_byte_size_check CHECK (((byte_size >= 1) AND (byte_size <= 10485760))),
+    CONSTRAINT customer_case_attachments_customer_upload_visible CHECK (((uploaded_by_kind <> 'customer'::text) OR (visibility = 'customer'::text))),
+    CONSTRAINT customer_case_attachments_detected_mime_type_check CHECK (((detected_mime_type IS NULL) OR (detected_mime_type = ANY (ARRAY['application/pdf'::text, 'image/png'::text, 'image/jpeg'::text])))),
+    CONSTRAINT customer_case_attachments_file_name_check CHECK (((length(file_name) >= 1) AND (length(file_name) <= 160))),
+    CONSTRAINT customer_case_attachments_public_reference_check CHECK ((public_reference ~ '^support_attachment_[A-Za-z0-9_-]{16,64}$'::text)),
+    CONSTRAINT customer_case_attachments_release_needs_type CHECK (((scan_status <> 'released'::text) OR (detected_mime_type IS NOT NULL))),
+    CONSTRAINT customer_case_attachments_scan_status_check CHECK ((scan_status = ANY (ARRAY['quarantined'::text, 'released'::text, 'rejected'::text]))),
+    CONSTRAINT customer_case_attachments_sha256_check CHECK ((sha256 ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT customer_case_attachments_uploaded_by_kind_check CHECK ((uploaded_by_kind = ANY (ARRAY['customer'::text, 'staff'::text]))),
+    CONSTRAINT customer_case_attachments_visibility_check CHECK ((visibility = ANY (ARRAY['customer'::text, 'internal'::text])))
+);
+
+--
+-- Name: TABLE customer_case_attachments; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.customer_case_attachments IS 'Support-case attachments. Files start quarantined; only released files are ever served. Content inspection, not antivirus.';
+
+--
 -- Name: customer_case_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -71863,6 +71905,27 @@ ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_case_attachments customer_case_attachments_company_reference_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_reference_key UNIQUE (company_id, public_reference);
+
+--
+-- Name: customer_case_attachments customer_case_attachments_company_storage_path_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_storage_path_key UNIQUE (company_id, storage_path);
+
+--
+-- Name: customer_case_attachments customer_case_attachments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_pkey PRIMARY KEY (id);
+
+--
 -- Name: customer_case_events customer_case_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -76111,6 +76174,18 @@ CREATE INDEX customer_blockers_company_type_status_idx ON public.customer_blocke
 --
 
 CREATE INDEX customer_blockers_customer_created_idx ON public.customer_blockers USING btree (customer_id, created_at DESC);
+
+--
+-- Name: customer_case_attachments_case_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_attachments_case_idx ON public.customer_case_attachments USING btree (company_id, customer_case_id, created_at);
+
+--
+-- Name: customer_case_attachments_customer_day_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_case_attachments_customer_day_idx ON public.customer_case_attachments USING btree (company_id, customer_id, created_at);
 
 --
 -- Name: customer_case_events_actor_idx; Type: INDEX; Schema: public; Owner: -
@@ -88980,6 +89055,27 @@ ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
+-- Name: customer_case_attachments customer_case_attachments_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+
+--
+-- Name: customer_case_attachments customer_case_attachments_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_customer_fkey FOREIGN KEY (company_id, customer_id) REFERENCES public.customers(company_id, id);
+
+--
+-- Name: customer_case_attachments customer_case_attachments_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: customer_case_events customer_case_events_case_owner_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -96109,6 +96205,12 @@ ALTER TABLE public.customer_blockers ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY customer_blockers_service_role_all ON public.customer_blockers USING ((( SELECT auth.role() AS role) = 'service_role'::text)) WITH CHECK ((( SELECT auth.role() AS role) = 'service_role'::text));
+
+--
+-- Name: customer_case_attachments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_case_attachments ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_case_events; Type: ROW SECURITY; Schema: public; Owner: -
@@ -118784,6 +118886,12 @@ GRANT ALL ON TABLE public.customer_application_workflows TO service_role;
 
 GRANT ALL ON TABLE public.customer_authorization_documents TO authenticated;
 GRANT ALL ON TABLE public.customer_authorization_documents TO service_role;
+
+--
+-- Name: TABLE customer_case_attachments; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_case_attachments TO service_role;
 
 --
 -- Name: TABLE customer_case_events; Type: ACL; Schema: public; Owner: -

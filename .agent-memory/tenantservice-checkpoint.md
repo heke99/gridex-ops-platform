@@ -89,3 +89,23 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - `lib/customer-portal/customerAssertion.ts`: node:crypto JWS verify (RS256/PS256/ES256; none/HS* rejected), iss/aud/exp/nbf/≤15 min lifetime, sub = linked portal user id, jti replay, OIDC JWKS fetch (https, no redirect, 3 s, 64 KB, 10 min cache). Gate per tenant: no provider → unchanged; 'report' logs `customer_assertion_would_reject`; 'enforce' → 403. Missing table (42P01/PGRST205) → treated as no provider (deploy-safe before migration).
 - OPS page `/admin/customer-login` (Inställningar → Kundinloggning): choose provider vs own login; OIDC discovery with SSRF guard (`lib/customer-portal/identityProviderSetup.ts`); own login = key pair generated in the browser, only public JWK sent; Testa; Logga bara/Kräv verifierad kund; remove. Actions bound to expected_company_id, company-admin permission, audited.
 - Production: migration 20261002080000 NOT yet applied to piidsfebjqjmnepdpnas; apply after merge (no DROP, safe).
+
+## #432 MERGED (2026-10-02 ~07:40 UTC, squash `2f7b8df`)
+- Contents: P1c (customer assertion verification + OPS Kundinloggning, per-tenant iss/aud), support quotas 50/day + 150/h, node-forge audit exception (expires 2026-11-01) + S/MIME round-trip test.
+- Production: migration `tenant_customer_identity_providers` applied to piidsfebjqjmnepdpnas (md5 matches repo file). No tenant has a provider yet → behaviour unchanged.
+- Ediel `ediel-document-reference-native` passed in the last two clean replays (was red earlier on 07:00–07:05 runs); no fix applied, treat as intermittent and watch.
+- Open: node-forge upgrade before 2026-11-01; ledger reconciliation (`supabase migration repair`) before any `db push`; attachments with quarantine; perf baseline.
+
+## Attachments step A (2026-10-02 ~08:35 UTC)
+- Migration `20261002100000_support_case_attachments.sql`: private bucket support-case-attachments (pdf/png/jpeg, 10 MB), table customer_case_attachments (quarantined→released/rejected, composite case/company/customer FK, RLS service-only).
+- `lib/customer-service/supportAttachments.ts`: magic-byte type detection, active-PDF rejection (hex-escaped names decoded), filename sanitizing, SHA-256 re-verified on download, 20/day/customer quota. Content inspection, NOT antivirus (seam: inspectAttachment).
+- OPS: case detail lists attachments + upload (≤4 MB because server action body limit is 5 MB) + download route with nosniff/CSP sandbox/attachment disposition.
+- Step B (open): customer support API endpoints for attachments = new OpenAPI release.
+- Then: perf baseline, then ledger reconciliation (user order).
+
+## PR #433 in CI (2026-10-02 ~09:15 UTC)
+- Added on top of step A: perf baseline (`quality/tenantservice/perf-baseline-2026-10-02.md`), ledger reconciliation (`quality/tenantservice/migration-ledger-reconciliation-2026-10-02.md`), regenerated types/schema snapshot from clean replay.
+- DECISION: no `supabase migration repair` — docs/migration-provenance.md forbids manual ledger writes. Never run `supabase db push` against production; apply file by file and verify.
+- Fix from CI: tenant invariant F-8/F-10 → attachment unique keys are now (company_id, public_reference) and (company_id, storage_path). Migration edited in place (never applied anywhere); checksum updated.
+- Ediel `ediel-document-reference-native` root cause (likely): app clock vs DB clock skew made startedAt < attempt.recorded_at → observe rejected → 1 attempt / 0 outcomes. Fix: `alignObservationToAttempt` in lib/ediel/sources/documentReferenceCapture.ts (+ unit test). If it still fails, investigate further.
+- Next: merge #433 when green → apply 20261002100000 in production (verify md5/RLS/grants) → reset branch from main → attachments step B (customer API + OpenAPI release 2026-10-02.1) → profile public-contracts.

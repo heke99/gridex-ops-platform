@@ -15,6 +15,19 @@ const rpc=async(name:string,args:Record<string,unknown>)=>{
  if(error||!isEvidenceRecord(data))throw Error('document_reference_unavailable')
  return data
 }
+/** The download starts after the attempt commit (program order), but its times come from the
+ * app clock while recordedAt comes from the database clock. A small skew could put startedAt before
+ * recordedAt and make the observation invalid; never report a time earlier than the attempt. */
+export function alignObservationToAttempt<T extends {startedAt:string|null;completedAt:string|null}>(observation:T,recordedAt:string):T{
+ const floor=parseSourceReceiptInstant(recordedAt)
+ if(floor===null)return observation
+ const lift=(value:string|null)=>{
+  if(value===null)return value
+  const at=parseSourceReceiptInstant(value)
+  return at!==null&&at<floor?recordedAt:value
+ }
+ return {...observation,startedAt:lift(observation.startedAt),completedAt:lift(observation.completedAt)} as T
+}
 /** Every invocation appends a new attempt and rereads bytes; no availability cache. */
 export async function captureDocumentReference(input:DocumentReferenceInput):Promise<DocumentReferenceResult>{
  if(![input.companyId,input.sourceMessageId,input.documentId,input.actorUserId].every(isEvidenceUuid)
@@ -31,7 +44,7 @@ export async function captureDocumentReference(input:DocumentReferenceInput):Pro
   const doc=attempt.document
   if(!isEvidenceRecord(doc)||doc.id!==input.documentId||doc.company_id!==input.companyId||!isEvidenceUuid(doc.customer_contract_id))throw Error('invalid_document')
   const observation=attempt.eligible===true
-   ?await downloadAndVerifyCustomerContractDocumentBounded(doc as CustomerContractDocumentRow)
+   ?alignObservationToAttempt(await downloadAndVerifyCustomerContractDocumentBounded(doc as CustomerContractDocumentRow),attempt.recordedAt)
    :{status:'unavailable',reason:'unresolved_link',startedAt:null,completedAt:null,byteCount:0}
   const outcome=await rpc('gridex_observe_document_reference_v1',{p_attempt_id:attemptId,p_actor_user_id:input.actorUserId,p_company_id:input.companyId,p_environment:input.environment,p_observation:observation})
   if(outcome.attemptId!==attemptId||!isEvidenceUuid(outcome.outcomeId)||!hash(outcome.factsHash)
