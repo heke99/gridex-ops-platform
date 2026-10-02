@@ -147,7 +147,7 @@ it('rejects a wrong E66 BGM document agency as field 202 before business persist
   const negative = io.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0]
   expect(JSON.stringify(negative.draft)).toContain('202')
 })
-it('keeps own field208 rejection but refuses an application ACK with unqualified physical legal agency', async () => {
+it('keeps own field208 rejection and answers it from our own resolved legal identity, not the unqualified agency', async () => {
   const message = observationHandoffMessage('2026-09-30')
   message.sender_ediel_id = '91100'; message.receiver_ediel_id = '21660'
   message.raw_payload = message.raw_payload!.replace('NAD+MR+21660:SVK:260', 'NAD+MR+21660:SVK:999')
@@ -157,19 +157,17 @@ it('keeps own field208 rejection but refuses an application ACK with unqualified
   const runtime = runUtiltsRuntimeForMessage(message)
   expect(runtime.validation.issues).toContainEqual(expect.objectContaining({aperakErcCode:'42', aperakFieldCode:'208', aperakText:'INCORRECT DATA 999'}))
   expect(runtime.transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
-  await expect(processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })).rejects.toThrow('ACK_APERAK_LEGAL_PARTY_INVALID')
+  await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: message.id })
   const persisted = io.rpc.mock.calls.find(([name]) => name === 'gridex_persist_utilts_consumption_v1')?.[1]
   expect(persisted?.p_company_id).toBe(message.company_id)
   expect(persisted?.p_transactions).toMatchObject([{ disposition: 'guide_rejected', responseType: 'negative_aperak' }])
-  expect(io.ack.mock.calls).toHaveLength(1)
-  expect(io.ack.mock.calls[0][0]).toMatchObject({ackFamily:'CONTRL',outcome:'positive',sourceMessage:{id:message.id,company_id:message.company_id,raw_payload:message.raw_payload}})
-  expect(io.ack.mock.calls.some(([call]) => ['APERAK','UTILTS_ERR'].includes(call.ackFamily))).toBe(false)
-  expect(io.from.mock.calls.some(([table]) => table === 'ediel_ack_transaction_results')).toBe(false)
-  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled(); expect(io.complete).not.toHaveBeenCalled()
+  expect(io.ack.mock.calls.map(([call]) => [call.ackFamily, call.outcome])).toEqual([['CONTRL','positive'],['APERAK','negative']])
+  const aperak = String(io.ack.mock.calls[1][0].draft?.rawPayload)
+  expect(aperak).toContain("NAD+MS+21660:SVK:260"); expect(aperak).not.toContain(':999'); expect(aperak).toContain('208')
+  expect(io.meter).not.toHaveBeenCalled(); expect(io.bill).not.toHaveBeenCalled()
   const facet=JSON.parse(io.rpc.mock.calls.find(([name])=>name==='gridex_record_utilts_source_validation_v4')![1].p_header_facts_text)
   expect(facet.applicationErrors).toContainEqual(expect.objectContaining({ercCode:'42',fieldCode:'208',text:'INCORRECT DATA 999'}))
-  expect(io.ack.mock.calls.map(([call])=>[call.ackFamily,call.outcome])).toEqual([['CONTRL','positive']])
-  // The original bad legal agency cannot be rewritten to birth an application ACK.
+  // The APERAK names our resolved legal identity, never the unqualified agency.
 })
 
 it('routes six-digit receiver SVK identifier at 208 to negative APERAK without business effects', async () => {

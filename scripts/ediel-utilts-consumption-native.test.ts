@@ -1671,31 +1671,31 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   expect(consumedCount(f.ids.company)).toEqual({ meter: 1, billing: 1 })
   expect(effects.complete).not.toHaveBeenCalled()
 })
-it('native inbound stores six-digit SVK receiver field208 rejection and no consumable series', async () => {
+it('native inbound holds a six-digit SVK receiver at field 208 for manual review with no consumable series', async () => {
   const f = await seed()
   const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, `NAD+MR+${f.ids.ediel}0:SVK:260`)))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
-  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('208')
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`))
-    .toEqual([{ disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
+  // The receiver id itself is unknown: no own legal identity can sign a reply,
+  expect(result.internalReviewRequired).toBe(true) // so it is held for manual review
+  expect(effects.ack).not.toHaveBeenCalled()
+  expect(sql(`SELECT count(*) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  expect(result.ackIds).toEqual([])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })
-it('native inbound stores agency-305 GLN check-digit rejection at 208 without consumption', async () => {
+it('native inbound holds an agency-305 GLN receiver at field 208 for manual review without consumption', async () => {
   const f = await seed()
   const source = await f.insertSource(ownIdentity(f.original.raw_payload!.replace(`NAD+MR+${f.ids.ediel}:SVK:260`, 'NAD+MR+7359990000014::305')))
   const result = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(result.ingestedMeterValueIds).toEqual([])
   expect(effects.meter).not.toHaveBeenCalled(); expect(effects.bill).not.toHaveBeenCalled(); expect(effects.complete).not.toHaveBeenCalled()
-  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).toContain('APERAK')
-  expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
-  expect(JSON.stringify(effects.ack.mock.calls.find(([call]) => call.ackFamily === 'APERAK')![0].draft)).toContain('208')
-  expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'plan',planned_response_type,'series',persisted_series_id)) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`))
-    .toEqual([{ disposition: 'guide_rejected', plan: 'negative_aperak', series: null }])
+  // The receiver id itself is unknown: no own legal identity can sign a reply,
+  expect(result.internalReviewRequired).toBe(true) // so it is held for manual review
+  expect(effects.ack).not.toHaveBeenCalled()
+  expect(sql(`SELECT count(*) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`)).toBe(0)
+  expect(result.ackIds).toEqual([])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(0)
   expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
 })

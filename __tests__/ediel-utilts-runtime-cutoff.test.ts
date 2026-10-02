@@ -384,10 +384,18 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
       ]))
       expect(runtime.ackPlan.utiltsErrCodes, replacement).toEqual([])
       const plan = resolveCanonicalRuntimeDecision(message).responsePlan.find(item => item.family === 'APERAK')!
-      // The fault stays source-qualified, but malformed legal actor identity
-      // cannot be replaced with the row's technical sender/receiver identity.
-      expect(() => buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors }))
-        .toThrow(/ACK_APERAK_LEGAL_PARTY_INVALID/)
+      const build = () => buildAperakDraft({ sourceMessage: message, outcome: 'negative', applicationErrors: plan.applicationErrors })
+      if (fieldCode === '207') {
+        // A malformed counterparty identity cannot be replaced with the row's
+        // technical sender identity.
+        expect(build).toThrow(/ACK_APERAK_LEGAL_PARTY_INVALID/)
+      } else {
+        // Field 208 names our own legal identity; the reply is built from the
+        // identity resolved for this source, never the invalid qualifiers.
+        const raw = String(build().rawPayload)
+        expect(raw, replacement).toContain('NAD+MS+21660:SVK:260')
+        expect(raw, replacement).toContain('NAD+MR+91100:SVK:260')
+      }
     }
   })
   it('requires BGM document qualifier SVK for S07 at field 202', () => {

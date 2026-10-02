@@ -376,6 +376,7 @@ export async function processInboundUtiltsMessage(params: {
   if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
   await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
 
+
   const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
     sourceMessage: message,
     explicitTestCaseCode: params.testCaseCode ?? null,
@@ -444,7 +445,17 @@ export async function processInboundUtiltsMessage(params: {
     runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority }),
   })
   const runtime = structuralQualification.runtime
-  await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime})
+  try { await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime}) }
+  catch (error) {
+    // The legal receiver (NAD+MR, field 208) could not be resolved when the
+    // source was received: no own identity can sign a reply and no rule basis
+    // can be captured. Hold it for manual review: no ACK, consumption or effect.
+    if (!legalReceiverUnresolved(error)) throw error
+    await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'warning',
+      message:'Mottagarens juridiska identitet (fält 208) kunde inte fastställas. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',
+      payload:{reason:'ediel_inbound_legal_context_required',manualReviewRequired:true}})
+    return {message,matchedDataRequest:canonicalLinks.matchedDataRequest,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
   const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
   const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
     runtime, testCaseCode: runtimeTestCaseCode,
@@ -983,4 +994,10 @@ export async function processInboundUtiltsMessage(params: {
     ingestedMeterValueIds,
     billingUnderlayId: billingUnderlay?.id ?? null,
   }
+}
+
+function legalReceiverUnresolved(error: unknown): boolean {
+  if (!(error instanceof Error) || error.message !== 'ediel_source_rule_pack_basis_required') return false
+  const cause = (error as { cause?: unknown }).cause as { message?: unknown } | undefined
+  return typeof cause?.message === 'string' && cause.message.includes('ediel_inbound_legal_context_required')
 }

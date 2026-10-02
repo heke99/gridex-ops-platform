@@ -16,6 +16,7 @@ import {prodatNowDate203 as standardTimeMinute} from '@/lib/ediel/prodat/render/
 import {readPhysicalUtiltsDocumentIdentity} from '@/lib/ediel/core/physicalDocumentReference'
 import {buildEdielAckGroupReference} from '@/lib/ediel/core/referenceRegistry'
 import {CANONICAL_ACK_GUIDE_CONSTRAINTS} from '@/lib/ediel/rulebook/ackGuidePolicy'
+import type {OriginalAckLegalParty} from '@/lib/ediel/core/originalAckPartyIdentities'
 import {isCopyableUtiltsReference,isValidUtiltsTransactionReference} from '@/lib/ediel/utilts/physicalReference'
 // lib/ediel/aperakEngine.ts
 
@@ -302,7 +303,7 @@ export function renderAperakEdiel(params: {
         // remains absent; technical/cached/generated references grant nothing.
         ...(utiltsDocument!.messageCode || utiltsDocument!.reference
           ? [`DOC+${escapeEdifactValue(utiltsDocument!.messageCode)}:SVK:260+${escapeEdifactValue(previousMessageReference)}`] : []),
-        originalAckLegalNadSegment('MS', utiltsParties!.legalReceiver),
+        originalAckLegalNadSegment('MS', utiltsReplySender(utiltsParties!.legalReceiver, params.source.legalReceiverEdielId)),
         originalAckLegalNadSegment('MR', utiltsParties!.legalSender),
         'NAD+DDQ',
       ]
@@ -440,4 +441,16 @@ export function renderAperakEdiel(params: {
       errorCount: errors.length,
     },
   }
+}
+
+/** The APERAK sender is our own legal identity. When the original NAD+MR
+ * (field 208) carries that identity with a code list/agency the guide does not
+ * allow, the reply is built from the identity we resolved for this source
+ * (SVK/260) instead of echoing the invalid qualifiers. Any other identity is
+ * copied unchanged and still checked by the ACK guide. */
+function utiltsReplySender(original: OriginalAckLegalParty, resolvedOwnLegalId: string | null | undefined): OriginalAckLegalParty {
+  const u = CANONICAL_ACK_GUIDE_CONSTRAINTS.UTILTS, [id, qualifier, agency] = original.identityComponents
+  const valid = u.legalAgencies.includes(agency ?? '') && (agency !== u.svkAgency || qualifier === u.svkQualifier)
+  if (valid || !resolvedOwnLegalId || id !== resolvedOwnLegalId) return original
+  return Object.freeze({ id, identityComponents: Object.freeze([id, u.svkQualifier, u.svkAgency]), country: original.country })
 }
