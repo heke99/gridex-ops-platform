@@ -71905,25 +71905,25 @@ ALTER TABLE ONLY public.customer_blockers
     ADD CONSTRAINT customer_blockers_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_case_attachments customer_case_attachments_company_reference_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_reference_key UNIQUE (company_id, public_reference);
+
+--
+-- Name: customer_case_attachments customer_case_attachments_company_storage_path_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_case_attachments
+    ADD CONSTRAINT customer_case_attachments_company_storage_path_key UNIQUE (company_id, storage_path);
+
+--
 -- Name: customer_case_attachments customer_case_attachments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.customer_case_attachments
     ADD CONSTRAINT customer_case_attachments_pkey PRIMARY KEY (id);
-
---
--- Name: customer_case_attachments customer_case_attachments_public_reference_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.customer_case_attachments
-    ADD CONSTRAINT customer_case_attachments_public_reference_key UNIQUE (public_reference);
-
---
--- Name: customer_case_attachments customer_case_attachments_storage_path_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.customer_case_attachments
-    ADD CONSTRAINT customer_case_attachments_storage_path_key UNIQUE (storage_path);
 
 --
 -- Name: customer_case_events customer_case_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
