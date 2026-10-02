@@ -225,16 +225,45 @@
       "expires": "2026-11-15",
       "summary": "Owner-approved time-limited audit exception; void if node-forge signature verification is used.",
       "evidence": "commit 23006a6b"
+    },
+    {
+      "id": "PROD-208-REPLY-IDENTITY",
+      "severity": "medium",
+      "summary": "APERAK for a field-208 fault is built from our resolved legal identity (SVK/260); an unresolved legal receiver is held for manual review without ACK.",
+      "evidence": "commit 89113253"
+    },
+    {
+      "id": "PROD-INBOUND-MAIL-LINK",
+      "severity": "critical",
+      "summary": "ediel_messages.inbound_email_message_id was written by real reception but created only by a non-canonical batch file; every real inbound reception failed on canonical replays. Forward migration 20261002180000 adds column, FK, same-company tenant guard and index.",
+      "evidence": "commit 8444df42"
+    },
+    {
+      "id": "PROD-IDE-QUALIFIER-WIRE",
+      "severity": "high",
+      "summary": "gridex_ack_authority.wire_v1 returned NULL for IDE qualifier other than 24, so a field-505 fault could never be answered. Forward migration 20261002190000 keeps the reference with ideQualifierInvalid; APERAK plan drops empty-text duplicates covered by a qualified sibling.",
+      "evidence": "commit e3a0c483"
+    },
+    {
+      "id": "PROD-MULTI-SEQ-CONSUMPTION",
+      "severity": "high",
+      "summary": "Consumption preparation paired normalized per-observation entries with physical transactions by index; a second SEQ observation failed physical_quantity_membership. Now bound by reference with one cursor per physical transaction.",
+      "evidence": "commit 2da04c28"
+    },
+    {
+      "id": "PROD-CATALOG-DIRECTION-HOLD",
+      "severity": "medium",
+      "summary": "Inbound UTILTS not allowed by the source catalog direction (e.g. E73) crashed the processor; now held for manual review with no ACK/receipt/effect.",
+      "evidence": "commit a5ef90cb"
+    },
+    {
+      "id": "NATIVE-CONSUMPTION-GREEN",
+      "severity": "info",
+      "summary": "ediel-utilts-consumption-native 141/141 locally (clean phase). Remaining failures were stale fixtures: production legal context, issuer namespace (505 uniqueness), exact decimals, syntax-rejected LOC-after-SEQ, forged-RPC payloads, E30 without SG5/MEA.",
+      "evidence": "commit 3484d8a9"
     }
   ],
   "open": [
-    {
-      "id": "NATIVE-OPEN-01",
-      "tests": "ediel-utilts-consumption-native (~120), utilts-err-gateway, utilts-s02",
-      "error": "ediel_inbound_legal_context_required / ediel_source_rule_pack_basis_required",
-      "rootCause": "Fixture seeds no tenant_actor_identifiers/tenant_ediel_profiles/roles/relations for the receiving company and reuses the global Ediel id 21660; canonical legal-context owner (20260930173632) requires a globally unique legal id, one profile, role and transport relation; fixture UNB also lacks test indicator 0035.",
-      "status": "REMAINING_FIXTURE_WORK"
-    },
     {
       "id": "NATIVE-OPEN-02",
       "tests": "ediel-bilateral-prodat-h-original-native (19)",
