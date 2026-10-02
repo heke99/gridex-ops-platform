@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -261,7 +262,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 

@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -326,7 +327,7 @@ export default async function GridOwnerRequestDetailPage({ params }: PageProps) 
  </h1>
 
  <p className="mt-2 text-sm text-slate-700 ">
- Kund {request.customer_id} · Anläggning {siteName(site)} · Mätpunkt{' '}
+ Kund <CustomerName id={request.customer_id} /> · Anläggning {siteName(site)} · Mätpunkt{' '}
  {meteringPointName(meteringPoint)}
  </p>
  </div>

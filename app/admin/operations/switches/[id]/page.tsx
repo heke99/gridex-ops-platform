@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -389,7 +390,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  </h1>
 
  <p className="mt-2 text-sm text-slate-700 ">
- Kund {request.customer_id} · Anläggning {siteName(site)} · Mätpunkt{' '}
+ Kund <CustomerName id={request.customer_id} /> · Anläggning {siteName(site)} · Mätpunkt{' '}
  {meteringPointName(meteringPoint)}
  </p>
  </div>
@@ -522,7 +523,7 @@ export default async function LeverantörsbyteDetailPage({ params }: PageProps) 
  Identifierare
  </div>
  <div className="mt-3 space-y-2 text-sm text-slate-700 ">
- <div>Kund-id: <span className="font-medium">{request.customer_id}</span></div>
+ <div>Kund: <span className="font-medium"><CustomerName id={request.customer_id} /></span></div>
  <div>Site ID: <span className="font-medium">{request.site_id}</span></div>
  <div>Mätpunkt ID: <span className="font-medium">{request.metering_point_id}</span></div>
  <div>Extern referens: <span className="font-medium">{request.external_reference ?? '—'}</span></div>

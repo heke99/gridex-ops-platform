@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 //app/admin/operations/tasks/page.tsx
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
@@ -364,7 +365,7 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
- <div>Kund: {task.customer_id}</div>
+ <div>Kund: <CustomerName id={task.customer_id} /></div>
  <div>Site: {taskSiteLabel(task, sites)}</div>
  <div>Mätpunkt: {taskMeteringPointLabel(task, meteringPoints)}</div>
  </div>
@@ -443,7 +444,7 @@ export default async function AdminOperationsTasksPage({
  </div>
 
  <div className="mt-3 grid gap-2 text-xs text-slate-700 sm:grid-cols-3">
- <div>Kund: {task.customer_id}</div>
+ <div>Kund: <CustomerName id={task.customer_id} /></div>
  <div>Site: {taskSiteLabel(task, sites)}</div>
  <div>Mätpunkt: {taskMeteringPointLabel(task, meteringPoints)}</div>
  </div>

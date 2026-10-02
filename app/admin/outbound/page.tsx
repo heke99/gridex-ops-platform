@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -583,7 +584,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 
@@ -857,7 +858,7 @@ export default async function OutboundPage({ searchParams }: PageProps) {
  </div>
 
  <div className="mt-3 text-sm text-slate-700 ">
- Kund {underlay.customer_id} · Site {underlay.site_id ?? '—'} ·
+ Kund <CustomerName id={underlay.customer_id} /> · Site {underlay.site_id ?? '—'} ·
  Mätpunkt {underlay.metering_point_id ?? '—'}
  </div>
 

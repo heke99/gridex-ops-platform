@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -181,7 +182,7 @@ export default async function ReadySwitchesPage() {
  {formatStatusLabel(request.status)}
  </td>
  <td className="px-6 py-4 text-slate-700 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </td>
  <td className="px-6 py-4 text-slate-700 ">
  {request.site_id}
