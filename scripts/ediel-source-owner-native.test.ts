@@ -428,7 +428,8 @@ function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMe
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
  return nativeTestWire(observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
   .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
-  .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202610150000'))
+  // DTM+354:1:802 is a whole-month E66 resolution: keep a whole market month.
+  .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202611010000'))
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
 }
 async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
