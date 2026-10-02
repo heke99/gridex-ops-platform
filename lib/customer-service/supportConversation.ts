@@ -244,8 +244,8 @@ async function insertSupportEvent(input: {
  * tenant's shared client. Counts come from the database, so they hold across instances.
  */
 export const SUPPORT_CUSTOMER_QUOTAS = {
-  newCasesPerDay: 10,
-  messagesPerHour: 30,
+  newCasesPerDay: 50,
+  messagesPerHour: 150,
 } as const
 
 async function assertSupportQuota(

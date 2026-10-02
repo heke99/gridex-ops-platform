@@ -28,7 +28,7 @@ The organization's own support page uses these endpoints. The same cases are han
 
 **Writes.** Both POST endpoints require `Idempotency-Key`. The same key with the same payload replays the stored result. The same key with a different payload returns `409`. A closed case rejects new messages with `409 support_case_closed`.
 
-**Per-customer quotas.** In addition to the API client's rate limit, each end customer may open at most 10 new support cases per 24 hours and send at most 30 messages per hour. Above that the API returns `429 support_quota_exceeded`. Retrying an `Idempotency-Key` that already created a case is never refused by the quota.
+**Per-customer quotas.** In addition to the API client's rate limit, each end customer may open at most 50 new support cases per 24 hours and send at most 150 messages per hour. Above that the API returns `429 support_quota_exceeded`. Retrying an `Idempotency-Key` that already created a case is never refused by the quota.
 
 **Side effects.** Opening a support case does not stop billing, onboarding, metering requests or switches.
 
