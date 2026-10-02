@@ -1161,11 +1161,14 @@ it('native BGM5 correction pins an approved predecessor; a later receipt alone i
 })
 it('native user without company permission cannot create even a canonical-ledger assessment during review',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
- sql(`DELETE FROM public.user_permissions WHERE user_id=${literal(f.ids.reviewer)} AND permission_key='ediel_testing.write';`)
- const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
-  p_actor_user_id:f.ids.reviewer,p_company_id:f.ids.company,p_permission:'ediel_testing.write',
- })
- expect(permission.error).toBeNull();expect(permission.data).toBe(false)
+ // Review accepts either reviewer permission; remove both.
+ sql(`DELETE FROM public.user_permissions WHERE user_id=${literal(f.ids.reviewer)} AND permission_key IN('ediel_testing.write','communication.write');`)
+ for(const key of ['ediel_testing.write','communication.write']){
+  const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
+   p_actor_user_id:f.ids.reviewer,p_company_id:f.ids.company,p_permission:key,
+  })
+  expect(permission.error).toBeNull();expect(permission.data).toBe(false)
+ }
  const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
  expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
@@ -1397,7 +1400,9 @@ it('native append independently binds sealed raw values and midnight support; is
  // midnight support guards; it does not claim to isolate binding alone.
  // Minute+UTC agree and the legacy calendar DATE remains unchanged.
  expect(probe(minute,true)).toBe(false) // Midnight guard independently holds.
- expect(probe(minute,true,true)).toBe(true) // BOTH guards removed: old design gap.
+ // BOTH guards removed: the reviewed coverage end (validTo) is still bound to
+ // the exact closure instant, so the forged minute is held by that third guard.
+ expect(probe(minute,true,true)).toBe(false)
  expect(probe(li,true)).toBe(true) // Binding-only isolated red control.
  expect(probe(minute)).toBe(false);expect(probe(li)).toBe(false)
  const mutations:((facts:Facts)=>void)[]=[
