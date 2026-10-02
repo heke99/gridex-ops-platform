@@ -4,8 +4,13 @@ import type { JsonWebKey } from 'node:crypto'
  * Tenantservice P1c: setup helpers for OPS "Kundinloggning". Only public material is accepted.
  */
 
-/** Audience every tenant-key assertion must carry. OIDC providers use the tenant's client id. */
-export const TENANT_KEY_AUDIENCE = 'gridex-customer-api'
+/**
+ * Audience a tenant-key assertion must carry. Per tenant, so an assertion minted for one tenant is
+ * refused by every other tenant even before key matching. OIDC providers use the tenant's client id.
+ */
+export function tenantKeyAudience(companyId: string): string {
+  return `gridex-customer-api:${companyId}`
+}
 
 export function tenantKeyIssuer(companyId: string): string {
   return `gridex-tenant:${companyId}`

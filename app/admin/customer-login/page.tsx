@@ -3,7 +3,7 @@ import CustomerLoginSetup, { type CustomerLoginProviderView } from "@/components
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
 import { getOperationalCompanyScope } from "@/lib/tenant/scope";
 import { tenantSelect } from "@/lib/supabase/tenantQuery";
-import { TENANT_KEY_AUDIENCE, tenantKeyIssuer } from "@/lib/customer-portal/identityProviderSetup";
+import { tenantKeyAudience, tenantKeyIssuer } from "@/lib/customer-portal/identityProviderSetup";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export default async function CustomerLoginPage() {
             companyId={companyId}
             provider={provider}
             tenantKeyIssuer={tenantKeyIssuer(companyId)}
-            tenantKeyAudience={TENANT_KEY_AUDIENCE}
+            tenantKeyAudience={tenantKeyAudience(companyId)}
           />
         )}
       </div>

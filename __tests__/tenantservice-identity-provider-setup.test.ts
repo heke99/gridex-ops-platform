@@ -4,6 +4,8 @@ import {
   assertPublicHttpsUrl,
   discoverOidcProvider,
   parsePublicJwk,
+  tenantKeyAudience,
+  tenantKeyIssuer,
 } from '@/lib/customer-portal/identityProviderSetup'
 
 describe('Kundinloggning setup (P1c)', () => {
@@ -50,6 +52,15 @@ describe('Kundinloggning setup (P1c)', () => {
     expect(parsePublicJwk(JSON.stringify({ ...publicJwk, kid: 'k1', extra: 'x' }))).toEqual({ kty: 'RSA', n: publicJwk.n, e: publicJwk.e, kid: 'k1' })
     expect(() => parsePublicJwk(JSON.stringify(rsa.privateKey.export({ format: 'jwk' })))).toThrow(/privat nyckel/)
     expect(() => parsePublicJwk('{"kty":"oct","k":"c2VjcmV0"}')).toThrow()
+  })
+})
+
+describe('multitenant isolation of own-login keys', () => {
+  it('issuer and audience are specific to each tenant', () => {
+    const a = '00000000-0000-4000-8000-00000000000a', b = '00000000-0000-4000-8000-00000000000b'
+    expect(tenantKeyIssuer(a)).not.toBe(tenantKeyIssuer(b))
+    expect(tenantKeyAudience(a)).not.toBe(tenantKeyAudience(b))
+    expect(tenantKeyAudience(a)).toBe(`gridex-customer-api:${a}`)
   })
 })
 

@@ -8,9 +8,9 @@ import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQ
 import { resetCustomerIdentityProviderCache } from '@/lib/customer-portal/customerAssertion'
 import {
   IdentityProviderSetupError,
-  TENANT_KEY_AUDIENCE,
   discoverOidcProvider,
   parsePublicJwk,
+  tenantKeyAudience,
   tenantKeyIssuer,
 } from '@/lib/customer-portal/identityProviderSetup'
 
@@ -80,7 +80,7 @@ export async function saveTenantKeyProviderAction(_prev: CustomerLoginActionStat
     const jwk = parsePublicJwk(text(formData, 'public_jwk'))
     await replaceActiveProvider(companyId, userId, {
       kind: 'tenant_key', display_name: 'Egen inloggning',
-      issuer: tenantKeyIssuer(companyId), audience: TENANT_KEY_AUDIENCE, jwks_uri: null, public_jwk: jwk,
+      issuer: tenantKeyIssuer(companyId), audience: tenantKeyAudience(companyId), jwks_uri: null, public_jwk: jwk,
       last_tested_at: new Date().toISOString(), last_test_result: { ok: true },
     }, 'Kundinloggning med egen nyckel sparad')
     return 'Klart. Den publika nyckeln är sparad. Den privata nyckeln finns bara hos er.'

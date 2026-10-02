@@ -32,7 +32,7 @@ The organization's own support page uses these endpoints. The same cases are han
 
 **Verified customer login (optional, per tenant).** A tenant can let Gridex verify the end customer's login itself (OPS → Inställningar → Kundinloggning). The tenant server then sends the login's signed assertion in `x-gridex-customer-assertion`:
 - Format: compact JWS signed with RS256, PS256 or ES256 (`none` and HS* are rejected).
-- Claims: `iss` and `aud` as shown in OPS, `sub` = the linked portal user id, `exp` at most 15 minutes after `iat`, and a unique `jti` (each assertion is accepted once). Optional `amr`/`acr` records the login method (for example BankID).
+- Claims: `iss` and `aud` as shown in OPS (both are specific to the tenant; for own-login keys `iss=gridex-tenant:<company id>` and `aud=gridex-customer-api:<company id>`), `sub` = the linked portal user id, `exp` at most 15 minutes after `iat`, and a unique `jti` (each assertion is accepted once). Optional `amr`/`acr` records the login method (for example BankID).
 - Keys: an OIDC provider's published JWKS, or the tenant's own public key (generated in the browser; the private key never reaches Gridex).
 - Rollout: "Logga bara" accepts calls and logs `customer_assertion_would_reject`; "Kräv verifierad kund" returns `403 customer_assertion_required` or `403 customer_assertion_invalid`. Tenants without a configuration are unaffected.
 
