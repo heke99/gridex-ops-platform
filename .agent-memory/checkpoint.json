@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-02T08:41:34.851836Z",
+  "updated_at": "2026-10-02T12:00:39.687848Z",
   "status": "IN_PROGRESS_CI_RED_NATIVE",
   "paused": false,
   "branch": "claude/zealous-rubin-6axb91",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Triage full native run (/tmp/claude-0/native-full.json); fix remaining clusters (consumption, correction-context, source-owner, bilateral H, service-evidence, z04-ack, document-reference, err-gateway, z06f, browser retention); then freeze (schema snapshot regeneration), CI green, confirm deploy order, merge #426.",
+  "next_action": "Continue native clusters: z04-ack CONTRL technical reception, service-evidence held authorization, z06f unconfirmed, document-reference storage, object-batch psql, err-gateway technical reception; then remaining consumption; regenerate supabase/schema.sql at freeze.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1438,9 +1438,22 @@
     ]
   },
   "head_sha": "0f61f08f57aedc6c0cc6a442829e16cc75064e67",
-  "last_commit": "71740854",
+  "last_commit": "see git log (claude/zealous-rubin-6axb91)",
   "completed": [
     "S02 native 26/26 (20261002070000, 20261002080000)",
     "node-forge time-limited audit exception (owner approved)"
+  ],
+  "native_status": {
+    "last_full_run": "226 failed / 356 passed of 582 (before later fixes)",
+    "source_owner": "47/48 local",
+    "consumption": "103/143 local",
+    "s02": "26/26",
+    "z04_ack": "in progress (CONTRL technical endpoint)",
+    "unit": "9199/9199"
+  },
+  "blocked_on_owner": [
+    "NATIVE-BLOCKED-BILATERAL-H-PROFILES",
+    "NATIVE-OPEN-RECEIVER-208-REPLY",
+    "PREEXISTING-INBOUND-CASES-SCHEMA-DRIFT"
   ]
 }

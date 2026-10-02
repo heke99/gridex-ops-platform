@@ -653,3 +653,6 @@ Skill-routing: aktiva — systematic-debugging (varje rött test till rotorsak),
 - 20261002070000 outbound reply creation repairs; 20261002080000 ACK inherited rule basis. S02 native 26/26 (71740854).
 - node-forge GHSA-86w9-cpqp-85rv: owner-approved exception until 2026-11-15, void on verify usage (23006a6b).
 - clean-migration-replay also fails db:schema:check: supabase/schema.sql is far behind (602 vs 948 relations); regenerate at freeze.
+- Native: S02 26/26; source-owner 47/48; consumption 103/143. Product fixes: structural readset skips UTILTS (with unit test), closure coverage instant compare (with unit test), ACK inherited basis (20261002080000).
+- Fixture lessons: production record->capture order; technical reception before reply reads; issuer registration; field 505 unique per issuer over time; 14-day 25-A-3 grace (strict 25-A-4 tests receive after 2026-10-14); E30 has no SG5/MEA and only 15:806/1:801/1:802; exact decimal strings; UNB test flag for env=test; PRODAT LIN group order CCI before RFF/NAD.
+- Owner decisions needed: bilateral H/LK profiles absent; field-208 reply for unresolved receiver; inbound cases schema drift (pre-existing on main).
