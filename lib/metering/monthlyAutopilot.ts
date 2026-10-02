@@ -1,5 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { createGridOwnerDataRequest } from '@/lib/cis/db-grid-owner'
+import { createGridOwnerDataRequest } from '@/lib/cis/db'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { createCustomerDataTask } from '@/lib/customers/dataTasks'
 import { evaluateMeteringCompletenessForMonth } from '@/lib/metering/validation'
