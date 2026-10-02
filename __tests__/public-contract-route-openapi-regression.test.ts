@@ -230,6 +230,11 @@ describe('real public contracts route against published OpenAPI', () => {
     ] as JsonObject).schema ?? {}) as JsonObject
 
     expect(validate(openApi, runtimeBody, responseSchema)).toEqual([])
+    // Phase timings go to the request log only, never into the public response.
+    const logged = (mocks.logIntegrationApiRequest.mock.calls.at(-1) as unknown[] | undefined)?.[0] as { metadata?: { timings_ms?: Record<string, number> } } | undefined
+    expect(Object.keys(logged?.metadata?.timings_ms ?? {})).toEqual(['auth', 'fingerprint', 'load', 'build'])
+    expect(Object.values(logged?.metadata?.timings_ms ?? {}).every((ms) => Number.isInteger(ms) && ms >= 0)).toBe(true)
+    expect(JSON.stringify(runtimeBody)).not.toContain('timings_ms')
     const contracts = runtimeBody.data as Array<JsonObject>
     expect(contracts).toHaveLength(1)
     const option = (contracts[0]?.price_options as Array<JsonObject>)[0]
