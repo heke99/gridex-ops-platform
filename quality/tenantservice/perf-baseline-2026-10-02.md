@@ -57,3 +57,20 @@ from public.integration_api_requests
 where created_at > now() - interval '7 days'
 group by route order by n desc;
 ```
+
+## Update 2026-10-02: instrumentation of public-contracts
+
+- **No conditional requests:** during the last 14 days there were 698 calls, all `200` and none `304`. Clients do not send `If-None-Match`, so the cheap fingerprint path is never used. Recommendation: the tenant website sends `If-None-Match: <ETag>`. Unchanged feeds then cost only `auth` and `fingerprint`, with no catalog query. This is a client-side change; the server already supports it.
+- **Phase timings:** the route now writes `metadata.timings_ms = {auth, fingerprint, load, build}` to `integration_api_requests`. It goes to the log only and never into the response. Read after a few days of traffic:
+
+```sql
+select percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'auth')::int) auth_p50,
+       percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'fingerprint')::int) fp_p50,
+       percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'load')::int) load_p50,
+       percentile_cont(0.95) within group (order by (metadata->'timings_ms'->>'load')::int) load_p95,
+       percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'build')::int) build_p50
+from public.integration_api_requests
+where route like '%public-contracts%' and metadata ? 'timings_ms' and created_at > now() - interval '7 days';
+```
+
+- **No optimization yet:** none has been made, because the slowest phase has not been measured. Response logging and the usage event run after `duration_ms` is captured, so they are not included in that figure.
