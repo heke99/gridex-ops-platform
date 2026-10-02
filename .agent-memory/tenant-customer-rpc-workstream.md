@@ -46,5 +46,6 @@ Register: `quality/audits/ui-consistency-20261002/findings-register.md`.
 Branch `claude/ui-audit`: PR A (security) in progress. Order: A security → B broken
 → C DB mismatch/raw codes → D clutter/wording → E intake/contracts/onboarding.
 Owner granted full Supabase approval (2026-10-02) and asked to proceed stepwise.
-PR A = #462 MERGED (b9764ff). PR B = #463 (base main, branch claude/ui-audit-b): B1–B12 done, migration 20261002227000 applied+recorded on hosted. Next: when #463 clean-migration-replay finishes, download gridex-rem-002-clean-replay, regenerate database.types.ts/schema.sql/fingerprint + manifest, push; merge when green; then PR C.
-Next: PR B (broken/dead), then C (raw codes/labels), D (clutter/wording), E (intake/contracts/onboarding: website review → onboardCustomerGraph, contractStatus allow-list, offer-not-found error, onboarding role hierarchy/last-admin, provisioning RPC).
+PR A = #462 MERGED. PR B = #463 head b34c5ea7 (schema snapshot refreshed; tenant invariants passed) — merge when replay green.
+Stacked branches pushed (no PRs yet): claude/ui-audit-c (C1–C3), claude/ui-audit-d (D1–D6), claude/ui-audit-e (E1–E6; E7 needs product decision, E8 open).
+Next: merge #463, then open PR C/D/E against main in order (merge main into each first), CI green, merge.
