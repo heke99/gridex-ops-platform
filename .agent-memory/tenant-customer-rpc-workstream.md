@@ -41,10 +41,7 @@ rolled-back probe (real customer blocked, test customer + site deleted, audit ro
 None in the register. Accepted (idempotent, tenant-scoped, no RPC): tenant sync,
 admin application review save, missing facility information request.
 
-## 2026-10-02 (later) — UI/DB/tenant consistency audit (active)
+## 2026-10-02 (later) — UI/DB/tenant consistency audit (done)
 Register: `quality/audits/ui-consistency-20261002/findings-register.md`.
-Branch `claude/ui-audit`: PR A (security) in progress. Order: A security → B broken
-→ C DB mismatch/raw codes → D clutter/wording → E intake/contracts/onboarding.
-Owner granted full Supabase approval (2026-10-02) and asked to proceed stepwise.
-PR A = #462 MERGED. PR B = #463: types regenerated (2f24cc9a), verify green, replay pending; merge when green. PR C on branch claude/ui-audit-c (stacked on B): C1 status labels pushed; next C: raw UUIDs → names, company <select> instead of free-text company_id; then open PR C after B merges.
-Next: PR B (broken/dead), then C (raw codes/labels), D (clutter/wording), E (intake/contracts/onboarding: website review → onboardCustomerGraph, contractStatus allow-list, offer-not-found error, onboarding role hierarchy/last-admin, provisioning RPC).
+Merged: #462 (A security), #463 (B broken/dead + migration 20261002227000, applied on hosted), #464 (C labels/names/pickers), #465 (D nav/duplicates/wording), #466 (E intake/contracts/onboarding).
+Open, waiting on owner: E7 website-channel defaults (active/monthly/variable_monthly vs admin draft/hourly/variable_hourly); E8 website review single-transaction RPC.
