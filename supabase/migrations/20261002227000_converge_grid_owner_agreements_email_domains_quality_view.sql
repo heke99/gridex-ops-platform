@@ -46,6 +46,7 @@ create index if not exists idx_grid_owner_access_agreements_company_scope
   on public.grid_owner_access_agreements (company_id, grid_owner_id, agreement_scope, status);
 create index if not exists idx_grid_owner_access_agreements_active_metering
   on public.grid_owner_access_agreements (company_id, grid_owner_id, agreement_type, status, valid_from, valid_to);
+alter table public.grid_owner_access_agreements alter column company_id set not null;
 alter table public.grid_owner_access_agreements enable row level security;
 drop policy if exists gridex_perf_authenticated_select_v on public.grid_owner_access_agreements;
 
@@ -124,3 +125,13 @@ where not exists (select 1 from public.powers_of_attorney p
 
 revoke all on public.customer_data_quality_open_issues from anon, authenticated, public;
 grant select on public.customer_data_quality_open_issues to service_role;
+
+insert into public.platform_table_classification (table_name, kind, rationale, null_company_meaning, classified_by)
+values
+  ('grid_owner_access_agreements', 'tenant',
+   'Grid-owner access agreements owned by one tenant; company_id is NOT NULL.',
+   null, 'migration'),
+  ('tenant_email_domains', 'tenant',
+   'Sender e-mail domains owned by one tenant; company_id is NOT NULL.',
+   null, 'migration')
+on conflict (table_name) do nothing;
