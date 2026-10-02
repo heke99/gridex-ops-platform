@@ -14,7 +14,6 @@ DECLARE
   mp_b uuid := gen_random_uuid();
   period_a uuid := gen_random_uuid();
   period_b uuid := gen_random_uuid();
-  msg uuid := gen_random_uuid();
   res jsonb;
 BEGIN
   -- The same national metering point is held by tenant A (losing) and tenant B (gaining).
@@ -32,18 +31,18 @@ BEGIN
 
   PERFORM set_config('request.jwt.claims', '{"role":"authenticated"}', true);
   BEGIN
-    PERFORM public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', msg, null);
+    PERFORM public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
     RAISE EXCEPTION 'supply end allowed for authenticated role';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   PERFORM set_config('request.jwt.claims', '{"role":"service_role"}', true);
 
   -- Tenant B cannot end tenant A's customer.
   BEGIN
-    PERFORM public.gridex_end_customer_supply_v1(b, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', msg, null);
+    PERFORM public.gridex_end_customer_supply_v1(b, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
     RAISE EXCEPTION 'cross-tenant supply end allowed';
   EXCEPTION WHEN no_data_found THEN NULL; END;
 
-  res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', msg, null);
+  res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
 
   -- Ended but still billable up to and including the switch date.
   IF (SELECT end_date FROM public.customer_supply_periods WHERE id = period_a) <> DATE '2026-10-15'
@@ -67,7 +66,7 @@ BEGIN
   END IF;
 
   -- Replaying the same message changes nothing.
-  res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', msg, null);
+  res := public.gridex_end_customer_supply_v1(a, cust_a, mp_a, DATE '2026-10-15', 'supplier_switch', null, null);
   IF NOT (res->>'already_applied')::boolean
      OR (SELECT count(*) FROM public.customer_operation_tasks WHERE customer_id = cust_a AND task_type = 'final_invoice_pending') <> 1 THEN
     RAISE EXCEPTION 'supply end not idempotent';
