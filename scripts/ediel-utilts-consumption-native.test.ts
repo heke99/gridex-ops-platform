@@ -75,9 +75,9 @@ async function seed() {
    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
     SELECT ${lit(ids.actor)},${lit(ids.company)},id,key FROM public.permissions
     WHERE key IN('metering.write','communication.read','communication.write','communication.send');
-   INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES(${lit(ids.company)},'test','electricity',true,clock_timestamp()-interval '1 day');
-   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${lit(ids.company)},'test',${lit(ids.actor)},'EdielId',${lit(ediel)},clock_timestamp()-interval '1 day');
-   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${lit(ids.company)},'test',${lit(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day');
+   INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) SELECT ${lit(ids.company)},e,'electricity',true,clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e;
+   INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) SELECT ${lit(ids.company)},e,${lit(ids.actor)},'EdielId',${lit(ediel)},clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e;
+   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(ids.company)},e,${lit(ids.actor)},'electricity_supplier',clock_timestamp()-interval '1 day' FROM unnest(ARRAY['test','production']) e;
    INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${lit(ids.customer)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','private');
    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${lit(ids.grid)},${lit(ids.company)},${lit(ids.grid)},${lit(ids.issuer)},'test',true,'active');
    INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${lit(ids.site)},${lit(ids.company)},${lit(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${lit(ids.grid)});
@@ -90,7 +90,7 @@ async function seed() {
     setUtiltsReceiverRole(sql, lit, ids.company, ids.actor, code)
     // Each inserted source is a new issued message with its own BGM 1004 reference.
     const sourceId = randomUUID(); raw = raw.replace(/(BGM\+[^+']*\+)[^+']+/, `$1M${sourceId.replaceAll('-', '').slice(0, 20)}`)
-    const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw), sourceId)
+    const fixture = utiltsNativeSourceFixture(utiltsRecountUnt(environment === 'test' ? utiltsTestEnvironmentWire(raw) : raw.replace(/(UNB\+[^']*)\+\+1'/, "$1'") /* production: no UNB test flag */), sourceId)
     const { id, parsed } = fixture
     raw = fixture.raw
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)

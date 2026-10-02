@@ -732,8 +732,15 @@ function aperakErrorsFromIssues(message:EdielMessageRow,issues: readonly UtiltsV
       lineItemReference: physicalOptionalReference(issue.lineItemReference ?? issue.referenceNumber),
     }))
 
+  // Two findings on the same physical field (e.g. an invalid IDE qualifier and
+  // a namespace duplicate of its 505 value) are one ERC for that field. A
+  // finding whose source text cannot be projected is covered by a sibling that
+  // carries qualified text; on its own it still holds the APERAK.
+  const fieldKey = (error: UtiltsAperakApplicationError) => `${error.ercCode}|${error.fieldCode ?? ''}|${error.lineItemReference ?? ''}`
+  const qualified = new Set(errors.filter((error) => error.text).map(fieldKey))
   const seen = new Set<string>()
   return errors.filter((error) => {
+    if (!error.text && qualified.has(fieldKey(error))) return false
     const key = `${error.ercCode}|${error.fieldCode ?? ''}|${error.text}|${error.lineItemReference ?? ''}`
     if (seen.has(key)) return false
     seen.add(key)

@@ -32,8 +32,8 @@ export function seedUtiltsConsumptionParties(sql: Sql, lit: Lit, actor: string):
  * identity. Idempotent: an issuer registered by an earlier fixture is reused. */
 export function registerUtiltsIssuer(sql: Sql, lit: Lit, issuer: string, actor: string) {
   sql(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_issuer_registration',0));
-   WITH ns AS (INSERT INTO gridex_utilts_issuer.namespaces(id,environment,registry_actor_key,created_at) SELECT gen_random_uuid(),'test','SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)},clock_timestamp()-interval '1 day'
-     WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.environment='test' AND x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)}) RETURNING id),
+   WITH ns AS (INSERT INTO gridex_utilts_issuer.namespaces(id,environment,registry_actor_key,created_at) SELECT gen_random_uuid(),e,'SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)},clock_timestamp()-interval '1 day'
+     FROM unnest(ARRAY['test','production']) e WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.environment=e AND x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||${lit(issuer)}) RETURNING id),
    iv AS (INSERT INTO gridex_utilts_issuer.issuer_versions(id,namespace_id,legal_identity,registry_version,registry_original_uri,registry_original_bytes,registry_sha256,legal_decision_ref,legal_decision_version,legal_decision_bytes,legal_decision_sha256,valid_from,approved_at,approved_by)
     SELECT gen_random_uuid(),ns.id,jsonb_build_array(${lit(issuer)},'SVK','260'),'SYNTHETIC-1','synthetic://native/issuer/'||${lit(issuer)},convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8'),encode(sha256(convert_to('SYNTHETIC native issuer '||${lit(issuer)},'UTF8')),'hex'),
      'SYNTHETIC-DECISION','1',convert_to('SYNTHETIC native decision','UTF8'),encode(sha256(convert_to('SYNTHETIC native decision','UTF8')),'hex'),clock_timestamp()-interval '1 day',clock_timestamp()-interval '1 day',${lit(actor)} FROM ns RETURNING id)
@@ -93,8 +93,9 @@ export async function recordUtiltsTechnicalReception(source: EdielMessageRow, ac
 export function setUtiltsReceiverRole(sql: Sql, lit: Lit, company: string, actor: string, code: string) {
   const role = ({ E30: 'grid_owner', E73: 'grid_owner', S01: 'grid_owner', E72: 'metering_collector', S06: 'imbalance_settlement_responsible' } as Record<string, string>)[code] ?? 'electricity_supplier'
   sql(`UPDATE public.tenant_actor_roles SET valid_to=clock_timestamp() WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code<>${lit(role)} AND valid_to IS NULL;
-   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(company)},'test',${lit(actor)},${lit(role)},clock_timestamp()
-    WHERE NOT EXISTS(SELECT FROM public.tenant_actor_roles WHERE company_id=${lit(company)} AND actor_id=${lit(actor)} AND role_code=${lit(role)} AND valid_to IS NULL);`)
+   INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) SELECT ${lit(company)},e,${lit(actor)},${lit(role)},clock_timestamp()
+    FROM unnest(ARRAY['test','production']) e WHERE EXISTS(SELECT FROM public.tenant_ediel_profiles p WHERE p.company_id=${lit(company)} AND p.environment=e)
+     AND NOT EXISTS(SELECT FROM public.tenant_actor_roles WHERE company_id=${lit(company)} AND environment=e AND actor_id=${lit(actor)} AND role_code=${lit(role)} AND valid_to IS NULL);`)
 }
 
 /** A real reception carries its mailbox, stored mail and parse result, as
