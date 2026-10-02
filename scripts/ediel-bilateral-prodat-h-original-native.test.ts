@@ -8,6 +8,10 @@ const provider=vi.hoisted(()=>vi.fn())
 const sourceSession=vi.hoisted(()=>({client:null as SupabaseClient|null}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:async()=>{if(!sourceSession.client)throw Error('native_actual_source_session_required');return sourceSession.client}}))
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:provider})}}))
+// Own positive APERAKs are held by the documented P16B conflict (national Z07+LI vs D.96A SG4 C1).
+vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('../__tests__/helpers/p16bHold')).captureP16bPreflight(importOriginal))
+import {expectP16bHold,p16bBlockedAperaks} from '../__tests__/helpers/p16bHold'
+const heldP16b=(sourceId:string)=>{expectP16bHold(sql<string>(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(sourceId)}`));p16bBlockedAperaks.length=0}
 import {seedNormalSwitchNativeFixture,nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {createBilateralProdatGroundNativeFixture} from './helpers/ediel-bilateral-prodat-profile-native-fixture'
 import {archiveBilateralProdatGround,reviewBilateralProdatGround} from '@/lib/ediel/production/bilateralProdatProfileIntake'
@@ -98,7 +102,7 @@ function hStartEffects(f:{companyId:string;sourceId:string;switchId:string}){ret
 it('actual full H source commits its own original/contract/period/profile before ERC100 and remains future without premature activation',async()=>{
  const f=await receivedHStart()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
- const first=hStartEffects(f);expect(first).toMatchObject({raw:f.wire,periods:1,confirmations:1,transitions:1,profiles:1,switch:'accepted',positive:1,active:0,audits:1})
+ const first=hStartEffects(f);expect(first).toMatchObject({raw:f.wire,periods:1,confirmations:1,transitions:1,profiles:1,switch:'accepted',positive:0,active:0,audits:1});heldP16b(f.sourceId)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(hStartEffects(f)).toEqual(first)
 },120000)
 it('last H supply audit failure rolls back actual original confirmation, own period, source/profile transition and false positive',async()=>{
@@ -125,7 +129,7 @@ it('actual H end uses original captured H start, an independently reviewed curre
  const f=await receivedHEnd(),before=hEndEffects(f) as {period:{id:string;market_state_version:number;source_end_message_id:string|null}}
  expect(before.period.source_end_message_id).toBeNull()
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId})
- const applied=hEndEffects(f);expect(applied).toMatchObject({period:{id:before.period.id,source_end_message_id:f.sourceId,market_state_version:before.period.market_state_version+1,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,profiles:1,positive:1,followups:1,audits:1})
+ const applied=hEndEffects(f);expect(applied).toMatchObject({period:{id:before.period.id,source_end_message_id:f.sourceId,market_state_version:before.period.market_state_version+1,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,profiles:1,positive:0,followups:1,audits:1});heldP16b(f.sourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.sourceId)}`)).toBe(f.wire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(hEndEffects(f)).toEqual(applied)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.bilateral_profile.review'`)
@@ -160,7 +164,7 @@ async function receivedLkEnd(sent:boolean){
 function lkEffects(f:{companyId:string;periodId:string;sourceId:string}){return sql(`SELECT jsonb_build_object('period',(SELECT to_jsonb(p) FROM public.customer_supply_periods p WHERE id=${literal(f.periodId)}),'ends',(SELECT count(*) FROM gridex_bilateral_prodat.closure_end_receipts WHERE source_message_id=${literal(f.sourceId)}),'transitions',(SELECT count(*) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.sourceId)}),'positive',(SELECT count(*) FROM public.ediel_messages WHERE related_message_id=${literal(f.sourceId)} AND message_family='APERAK' AND raw_payload LIKE '%ERC+100%'),'followups',(SELECT count(*) FROM public.customer_cases WHERE company_id=${literal(f.companyId)} AND reason_category='final_metering_and_billing' AND metadata->>'source_ediel_message_id'=${literal(f.sourceId)}),'audits',(SELECT count(*) FROM public.audit_logs WHERE company_id=${literal(f.companyId)} AND action='ediel.bilateral_profile.closure_applied' AND entity_id=${literal(f.sourceId)}))`)}
 it('genuine LK operation, validated intent and atomic original remain a request until private accepted transport and the matching whole Z05 end; immutable replay and current reviewer revocation bind the captured original',async()=>{
  const f=await receivedLkEnd(true);expect(lkEffects(f)).toMatchObject({period:{source_end_message_id:null},ends:0,transitions:0,positive:0,audits:0})
- await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});const after=lkEffects(f);expect(after).toMatchObject({period:{source_end_message_id:f.sourceId,market_state_version:2,status:'ending'},ends:1,transitions:1,positive:1,followups:1,audits:1})
+ await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});const after=lkEffects(f);expect(after).toMatchObject({period:{source_end_message_id:f.sourceId,market_state_version:2,status:'ending'},ends:1,transitions:1,positive:0,followups:1,audits:1});heldP16b(f.sourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.sourceId)}`)).toBe(f.wire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.sourceId});expect(lkEffects(f)).toEqual(after)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.bilateral_profile.review'`);expect(sql(`SELECT to_jsonb(gridex_bilateral_prodat.recorded_closure_end_current_v1(${literal(f.companyId)},${literal(f.sourceId)}))`)).toBe(false)
@@ -258,7 +262,7 @@ it('national Z05L requires its actually accepted own H original; unsent H never 
 it('national Z05L commits exact H original/end receipt/history before positive ACK and final-metering followup; replay is immutable and deny disables current evidence',async()=>{
  const f=await receivedNationalRescissionEnd(true)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.endSourceId})
- const after=nationalEndEffects(f);expect(after).toMatchObject({period:{id:f.periodId,source_end_message_id:f.endSourceId,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,ends:1,positive:1,followups:1,audits:1})
+ const after=nationalEndEffects(f);expect(after).toMatchObject({period:{id:f.periodId,source_end_message_id:f.endSourceId,market_end_at:'2026-10-16T12:30:00+00:00',status:'ending'},transitions:1,ends:1,positive:0,followups:1,audits:1});heldP16b(f.endSourceId)
  expect(sql(`SELECT to_jsonb(raw_payload) FROM public.ediel_messages WHERE id=${literal(f.endSourceId)}`)).toBe(f.endWire)
  await processInboundEdielMessage({actorUserId:f.actorUserId,edielMessageId:f.endSourceId});expect(nationalEndEffects(f)).toEqual(after)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.reviewer)} AND permission_key='ediel.supply_rescission.review'`)
@@ -279,7 +283,7 @@ it('actual prepare-only C and SEND-only E handoff preserves archived A/reviewer 
  const disclosure=await(supabaseService.rpc.bind(supabaseService) as unknown as(name:string,args:Record<string,unknown>)=>PromiseLike<{error:{code?:string}|null}> )('ediel_read_supply_rescission_original_v1',{p_company_id:f.companyId,p_actor_user_id:f.currentExecutor,p_message_id:f.original.id});expect(disclosure.error).toMatchObject({code:'42501'})
  expect(nationalEndEffects(f)).toMatchObject({watches:[{source:f.original.id,code:'Z05',subtype:'L',status:'pending',fulfilledBy:null,dueAt:null}]})
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:f.endSourceId})
- const after=nationalEndEffects(f);expect(after).toMatchObject({ends:1,positive:1,watches:[{source:f.original.id,status:'fulfilled',fulfilledBy:f.endSourceId}]})
+ const after=nationalEndEffects(f);expect(after).toMatchObject({ends:1,positive:0,watches:[{source:f.original.id,status:'fulfilled',fulfilledBy:f.endSourceId}]});heldP16b(f.endSourceId)
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:f.endSourceId});expect(nationalEndEffects(f)).toEqual(after)
  sql(`UPDATE public.user_permissions SET effect='deny' WHERE company_id=${literal(f.companyId)} AND user_id=${literal(f.currentExecutor)} AND permission_key='metering.write';`)
  await processInboundEdielMessage({actorUserId:f.currentExecutor,edielMessageId:f.endSourceId});expect(nationalEndEffects(f)).toEqual(after)
