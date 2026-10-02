@@ -4,7 +4,7 @@
 -- crashes the grid-owner agreements page and the data-quality page reports
 -- "no issues" because its checks cannot run.
 --
--- Idempotent: matches the hosted definitions. Also removes a hosted-only
+-- Idempotent: matches the hosted definitions, but service-role only. Also removes a hosted-only
 -- "authenticated select true" policy on grid_owner_access_agreements that let
 -- any signed-in user read every tenant's agreements, and makes the view
 -- security_invoker and service-role only (it exposes personnummer).
@@ -76,26 +76,13 @@ create index if not exists tenant_email_domains_company_status_idx
   on public.tenant_email_domains (company_id, status, created_at desc);
 alter table public.tenant_email_domains enable row level security;
 
-do $$
-declare t text;
-begin
-  foreach t in array array['grid_owner_access_agreements','tenant_email_domains'] loop
-    if not exists (select 1 from pg_policies where schemaname='public' and tablename=t and policyname='tenant_lifecycle_select_guard') then
-      execute format('create policy tenant_lifecycle_select_guard on public.%I for select to authenticated using ((select public.gridex_is_current_session_allowed()) and ((select public.gridex_user_is_platform_admin()) or company_id in (select public.gridex_user_company_ids())))', t);
-    end if;
-    if not exists (select 1 from pg_policies where schemaname='public' and tablename=t and policyname='tenant_lifecycle_insert_guard') then
-      execute format('create policy tenant_lifecycle_insert_guard on public.%I for insert to authenticated with check (public.gridex_can_write_company(company_id))', t);
-    end if;
-    if not exists (select 1 from pg_policies where schemaname='public' and tablename=t and policyname='tenant_lifecycle_update_guard') then
-      execute format('create policy tenant_lifecycle_update_guard on public.%I for update to authenticated using (public.gridex_can_write_company(company_id)) with check (public.gridex_can_write_company(company_id))', t);
-    end if;
-    if not exists (select 1 from pg_policies where schemaname='public' and tablename=t and policyname='tenant_lifecycle_delete_guard') then
-      execute format('create policy tenant_lifecycle_delete_guard on public.%I for delete to authenticated using (public.gridex_can_write_company(company_id))', t);
-    end if;
-    execute format('revoke all on public.%I from anon', t);
-    execute format('grant select, insert, update, delete on public.%I to authenticated, service_role', t);
-  end loop;
-end $$;
+-- Both tables are read and written only through the service role
+-- (lib/routes/gridOwnerAgreements.ts, data-quality page, inbound-mail smoke
+-- tests), so client roles get no privileges at all; RLS stays on as a backstop.
+revoke all on public.grid_owner_access_agreements from anon, authenticated, public;
+revoke all on public.tenant_email_domains from anon, authenticated, public;
+grant select, insert, update, delete on public.grid_owner_access_agreements to service_role;
+grant select, insert, update, delete on public.tenant_email_domains to service_role;
 
 create or replace view public.customer_data_quality_open_issues
 with (security_invoker = true) as
