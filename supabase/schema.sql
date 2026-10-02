@@ -110793,12 +110793,6 @@ CREATE POLICY tenant_lifecycle_delete_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_delete_guard ON public.grid_area_mappings AS RESTRICTIVE FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
 
 --
--- Name: grid_owner_access_agreements tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_delete_guard ON public.grid_owner_access_agreements FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
-
---
 -- Name: grid_owner_contact_channels tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -111169,12 +111163,6 @@ CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
-
---
--- Name: tenant_email_domains tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_delete_guard ON public.tenant_email_domains FOR DELETE TO authenticated USING (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_delete_guard; Type: POLICY; Schema: public; Owner: -
@@ -112473,12 +112461,6 @@ CREATE POLICY tenant_lifecycle_insert_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_insert_guard ON public.grid_area_mappings AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
--- Name: grid_owner_access_agreements tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_insert_guard ON public.grid_owner_access_agreements FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
-
---
 -- Name: grid_owner_contact_channels tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -112849,12 +112831,6 @@ CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
-
---
--- Name: tenant_email_domains tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_insert_guard ON public.tenant_email_domains FOR INSERT TO authenticated WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_insert_guard; Type: POLICY; Schema: public; Owner: -
@@ -114153,12 +114129,6 @@ CREATE POLICY tenant_lifecycle_select_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_select_guard ON public.grid_area_mappings AS RESTRICTIVE FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
 
 --
--- Name: grid_owner_access_agreements tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_select_guard ON public.grid_owner_access_agreements FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
-
---
 -- Name: grid_owner_contact_channels tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -114529,12 +114499,6 @@ CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
-
---
--- Name: tenant_email_domains tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_select_guard ON public.tenant_email_domains FOR SELECT TO authenticated USING ((( SELECT public.gridex_is_current_session_allowed() AS gridex_is_current_session_allowed) AND (( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR (company_id IN ( SELECT public.gridex_user_company_ids() AS gridex_user_company_ids)))));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_select_guard; Type: POLICY; Schema: public; Owner: -
@@ -115833,12 +115797,6 @@ CREATE POLICY tenant_lifecycle_update_guard ON public.forecast_runs AS RESTRICTI
 CREATE POLICY tenant_lifecycle_update_guard ON public.grid_area_mappings AS RESTRICTIVE FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
--- Name: grid_owner_access_agreements tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_update_guard ON public.grid_owner_access_agreements FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
-
---
 -- Name: grid_owner_contact_channels tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -116209,12 +116167,6 @@ CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_contract_assignment
 --
 
 CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_customer_sync_requests AS RESTRICTIVE FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
-
---
--- Name: tenant_email_domains tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY tenant_lifecycle_update_guard ON public.tenant_email_domains FOR UPDATE TO authenticated USING (public.gridex_can_write_company(company_id)) WITH CHECK (public.gridex_can_write_company(company_id));
 
 --
 -- Name: tenant_email_outbox tenant_lifecycle_update_guard; Type: POLICY; Schema: public; Owner: -
@@ -123780,7 +123732,6 @@ GRANT ALL ON TABLE public.grid_area_mappings TO service_role;
 --
 
 GRANT ALL ON TABLE public.grid_owner_access_agreements TO service_role;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.grid_owner_access_agreements TO authenticated;
 
 --
 -- Name: TABLE grid_owner_contact_channels; Type: ACL; Schema: public; Owner: -
@@ -125164,7 +125115,6 @@ GRANT ALL ON TABLE public.tenant_ediel_profiles TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_email_domains TO service_role;
-GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.tenant_email_domains TO authenticated;
 
 --
 -- Name: TABLE tenant_email_outbox_runs; Type: ACL; Schema: public; Owner: -
