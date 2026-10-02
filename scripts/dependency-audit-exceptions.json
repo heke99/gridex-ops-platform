@@ -1,0 +1,11 @@
+{
+  "$comment": "Documented, time-boxed exceptions for the production dependency audit gate. Each entry names one GitHub advisory and one package. An expired entry no longer suppresses anything, so the gate turns red again on its own. Only add an entry when no fixed release exists and the vulnerable code path is shown to be unused.",
+  "exceptions": [
+    {
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "package": "node-forge",
+      "expires": "2026-11-01",
+      "reason": "No fixed release (node-forge <=1.4.0, 1.4.0 is latest). The advisory concerns RSA PKCS#1 v1.5 signature verification. Gridex uses node-forge only for S/MIME enveloped-data encryption/decryption (pkcs7.createEnvelopedData, messageFromAsn1 + decrypt) and PKCS#12 import in lib/ediel; no forge signature verification is called. Upgrade and remove this entry when a fixed release is published."
+    }
+  ]
+}
