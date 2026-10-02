@@ -12,6 +12,7 @@ import {
 } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import { assertPortalIdentityTransitionAllowed } from '@/lib/customer-portal/identityTransition'
+import { canonicalPortalCustomer, portalCustomerCanLink } from '@/lib/customer-portal/customerLifecycle'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import {
   logIntegrationApiRequest,
@@ -57,11 +58,23 @@ type CustomerCandidate = {
   email: string | null
   personal_number: string | null
   org_number: string | null
+  status?: string | null
+  merged_into_customer_id?: string | null
 }
 
 type PortalIdentityDbStatus = 'active' | 'pending_review' | 'rejected' | 'disabled'
 type PortalIdentityApiStatus = 'linked' | 'pending_review' | 'rejected'
 type PortalIdentityMatchStrength = 'strong' | 'weak' | 'manual'
+
+async function canonicalExistingCustomer(companyId: string, customerId: string) {
+  const load = async (id: string) => {
+    const result = await tenantSelect(companyId, 'customers', 'id,company_id,customer_number,status,merged_into_customer_id').eq('id', id).maybeSingle()
+    if (result.error) throw result.error
+    return result.data as Record<string, unknown> | null
+  }
+  const customer = await load(customerId)
+  return customer ? canonicalPortalCustomer({ companyId, customer, allowMergedAlias: true, load }) : null
+}
 
 function ambiguousCustomerMatch(): never {
   throw new ApiInputError('Kunduppgifterna kan inte matchas entydigt. Kontakta kundtjänst.', 'ambiguous_customer_match', 409)
@@ -127,6 +140,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
     // Fetch one extra row to detect truncation: a partial candidate set cannot prove uniqueness.
     if (maxRows !== undefined && (rows?.length ?? 0) > maxRows) ambiguousCustomerMatch()
     for (const row of rows ?? []) {
+      if (!portalCustomerCanLink(row)) continue
       if (!customerIds.has(row.id)) {
         customerIds.add(row.id)
         candidates.push(row)
@@ -137,7 +151,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
   if (payload.customer_number) {
     const { data, error } = await supabaseService
       .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
+      .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .eq('customer_number', payload.customer_number)
       .limit(11)
@@ -148,7 +162,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
   if (payload.email) {
     const { data, error } = await supabaseService
       .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
+      .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .ilike('email', payload.email)
       .limit(21)
@@ -159,7 +173,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
   if (payload.identifier) {
     let result = await supabaseService
       .from('customers')
-      .select('id,company_id,customer_number,email,personal_number,org_number')
+      .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
       .eq('company_id', companyId)
       .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier},normalized_personal_number.eq.${payload.identifier},normalized_org_number.eq.${payload.identifier}`)
       .limit(21)
@@ -167,7 +181,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
     if (result.error && missingSchema(result.error)) {
       result = await supabaseService
         .from('customers')
-        .select('id,company_id,customer_number,email,personal_number,org_number')
+        .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
         .eq('company_id', companyId)
         .or(`personal_number.eq.${payload.identifier},org_number.eq.${payload.identifier}`)
         .limit(21)
@@ -181,7 +195,7 @@ async function loadCandidates(companyId: string, payload: Required<Pick<SyncPayl
     if (siteCustomerIds.size > 0) {
       const { data, error } = await supabaseService
         .from('customers')
-        .select('id,company_id,customer_number,email,personal_number,org_number')
+        .select('id,company_id,customer_number,email,personal_number,org_number,status,merged_into_customer_id')
         .eq('company_id', companyId)
         .in('id', Array.from(siteCustomerIds))
       if (error) throw error
@@ -236,7 +250,12 @@ async function upsertIdentity(input: {
     .select('id,status,customer_id,match_strength,match_method')
     .single()
 
-  if (error) throw error
+  if (error) {
+    if ((error as { message?: string }).message === 'customer_merged_write_conflict') {
+      throw new ApiInputError('Kundkopplingen har ändrats. Försök igen med aktuella kunduppgifter.', 'portal_identity_customer_conflict', 409)
+    }
+    throw error
+  }
   return data
 }
 
@@ -322,6 +341,38 @@ export async function POST(request: NextRequest) {
       })
       await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'rejected', identity_id: identity.id } })
       const responseBody = { data: { outcome: 'rejected', status: 'rejected', access_granted: false, reason: 'insufficient_identity_factors' } }
+      await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
+      return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })
+    }
+
+    // A legitimate merge can change the canonical customer number. Re-report
+    // this exact already verified subject without re-linking or downgrading it.
+    const existing = await tenantSelect(auth.context.companyId, 'customer_portal_identities', 'id,customer_id,status,auth_user_id,customer_portal_user_id')
+      .eq('provider', 'gridex_website').eq('external_customer_id', externalCustomerId).maybeSingle()
+    if (existing.error) throw existing.error
+    const linked = existing.data as Record<string, unknown> | null
+    if (linked?.status === 'active' && linked.customer_id && linked.auth_user_id === body.auth_user_id && linked.customer_portal_user_id === body.customer_portal_user_id) {
+      const customer = await canonicalExistingCustomer(auth.context.companyId, String(linked.customer_id))
+      if (!customer) throw new ApiInputError('Kundkopplingen kan inte användas. Kontakta kundtjänst.', 'portal_identity_customer_conflict', 409)
+      const account = await tenantSelect(auth.context.companyId, 'customer_portal_accounts', 'customer_id,role,status,is_active')
+        .eq('portal_user_id', body.customer_portal_user_id).maybeSingle()
+      if (account.error) throw account.error
+      const row = account.data as Record<string, unknown> | null
+      if (row) {
+        const accountStatus = typeof row.status === 'string' ? row.status.trim().toLowerCase() || null : null
+        if (row.is_active === false || (accountStatus && !['active', 'confirmed', 'enabled'].includes(accountStatus))) {
+          throw new ApiInputError('Kundkopplingen är spärrad.', 'portal_identity_blocked', 409)
+        }
+        const accountCustomer = row.customer_id ? await canonicalExistingCustomer(auth.context.companyId, String(row.customer_id)) : null
+        if (!accountCustomer || accountCustomer.id !== customer.id) throw new ApiInputError('Motstridig kundkoppling.', 'portal_identity_customer_conflict', 409)
+      }
+      const responseBody = { data: {
+        status: 'linked', customer_reference: publicReference('customer', auth.context.companyId, String(customer.id)),
+        customer_number: customer.customer_number ?? null, external_customer_id: externalCustomerId,
+        customer_portal_user_id: body.customer_portal_user_id, auth_user_id: body.auth_user_id,
+        portal_role: row?.role ?? 'owner', created: false, access_granted: true,
+      } }
+      await logIntegrationApiRequest({ client: auth.client, request, statusCode: 200, startedAt, metadata: { outcome: 'linked', identity_id: linked.id, customer_id: customer.id, existing_verified_binding: true } })
       await completePortalWriteIdempotency({ recordId: claim.recordId, companyId: auth.context.companyId, statusCode: 200, responseBody })
       return customerPortalJson(responseBody, { headers: { 'Idempotency-Replayed': 'false' } })
     }

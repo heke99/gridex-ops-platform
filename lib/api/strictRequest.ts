@@ -17,6 +17,15 @@ export class ApiInputError extends Error {
   }
 }
 
+/** Map only the exact lifecycle guard to the established customer-binding conflict. */
+export function customerPortalWriteError(error: unknown): unknown {
+  const databaseError = error as { code?: string; message?: string } | null
+  if (databaseError?.code === '23514' && databaseError.message === 'customer_merged_write_conflict') {
+    return new ApiInputError('Kundkopplingen har ändrats. Hämta aktuella kunduppgifter och försök igen.', 'portal_identity_customer_conflict', 409)
+  }
+  return error
+}
+
 export async function readJsonObject(request: NextRequest, maxBytes = 256_000): Promise<Record<string, unknown>> {
   const contentLength = Number(request.headers.get('content-length') ?? '0')
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
@@ -113,7 +122,7 @@ export async function claimPortalWriteIdempotency(input: {
     return { replay: false, recordId: String(inserted.data.id) }
   }
 
-  if (String(inserted.error?.code ?? '') !== '23505') throw inserted.error
+  if (String(inserted.error?.code ?? '') !== '23505') throw customerPortalWriteError(inserted.error)
 
   let existingQuery = supabaseService
     .from('customer_portal_write_idempotency')
@@ -263,12 +272,13 @@ export async function executeIdempotentPortalWrite<T>(input: {
     })
     return { ...result, replayed: false }
   } catch (error) {
-    const errorCode = error instanceof ApiInputError ? error.code : 'write_failed'
+    const writeError = customerPortalWriteError(error)
+    const errorCode = writeError instanceof ApiInputError ? writeError.code : 'write_failed'
     await failPortalWriteIdempotency({
       recordId: claim.recordId,
       companyId: input.companyId,
       errorCode,
     }).catch(() => undefined)
-    throw error
+    throw writeError
   }
 }
