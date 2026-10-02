@@ -333,11 +333,11 @@ it('an S01 point with a second LOC+172 after SEQ is syntax-rejected and never re
 it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s object and late second-LOC+172 point is syntax-rejected and reserves neither ACK nor series on retry', async order => {
   const f = await seed()
-  const lines = f.original.raw_payload!.split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const point = lines.slice(start, end)
-  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const second = point.map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002'))
   const object = (order === 'object-first' ? point : second).map(line =>
     line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
   const sibling = order === 'object-first' ? second : point
@@ -354,7 +354,7 @@ it.each(['object-first', 'point-first'] as const)(
   // LOC after SEQ breaks the full-directory segment order: syntax-rejected at
   // reception, so neither sibling reaches the business processor or a receipt.
   expect((await resolveCanonicalRuntimeDecisionWithRegistry(source)).syntaxDecision).toBe('rejected')
-  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66003'
   const tokens = `gridex_utilts_binding.wire_tokens_v1(${lit(source.raw_payload)})`
   expect(sql<string | null>(`SELECT coalesce(to_jsonb(gridex_utilts_binding.supported_point_v1(${tokens},${lit(pointId)})),'null'::jsonb)`)).toBeNull()
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('../lib/ediel/flows/utiltsInboundPolicyProcessor')
@@ -1345,11 +1345,11 @@ it('native valid S01 LOC+175 holds its ACK/series until a distinct object owner 
 it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s keeps the object held and the point sibling durable across retry', async order => {
   const f = await seed()
-  const lines = f.original.raw_payload!.split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const point = lines.slice(start, end)
-  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const second = point.map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002'))
   const object = (order === 'object-first' ? point : second).map(line =>
     line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
   const sibling = order === 'object-first' ? second : point
@@ -1372,8 +1372,8 @@ it.each(['object-first', 'point-first'] as const)(
     'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`)
   expect(rows).toHaveLength(2)
-  const heldId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
-  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const heldId = order === 'object-first' ? 'GRIDEX2607E66003' : 'GRIDEX2607E66002'
+  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66003'
   expect(rows.find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
   expect(rows.find(row => row.id === pointId)).toMatchObject({ disposition: 'accepted', plan: 'positive_aperak', final: 'positive_aperak', series: expect.any(String) })
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
@@ -1391,11 +1391,11 @@ it.each(['object-first', 'point-first'] as const)(
 it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s resumes only the point ACK after an interruption, preserving the held object', async order => {
   const f = await seed()
-  const lines = f.original.raw_payload!.split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const point = lines.slice(start, end)
-  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const second = point.map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002'))
   const object = (order === 'object-first' ? point : second).map(line =>
     line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
   const sibling = order === 'object-first' ? second : point
@@ -1409,8 +1409,8 @@ it.each(['object-first', 'point-first'] as const)(
   sql(`UPDATE public.ediel_messages SET customer_id=NULL,site_id=NULL,metering_point_id=NULL,grid_owner_data_request_id=NULL WHERE id=${lit(source.id)}`)
   const { processInboundUtiltsMessageByCanonicalPolicy } = await import('@/lib/ediel/flows/utiltsInboundPolicyProcessor')
   const run = () => processInboundUtiltsMessageByCanonicalPolicy({ actorUserId: f.ids.actor, edielMessageId: source.id })
-  const heldId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
-  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const heldId = order === 'object-first' ? 'GRIDEX2607E66003' : 'GRIDEX2607E66002'
+  const pointId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66003'
   const outcomes = () => sql<Array<{ id: string; disposition: string; plan: string; final: string | null; series: string | null }>>(`
    SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,
     'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
@@ -1453,11 +1453,11 @@ it.each(['object-first', 'point-first'] as const)(
 it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s keeps an unowned object held beside a negative guide sibling on retry', async order => {
   const f = await seed()
-  const lines = f.original.raw_payload!.split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const point = lines.slice(start, end)
-  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const second = point.map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002'))
   const object = (order === 'object-first' ? point : second).map(line =>
     line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
   const rejected = (order === 'object-first' ? second : point).map(line =>
@@ -1479,8 +1479,8 @@ it.each(['object-first', 'point-first'] as const)(
    SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,
     'plan',planned_response_type,'final',final_response_type,'series',persisted_series_id) ORDER BY source_transaction_id)
    FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`)
-  const heldId = order === 'object-first' ? 'GRIDEX2607E66001' : 'GRIDEX2607E66002'
-  const rejectedId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66001'
+  const heldId = order === 'object-first' ? 'GRIDEX2607E66003' : 'GRIDEX2607E66002'
+  const rejectedId = order === 'object-first' ? 'GRIDEX2607E66002' : 'GRIDEX2607E66003'
   expect(rows.find(row => row.id === heldId)).toMatchObject({ disposition: 'internal_review', plan: 'none', final: null, series: null })
   expect(rows.find(row => row.id === rejectedId)).toMatchObject({ disposition: 'guide_rejected', plan: 'negative_aperak', final: 'negative_aperak', series: null })
   expect(rows).toHaveLength(2)
@@ -1503,11 +1503,11 @@ it.each(['object-first', 'point-first'] as const)(
 it.each(['object-first', 'point-first'] as const)(
   'native mixed S01 %s rolls back the held reservation when its point sibling cannot persist, then retries', async order => {
   const f = await seed()
-  const lines = f.original.raw_payload!.split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const end = lines.findIndex(line => line.startsWith('UNT+'))
   const point = lines.slice(start, end)
-  const second = point.map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002'))
+  const second = point.map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002'))
   const object = (order === 'object-first' ? point : second).map(line =>
     line.replace('LOC+172+735999260731000007::9', 'LOC+175+735999260731000007::9'))
   const sibling = order === 'object-first' ? second : point
@@ -1540,7 +1540,7 @@ it.each(['object-first', 'point-first'] as const)(
   expect((await run()).internalReviewRequired).toBe(true)
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('disposition',disposition,'final',final_response_type,'series',persisted_series_id)
    ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)}`))
-    .toEqual(order === 'object-first'
+    .toEqual(order === 'point-first' // ordered by id: E66002 < E66003
       ? [{ disposition: 'internal_review', final: null, series: null }, { disposition: 'accepted', final: 'positive_aperak', series: expect.any(String) }]
       : [{ disposition: 'accepted', final: 'positive_aperak', series: expect.any(String) }, { disposition: 'internal_review', final: null, series: null }])
   expect(sql(`SELECT count(*) FROM gridex_utilts_binding.receipts WHERE source_message_id=${lit(source.id)}`)).toBe(1)
@@ -1618,10 +1618,10 @@ it.each([['232', '260c'], ['233', '260b']] as const)('native orphan LOC+%s persi
 })
 it('native mixed IDE consumes only the accepted sibling before separate 260a ACKs and retries identically', async () => {
   const f = await seed()
-  const lines = f.original.raw_payload!.replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260').split('\n')
+  const lines = f.original.raw_payload!.replaceAll('GRIDEX2607E66001', 'GRIDEX2607E66003' /* own 505: the seed original already issued E66001 */).replace('LOC+239+TES:SVK:260', 'LOC+239+ABCD:SVK:260').split('\n')
   const start = lines.findIndex(line => line.startsWith('IDE+24+'))
   const close = lines.findIndex(line => line.startsWith('UNT+'))
-  const sibling = lines.slice(start, close).map(line => line.replace('GRIDEX2607E66001', 'GRIDEX2607E66002').replace('LOC+239+ABCD:SVK:260', 'LOC+239+TES:SVK:260').replace('QTY+136:500', 'QTY+136:7'))
+  const sibling = lines.slice(start, close).map(line => line.replace('GRIDEX2607E66003', 'GRIDEX2607E66002').replace('LOC+239+ABCD:SVK:260', 'LOC+239+TES:SVK:260').replace('QTY+136:500', 'QTY+136:7'))
   lines.splice(close, 0, ...sibling)
   lines[lines.findIndex(line => line.startsWith('UNT+'))] = `UNT+${lines.length - 2}+1'`
   const source = await f.insertSource(lines.join('\n'))
@@ -1634,8 +1634,8 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   effects.ack.mockClear(); effects.meter.mockClear(); effects.bill.mockClear()
   const first = await processInboundUtiltsMessage({ actorUserId: f.ids.actor, edielMessageId: source.id })
   expect(sql(`SELECT jsonb_agg(jsonb_build_object('id',source_transaction_id,'disposition',disposition,'plan',planned_response_type,'series',persisted_series_id IS NOT NULL) ORDER BY source_transaction_id) FROM public.ediel_ack_transaction_results WHERE source_message_id=${lit(source.id)} AND company_id=${lit(f.ids.company)}`))
-    .toEqual([{ id: 'GRIDEX2607E66001', disposition: 'guide_rejected', plan: 'negative_aperak', series: false },
-      { id: 'GRIDEX2607E66002', disposition: 'accepted', plan: 'positive_aperak', series: true }])
+    .toEqual([{ id: 'GRIDEX2607E66002', disposition: 'accepted', plan: 'positive_aperak', series: true },
+      { id: 'GRIDEX2607E66003', disposition: 'guide_rejected', plan: 'negative_aperak', series: false }])
   expect(sql(`SELECT count(*) FROM public.meter_reading_series WHERE source_ediel_message_id=${lit(source.id)}`)).toBe(1)
   const aperaks = effects.ack.mock.calls.filter(([call]) => call.ackFamily === 'APERAK')
   expect(aperaks).toHaveLength(2)
@@ -1643,7 +1643,7 @@ it('native mixed IDE consumes only the accepted sibling before separate 260a ACK
   expect(effects.ack.mock.calls.map(([call]) => call.ackFamily)).not.toContain('UTILTS_ERR')
   expect(effects.meter).toHaveBeenCalledTimes(1)
   expect(effects.bill).toHaveBeenCalledTimes(1)
-  expect(effects.meter.mock.calls[0][0]).toMatchObject({ companyId: f.ids.company, quantityKwh: 7, sourceTransactionReference: 'GRIDEX2607E66002' })
+  expect(effects.meter.mock.calls[0][0]).toMatchObject({ companyId: f.ids.company, quantityKwh: '7', sourceTransactionReference: 'GRIDEX2607E66002' })
   expect(effects.meter.mock.invocationCallOrder[0]).toBeLessThan(effects.ack.mock.invocationCallOrder[0])
   expect(first.ingestedMeterValueIds).toHaveLength(1)
   expect(first.billingUnderlayId).toBeTruthy()
@@ -1715,7 +1715,7 @@ it.each([false, true])('R4 real permission/no-request processor holds failed wri
   let source = f.original
   if (sibling) {
     const lines = f.original.raw_payload!.replace('BGM+E66', 'BGM+E30').replace('23-DDQ-E66-T', '23-MDR-E30-T')
-      .replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n')
+      .replace('202607010000202607010015:719', '202607010000202607010030:719').split('\n').filter(line => line !== "MEA+AAZ++KWH'") // no SG5/MEA in E30
     const at = lines.findIndex(line => line.startsWith('UNT+'))
     lines.splice(at, 0, "SEQ++2'", "QTY+136:7'", "DTM+597:202607010015:203'", "STS+7++21::260'")
     lines[at + 4] = `UNT+${at + 3}+1'`
