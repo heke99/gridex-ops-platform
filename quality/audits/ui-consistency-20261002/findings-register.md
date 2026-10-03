@@ -95,3 +95,11 @@ duplicates; English and platform jargon shown to tenants.
 | M3 | grid-owner meter-value requests carried no resolution; UTILTS used the meter's reading frequency | fixed: requests store `requested_resolution` from the contract (capped by the meter); E73 payload carries it |
 | M4 | E66 draft mapped monthly → 1440 (day) and hourly meters → 15 (quarter-hour) | fixed: contract resolution → 15/60/1440 |
 | M5 | `lib/cis/db-grid-owner.ts` still has a direct-insert `createGridOwnerDataRequest` bypassing the atomic RPC | open (dead code, no importers); left because Ediel masterplan gate manifests hash the file |
+
+## Preliminary billing and reconciliation (2026-10-03, owner decision)
+| # | Finding | Status |
+|---|---|---|
+| P1 | missing metering values blocked the invoice entirely; `billing_adjustment_cases` / `gridex_register_late_metering_correction` existed but nothing used them | fixed: missing periods/gaps are billed from the customer's history (`lib/billing/consumptionEstimate.ts`: same period last year → last 4 weeks average → intake annual consumption with monthly profile), keeping the contract's hour/quarter shape; marked preliminary on the invoice |
+| P2 | no settlement of preliminary periods | fixed: when an invoiced (locked) preliminary period gets complete final values, the next run credits the preliminary quantity and charges the final one over the original period (energy-dependent components only, prices of the original month); net = difference on the next invoice |
+| P3 | pricing used the run's month for spot/source prices | fixed: prices follow the billed period (identical for regular underlays) |
+| P4 | pre-existing static regressions red on main and not in CI: gridex-canonical-market-resolution-quote-billing, gridex-invoice-fee-canonical, gridex-svk-billing-area | open (not caused by this change) |
