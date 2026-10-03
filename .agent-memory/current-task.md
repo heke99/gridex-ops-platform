@@ -6,7 +6,11 @@ Pushat 81b5b3ac (03:25): relativa framtidsdatum (futureNativeSupplyDate), produc
 - z06f: läsningen är UTILTS E30, men katalogen ger E30-mottagare = grid_owner (23-MDR); leverantör kan ej ta emot E30 → fixturen behöver E66 med registeravläsning (S07 är profil, passar ej).
 - ai-network-original: AI-routen saknar registerimporterad platform_actor_route (dispatch_source_v1 returnerar NULL) + normal-switch-seed har redan nätregister v1 (testet skapar v1 igen).
 - network-registry-source: antar att ingen nätregisterkälla finns, men normal-switch-seeden kvalificerar en (Z03 kräver den).
-Grenmigrationer nu 20261002233000–20261002235200. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
+Migration 20261002235300 (03:55): supply_period_source_basis_v1 godtar kontrakt som avslutats av exakt periodens eget supply_end (följduppgiftens omedelbara terminering bröt alla senare basläsningar, t.ex. granskad closure). source-owner native 47/48.
+ÖPPET designbeslut: closure-granskningens reviewerUserId binds i DB bara till behörighet (communication.write/ediel_testing.write); testet förväntar att annan behörig tenantanvändare (källans aktör) avvisas = separation of duties saknar DB-förankring. Ej infört utan beslut.
+ÖPPNA även: outbound-ack-replay (okänd PRODAT-kod kan ej lagras: company krävs + regelprofil saknas; behöver listad radkod + pinnad profil som z04-ack), z04-ack 6 (flerobjekts-APERAK håller: APERAK_PRODAT_OBJECT_OUTCOME_MISSING för oägt objekt).
+transport-exception native 4/4 (PG16: skaparen har ADMIN-only medlemskap; transaktionslokal GRANT WITH SET TRUE).
+Grenmigrationer nu 20261002233000–20261002235300. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
 
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
 
