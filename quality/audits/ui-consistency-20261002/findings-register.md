@@ -94,7 +94,7 @@ duplicates; English and platform jargon shown to tenants.
 | M2 | hourly/quarter contract on a monthly-read meter was not detected | fixed: `metering_point_resolution_mismatch` blocks and opens a grid-owner task instead of a pointless re-request |
 | M3 | grid-owner meter-value requests carried no resolution; UTILTS used the meter's reading frequency | fixed: requests store `requested_resolution` from the contract (capped by the meter); E73 payload carries it |
 | M4 | E66 draft mapped monthly → 1440 (day) and hourly meters → 15 (quarter-hour) | fixed: contract resolution → 15/60/1440 |
-| M5 | `lib/cis/db-grid-owner.ts` still has a direct-insert `createGridOwnerDataRequest` bypassing the atomic RPC | open (dead code, no importers); left because Ediel masterplan gate manifests hash the file |
+| M5 | `lib/cis/db-grid-owner.ts` still has a direct-insert `createGridOwnerDataRequest` bypassing the atomic RPC | fixed in #469 (G3): file removed; no gate references it |
 
 ## Preliminary billing and reconciliation (2026-10-03, owner decision)
 | # | Finding | Status |
@@ -102,7 +102,7 @@ duplicates; English and platform jargon shown to tenants.
 | P1 | missing metering values blocked the invoice entirely; `billing_adjustment_cases` / `gridex_register_late_metering_correction` existed but nothing used them | fixed: missing periods/gaps are billed from the customer's history (`lib/billing/consumptionEstimate.ts`: same period last year → last 4 weeks average → intake annual consumption with monthly profile), keeping the contract's hour/quarter shape; marked preliminary on the invoice |
 | P2 | no settlement of preliminary periods | fixed: when an invoiced (locked) preliminary period gets complete final values, the next run credits the preliminary quantity and charges the final one over the original period (energy-dependent components only, prices of the original month); net = difference on the next invoice |
 | P3 | pricing used the run's month for spot/source prices | fixed: prices follow the billed period (identical for regular underlays) |
-| P4 | pre-existing static regressions red on main and not in CI: gridex-canonical-market-resolution-quote-billing, gridex-invoice-fee-canonical, gridex-svk-billing-area | open (not caused by this change) |
+| P4 | pre-existing static regressions red on main and not in CI: gridex-canonical-market-resolution-quote-billing, gridex-invoice-fee-canonical, gridex-svk-billing-area | fixed in #470 (B1): stale checks repointed; behavior verified present |
 | P5 | no history and no intake annual consumption left the period blocked with no follow-up | fixed: `ensureHistoricalMeteringRequest` opens a metering permission and queues PRODAT Z13VH history (last 12 months to yesterday; POA covering metering data required, else `missing_authorization`); system runs leave a draft + operator task; idempotent per metering point. Note: the Z13 dispatcher itself is still gated in `lib/ediel/flows/prodatSwitch.ts` (Ediel masterplan workstream) |
 
 ## Grid-owner request entry points (2026-10-03)
