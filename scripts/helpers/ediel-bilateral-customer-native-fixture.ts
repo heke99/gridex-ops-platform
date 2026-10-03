@@ -6,7 +6,7 @@ import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 import {createRequestedChangeSupplyFixture} from './ediel-requested-change-native-fixture'
-import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {nativeSql as sql,literal,futureNativeSupplyDate} from './ediel-normal-switch-native-fixture'
 import {bilateralCustomerNativeWire} from './ediel-bilateral-customer-native-wire'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
@@ -34,8 +34,12 @@ export async function createBilateralSourceOperator(companyId:string,keys=bilate
  return {id,email,roleId:role,client}
 }
 
+/** The dated customer change takes effect two days into the future supply. */
+export function customerChangeMinute(requestedStartDate:string){
+ const date=new Date(`${requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+2);return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
+}
 export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<typeof createRequestedChangeSupplyFixture>>,options:{repeatRegister?:boolean;invoicee?:boolean;name?:string}={}){
- const sourceMessageId=randomUUID(),wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:randomUUID(),...options})
+ const sourceMessageId=randomUUID(),wire=bilateralCustomerNativeWire({sender:f.receiver,receiver:f.sender,point:f.external,customerIdentity:f.customerIdentity.id,reference:'LI'+randomUUID().replaceAll('-','').toUpperCase(),marketMinute:customerChangeMinute(f.requestedStartDate),...options})
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(sourceMessageId)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},'test','inbound','edifact','PRODAT','Z06','received',${literal(wire)},'{}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z06:E:26.A:r3' AND profile.is_enabled`)
  const saved=await supabaseService.from('ediel_messages').select('*').eq('id',sourceMessageId).single();expect(saved.error).toBeNull()
@@ -49,7 +53,7 @@ export async function captureBilateralCustomerNativeSource(f:Awaited<ReturnType<
 }
 
 export async function createBilateralCustomerSourceFixture(provider:(email:string)=>void){
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:'2026-10-03'}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true})
+ const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()}),source=await captureBilateralCustomerNativeSource(f,{repeatRegister:true,invoicee:true})
  const uploader=await createBilateralSourceOperator(f.companyId),reviewer=await createBilateralSourceOperator(f.companyId),reader=await createBilateralSourceOperator(f.companyId,['communication.read','customers.read','contracts.read'])
  // The actual original structural review qualifies only a post-ledger future
  // supply anchor. It cannot backfill the old default September start.

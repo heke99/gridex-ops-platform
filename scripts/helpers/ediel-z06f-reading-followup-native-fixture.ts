@@ -3,7 +3,7 @@
 import {randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
-import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {nativeSql as sql,literal,futureNativeSupplyDate} from './ediel-normal-switch-native-fixture'
 import {createRequestedChangeSupplyFixture} from './ediel-requested-change-native-fixture'
 import {createBilateralSourceOperator} from './ediel-bilateral-customer-native-fixture'
 import {z06fNativeStructureWire,z06fNativeReadingWire,type Z06fNativeReadingOptions} from './ediel-z06f-reading-followup-native-wire'
@@ -32,14 +32,14 @@ function stampTest(raw:string,reference:string){
 export async function createZ06fReadingNativeFixture(provider:(email:string)=>void){
  // Future supply is original declared source valid time; every source admission
  // remains its real native clock_timestamp(), never the UNB or selected date.
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:'2026-10-03'})
+ const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()})
  const operator=await createBilateralSourceOperator(f.companyId,['communication.read','communication.write','communication.send','customers.read','metering.read','metering.write','ediel_testing.write'])
  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.admin_users WHERE user_id IN(${literal(f.actorUserId)},${literal(operator.id)})))`)).toBe(false)
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  const capture=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profile:string|null)=>{
   const fresh=utiltsNativeSourceFixture(stampTest(raw,randomUUID().replaceAll('-','').slice(0,14)),randomUUID()),id=fresh.id
   sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(f.gridId)},'test','inbound','edifact',${literal(family)},${literal(code)},'received',${literal(fresh.raw)},'{}',clock_timestamp(),'{}',${literal(fresh.parsed.applicationReference)},${literal(fresh.parsed.senderEdielId)},${literal(fresh.parsed.receiverEdielId)},${literal(fresh.parsed.interchangeReference)},pack.id,p.profile_key,p.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,p.profile
+  SELECT ${literal(id)},${literal(f.companyId)},${literal(f.customerId)},${literal(f.siteId)},${literal(f.pointId)},${literal(f.gridId)},'test','inbound','edifact',${literal(family)},${literal(code)},'received',${literal(fresh.raw)},${family==='PRODAT'?`'{"prodatDependentFacts":{"market":"electricity","meterReadingsSentInUtilts":true}}'`:"'{}'"},clock_timestamp(),'{}',${literal(fresh.parsed.applicationReference)},${literal(fresh.parsed.senderEdielId)},${literal(fresh.parsed.receiverEdielId)},${literal(fresh.parsed.interchangeReference)},pack.id,p.profile_key,p.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,p.profile
   FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs pack ON pack.id=p.rule_pack_id WHERE p.message_code=${literal(code)} AND p.direction IN('inbound','both') AND p.is_enabled ${profile?`AND p.profile_key=${literal(profile)}`:''} ORDER BY p.profile_key LIMIT 1;`)
   const result=await supabaseService.from('ediel_messages').select('*').eq('id',id).single();expect(result.error).toBeNull()
   const message=result.data as EdielMessageRow;expect(message.message_received_at).toBeTruthy();return message
@@ -70,6 +70,6 @@ export async function createZ06fReadingNativeFixture(provider:(email:string)=>vo
   return {message,qualified,input,persist:()=>persistUtiltsTransactionResults(input)}
  }
  const read=(source:string)=>supabaseService.rpc('ediel_read_z06f_reading_followup_v1',{p_company_id:f.companyId,p_environment:'test',p_actor_user_id:operator.id,p_source_message_id:source})
- const snapshots=()=>sql<Record<string,unknown>>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.companyId)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY id),'[]') FROM gridex_received_reading_expectations.observations o WHERE company_id=${literal(f.companyId)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE company_id=${literal(f.companyId)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE company_id=${literal(f.companyId)}),'reservations',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE company_id=${literal(f.companyId)}),'outbound',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'))`)
+ const snapshots=()=>sql<Record<string,unknown>>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.companyId)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o WHERE company_id=${literal(f.companyId)}),'series',(SELECT count(*) FROM public.meter_reading_series WHERE company_id=${literal(f.companyId)}),'contracts',(SELECT count(*) FROM gridex_utilts_binding.contracts WHERE company_id=${literal(f.companyId)}),'reservations',(SELECT count(*) FROM public.ediel_ack_transaction_results WHERE company_id=${literal(f.companyId)}),'outbound',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'))`)
  return {f,operator,change,reading,read,snapshots}
 }

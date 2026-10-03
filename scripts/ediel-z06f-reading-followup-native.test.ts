@@ -17,7 +17,7 @@ beforeEach(()=>{
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
 const fixture=()=>createZ06fReadingNativeFixture(email=>external.send.mockResolvedValue({accepted:[email],rejected:[],messageId:'synthetic-owned-original',response:'250 explicitly synthetic accepted'}))
-const own=(f:Awaited<ReturnType<typeof fixture>>,source:string)=>sql<{expectations:{id:string;source_message_id:string;contract:Record<string,unknown>;contract_hash:string}[];observations:{id:string;utilts_source_message_id:string;transaction_id:string;source_payload_hash:string;receipt:Record<string,unknown>;receipt_hash:string}[]}>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(source)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${literal(f.f.companyId)} AND e.source_message_id=${literal(source)}))`)
+const own=(f:Awaited<ReturnType<typeof fixture>>,source:string)=>sql<{expectations:{id:string;source_message_id:string;contract:Record<string,unknown>;contract_hash:string}[];observations:{expectation_id:string;utilts_source_message_id:string;transaction_id:string;source_payload_hash:string;receipt:Record<string,unknown>;receipt_hash:string}[]}>(`SELECT jsonb_build_object('expectations',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]') FROM gridex_received_reading_expectations.expectations e WHERE company_id=${literal(f.f.companyId)} AND source_message_id=${literal(source)}),'observations',(SELECT coalesce(jsonb_agg(to_jsonb(o) ORDER BY o.expectation_id,o.transaction_id),'[]') FROM gridex_received_reading_expectations.observations o JOIN gridex_received_reading_expectations.expectations e ON e.id=o.expectation_id WHERE e.company_id=${literal(f.f.companyId)} AND e.source_message_id=${literal(source)}))`)
 
 it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY220/DTM597 persist fulfills only that source without extra market request',async()=>{
  const f=await fixture(),change=await f.change(),before=own(f,change.message.id)
@@ -39,7 +39,7 @@ it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY
  const stable=f.snapshots();await reading.persist();await change.apply();expect(f.snapshots()).toEqual(stable)
 })
 
-it.each([{register:'901'},{meter:'FOREIGN-METER'},{agency:'89'},{date:'202610160000'},{quantity:'NULL'}])('actual misaligned or missing own reading %j cannot fulfill F or borrow sibling evidence',async options=>{
+it.each([{register:'901'},{meter:'FOREIGN-METER'},{agency:'89'},{date:'next-day' as const},{quantity:'NULL'}])('actual misaligned or missing own reading %j cannot fulfill F or borrow sibling evidence',async options=>{
  const f=await fixture(),change=await f.change(),before=own(f,change.message.id),reading=await f.reading(options)
  // The actual national/functional decision is observed rather than fabricated
  // as a caller-provided accepted flag. A valid reading at another instant can

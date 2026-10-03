@@ -1,3 +1,4 @@
+import {futureNativeSupplyDate} from './helpers/ediel-normal-switch-native-fixture'
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
@@ -8,7 +9,7 @@ vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:effects.smtp}
 vi.mock('@/lib/customer-notifications/notificationOrchestrator',()=>({enqueueCustomerLifecycleNotification:async()=>null}))
 vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrelatedCustomerApplicationWorkflow:async()=>null}))
 import {supabaseService} from '@/lib/supabase/service'
-import {createBilateralCustomerSourceFixture,createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
+import {createBilateralCustomerSourceFixture,createBilateralSourceOperator,customerChangeMinute} from './helpers/ediel-bilateral-customer-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {archiveBilateralCustomerSource,reviewBilateralCustomerSourceArtifact,readBilateralCustomerSourceArtifact,readBilateralCustomerSourceBytes} from '@/lib/ediel/production/bilateralCustomerSource'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
@@ -21,7 +22,7 @@ afterEach(()=>{vi.unstubAllEnvs();effects.smtp.mockReset()})
 function smtp(){for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)}
 type Fixture=Awaited<ReturnType<typeof createBilateralCustomerSourceFixture>>
 async function snapshot(f:Fixture){
- const cutoffAt=sql<string>('SELECT to_jsonb(clock_timestamp())'),scope={companyId:f.companyId,environment:'test' as const,customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,legalSupplier:f.sender,legalNetwork:f.receiver,fromDate:'2026-10-03',toDate:'2026-10-10',cutoffAt}
+ const cutoffAt=sql<string>('SELECT to_jsonb(clock_timestamp())'),scope={companyId:f.companyId,environment:'test' as const,customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,legalSupplier:f.sender,legalNetwork:f.receiver,fromDate:futureNativeSupplyDate(),toDate:futureNativeSupplyDate(21),cutoffAt}
  const saved=await supabaseService.rpc('gridex_source_object_snapshot_v1',{p_company_id:f.companyId,p_environment:'test',p_cutoff:cutoffAt});expect(saved.error).toBeNull()
  const readset=inspectStructuralReadset(scope,saved.data);expect(readset.timeline).toMatchObject({status:'inspected',boundedReadComplete:true});expect(readset.unresolvedSources).toBe(false)
  const periods=await supabaseService.from('customer_supply_periods').select('id,company_id,customer_id,metering_point_id,start_date,end_date,actual_start_date,actual_end_date').eq('company_id',f.companyId).eq('id',f.period);expect(periods.error).toBeNull()
@@ -52,17 +53,17 @@ it('genuine current company producer commits non-death customer/invoicee facet a
  expect(unchanged(f)).toEqual(before)
  const after=await snapshot(f);expect(after.customers.versions).toHaveLength(1);expect(after.customers.versions[0]).toMatchObject({sourceMessageId:f.sourceMessageId,authorityKind:'bilateral',party:{name:'SYNTHETIC DATED CUSTOMER'}})
  const projection=projectAiListHistory(after.scope,after.periods,after.readset,after.customers);expect(projection.details).toHaveLength(2)
- expect(projection.details[0].tillDatum).toBe('20261005');expect(projection.details[1]).toMatchObject({elanvandarNamn:'SYNTHETIC DATED CUSTOMER',franDatum:'20261005',tillDatum:null})
+ expect(projection.details[0].tillDatum).toBe(customerChangeMinute(f.requestedStartDate).slice(0,8));expect(projection.details[1]).toMatchObject({elanvandarNamn:'SYNTHETIC DATED CUSTOMER',franDatum:customerChangeMinute(f.requestedStartDate).slice(0,8),tillDatum:null})
  expect(projection.evidence.rowSources[1].customerSourceMessageId).toBe(f.sourceMessageId)
  expect(isConfirmedCustomerHistoryQualified(structuredClone(after.customers),after.scope,after.readset)).toBe(false)
  expect(()=>projectAiListHistory(after.scope,after.periods,after.readset,structuredClone(after.customers))).toThrow('dated_customer_change_owner_missing')
  const old=await readConfirmedCustomerHistory({scope:early.scope,readset:early.readset,actorUserId:f.reviewer.id});expect(old.versions).toEqual([])
- const csv=buildAiListCsv({listType:'AI',senderEdielId:f.sender,receiverEdielId:f.receiver,fromDate:after.scope.fromDate,toDate:after.scope.toDate,details:projection.details}),nativeInput={company_id:f.companyId,environment:'test',customer_id:f.customerId,customer_site_id:f.siteId,metering_point_id:f.pointId,sender_ediel_id:f.sender,receiver_ediel_id:f.receiver}
+ const csv=buildAiListCsv({listType:'AI',senderEdielId:f.sender,senderName:'SYNTHETIC SUPPLIER',receiverEdielId:f.receiver,receiverName:'SYNTHETIC NETWORK',fromDate:after.scope.fromDate,toDate:after.scope.toDate,details:projection.details}),nativeInput={company_id:f.companyId,environment:'test',customer_id:f.customerId,customer_site_id:f.siteId,metering_point_id:f.pointId,sender_ediel_id:f.sender,receiver_ediel_id:f.receiver}
  // Exercise the ACTUAL complete native CSV fence with an ephemeral typed
  // scope input. No intent, purpose decision, origin or approval is seeded.
  const guard=(raw=csv,refs=projection.evidence.rowSources)=>sql(`SELECT gridex_ai_processing.require_original_row_sources_v1(${literal(after.receipt.readsetText)}::jsonb,${literal(after.scope.cutoffAt)}::timestamptz,jsonb_populate_record(NULL::public.ediel_message_intents,${literal(nativeInput)}::jsonb),${literal(raw)},${literal(JSON.stringify(refs))})`)
  expect(guard()).toEqual(projection.evidence.rowSources)
- expect(()=>guard(csv.replace('SYNTHETIC DATED CUSTOMER','FORGED TODAY NAME'))).toThrow('version_cell_mismatch')
+ expect(()=>guard(csv.replace('SYNTHETIC DATED CUSTOMER','FORGED TODAY NAME'))).toThrow('ai_list_original_row_source_mismatch')
  expect(()=>guard(csv.split('\n').slice(0,2).join('\n'),projection.evidence.rowSources.slice(0,1))).toThrow(/epoch_omitted|source_mismatch|dated_source_owner/)
  const foreign=randomUUID();sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(foreign)},'Disposable foreign bilateral company','active')`);const outsider=await createBilateralSourceOperator(foreign)
  await expect(readBilateralCustomerSourceBytes({companyId:foreign,actorUserId:outsider.id,artifactId:artifact.artifactId})).rejects.toThrow()

@@ -39,6 +39,12 @@ function fixtureGsrn(){
 const networkRegistries=new Map<string,{artifact:{artifactId:string;sourceHash:string;claimsHash:string};reviewerId:string}>()
 /** The qualified network registry version this fixture created for a company. */
 export function normalSwitchNetworkRegistry(companyId:string){return networkRegistries.get(companyId)}
+/** A supply start that is still in the future when the suite runs: Swedish
+ * calendar today plus `days`. Fixed literal dates go stale once passed. */
+export function futureNativeSupplyDate(days=14){
+ const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Stockholm',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
+ const date=new Date(`${today}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)
+}
 export type NormalSwitchStageNativeFixture={companyId:string;actorUserId:string;customerId:string;siteId:string;pointId:string;contractId:string;switchId:string;external:string;sender:string;receiver:string;gridId:string;routeId:string;routeProfileId:string;marketActorId:string;customerIdentity:{id:string;qualifier:'SE2';agency:'260'};requestedStartDate:string;brpEdielId:string;gridAreaCode:string;documentSha256:string;authorizationDocumentId:string;powerOfAttorneyId:string}
 type NormalSwitchFixtureInput={requestedStartDate?:string;external?:string;provider?:(email:string)=>void;initialSubtype?:'L'|'H';customerName?:string}
 export function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInput&{deferOriginal:true}):Promise<NormalSwitchStageNativeFixture>
@@ -162,8 +168,8 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
   VALUES(${literal(customerId)},${literal(companyId)},'Synthetic','Archive',${literal(customerName)},${literal(customerId)},${literal(customerIdentity)},${literal(`synthetic-${customerId}@example.invalid`)},'invoice_test_center',true,${literal(marker)}::jsonb);
   INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,facility_id,grid_owner_id,grid_area_code,price_area_code,status,is_test_data,metadata)
   VALUES(${literal(siteId)},${literal(companyId)},${literal(customerId)},'Archive site',${literal(external)},${literal(gridId)},'TES','SE3','active',true,${literal(marker)}::jsonb);
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,is_settlement_relevant,is_test_data,metadata)
-  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(external)},${literal(external)},${literal(external)},${literal(gridId)},${literal(receiver)},'TES','SE3','active','hourly','consumption',true,true,${literal(marker)}::jsonb);
+  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,meter_point_id,metering_point_id,ediel_metering_point_id,grid_owner_id,grid_owner_ediel_id,grid_area_code,price_area_code,status,reading_frequency,measurement_type,product_direction,is_settlement_relevant,is_test_data,metadata)
+  VALUES(${literal(pointId)},${literal(companyId)},${literal(customerId)},${literal(siteId)},${literal(siteId)},${literal(external)},${literal(external)},${literal(external)},${literal(gridId)},${literal(receiver)},'TES','SE3','active','hourly','consumption','consumption',true,true,${literal(marker)}::jsonb);
   INSERT INTO public.customer_contracts(id,company_id,customer_id,site_id,metering_point_id,
    contract_offer_id,status,contract_version,requested_start_date,starts_at,metadata,created_by,contract_publication_version_id,
    contract_product_id,contract_product_version_id,price_plan_id,price_plan_version_id,
