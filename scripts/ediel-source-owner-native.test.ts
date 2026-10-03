@@ -1419,7 +1419,9 @@ it('native append independently binds sealed raw values and midnight support; is
   facts=>{facts.objects[0].business.sourcePayloadHash='f'.repeat(64)},
   facts=>{facts.objects[0].business.sourceMessageId=f.ids.source},
   facts=>{facts.objects[0].business.supplyPeriodId=f.ids.switch},
-  facts=>{facts.objects[0].business.reviewerUserId=f.ids.actor},
+  // Owner decision 2026-10-03: no separation of duties; another authorized
+  // tenant user may review. An unauthorized reviewer is still refused.
+  facts=>{facts.objects[0].business.reviewerUserId='00000000-0000-4000-8000-0000000000ff'},
   facts=>{facts.objects[0].business.baselineCoverageAssessment.factsHash='f'.repeat(64)},
   facts=>{facts.objects[0].business.coverageWindow.outboundSourceMessageId=message.id},
   facts=>{Object.assign(facts.objects[0].business.reviewSnapshot,{approved:true})},

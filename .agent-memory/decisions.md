@@ -239,3 +239,6 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 ## 2026-10-03 — Service Z13 field 513 and 260 (P26.A annex 2)
 - Z13 field 513 (CCI++Z22, installation direction) is required. A service grid-area request names no metering point and the evidence terms define no direction, so the renderer sends E19 (both directions), matching Ediel's own TGT reference data for Z13 (`resolvePermissionInstallationDirection`).
 - Z13 field 260 (RFF+Z05) is '-' in P26.A annex 2 pp.114–116; the canonical matrix wins over TGT data and the old SQL binding. The request grid area remains a required source term (receiver choice) but is not rendered; 20261002235100 makes the binding require its absence in the wire.
+
+## 2026-10-03 — Ingen separation of duties för closure-granskning
+Ägarbeslut: granskaren (reviewerUserId) får vara samma/annan behörig tenantanvändare som källans aktör. DB-bindningen till behörighet är tillräcklig. Testet prövar i stället att obehörig granskare avvisas.
