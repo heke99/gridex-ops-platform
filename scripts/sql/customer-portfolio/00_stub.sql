@@ -28,3 +28,4 @@ create table public.metering_points (id uuid primary key, company_id uuid, biddi
 create table public.customer_contracts (id uuid primary key default gen_random_uuid(), company_id uuid, customer_id uuid, ends_at date, termination_reason text);
 create table public.customer_lifecycle_events (id uuid primary key default gen_random_uuid(), company_id uuid, customer_id uuid, event_type text, event_status text default 'completed', effective_date date, reason text, created_at timestamptz default now());
 alter table public.powers_of_attorney add column scope text default 'supplier_switch';
+create table public.platform_table_classification (table_name text primary key, kind text not null, rationale text not null, classified_by text not null default 'migration');

@@ -25,17 +25,21 @@ create table if not exists public.customer_portfolio_forecast_snapshots (
   )
 );
 
+-- Service-role only. Clients read forecasts through the read RPCs, which assert
+-- tenant or white-label access (gridex_customer_portfolio_assert_read).
 alter table public.customer_portfolio_forecast_snapshots enable row level security;
 
-drop policy if exists customer_portfolio_forecast_snapshots_select on public.customer_portfolio_forecast_snapshots;
-create policy customer_portfolio_forecast_snapshots_select
-  on public.customer_portfolio_forecast_snapshots
-  for select to authenticated
-  using (public.gridex_can_read_company(company_id));
-
-revoke all on table public.customer_portfolio_forecast_snapshots from anon, authenticated;
-grant select on table public.customer_portfolio_forecast_snapshots to authenticated;
+revoke all on table public.customer_portfolio_forecast_snapshots from public, anon, authenticated;
 grant all on table public.customer_portfolio_forecast_snapshots to service_role;
+
+insert into public.platform_table_classification (table_name, kind, rationale, classified_by)
+values (
+  'customer_portfolio_forecast_snapshots',
+  'system',
+  'Service-role only: written by gridex_snapshot_customer_portfolio_month with the tenant from its parameter and read through security-definer portfolio RPCs that assert tenant or white-label access; no client role holds any privilege.',
+  'migration'
+)
+on conflict (table_name) do nothing;
 
 create index if not exists customer_contracts_company_customer_ends_idx
   on public.customer_contracts(company_id, customer_id, ends_at);
