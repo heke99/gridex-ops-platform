@@ -1,8 +1,9 @@
 import {beforeEach,expect,it,vi} from 'vitest'
 import {NextRequest} from 'next/server'
-const f=vi.hoisted(()=>({guard:vi.fn(),db:vi.fn(),archive:vi.fn(),read:vi.fn(),bytes:vi.fn(),review:vi.fn(),queue:vi.fn()}))
+const f=vi.hoisted(()=>({guard:vi.fn(),db:vi.fn(),service:{from:vi.fn()},archive:vi.fn(),read:vi.fn(),bytes:vi.fn(),review:vi.fn(),queue:vi.fn()}))
 vi.mock('@/lib/admin/apiGuards',()=>({requireAdminApiAccess:f.guard}))
 vi.mock('@/lib/supabase/server',()=>({createSupabaseServerClient:f.db}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:f.service}))
 vi.mock('@/lib/ediel/production/requestedCustomerChangeSource',()=>({REQUESTED_CUSTOMER_CHANGE_MAX_SOURCE_BYTES:8*1024*1024,REQUESTED_CUSTOMER_CHANGE_MAX_RAW_BYTES:1024*1024,archiveRequestedCustomerChangeSource:f.archive,readRequestedCustomerChangeSourceArtifact:f.read,readRequestedCustomerChangeSourceBytes:f.bytes,reviewRequestedCustomerChangeSourceArtifact:f.review}))
 vi.mock('@/lib/ediel/flows/prodatRequestedCustomerChange',()=>({prepareAndQueueRequestedCustomerChange:f.queue}))
 import {POST as archive} from '@/app/api/ediel/requested-customer-change-sources/route'
@@ -13,7 +14,7 @@ import {POST as queue} from '@/app/api/ediel/requested-customer-change-sources/[
 const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8000-000000000002',id='00000000-0000-4000-8000-000000000003'
 const params={params:Promise.resolve({artifactId:id})},request=(body:unknown)=>new NextRequest('http://localhost/api/ediel/requested-customer-change-sources',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
 const submission={agreementId:id,supplyPeriodId:id,contractId:id,rawPayload:"UNH+1+PRODAT:D:97A:UN:E2SE6A'",source:{bytesBase64:'JVBERi0xLjc=',mimeType:'application/pdf',reference:'SYNTHETIC original',version:'1'}}
-beforeEach(()=>{for(const mock of Object.values(f))mock.mockReset();f.guard.mockResolvedValue({guard:{companyId:company,userId:actor},response:null});const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:{environment:'test'},error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);f.db.mockResolvedValue({from:()=>query})})
+beforeEach(()=>{for(const mock of Object.values(f))if(typeof mock==='function')mock.mockReset();f.guard.mockResolvedValue({guard:{companyId:company,userId:actor},response:null});const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:{environment:'test'},error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);f.db.mockResolvedValue({from:()=>query});f.service.from.mockReset().mockReturnValue(query)})
 it('derives actual selected company/actor/environment on server and bounds original intake',async()=>{f.archive.mockResolvedValue({status:'archived',artifactId:id});expect((await archive(request(submission))).status).toBe(201);expect(f.archive).toHaveBeenCalledWith({...submission,companyId:company,actorUserId:actor,environment:'test'});expect(f.guard).toHaveBeenCalledWith({allOf:['communication.write','customers.write','contracts.write']})})
 it('rejects caller company/environment/approval fields without archive',async()=>{for(const key of ['companyId','actorUserId','environment','approved','sourceCapability'])expect((await archive(request({...submission,[key]:true}))).status).toBe(400);expect(f.archive).not.toHaveBeenCalled()})
 it('company scoped metadata receives native actor and no client selected company',async()=>{f.read.mockResolvedValue({artifactId:id,status:'held',missing:[]});const response=await metadata(new NextRequest('http://localhost'),params);expect(response.status).toBe(200);expect(f.read).toHaveBeenCalledWith({artifactId:id,companyId:company,actorUserId:actor});expect(response.headers.get('cache-control')).toBe('private, no-store')})
