@@ -1,3 +1,4 @@
+// masterplan: AI-05, AT-AI-05, SC-067
 import {beforeEach,expect,it,vi} from 'vitest'
 import {approveAiBiDiscrepancy} from '@/lib/ediel/aiBiReconciliation'
 import {importAiBiListCsv} from '@/lib/ediel/aiBiImportEngine'

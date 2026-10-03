@@ -1,3 +1,4 @@
+// masterplan: AI-01, AT-AI-01, SC-065
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const rpc=vi.hoisted(()=>vi.fn())
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(...args:unknown[])=>({abortSignal:()=>rpc(...args)})}}))

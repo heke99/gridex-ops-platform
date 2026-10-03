@@ -1054,3 +1054,5 @@ Remote #421 last verified `e443bbfe5e347daf500869676357f6d6a8052dc9`, main `53bf
 Published `97342339` hit native 393/394 on an overbroad new test assertion: the actual held consumer emitted positive technical CONTRL but no market ACK row/series. SQL selector and forged service/refusal checks passed before that line. Correction filters APERAK/UTILTS_ERR and retains meter/billing/completion plus retry checks; exact new-head CI/native/replay/type/schema remain required. The previous checkpoint UTC timestamp was also ahead of the actual clock and is corrected in this test commit. No production code adjustment from this result.
 
 Older Current sections above are historical and SUPERSEDED.
+
+- 2026-10-03 #426: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067 godkända med märkta unit-tester (mappning från granskningssessionen). SC-044 återställd till NOT_EXECUTED: enda testet är native (`scripts/ediel-utilts-err-gateway-native.test.ts`), som `ediel:masterplan-v2:test-coverage` inte kan köra; tidigare acceptans finns kvar i `acceptance-sc044-20260930.md`.

@@ -1,3 +1,4 @@
+// masterplan: AI-02, AT-AI-02, AI-03, AT-AI-03, SC-065
 import {describe,expect,it,vi} from 'vitest'
 // Chronology fixtures test only the pure projection. They are not acceptance or
 // source-owner evidence; the existing owner/timeline/native probes stay separate.

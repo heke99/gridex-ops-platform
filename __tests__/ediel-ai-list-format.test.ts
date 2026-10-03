@@ -1,3 +1,4 @@
+// masterplan: AI-01, AT-AI-01, AI-02, AT-AI-02, AI-05, AT-AI-05, SC-065, SC-067
 import {describe,expect,it} from 'vitest'
 import {buildAiListCsv,buildAiListDetailFromSite} from '@/lib/ediel/aiList'
 import {assertAiListOutboundMessage,isAiListCsvMediaType} from '@/lib/ediel/aiListFormat'

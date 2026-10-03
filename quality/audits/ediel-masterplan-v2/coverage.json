@@ -639,20 +639,34 @@
     {
       "id": "AI-01",
       "acceptance_id": "AT-AI-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "AI-02",
       "acceptance_id": "AT-AI-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AI-03",
       "acceptance_id": "AT-AI-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AI-04",
@@ -663,8 +677,13 @@
     {
       "id": "AI-05",
       "acceptance_id": "AT-AI-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "DB-01",
@@ -1058,10 +1077,8 @@
     },
     {
       "id": "SC-044",
-      "status": "PASSED",
-      "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md"
-      ]
+      "status": "NOT_EXECUTED",
+      "evidence": []
     },
     {
       "id": "SC-045",
@@ -1165,8 +1182,14 @@
     },
     {
       "id": "SC-065",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "SC-066",
@@ -1175,8 +1198,13 @@
     },
     {
       "id": "SC-067",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "SC-068",
@@ -1724,18 +1752,32 @@
     },
     {
       "id": "AT-AI-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "AT-AI-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AT-AI-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AT-AI-04",
@@ -1744,8 +1786,13 @@
     },
     {
       "id": "AT-AI-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "AT-DB-01",
