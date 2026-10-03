@@ -687,7 +687,7 @@ export default async function AgtCasePage({
             <input type="hidden" name="test_run_id" value={run?.id ?? ""} />
             <label className="block text-sm font-medium text-slate-700">
               Fil
-              <input
+              <input aria-label="Fil"
                 type="file"
                 name="ediel_file"
                 className={inputClassName()}
@@ -695,7 +695,7 @@ export default async function AgtCasePage({
             </label>
             <label className="block text-sm font-medium text-slate-700">
               Eller klistra in raw EDIFACT
-              <textarea
+              <textarea aria-label="Eller klistra in raw EDIFACT"
                 name="raw_payload"
                 rows={5}
                 className={inputClassName()}

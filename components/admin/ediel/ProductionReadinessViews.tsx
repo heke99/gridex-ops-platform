@@ -377,7 +377,7 @@ export function ProductionReadinessPanel({
             </p>
             <label className="mt-3 block text-sm font-semibold text-emerald-950">
               Sparat produktionsmeddelande
-              <input
+              <input aria-label="Sparat produktionsmeddelande"
                 name="message_id"
                 required
                 placeholder="Meddelandets UUID"

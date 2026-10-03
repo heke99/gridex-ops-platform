@@ -195,7 +195,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
  <div className="grid gap-3">
  <label className="text-sm font-medium text-slate-700">
  Version som används
- <input
+ <input aria-label="Version som används"
  value={activeTemplate.versionLabel}
  readOnly
  className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900"
@@ -204,7 +204,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
 
  <label className="text-sm font-medium text-slate-700">
  Giltig från
- <input
+ <input aria-label="Giltig från"
  name="valid_from"
  type="date"
  defaultValue={activeTemplate.defaultValidFrom}
@@ -214,7 +214,7 @@ export default function EdielRuleTemplateModals({ hasProdatRule }: Props) {
 
  <label className="text-sm font-medium text-slate-700">
  Giltig till
- <input
+ <input aria-label="Giltig till"
  name="valid_to"
  type="date"
  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"

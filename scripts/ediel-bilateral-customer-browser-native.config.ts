@@ -8,4 +8,4 @@ if(status.API_URL!=='http://127.0.0.1:54321'||!status.ANON_KEY||!status.SERVICE_
 process.env.NEXT_PUBLIC_SUPABASE_URL=status.API_URL
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY=status.ANON_KEY
 process.env.SUPABASE_SERVICE_ROLE_KEY=status.SERVICE_ROLE_KEY
-export default defineConfig({resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},test:{environment:'node',include:['scripts/ediel-bilateral-customer-browser-native.test.ts'],testTimeout:120000,fileParallelism:false}})
+export default defineConfig({resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},test:{environment:'node',setupFiles:['scripts/helpers/ediel-native-permission-catalog.setup.ts'],include:['scripts/ediel-bilateral-customer-browser-native.test.ts'],testTimeout:120000,fileParallelism:false}})

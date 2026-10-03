@@ -811,6 +811,7 @@
     "20261003130000_customer_portfolio_analytics_whitelabel.sql": "b6240bca7b1b74b12667bd7735fb1a1c464d9d367d69879bf2f4c6e5551d9f7c",
     "20261003131000_customer_portfolio_phase2.sql": "c5d6ff356616a00444e76fc9a5d7a8cbe82598fbe72b12fa05c28351e6aaff89",
     "20261003150000_ediel_utilts_late_version_and_err_ack_dispatcher.sql": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05",
+    "20261003150100_ediel_archived_finance_invoice_retention_read.sql": "4d2999a90592ec578a2b7a7d3313ead6409f2b91e639676145438d4f0c87d851",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

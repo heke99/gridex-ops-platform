@@ -6,4 +6,4 @@ if(!file||!process.env.GRIDEX_FINANCE_RETENTION_FIXTURE_PATH||!process.env.GRIDE
 const status=JSON.parse(readFileSync(file,'utf8')) as Record<string,string>
 if(status.API_URL!=='http://127.0.0.1:54321'||!status.ANON_KEY||!status.SERVICE_ROLE_KEY)throw Error('finance_retention_owned_native_required')
 process.env.NEXT_PUBLIC_SUPABASE_URL=status.API_URL;process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY=status.ANON_KEY;process.env.SUPABASE_SERVICE_ROLE_KEY=status.SERVICE_ROLE_KEY
-export default defineConfig({resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},test:{environment:'node',include:['scripts/ediel-finance-copy-retention-browser-native.test.ts'],testTimeout:180000,fileParallelism:false}})
+export default defineConfig({resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')}]},test:{environment:'node',setupFiles:['scripts/helpers/ediel-native-permission-catalog.setup.ts'],include:['scripts/ediel-finance-copy-retention-browser-native.test.ts'],testTimeout:180000,fileParallelism:false}})

@@ -18,3 +18,16 @@
 | PGLITE-CI | alla | medel | ✅ delvis | PGlite-regressioner kördes inte i CI; 0.3.14 nu devDependency, U-04/U-14 körs via test-ediel-wrapper |
 
 Falsklarm (fp-check): D4, D5, D6, D8, D9, D11–D15 (TEN), A1–A3 (ACK), C1–C2 (P/U), E1, E2, E4, E5, E7 (TR/OPS/AI), G3–G5 (ENV/GOV).
+
+## Webbläsarfel (CI clean-migration-replay) — rotorsaker och rättningar 2026-10-03
+| ID | Allvar | Rotorsak | Rättning |
+|---|---|---|---|
+| F-UI-01 | medel | `<select>`/`<textarea>`/`<input>` inuti `<label>`: alternativtext eller ifyllt värde blev del av det tillgängliga namnet (a11y + exakta etikettsökningar föll) | explicit `aria-label` på 115 kontroller i app/retention, app/admin/ediel, components/admin/ediel |
+| F-UI-02 | låg | gallringsytan svämmade över vid 375px/200% zoom (selects med långa alternativ, gridkolumner) | `.retention-workspace`-regler i globals.css |
+| F-UI-03 | medel | ekonomiska kopior/processjournaler visade förra läsningens fil medan ny läsning pågick | dölj resultat under `pending` |
+| F-RET-01 | medel | arkiverat bolags läsanvändare nekades läsa beslutsfiler för ekonomiska kopior/fakturafiler (fel läsvägsval, variant av tidigare kundposträttning) | migration 20261003150100 |
+| F-RCS-01 | medel | kundändring köad från UI hittade aldrig nätägarens route (inget route-ID, grid_owner null) | flödet härleder egen aktiv nätägare från juridisk mottagare; unit-test |
+| FIX-01 | — | webbläsarförberedelser förlitade sig på att native-sviten seedat behörighetskatalogen | katalogsetup i alla browser-native-konfigurationer |
+| FIX-02 | — | nätregistrets webbläsarfixtur hårdkodade registerversion 2 som redan använts | versionsräknaren tilldelar |
+| FIX-03 | — | ärendets läsanvändare saknade customers.read men specen förväntade kundlänk | fixturen ger customers.read (ingen skrivrätt) |
+Lokalt (full replay + dev-server): alla 8 tidigare röda specar gröna: customer-record 3/3, decision-evidence 3/3, finance 3/3, message-content 3/3, process-journal 3/3, network-registry 2/2, requested-change 3/3, case 3/3.

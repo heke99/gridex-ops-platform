@@ -239,3 +239,19 @@ textarea {
 .admin-saas-content :where(input::placeholder, textarea::placeholder) {
   color: #64748b !important;
 }
+
+/* Standalone retention workspace: long Swedish labels and IDs wrap at 375px and 200% zoom. */
+.retention-workspace,
+.retention-workspace :where(main, section, form, div) {
+  min-width: 0;
+}
+.retention-workspace :where(h1, h2, h3, p, dd, dt, label, li, a, button, legend) {
+  overflow-wrap: anywhere;
+}
+.retention-workspace :where(select, input, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+.retention-workspace :where(.grid) {
+  grid-template-columns: minmax(0, 1fr);
+}

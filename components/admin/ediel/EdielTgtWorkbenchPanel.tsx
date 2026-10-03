@@ -737,10 +737,10 @@ function GuidedNextActionPanel({ evaluation }: { evaluation: EdielTgtRunEvaluati
  <input type="hidden" name="testRunId" value={evaluation.testRun.id} />
  <input type="hidden" name="stepNo" value={nextStep.stepNo} />
  <label className="text-sm">Registerfakta som JSON
- <textarea name="registerFacts" required maxLength={32768} rows={6} className="mt-1 block w-full rounded border p-2 font-mono text-xs" placeholder={'{"market":"electricity","registerObjects":[{"meteringPointId":"EXAKT-ID","identityAgency":"9","expectedRegisterCount":2,"meterReadingsSentInUtilts":null}]}'} />
+ <textarea aria-label="Registerfakta som JSON" name="registerFacts" required maxLength={32768} rows={6} className="mt-1 block w-full rounded border p-2 font-mono text-xs" placeholder={'{"market":"electricity","registerObjects":[{"meteringPointId":"EXAKT-ID","identityAgency":"9","expectedRegisterCount":2,"meterReadingsSentInUtilts":null}]}'} />
  </label>
  <label className="text-sm">Källa för uppgiften om mätarställningar
- <input name="sourceNote" required maxLength={2000} className="mt-1 block w-full rounded border p-2" placeholder="Ange rapporteringsöverenskommelse eller annat verifierat underlag" />
+ <input aria-label="Källa för uppgiften om mätarställningar" name="sourceNote" required maxLength={2000} className="mt-1 block w-full rounded border p-2" placeholder="Ange rapporteringsöverenskommelse eller annat verifierat underlag" />
  </label>
  <button className="w-fit rounded bg-emerald-700 px-3 py-2 text-sm font-semibold text-white">Spara granskat faktaunderlag för detta steg</button>
  </form>
@@ -980,7 +980,7 @@ function TestCaseCard({
  />
  <label className="block text-xs font-semibold text-emerald-950">
  Ladda upp Excel/CSV-export från Edielportalen
- <input
+ <input aria-label="Ladda upp Excel/CSV-export från Edielportalen"
  name="testDataFile"
  type="file"
  multiple
