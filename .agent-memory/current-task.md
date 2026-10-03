@@ -1,6 +1,11 @@
 ## Aktuell arbetsgren — 2026-10-03 03:00 (gäller före allt nedan)
 
 Pushat a3b01fe6: migration 20261002235200 (meddelandescopad U-APERAK utan ACW godtas i historisk matchare; header-avvisning SC-045 gick ej att skapa). err-gateway native 8/8 lokalt. Lärdom: källor mottagna 2026-10-01..14 får 25-A-3-fallback (graceperiod, messagePolicy) — native-fixturer som kräver 25-A-4-regler ska ha message_received_at efter 2026-10-14. Syntaxavvisad källa: affärsdispatchern kastar (utilts_initial_canonical_owner_context_mismatch, enhetstester kräver det); negativ CONTRL skapas av processInboundEdielMessage (mottagning). DB atomic ACK lagrar ackScope endast för 'transaction'.
+Pushat 81b5b3ac (03:25): relativa framtidsdatum (futureNativeSupplyDate), product_direction i normal-switch-seed, RFF+LI an..35. confirmed-customer native 1/1.
+ÖPPNA native med känd orsak (fixturdesign, ej produktfel):
+- z06f: läsningen är UTILTS E30, men katalogen ger E30-mottagare = grid_owner (23-MDR); leverantör kan ej ta emot E30 → fixturen behöver E66 med registeravläsning (S07 är profil, passar ej).
+- ai-network-original: AI-routen saknar registerimporterad platform_actor_route (dispatch_source_v1 returnerar NULL) + normal-switch-seed har redan nätregister v1 (testet skapar v1 igen).
+- network-registry-source: antar att ingen nätregisterkälla finns, men normal-switch-seeden kvalificerar en (Z03 kräver den).
 Grenmigrationer nu 20261002233000–20261002235200. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
 
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
