@@ -22,6 +22,27 @@ export function committedPersistenceBody(revision: string, migration: string, fu
   return { body: afterHeader.slice(bodyStart, bodyEnd), migrationHash: createHash('sha256').update(source).digest('hex') }
 }
 
+// A later checksum-bound migration may rewrite a body by exact needle/replace
+// pairs (each needle must occur exactly once, as the migration itself enforces).
+// The expected installed body is the committed base body with those same pairs.
+export function committedPatchedBody(revision: string, base: { body: string; migrationHash: string }, migration: string, block: string) {
+  const source = execFileSync('git', ['show', `${revision}:supabase/migrations/${migration}`], { encoding: 'utf8' })
+  const manifest = JSON.parse(execFileSync('git', ['show', `${revision}:scripts/migration-history-manifest.json`], { encoding: 'utf8' })) as { files: Record<string, string> }
+  expect(createHash('sha256').update(source).digest('hex'), migration).toBe(manifest.files[migration])
+  const tag = `$${block}$`
+  const start = source.indexOf(tag)
+  const end = source.indexOf(tag, start + tag.length)
+  expect(start >= 0 && end > start, `${migration}:${block}`).toBe(true)
+  const pairs = [...source.slice(start, end).matchAll(/ARRAY\[\$n\$([\s\S]*?)\$n\$,\$n\$([\s\S]*?)\$n\$\]/g)]
+  expect(pairs.length, `${migration}:${block}:pairs`).toBeGreaterThan(0)
+  let body = base.body
+  for (const [, needle, replacement] of pairs) {
+    expect(body.split(needle).length - 1, `${migration}:${block}:needle`).toBe(1)
+    body = body.replace(needle, () => replacement)
+  }
+  return { body, migrationHash: createHash('sha256').update(source).digest('hex') }
+}
+
 export type PersistenceCatalogFunction = {
   oid: number; signature: string; name: string; schema: string; owner: string; language: string;
   securityDefiner: boolean; kind: string; config: string[] | null; argumentNames: string[] | null;

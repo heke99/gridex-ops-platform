@@ -13,7 +13,8 @@ describe('verified outbound execution context before customer mutation',()=>{
  it('resolves the tenant role profile from the process and keeps tenant, legal actor, role and transport identity distinct',async()=>{
   const resolved=await assertOutboundActorIdentity(draft())
   expect(io.actor).toHaveBeenCalledWith('test',company,'energy_service_company')
-  const context=buildOutboundExecutionContext({draft:draft(),actor:resolved,rulePackId:'pack'})
+  expect(resolved).not.toBeNull()
+  const context=buildOutboundExecutionContext({draft:draft(),actor:resolved!,rulePackId:'pack'})
   expect(context).toMatchObject({companyId:company,senderActorId:'actor-esco',senderRole:'energy_service_company',legalActorEdielId:'7300000000001',senderEdielId:'7300000000009',family:'PRODAT',messageCode:'Z13'})
   expect(Object.isFrozen(context)).toBe(true)
  })

@@ -18,7 +18,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
 import { recordUtiltsFinalRuntime, recordUtiltsTechnicalReception, seedUtiltsConsumptionParties, setUtiltsReceiverRole, seedUtiltsIssuerHistoryGround, receiveUtiltsRetry } from './helpers/utiltsConsumptionParties'
-import { committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
+import { committedPatchedBody, committedPersistenceBody, type PersistenceCatalogReceipt } from './helpers/utiltsPersistenceCatalog'
 const forgedRefusal /* canonical transaction owner refuses a forged payload first */ = (specific: string) => new RegExp(`utilts_(${specific}|transaction_owner_(evidence_required|outcome_mismatch))`), ownIdentity /* a derived source is a new original: own field 505 per issuer */ = (raw: string) => raw.replaceAll('GRIDEX2607E66001', `D${randomUUID().replaceAll('-', '').slice(0, 15)}`)
 
 // Real parser, canonical policy, preparation, service HTTP RPC, SQL, stored
@@ -971,7 +971,15 @@ it('native catalog binds preserved UTILTS OIDs to the only actor-protected calla
       FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' OR n.nspname LIKE 'gridex\\_%' ESCAPE '\\'),
     'migrations',(SELECT jsonb_agg(jsonb_build_object('version',version,'name',name) ORDER BY version) FROM supabase_migrations.schema_migrations));`, 32_000_000)
   const actual = new Map(catalog.functions.map(fn => [fn.signature, fn]))
-  const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => ({ signature, migration, ...committedPersistenceBody(revision, migration, functionName) }))
+  // 20261003150200 (U-04) rewrites persist_series_v2 by guarded needle/replace.
+  const bodyPatches: Record<string, [string, string]> = {
+    'gridex_utilts_binding.persist_series_v2(uuid,text,uuid,text,jsonb)': ['20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql', 'u04'],
+  }
+  const expected = persistenceCatalogOwners.map(([signature, migration, functionName]) => {
+    const committed = committedPersistenceBody(revision, migration, functionName)
+    const patch = bodyPatches[signature]
+    return { signature, migration: patch ? patch[0] : migration, ...(patch ? committedPatchedBody(revision, committed, patch[0], patch[1]) : committed) }
+  })
   // Conservative named-call discovery supplies the late-bound callsite review.
   // It neither parses PL/pgSQL nor proves dynamically assembled SQL absent.
   const privateNames = privateOwners.map(signature => signature.slice(signature.indexOf('.') + 1, signature.indexOf('(')))
