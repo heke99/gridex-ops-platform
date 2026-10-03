@@ -305,7 +305,8 @@ for index in range(12):
         mixed.append(reserve(f"native-quota-staff-{index:03d}"))
     else:
         uploaded_by = "customer" if index % 3 == 1 else "staff"
-        mixed.append(f"WITH inserted AS ({insert_base} VALUES({literal(COMPANY)},{literal(CUSTOMER)},{literal(CASE_ID)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),{literal(f'synthetic-quota-{index}.pdf')},'application/pdf',100,{literal(DIGEST)},{literal(f'synthetic/quota-{index}')},'internal',{literal(uploaded_by)},'quarantined',clock_timestamp()) RETURNING public_reference) SELECT jsonb_build_object('state','inserted','reference',public_reference) FROM inserted;")
+        visibility = "customer" if uploaded_by == "customer" else "internal"
+        mixed.append(f"WITH inserted AS ({insert_base} VALUES({literal(COMPANY)},{literal(CUSTOMER)},{literal(CASE_ID)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),{literal(f'synthetic-quota-{index}.pdf')},'application/pdf',100,{literal(DIGEST)},{literal(f'synthetic/quota-{index}')},{literal(visibility)},{literal(uploaded_by)},'quarantined',clock_timestamp()) RETURNING public_reference) SELECT jsonb_build_object('state','inserted','reference',public_reference) FROM inserted;")
 quota_results = parallel(mixed, workers=12)
 if sum(item["ok"] for item in quota_results) != 3:
     raise AssertionError(f"Mixed staff/native/customer races did not consume exactly three remaining quota slots: {quota_results}")
