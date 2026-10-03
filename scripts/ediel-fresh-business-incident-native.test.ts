@@ -1,4 +1,7 @@
-import {beforeEach,describe,expect,it} from 'vitest'
+import {beforeEach,describe,expect,it,vi} from 'vitest'
+// The test module loads the SMTP transport before the shared fixture, so the
+// mail mock is declared here and resolves the fixture's send mock at call time.
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:async(...args:unknown[])=>(await import('./fixtures/ediel-service-evidence-native')).nativeEscoExternal.send(...args)})}}))
 import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {readFileSync,writeFileSync} from 'node:fs'
