@@ -232,7 +232,7 @@ Production rule:
 - `Z13VH` must use `DTM+90` for historical report start and `DTM+91` for historical report end.
 - `Z13VH` must not use `DTM+92` as a substitute for report period.
 - `Z13` must include `SG17/NAD+UD` with end-user/customer identity when the profile requires the end user.
-- If a payload contains `DTM+91` but still has `CAV+S17`, it is internally inconsistent and must be blocked before SMTP/send.
+- `DTM+91` with `CAV+S17` is valid for a time-bounded ongoing permission (masterplan SC-027); it is omitted only for an indefinite S17. A historical variant (VH) always renders `CAV+S18`; the builders resolve the reason from the variant, never from a stale portal reason.
 
 This applies equally to AGT E4 and live production messages to real grid owners.
 
