@@ -189,8 +189,14 @@
     {
       "id": "ENV-04",
       "acceptance_id": "AT-ENV-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/ackPolicy.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "scripts/test-ediel-unb-ack-request.cjs"
+      ]
     },
     {
       "id": "ENV-05",
@@ -225,9 +231,16 @@
     {
       "id": "P-01",
       "acceptance_id": "AT-P-01",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts"
       ]
     },
     {
@@ -247,8 +260,16 @@
     {
       "id": "P-04",
       "acceptance_id": "AT-P-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ]
     },
     {
       "id": "P-05",
@@ -863,38 +884,90 @@
     },
     {
       "id": "SC-024",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ]
     },
     {
       "id": "SC-025",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/builders/z13.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatReportingPermissionStrict.ts",
+        "__tests__/ediel-prodat-reporting-builders.test.ts",
+        "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "__tests__/ediel-prodat-reporting-notes.test.ts"
+      ]
     },
     {
       "id": "SC-026",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDateFields.ts",
+        "lib/ediel/prodat/prodatReferenceFields.ts",
+        "lib/ediel/flows/prodatPermissionLifecycle.ts",
+        "__tests__/ediel-prodat-date-consumers.test.ts",
+        "__tests__/ediel-prodat-reference-consumers.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ]
     },
     {
       "id": "SC-027",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatReportingPermissionStrict.ts",
+        "lib/ediel/prodat/prodatDateFields.ts",
+        "lib/ediel/prodat/render/dateSegments.ts",
+        "__tests__/ediel-prodat-reporting-builders.test.ts",
+        "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "__tests__/ediel-prodat-reporting-policy-boundaries.test.ts"
+      ]
     },
     {
       "id": "SC-028",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatEnergyProduct.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-energy-product-scope.test.ts"
+      ]
     },
     {
       "id": "SC-029",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDateEvents.ts",
+        "lib/ediel/prodat/render/dateSegments.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts",
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-field-identity-inbound.test.ts"
+      ]
     },
     {
       "id": "SC-030",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/prodat/prodatEndUserAddress.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-death-status-builders.test.ts"
+      ]
     },
     {
       "id": "SC-031",
@@ -903,13 +976,26 @@
     },
     {
       "id": "SC-032",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts"
+      ]
     },
     {
       "id": "SC-033",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/prodatRegisterReadings.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+      ]
     },
     {
       "id": "SC-034",
@@ -1260,8 +1346,14 @@
     },
     {
       "id": "AT-ENV-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/ackPolicy.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "scripts/test-ediel-unb-ack-request.cjs"
+      ]
     },
     {
       "id": "AT-ENV-05",
