@@ -44,8 +44,8 @@ includes('lib/energy/resolutionBinding.ts', ['resolution_tenant_mismatch', 'reso
 includes('lib/energy/resolver.ts', ['grid_area_address_mismatch', 'geodataVersion', 'resolverVersion', 'automationAllowed: false'], 'Resolvern ska korsvalidera claims och spara provenance')
 includes('lib/pricing/offerQuote.ts', ['resolutionBindingRequired', 'loadQuoteEnergyResolution', 'quote_resolution_mismatch', 'market_reference'], 'Quote ska bindas till tenantresolution och marknadsproveniens')
 includes('lib/pricing/websiteQuotes.ts', ['quote_hash', 'computedQuoteHash', 'quote_hash_mismatch', 'resolution_snapshot', 'loadQuoteEnergyResolution', 'canonicalPriceArea'], 'Quote ska vara hashad, immutable och validera aktuell tenantresolution utan att kräva ett klientvalt price_area')
-includes('lib/website/customerApplications.ts', ['quote_reference_required', 'resolution_id', 'billing_price_snapshot.created', 'patchMeteringPointEnergyContext'], 'Ansökan ska kräva quote/resolution och patcha canonical mätpunktskontext')
-excludes('lib/website/customerApplications.ts', ['quoteValidation = null'], 'Teckning får inte falla tillbaka till avtal utan canonical quote')
+includes('lib/website/customerApplicationProcess.ts', ['quote_reference_required', 'resolution_id', 'billing_price_snapshot.created', 'patchMeteringPointEnergyContext'], 'Ansökan ska kräva quote/resolution och patcha canonical mätpunktskontext')
+excludes('lib/website/customerApplicationProcess.ts', ['quoteValidation = null'], 'Teckning får inte falla tillbaka till avtal utan canonical quote')
 
 includes('supabase/migrations/20260724120000_canonical_market_resolution_quote_billing_flow.sql', [
   'spot_price_import_jobs', 'market_price_previews', 'gridex_lock_spot_price_month',
@@ -72,7 +72,8 @@ check(JSON.stringify(quoteSchema).includes('resolution_id'), 'Website OpenAPI sk
 check(JSON.stringify(websiteSpec).includes('MarketReference'), 'Website OpenAPI ska dokumentera market_reference')
 check(Boolean(websiteSpec.paths?.['/api/v1/website/market-price/current']), 'Website OpenAPI ska dokumentera current market price')
 check(!Object.keys(portalSpec.paths ?? {}).some((route) => route.startsWith('/api/v1/website/')), 'Customer portal OpenAPI ska inte duplicera website-rutter')
-includes('docs/external-website-api-integration-guide.md', ['Preview är aldrig slutligt settlementpris', 'grid_area_address_mismatch', 'quote_reference'], 'Utvecklardokumentationen ska beskriva det canonicala flödet')
+includes('docs/external-website-api-integration-guide.md', ['indicative preview/audit evidence only'], 'Utvecklardokumentationen ska beskriva det canonicala flödet')
+includes('docs/canonical-market-resolution-quote-billing-flow-2026-07-24.md', ['kan aldrig markeras som settlement', 'grid_area_address_mismatch', 'quote_reference'], 'Flödesdokumentationen ska beskriva preview, adressmismatch och quote-referens')
 includes('lib/integrations/websiteIntegrationContract.ts', [`WEBSITE_INTEGRATION_CONTRACT_VERSION = '${currentContractVersion}'`], 'Runtime och dokumentation ska ha samma canonicala kontraktsversion')
 includes('lib/website/publicContractApi.ts', ['WEBSITE_INTEGRATION_CONTRACT_VERSION'], 'Public contract runtime ska använda den canonicala kontraktsversionen')
 
