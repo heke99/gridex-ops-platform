@@ -800,6 +800,7 @@
     "20261002235100_ediel_service_z13_wire_without_grid_area.sql": "305e93d66b826ee38322d2fc9c09a34183d16dc6fe3385ac5ecb4e78754d4969",
     "20261002235200_ediel_historical_aperak_message_scope.sql": "196712726526d3dce3a3c0ad5446016bf0000b61a908712bd41c01bc20f2eca5",
     "20261002235300_supply_basis_contract_ended_by_own_period.sql": "1f9959216904c97f887adf8a8c1747217dcf30c13bc3e488d872ea8d0f64347b",
+    "20261002235400_ediel_messages_replay_operational_indexes.sql": "c6c126bf7ffe376fb7394739be384fc4347273e683a5a6a746ebc1b295e4b535",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",
