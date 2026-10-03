@@ -9382,6 +9382,10 @@ BEGIN
   RETURN;
  END IF;
  SELECT * INTO r FROM gridex_received_sources.prodat_mixed_object_receipts WHERE source_message_id=source.id AND company_id=m.company_id AND environment=m.environment AND source_payload_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex') FOR SHARE;
+ IF NOT FOUND AND EXISTS(SELECT FROM gridex_received_sources.supply_object_partitions p WHERE p.source_message_id=source.id AND p.company_id=m.company_id
+   AND p.environment=m.environment AND p.payload_hash=encode(sha256(convert_to(source.raw_payload,'UTF8')),'hex'))
+  AND EXISTS(SELECT FROM pg_trigger WHERE tgrelid='public.ediel_messages'::regclass AND tgname='domain_response_birth' AND tgenabled<>'D'
+   AND tgfoid='gridex_received_sources.require_domain_response_at_birth_v1()'::regprocedure) THEN RETURN;END IF;
  IF NOT FOUND OR NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments a JOIN gridex_received_sources.prodat_object_validation_facets f ON f.assessment_id=a.id AND f.facts_hash=r.object_facts_hash AND f.source_payload_hash=r.source_payload_hash WHERE a.facts_hash=(SELECT initial.facts_hash FROM gridex_received_sources.validation_assessments initial WHERE initial.id=r.assessment_id) AND a.source_message_id=source.id AND a.company_id=m.company_id AND a.environment=m.environment AND a.source_payload_hash=r.source_payload_hash AND a.facts_text::jsonb->>'syntaxDecision'='accepted' AND a.facts_text::jsonb->>'functionalDecision'='accepted' AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=a.id))
  OR NOT EXISTS(SELECT FROM gridex_received_sources.prodat_mixed_reply_outbox o WHERE o.source_message_id=source.id AND o.company_id=m.company_id AND o.environment=m.environment AND o.source_payload_hash=r.source_payload_hash AND o.object_facts_hash=r.object_facts_hash) THEN RAISE EXCEPTION 'prodat_mixed_ack_committed_own_results_required';END IF;
  FOR t IN SELECT x FROM jsonb_array_elements(tokens) x WHERE x->>'tag'='ERC' AND x#>>'{elements,1,0}'='100' LOOP
@@ -9513,7 +9517,9 @@ BEGIN
   END LOOP;
   IF m.id IS NULL THEN CONTINUE;END IF;
   INSERT INTO gridex_ediel_ack_guide.outbound_prodat_scopes(company_id,environment,source_message_id,source_payload_sha256,scope_kind,scope_reference,physical_source_reference,outcome,ack_message_id,ack_payload_sha256)
-   VALUES(m.company_id,m.environment,source.id,source_hash,scope->>'scope',scope->>'reference',scope->'physicalReference',scope->>'outcome',m.id,ack_hash) ON CONFLICT DO NOTHING;
+   SELECT m.company_id,m.environment,source.id,source_hash,scope->>'scope',scope->>'reference',scope->'physicalReference',scope->>'outcome',m.id,ack_hash
+   WHERE NOT EXISTS(SELECT FROM gridex_ediel_ack_guide.outbound_prodat_scopes r WHERE r.source_message_id=source.id AND r.scope_kind=scope->>'scope' AND r.scope_reference=scope->>'reference')
+   ON CONFLICT DO NOTHING;
  END LOOP;
 END $$;
 
@@ -31774,6 +31780,7 @@ declare
   v_series_identity text;
   v_series_id uuid;
   v_previous_id uuid;
+  v_late_older boolean;
   v_version integer;
   v_inserted boolean;
   v_quantity jsonb;
@@ -31897,6 +31904,7 @@ begin
       v_dedupe_key := encode(digest(convert_to(v_series_identity || '|' || v_transaction_id,'UTF8'),'sha256'),'hex');
       v_previous_id := null;
       v_version := 1;
+      v_late_older := false;
       select id,version_no into v_previous_id,v_version
       from public.meter_reading_series
       where company_id=p_company_id and is_current
@@ -31911,7 +31919,15 @@ begin
         and dedupe_key<>v_dedupe_key
         and exists(select from public.ediel_messages origin where origin.id=meter_reading_series.source_ediel_message_id and origin.company_id=p_company_id and origin.environment=p_environment)
       order by version_no desc limit 1 for update;
-      if v_previous_id is not null then v_version := v_version + 1; end if;
+      if v_previous_id is not null then
+        v_version := v_version + 1;
+        -- U-04: a version whose own 532/512 is older than the current one is
+        -- retained as history and never displaces newer data on late arrival.
+        select coalesce(nullif(v_item->>'latestUpdateDate','')::timestamptz,nullif(v_item->>'registrationDate','')::timestamptz)
+               < coalesce(p.latest_update_date,p.registration_date)
+          into v_late_older from public.meter_reading_series p where p.id=v_previous_id;
+        v_late_older := coalesce(v_late_older,false);
+      end if;
 
       insert into public.meter_reading_series(
         company_id,metering_point_id,source_ediel_message_id,external_metering_point_id,
@@ -31927,7 +31943,7 @@ begin
         'received',v_dedupe_key,p_message_code,v_transaction_id,coalesce(v_item->>'seriesKind','actual'),
         nullif(v_item->>'productId',''),v_item->'timeSeriesProduct',coalesce(v_item->'actorContext','{}'::jsonb),
         nullif(v_item->>'registrationDate','')::timestamptz,nullif(v_item->>'latestUpdateDate','')::timestamptz,
-        v_version,v_previous_id,true,nullif(v_item->>'correctionReason',''),v_item,
+        v_version,case when v_late_older then null else v_previous_id end,not v_late_older,nullif(v_item->>'correctionReason',''),v_item,
         encode(digest(convert_to(v_item::text,'UTF8'),'sha256'),'hex')
       ) on conflict(company_id,dedupe_key) do nothing returning id into v_series_id;
       v_inserted := v_series_id is not null;
@@ -31935,7 +31951,7 @@ begin
         select id into v_series_id from public.meter_reading_series
         where company_id=p_company_id and dedupe_key=v_dedupe_key;
       else
-        if v_previous_id is not null then
+        if v_previous_id is not null and not v_late_older then
           update public.meter_reading_series set is_current=false where id=v_previous_id;
         end if;
         v_order := 0;
@@ -32081,6 +32097,95 @@ CREATE FUNCTION gridex_utilts_binding.require_execution_actor_v1(p_company_id uu
     AND m.status='active' AND m.is_active AND m.accepted_at IS NOT NULL)
   OR gridex_bilateral_customer_sources.classified_scoped_permission_wallclock_v1(p_company_id,p_actor_user_id,'metering.write') IS NOT TRUE THEN
   RAISE EXCEPTION 'utilts_execution_actor_forbidden' USING ERRCODE='42501';END IF;
+END $$;
+
+--
+-- Name: require_positive_storage_authority_v1(uuid, text, uuid, text, uuid, text); Type: FUNCTION; Schema: gridex_utilts_binding; Owner: -
+--
+
+CREATE FUNCTION gridex_utilts_binding.require_positive_storage_authority_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_ack_message_id uuid DEFAULT NULL::uuid, p_ack_raw_payload text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'extensions'
+    SET "TimeZone" TO 'UTC'
+    AS $$
+DECLARE
+ source public.ediel_messages%rowtype; ack public.ediel_messages%rowtype;
+ receipt gridex_utilts_binding.receipts%rowtype; origin gridex_utilts_binding.receipts%rowtype;
+ reservation public.ediel_ack_transaction_results%rowtype;
+ series public.meter_reading_series%rowtype; stored gridex_utilts_binding.contracts%rowtype;
+ tokens jsonb; ack_tokens jsonb; source_hash text; ack_hash text; document_id text;
+BEGIN
+ IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_source_message_id IS NULL
+ OR nullif(p_transaction_id,'') IS NULL OR (p_ack_message_id IS NULL)<>(p_ack_raw_payload IS NULL) THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01';
+ END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
+ SELECT * INTO source FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id AND environment=p_environment FOR SHARE;
+ IF NOT FOUND OR source.direction<>'inbound' OR source.message_family<>'UTILTS' OR source.raw_payload IS NULL THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ source_hash:=encode(digest(convert_to(source.raw_payload,'UTF8'),'sha256'),'hex');
+ SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=source.id;
+ IF NOT FOUND OR receipt.company_id IS DISTINCT FROM p_company_id OR receipt.environment IS DISTINCT FROM p_environment
+ OR receipt.raw_hash IS DISTINCT FROM source_hash OR receipt.source_context IS DISTINCT FROM gridex_utilts_binding.source_context_v1(source)
+ OR NOT receipt.membership ? p_transaction_id THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ tokens:=gridex_utilts_binding.wire_tokens_v1(source.raw_payload);
+ IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t
+  WHERE t->>'tag'='IDE' AND t#>>'{elements,1,0}'='24' AND t#>>'{elements,2,0}'=p_transaction_id)<>1 THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ SELECT * INTO reservation FROM public.ediel_ack_transaction_results WHERE company_id=p_company_id AND environment=p_environment
+  AND source_message_id=source.id AND source_transaction_id=p_transaction_id FOR SHARE;
+ IF NOT FOUND OR reservation.disposition IS DISTINCT FROM 'accepted' OR reservation.planned_response_type IS DISTINCT FROM 'positive_aperak'
+ OR reservation.persistence_status IS DISTINCT FROM 'persisted' OR reservation.persisted_series_id IS NULL
+ OR (reservation.final_response_type IS NOT NULL AND reservation.final_response_type<>'positive_aperak') THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ SELECT * INTO series FROM public.meter_reading_series WHERE id=reservation.persisted_series_id AND company_id=p_company_id FOR SHARE;
+ IF NOT FOUND OR series.message_code IS DISTINCT FROM source.message_code OR series.source_transaction_reference IS DISTINCT FROM p_transaction_id
+ OR jsonb_typeof(series.raw_transaction) IS DISTINCT FROM 'object'
+ OR series.immutable_hash IS DISTINCT FROM encode(digest(convert_to(series.raw_transaction::text,'UTF8'),'sha256'),'hex') THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ -- Identical old/late accepted data can legitimately reuse an earlier series.
+ -- Its genuine source/contract origin stays authoritative; is_current is not an
+ -- acceptance criterion and must not silently reject old-late-positive ACKs.
+ SELECT * INTO origin FROM gridex_utilts_binding.receipts WHERE source_message_id=series.source_ediel_message_id;
+ SELECT * INTO stored FROM gridex_utilts_binding.contracts WHERE series_id=series.id;
+ IF origin.source_message_id IS NULL OR stored.series_id IS NULL OR origin.company_id IS DISTINCT FROM p_company_id
+ OR origin.environment IS DISTINCT FROM p_environment OR origin.message_code IS DISTINCT FROM source.message_code
+ OR stored.company_id IS DISTINCT FROM p_company_id OR stored.environment IS DISTINCT FROM p_environment
+ OR stored.source_message_id IS DISTINCT FROM origin.source_message_id OR stored.transaction_id IS DISTINCT FROM p_transaction_id
+ OR stored.contract_version NOT IN (1,2) OR stored.contract->>'version' IS DISTINCT FROM stored.contract_version::text
+ OR NOT coalesce(gridex_utilts_binding.validate_contract_v1(stored.contract),false)
+ OR stored.contract_hash IS DISTINCT FROM encode(digest(convert_to(stored.contract::text,'UTF8'),'sha256'),'hex')
+ OR stored.contract IS DISTINCT FROM series.raw_transaction->'consumptionContract' THEN
+  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+ IF p_ack_message_id IS NOT NULL THEN
+  SELECT * INTO ack FROM public.ediel_messages WHERE id=p_ack_message_id AND company_id=p_company_id AND environment=p_environment FOR SHARE;
+  IF NOT FOUND OR ack.direction<>'outbound' OR ack.message_family<>'APERAK' OR ack.related_message_id IS DISTINCT FROM source.id
+  OR ack.raw_payload IS DISTINCT FROM p_ack_raw_payload OR reservation.final_response_type IS DISTINCT FROM 'positive_aperak'
+  OR reservation.response_message_id IS DISTINCT FROM ack.id OR reservation.finalized_at IS NULL THEN
+   RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+  ack_tokens:=gridex_utilts_binding.wire_tokens_v1(ack.raw_payload);
+  SELECT t#>>'{elements,2,0}' INTO document_id FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM';
+  IF ack_tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='UNH'
+    AND t#>>'{elements,2,0}'='APERAK' AND t#>>'{elements,2,2}'='04A' AND t#>>'{elements,2,4}'='E5SE5A')<>1
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='312')<>1
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)<>1
+   OR NOT EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM')
+      <>(SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW')
+   OR EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM'
+       AND (nullif(t#>>'{elements,1,1}','') IS NULL OR length(t#>>'{elements,1,1}')>35 OR btrim(t#>>'{elements,1,1}') IS DISTINCT FROM t#>>'{elements,1,1}'))
+   OR EXISTS(SELECT t#>>'{elements,1,1}' FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM'
+       GROUP BY t#>>'{elements,1,1}' HAVING count(*)>1)
+   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='DOC' AND t#>>'{elements,2,0}'=document_id)<>1 THEN
+   RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
+  ack_hash:=encode(digest(convert_to(ack.raw_payload,'UTF8'),'sha256'),'hex');
+ END IF;
+ IF p_ack_message_id IS NOT NULL AND EXISTS(SELECT FROM gridex_ediel_inbound_context.receipts x WHERE x.company_id=p_company_id AND x.source_message_id=source.id AND x.environment=p_environment AND x.status='ready' AND x.context->>'actorRole' IN('energy_service_company','esco')) THEN
+  PERFORM gridex_ediel_ack_replay.require_positive_service_scope_v1(p_company_id,p_environment,source.id,ack.raw_payload);
+ END IF;
+ RETURN jsonb_build_object('authorityVersion',1,'companyId',p_company_id,'environment',p_environment,'sourceMessageId',source.id,
+  'transactionId',p_transaction_id,'sourceRawHash',source_hash,'ackMessageId',p_ack_message_id,'ackRawHash',ack_hash);
 END $$;
 
 --
@@ -42571,11 +42676,11 @@ BEGIN
  SELECT * INTO route FROM public.ediel_route_profiles WHERE id=(p_route->>'routeProfileId')::uuid AND company_id=p_company_id AND environment=e.environment FOR SHARE;
  PERFORM id FROM public.communication_routes WHERE id=(p_route->>'communicationRouteId')::uuid AND company_id=p_company_id AND is_active FOR SHARE;
  IF NOT FOUND OR route.id IS NULL OR NOT route.is_enabled OR NOT route.is_active OR route.sender_ediel_id IS DISTINCT FROM p_route->>'senderEdielId' OR route.receiver_ediel_id IS DISTINCT FROM p_route->>'receiverEdielId' OR nullif(route.sender_sub_address,'') IS DISTINCT FROM nullif(p_route->>'senderSubaddress','') OR nullif(route.receiver_sub_address,'') IS DISTINCT FROM nullif(p_route->>'receiverSubaddress','') OR p_route->>'applicationReference' IS DISTINCT FROM '23-DDQ-PRODAT' THEN RETURN jsonb_build_object('status','held','missing',ARRAY['requested_change_exact_owned_current_route']);END IF;
- ref:=replace(gen_random_uuid()::text,'-','');ref:=upper(substring(ref,1,20));
+ ref:=replace(gen_random_uuid()::text,'-','');ref:=upper(substring(ref,1,14));
  INSERT INTO public.ediel_message_intents(company_id,environment,market,message_family,message_code,business_process,direction,sender_ediel_id,sender_subaddress,receiver_ediel_id,receiver_subaddress,application_reference,route_profile_id,communication_route_id,customer_id,operation_id,metering_point_id,facility_id,grid_area_code,interchange_reference,message_reference,transaction_reference,payload,idempotency_key,created_by,updated_by)
  VALUES(p_company_id,e.environment,'electricity','PRODAT','Z09','customer_masterdata','outbound',route.sender_ediel_id,nullif(route.sender_sub_address,''),route.receiver_ediel_id,nullif(route.receiver_sub_address,''),'23-DDQ-PRODAT',route.id,(p_route->>'communicationRouteId')::uuid,e.customer_id,e.id,e.point_id,e.point_id,e.grid_area_code,ref,'1',ref,jsonb_build_object('actorRole','supplier','requestedChangeEventId',e.id,'variant',e.variant),'requested-change:'||e.id::text,p_actor_user_id,p_actor_user_id) RETURNING * INTO i;
- INSERT INTO public.outbound_requests(company_id,customer_id,metering_point_id,communication_route_id,request_type,source_type,source_id,environment,status,channel_type,payload,created_by,updated_by,operation_id)
- VALUES(p_company_id,e.customer_id,e.metering_point_id,i.communication_route_id,'customer_masterdata','manual',i.id,e.environment,'prepared','smtp',jsonb_build_object('requestedChangeEventId',e.id,'intentId',i.id),p_actor_user_id,p_actor_user_id,e.id) RETURNING * INTO r;
+ INSERT INTO public.outbound_requests(company_id,customer_id,metering_point_id,communication_route_id,request_type,source_type,source_id,status,channel_type,payload,created_by,updated_by,operation_id)
+ VALUES(p_company_id,e.customer_id,e.metering_point_id,i.communication_route_id,'customer_masterdata','manual',i.id,'prepared','smtp',jsonb_build_object('requestedChangeEventId',e.id,'intentId',i.id),p_actor_user_id,p_actor_user_id,e.id) RETURNING * INTO r;
  INSERT INTO gridex_requested_changes.origins(event_id,company_id,actor_user_id,intent_id,outbound_request_id,basis,intent_binding,request_binding) VALUES(e.id,p_company_id,p_actor_user_id,i.id,r.id,b,to_jsonb(i)-ARRAY['validation_result','blocking_reasons','validation_status','render_status','outbox_status','updated_by','updated_at','ediel_message_id','outbound_request_id'],to_jsonb(r)-ARRAY['status','payload','response_payload','attempts_count','queued_at','prepared_at','sent_at','acknowledged_at','failed_at','failure_reason','updated_at','updated_by']);
  RETURN jsonb_build_object('status','originated','intentId',i.id,'outboundRequestId',r.id,'messageId',null);
 END$$;
@@ -43844,7 +43949,7 @@ CREATE FUNCTION public.ediel_read_finance_copy_retention_v1(p_company_id uuid, p
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
     AS $$DECLARE d gridex_ediel_retention.finance_decisions%rowtype;p jsonb;BEGIN
- SELECT * INTO STRICT d FROM gridex_ediel_retention.finance_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR SHARE;PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,d.retention_class,CASE WHEN gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.read') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);p:=gridex_ediel_retention.finance_receipt_v1(d);
+ SELECT * INTO STRICT d FROM gridex_ediel_retention.finance_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR SHARE;PERFORM gridex_ediel_retention.finance_actor_v1(p_company_id,p_actor_user_id,d.retention_class,CASE WHEN gridex_ediel_retention.record_permission_v1(p_company_id,p_actor_user_id,'__read_scope__') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);p:=gridex_ediel_retention.finance_receipt_v1(d);
  RETURN jsonb_build_object('decisionId',d.id,'retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'targetHash',d.target_hash,'scopeHash',d.scope_hash,'documentHash',d.document_hash,'documentBase64',encode(d.document_bytes,'base64'),'submittedBy',d.submitted_by,'issuerQualified',p IS NOT NULL,'retainUntil',p->>'retainUntil','journalRetainUntil',p->>'journalRetainUntil','journalPurposeReference',p->>'journalPurposeReference');END$$;
 
 --
@@ -43889,7 +43994,7 @@ END$$;
 CREATE FUNCTION public.ediel_read_invoice_file_retention_v1(p_company_id uuid, p_actor_user_id uuid, p_decision_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE d gridex_ediel_retention.invoice_file_decisions%rowtype;BEGIN SELECT * INTO STRICT d FROM gridex_ediel_retention.invoice_file_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR SHARE;PERFORM gridex_ediel_retention.invoice_file_actor_v1(p_company_id,p_actor_user_id,CASE WHEN gridex_ediel_retention.permission_v1(p_company_id,p_actor_user_id,'ediel.retention.read') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);RETURN jsonb_build_object('decisionId',d.id,'sourceId',d.source_id,'retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'documentHash',d.document_hash,'issuerQualified',gridex_ediel_retention.invoice_file_receipt_v1(d) IS NOT NULL,'bytesAvailable',NOT EXISTS(SELECT FROM gridex_ediel_retention.invoice_file_tombstones WHERE source_id=d.source_id),'authority','none');END$$;
+    AS $$DECLARE d gridex_ediel_retention.invoice_file_decisions%rowtype;BEGIN SELECT * INTO STRICT d FROM gridex_ediel_retention.invoice_file_decisions WHERE id=p_decision_id AND company_id=p_company_id FOR SHARE;PERFORM gridex_ediel_retention.invoice_file_actor_v1(p_company_id,p_actor_user_id,CASE WHEN gridex_ediel_retention.record_permission_v1(p_company_id,p_actor_user_id,'__read_scope__') THEN 'ediel.retention.read' ELSE 'ediel.retention.review' END);RETURN jsonb_build_object('decisionId',d.id,'sourceId',d.source_id,'retentionClass',d.retention_class,'targetId',d.target_id,'sourceHash',d.source_hash,'documentHash',d.document_hash,'issuerQualified',gridex_ediel_retention.invoice_file_receipt_v1(d) IS NOT NULL,'bytesAvailable',NOT EXISTS(SELECT FROM gridex_ediel_retention.invoice_file_tombstones WHERE source_id=d.source_id),'authority','none');END$$;
 
 --
 -- Name: ediel_read_invoice_file_source_v1(uuid, uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -48340,7 +48445,7 @@ BEGIN
  SELECT * INTO b FROM gridex_ai_processing.outbound_origin_bindings WHERE intent_id=i.id AND company_id=p_company_id FOR SHARE;
  IF FOUND THEN
   IF m.id IS DISTINCT FROM b.message_id OR b.payload_hash IS DISTINCT FROM o.payload_hash OR m.immutable_payload_hash IS DISTINCT FROM o.payload_hash OR m.raw_payload IS DISTINCT FROM o.raw_payload
-   OR m.intent_id IS DISTINCT FROM i.id OR m.environment IS DISTINCT FROM i.environment OR m.source_operation_id IS DISTINCT FROM i.operation_id OR m.sender_ediel_id IS DISTINCT FROM i.sender_ediel_id OR m.receiver_ediel_id IS DISTINCT FROM i.receiver_ediel_id
+   OR m.intent_id IS DISTINCT FROM i.id OR m.environment IS DISTINCT FROM i.environment OR m.source_operation_id IS DISTINCT FROM i.operation_id::text OR m.sender_ediel_id IS DISTINCT FROM i.sender_ediel_id OR m.receiver_ediel_id IS DISTINCT FROM i.receiver_ediel_id
    OR m.customer_id IS DISTINCT FROM i.customer_id OR m.site_id IS DISTINCT FROM i.customer_site_id OR m.communication_route_id IS DISTINCT FROM i.communication_route_id OR m.route_profile_id IS DISTINCT FROM i.route_profile_id THEN RAISE EXCEPTION 'ai_list_private_original_conflict';END IF;
   RETURN jsonb_build_object('status','bound','messageId',b.message_id,'payloadHash',o.payload_hash);
  END IF;
@@ -81919,87 +82024,22 @@ end; $$;
 
 CREATE FUNCTION public.gridex_require_utilts_positive_ack_authority_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_ack_message_id uuid DEFAULT NULL::uuid, p_ack_raw_payload text DEFAULT NULL::text) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'pg_catalog', 'public', 'extensions'
-    SET "TimeZone" TO 'UTC'
+    SET search_path TO 'pg_catalog'
     AS $$
-DECLARE
- source public.ediel_messages%rowtype; ack public.ediel_messages%rowtype;
- receipt gridex_utilts_binding.receipts%rowtype; origin gridex_utilts_binding.receipts%rowtype;
- reservation public.ediel_ack_transaction_results%rowtype;
- series public.meter_reading_series%rowtype; stored gridex_utilts_binding.contracts%rowtype;
- tokens jsonb; ack_tokens jsonb; source_hash text; ack_hash text; document_id text;
+DECLARE source public.ediel_messages%rowtype;basis jsonb;f gridex_received_err_response.final_responses%rowtype;ack public.ediel_messages%rowtype;
 BEGIN
- IF p_company_id IS NULL OR p_environment NOT IN ('test','production') OR p_source_message_id IS NULL
- OR nullif(p_transaction_id,'') IS NULL OR (p_ack_message_id IS NULL)<>(p_ack_raw_payload IS NULL) THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01';
- END IF;
- PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  SELECT * INTO source FROM public.ediel_messages WHERE id=p_source_message_id AND company_id=p_company_id AND environment=p_environment FOR SHARE;
- IF NOT FOUND OR source.direction<>'inbound' OR source.message_family<>'UTILTS' OR source.raw_payload IS NULL THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- source_hash:=encode(digest(convert_to(source.raw_payload,'UTF8'),'sha256'),'hex');
- SELECT * INTO receipt FROM gridex_utilts_binding.receipts WHERE source_message_id=source.id;
- IF NOT FOUND OR receipt.company_id IS DISTINCT FROM p_company_id OR receipt.environment IS DISTINCT FROM p_environment
- OR receipt.raw_hash IS DISTINCT FROM source_hash OR receipt.source_context IS DISTINCT FROM gridex_utilts_binding.source_context_v1(source)
- OR NOT receipt.membership ? p_transaction_id THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- tokens:=gridex_utilts_binding.wire_tokens_v1(source.raw_payload);
- IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t
-  WHERE t->>'tag'='IDE' AND t#>>'{elements,1,0}'='24' AND t#>>'{elements,2,0}'=p_transaction_id)<>1 THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- SELECT * INTO reservation FROM public.ediel_ack_transaction_results WHERE company_id=p_company_id AND environment=p_environment
-  AND source_message_id=source.id AND source_transaction_id=p_transaction_id FOR SHARE;
- IF NOT FOUND OR reservation.disposition IS DISTINCT FROM 'accepted' OR reservation.planned_response_type IS DISTINCT FROM 'positive_aperak'
- OR reservation.persistence_status IS DISTINCT FROM 'persisted' OR reservation.persisted_series_id IS NULL
- OR (reservation.final_response_type IS NOT NULL AND reservation.final_response_type<>'positive_aperak') THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- SELECT * INTO series FROM public.meter_reading_series WHERE id=reservation.persisted_series_id AND company_id=p_company_id FOR SHARE;
- IF NOT FOUND OR series.message_code IS DISTINCT FROM source.message_code OR series.source_transaction_reference IS DISTINCT FROM p_transaction_id
- OR jsonb_typeof(series.raw_transaction) IS DISTINCT FROM 'object'
- OR series.immutable_hash IS DISTINCT FROM encode(digest(convert_to(series.raw_transaction::text,'UTF8'),'sha256'),'hex') THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- -- Identical old/late accepted data can legitimately reuse an earlier series.
- -- Its genuine source/contract origin stays authoritative; is_current is not an
- -- acceptance criterion and must not silently reject old-late-positive ACKs.
- SELECT * INTO origin FROM gridex_utilts_binding.receipts WHERE source_message_id=series.source_ediel_message_id;
- SELECT * INTO stored FROM gridex_utilts_binding.contracts WHERE series_id=series.id;
- IF origin.source_message_id IS NULL OR stored.series_id IS NULL OR origin.company_id IS DISTINCT FROM p_company_id
- OR origin.environment IS DISTINCT FROM p_environment OR origin.message_code IS DISTINCT FROM source.message_code
- OR stored.company_id IS DISTINCT FROM p_company_id OR stored.environment IS DISTINCT FROM p_environment
- OR stored.source_message_id IS DISTINCT FROM origin.source_message_id OR stored.transaction_id IS DISTINCT FROM p_transaction_id
- OR stored.contract_version NOT IN (1,2) OR stored.contract->>'version' IS DISTINCT FROM stored.contract_version::text
- OR NOT coalesce(gridex_utilts_binding.validate_contract_v1(stored.contract),false)
- OR stored.contract_hash IS DISTINCT FROM encode(digest(convert_to(stored.contract::text,'UTF8'),'sha256'),'hex')
- OR stored.contract IS DISTINCT FROM series.raw_transaction->'consumptionContract' THEN
-  RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
- IF p_ack_message_id IS NOT NULL THEN
-  SELECT * INTO ack FROM public.ediel_messages WHERE id=p_ack_message_id AND company_id=p_company_id AND environment=p_environment FOR SHARE;
-  IF NOT FOUND OR ack.direction<>'outbound' OR ack.message_family<>'APERAK' OR ack.related_message_id IS DISTINCT FROM source.id
-  OR ack.raw_payload IS DISTINCT FROM p_ack_raw_payload OR reservation.final_response_type IS DISTINCT FROM 'positive_aperak'
-  OR reservation.response_message_id IS DISTINCT FROM ack.id OR reservation.finalized_at IS NULL THEN
-   RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
-  ack_tokens:=gridex_utilts_binding.wire_tokens_v1(ack.raw_payload);
-  SELECT t#>>'{elements,2,0}' INTO document_id FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='BGM';
-  IF ack_tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='UNH'
-    AND t#>>'{elements,2,0}'='APERAK' AND t#>>'{elements,2,2}'='04A' AND t#>>'{elements,2,4}'='E5SE5A')<>1
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='BGM' AND t#>>'{elements,1,0}'='312')<>1
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)<>1
-   OR NOT EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW' AND t#>>'{elements,1,1}'=p_transaction_id)
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM')
-      <>(SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='ACW')
-   OR EXISTS(SELECT FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM'
-       AND (nullif(t#>>'{elements,1,1}','') IS NULL OR length(t#>>'{elements,1,1}')>35 OR btrim(t#>>'{elements,1,1}') IS DISTINCT FROM t#>>'{elements,1,1}'))
-   OR EXISTS(SELECT t#>>'{elements,1,1}' FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='RFF' AND t#>>'{elements,1,0}'='DM'
-       GROUP BY t#>>'{elements,1,1}' HAVING count(*)>1)
-   OR (SELECT count(*) FROM jsonb_array_elements(ack_tokens) t WHERE t->>'tag'='DOC' AND t#>>'{elements,2,0}'=document_id)<>1 THEN
-   RAISE EXCEPTION 'utilts_positive_ack_storage_unavailable' USING ERRCODE='P0U01'; END IF;
-  ack_hash:=encode(digest(convert_to(ack.raw_payload,'UTF8'),'sha256'),'hex');
+ IF source.message_family IS DISTINCT FROM 'UTILTS_ERR' THEN RETURN gridex_utilts_binding.require_positive_storage_authority_v1(p_company_id,p_environment,p_source_message_id,p_transaction_id,p_ack_message_id,p_ack_raw_payload);END IF;
+ basis:=gridex_received_err_response.require_v1(p_company_id,p_environment,p_source_message_id);
+ IF NOT EXISTS(SELECT FROM jsonb_array_elements(basis->'transactions')t WHERE t->>'transactionId'=p_transaction_id) THEN RAISE EXCEPTION 'utilts_err_application_response_authority_unavailable';END IF;
+ IF p_ack_message_id IS NOT NULL OR p_ack_raw_payload IS NOT NULL THEN
+  SELECT * INTO f FROM gridex_received_err_response.final_responses WHERE source_message_id=p_source_message_id AND transaction_id=p_transaction_id;
+  SELECT * INTO ack FROM public.ediel_messages WHERE id=p_ack_message_id AND company_id=p_company_id AND environment=p_environment AND direction='outbound';
+  IF ack.id IS NULL OR f.ack_message_id IS DISTINCT FROM p_ack_message_id OR ack.related_message_id IS DISTINCT FROM p_source_message_id OR ack.raw_payload IS DISTINCT FROM p_ack_raw_payload
+   OR f.company_id IS DISTINCT FROM p_company_id OR f.environment IS DISTINCT FROM p_environment OR f.ack_payload_hash IS DISTINCT FROM encode(sha256(convert_to(p_ack_raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'utilts_err_application_response_authority_unavailable';END IF;
  END IF;
- IF p_ack_message_id IS NOT NULL AND EXISTS(SELECT FROM gridex_ediel_inbound_context.receipts x WHERE x.company_id=p_company_id AND x.source_message_id=source.id AND x.environment=p_environment AND x.status='ready' AND x.context->>'actorRole' IN('energy_service_company','esco')) THEN
-  PERFORM gridex_ediel_ack_replay.require_positive_service_scope_v1(p_company_id,p_environment,source.id,ack.raw_payload);
- END IF;
- RETURN jsonb_build_object('authorityVersion',1,'companyId',p_company_id,'environment',p_environment,'sourceMessageId',source.id,
-  'transactionId',p_transaction_id,'sourceRawHash',source_hash,'ackMessageId',p_ack_message_id,'ackRawHash',ack_hash);
+ RETURN jsonb_build_object('authorityVersion',1,'companyId',p_company_id,'environment',p_environment,'sourceMessageId',p_source_message_id,'transactionId',p_transaction_id,'ackMessageId',p_ack_message_id,
+  'sourceRawHash',basis->'sourceHash','ackRawHash',CASE WHEN p_ack_message_id IS NULL THEN NULL ELSE encode(sha256(convert_to(p_ack_raw_payload,'UTF8')),'hex') END);
 END $$;
 
 --
@@ -183503,6 +183543,12 @@ REVOKE ALL ON FUNCTION gridex_utilts_binding.require_current_esco_storage_v1(c u
 --
 
 REVOKE ALL ON FUNCTION gridex_utilts_binding.require_execution_actor_v1(p_company_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_positive_storage_authority_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_ack_message_id uuid, p_ack_raw_payload text); Type: ACL; Schema: gridex_utilts_binding; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_utilts_binding.require_positive_storage_authority_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_transaction_id text, p_ack_message_id uuid, p_ack_raw_payload text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION source_context_v1(s public.ediel_messages); Type: ACL; Schema: gridex_utilts_binding; Owner: -
