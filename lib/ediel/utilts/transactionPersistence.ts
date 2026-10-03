@@ -232,7 +232,11 @@ export async function persistUtiltsTransactionResults(input: UtiltsBoundPersiste
         const consumed = input.contracts[index].observations.some(observation=>observation.sourceOrdinal===quantityIndex)
         const consumerUnit=input.messageCode==='E30' ? utiltsE30StandardEnergyUnit(transaction,source,wire.una) : unit
         if(item.disposition === 'accepted' && (unit!==item.unit || (consumed && !consumerUnit))) consumptionConflict('physical_quantity_unit')
-        return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark)}
+        // The contract's own observation interval positions the stored value
+        // (series windows are [start,end)); a quantity no observation consumes
+        // keeps no invented time.
+        const readingAt=input.contracts[index].observations.find(observation=>observation.sourceOrdinal===quantityIndex)?.periodStart ?? null
+        return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark),...(readingAt?{readingAt}:{})}
       }) : item.quantities, consumptionContract: input.contracts[index] })),
   })
 

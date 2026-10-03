@@ -30,7 +30,7 @@ async function fixture(){
  return{companyId,foreignCompanyId,mailboxId,messageId,actor,first,add,record,read,snapshot,business}
 }
 it('actual installed public original uses only mailbox_message_id and preserves the qualified erase prefix',()=>{
- expect(sql('SELECT coalesce(jsonb_agg(jsonb_build_object(\'name\',attname,\'type\',atttypid::regtype::text)),\'[]\') FROM pg_attribute WHERE attrelid=\'public.ediel_messages\'::regclass AND attname IN(\'inbound_email_message_id\',\'mailbox_message_id\') AND NOT attisdropped')).toEqual([{name:'mailbox_message_id',type:'text'}])
+ expect(sql('SELECT coalesce(jsonb_agg(jsonb_build_object(\'name\',attname,\'type\',atttypid::regtype::text) ORDER BY attname),\'[]\') FROM pg_attribute WHERE attrelid=\'public.ediel_messages\'::regclass AND attname IN(\'inbound_email_message_id\',\'mailbox_message_id\') AND NOT attisdropped')).toEqual([{name:'inbound_email_message_id',type:'uuid'},{name:'mailbox_message_id',type:'text'}])
  const source=sql<{guard:string;record:string}>("SELECT jsonb_build_object('guard',(SELECT prosrc FROM pg_proc WHERE oid='gridex_ediel_inbound_receptions.guard_original_v1()'::regprocedure),'record',(SELECT prosrc FROM pg_proc WHERE oid='public.ediel_record_inbound_reception_v1(uuid,uuid,uuid,uuid,uuid)'::regprocedure))")
  expect(source.guard).not.toContain('NEW.inbound_email_message_id');expect(source.record).not.toContain('m.inbound_email_message_id');expect(source.guard).toContain('public.ediel_is_qualified_retention_transition_v1(OLD,NEW) THEN RETURN NEW;END IF;')
 },30000)

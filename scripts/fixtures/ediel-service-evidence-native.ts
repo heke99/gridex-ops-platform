@@ -27,8 +27,9 @@ import {utiltsNativeSourceFixture} from '../../__tests__/helpers/utiltsNativeSou
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 // Shared genuine native fixture; no private approval/accepted-receipt seeds.
-export const nativeEscoExternal=vi.hoisted(()=>({send:vi.fn()}))
-vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:nativeEscoExternal.send})}}))
+const hoistedNativeEscoExternal=vi.hoisted(()=>({send:vi.fn()}))
+export const nativeEscoExternal=hoistedNativeEscoExternal
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:hoistedNativeEscoExternal.send})}}))
 export const NATIVE_ESCO_DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 export const nativeEscoLiteral=(v:unknown)=>v===null?'NULL':"'"+String(typeof v==='object'?JSON.stringify(v):v).replaceAll("'","''")+"'"
 export function nativeEscoSql<T>(statement:string):T{

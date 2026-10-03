@@ -138,10 +138,12 @@ it('actual authenticated contract intake preserves unqualified bytes and idempot
   const self = await a.uploader.client.rpc('ediel_review_contract_original_source_v1', { ...readParameters, p_review: review })
   expect(self.error?.message).toContain('contract_intake_independent_exact_hash_bound_review_required'); expect(self.data).toBeNull()
   expect(sourceEffects(f.companyId)).toEqual(frozen)
+  // The seeded switch already holds its own declaration; the held review adds none.
+  const targetsBefore = sql<number>(`SELECT to_jsonb((SELECT count(*) FROM gridex_metering_method_changes.contract_request_declarations WHERE company_id=${literal(f.companyId)}))`)
   const held = await a.reviewer.client.rpc('ediel_review_contract_original_source_v1', { ...readParameters, p_actor_user_id: a.reviewer.id, p_review: review })
   expect(held.error).toBeNull(); expect(held.data).toMatchObject({ status: 'held', missing: expect.arrayContaining(['current_authentic_issuer_receipt_and_legal_representation']) })
   expect(sql(`SELECT jsonb_build_object('qualified',(SELECT count(*) FROM gridex_contract_source_intake.qualifications WHERE company_id=${literal(f.companyId)}),
-    'target',(SELECT count(*) FROM gridex_metering_method_changes.contract_request_declarations WHERE company_id=${literal(f.companyId)}))`)).toEqual({ qualified: 0, target: 0 })
+    'target',(SELECT count(*) FROM gridex_metering_method_changes.contract_request_declarations WHERE company_id=${literal(f.companyId)}))`)).toEqual({ qualified: 0, target: targetsBefore })
   const unchanged = sourceEffects(f.companyId)
   const clearReview = currentDeny(f.companyId, a.reviewer.id, 'ediel.source.review')
   try {

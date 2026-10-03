@@ -274,8 +274,11 @@ it.each(['reviewer','role','issuer_representation','issuer_key'] as const)('reta
  if(revoked==='role')sql(`UPDATE public.tenant_actor_roles SET valid_to=now() WHERE company_id=${lit(f.ids.company)}`)
  if(revoked==='issuer_representation'||revoked==='issuer_key')sql(`INSERT INTO gridex_ediel_services.issuer_revocations(target_kind,target_id,source_reference,source_hash) VALUES(${lit(revoked==='issuer_key'?'key':'representation')},${lit(revoked==='issuer_key'?f.ids.key:authority.representationIds[0])},'SYNTHETIC DISPOSABLE EXTERNAL REVOCATION',${lit(authority.hash)})`)
  const pattern=revoked==='role'?/current_captured_role_unavailable/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/
+ // Storage also re-reads the periodic reason agreement, which rests on the same
+ // revoked review/issuer graph and is refused first there.
+ const persistPattern=revoked==='role'?pattern:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)|ediel_periodic_reason_current_contract_source_fact_required/
  await expect(positive.ack()).rejects.toMatchObject({message:expect.stringMatching(pattern)});expect(f.effects()).toEqual(stable)
- await expect(positive.persist()).rejects.toMatchObject({message:expect.stringMatching(pattern)});expect(f.effects()).toEqual(stable);expect(external.send).toHaveBeenCalledTimes(1)
+ await expect(positive.persist()).rejects.toMatchObject({message:expect.stringMatching(persistPattern)});expect(f.effects()).toEqual(stable);expect(external.send).toHaveBeenCalledTimes(1)
  await expect(assertUtiltsPositiveAckAuthorityForSend(ack)).rejects.toThrow('utilts_positive_ack_storage_unavailable');expect(f.effects()).toEqual(stable)
  await expect(sendEdielMessageViaSmtp(ack,{actorUserId:f.ids.actor})).rejects.toThrow('utilts_positive_ack_storage_unavailable');expect(f.effects()).toEqual(stable);expect(external.send).toHaveBeenCalledTimes(1)
 })
@@ -289,7 +292,7 @@ it.each(['own_actor','global_reviewer'] as const)('pending real %s DENY insertio
  await ready
  const pending=(target==='own_actor'?positive.ack():positive.persist()).then(value=>({value,error:null}),error=>({value:null,error}))
  try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND (query LIKE '%ediel_read_outbound_ack_replay_v1%' OR query LIKE '%gridex_persist_utilts_consumption_v1%') AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'genuine HTTP operation waits behind deny insertion before source/business locks').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
- expect((await pending).error).toMatchObject({message:expect.stringMatching(target==='own_actor'?/actor_not_authorized/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)/)});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ expect((await pending).error).toMatchObject({message:expect.stringMatching(target==='own_actor'?/actor_not_authorized|ediel_business_ack_current_actor_required/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)|ediel_periodic_reason_current_contract_source_fact_required/)});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
 })
 it('a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval',async()=>{
  const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-SENT-ACK')

@@ -15,11 +15,13 @@ afterEach(()=>{vi.unstubAllEnvs();effects.smtp.mockReset()})
 it('independent original network producer qualifies actual company/issuer/review/current header without received Z04, supply or AI origin',async()=>{
  for(const[k,v]of Object.entries({EDIEL_SHARED_MAILBOX_ADDRESS:'synthetic@example.invalid',EDIEL_APP_DKIM_ENABLED:'false',EMAIL_PROVIDER:'resend',EDIEL_SMTP_FROM:'synthetic@example.invalid',EDIEL_SMTP_USER:'synthetic@example.invalid',EDIEL_SMTP_PASS:'synthetic-only',EDIEL_EMAIL_PROVIDER:'strato'}))vi.stubEnv(k,v)
  const f=await createLegalSourceStageFixture(email=>effects.smtp.mockResolvedValue({accepted:[email],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})),n=await attachNetworkRegistrySourceFixture(f),scope={companyId:f.companyId,actorUserId:n.uploader.id},reviewScope={companyId:f.companyId,actorUserId:n.reviewer.id}
+ // The normal-switch seed already qualified one network original for its Z03.
+ const seededOrigins=sql(`SELECT to_jsonb(count(*)) FROM gridex_network_registry_sources.origins WHERE company_id=${literal(f.companyId)}`)
  const basis=()=>sql<{status:string;basis?:{artifactId:string;sourceSha256:string;registryVersionId:string}}>(`SELECT gridex_network_registry_sources.network_for_company_v1(${literal(f.companyId)},${literal(f.receiver)},'test')`)
  expect(basis().status).toBe('held')
  const missing=await archiveNetworkRegistrySource({...n.submission('SYNTHETIC absent genuine network issuer',n.pdf('missing'), 'pending',false),...scope});expect(missing.missing).toContain('authentic_current_network_registry_issuer_and_representation')
  expect((await reviewNetworkRegistrySource({...missing,...reviewScope,decision:'approve',reason:'Synthetic actual independent missing-source review',clause:n.clause})).status).toBe('held');expect(basis().status).toBe('held')
- expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_network_registry_sources.origins WHERE company_id=${literal(f.companyId)}`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_network_registry_sources.origins WHERE company_id=${literal(f.companyId)}`)).toBe(seededOrigins)
  const bytes=n.pdf('native independent network original'),artifact=await archiveNetworkRegistrySource({...n.submission('SYNTHETIC actual network original',bytes),...scope});expect(artifact.missing).toEqual([]);expect(artifact.sourceHash).toBe(createHash('sha256').update(bytes).digest('hex'))
  await expect(reviewNetworkRegistrySource({...artifact,...scope,decision:'approve',reason:'Synthetic prohibited self-review',clause:n.clause})).rejects.toBeTruthy()
  expect((await reviewNetworkRegistrySource({...artifact,...reviewScope,decision:'approve',reason:'Synthetic substituted clause must hold',clause:{...n.clause,quote:'invented source clause'}})).status).toBe('held');expect(basis().status).toBe('held')
