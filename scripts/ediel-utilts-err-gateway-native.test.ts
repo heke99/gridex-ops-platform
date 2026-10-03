@@ -1,3 +1,5 @@
+import { processInboundEdielMessage } from '@/lib/ediel/flows/inboundProcessing'
+import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority} from '@/lib/ediel/core/runtimeDecision'
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -98,11 +100,11 @@ async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTran
     // Let the real trigger capture the unique family/date-qualified source
     // evidence; prefilled rule-pack columns would bypass that boundary.
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
-      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-15T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
-      databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-01' })
+      databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-15' })
     // Production reception records the technical syntax decision before any
     // application response; every business reply reads that protected basis.
     await recordUtiltsTechnicalReception(data as EdielMessageRow, ids.actor)
@@ -184,7 +186,7 @@ it('actual canonical consumer persists two independent same-code E87 ERRs, no fo
   await expect(assertUtiltsPositiveAckAuthorityForSend({ ...savedAck!, raw_payload: savedAck!.raw_payload!.replace(`DM:${dm}`, `DM:${document}`) }))
     .rejects.toThrow('utilts_positive_ack_storage_unavailable')
 
-  expect(sinks.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: f.ids.company, quantityKwh: 500 }))
+  expect(sinks.meter).toHaveBeenCalledWith(expect.objectContaining({ companyId: f.ids.company, quantityKwh: '500' }))
 })
 
 it('actual mixed consumer keeps positive, guide-negative and two E87 ERR reservations and ACK wire scopes separate', async () => {
@@ -298,11 +300,16 @@ for (const [actor, fault, transform] of [
   const malformed = await f.insertSource(ownTransactions, transform)
   expect(validateEdifactSyntax(malformed).ok).toBe(false)
   expect(snapshot(malformed.id).series).toEqual([])
-  await f.consume(malformed)
+  // The direct business dispatcher refuses a syntax-rejected source outright;
+  // production reception owns its only reply, the negative CONTRL.
+  await expect(f.consume(malformed)).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
+  await processInboundEdielMessage({ actorUserId: f.ids.actor, edielMessageId: malformed.id })
   const first = snapshot(malformed.id)
-  await f.consume(malformed)
+  await processInboundEdielMessage({ actorUserId: f.ids.actor, edielMessageId: malformed.id })
+  await expect(f.consume(malformed)).rejects.toThrow('utilts_initial_canonical_owner_context_mismatch')
   expect(snapshot(malformed.id)).toEqual(first)
-  expect(first, 'direct syntax rejection must precede persistent accepted effects').toMatchObject({ series: [], contracts: [], outbox: [] })
+  expect(first, 'direct syntax rejection must precede persistent accepted effects').toMatchObject({ series: [], contracts: [] })
+  expect(first.outbox, 'only the negative technical CONTRL is queued').toMatchObject([{ message_family: 'CONTRL', ack_outcome: 'negative', company_id: f.ids.company }])
   expect(first.reservations.filter(row => row.disposition === 'accepted')).toEqual([])
   expect(first.acks.filter(row => row.family === 'APERAK' || row.family === 'UTILTS_ERR')).toEqual([])
   expect(first.acks.filter(row => row.family === 'CONTRL')).toMatchObject([{ outcome: 'negative', company: f.ids.company }])
@@ -343,12 +350,13 @@ it('SC-045 actual header rejection emits one message-scope U-APERAK without inve
   expect(first.acks.filter(row => row.family === 'UTILTS_ERR')).toEqual([])
   const application = first.acks.filter(row => row.family === 'APERAK')
   expect(application, 'one header outcome must not become per-IDE negative APERAKs').toHaveLength(1)
-  expect(application[0]).toMatchObject({ outcome: 'negative', scope: 'message', reference: null, company: f.ids.company,
+  expect(application[0]).toMatchObject({ outcome: 'negative', scope: null, reference: null, company: f.ids.company,
     policy: { authority: 'resolveCanonicalEdielPolicy', inheritedFromSourceMessage: true, sourceMessageId: missingTimezone.id } })
   expect(application[0].wire).toContain('BGM+313'); expect(application[0].wire).toContain('ERC+41::260')
   expect(application[0].wire).toContain('FTX+AAO++206::260'); expect(application[0].wire).not.toContain('RFF+ACW:')
   expect(application[0].wire).toContain('APERAK:D:04A:UN:E5SE5A')
-  expect(application[0].wire).toContain("DOC+E66:SVK:260+GRIDEX2607E66MSG001'")
+  const sourceDocument = segmentComposite(tokenizeEdifact(missingTimezone.raw_payload!).segments.find(t => t.tag === 'BGM'), 2, tokenizeEdifact(missingTimezone.raw_payload!).una)[0]
+  expect(application[0].wire).toContain(`DOC+E66:SVK:260+${sourceDocument}'`)
   const currentReferences = [...application[0].wire.matchAll(/RFF\+DM:([^']+)'/g)].map(match => match[1])
   expect(currentReferences).toHaveLength(1); expect(currentReferences[0]).toBeTruthy()
   // Internal finalization is an implementation requirement for the same source
@@ -395,7 +403,8 @@ it('actual canonical functional owner and native reservations qualify same/diffe
   // Final native facets and reservation are produced by the actual pipeline
   // services below; no private receipt or accepted/approved row is seeded.
   const initial=await initialCanonicalUtiltsDecision(f.source)
-  const qualified=await qualifyReceivedUtiltsStructure({message:f.source,canonicalPolicy:initial.policy,runtime:runUtiltsRuntimeForMessage(f.source,{canonicalPolicy:initial.policy})})
+  const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initial,message:f.source})??undefined,periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initial,message:f.source})??undefined
+  const qualified=await qualifyReceivedUtiltsStructure({message:f.source,canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority,runtime:runUtiltsRuntimeForMessage(f.source,{canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority})})
   expect(qualified.runtime.transactionDispositions.map(x=>[x.transactionId,x.disposition,x.responseType])).toEqual(references.map(id=>[id,'processability_rejected','utilts_err']))
   await recordFinalCanonicalUtiltsDecision({original:f.source,validated:f.source,initialDecision:initial,runtime:qualified.runtime})
   const contracts=await prepareUtiltsConsumptionContracts({message:f.source,runtime:qualified.runtime,policy:initial.policy,matches:[],dataRequest:null,fallback:{customerId:null,siteId:null,meteringPointId:null,gridOwnerId:null},allowConsumption:false})
@@ -425,7 +434,7 @@ it('actual canonical functional owner and native reservations qualify same/diffe
   expect(result[0].raw_payload).toContain(`RFF+TN:${references[0]}'`);expect(result[2].raw_payload).toContain(`RFF+TN:${references[1]}'`)
   expect(result.every(row=>row.ack_outcome==='negative')).toBe(true)
   const after=countEffects();expect(after.witness).toBe(effectsBefore.witness+2);expect(after.consumption).toBe(effectsBefore.consumption+2);expect(after.created).toBe(effectsBefore.created+2);expect(after.atomic).toBe(effectsBefore.atomic+2);expect(after.namespace).toBe(effectsBefore.namespace+2);expect(after.series).toBe(0);expect(after.attempts).toBe(effectsBefore.attempts)
-  await expect(create(references[0],'positive')).rejects.toThrow('conflicting_ack_draft_exists')
+  await expect(create(references[0],'positive')).rejects.toThrow('canonical_ack_draft_physical_outcome_mismatch')
   expect((await create(references[0])).id).toBe(result[0].id);expect((await create(references[1])).id).toBe(result[2].id);expect(countEffects()).toEqual(after)
   expect(snapshot(f.source.id).acks).toHaveLength(2);expect(snapshot(f.source.id).series).toEqual([])
   sql(`UPDATE public.tenant_actor_roles SET valid_to=now() WHERE company_id=${literal(f.ids.company)} AND actor_id=${literal(f.ids.actor)}`)
