@@ -109,6 +109,14 @@ export async function buildCompanyMonthlyMetrics(companyId: string, month: strin
 
   if (error) throw error
 
+  // Customer counts, churn, POA and metering-request volumes come from one atomic
+  // supply-period snapshot so every screen uses the same definition.
+  const { error: snapshotError } = await supabaseService.rpc('gridex_snapshot_customer_portfolio_month', {
+    p_company_id: companyId,
+    p_month: safeMonth,
+  })
+  if (snapshotError) throw snapshotError
+
   await Promise.all([
     buildCustomerMonthlyMetrics(companyId, safeMonth),
     buildBiddingZoneMonthlyMetrics(companyId, safeMonth),
