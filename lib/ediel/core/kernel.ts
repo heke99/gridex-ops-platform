@@ -513,9 +513,10 @@ export async function createCanonicalAckMessage(params: {
     companyId,
     communicationRouteId: routeContext.route.id,
     routeProfileId,
-    // The selected route's own address; the atomic commit re-reads the same route.
-    receiverEmail: draftWithSourceSnapshot.receiverEmail ?? routeContext.receiverEmail ?? null,
-    mailbox: draftWithSourceSnapshot.mailbox ?? routeContext.mailbox ?? null,
+    // The selected route's own address and mailbox win: the atomic commit
+    // re-reads exactly that route/profile (a draft-derived address cannot).
+    receiverEmail: routeContext.receiverEmail ?? draftWithSourceSnapshot.receiverEmail ?? null,
+    mailbox: routeContext.mailbox ?? draftWithSourceSnapshot.mailbox ?? null,
     canonicalRulePackId,
     sourceOperationId: `ediel_ack:${params.sourceMessage.id}:${params.ackFamily}:${sequenceToken ?? 'message'}`,
     externalReference: refs.externalReference,

@@ -18,6 +18,7 @@ import {qualifyReceivedUtiltsStructure} from '@/lib/ediel/utilts/qualifyReceived
 import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
 import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
 import { supabaseService } from '@/lib/supabase/service'
+import { recordUtiltsTechnicalReception, registerUtiltsIssuer, seedUtiltsIssuerHistoryGround } from './helpers/utiltsConsumptionParties'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
 // Real local DB, source ownership, matching, canonical dispatcher, reservations,
@@ -47,7 +48,18 @@ beforeEach(() => {
   sinks.complete.mockResolvedValue(null)
 })
 
-async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransaction[]) {
+async function seed(requestedEdielId: string, transactions: UtiltsAckFixtureTransaction[]) {
+  // A retained native database keeps earlier fixture identities: take the
+  // requested id when free, otherwise the next free one in the same range.
+  const actorEdielId = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_err_gateway_identity',0));
+    SELECT to_jsonb(min(n)::text) FROM generate_series(${Number(requestedEdielId)},54999) n
+     WHERE NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text)
+      AND NOT EXISTS(SELECT FROM public.ediel_actor_settings x WHERE x.environment='test' AND x.ediel_id=n::text); COMMIT;`)
+  // Field 203/505 are unique per issuer over time: every seed owns a fresh
+  // synthetic grid-owner issuer (as in the consumption suite), never 91100.
+  const issuer = sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_utilts_consumption_issuer',0));
+    SELECT to_jsonb(min(n)::text) FROM generate_series(80000,89999) n WHERE NOT EXISTS(SELECT FROM gridex_utilts_issuer.namespaces x WHERE x.registry_actor_key='SYNTHETIC-NATIVE-ISSUER:'||n::text)
+     AND NOT EXISTS(SELECT FROM public.tenant_actor_identifiers i WHERE i.identifier_type='EdielId' AND i.identifier_value=n::text); COMMIT;`)
   vi.stubEnv('EDIEL_SMTP_FROM','native-err@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','native-err@example.invalid');vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_SMTP_HOST','smtp.example.invalid');vi.stubEnv('EDIEL_SMTP_PORT','587');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
   const ids = { company: randomUUID(), actor: randomUUID(), route: randomUUID(), profile: randomUUID(),
     customer: randomUUID(), site: randomUUID(), point: randomUUID(), grid: randomUUID(), request: randomUUID() }
@@ -68,26 +80,35 @@ async function seed(actorEdielId: string, transactions: UtiltsAckFixtureTransact
     INSERT INTO public.communication_routes(id,company_id,route_name,route_scope,environment_type,is_active,target_email)
       VALUES(${literal(ids.route)},${literal(ids.company)},'Native ERR ACK route','ediel_ack','bilateral_test',true,'counterparty@example.invalid');
     INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,payload_format,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled,is_active,mailbox,smtp_host,smtp_port)
-      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ERR ACK profile','test','edifact','edifact',${literal(actorEdielId)},'91100','23-DDQ-E66-T',true,true,'native-err@example.invalid','smtp.example.invalid',587);
+      VALUES(${literal(ids.profile)},${literal(ids.company)},${literal(ids.route)},'Native ERR ACK profile','test','edifact','edifact',${literal(actorEdielId)},${literal(issuer)},'23-DDQ-E66-T',true,true,'native-err@example.invalid','smtp.example.invalid',587);
     INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${literal(ids.customer)},${literal(ids.company)},${literal(ids.customer)},'Synthetic','private');
-    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(ids.grid)},${literal(ids.company)},${literal(ids.grid)},'91100','test',true,'active');
+    INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${literal(ids.grid)},${literal(ids.company)},${literal(ids.grid)},${literal(issuer)},'test',true,'active');
     INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id)
       VALUES(${literal(ids.site)},${literal(ids.company)},${literal(ids.customer)},'Synthetic','consumption','active','SE','735999260731000007',${literal(ids.grid)});
     INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,grid_owner_id)
       VALUES(${literal(ids.point)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.site)},'735999260731000007','735999260731000007',${literal(ids.grid)});
     INSERT INTO public.grid_owner_data_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_scope)
       VALUES(${literal(ids.request)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},'billing_underlay');`)
+  registerUtiltsIssuer(sql, literal, issuer, ids.actor)
   const insertSource = async (ownTransactions: UtiltsAckFixtureTransaction[], transformRaw?: (raw: string) => string) => {
     const fixture = utiltsErrGatewayFixture({ company: ids.company, receiver: actorEdielId, transactions: ownTransactions })
-    const { id, raw, parsed } = utiltsNativeSourceFixture(transformRaw ? transformRaw(fixture.raw_payload!) : fixture.raw_payload!, randomUUID())
+    // Field 203 is unique per issuer over time: each source has its own document number.
+    const physical = fixture.raw_payload!.replaceAll('91100', issuer).replaceAll('GRIDEX2607E66MSG001', `D${randomUUID().replaceAll('-', '').slice(0, 16)}`)
+    const { id, raw, parsed } = utiltsNativeSourceFixture(transformRaw ? transformRaw(physical) : physical, randomUUID())
     // Let the real trigger capture the unique family/date-qualified source
     // evidence; prefilled rule-pack columns would bypass that boundary.
     sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,grid_owner_data_request_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference)
-      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${literal(parsed.applicationReference)},'91100',${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
+      VALUES(${literal(id)},${literal(ids.company)},${literal(ids.customer)},${literal(ids.site)},${literal(ids.point)},${literal(ids.grid)},${literal(ids.request)},'test','inbound','edifact','UTILTS','E66','received',${literal(raw)},'{}','{}','2026-10-01T20:00:00Z','{}',${literal(parsed.applicationReference)},${literal(issuer)},${literal(actorEdielId)},${literal(parsed.interchangeReference)});`)
     const { data, error } = await supabaseService.from('ediel_messages').select('*').eq('id', id).single()
     expect(error).toBeNull()
     expect(data?.rule_pack_snapshot).toMatchObject({ authority: 'gridex_bind_inbound_ediel_rule_pack_evidence',
       databaseRole: 'evidence_only', family: 'UTILTS', code: 'E66', effectiveDate: '2026-10-01' })
+    // Production reception records the technical syntax decision before any
+    // application response; every business reply reads that protected basis.
+    await recordUtiltsTechnicalReception(data as EdielMessageRow, ids.actor)
+    // The seed's own issuer has its synthetic approved issuer/mandate and a
+    // reviewed history ground bound to this source (as in the consumption suite).
+    seedUtiltsIssuerHistoryGround(sql, literal, id, ids.actor)
     return data as EdielMessageRow
   }
   const source = await insertSource(transactions)
