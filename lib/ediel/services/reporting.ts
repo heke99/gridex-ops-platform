@@ -79,7 +79,9 @@ export async function loadServiceReportingValidationContext(message:EdielMessage
  if(!message.source_operation_id)return loadOriginalServiceReportingContext(message,actorUserId)
  if(!message.company_id||message.direction!=='outbound'||message.message_family!=='PRODAT'||message.message_code!=='Z13')return undefined
  const origin=await loadServicePermissionMessageOrigin(message,actorUserId)
- if(!origin)return undefined
+ // Not a recovery operation: the original's own source-bound basis applies
+ // (sourceOperationId is the permission id on every service original).
+ if(!origin)return loadOriginalServiceReportingContext(message,actorUserId)
  const context=await loadOriginalServiceReportingContext(origin.sourceMessage,actorUserId,'send')
  if(!context)return undefined
  assertReportingRecoveryScope(origin,context)

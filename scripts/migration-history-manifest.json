@@ -796,6 +796,8 @@
     "20261002234700_ediel_bilateral_h_end_positive_response.sql": "fe31e88dbeca9aba5e7b3c8b72b877041aa966e3840985284aee6cb03e12de23",
     "20261002234800_ediel_consumed_records_original_reference_shape.sql": "11439708f8556c1121355a3e520477c9cdb9051b165154dc2e4507e69feb61c6",
     "20261002234900_ediel_contract_reply_basis_definer_port.sql": "6144c7752e7b58cd4b8f62c32b101e077f8d8c92d24e581856b8a9f8fbab8c5d",
+    "20261002235000_ediel_service_permission_context_service_grant.sql": "0b7b0011603fde2ddd84d3d47081440f2466a27e1cdf835e33928d1ba611d057",
+    "20261002235100_ediel_service_z13_wire_without_grid_area.sql": "305e93d66b826ee38322d2fc9c09a34183d16dc6fe3385ac5ecb4e78754d4969",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",
     "batch 4+5+6.sql": "006dffa68ba360e9d3d731a10bb5e6bd5fa24475e2c7f0e12e709f9d5f73663d",

@@ -1,3 +1,4 @@
+import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 import {execFileSync,spawn} from 'node:child_process'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {beforeEach,expect,it,vi} from 'vitest'
@@ -59,13 +60,22 @@ async function seed(mode:'V'|'VH'='V',period?:{start?:string;end?:string|null}){
  const command=(command:unknown)=>executeEdielServiceAdministration({companyId:ids.company,actorUserId:ids.actor,command}) as Promise<Record<string,unknown>>
  const created=await command({action:'create_assignment',commandId:randomUUID(),fields});expect(created.status).toBe('held');const assignment=String(created.assignmentId)
  const current=()=>sql<{version:number;basis:number;scope:Record<string,unknown>;hash:string}>(`SELECT jsonb_build_object('version',version,'basis',scope_basis_version,'scope',gridex_service_administration.scope_v1(a),'hash',encode(sha256(convert_to(gridex_service_administration.scope_v1(a)::text,'UTF8')),'hex')) FROM public.ediel_service_assignments a WHERE company_id=${lit(ids.company)} AND id=${lit(assignment)}`)
- const insert=async(raw:string,family:'PRODAT'|'UTILTS',code:string)=>{
+ // profileKey pins the enabled registry profile when code/date inference is
+ // ambiguous (e.g. Z14 V, VH and N), as every native source fixture does.
+ const insert=async(raw:string,family:'PRODAT'|'UTILTS',code:string,profileKey?:string)=>{
   const envelope=EdifactEnvelopeCodec.decode(raw),id=randomUUID()
-  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference) VALUES(${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'test','inbound','edifact',${lit(family)},${lit(code)},'received',${lit(raw)},'{}','{}',clock_timestamp(),'{}',${lit(envelope.applicationReference)},${lit(envelope.sender)},${lit(envelope.receiver)},${lit(envelope.interchangeReference)})`)
+  const values=`${lit(id)},${lit(ids.company)},${lit(ids.customer)},${lit(ids.site)},${lit(ids.point)},${lit(ids.grid)},'test','inbound','edifact',${lit(family)},${lit(code)},'received',${lit(raw)},'{}','{}',clock_timestamp(),'{}',${lit(envelope.applicationReference)},${lit(envelope.sender)},${lit(envelope.receiver)},${lit(envelope.interchangeReference)}`
+  const columns='id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,validation_report,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference'
+  sql(profileKey?`INSERT INTO public.ediel_messages(${columns},canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot) SELECT ${values},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${lit(profileKey)} AND profile.is_enabled`
+   :`INSERT INTO public.ediel_messages(${columns}) VALUES(${values})`)
   const source=await getEdielMessageById(id);expect(source).not.toBeNull();return source!
  }
  const utilts=async(outcome:'accepted'|'processability_rejected',reference:string,expected:'internal_review'|typeof outcome=outcome)=>{
+  // The grid-owner issuer carries its synthetic approved issuer/transport
+  // mandate and a reviewed history ground (as in the consumption suite).
+  registerUtiltsIssuer(sql,lit,receiver,ids.actor)
   const physical=utiltsErrGatewayFixture({company:ids.company,receiver:sender,transactions:[{reference,outcome}]}),fresh=utiltsNativeSourceFixture(physical.raw_payload!.replaceAll('91100',receiver).replaceAll('23-DDQ-E66-T','23-DGI-E66-T').replace("NAD+DDQ'","NAD+DGI'").replace("STS+7++E88::260'","STS+7++E23::260'"),randomUUID()),source=await insert(fresh.raw,'UTILTS','E66')
+  seedUtiltsIssuerHistoryGround(sql,lit,source.id,ids.actor)
   const initial=await initialCanonicalUtiltsDecision(source),issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initial,message:source})??undefined,periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initial,message:source})??undefined,qualified=await qualifyReceivedUtiltsStructure({message:source,canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority,runtime:runUtiltsRuntimeForMessage(source,{canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority})})
   expect(qualified.runtime.transactionDispositions.map(x=>x.disposition)).toEqual([expected])
   await recordFinalCanonicalUtiltsDecision({original:source,validated:source,initialDecision:initial,runtime:qualified.runtime})
@@ -121,12 +131,14 @@ async function archiveReviewEvidence(f:Awaited<ReturnType<typeof seed>>,mismatch
 }
 async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},evidence?:Awaited<ReturnType<typeof archiveReviewEvidence>>){
  const {hash,receiptIds,artifacts}=evidence??await archiveReviewEvidence(f)
- expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toMatchObject({status:'authorized'})
+ // Before approval only activation is missing; approve_assignment activates
+ // and requires 'authorized' atomically (20261001000926).
+ expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toEqual({status:'held',missing:['assignment_not_active']})
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'})
  let permission:{id:string;li:string},z13:EdielMessageRow,z14:EdielMessageRow
  if(shared){
   expect(await coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'})).toMatchObject({status:'reuse_permission',permissionId:shared.permissionId})
-  permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND id=${lit(shared.permissionId)}`)
+  permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND id=${lit(shared.permissionId)}`)
   z13=shared.z13;z14=shared.z14
  }else{
  const prepared=await f.command({action:'request_access',assignmentId:f.assignment,expectedVersion:f.current().version,preferredRouteId:f.ids.route})
@@ -135,11 +147,17 @@ async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:
  const sendsBefore=external.send.mock.calls.length
  await sendEdielMessageViaSmtp(queued,{actorUserId:f.ids.actor,smtpMimeMode:'nodemailer-attachment'});expect(external.send).toHaveBeenCalledTimes(sendsBefore+1)
  z13=(await getEdielMessageById(queued.id))!;expect(z13.status).toBe('sent');expect(sql(`SELECT to_jsonb(gridex_received_sources.sent_source_is_current_v1(m)) FROM public.ediel_messages m WHERE id=${lit(z13.id)}`)).toBe(true)
- permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND source_z13_message_id=${lit(z13.id)}`)
+ permission=sql<{id:string;li:string}>(`SELECT jsonb_build_object('id',id,'li',rff_li_reference) FROM public.metering_permissions WHERE company_id=${lit(f.ids.company)} AND source_z13_message_id=${lit(z13.id)}`)
  expect(permission.id).toMatch(/^[0-9a-f-]{36}$/)
- const rendered=renderProdat({code:'Z14',variant:f.mode,mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},context:{code:'Z14',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:permission.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',meterPointId:f.point,gridAreaId:'TES',reasonForTransaction:f.mode==='V'?'S17':'S18',permissionStatus:'A74',permissionPurpose:'B72',permissionId:'SYNTHETIC-PERMISSION-'+permission.id.slice(0,8),permissionTimestamp:new Date().toISOString(),reportStartDate:f.fields.data_start,reportEndDate:f.fields.data_end,reportingFrequency:'D',energyProductId:f.product}})
- expect(rendered.issues.filter(x=>x.severity==='error'),JSON.stringify(rendered.issues)).toEqual([])
- const raw=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,applicationReference:f.app,interchangeReference:randomUUID().replaceAll('-','').slice(0,20),environment:'test',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:rendered.segments}]});z14=await f.insert(raw,'PRODAT','Z14');const decision=await resolveCanonicalRuntimeDecisionWithRegistry(z14)
+ const rendered=renderProdat({code:'Z14',variant:f.mode,mode:'test',actor:{senderEdielId:f.receiver,receiverEdielId:f.sender},route:{applicationReference:f.app},version:{selectedVersion:'E2SE6A',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A'},context:{code:'Z14',bgmReference:randomUUID().replaceAll('-','').slice(0,20),transactionReference:permission.li,senderEdielId:f.receiver,receiverEdielId:f.sender,legalSenderId:f.receiver,legalReceiverId:f.sender,customerName:'Synthetic Customer',customerId:'199001011234',customerIdCodeListQualifier:'SE2',customerIdAgency:'260',customerCountry:'SE',meterPointId:f.point,gridAreaId:'TES',reasonForTransaction:f.mode==='V'?'S17':'S18',permissionStatus:'A74',permissionPurpose:'B72',permissionId:'SYNTHETIC-PERMISSION-'+permission.id.slice(0,8),permissionTimestamp:new Date().toISOString(),reportStartDate:f.fields.data_start,reportEndDate:f.fields.data_end,reportingFrequency:'D',energyProductId:f.product,
+  // P26.A Z14 fields 508/217/513/234: the grid owner's answer mirrors the requested method/direction.
+  observationLength:'60',observationLengthFormat:'806',meteringMethod:'Z04',installationDirection:'E19',
+  siteAddress:'Synthetic Street 1',siteCity:'Teststad',sitePostalCode:'12345',siteCountry:'SE',siteIdAgency:'9'}})
+ // The counterpart's Z14 is built with the outbound renderer, which cannot
+ // determine request-dependent facts (they come from our stored sources). The
+ // inbound canonical decision below is the authority and must accept fully.
+ expect(rendered.issues.filter(x=>x.severity==='error'&&!/_UNDETERMINED$/.test(x.code)),JSON.stringify(rendered.issues)).toEqual([])
+ const raw=EdifactEnvelopeCodec.encode({sender:f.receiver,receiver:f.sender,applicationReference:f.app,interchangeReference:randomUUID().replaceAll('-','').slice(0,20),environment:'test',acknowledgementRequest:true,messages:[{messageReference:'1',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:rendered.segments}]});z14=await f.insert(raw,'PRODAT','Z14',`PRODAT:Z14:${f.mode}:26.A:r3`);const decision=await resolveCanonicalRuntimeDecisionWithRegistry(z14)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
  expect(await recordReceivedSourceValidation({original:z14,validated:z14,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
  await captureFreshEdielSourceRulePackEvidence(f.ids.company,z14.id)

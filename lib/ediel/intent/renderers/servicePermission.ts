@@ -52,7 +52,9 @@ export async function buildServicePermissionDraft(input: {
         legalSenderId: b.legalSenderId, legalReceiverId: b.legalReceiverId,
         customerName: name, customerId: identity.id, customerIdCodeListQualifier: identity.qualifier,
         customerCountry: country, customerAddress: text(customer.street) ?? text(customer.billing_street), customerPostalCode: text(customer.postal_code) ?? text(customer.billing_postal_code), customerCity: text(customer.city) ?? text(customer.billing_city),
-        meterPointId: object.point ?? '', gridAreaId: object.gridArea,
+        // P26.A annex 2 field 260 (RFF+Z05) is '-' for Z13 and required for Z18;
+        // the request grid area stays in the basis (receiver choice), not the wire.
+        meterPointId: object.point ?? '', gridAreaId: b.code === 'Z13' ? null : object.gridArea,
         reasonForTransaction: b.mode === 'V' ? 'S17' : 'S18',
         reportStartDate: b.code === 'Z13' ? object.reportStart : null,
         reportEndDate: b.code === 'Z13' ? object.reportEnd : null,
@@ -60,6 +62,10 @@ export async function buildServicePermissionDraft(input: {
         meteringMethod: b.code === 'Z13' ? b.requestedMethod : null,
         energyProductId: b.code === 'Z13' ? object.product : null,
         permissionPurpose: b.code === 'Z13' ? b.purposeCode : null,
+        // Field 513 (CCI++Z22) is required for Z13. A grid-area request names no
+        // metering point and the evidence terms define no direction, so it covers
+        // both directions (E19), as Ediel's own TGT reference data does for Z13.
+        installationDirection: b.code === 'Z13' ? 'E19' : null,
         permissionEndReason: b.code === 'Z18' ? b.terminationReason : null,
         permissionId: b.code === 'Z18' ? object.permissionId : null,
         permissionEndDate: b.code === 'Z18' ? object.permissionEnd : null,
