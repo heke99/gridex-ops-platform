@@ -421,8 +421,17 @@ export function renderAperakEdiel(params: {
       segments.push(`RFF+${errorReferenceQualifier}:${escapeEdifactValue(error.referenceNumber)}`)
     }
 
-    if (error.lineItemReference) {
-      segments.push(`RFF+LI:${escapeEdifactValue(error.lineItemReference)}`)
+    // A later register LIN has no LI of its own: copy its object's known
+    // original LI from that object's unique first LIN (no sibling exchange).
+    const ownLineItemReference = error.lineItemReference ?? (sourceWire && error.referenceNumber ? (() => {
+      const owners = prodatRegisterGroups(sourceWire.segments, sourceWire.una).groups
+        .filter(group => group.registerPosition === 1 && group.itemId === error.referenceNumber)
+      if (owners.length !== 1) return null
+      const refs = owners[0].segments.filter(segment => segment.tag === 'RFF' && segmentComposite(segment, 1, sourceWire.una)[0] === 'LI')
+      return refs.length === 1 ? segmentComposite(refs[0], 1, sourceWire.una)[1] || null : null
+    })() : null)
+    if (ownLineItemReference) {
+      segments.push(`RFF+LI:${escapeEdifactValue(ownLineItemReference)}`)
     }
   }
 

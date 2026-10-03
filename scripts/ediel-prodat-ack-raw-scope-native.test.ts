@@ -67,7 +67,7 @@ function scopedDraft(f:Awaited<ReturnType<typeof seed>>,ack:EdielMessageRow,want
  }
  if(!found)throw Error('genuine_original_own_LI_required')
  const envelope=EdifactEnvelopeCodec.decode(ack.raw_payload!)
- const raw=EdifactEnvelopeCodec.encode({sender:envelope.sender!,receiver:envelope.receiver!,applicationReference:envelope.applicationReference,environment:'test',acknowledgementRequest:false,
+ const raw=EdifactEnvelopeCodec.encode({sender:envelope.sender!,receiver:envelope.receiver!,senderQualifier:envelope.senderQualifier,receiverQualifier:envelope.receiverQualifier,applicationReference:envelope.applicationReference,environment:'test',acknowledgementRequest:false,
   interchangeReference:'RAW-SCOPE-REQUEST',messages:[{messageReference:'RAW-SCOPE-UNH',messageTypeToken:'APERAK:D:96A:UN:E2SE6A',businessSegments:[...business.slice(0,first),...groups].map(s=>s.raw)}]})
  return {actorUserId:f.actorUserId,companyId:f.companyId,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'APERAK',messageCode:'APERAK',rawPayload:raw,
   // Deliberately stale cache must not choose an IDE/object alias.
@@ -114,6 +114,7 @@ it('actual two-session pending current DENY waits before source locks and then r
    if(!blocked)await new Promise(resolve=>setTimeout(resolve,20))
   }
   expect(blocked).toBe(true);expect(effects(f)).toEqual(before);writer.stdin.end('COMMIT;\n');await done
-  expect((await waiting).error?.message).toContain('actor_not_authorized');expect(effects(f)).toEqual(before)
+  // The revoked grant is refused by the current business-ACK actor gate.
+  expect((await waiting).error?.message).toMatch(/actor_not_authorized|ediel_business_ack_current_actor_required/);expect(effects(f)).toEqual(before)
  }finally{if(!writer.stdin.destroyed)writer.stdin.end('ROLLBACK;\n');await done.catch(()=>undefined);if(waiting)await waiting}
 },120000)

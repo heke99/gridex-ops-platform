@@ -55,7 +55,8 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   if (variant === 'invalid-header-ack-request') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+9+ZZ')
   if (variant === 'lowercase-header-ack-request') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+9+ab')
   if (variant === 'invalid-header-function') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04+D+7+AB')
-  if (variant === 'invalid-header-code-metadata') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04:BOGUS+D+9+AB')
+  // Syntactically valid C002/1131 (an..3) that the national field 202 forbids.
+  if (variant === 'invalid-header-code-metadata') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z04:ZZZ+D+9+AB')
   if (variant === 'missing-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM++D+9+AB')
   if (variant === 'unlisted-header-code') wire=wire.replace('BGM+Z04+D+9+AB','BGM+Z99+D+9+AB')
   const receivedAt=new Date().toISOString()
@@ -110,12 +111,28 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   const first=persisted()
   const blocked=sql<{message:string;payload:unknown}[]>(`SELECT coalesce(jsonb_agg(jsonb_build_object('message',message,'payload',payload) ORDER BY created_at),'[]') FROM public.ediel_message_events WHERE ediel_message_id=${literal(ids.source)} AND event_status='warning'`)
   if (policyOnly) {
-    expect(first.messages).toEqual([])
-    expect(first.outbox).toEqual([])
+    // Syntax is accepted, so the technical CONTRL is queued (5595c695); the
+    // policy-only business rejection has no frozen owner and stays held.
+    expect(first.messages.map(row=>[row.family,row.outcome])).toEqual([['CONTRL','positive']])
+    expect(first.outbox).toHaveLength(1)
     const ackWarnings=blocked.filter(row=>typeof (row.payload as {ackFamily?:unknown}).ackFamily==='string')
-    expect(ackWarnings.map(row=>(row.payload as {ackFamily:string}).ackFamily).sort()).toEqual(['APERAK','CONTRL'])
+    expect(ackWarnings.map(row=>(row.payload as {ackFamily:string}).ackFamily).sort()).toEqual(['APERAK'])
     expect(ackWarnings.every(row=>(row.payload as {blockedBy?:string}).blockedBy==='canonical_inbound_ack_guard')).toBe(true)
     expect([first.cases,first.switches,first.supply]).toEqual([0,0,0])
+    await processInboundEdielMessage(input)
+    expect(persisted()).toEqual(first)
+    return
+  }
+  if (variant === 'missing-own-quantity' || variant === 'gas-unit-on-electric-register') {
+    // The sibling object has no committed own outcome: a BGM34 must answer every
+    // physical object, so the own negative is held until the sibling is resolved
+    // and no outcome is invented for it. The technical CONTRL is still queued.
+    expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['CONTRL','positive']])
+    expect(blocked.some(row=>row.message.includes('APERAK_PRODAT_OBJECT_OUTCOME_MISSING'))).toBe(true)
+    expect(first.outbox).toHaveLength(1)
+    // A held structurally valid source gets one review case; an invalid own
+    // register structure has no reviewable case. No switch or supply effect.
+    expect([first.cases,first.switches,first.supply]).toEqual([variant==='gas-unit-on-electric-register'?1:0,0,0])
     await processInboundEdielMessage(input)
     expect(persisted()).toEqual(first)
     return
