@@ -1198,3 +1198,8 @@ Källa: /tmp/claude-0/ci-fails.json (extraherat ur artefakt gridex-rem-002-clean
 - source-owner 4, transport-exception 4 (permission denied to set role gridex_ediel_transport_except…, rollen har 1 medlem), outbound-ack-replay 3 (23502 not-null), övriga 1–2 st.
 - browser-native 11 sviter × 1 fel: ej analyserade.
 Lokalt test: `T=3000 TT='<regex>' bash /tmp/claude-0/s02run.sh <fil>`; resultat i /tmp/claude-0/s02.json.
+
+## 2026-10-03 checkpoint (3be22aa7)
+- Pushed: process-journal browser readset assertion (nested process/document/outbound), regulated fixture reviewer auth.users fix.
+- Open native: z06f (E66 register reading fixture), z04-ack/prodat-mixed/raw-scope (combined mixed reply design), outbound-ack-replay (listed PRODAT code + pinned profile), ai-network (registry route), doc-ref concurrent Z08, source-owner (SoD user decision).
+- Next: check CI on 3be22aa7; then prod dry run (BEGIN/ROLLBACK) of 20261002233000..latest, apply only when CI green; merge #426; steps 4–8.
