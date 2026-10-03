@@ -1064,3 +1064,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-03 Godkända: ACK-08, AT-ACK-08, ACK-10, AT-ACK-10 (granskning batch 3 + fp-check). Batch 2 ESCO: 11 PARTIAL.
 - 2026-10-03 Godkända: P-03, P-05, P-09, P-17, U-05 (+AT, SC-030/032/033). Bekräftade defekter F-U-04 och F-U-14 (höga) — nästa regelpar att rätta.
 - 2026-10-03 Rättat F-U-04 och F-U-14 i migration 20261003150000 med röd→grön PGlite-regression; PGlite 0.3.14 devDependency. OBS: inga PGlite-regressioner körs i CI i övrigt.
+- 2026-10-03 Granskning av alla 121 regler klar. Godkända nu: TR-04, TR-07, TR-11, OPS-01, AI-04, GOV-02, GOV-07, ENV-09 (+AT/SC). Totalt 55 godkända ID:n. Öppna bekräftade defekter: F-OPS-02, F-ENV-01, F-GOV-03 (se pr426-rule-review/FINDINGS.md).

@@ -1,4 +1,4 @@
-// masterplan: P-01, P-05, AT-P-05, SC-033
+// masterplan: P-01, P-05, AT-P-05, SC-033, GOV-02, AT-GOV-02
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'

@@ -13,8 +13,15 @@
     {
       "id": "GOV-02",
       "acceptance_id": "AT-GOV-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "GOV-03",
@@ -45,8 +52,13 @@
     {
       "id": "GOV-07",
       "acceptance_id": "AT-GOV-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/futureCapabilityPolicy.ts",
+        "__tests__/ediel-future-capability-held.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "GOV-08",
@@ -225,8 +237,14 @@
     {
       "id": "ENV-09",
       "acceptance_id": "AT-ENV-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-unsm-inbound-source-hold.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "P-01",
@@ -631,9 +649,17 @@
     {
       "id": "TR-04",
       "acceptance_id": "AT-TR-04",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
       ]
     },
     {
@@ -651,8 +677,15 @@
     {
       "id": "TR-07",
       "acceptance_id": "AT-TR-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "TR-08",
@@ -677,8 +710,14 @@
     {
       "id": "TR-11",
       "acceptance_id": "AT-TR-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/copy.ts",
+        "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AI-01",
@@ -715,8 +754,14 @@
     {
       "id": "AI-04",
       "acceptance_id": "AT-AI-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiBiReconciliation.ts",
+        "lib/ediel/aiBiInboundReconciliation.ts",
+        "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AI-05",
@@ -768,8 +813,14 @@
     {
       "id": "OPS-01",
       "acceptance_id": "AT-OPS-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "OPS-02",
@@ -1220,13 +1271,30 @@
     },
     {
       "id": "SC-061",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "SC-062",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "SC-063",
@@ -1296,8 +1364,15 @@
     },
     {
       "id": "AT-GOV-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-GOV-03",
@@ -1323,8 +1398,13 @@
     },
     {
       "id": "AT-GOV-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/futureCapabilityPolicy.ts",
+        "__tests__/ediel-future-capability-held.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-GOV-08",
@@ -1474,8 +1554,14 @@
     },
     {
       "id": "AT-ENV-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-unsm-inbound-source-hold.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-P-01",
@@ -1810,9 +1896,17 @@
     },
     {
       "id": "AT-TR-04",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
       ]
     },
     {
@@ -1827,8 +1921,15 @@
     },
     {
       "id": "AT-TR-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-TR-08",
@@ -1849,8 +1950,14 @@
     },
     {
       "id": "AT-TR-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/copy.ts",
+        "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-AI-01",
@@ -1883,8 +1990,14 @@
     },
     {
       "id": "AT-AI-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiBiReconciliation.ts",
+        "lib/ediel/aiBiInboundReconciliation.ts",
+        "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-AI-05",
@@ -1928,8 +2041,14 @@
     },
     {
       "id": "AT-OPS-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-OPS-02",

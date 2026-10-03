@@ -1,3 +1,4 @@
+// masterplan: ENV-09, AT-ENV-09
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ get: vi.fn(), event: vi.fn(), endpoint: vi.fn(), record: vi.fn(), capture: vi.fn(),
   actor: vi.fn(), rpc: vi.fn(), from: vi.fn(), canonicalAck: vi.fn() }))

@@ -1,3 +1,4 @@
+// masterplan: TR-07, AT-TR-07, SC-061
 import forge from 'node-forge'
 import { beforeAll, expect, it } from 'vitest'
 import { encryptSmimeEnvelopedData, encryptSmimeEnvelopedDataWithForge, inspectCmsRecipientInfoWithForge } from '@/lib/ediel/transport/index.part-1'

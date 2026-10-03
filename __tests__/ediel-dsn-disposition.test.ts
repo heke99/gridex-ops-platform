@@ -1,3 +1,4 @@
+// masterplan: TR-04, AT-TR-04, SC-062
 import { describe, expect, it } from 'vitest'
 import { parseDeliveryStatusReport } from '@/lib/inbound-mail/dsnDisposition'
 

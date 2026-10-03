@@ -27,7 +27,10 @@ effekter är IMPLEMENTED.
 | 3 | ACK | 10 | klar: ACK-08, ACK-10 COMPLETE och godkända; 8 PARTIAL |
 | 4 | U (UTILTS) | 19 | klar: U-05 godkänd; U-04, U-14 bekräftade defekter |
 | 5 | P (PRODAT) | 17 | klar: P-01,03,04,05,09,17 godkända |
-| 6 | TR, OPS | 16 | planerad |
-| 7 | ENV, GOV, DB, IMP, AI | 34 | planerad |
+| 6 | TR, OPS (+AI-04) | 17 | klar: TR-04, TR-07, TR-11, OPS-01, AI-04 godkända |
+| 7 | ENV, GOV, DB, IMP | 29 | klar: GOV-02, GOV-07, ENV-09 godkända |
 
 Resultat per batch: `batch-<n>-<familj>.json` (maskinläsbart) och `.md` (sammanfattning).
+
+## Sammanfattning 2026-10-03
+Alla 121 regler granskade. Godkända i coverage.json (inkl. main): 55 ID:n. Fynd: `FINDINGS.md`.

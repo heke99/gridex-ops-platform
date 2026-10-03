@@ -1,3 +1,4 @@
+// masterplan: GOV-07, AT-GOV-07
 import { describe, expect, it } from 'vitest'
 import { EDIEL_ENERGY_SHARING_CAPABILITY, assertEdielFutureCapabilityHeld, requestedEdielCapability } from '@/lib/ediel/core/futureCapabilityPolicy'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'

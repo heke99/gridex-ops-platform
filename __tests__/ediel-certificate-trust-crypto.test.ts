@@ -1,3 +1,4 @@
+// masterplan: TR-07, AT-TR-07, SC-061
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs'

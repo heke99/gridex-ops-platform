@@ -1,3 +1,4 @@
+// masterplan: TR-04, AT-TR-04, SC-062
 import {beforeEach,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({calls:[] as Array<{name:string;args:Record<string,unknown>}>,error:null as unknown,readCompany:null as string|null}))

@@ -1,3 +1,4 @@
+// masterplan: TR-04, AT-TR-04, SC-062
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DeliveryStatusReport } from '@/lib/inbound-mail/dsnDisposition'
 const lookup = vi.hoisted(() => vi.fn())

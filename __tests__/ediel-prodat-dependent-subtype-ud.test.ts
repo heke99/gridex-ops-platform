@@ -1,4 +1,4 @@
-// masterplan: SC-030, P-09, AT-P-09
+// masterplan: SC-030, P-09, AT-P-09, GOV-02, AT-GOV-02
 import { describe, expect, it } from 'vitest'
 import { ud } from './fixtures/prodat-ud'
 import { readFileSync } from 'node:fs'

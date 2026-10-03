@@ -1,3 +1,4 @@
+// masterplan: OPS-01, AT-OPS-01
 import { beforeEach, expect, it, vi } from 'vitest'
 import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness, recordScopedEdielProductionEvidence } from '@/lib/ediel/scopedCapabilityReadiness'
 import { assertCompanyCanSendProductionEdiel, runProductionDryRun } from '@/lib/ediel/productionReadiness.part-3'
