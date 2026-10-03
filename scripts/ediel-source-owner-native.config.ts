@@ -25,6 +25,7 @@ export default defineConfig({
     'scripts/ediel-correction-context-native.test.ts',
     'scripts/ediel-correction-process-native.test.ts',
     'scripts/ediel-document-reference-native.test.ts',
+    'scripts/ediel-document-reference-dispatch-native.test.ts',
     'scripts/ediel-z04-ack-native.test.ts',
     'scripts/ediel-utilts-err-gateway-native.test.ts',
     'scripts/ediel-utilts-s02-required-native.test.ts',

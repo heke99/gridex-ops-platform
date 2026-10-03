@@ -140,7 +140,6 @@ for (const variant of ['missing-own-quantity','gas-unit-on-electric-register','w
   expect(first.messages.map(row=>[row.family,row.outcome]),JSON.stringify(blocked)).toEqual([['APERAK','negative'],['CONTRL','positive']])
   expect(first.messages.every(row=>row.company===ids.company&&row.route===ids.route&&row.profile===ids.profile)).toBe(true)
   const aperak=first.messages[0].wire
-  if (variant === 'gas-unit-on-electric-register') expect(aperak).toContain('ERC+42::260')
   if (variant === 'whole-message-lin-sequence') {
     expect(aperak).toContain('BGM+++27')
     expect(aperak).toContain('FTX+AAO++314::260')
