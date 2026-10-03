@@ -1,3 +1,7 @@
+## 2026-10-03 — UI/billing workstream (separate from Ediel masterplan)
+
+Merged: #467 contract-driven metering resolution + atomic website application review; #468 preliminary billing from history (last year → last 4 weeks → intake annual) with reconciliation on next invoice, grid-owner history request when no estimate; #469 single atomic customer-info/grid-owner request entry (gridex_create_customer_info_request_v1, automation_key dedupe; Batch 2B fixed); #470 three stale billing static regressions repaired. Register: quality/audits/ui-consistency-20261002/findings-register.md. Handed to masterplan agent: Z13 history-request dispatch gate in lib/ediel/flows/prodatSwitch.ts. Does not change the Ediel current/next action below.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 #420 is still draft and not a completed bounded delivery. Its 470625da Ediel/browser succeeded, Full E2E authority guard failed; a local narrow import fix passes 126/126 and route guard, OPS native pending. Prior #415/#416/#417/#419 remain the only accepted header deliveries listed below.
