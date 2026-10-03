@@ -30,7 +30,7 @@ try {
  await db.exec(fs.readFileSync(root+'/supabase/migrations/20261001010230_ediel_utilts_lossless_transaction_reference_v2.sql','utf8'));checks++
  const skip={capability:'skip',reason:'no_attribution',customerId:null,siteId:null,customerSiteId:null,meteringPointId:null,gridOwnerId:null,sourceRequestId:null}
  // U-04: apply only the late-version part of the forward migration when asked.
- if(process.env.U04_APPLY_FIX!=='0'){const fix=fs.readFileSync(root+'/supabase/migrations/20261003150000_ediel_utilts_late_version_and_err_ack_dispatcher.sql','utf8');await db.exec(fix.slice(fix.indexOf('DO $u04$'),fix.indexOf('END$u04$;')+'END$u04$;'.length));checks++}
+ if(process.env.U04_APPLY_FIX!=='0'){const fix=fs.readFileSync(root+'/supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql','utf8');await db.exec(fix.slice(fix.indexOf('DO $u04$'),fix.indexOf('END$u04$;')+'END$u04$;'.length));checks++}
  const company=uid(2)
  async function message(id,tx){await db.query(`INSERT INTO public.ediel_messages VALUES($1,$2,'test','inbound','UTILTS','E66',$3)`,[id,company,`UNH+1+UTILTS'BGM+E66'IDE+24+${tx}'UNT+4+1'`]);await db.query(`INSERT INTO gridex_utilts_binding.receipts(source_message_id,company_id,environment,message_code,contract_version)VALUES($1,$2,'test','E66',2)`,[id,company])}
  const item=(tx,latest,value)=>({transactionId:tx,disposition:'accepted',responseType:'positive_aperak',issueCodes:[],seriesKind:'actual',resolution:'PT15M',unit:'KWH',externalMeteringPointId:'735999999999999999',

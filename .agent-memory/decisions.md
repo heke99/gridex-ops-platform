@@ -255,3 +255,4 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 `quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`). Framåt byggs två
 regler åt gången; båda ska vara korrekt byggda, ha märkta gröna beteendetester och
 vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras för nästa agent.
+2026-10-03 Customer portfolio: customer counts (active/new/churned) come only from customer_supply_periods; white-label access is read-only and assignment is superadmin-only via gridex_assign_company_to_whitelabel; analytics consumption is read from metering_point_monthly_consumption (never hourly values on page views) and monthly analytics are rebuilt set-based in SQL, never summed client-side.

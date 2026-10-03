@@ -216,3 +216,9 @@ Ten archived RED probe cases remain, fourcells unaccepted. Missing per-object ve
 
 ## PR350 independent probe output preservation incident
 Original author reran unchanged independent probes with a new reporter path, but probe-owned fs writes replaced four observation JSONs (registry, mixed-registry, missing-component, invalid-occurrence). Original test files, SHA manifest and three test result receipts remain hash-identical. Reviewer read-only search found no complete original observation backups; do not claim byte recovery. Original review and captured wire corroborate the findings. Preserve original manifest, label regenerated observations as rerun evidence and redirect future observation writes outside original paths without modifying assertions.
+
+## Supabase MCP apply stalls on destructive keywords (2026-10-03)
+`apply_migration`/`execute_sql` time out with nothing applied when the SQL contains DROP, DELETE or TRUNCATE anywhere (including `on delete` FK actions, `on commit drop`, strings inside DO blocks). Write hosted-applied migrations without them (CREATE OR REPLACE TRIGGER, upserts, zeroing instead of removal) or have the owner run them in the SQL Editor.
+
+## Client-side sums truncated by the PostgREST row cap (fixed 2026-10-03)
+`lib/analytics/monthlyMetricsBuilder.ts` summed metering_values rows fetched through the API, which returns at most 1 000 rows, so monthly kWh totals were silently truncated. Replaced by gridex_rebuild_company_analytics_month (20261003150000). Never aggregate unbounded row sets client-side.

@@ -664,3 +664,8 @@ Side track, separate from the Ediel campaign.
 - Merged #449–#455 and #457: tenant/customer/billing write flows moved to tenant-bound RPCs; all register items fixed or accepted.
 - Hosted DB carries every migration through 20261002226000; the owner ran 20261002211000 in the SQL Editor (MCP cannot run DELETE-bearing SQL).
 - #457 fixed the `full` E2E parity failure on main (support-attachment headers, contract 2026-10-02.3).
+
+## 2026-10-03 — Customer portfolio side track (see customer-portfolio-checkpoint.md)
+Side track, separate from the Ediel campaign.
+- #474 merged (squash `b1c79ae`): Kundportfölj, forecast, read-only white-label overview, superadmin-only white-label assignment, one supply-period customer definition. Migrations applied to `piidsfebjqjmnepdpnas` and verified read-only.
+- Performance pass on `claude/portfolio-market-whitelabel-r8rn05`: monthly consumption rollup and set-based analytics month (`20261003150000`).

@@ -47,7 +47,7 @@ try{
  await db.exec(read('20261001003657_ediel_received_err_application_response_authority.sql'));checks++
  // U-14: 20261001003807 replaced the public authority with a UTILTS-only storage body.
  await db.exec('SET check_function_bodies=off;'+fn(read('20261001003807_ediel_utilts_esco_pre_storage_scope.sql'),'public.gridex_require_utilts_positive_ack_authority_v1')+';SET check_function_bodies=on;');checks++
- if(process.env.U14_APPLY_FIX!=='0'){const fix=read('20261003150000_ediel_utilts_late_version_and_err_ack_dispatcher.sql');await db.exec(fix.slice(fix.indexOf('DO $u14$'),fix.lastIndexOf('COMMIT;')));checks++}
+ if(process.env.U14_APPLY_FIX!=='0'){const fix=read('20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql');await db.exec(fix.slice(fix.indexOf('DO $u14$'),fix.lastIndexOf('COMMIT;')));checks++}
  const envelope=(family,business,reverse=false,ref='I')=>`UNB+UNOC:3+${reverse?'LOCAL:14+REMOTE:14':'REMOTE:14+LOCAL:14'}+260930:1200+${ref}++23-DDQ-E66-T++++1'UNH+M+${family}'${business.join("'")}'UNT+${business.length+2}+M'UNZ+1+${ref}'`
  const original=envelope('UTILTS:D:02B:UN:E5SE5A',['BGM+E66::260+ORIGINAL-D+9+AB','NAD+MS+52101:SVK:260','NAD+MR+52100:SVK:260','IDE+24+ORIGINAL-T'],true,'ORIG-I')
  const err=envelope('UTILTS:D:02B:UN:E5SE5A',['BGM+ERR::260+ERR-D+9+AB','NAD+MS+52100:SVK:260','NAD+MR+52101:SVK:260','IDE+24+OWN?:A?+B??C','STS+E01::260+41+E51::260','RFF+TN:ORIGINAL-T','RFF+E66:ORIGINAL-D'],false,'ERR-I')

@@ -4,7 +4,6 @@ import { buildCompanyMonthlyMetrics } from '@/lib/analytics/monthlyMetricsBuilde
 import { scanCompanyDataQuality } from '@/lib/analytics/dataQuality'
 import { refreshDashboardAlerts } from '@/lib/analytics/alerts'
 import { addMonths, monthStart } from '@/lib/analytics/utils'
-import { supabaseService } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,13 +15,9 @@ export async function POST(request: NextRequest) {
   const results = []
   for (const companyId of companies) {
     await buildCompanyMonthlyMetrics(companyId, month)
-    // Late supply changes (e.g. a back-dated end date) still land in last month's
-    // portfolio figures. Its stored forecast is never overwritten.
-    const { error: previousError } = await supabaseService.rpc('gridex_snapshot_customer_portfolio_month', {
-      p_company_id: companyId,
-      p_month: addMonths(month, -1),
-    })
-    if (previousError) throw previousError
+    // Late values and back-dated supply changes still land in last month's figures.
+    // Its stored portfolio forecast is never overwritten.
+    await buildCompanyMonthlyMetrics(companyId, addMonths(month, -1))
     const quality = await scanCompanyDataQuality(companyId, month)
     await refreshDashboardAlerts(companyId)
     results.push({ companyId, issues: quality.issues })

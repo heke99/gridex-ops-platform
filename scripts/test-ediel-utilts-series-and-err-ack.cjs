@@ -1,7 +1,7 @@
 // masterplan: U-04, U-14
 // Runs the focused PGlite regressions for the U-04 late-version fix and the
 // U-14 received-UTILTS_ERR positive-ACK dispatcher (forward migration
-// 20261003150000). Mechanics only; native replay remains the clean-replay job.
+// 20261003150200). Mechanics only; native replay remains the clean-replay job.
 const { spawnSync } = require('node:child_process')
 const path = require('node:path')
 const pglite = require.resolve('@electric-sql/pglite')
