@@ -1,3 +1,4 @@
+// masterplan: SC-028
 import {describe,it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'

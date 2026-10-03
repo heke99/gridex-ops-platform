@@ -1,3 +1,4 @@
+// masterplan: SC-025, SC-027
 import { it, expect } from 'vitest';
 import { buildEdielTgtDraft, validateEdielTgtDraft } from '@/lib/ediel/testing/tgtEdifact.part-4';
 import { reportingPrepared } from './fixtures/prodat-reporting-permission';

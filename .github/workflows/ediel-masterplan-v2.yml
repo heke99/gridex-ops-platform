@@ -10,6 +10,8 @@ on:
       - 'docs/ediel/masterplan-v2/**'
       - 'quality/audits/ediel-masterplan-v2/**'
       - 'scripts/check-ediel-masterplan-v2.cjs'
+      - 'scripts/ediel-masterplan-test-coverage.cjs'
+      - 'scripts/test-ediel-*.cjs'
       - 'scripts/test-ediel-rule-pack-source-identity.cjs'
       - 'scripts/test-ediel-prodat-source-locators.cjs'
       - 'scripts/test-ediel-prodat-d-z04-reference.cjs'
@@ -55,6 +57,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Verify immutable specification and evidence references
         run: npm run ediel:masterplan-v2:integrity
+      - name: Approved masterplan IDs have tagged, passing tests
+        run: npm run ediel:masterplan-v2:test-coverage -- --check
       - name: Verify immutable guide authority and calendar boundaries in three timezones
         shell: bash
         run: |

@@ -1,3 +1,4 @@
+// masterplan: P-01
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'

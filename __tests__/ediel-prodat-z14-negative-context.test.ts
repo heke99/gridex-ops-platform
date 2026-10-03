@@ -1,3 +1,4 @@
+// masterplan: P-04, SC-024
 import { expect, it } from 'vitest'
 import { buildProdatMessage } from '@/lib/ediel/prodat/buildProdat'
 import { buildZ14Segments } from '@/lib/ediel/prodat/builders/z14'

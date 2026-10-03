@@ -1,3 +1,4 @@
+// masterplan: ENV-04, AT-ENV-04
 // E011 / ENV-04: T24.A rev6 p12 §2.1 and p25 §4.2.
 // Synthetic, source-qualified ACK references; no live market or provider calls.
 // Run with: node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs
