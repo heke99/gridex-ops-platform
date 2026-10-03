@@ -1,0 +1,4 @@
+(node:6) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+signed NULL clocks must not qualify classified customer source AssertionError [ERR_ASSERTION]: signed NULL clocks must not qualify classified customer source
+    at file:///workspace/scratch/29079c3a4297/gridex-requested-customer-e/scripts/ediel-classified-customer-wallclock-sql-regression.mjs:58:245

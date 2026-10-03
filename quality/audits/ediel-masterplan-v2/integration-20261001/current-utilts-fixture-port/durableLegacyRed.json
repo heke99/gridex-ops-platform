@@ -1,0 +1,200 @@
+{
+  "passed": 3,
+  "failed": 22,
+  "assertions": [
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 holds LOC+175 despite a stale metering-point match and emits no business value",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 sends a field-533 guide rejection before any regulating-object business effect",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual inbound E66 rejects a wrong GS1 check digit without storing business quantity",
+      "status": "passed",
+      "failure": []
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: complete",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: unknown-receipt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: foreign-scope",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: bad-write-receipt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: write-throws",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all rejected business outcomes: overflow",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: complete",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: unknown-receipt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: foreign-scope",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: bad-write-receipt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: write-throws",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual durable RPC integration preserves all accepted business outcomes: overflow",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:167:22\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: complete",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: late-witness",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: corrupt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: overflow",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all rejected business outcomes: throws",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected false to be true // Object.is equality\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:154:74)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: complete",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: late-witness",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: corrupt",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: overflow",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    },
+    {
+      "file": "ediel-durable-source-business-outcomes.test.ts",
+      "fullName": "actual decision timeline preserves all accepted business outcomes: throws",
+      "status": "failed",
+      "failure": [
+        "AssertionError: expected { message: { \u2026(17) }, \u2026(7) } to match object { ackIds: [ 'ack-1' ], \u2026(4) }\n(20 matching properties omitted from actual)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1283:10)\n    at Proxy.<anonymous> (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/expect/dist/index.js:1156:15)\n    at Proxy.methodWrapper (file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/chai/index.js:1700:25)\n    at capture (/workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:150:18)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at /workspace/scratch/29079c3a4297/gridex-utilts-current-fixtures/__tests__/ediel-durable-source-business-outcomes.test.ts:198:20\n    at file:///workspace/scratch/5ac1e75530df/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+      ]
+    }
+  ]
+}

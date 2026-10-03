@@ -1,0 +1,1 @@
+PASS 24 targeted current-registry TXT parity checks; actual PostgreSQL functions and OID/owner/ACL invariants, synthetic source/admin fixture; NOT native legal/readiness approval

@@ -1,0 +1,44 @@
+{
+  "scope": "qualification tooling; no database executed",
+  "sourceSnapshotSha": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+  "sourceSnapshotTree": "eee88212010ac89c11c88a1ed08f4221b7f85df1",
+  "files": [
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs.py",
+      "sha256": "ac964be8dc918bf8ad9e4ee41bfd9b532a183607216a2c8d34e7a8e72565b492",
+      "bytes": 8333
+    },
+    {
+      "path": "scripts/gridex-ediel-applied-txt-branch-upgrade.sh",
+      "sha256": "73ac28b1a618d1a514188c7c888123eeeaae79a92dfc05cb6a76fe5335714a06",
+      "bytes": 8451
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-upgrade-contract.json",
+      "sha256": "b675ca7591af5741a12ec48a759d86e9a35c6b1dfb2877ce7dba218e7f89064f",
+      "bytes": 8419
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs-selftest.py",
+      "sha256": "f178cf0b251b59eec350b74305db5a3df6659d3ac264537f85545da8c2645274",
+      "bytes": 8065
+    }
+  ],
+  "selftests": "15/15 PASS",
+  "bashSyntax": "PASS",
+  "pythonCompile": "PASS",
+  "actualS2Planner": {
+    "immutableHistoricalInputs": 886,
+    "absentPendingInputs": 56,
+    "classifiedEarlier": 30,
+    "40446Replayed": false
+  },
+  "nativeReplay": "NOT_RUN",
+  "actualS2UnlistedEarlierNegative": "PASS before output/SQL; omitted35555",
+  "nonCiRunnerGuard": "PASS expected exit1 history_union_disposable_ci_runner_required",
+  "independentReview": {
+    "status": "CLEAR",
+    "reviewer": "/root/utilts",
+    "scope": "bounded read-only current four files; no remaining material finding; no SQL/native executed"
+  }
+}

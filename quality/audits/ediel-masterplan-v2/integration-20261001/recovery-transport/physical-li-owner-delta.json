@@ -1,0 +1,106 @@
+{
+  "owner": "recovery-transport",
+  "workspace": "/workspace/scratch/145123787247/gridex-recovery",
+  "branch": "work/recovery-transport-20261001",
+  "baseSha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incomingSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "integrationCheckpoint": "1d7172 (root composite; original merge history retained)",
+  "provenance": "Owner delta supersedes only these owned paths. Root owns composed qualified codeSha, generated DB artifacts and evidenceSha. Previous base and UD/F-G manifests are immutable verification checkpoints.",
+  "paths": [
+    "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql",
+    "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql",
+    "lib/ediel/recovery/correctionReferences.ts",
+    "lib/ediel/recovery/prodatRecovery.ts",
+    "__tests__/ediel-prodat-recovery-consumer.test.ts",
+    "__tests__/ediel-recovery-correction-references.test.ts",
+    "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs",
+    "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs"
+  ],
+  "sha256": {
+    "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql": "590a051d165980420e7c49efc1811b1aa8f1f60c0d4a628a8312f87b4ac60773",
+    "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql": "42d829cff43e12dc060bb7a4e2499db1abbe2e280ea0fdc502ea3973ef26aa12",
+    "lib/ediel/recovery/correctionReferences.ts": "3d82b7d009150dada9489e266b62bf4c3ce476c07278f5c2e1b13f4b24ff01bd",
+    "lib/ediel/recovery/prodatRecovery.ts": "a9dd95337866cd42ed0f0e35fb1ade88d4aff756f156452c79f9a36cfe393740",
+    "__tests__/ediel-prodat-recovery-consumer.test.ts": "553778c859e18ebb73a7199ab0fe1b0bc26ec4284c44f15b3a165135643bacaa",
+    "__tests__/ediel-recovery-correction-references.test.ts": "e50acb9dfd8451a928690dd93c1adf2485f0673ec62faaf11eb1a7ed29a3f24d",
+    "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs": "bae33f4f92e8188c84e4cc187158784a941afd7f3279d5ce02b09a05f293719c",
+    "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs": "05ad10e8f05d99ffbb0756656c3a4673c57025c39dec615f304634cf37c8a6e3"
+  },
+  "dependencies": {
+    "supabase/migrations/20261001140000_ediel_inbound_prodat_physical_outcome_owner.sql": "c4da91321a101fe66c6fba6b1eccf0bebddf72a14171158fc98b54a9e2c4418a",
+    "readonly lib/website/customerApplicationLegal.ts (root technical null refinement; not owner import)": "01da66835664c6d26f86e8f6ce7017d236137e9c6d57e1407080822c54eef02e"
+  },
+  "rulesAndContracts": [
+    "TR-05",
+    "SC-040",
+    "AT-TR-05",
+    "P-09",
+    "SC-030",
+    "AT-P-09",
+    "P-APERAK34 (existing source specification label, not added original rule)"
+  ],
+  "implementation": [
+    {
+      "family": "Actual committed inbound physical negative object consumer",
+      "codeStatus": "IMPLEMENTED_AND_CONNECTED",
+      "callPaths": [
+        "Actual common assess_recovery_source_v1 -> private immutable physical prodat_correction_objects_v1 -> exact own failed full V6 register subset; NULL preserves legacy LI-only receipts",
+        "same canonical source qualifier used by ordinary prepare, established correction lineage, send/current/retry/transport journal"
+      ],
+      "effects": "Actual physical getter remains unchanged, genuinely absent LI stays absent; no synthetic wire identity or caller negative flag. Positive siblings excluded; source/ACK/receipt/projection version drift holds."
+    },
+    {
+      "family": "Source41/field226 genuine new LI producer",
+      "codeStatus": "IMPLEMENTED_AND_CONNECTED",
+      "callPaths": [
+        "session-derived admin recovery API -> prepareAndQueueProdatRecovery -> prepareProdatCorrectionReferences -> service-only native producer -> canonical current source assessor -> same actual recovery command -> reserved intent/current UD-FG source -> existing atomic original INSERT + intent/outbox -> current executor/transport journal",
+        "direct native prepare/current/source assess -> private owned preparation and exact output SHA required for genuine missingLI41/226 scope"
+      ],
+      "effects": "Same local native preparation TX owns only cryptographic reference allocations, source/input/output SHA, creator provenance and stable idempotence. No extra raw/customer original copy. Existing common operation/message/effect and persistent transport intent remain canonical. Only failed logical object first register receives fresh own LI; independent object/customer/point/period/status are preserved; later V6 repeat omissions remain. Replaces caller technical LI, does not authorize it. Rejected source/business scope rolls back private receipt. Actual current write executor rechecked after locks; send/replay keep distinct current send executor."
+    }
+  ],
+  "verification": [
+    {
+      "kind": "actual_sql_bodies_mechanics",
+      "status": "PASS",
+      "checks": 145,
+      "reusedChecks": 93,
+      "newChecks": 52,
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js EDIEL_PRODAT_PHYSICAL_OWNER_MIGRATION=/workspace/scratch/145123787247/gridex-utilts/supabase/migrations/20261001140000_ediel_inbound_prodat_physical_outcome_owner.sql node scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs",
+      "scope": "Actual source owner, physical projection/receipt/getter, protected allocation, operation/current execution and journal. Finite synthetic canonical admission/receipt capture/graph/source capability/Latin1 ports; not authentic native Supabase/concurrency or final-candidate acceptance."
+    },
+    {
+      "kind": "vitest",
+      "status": "PASS",
+      "tests": 39,
+      "suites": 3,
+      "version": "4.1.11 pinned repo bin",
+      "command": "node_modules/.bin/vitest run __tests__/ediel-prodat-recovery-consumer.test.ts __tests__/ediel-recovery-correction-references.test.ts __tests__/ediel-recovery-metering-method-context.test.ts"
+    },
+    {
+      "kind": "eslint",
+      "status": "PASS",
+      "scope": "All4 changed TS/test files; pinned repo bin"
+    },
+    {
+      "kind": "tsc",
+      "status": "PASS",
+      "scope": "Scoped app /tmp/gridex-recovery-delta-tsconfig.json and tests /tmp/gridex-recovery-li-test-tsconfig.json with actual imported dependencies and root readonly null-refinement SHA"
+    },
+    {
+      "kind": "node_check",
+      "status": "PASS",
+      "scope": "Both new mechanical SQL scripts"
+    }
+  ],
+  "migrationCompatibility": "Additive141000 private storage/functions and140500/141000 bounded installed source-body changes preserve existing OID/ACL/owner/config. New service RPC only; existing public API result contract retained. Published predecessors unmodified. Private receipt immutable/RLSforced. Native procedure exception rolls back preparation; no shared DB reset or external sends. Deployment rollback requires application compatibility decision and forward migration; immutable original receipt/history must be retained.",
+  "remainingRootQualification": [
+    "Freeze exact composite runtime head and schema/code versions",
+    "Authentic blank DB replay and real upgrade/generated types/schema/fingerprint/native HTTP rollback/concurrency/idempotence/retry/current RBAC and direct alternatives",
+    "OPS actual interactive recovery UI path currently API-only; separate new UI packet planned",
+    "Required exact published-head CI"
+  ],
+  "externalBlockers": [
+    "This mechanical packet substitutes no authentic canonical admission, actual incoming receipt evidence, issuer or external counterparty/source. Synthetic test ports cannot qualify final acceptance. Existing native producers fail closed when current authentic source/issuer/context unavailable."
+  ]
+}

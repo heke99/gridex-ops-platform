@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-01T05:36:54.739960+00:00",
+  "baseHead": "21768611abc816a1a9ba987ef6a1993ac73cdf4e",
+  "migration": "supabase/migrations/20261001070700_ediel_finance_retention_decision_original_class.sql",
+  "migrationSha256": "518e191d24343bef7e7e0eaf7a8a02ec4a72b5b8c632e974ea29decf69bf8d5e",
+  "dependencies": [
+    "20261001064500_ediel_retention_decision_original_class_workflows.sql",
+    "20261001070000_ediel_finance_copy_class_retention.sql"
+  ],
+  "sourceClass": "finance_retention_decision_original_bytes",
+  "permission": "ediel.retention.finance_decision_evidence",
+  "classAuthority": "Current own base operation + exact class, current native issuer/hash/deadline and separate reviewer; no role/default assignment",
+  "unit": {
+    "passed": 14,
+    "failed": 0,
+    "receipt": "decision-original-finance-unit-green.json"
+  },
+  "sql": {
+    "status": "PASS",
+    "checks": 78,
+    "scope": "six actual original-byte namespaces, exact SHA/HMAC/deadline/separate current review, revocation before erase, immutable metadata, old receipt NULL, replay, own policy closure",
+    "authority": "Explicitly synthetic boundary schema/auth/issuer and seeded unapproved original decisions; NOT native Supabase, browser, real legal authority or whole DB05"
+  },
+  "native": "NOT_RUN; root exact-head actual replay pending",
+  "browser": "NOT_RUN; consumer UI/probes being implemented",
+  "wholeDB05Approved": false
+}

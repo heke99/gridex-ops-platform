@@ -1,0 +1,11 @@
+# Current register/OPS fixtures
+
+Base `2e2c5f19513990043b5e0eb3020fda945608ad8f`. The five assigned fixture suites pass 157/157; tests TypeScript, scoped ESLint and diff checks pass. Fourteen stale failures are replaced by current source semantics, with three additional current membership/permission/original controls. Runtime source authority and send guards are unchanged.
+
+Register reading/topology tests now surround their exact mutations with independently selected full national fields: current own dates, parties, product, metering method, references, installation, end-user and balance-responsible facts. Actual canonical validation and both actual send guards accept the complete test fixture. Register faults remain rejected. Production missing/stale canonical snapshots explicitly remain held; public `rulebookAllowInvalidSend` metadata grants nothing. Product field242 is supplied without the forbidden energy-product506 component.
+
+TGT orchestration uses the actual canonical route classifier, actual UUID/current membership/profile/permission reader, actual private-original response validation and opaque fixture binding. Its synthetic private rows/RPC answers and canonical persistence port are explicit bounded unit boundaries. The persistence port independently requires the actual WeakMap-issued positive original; it cannot accept a public cloned marker. Missing current membership, denied current permission or absent original never reach that port. These fixtures do not prove native issuer competence, real transport or formal TGT approval.
+
+The Z01 watchdog test now runs actual canonical business-expectation planning and actual post-send projection. Its declared synthetic private journal response supplies the immutable accepted SMTP anchor. A later caller repair clock does not replace the source anchor: technical and business deadlines both equal the source's 30-minute projection. No outbox or outbound request is created. Parallel business waiting remains independent of CONTRL. This is actual source integration over a declared private-journal port; the native journal owner still needs authentic exact-candidate execution.
+
+No test snapshot was repaired to grant authority. No generated artifact, production database or market traffic was touched.

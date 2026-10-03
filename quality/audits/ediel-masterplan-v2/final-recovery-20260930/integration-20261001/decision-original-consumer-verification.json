@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-01T05:55:33.545150+00:00",
+  "baseHead": "df5680cad1104c525b2818cef800354aed949c3e",
+  "authorRole": "Implementation author; not independent whole DB05 approval",
+  "criteria": [
+    "DB-05",
+    "AT-DB-05",
+    "SC-070"
+  ],
+  "files": {
+    "lib/ediel/retention/decisionEvidenceClasses.ts": "4cb39dfd9b1b0ddc1ef0feb58afe0359d08375d9cd4735ae26353c5a5e4476ca",
+    "lib/ediel/retention/decisionEvidenceRetention.ts": "3eeda0bbbaed5ed1036d85e0c573b3f29551159509c85e57e0adbb7f0ee45460",
+    "lib/ediel/retention/decisionEvidenceRetentionHttp.ts": "ee561b07c616d8feaeb3290a59fdcb7ef6f393af38688df3549051a34e9fccb5",
+    "__tests__/ediel-decision-evidence-retention-http.test.ts": "7f2425376074e24ff9bb8c527321d983f8ef6f8118dee3ebdc2f98e6e733297c",
+    "scripts/helpers/ediel-decision-original-native-fixture.ts": "f1a335fcf0184ffd0fccbf8197ae90a3562d43dc5a0f7044048c8465d7209004",
+    "scripts/ediel-decision-original-retention-native.test.ts": "134a2caaa010a2b4bc6e7d143df02e471c1b74e7085fc5a72b8c1497c4c523f8",
+    "scripts/ediel-decision-original-browser-native.test.ts": "828fd45b9ff392ee0a5d08783b958adc093fbe564d705e4867ab1c760c1c1fc4",
+    "scripts/ediel-decision-original-browser-native.config.ts": "18c48b7f1fc57fd957a2a5d883508eb941ae37c068c7f3a2afe35752ae59ee5f",
+    "e2e/browser/ediel-decision-evidence-retention-local.spec.mjs": "1c612e7a9d97d01156863248f841b0190061108866abad62ec9b84b02c176dcd",
+    "app/api/ediel/decision-evidence-retention/route.ts": "9652300526e1e1780c88276870abd0e79ddbb8b96a56a57a48ce3387d86c9d25",
+    "app/api/ediel/decision-evidence-retention/[policyId]/route.ts": "19d7f9e092e91653a50ecbcac507b844263916f1a42145766b662a1ae4f304a3",
+    "app/api/ediel/decision-evidence-retention/[policyId]/purge/route.ts": "caf84be363bdaffd73a85e942ab2c1db0896ecb2cae60e5766359e0a924847ec",
+    "app/api/ediel/decision-evidence-retention/[policyId]/review/route.ts": "25769bc2f18b683228f4fc349242768170658a399e6725b2b84e0bb7d67b2600",
+    "app/api/ediel/decision-evidence-retention/[policyId]/document/route.ts": "a6c421200198f1e1f302244c69af5949a72d546c5ff5a2bcb47797d1c22a919d",
+    "app/api/ediel/decision-evidence-retention/[policyId]/revoke/route.ts": "9ae8d2da5c69a8771bc9add61882907788bdc0928ccecd4aa6f3defa9623ab38",
+    "app/api/ediel/decision-evidence-retention/original/[retentionClass]/[targetId]/route.ts": "0d81f033b2c9b0f3f9bddeb84ed07ce400893a250b6b7a6dbd5fc9349cb36050",
+    "app/api/ediel/decision-evidence-retention/original/[retentionClass]/[targetId]/document/route.ts": "67dbff5f0ee88eae8315c47a44634d23c94687fdd70890860d470f6492805239",
+    "app/retention/decision-evidence/page.tsx": "164193c04524d735b569cf7d25b0868d3b6c220876c7b43274625eeab6165fb5",
+    "app/retention/decision-evidence/workspace.tsx": "9d48afc850817d1fd68f7fec7714fe61abdb3d765cb729e3055c00d6c19a3ca8"
+  },
+  "unit": {
+    "passed": 23,
+    "failed": 0,
+    "receipt": "decision-original-consumer-unit-receipt.json",
+    "boundary": "Declared finite GoTrue/serverselectedcompany/current named RPC mechanics; no actual native or legal claim"
+  },
+  "validation": {
+    "scopedTypes": "PASS including API/UI/native helper and suites",
+    "scopedLint": "PASS",
+    "browserSpecSyntax": "PASS",
+    "native": "NOT_RUN: no local native PostgreSQL/Supabase/Docker; exact candidate CI must run",
+    "interactiveBrowser": "NOT_RUN: actual archived-only native fixture/bootstrap/browser/post phases require root wiring"
+  },
+  "nativeConstructed": {
+    "installedSixClassACL": true,
+    "actualWorkflowSource": "Truthful unqualified raw received Ediel row captured by enabled production original trigger; actual protected authenticated archive of an unapproved old blob decision, no private approved market/source/ready/provider seed",
+    "actualPositiveClasses": [
+      "blob_retention_decision_original_bytes"
+    ],
+    "browserPositiveClasses": [
+      "blob_retention_decision_original_bytes",
+      "decision_evidence_policy_original_bytes"
+    ],
+    "allOtherClassNativePositive": "NOT_RUN / no fresh same-head source-producer receipts yet",
+    "legalIssuer": "Explicit synthetic HMAC competence only; real lawful per-class policy remains absent/held"
+  },
+  "routes": {
+    "workspace": "/retention/decision-evidence",
+    "api": "/api/ediel/decision-evidence-retention"
+  },
+  "sharedGuard": "retentionHttp unchanged; actual standalone cookie/GoTrue/native current-session reused, native owner rechecks current own base+class/DENY in each operation",
+  "workflowPorts": {
+    "fixturePath": "GRIDEX_DECISION_RETENTION_FIXTURE_PATH",
+    "afterBrowser": "GRIDEX_DECISION_RETENTION_VERIFY_AFTER_BROWSER=1",
+    "nativeConfig": "scripts/ediel-decision-original-browser-native.config.ts",
+    "browserSpec": "e2e/browser/ediel-decision-evidence-retention-local.spec.mjs"
+  },
+  "remainingInternal": [
+    "New invoice_file_decisions original family 071500 explicitly authorized, follows sourceowner071000",
+    "All applicable source-class actual native/browser receipts on same frozen candidate",
+    "Separate journal/issuer custody family inventory and source-bound retired-key/closed-purpose qualification"
+  ],
+  "wholeCriterionApproved": false
+}

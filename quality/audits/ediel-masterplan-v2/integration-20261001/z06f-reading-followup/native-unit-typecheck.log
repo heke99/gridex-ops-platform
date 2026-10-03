@@ -1,0 +1,4 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+__tests__/ediel-ai-confirmed-customer-history.test.ts(30,277): error TS2345: Argument of type '{ sourceMessageId: string; assessmentId: string; wire: { documentReference: string; effectiveFrom: { fieldNumber: string; marketMinute: string; utc: string; }; object: SourceObjectScope; ... 11 more ...; registers: { position: number; registerId: string | null; }[]; }; ... 6 more ...; measurements?: StructuralMeasur...' is not assignable to parameter of type 'StructuralVersion'.
+  The types of 'wire.effectiveFrom.fieldNumber' are incompatible between these types.
+    Type 'string' is not assignable to type '"216" | "210"'.

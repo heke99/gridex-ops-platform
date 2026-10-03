@@ -1,0 +1,18 @@
+{
+  "activated": {
+    "using-git-worktrees": "explicit parent grant creates isolated worktree from exactpublic0373",
+    "supabase": "actual new forward scaffold generated through CLI, no hosted database",
+    "supabase-postgres-best-practices": "private definer trusted resolver path and catalog preservation",
+    "systematic-debugging": "actual source/body hash and conditional original refusal reproduced",
+    "fp-check": "conditional publicCREATE attacker capability bounded; app exploit reach not claimed",
+    "code-security": "fixed private identities, no caller dynamic SQL or expanded ACL",
+    "differential-review": "surgical two-alias ALTER with exact body/catalog proof",
+    "verification-before-completion": "new executable receipts before commit"
+  },
+  "skipped": {
+    "UI/browser/performance": "no UI or optimization change; final native/browser owned root",
+    "brainstorming/writing-plans": "exact authorized mechanism already specified",
+    "secrets-scans": "no env/secrets files read; fixture contains no credentials"
+  },
+  "globalMemoryOwnership": "root sole writer; own checkpoint verification.json"
+}

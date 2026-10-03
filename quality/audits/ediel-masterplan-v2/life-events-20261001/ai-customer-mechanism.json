@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "FOCUSED_INTERNAL_MECHANISM_NOT_WHOLE_CRITERION_ACCEPTANCE",
+  "red": {
+    "originalHead": "367a7d4b",
+    "consumer": "original aiListHistory.ts",
+    "failed": 2,
+    "passed": 3,
+    "failures": [
+      "real server reader binds the same snapshot and preserves structural state/address through a dated customer split",
+      "retains minute/date representability and original identity fences"
+    ]
+  },
+  "green": {
+    "command": "npx vitest run __tests__/ediel-ai-confirmed-customer-history.test.ts __tests__/ediel-ai-list-history.test.ts __tests__/ediel-ai-intent-gateway.test.ts __tests__/ediel-ai-prospective-original.test.ts",
+    "passed": 19,
+    "failed": 0
+  },
+  "implementation": [
+    {
+      "path": "lib/ediel/production/confirmedCustomerHistory.ts",
+      "sha256": "7e427b76b9a80e4a644b01acb286a475e1c5156e0c8414ae846f652f488b87f4"
+    },
+    {
+      "path": "lib/ediel/aiListHistory.ts",
+      "sha256": "0bfdc1669802f2d2b91b35bfd6bc29bcc5ed0a49429ac48c913f1220abc6e832"
+    },
+    {
+      "path": "lib/ediel/aiListOrigination.ts",
+      "sha256": "81100bd1d16d5f16678602998ea8cf2a884b50f60449feb2b4fcb646517c3026"
+    },
+    {
+      "path": "supabase/migrations/20261001003642_ediel_ai_confirmed_customer_facet_history.sql",
+      "sha256": "240edea2e1d41f1128af81a4f2dc33a607f7f65ada050db9205fc8c4d1373052"
+    }
+  ],
+  "focusedSQL": "PASS_SAME_SNAPSHOT_CUSTOMER_READER_AND_COMPLETE_CUSTOMER_PLUS_EXISTING_STRUCTURAL_CSV_EPOCH_FENCE_WITH_EXPLICIT_SYNTHETIC_BOUNDARIES",
+  "freshProviderAdmissionWrapper": "COMPILED_ONLY_WITH_SYNTHETIC_PREVIOUS_ORIGINAL_BOUNDARY_NOT_POSITIVE_PROVIDER_WITNESS",
+  "nativeReplay": "NOT_EXECUTED_LOCAL_RUNTIME_HAS_NO_POSTGRES_DOCKER",
+  "typecheck": "ONLY_3_INHERITED_852B_ERRORS",
+  "externalIssuerApproval": false,
+  "wholeCriterionApproved": false,
+  "remaining": [
+    "Same final integrated head native positive/negative HTTP, ordinary AI original/provider consumers and interactive browser proof.",
+    "Non-death bilateral customer source owner remains a separate implementation follow-up."
+  ]
+}

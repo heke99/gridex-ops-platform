@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component; not frozen masterplan",
+  "finalFrozenCandidateHead": null,
+  "scopeIds": [
+    "ESCO-02",
+    "AT-ESCO-02"
+  ],
+  "wholeMasterplanApproved": false,
+  "supersedes": "Only the specific CONFIRMED_CONSUMER_GAP observation for ESCO-02 and AT-ESCO-02 in ci-owned-criteria-review.json; all original literals and PARTIAL_INTERNAL verdicts retained. Integrator must bind new execution receipts to the actual frozen candidate.",
+  "rows": [
+    {
+      "id": "ESCO-02",
+      "literalOriginal": {
+        "id": "ESCO-02",
+        "area": "Tillstånd",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Z13V respektive Z13VH",
+        "trigger": "Rapportperiod väljs",
+        "condition": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum.",
+        "on_pass": "Behåll separata processer, timers och samordning av rättigheter.",
+        "on_failure": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+        "callsite_owner": "ESCO permission state machine",
+        "source": "HB kap.11; P §2.2",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ESCO-02"
+      },
+      "expectedClause": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+      "prohibitedClause": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+      "implementationFiles": [
+        {
+          "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+          "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/requestTiming.ts",
+          "sha256": "d72608968239aaf7d0f35791a74c2dd5995538be89391307c7fd12ec0ebd986d",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/permissionOrigin.ts",
+          "sha256": "48227f42fd6303c69d36c8952654d338ed9a5ebea7845a2840b1b03102ea4921",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/administration.ts",
+          "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/evidenceReview.ts",
+          "sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "scripts/ediel-service-evidence-native.test.ts",
+          "sha256": "3045eefa24705854201ef14d6ccf8e61e6eb371c611bb378767d8491dda7c1a1",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "scripts/ediel-service-request-timing-sql-regression.mjs",
+          "sha256": "b8b59a3eadd56faa3bb12236712581608d4d9dc807f2c245d2ba429d6fb169c4",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "__tests__/ediel-service-request-timing.test.ts",
+          "sha256": "96eeca8f8de8e76ed024546bd36e796b0bed9b91ae88400ff6401ac517248b18",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        }
+      ],
+      "actualEvidence": [
+        {
+          "command": "EDIEL_SERVICE_TIMING_BASELINE=1 EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js EDIEL_SQL_REPOSITORY=/workspace/scratch/29079c3a4297/gridex-esco-provenance-native /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-service-request-timing-sql-regression.mjs",
+          "receipt": "/tmp/ediel-service-timing-final-red.log",
+          "status": "EXPECTED_FAILURE_OLD_CONSUMER_PERMISSION_REQUIRED_INSTEAD_OF_HELD",
+          "candidateHead": "component-before-02ff68b1; not frozen masterplan"
+        },
+        {
+          "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js EDIEL_SQL_REPOSITORY=/workspace/scratch/29079c3a4297/gridex-esco-provenance-native /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-service-request-timing-sql-regression.mjs",
+          "receipt": "/tmp/ediel-service-timing-final-sql.log",
+          "status": "PASS_25_TIMING_64_INHERITED_BOUNDED_DECLARED_DEPENDENCIES_NOT_NATIVE",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "/tmp/ediel-toolchain/node_modules/.bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-service-request-timing.test.ts __tests__/ediel-canonical-deadline-policy.test.ts __tests__/ediel-service-evidence-permission-terms.test.ts __tests__/ediel-service-evidence-review.test.ts --reporter=json --outputFile=/tmp/ediel-service-timing-final-unit.json",
+          "receipt": "/tmp/ediel-service-timing-final-unit.json",
+          "status": "PASS_52_BOUNDED_CONSUMER_TESTS",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "/tmp/ediel-toolchain/node_modules/.bin/node node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.scripts.json",
+          "receipt": "/tmp/ediel-service-timing-final-scripts-tsc.log",
+          "status": "PASS_TYPES_ONLY",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "ordinary scripts/ediel-source-owner-native.config.ts on disposable frozen candidate",
+          "receipt": null,
+          "status": "NOT_EXECUTED_29_PREPARED_ESCO_NATIVE_CASES",
+          "candidateHead": null
+        }
+      ],
+      "implementationGap": "The confirmed absence of a native signed network-period/captured-request-day consumer is implemented by additive43917 and actual source-origin consumer. All predecessor source/actor/role/market-permission and V/VH lifecycle coordination guards remain. This component has not established any additional missing producer, and does not certify whole expected/prohibited fulfillment.",
+      "testGap": "Actual native archive/stage/separate-review→prospective coordinator/origin→samehead queue/send and market Z14/storage proof remains unexecuted; two-session request/DENY races, samefresh request, lasttimingreceipt rollback and BEFORE INSERT read-only retry are prepared. Frozen samehead clean/upgrade/generated artifacts/build/CI and relevant full literal coordination/timers proof remain pending.",
+      "externalPrerequisites": [
+        {
+          "owner": "Actual end customer, DSO and responsible legal provider/issuer; independent qualified internal reviewer",
+          "action": "Supply authentic current contracts/mandates, exact archived source bytes, issuer representation/key authority and scope/period/purpose evidence through the implemented producer and separate review before real activation. Synthetic disposable issuer facts are not these records.",
+          "blocks": "Actual market/customer activation; does not excuse remaining internal implementation/native test gaps",
+          "state": "NOT_PROVIDED_NO_EXTERNAL_TRAFFIC_AUTHORIZED"
+        },
+        "Authentic current DSO/customer/service source agreements and issuer/representation/legal authority must be independently supplied and reviewed; synthetic disposable bootstrap is not those external facts."
+      ],
+      "wholeCriterionVerdict": "PARTIAL_INTERNAL"
+    },
+    {
+      "id": "AT-ESCO-02",
+      "literalOriginal": {
+        "id": "AT-ESCO-02",
+        "name": "Regelkontrakt: ESCO-02",
+        "given": "Z13V respektive Z13VH",
+        "when": "Rapportperiod väljs – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+        "prohibited": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+        "rule_ids": [
+          "ESCO-02"
+        ],
+        "layer": "Planerat regelbeteendeprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      "expectedClause": "V är löpande och VH avgränsad historik. Pröva treårsgräns och relevant nätavtalsperiod; VH kräver slutdatum. → Behåll separata processer, timers och samordning av rättigheter.",
+      "prohibitedClause": "Använd inte VH för löpande rapportering och anta inte att slutkundens godkännande redan finns.",
+      "implementationFiles": [
+        {
+          "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+          "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/requestTiming.ts",
+          "sha256": "d72608968239aaf7d0f35791a74c2dd5995538be89391307c7fd12ec0ebd986d",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/permissionOrigin.ts",
+          "sha256": "48227f42fd6303c69d36c8952654d338ed9a5ebea7845a2840b1b03102ea4921",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/administration.ts",
+          "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "lib/ediel/services/evidenceReview.ts",
+          "sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "scripts/ediel-service-evidence-native.test.ts",
+          "sha256": "3045eefa24705854201ef14d6ccf8e61e6eb371c611bb378767d8491dda7c1a1",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "scripts/ediel-service-request-timing-sql-regression.mjs",
+          "sha256": "b8b59a3eadd56faa3bb12236712581608d4d9dc807f2c245d2ba429d6fb169c4",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        },
+        {
+          "path": "__tests__/ediel-service-request-timing.test.ts",
+          "sha256": "96eeca8f8de8e76ed024546bd36e796b0bed9b91ae88400ff6401ac517248b18",
+          "componentHead": "02ff68b12322802810598fb9edf3b1cbc5055eab"
+        }
+      ],
+      "actualEvidence": [
+        {
+          "command": "EDIEL_SERVICE_TIMING_BASELINE=1 EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js EDIEL_SQL_REPOSITORY=/workspace/scratch/29079c3a4297/gridex-esco-provenance-native /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-service-request-timing-sql-regression.mjs",
+          "receipt": "/tmp/ediel-service-timing-final-red.log",
+          "status": "EXPECTED_FAILURE_OLD_CONSUMER_PERMISSION_REQUIRED_INSTEAD_OF_HELD",
+          "candidateHead": "component-before-02ff68b1; not frozen masterplan"
+        },
+        {
+          "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js EDIEL_SQL_REPOSITORY=/workspace/scratch/29079c3a4297/gridex-esco-provenance-native /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-service-request-timing-sql-regression.mjs",
+          "receipt": "/tmp/ediel-service-timing-final-sql.log",
+          "status": "PASS_25_TIMING_64_INHERITED_BOUNDED_DECLARED_DEPENDENCIES_NOT_NATIVE",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "/tmp/ediel-toolchain/node_modules/.bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-service-request-timing.test.ts __tests__/ediel-canonical-deadline-policy.test.ts __tests__/ediel-service-evidence-permission-terms.test.ts __tests__/ediel-service-evidence-review.test.ts --reporter=json --outputFile=/tmp/ediel-service-timing-final-unit.json",
+          "receipt": "/tmp/ediel-service-timing-final-unit.json",
+          "status": "PASS_52_BOUNDED_CONSUMER_TESTS",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "/tmp/ediel-toolchain/node_modules/.bin/node node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.scripts.json",
+          "receipt": "/tmp/ediel-service-timing-final-scripts-tsc.log",
+          "status": "PASS_TYPES_ONLY",
+          "candidateHead": "02ff68b12322802810598fb9edf3b1cbc5055eab component"
+        },
+        {
+          "command": "ordinary scripts/ediel-source-owner-native.config.ts on disposable frozen candidate",
+          "receipt": null,
+          "status": "NOT_EXECUTED_29_PREPARED_ESCO_NATIVE_CASES",
+          "candidateHead": null
+        }
+      ],
+      "implementationGap": "The confirmed absence of a native signed network-period/captured-request-day consumer is implemented by additive43917 and actual source-origin consumer. All predecessor source/actor/role/market-permission and V/VH lifecycle coordination guards remain. This component has not established any additional missing producer, and does not certify whole expected/prohibited fulfillment.",
+      "testGap": "Actual native archive/stage/separate-review→prospective coordinator/origin→samehead queue/send and market Z14/storage proof remains unexecuted; two-session request/DENY races, samefresh request, lasttimingreceipt rollback and BEFORE INSERT read-only retry are prepared. Frozen samehead clean/upgrade/generated artifacts/build/CI and relevant full literal coordination/timers proof remain pending.",
+      "externalPrerequisites": [
+        {
+          "owner": "Actual end customer, DSO and responsible legal provider/issuer; independent qualified internal reviewer",
+          "action": "Supply authentic current contracts/mandates, exact archived source bytes, issuer representation/key authority and scope/period/purpose evidence through the implemented producer and separate review before real activation. Synthetic disposable issuer facts are not these records.",
+          "blocks": "Actual market/customer activation; does not excuse remaining internal implementation/native test gaps",
+          "state": "NOT_PROVIDED_NO_EXTERNAL_TRAFFIC_AUTHORIZED"
+        },
+        "Authentic current DSO/customer/service source agreements and issuer/representation/legal authority must be independently supplied and reviewed; synthetic disposable bootstrap is not those external facts."
+      ],
+      "wholeCriterionVerdict": "PARTIAL_INTERNAL"
+    }
+  ]
+}

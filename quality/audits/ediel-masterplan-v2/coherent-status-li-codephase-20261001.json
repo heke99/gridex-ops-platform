@@ -1,0 +1,71 @@
+{
+  "format": "gridex_ediel_coherent_codephase_v1",
+  "observedAt": "2026-10-01T13:26:00.553681+00:00",
+  "branch": "codex/ediel-composed-rules-20261001",
+  "savedParent": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
+  "frozen": false,
+  "qualifiedCodeSha": null,
+  "finalQualification": "NOT_RUN",
+  "scope": "Only implemented and connected private ACK source/read/status/replay and owned missing-LI recovery package; native catalog/upgrade hook prepared but not executed.",
+  "toolchain": {
+    "node": "22.23.3",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9",
+    "eslint": "9.39.4",
+    "supabaseJs": "2.103.0",
+    "dependencies": "Exact committed package-lock; isolated npm ci --ignore-scripts"
+  },
+  "results": {
+    "ownedLiSql": "145 cumulative actual bodies/finite ports PASS; not authentic native",
+    "ackScopeSql": "51 cumulative actual bodies/finite ports PASS; not authentic native",
+    "ackLiUnit": "36 PASS / 3 suites",
+    "statusUnit": "17 PASS / 1 suite",
+    "applicationTypes": "PASS on this current codephase before later OPS/P15 packets",
+    "scopedLint": "0 errors; 1 inherited unused stage warning in customerApplicationLegal.ts",
+    "specification": "33 frozen files /121 rules /231 contracts unchanged; integrity PASS",
+    "nativeCatalog": "Written/reviewed/scoped checked; actual clean/upgrade execution NOT_RUN",
+    "nativeReplayBrowserBuildCI": "NOT_RUN on this codephase"
+  },
+  "fileSha256": {
+    "__tests__/ediel-business-ack-native-list.test.ts": "3acdfefde04d769aad2b6d7052c2dedba52a76922e724b68938ad5f1766b66a4",
+    "__tests__/ediel-prodat-recovery-consumer.test.ts": "553778c859e18ebb73a7199ab0fe1b0bc26ec4284c44f15b3a165135643bacaa",
+    "__tests__/ediel-received-context-outcomes.test.ts": "37982869198a1b37b719fd4cd89df25c142ff7a47b676cb341731b941759e28d",
+    "__tests__/ediel-recovery-correction-references.test.ts": "e50acb9dfd8451a928690dd93c1adf2485f0673ec62faaf11eb1a7ed29a3f24d",
+    "app/admin/ediel/messages/[id]/page.tsx": "47187371287c96d0eee78975a27e37adfc4d8b9003300a1ecb59fd72ba0721e2",
+    "app/admin/ediel/messages/page.tsx": "3107e19a7cf9600a87ca5c148dcfe14006b4a7189ffa8580a82d1e70c22e6bbb",
+    "lib/ediel/flows/inboundProcessing.ts": "b0d1f1914f43d893e0c15f159e348057d643c38edb361cd0d9aae45f85b21752",
+    "lib/ediel/inbound/businessAckMessages.ts": "83ad3a00e9cbdd4790d5c5ce9f2567000f912b59006f4bc8270c4aea0635b9f3",
+    "lib/ediel/recovery/correctionReferences.ts": "3d82b7d009150dada9489e266b62bf4c3ce476c07278f5c2e1b13f4b24ff01bd",
+    "lib/ediel/recovery/prodatRecovery.ts": "a9dd95337866cd42ed0f0e35fb1ade88d4aff756f156452c79f9a36cfe393740",
+    "lib/website/customerApplicationLegal.ts": "01da66835664c6d26f86e8f6ce7017d236137e9c6d57e1407080822c54eef02e",
+    "scripts/ediel-business-ack-status-current-reader-sql-regression.mjs": "c871122b01635ee0e2f0ba4ae56459de5be264d2994d90431608cae210429324",
+    "scripts/ediel-duplicate-103-owner-sql-regression.mjs": "7983eda1bd6138a83b02186a49342d961f241b80d65f889bcbbde860672a53b3",
+    "scripts/ediel-recovery-owned-li-allocation-sql-regression.mjs": "05ad10e8f05d99ffbb0756656c3a4673c57025c39dec615f304634cf37c8a6e3",
+    "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs": "bae33f4f92e8188c84e4cc187158784a941afd7f3279d5ce02b09a05f293719c",
+    "scripts/ediel-utilts-consumption-native.test.ts": "15d54e8ebbfb136dcbb01000068e79222dbc5a4b53f2a913003cdddff2737801",
+    "scripts/gridex-aud-003-clean-replay.sh": "ab1dd580f7ec878e5bf47bd6b2e7110f82f5b30180847fb1242dbac74a6909db",
+    "scripts/gridex-ediel-upgrade-replay.sh": "96fe18afac0c8342ff4b770c4296456b016afd36ab3a456ed88e40cbbb6cd490",
+    "scripts/migration-history-manifest.json": "ff61b7792844a4e3357bc4ca10551549f17363e772f473ba3fc849b210b6b9e2",
+    "scripts/sql/ediel-utilts-pre-actor-catalog.sql": "0cf0bf52ae69dc0b7db2994b255749784fc62ae998553d075047ea034d6a73d6",
+    "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql": "15a69eb8004f41608503ae374286f0d4d92a5eca083f0eb1ed6e160ad0779b4c",
+    "supabase/migrations/20261001125000_ediel_current_permission_clock_and_business_ack_status_read.sql": "5a0d3defa7f2a2498a654a04667440c08e46da9223735490473d35ce88ae4ec2",
+    "supabase/migrations/20261001134000_ediel_ack_scope_common_private_original_reader.sql": "c7879bcda97c29a62562cfa05f7d0608d236c1c3efc18b2bb8709f5bc9a73b5d",
+    "supabase/migrations/20261001140500_ediel_prodat_recovery_physical_negative_scope.sql": "590a051d165980420e7c49efc1811b1aa8f1f60c0d4a628a8312f87b4ac60773",
+    "supabase/migrations/20261001141000_ediel_recovery_owned_missing_li_allocation.sql": "42d829cff43e12dc060bb7a4e2499db1abbe2e280ea0fdc502ea3973ef26aa12"
+  },
+  "logSha256": {
+    "LI_SQL_145": "745553032114f0abdc1aadd8f3db7db4d511d8eb59fd4bb3a4b0f7f2935b0a8e",
+    "ACK_SCOPE_SQL_51": "669e941fbbd59335f8976b3842a49caba9a936f04402f9b7ba4afdab56f7c354",
+    "ACK_LI_UNIT_36": "8041b689fa192582688dd1603a38d8faf3ebf6f9c1af08fb64828525a34d6811",
+    "STATUS_UNIT_17": "88a04e493b9915c09c6d449e1a346316156d3bd479647863bc4ff89c5160191f",
+    "APP_TYPES": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "SCOPED_LINT": "0d64f9c886f2385f5c23c4b7a1086a97b0f021b41d4c9c08293887f86b08c0b1"
+  },
+  "remainingInternalPackages": [
+    "ACK v1/incident common private reader actual callpath closure",
+    "P15 selected meter/register applied-source provenance",
+    "OPS recovery current private ACK presentation",
+    "bounded applied-TXT branch-union upgrade qualifier"
+  ],
+  "externalLimits": "Genuine issuer/source/mandate/archive/retention decisions remain precise per-ID fail-closed prerequisites; no synthetic source treated as authentic integration evidence."
+}

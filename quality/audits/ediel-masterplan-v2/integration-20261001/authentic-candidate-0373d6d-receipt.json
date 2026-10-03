@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "title": "Authentic exact-candidate replay and CI receipt; whole masterplan unqualified",
+  "candidate": {
+    "commit": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "tree": "0a057a9f2175f3b8d52f8f6b29ff616e94a9107f",
+    "is_final_candidate": false
+  },
+  "authentic_replay": {
+    "runtime": "GitHub Actions genuine ephemeral Supabase/PostgreSQL, not PGlite",
+    "clean_empty_database_job_id": 110243480460,
+    "ancestor_upgrade_independent_clean_job_id": 110243480384,
+    "migration_tail": "20261001071050_ediel_stable_finance_guard_identities.sql",
+    "migration_execution": "PASS",
+    "comparison_scope": "Actual generated public and every gridex_ schema; no schema normalization or weakened comparator",
+    "empty_upgrade_independent_clean_byte_identity": {
+      "schema": {
+        "bytes": 9558592,
+        "sha256": "8d4b077827e534b2015cf9c123bcfc605613e3ed4b4e53266be4101fa57c73a6"
+      },
+      "types": {
+        "bytes": 3466481,
+        "sha256": "7f27f1f7ee9f3ddd976c09c31340477c18880ab8823b878e863c9b10d63e31a0"
+      },
+      "fingerprint": {
+        "bytes": 3403,
+        "sha256": "9c40bf6a7508306711b2bef47f8c1e5af3021331f1ac04a394319e3c16731992",
+        "payload_sha256": "5f5245ef5d475abe990c8b5b05b4612d257525d60db1c3e59b7aaee8335f21ed"
+      }
+    },
+    "retained_ancestor_before_after": {
+      "byte_identical": true,
+      "bytes": 1339,
+      "sha256": "c11cba9cd57bcb8f7f987a7d1dfcd06438718a03c2cd38bc7940ad10f6d1ad39"
+    },
+    "downloaded_verified_artifacts": [
+      {
+        "id": 11144301636,
+        "kind": "upgrade",
+        "zip_sha256": "2192344edd6056e074cb0fe169ec7172b809874722a44378d841c483b9dcc5ba"
+      },
+      {
+        "id": 11144034780,
+        "kind": "empty clean",
+        "zip_sha256": "4b7f3ab119460076c909d4844eb3ac38784235f186a0dcafb84403af2198f569"
+      }
+    ],
+    "committed_generated_types": "FAIL_STALE: differ at byte57484 line1627; final candidate requires authentic regeneration and materialization",
+    "committed_fingerprint": "NOT_FINAL_ALL_SCHEMA_BASELINE"
+  },
+  "native_sql": {
+    "original_source_storage": {
+      "passed": 62,
+      "total": 62
+    },
+    "received_context": {
+      "passed": 84,
+      "total": 84
+    },
+    "received_context_upgrade": {
+      "passed": 3,
+      "total": 3
+    },
+    "source_ledger": {
+      "passed": 103,
+      "failed": 3,
+      "total": 106,
+      "failed_checks": [
+        "definers-private-fixed-path",
+        "deleted-and-unknown-receipt-discoverable",
+        "non-prodat-not-captured"
+      ]
+    },
+    "ordinary_native_http_and_specific_interactive_browser_suites": "NOT_STARTED: preceding required source-ledger SQL failed; generic browser workflow success does not qualify these suites"
+  },
+  "quality": {
+    "job_id": 110243480106,
+    "lint": "PASS",
+    "scripts_typecheck": "PASS",
+    "tests_typecheck": "PASS",
+    "mechanical_quality": "PASS",
+    "quality_vitest": {
+      "passed": 45,
+      "total": 45
+    },
+    "whole_unit": {
+      "passed": 8391,
+      "failed": 109,
+      "total": 8500,
+      "failed_files": 17,
+      "total_files": 634
+    },
+    "build": "PASS: independent always-run build step executed on this exact head"
+  },
+  "exact_head_workflows": [
+    {
+      "run_id": 36823341411,
+      "name": "Tenant integrity regression",
+      "head_sha": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36823341411"
+    },
+    {
+      "run_id": 36823341429,
+      "name": "Gridex browser and quality E2E",
+      "head_sha": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36823341429"
+    },
+    {
+      "run_id": 36823341430,
+      "name": "Ediel masterplan v2 regressions",
+      "head_sha": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36823341430"
+    },
+    {
+      "run_id": 36823341426,
+      "name": "Gridex full E2E",
+      "head_sha": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36823341426"
+    },
+    {
+      "run_id": 36823341495,
+      "name": "OPS hardening",
+      "head_sha": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/36823341495"
+    }
+  ],
+  "full_e2e_smoke": {
+    "passed": 12,
+    "total": 15,
+    "first_causes": [
+      "Stale generated-types migration tail",
+      "requestTiming.ts imports deadlinePolicy rather than canonical facade",
+      "Unreviewed service catalog surface app/admin/ediel/bilateral-prodat-sources/page.tsx"
+    ]
+  },
+  "whole_masterplan_approved": false,
+  "whole_original_ids_accepted": 0,
+  "limits": [
+    "These results belong only to the immutable candidate above, not later local commits or this additive report commit.",
+    "Authentic replay parity and a successful build do not establish whole F0–F7 or any linked original-ID qualification.",
+    "Future forward migrations require a new genuine all-schema/type/fingerprint generation and same-head native/HTTP/browser/build/exact-head CI.",
+    "No production migration, real customer communication or Ediel/counterparty/TGT/AGT traffic was performed."
+  ]
+}
+

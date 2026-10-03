@@ -1,0 +1,33 @@
+{
+  "owner": "/root/ack_prodat",
+  "kind": "bounded actual ACK scope producer/replay common private reader closure",
+  "created_at": "2026-10-01T13:06:05.726054+00:00",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001134000_ediel_ack_scope_common_private_original_reader.sql",
+      "sha256": "c7879bcda97c29a62562cfa05f7d0608d236c1c3efc18b2bb8709f5bc9a73b5d"
+    },
+    {
+      "path": "scripts/ediel-duplicate-103-owner-sql-regression.mjs",
+      "sha256": "7983eda1bd6138a83b02186a49342d961f241b80d65f889bcbbde860672a53b3"
+    }
+  ],
+  "implementation": {
+    "installed_scope_reader": "read_scope_v2 source-only and per-original qualification use read_business_original_v1(...,prepare), same immutable raw scope matching and duplicate-ID exclusion; terminal selected ACK ID requalified with full own guide/positive-service checks",
+    "installed_scope_creator": "create_scope_v2 postinsert and after last birth receipt use same full private own qualifier, replay terminal current source/prepare guard; replay terminal existing ACK ID requalified with full own checks",
+    "function_identity": "guarded pg_get_functiondef/prosrc replacements preserve OID owner ACL SECURITY DEFINER configuration argument defaults and result",
+    "effects": "no public relationship/cache repair; retained replay has no attempted writes; fresh last failure rolls back message/witness/consumption/native fixture receipts/event/birth receipt"
+  },
+  "verification": {
+    "actual_forward_mechanics": "51 cumulative PASS /tmp/ack-scope-common-reader-delta.log using canonical Node22; actual installed public scope readers/atomic creators, actual134000 forward, source/raw/guide/private witness qualifier and canonical wallclock grants; original/route IO finite synthetic boundaries, NOT native acceptance",
+    "covered": "NULL/foreign relation and wrong cache on older and freshly born own ACK; protected replay tripwires; current WRITE deny and during-guide timed deny; last birth receipt failure and during-last-receipt timed deny rollback; OID/owner/ACL/config/defaults/returns unchanged; independent terminal second/third own-guide timed DENY probes for chosen/existing returns",
+    "lint": "actual canonical eslint9.39.4 exit0 /tmp/ack-scope-common-reader-lint.log",
+    "acceptance": "NOT_PROMOTED; authentic native/race/source/UI/CI qualification root-owned"
+  },
+  "remaining_owned": "separate bounded134500 current v1/incident family closure explicitly assigned by root; not a blocker to importing this verified134000 packet",
+  "peer_review": {
+    "reviewer": "/root/utilts",
+    "finding": "source-only terminal replay did not repeat ACK-specific current positive-service/guide qualifier after a later wait",
+    "resolution": "actual private chosen/existing ackMessage.id now requalified; 2 new finite timed canonical current-DENY probes PASS"
+  }
+}

@@ -1,0 +1,29 @@
+(node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ RUN  v4.1.9 /workspace/scratch/145123787247/gridex
+
+(node:13) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:47) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects 'missing session user' before any archive or legal effect 26ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects 'different actual session user' before any archive or legal effect 3ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects 'unverified user read' before any archive or legal effect 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > archives supplied exact bytes using authenticated company/actor; archive status cannot grant legal mandate or business success 3ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects caller authority or unrelated status fields before native archive {"companyId":"00000000-0000-4000-8000-000000000009"} 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects caller authority or unrelated status fields before native archive {"actorUserId":"00000000-0000-4000-8000-000000000009"} 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects caller authority or unrelated status fields before native archive {"approved":true} 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects caller authority or unrelated status fields before native archive {"legalPrerequisitesCompleted":true} 1ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > rejects caller authority or unrelated status fields before native archive {"customerEvent":"bankruptcy"} 3ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > authorization failure invokes no native read/archive/review 1ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > requires actual original source clause for approval, and the separate current reviewer grant 7ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > native missing legal prerequisites remains a concrete hold 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > protected original download binds exact company/actor, hash and length without exposing a different artifact 2ms
+ ✓ __tests__/ediel-national-supply-rescission-intake-http.test.ts > national H intake: server scope, strict source data and protected bytes > altered protected bytes produce no download or authority 1ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  16:36:07
+   Duration  811ms (transform 255ms, setup 49ms, import 391ms, tests 59ms, environment 0ms)
+

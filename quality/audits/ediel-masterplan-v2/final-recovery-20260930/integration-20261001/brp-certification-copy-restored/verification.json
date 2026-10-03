@@ -1,0 +1,47 @@
+{
+  "recordedAt": "2026-10-01T09:51:03.882160+00:00",
+  "baseHead": "45e7b2783e1ebfce87ba6b2e1aa1313309a0adef",
+  "status": "INTERNALLY_IMPLEMENTED_BOUNDED_VERIFIED_NATIVE_PENDING",
+  "classes": [
+    "brp_declaration_agreement_original_bytes",
+    "brp_declaration_source_original_bytes",
+    "certification_workbook_original_bytes",
+    "certification_classification_original_bytes",
+    "certification_revocation_original_bytes"
+  ],
+  "red": {
+    "flag": "GRIDEX_RETENTION_COPY_BASELINE=1",
+    "actualFailure": "AssertionError: 0 !== 5",
+    "meaning": "all five new native class namespaces absent on baseline"
+  },
+  "green": {
+    "status": "PASS",
+    "checks": 204,
+    "scope": "actual original five-table custody, unchanged consumer function metadata, five independent signed purpose policies and current separate reviews, >1MB original, perclass erasure/replay/no delete or truncate, private availability barrier after retirement",
+    "authority": "Explicitly synthetic auth/schema/issuer and UNQUALIFIED original source rows; NOT real BRP declaration, certification, native race/browser or whole DB05",
+    "newMigrationSha256": "0f913ccbe8a9b51858ae34bc9a050007d3c917648237bb80e6e2916ad184de3e",
+    "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js /tmp/ediel-toolchain/node_modules/.bin/node scripts/ediel-brp-certification-copy-retention-sql-regression.mjs"
+  },
+  "compile": "PASS tsconfig.ediel-brp-certification-copy.json",
+  "lint": "PASS owned new native test and bounded runner",
+  "native": {
+    "file": "scripts/ediel-brp-certification-copy-retention-native.test.ts",
+    "preparedTests": 2,
+    "status": "NOT_RUN_LOCAL",
+    "positiveFiveClassErasure": "NOT_RUN",
+    "actualIssuerAndBRPDeclaration": "NOT_PROVED",
+    "genuineCertificationWorkbook": "NOT_PROVED"
+  },
+  "browser": "NOT_RUN",
+  "masterplanDB05": "PARTIAL",
+  "remainingInternal": [
+    "Class-map/API/UI inclusion is intentionally waiting for Native0830 sole-writer handoff.",
+    "Actual signed BRP declaration archive and separate review producer (93100) is in progress; not included in this commit.",
+    "Genuine native positive source-to-review-to-purge and concurrent after-wait expiry receipt remain pending.",
+    "Metadata/issuer/review/audit/journal lifecycle families remain separately inventoried."
+  ],
+  "prohibited": [
+    "No approval, issuer registration, legal deadline, default grant or cascade is seeded.",
+    "No original migration, protected branch, production database or market traffic changed."
+  ]
+}

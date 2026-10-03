@@ -1,0 +1,10 @@
+{
+  "head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+  "files": [
+    {
+      "path": "lib/ediel/core/kernelLegacy.ts",
+      "sha256": "af4c4df8ba4a74db10df9f6840f287f75e7f464a1d5dfd5614e870e6222160c9",
+      "bytes": 23691
+    }
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "scope": "S3 composed codephase checkpoint; no frozen/final qualification",
+  "sourceParent": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+  "qualifiedCodeSha": null,
+  "packages": [
+    "P15 selected meter/register source receipt: genuine merge preserves ed71c323 and fa9c5a08",
+    "OPS protected READ/WRITE/SEND direct server module, immutable ACK display, draft/queue/retry UI and real-click browser test wiring",
+    "ACK v1/incident common private original reader 134500",
+    "Ordinary upgrade plus separately bounded applied-TXT history union qualification hooks"
+  ],
+  "checks": {
+    "ACK_v1_incident_sql_mechanics": "79 cumulative PASS; finite synthetic boundary ports; NOT authentic native",
+    "OPS_sql_mechanics": "77 cumulative PASS; finite synthetic boundary ports; NOT authentic native",
+    "OPS_unit": "79 tests / 6 files PASS",
+    "P15_unit": "11 selected-source + 44 actual structural-selection tests PASS",
+    "scoped_lint": "0 errors",
+    "history_union_planner": "15/15 adversarial selftests PASS",
+    "shell_syntax": "PASS; cleanup removes dedicated evidence and log if redaction fails",
+    "migration_versions": "PASS",
+    "immutable_originals": "33 source files /121 rules /231 acceptance contracts PASS"
+  },
+  "qualification": "Heavy replay/upgrade/native/HTTP/browser/build/full CI NOT_RUN on composed candidate; earlier proofs remain version/scoped only",
+  "fileHashes": [
+    {
+      "path": "__tests__/ediel-prodat-recovery-consumer.test.ts",
+      "sha256": "7b0a149ba5552cb62e541101a02f8094deff3a0bac3b891a220ecaae49125ea8"
+    },
+    {
+      "path": "__tests__/ediel-recovery-operator-actions.test.ts",
+      "sha256": "a90fa4453f964b9db8237f3c2cbd4d82102bff9cc0281be260bb0b27c9d33f09"
+    },
+    {
+      "path": "__tests__/ediel-recovery-operator-workspace.test.ts",
+      "sha256": "11cd5cb09783b0f2b05b62eb19c997fff1f9cd9bc2b17782f89fcc8faaf55c5a"
+    },
+    {
+      "path": "app/admin/ediel/page.tsx",
+      "sha256": "0d65620994196e68803a03ea51c4cb3edf1b0c9383e7e50932b217a274135823"
+    },
+    {
+      "path": "app/admin/ediel/prodat-recovery/actions.ts",
+      "sha256": "515436b99f51c05e2ae9c80f1f0f0cb343cd954a219585580f032420454b6db4"
+    },
+    {
+      "path": "app/admin/ediel/prodat-recovery/page.tsx",
+      "sha256": "5cab3f6e77d4f47ffb945a629a46d4787b4c7d93acddb73e2dd9a26833f626aa"
+    },
+    {
+      "path": "app/admin/ediel/prodat-recovery/workspace.tsx",
+      "sha256": "423b265f31eca014bdfcfa0bffc3cd6422f6ba974abf011c527f698a27a1f863"
+    },
+    {
+      "path": "e2e/browser/ediel-requested-change-local.spec.mjs",
+      "sha256": "71f061ccc5e5019633dffdd8a278fde7039f3689cd4a49ddc3fbc58ca60977fa"
+    },
+    {
+      "path": "lib/ediel/recovery/operatorWorkspace.ts",
+      "sha256": "c1f80a8991b870a79f5f5dc806c44442778e6cda0ee99068cd10270f2db11b5b"
+    },
+    {
+      "path": "lib/ediel/recovery/prodatRecovery.ts",
+      "sha256": "358e040cca506506eb58d59a65640d85a55f7622a5ae8aaa4a4f7f9405d1ec36"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/ack-v1-incident-common-reader-delta-20261001.json",
+      "sha256": "06d4c97ef9058b0744327ad5b199562c3f6511c299320e6b7bd61419b2206785"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-20260930/component-resolutions-20261001.json",
+      "sha256": "8ad46625985fbff36eebcab54050e97785fbf96bc6d8b9a9dd5e771ac568f730"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.json",
+      "sha256": "bbb311321008eb7fdc06e124f7a469be173ede48f02a5a3451fd4388d7608138"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-20260930/work-matrix.md",
+      "sha256": "d89d21c26fa85828557d6dd1bb4665fb9477de9cb18c9f29f3b9c222a3ff2643"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/history-union-tools-code-check-receipt-20261001.json",
+      "sha256": "a412900a9cd42c30986940ea7c518feab5ff9877109b26ca6c162a2a328cdcda"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/recovery-transport/operator-browser-owner-delta.json",
+      "sha256": "647ed299c6fb6779c70ccb16e71b5a0166e1a114906536c74f6483959e10462e"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/integration-20261001/recovery-transport/operator-owner-delta.json",
+      "sha256": "2db69c55aa8ce0adf483342496ebe099d069621dacd7ed9200594e268538f84b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/p15-source-provenance-package-20261001.json",
+      "sha256": "526e13ecf4def191ba52b26ba83fb86ee6f3aa7ab02c46e26ba0bafd3661c81f"
+    },
+    {
+      "path": "scripts/ediel-ack-common-reader-flow-closure-sql-regression.mjs",
+      "sha256": "af348de115a2003ce5f9d51da445c9e9e18e58de0536eb40d8c9c60e5802eb85"
+    },
+    {
+      "path": "scripts/ediel-prodat-recovery-ops-browser.mjs",
+      "sha256": "a5d237012be785332c35e171c5f2668e1a79e33ca7ac2fd83f4be28dc3d0c4cd"
+    },
+    {
+      "path": "scripts/ediel-recovery-operator-read-sql-regression.mjs",
+      "sha256": "777e1e06dd4ed49b6d313f182383ee20ce5c8489c47f18fa2f574a89c6e126cb"
+    },
+    {
+      "path": "scripts/gridex-ediel-applied-txt-branch-upgrade.sh",
+      "sha256": "48d22ec0da70fa37fa5c99503e482337a8d425863eb75f37b751a81e4c405f35"
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs-selftest.py",
+      "sha256": "f178cf0b251b59eec350b74305db5a3df6659d3ac264537f85545da8c2645274"
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-inputs.py",
+      "sha256": "ac964be8dc918bf8ad9e4ee41bfd9b532a183607216a2c8d34e7a8e72565b492"
+    },
+    {
+      "path": "scripts/gridex-ediel-history-union-upgrade-contract.json",
+      "sha256": "b675ca7591af5741a12ec48a759d86e9a35c6b1dfb2877ce7dba218e7f89064f"
+    },
+    {
+      "path": "scripts/gridex-ediel-upgrade-replay.sh",
+      "sha256": "6b0db44f60894e0885d70e10ab541ab5c0302b02c5cc02e073f095d5e3e23e67"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "sha256": "d7b2b8a23b53067dd493273ea081d4cd0d84fe99c67ee7427b65b730c0332787"
+    },
+    {
+      "path": "supabase/migrations/20261001134500_ediel_ack_v1_incident_common_private_original_reader.sql",
+      "sha256": "b6cdfc3aef4e6019949b26942e25916f252aa3ebab9334beedfaa3c609aef803"
+    },
+    {
+      "path": "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql",
+      "sha256": "61c86825201ca1b67fd6aefaaaf673051a9e9d5b2951cbb11bce076b9df09eee"
+    }
+  ],
+  "receipts": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-ACK-v1-incident-current.log",
+      "sha256": "04710427656887b2dad1f9e1af3b4e61daad43bab9ae80b28e440d2a11cceda4"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-history-union-planner-current.log",
+      "sha256": "adb3a296fbc8c8aa2f1bf642426ca5771a300f6ba74561411c8cecb26e567dfd"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-OPS-recovery-read-current.log",
+      "sha256": "54dcac35cdeba700c9c4dacd70be8f5a5aea46e0d4055d3c517c108de5006aee"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-OPS-recovery-current-unit.log",
+      "sha256": "2c63f3fe532d9a731dc4744c7b56278587d2240528beb099a4ef489cd8fa486d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-OPS-P15-current-lint.log",
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-P15-composed-current.log",
+      "sha256": "db970098f22ed2f7458a6bf29f82e0492dedf292701309673412eadeaeb9c24d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/root-P15-selection-current.log",
+      "sha256": "e6d3e38a9736ee1b1660ad47278fd1165e629ac5ccfdfb56dad13e6f23cb8dcb"
+    }
+  ],
+  "safety": "No main merge, production migration, real customer/market traffic. 310/418/422 untouched."
+}

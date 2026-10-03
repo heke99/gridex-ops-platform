@@ -1,0 +1,80 @@
+{
+  "head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+  "files": [
+    {
+      "path": "__tests__/ediel-prodat-free-text-format-routing.test.ts",
+      "sha256": "a45483b202f4e224512b1e4347adad068290a5b02cdf5ea4a4f7d39fcdfcf940",
+      "size": 5973
+    },
+    {
+      "path": "__tests__/ediel-smtp-outcome.test.ts",
+      "sha256": "602819760f90aa6e77f593b663ccd1d3c4f949d951e74b525183e0258057ce30",
+      "size": 4805
+    },
+    {
+      "path": "lib/ediel/core/dedupe.ts",
+      "sha256": "118df5e64f8558c26c99613ee06ec0bc2518118128068f5168f57c287d0609ec",
+      "size": 9687
+    },
+    {
+      "path": "lib/ediel/core/kernelLegacy.ts",
+      "sha256": "b19f6b4514353df1504ab37aad4871fae1e8821da6ff0b1abe0da6bc2ae13546",
+      "size": 25916
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "96be16dad4f65212170ff1e09dcddfe618f5765d838608846b0649bcf5430e0d",
+      "size": 43983
+    },
+    {
+      "path": "lib/ediel/orchestrator.ts",
+      "sha256": "872ffbfef535f97fc0b05324770ba6d12f1e159c6ebe43bbdb9d8a94217432b8",
+      "size": 22950
+    },
+    {
+      "path": "lib/ediel/outbox/sendOutboxItem.ts",
+      "sha256": "448376c168db1c1791d13ab2a7224f06e5a6963fc885b442d6b3bea065823ed0",
+      "size": 14608
+    },
+    {
+      "path": "lib/ediel/rulebook/sendGuards.ts",
+      "sha256": "3d032b444558b89e3c9b8918e8fd2ae060efa1b4c08d03eb47c2e410928315fa",
+      "size": 4302
+    },
+    {
+      "path": "lib/ediel/sources/correctionOutboundDispatch.ts",
+      "sha256": "7dcd94dc62a774930b78a79dbfb0a62ec86568b76579ea0e8948abb8d1705d1e",
+      "size": 8097
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "sha256": "52a390e08a02ae0e248e522b32e745b4c41748c0bb25988074447097a8e1893a",
+      "size": 43306
+    },
+    {
+      "path": "lib/ediel/transport/outboundAttempt.ts",
+      "sha256": "9d653ddf177e424197506a5a166403f439b524802c157c702f6807c6d8c1d974",
+      "size": 7238
+    },
+    {
+      "path": "__tests__/ediel-accepted-projection-consumers.test.ts",
+      "sha256": "2bcc36542d6f851ff87d3011201f98cf74674f905f3d846abca7f88dc4e454d8",
+      "size": 5222
+    },
+    {
+      "path": "lib/ediel/recovery/transportRetry.ts",
+      "sha256": "7e4a328dc569db0beb872a213f7f6612d579500b7ab5dcbe643e7c3e8bd47974",
+      "size": 1380
+    },
+    {
+      "path": "lib/ediel/transport/acceptedProjectionRepair.ts",
+      "sha256": "9edf2a51eccf5995f5068dfbb4662d157a3fcfd9a42bdc1069d8cebce2749639",
+      "size": 1798
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-20260930/FINAL_TEST_PHASE.md",
+      "sha256": "cf2700ffad4518853f5cc922071883e3473ebb210e0e9e9494caf5ec23e361f2",
+      "size": 4923
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-01T05:15:59.421956+00:00",
+  "baseHead": "5204042026cf4fd7f2c03bb7b48b85da6573e719",
+  "candidate": "additive_package_file_hashes_not_final_shared_frozen_head",
+  "owner": "requirements_evidence",
+  "wholeOriginalCriterionApproval": false,
+  "acceptedOriginalIds": [],
+  "sourceFileSha256": {
+    "supabase/migrations/20261001045349_ediel_ai_composed_customer_history_owners.sql": "238af606b0436133a9477c143dd3f98bb392f935521010fced11bbca179046e8",
+    "lib/ediel/aiListHistory.ts": "01c5c21557bc5c79a6ef321ae90f154bebe9dcf151cebc100386c729226cb98e",
+    "__tests__/ediel-ai-confirmed-customer-history.test.ts": "1aa6b5c1b5d465f86c3cd9b7fd3a3363b5ed2305b6cc972ef018ce99a43cf6fb",
+    "__tests__/ediel-ai-list-history.test.ts": "85b3691d33adf000a4eff5ed1d10d223c46b53356683dc9d74dedfa724ec5296",
+    "scripts/ediel-ai-composed-customer-owners-sql-regression.mjs": "04874e4972011bb47d4ea9f94c50a9820af5adb09f26e561b7d55bf8df27de18",
+    "supabase/migrations/20261001003642_ediel_ai_confirmed_customer_facet_history.sql": "240edea2e1d41f1128af81a4f2dc33a607f7f65ada050db9205fc8c4d1373052",
+    "supabase/migrations/20261001010758_ediel_bilateral_customer_source_owner.sql": "828013f3136610440a174897505fbf3ae91c675c7c6bad9ea9c81c41113ae70c",
+    "supabase/migrations/20261001021408_ediel_ai_customer_epoch_source_projection.sql": "dbf60777ffd8555f9267862b58b7861904dd500c54dccb77ce8996a60eaa45f4"
+  },
+  "receipts": {
+    "javascriptRed": {
+      "priorSourceGit": "52040420:lib/ediel/aiListHistory.ts",
+      "test": "ediel-ai-confirmed-customer-history -t foreign point",
+      "exitCode": 1,
+      "actual": "Foreign Name",
+      "expected": "Person Estate"
+    },
+    "sqlRed": {
+      "command": "PGLITE_MODULE_URL=file:///tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-ai-composed-customer-owners-sql-regression.mjs --red",
+      "exitCode": 1,
+      "actual": "ai_list_original_dated_source_owner_missing"
+    },
+    "sqlGreen": {
+      "command": "PGLITE_MODULE_URL=file:///tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-ai-composed-customer-owners-sql-regression.mjs",
+      "exitCode": 0,
+      "kind": "DECLARED_SYNTHETIC_BOUNDARY_COMPOSITION",
+      "actualExistingOwnerSQL": true,
+      "syntheticPorts": [
+        "full confirmed/bilateral facet qualification",
+        "current legal purpose/actor/network fixture ports",
+        "initial qualified supply fixture port"
+      ],
+      "authenticNativeReplay": false
+    },
+    "unit": {
+      "suites": [
+        "ediel-ai-confirmed-customer-history",
+        "ediel-ai-list-history",
+        "ediel-ai-applied-history",
+        "ediel-customer-life-event-validation-consumers"
+      ],
+      "result": "39/39 PASS",
+      "legalFactApproval": false
+    },
+    "scopedLint": "PASS",
+    "diffCheck": "PASS",
+    "logSha256": {
+      "ai-ownobject-red.log": "e44417b48da96b1a4f0b6dcec3baf42c69d6c34b7b3b892d467887b30b1463d8",
+      "ai-compose-red.log": "4c82b327117c818ad7bcd5fc630839f795a57278743fd79bd37128e94254279c",
+      "ai-compose-green.log": "8828f7c0ce7811212b0582276c847b4db75862ccfcc281eef49bab7c2a100241"
+    }
+  },
+  "unexecutedQualification": [
+    "genuine clean and genuine ancestor replay",
+    "native current actor/source/permission/issuer concurrency",
+    "ordinary HTTP consumer",
+    "interactive browser on actual native owner chain",
+    "build of final shared candidate",
+    "exact-head CI",
+    "independent whole expected and prohibited clause review"
+  ]
+}

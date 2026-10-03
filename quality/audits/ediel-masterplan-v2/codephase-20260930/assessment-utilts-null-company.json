@@ -1,0 +1,232 @@
+[
+  {
+    "ids": [
+      "TEN-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "T §5; SYS",
+    "exact_requirement": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns.",
+    "exact_expected": "Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+    "exact_prohibited": "Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+    "applies_to": "Inkommande EDIFACT"
+  },
+  {
+    "ids": [
+      "TEN-11"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "U bilaga1–2; T §2; SYS",
+    "exact_requirement": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel.",
+    "exact_expected": "Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+    "exact_prohibited": "Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+    "applies_to": "Okänd lokal entitlement"
+  },
+  {
+    "ids": [
+      "AT-TEN-06"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "annex/D_Acceptanskontrakt.md; registers/acceptance_tests.json AT-TEN-06",
+    "exact_requirement": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns. → Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+    "exact_expected": "Attribuera teknisk mottagare, juridisk mottagare, roll/marknad och ursprungssammanhang där sådant finns. → Identifiera en juridiskt ansvarig aktör; därifrån korrekt tenant-/servicekontext.",
+    "exact_prohibited": "Oklar attribution hålls i skyddad karantän; ingen gissad tenant från kund-id.",
+    "given": "Inkommande EDIFACT",
+    "linked_rules": [
+      "TEN-06"
+    ]
+  },
+  {
+    "ids": [
+      "AT-TEN-11"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "annex/D_Acceptanskontrakt.md; registers/acceptance_tests.json AT-TEN-11",
+    "exact_requirement": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel. → Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+    "exact_expected": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel. → Behåll föreskriven teknisk kvittens där säkert möjlig; utred egen behörighetskonfiguration utan dataexponering.",
+    "exact_prohibited": "Skicka inte E10 eller42/209 enbart för att fel tenant valts lokalt.",
+    "given": "Okänd lokal entitlement",
+    "linked_rules": [
+      "TEN-11"
+    ]
+  },
+  {
+    "ids": [
+      "SC-014"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "annex/D_Acceptanskontrakt.md; registers/acceptance_tests.json SC-014",
+    "exact_requirement": "Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+    "exact_expected": "Skyddad staging och källstödd teknisk fel-/kvittenshantering där säkert möjlig.",
+    "exact_prohibited": "Gissa inte tenant från första kundträffen; fabricera inte objektsfel på egen konfigbrist.",
+    "given": "Teknisk mottagning lyckas men legal/tenantkontext är oklar.",
+    "linked_rules": [
+      "TEN-06",
+      "TEN-11"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "P §3; U §5.2",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.",
+    "exact_expected": "Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "applies_to": "Flera objekt/transaktioner"
+  },
+  {
+    "ids": [
+      "AT-ACK-08"
+    ],
+    "owner": "utilts_ack",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/ack/committedInboundAck.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/core/tenantResolver.ts",
+      "lib/ediel/ack/sourceCorrelation.ts",
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql",
+      "supabase/migrations/20261001032813_ediel_committed_ack_qualified_tenant_read.sql"
+    ],
+    "confirmed_code_gap": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "assessment": "Fresh actual incoming ACK with company_id NULL formerly threw before physical source-based tenant resolution. V2 now reads only an immutable own source_correlations ACK identity/environment/actual raw hash; its qualified retained tenant, if any, is disclosed only after current active profile, accepted active membership and communication READ/WRITE via the existing frozen receipt reader. No proof returns NULL without row/outcome writes and lets ordinary resolver proceed. Nonnull foreign tenant/hash/environment mismatches remain held. Original immutable partial result and legacy summaryUnavailable remain unchanged; no current guide or mutable JSON fallback. This overlay covers this fresh-null/retained-read delta only; other linked criteria retain their owners. Fixed-candidate full native/replay/concurrency/security/E2E/manual proof NOT_RUN.",
+    "blockers": [],
+    "commits": [
+      "fcd09c68"
+    ],
+    "planned_tests": [
+      "Full fixed-candidate chain: fresh NULL-company physical APERAK/CONTRL/ERR finds uniquely qualified actual sealed original before tenant effects; ambiguous/unqualified sources stay held without national errors from local attribution.",
+      "Genuine old immutable receipt read precedes current guide/route runtime and preserves own partial flags; current inactive/unaccepted/foreign actor cannot receive retained source/result.",
+      "Full native clean replay/schema and generated-type parity/security/concurrency/browser/E2E/manual tests NOT_RUN."
+    ],
+    "normative_source": "annex/D_Acceptanskontrakt.md; registers/acceptance_tests.json AT-ACK-08",
+    "exact_requirement": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_expected": "PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda.",
+    "exact_prohibited": "Låt inte global hasFunctionalError välja en felklass för alla transaktioner.",
+    "given": "Flera objekt/transaktioner",
+    "linked_rules": [
+      "ACK-08"
+    ]
+  }
+]

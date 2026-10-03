@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "title": "Execution restoration checkpoint; unpublished local work was lost and must be recreated",
+  "public_source_snapshot": {
+    "commit": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "tree": "0a057a9f2175f3b8d52f8f6b29ff616e94a9107f",
+    "is_final_candidate": false
+  },
+  "lost_unpublished_local_head_prefix": "26ef7a90",
+  "execution_boundary": {
+    "outage": {
+      "code": "409 environment_offline",
+      "message": "Environment is not connected",
+      "phase": "exec-server capability query before process start",
+      "root_probe": "pwd with login:false failed before CreateProcess",
+      "affected": [
+        "file reads/writes",
+        "git integration/commits",
+        "local typecheck/unit/build",
+        "native fixture preparation and interactive verification"
+      ],
+      "is_normative_external_prerequisite": false
+    },
+    "reconnected_at": "2026-10-01T08:08:59Z",
+    "local_workspace_after_reconnect": "Old integration/owner trees and toolchains absent; public033 cloned and independent owner trees created",
+    "active_root": "/workspace/scratch/29079c3a4297/gridex-integration",
+    "published_packages_reapplied": false,
+    "unpublished_semantics_recreated_as_new_commits": true,
+    "old_unpublished_receipts_not_accepted": true
+  },
+  "historical_lost_packages": [
+    "invoice-file retention 71000/71100/71200 and native/browser fixtures",
+    "customer decision classes71500",
+    "classified inbound producer54122",
+    "current authorization prefixes63426",
+    "H-end55558 and LK62309",
+    "PRODAT object batch55436",
+    "actual reception11 native fixtures",
+    "OPS02 F/G next-action and process-watch UI",
+    "70121 first-effect/read scope, pending actual archive-phase correction"
+  ],
+  "restored_packages": [
+    {
+      "owner_commit": "d74728af",
+      "root_commit": "006938d2",
+      "scope": "61731 actual private alias path fix; bounded36 passed, native unrun"
+    },
+    {
+      "owner_commit": "87de7df1",
+      "root_commit": "97ea47d2",
+      "scope": "54122/63426/70121 customer owners; bounded21 passed, native unrun"
+    },
+    {
+      "owner_commit": "1578ddb8",
+      "root_commit": "09b5d921",
+      "scope": "OPS02 F/G process watches; focused33 passed, native/browser unrun"
+    }
+  ],
+  "qualification": {
+    "original_ids": 352,
+    "whole_accepted": 0,
+    "all_six_literal_owner_reviews": "Committed on public source snapshot, disjoint79+35+69+75+27+67; require final same-head rebinding",
+    "no_green_count_implies_approval": true
+  },
+  "frozen_specification": {
+    "original_unchanged": true,
+    "verification_write_redirected_to": "quality/audits/ediel-masterplan-v2/integration-20261001/restoration/spec-integrity-rechecked.json",
+    "fresh_checks": 29
+  },
+  "constraints": [
+    "No force-push",
+    "No main merge",
+    "No production migration",
+    "No real customer communication",
+    "No Ediel/counterparty/TGT/AGT traffic",
+    "#310 stays paused",
+    "#421/#423 and tenantservice#418/#422 remain owner-controlled"
+  ],
+  "external_scope": [
+    "Actual formal Ediel/counterparty/certification/production activation approvals and genuine legal issuer/representation/purpose/period facts are not supplied by disposable fixtures.",
+    "Narrow APERAK D.96A SG4 single-RFF cardinality versus national mandatory known point AND own LI requires authoritative source resolution; do not drop references, switch edition, repeat an ERC or relax grammar.",
+    "Internal missing producers, current permission checks, retention consumers and native/browser tests remain internal work; do not label them external blockers."
+  ]
+}

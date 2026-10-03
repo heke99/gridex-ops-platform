@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Additive current native clock/strict receipt correction for classified incoming customer owner",
+  "baseCommit": "93d6f0c3",
+  "criterionApproval": false,
+  "acceptedCriteria": [],
+  "publishedOriginalsUnchanged": [
+    "20261001010758",
+    "20261001054122",
+    "20261001063426",
+    "20261001070121"
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261001092425_ediel_classified_customer_wallclock_source_qualification.sql",
+      "sha256": "bd29485e34f0946cbcbae417d92dbcfa6c75210048b01046ede33fc825fe1e4f"
+    },
+    {
+      "path": "scripts/ediel-classified-customer-wallclock-sql-regression.mjs",
+      "sha256": "604b5f779a312315999346824e345685a28515b4125146d5868a4b160ad88562"
+    },
+    {
+      "path": "scripts/ediel-classified-customer-wallclock-native.test.ts",
+      "sha256": "d20a7e49b095c5390904eef92f9b9a594268af637ce517405d1cfb5e0afaa01b"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "bounded_sql",
+      "checks": 27,
+      "status": "PASS",
+      "receipt": "current-clock-green.log",
+      "limits": "Actual public archive/HMAC/separate review/classification producer. Synthetic independent ledger/source/catalogue and legal registry controls. Not authentic native replay."
+    },
+    {
+      "kind": "red_control",
+      "status": "EXPECTED_FAILURE_OBSERVED",
+      "receipt": "legacy-clock-red.log",
+      "cause": "Legacy signed null issued/expires clocks qualify archive incorrectly."
+    },
+    {
+      "kind": "scoped_scripts_typecheck",
+      "status": "PASS",
+      "receipt": "scoped-scripts-typecheck.log"
+    },
+    {
+      "kind": "lint",
+      "status": "PASS",
+      "receipt": "lint.log"
+    }
+  ],
+  "nativeCasesPrepared": 2,
+  "notRun": [
+    "Authentic clean/ancestor replay",
+    "Native current clock/NULL receipt suites",
+    "Native concurrency races",
+    "Whole integrated build/CI on frozen head",
+    "Whole expected/prohibited requirement acceptance"
+  ],
+  "externalRequirements": [
+    "Authentic competent DSO issuer/representation/current mandate and signed original receipt; disposable synthetic registries prove mechanism only."
+  ],
+  "preserved": [
+    "Whole actual installed source/native actor/scoped permission semantics",
+    "Actual source before artifact locks",
+    "Signed original claims/canonical assessment ID and descendant cutoff/whole facets",
+    "Historical immutable apply partition/transition replay before fresh execution qualification",
+    "OID/ACL/owner/config/security/volatility of ten existing entries; old owner proof remains STABLE"
+  ],
+  "newPrivatePorts": [
+    "classified_scoped_permission_wallclock_v1",
+    "classified_actor_wallclock_v1",
+    "classified_source_claims_wallclock_v1",
+    "classified_receipt_wallclock_v1",
+    "classified_independent_wallclock_v1"
+  ]
+}

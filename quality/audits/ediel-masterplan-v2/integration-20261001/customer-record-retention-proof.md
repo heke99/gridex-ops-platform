@@ -1,0 +1,40 @@
+# DB-05 / AT-DB-05: exact customer record classes
+
+This packet adds source-bound revocation/redaction/byte removal for twelve concrete existing owners. It does not approve DB-05, invent a legal retention period, assign a role, seed an issuer, activate a policy, or execute a real purge. The actual requirement still includes other journals/settlement classes and E035 history. The separate E035 fact/readset inventory follows additively.
+
+| Exact class | Actual owner | Sanctioned operation | Preserved minimal continuity |
+| --- | --- | --- | --- |
+| contract_signed_pdf_bytes | customer_contract_documents + Storage/customer-contract-documents | Native pending tombstone, actual authenticated Storage removal, actual unavailable readback, native finish; generation snapshot removed | document SHA256, contract/version reference, byte length and exact legal journal purpose/deadline |
+| contract_signature_personal_snapshot | customer_contracts | Empty signature snapshot; clear signed IP/user agent | immutable signature/document hashes and publication/version clocks |
+| contract_signature_request_personal | customer_contract_signature_requests | Replace recipient with nonpersonal target UUID address; empty metadata | native request/token hash, contract and status references |
+| contract_acceptance_personal_snapshot | customer_contract_acceptances | Clear personal IP/agent and identity/POA/acceptance snapshot bodies | acceptance hash, contract/version/time references |
+| contract_evidence_personal_snapshot | customer_contract_evidence | Empty evidence body | evidence hash and captured version/time references |
+| customer_address_history | customer_addresses | Clear address fields/metadata only for inactive past address | original hash, UUID and historical date references |
+| portal_event_history | customer_portal_events | Clear user/payload/metadata | exact original hash, event/time references |
+| portal_access_log_history | customer_portal_api_access_logs | Clear external customer/metadata | route/time/original hash references |
+| portal_customer_event_history | customer_events | Clear external customer/customer number/payload/metadata | event/time/original hash references |
+| portal_domain_event_history | domain_events | Clear actor and payload | event/time/original hash references |
+| legal_acceptance_personal_snapshot | customer_legal_acceptances | Clear IP/agent/personal snapshot/metadata/customer number/external ID | exact legal document/version/hash references |
+| onboarding_legal_personal_snapshot | customer_onboarding_legal_snapshots | Empty personal acceptance and signed-scope bodies | content hash, operation/legal version references |
+
+Each source is independently selected from a private immutable native catalog. Original source and whole current row SHA256 are captured by the native owner, not accepted from caller authority. Each exact target has an immutable separately signed original policy, its own finite legal deadline and a finite minimal-journal deadline/purpose. Expired, absent, changed, revoked, foreign, wrong-operation or unqualified source remains held. No default policy or guessed period exists.
+
+Actual GoTrue identity + server-selected company + accepted active own membership + explicit base operation and class grant establish archived/pending-deletion retention scope. Global/company direct, override and role DENY apply; global ALLOW/admin and operative archived-company bypass do not. The separate reviewer remains current at the native last write. Native permission graph SHARE locks prevent concurrent grant/deny races. Operative customer must be archived and no actual active supply may remain. Actual portal accounts/claims are revoked before the class mutation in the same transaction. A final audit failure rolls back the entire native personal-data mutation, tombstone, events and access revocation.
+
+Existing signed/immutable guards are cloned only for their exact sanctioned fields and source tombstone. Original owner, security mode and configured search path survive; shared trigger functions are not weakened. Original hashes survive without claiming current bytes remain available. Runtime signed document, signing receipt/finalize, customer address and portal consumers re-read private current native availability. Fresh generic/correction provider prepare/enter rejects affected customer evidence; genuine predecessor accepted replay runs first and does not reopen provider entry.
+
+Contract PDF removal is two transactions plus real Storage I/O. SQL `storage.objects` absence is only a metadata fact. The runtime consumer verifies actual pre-download hash/length, uses the actual user's authenticated Storage remove (native trigger repeats current class/issuer/reviewer/exact source gates), requires actual unavailable readback, and then finishes the native receipt. A 403 is denial, not absence. Repair after a crash still requires the native immutable DELETE admission. Re-upload/reidentification are held. No SQL deletion is labelled physical byte erasure.
+
+HTTP uses strict server-selected company/actor and selectors, actual stream byte caps, private/no-store responses and the same source owner. The UI has separate original-source read, submit, review, revoke and purge forms with current explicit grants; changed native authority holds a fresh operation. Submitted/held source is not represented as an approved legal fact.
+
+## Actual verification of this packet
+
+- Six actual runtime consumer/port unit files: **47/47 PASS**. Native RPC/auth/Storage boundary doubles are explicitly synthetic; not Supabase or legal qualification. Includes ten-second/two-MiB/hash/cancel document bounds, fresh denial before download and tombstone race after actual stream hashing.
+- Focused PGlite actual SQL: all twelve source-specific transitions passed, including archived class session, exact legal-source HMAC, separate review, future PDF deadline hold, current reviewer class deny, no premature finish, actual DELETE admission/repair/reupload, actual field redaction and private ACL. The runner also preserves prior source/customer/message/MIME mechanics. Its schema, issuer, original signature/supply and Storage boundaries are synthetic. SQL Storage metadata removal does not prove physical removal.
+- Scoped ESLint: **PASS**, zero errors/warnings. Full application TypeScript: **PASS** with 6144 MiB heap. Own native/HTTP/UI/tests dependency TypeScript: **PASS**. Earlier 2 GiB OOM and parallel 8 GiB exit137 were not passes; they were followed by successful completed checks.
+- New ordinary native file `scripts/ediel-customer-record-retention-native.test.ts`: **constructed, NOT EXECUTED locally**. Two scenarios use genuine publication/signing/archive/POA/Z03 and canonical onboarding owners, actual GoTrue/current grants, actual native HTTP source functions, actual authenticated Storage deletion/readback; no private ready/accepted/retention rows are seeded. Synthetic public histories/customer closure and synthetic competent-issuer key are declared boundaries, never real legal acceptance. Scenario one covers all twelve classes; scenario two covers issuer absence, foreign selectors, current reviewer class DENY and actual final audit rollback.
+- Local Docker/psql remain unavailable. Exact frozen native/HTTP/browser/build/CI and authentic generated schema/types/fingerprint are the integration owner's separate outstanding gate. Real Supabase retention-owner auth/Storage ACLs require actual replay, not PGlite-superuser inference.
+
+## Actual unresolved facts
+
+Actual source-specific competent legal retention policies, issuer competence, approved per-class source decisions and their periods are not supplied; fresh operations hold. No external traffic or production activation occurs. E035 private fact/readset classes and other settlement/journal families are additional internal implementation scope; this packet is not a whole-masterplan acceptance claim. Interactive browser qualification and authentic exact-head native receipts are pending integration.

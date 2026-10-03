@@ -1,0 +1,24 @@
+{
+  "sourceFilesAtVerification": "Own scope from df8c75c7 plus explicit fixture corrections; not final frozen candidate",
+  "wholeMasterplanApproved": false,
+  "checks": [
+    {
+      "log": "root-current-three-cjs-final.log",
+      "sha256": "d444d8a6a4e9c150c801fadc585dd9d9ce1939f3c26f962182f40308f900df5a",
+      "passCount": 337,
+      "scope": "Source VM or isolated unit mechanism with original-owner finite ports; native/HTTP/browser/whole criterion not claimed"
+    },
+    {
+      "log": "root-remaining-protocol-four.log",
+      "sha256": "b41a9ae4f20c09f3667dcc91367f4238855df21e7de662c2477235c7ce4e3a3b",
+      "passCount": 47,
+      "scope": "Source VM or isolated unit mechanism with original-owner finite ports; native/HTTP/browser/whole criterion not claimed"
+    },
+    {
+      "log": "root-prelegal-producer-unit-final.log",
+      "sha256": "453ec4a714923d23c90ebb950ddf0bc4c5a4b23e6f199eb3a4253044e228b0ba",
+      "passCount": 9,
+      "scope": "Source VM or isolated unit mechanism with original-owner finite ports; native/HTTP/browser/whole criterion not claimed"
+    }
+  ]
+}

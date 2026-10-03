@@ -1,0 +1,254 @@
+[
+  {
+    "ids": [
+      "GOV-01",
+      "AT-GOV-01"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen GOV-01/AT-GOV-01 owner clause: Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning. → Publicera immutabel regelversion med granskningsspår. / prohibited Ej styrkt regel ska inte generera nya externa meddelanden eller påhittade felkoder..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source T §1.2,1.4; P §1.3; exact condition Varje normativ regel har dokumenthash, version/revision, sida/avsnitt, giltighet och exakt omfattning.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "GOV-04",
+      "AT-GOV-04"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen GOV-04/AT-GOV-04 owner clause: Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter. → Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik. / prohibited Skicka inte gammal köpayload med ny versionsetikett..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source T §1.4 s.4; exact condition Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "GOV-06",
+      "AT-GOV-06"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen GOV-06/AT-GOV-06 owner clause: Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär. → För explicit versionsbeslut till utiltsEngine; inget nytt implicit now(). / prohibited Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source CODE canonicalEdielPolicy/runtimeDecision; SYS; exact condition Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-05",
+      "AT-ACK-05"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen ACK-05/AT-ACK-05 owner clause: Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak. → Begär föreskriven APERAK och CONTRL på ERR; följ ERR:s egna fältvillkor. / prohibited Skapa inte ERR på ERR eller APERAK på APERAK..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source U §3.4,4,5; exact condition Wirefamiljen är UTILTS med BGM ERR. Referera rätt originaltyp, BGM-id och transaktions-id samt avvisningsorsak.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-06",
+      "AT-ACK-06"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen ACK-06/AT-ACK-06 owner clause: Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj. → Uppdatera endast rätt kvitterade delar och deras delstatus. / prohibited UCI, ACW eller LI utan aktörsscope får inte kopplas till en annan tenant..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source T §5.5; P §3; U §5; exact condition Bind föreskrivna referenser tillsammans med parter, marknad, roll, miljö och ursprungsfamilj.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-07",
+      "AT-ACK-07"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen ACK-07/AT-ACK-07 owner clause: Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion. → Skapa incident och föreskriven kontakt; använd rätt rättelseprocess för ett nytt meddelande. / prohibited Gör inte rollback följt av motsatt APERAK bara på grund av ett internt återförsök..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source P §3.2; U §5.2; T §2; exact condition Ändra inte ett slutligt kvittensutfall genom att skicka motsatt APERAK på samma objekt/transaktion.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  },
+  {
+    "ids": [
+      "ACK-08",
+      "AT-ACK-08"
+    ],
+    "owner": "/root/authority_grammar",
+    "code_status": "CODE_READY_NOT_VERIFIED",
+    "code_paths": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts",
+      "lib/ediel/rulebook/validator.ts",
+      "lib/ediel/ack/receivedErrApplicationResponseAuthority.ts",
+      "supabase/migrations/20261001002414_ediel_inherited_err_reason_guides.sql",
+      "supabase/migrations/20261001003657_ediel_received_err_application_response_authority.sql",
+      "supabase/migrations/20261001005707_ediel_received_err_original_witness_admission.sql",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts",
+      "lib/ediel/flows/inboundProcessing.ts",
+      "lib/ediel/ack/prepareSourceAckDraft.ts"
+    ],
+    "confirmed_code_gap": "Fresh retained25-A3 ERR E19 was blocked by universal current reason catalogue before protected original lookup; old issued ERR could also be rendered before replay. Incoming accepted UTILTS_ERR had no prescribed APERAK application response proof/path. Corrected same-owner per-original reason scopes, sync/async opaque inherited validator, prospective actual accepted-correlation response capability and first-final own ERR transaction positive AP CREATE/SEND native authority. U/root own actual consumer integration; no current guide or metering storage substitute. Actual received owner append_validation omitted UTILTS_ERR from protected original inheritance and rechecked today's named rows; exact prospective IF extension now retains original opaque witness with all hash/scope checks.",
+    "blockers": [
+      "Old incoming ERR correlations without genuinely prospectively captured response capability remain held for fresh APERAK; existing protected issued responses replay first. No historical acceptance/basis backfill."
+    ],
+    "planned_tests": [
+      "Frozen ACK-08/AT-ACK-08 owner clause: PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras. → Mutera och kvittera rätt omfattning. UTILTS positiva/negativa svar hålls åtskilda. / prohibited Låt inte global hasFunctionalError välja en felklass för alla transaktioner..",
+      "FAST RUN:45 TS original-guide/ERR consumer cases,9 modeled native-IO opaque ERR response tests,11 synthetic native reason projection mechanics,28 synthetic actual ERR capability/apply/final-scope and actual received owner append mechanics PASS; scopedlint, normativeguard, generation --check anddiff PASS. Independent Processes reason andActors ERR authority reviews no open Critical/Important.",
+      "NOT RUN: complete fixed-candidate native migration replay/concurrency/schema-type/RLS/E2E/manual. Prove actual original receivedERR owner assessment/correlation, same own IDE positive AP, oldissued bytes/status replay before current guide, incompatible/opposite final scope rejects atomically, tenant/environment/actor isolation, no ERR-on-ERR/AP-on-AP or metering effect."
+    ],
+    "assessment": "Fresh multiowner own scope: frozen source P §3; U §5.2; exact condition PRODAT och UTILTS har skilda svarsstrukturer; huvudfel och delutfall separeras.. Authentic25A3 PDF rehashed fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798 field531p131 and E19meterstandp138; authenticcurrentU0524c18f…99be §4p104 prescribes AP onERR. Source guide reasons are qualified by original registered named guide/revision, opaque originalversion unchanged; currentA4 globalreason list unchanged. Actual canonicalaccepted fixed incomingERR correlation creates one immutable ownsource reply basis atomically after freshapply, not current profile or businessstorage. Oldcorrelation replay does not mint missing capability. PositiveAP finalownscope is fixed at actualINSERT and exactrow/raw required onSEND. Root/U integration uses sameopaque q/render/validator port and privatepositiveproof. These component checks/reviews do not establish formal acceptances or the entire multiowner contract. Actual193136 append owner RED before005707/GREEN after with empty current named tables proves original opaque ERR witness admission; forged original version remains held. Actors independently reviewed exact forward, no C/I. U/source-qualified renderer +retained state correction integrated by root; root postapply actual response consumer integration and prospective/replay routing reviewed; retained-outbox repair now uses exact protected row with prepared-only idempotent repair before fast return, no remaining Critical/Important in this bounded delta. Still not full integration acceptance. Actual owner token now carries its private runtime Symbol brand on the frozen verified object, retaining WeakSet provenance; no unsafe cast or JSON authority. Nine narrow owner tests and scoped lint pass; root serial type check pending.",
+    "commits": [
+      "8feb987a",
+      "57b6eafb",
+      "4c423cf5",
+      "8e2d620b",
+      "de85be06"
+    ]
+  }
+]

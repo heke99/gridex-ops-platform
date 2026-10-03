@@ -1,0 +1,62 @@
+{
+  "baseline": "874c5a71cdf3b2a3d638ae4662f7d7addae9d3e2",
+  "generated_at": "2026-10-01T04:43:47.433252+00:00",
+  "criterion": "AT-Z06F-SUPPLIER",
+  "status": "IMPLEMENTED_MECHANISM_NOT_NATIVE_QUALIFIED_NOT_CRITERION_ACCEPTED",
+  "expected_clause": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+  "prohibited_clause": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+  "producer": "Actual structural_apply_receipts / structural_object_apply_receipts triggers derive immutable expected contracts from protected original+assessment+ignore-facet+full own applied business/supply proof. No current public customer/meter or caller-derived source facts. G produces none.",
+  "consumer": "Private consider_utilts_source_v1(company uuid, environment text, source uuid) after actual UTILTS persist (integration wrapper owned by recovery agent); also rechecks earlier actual accepted bindings after actual structural apply. Every observed member is qualified through existing stored_contract_v1 (whole membership, accepted/persisted/positive_aperak/immutable series+contract, allows genuine reused series).",
+  "measurement_scope": [
+    "Original field259 actual register promises → exact source registerset/meter/effective boundary reading, physical source QTY220/DTM597/AES/MG, consecutive same-register MG inheritance only",
+    "Absent promised meter readings → initial subsequent value observation in own coverage/method, never claims all future periods or invents readings/deadlines",
+    "Two matching qualified originals remain ambiguous; current source mutation/replacement never silently borrows another owner",
+    "No automatic UTILTS request or actual market traffic"
+  ],
+  "mechanism_verification": {
+    "red": "Missing schema/function before forward",
+    "green_command": "EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-z06f-reading-followup-sql-regression.mjs",
+    "green": "PASS applied F only, whole expected register/meter/date/point/agency mismatch negatives, NULL reading, unaccepted member, idempotence, ambiguity, source-derived subsequent values, current reviewer/read grant revocation, private caller access denied",
+    "boundary": "PGlite fixture declares SYNTHETIC structural/source qualification/actor/accepted UTILTS ports. NOT genuine native replay or legal fact approval."
+  },
+  "sources": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "id": "AT-Z06F-SUPPLIER"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+      "fields": [
+        "259",
+        "217",
+        "224"
+      ]
+    },
+    {
+      "url": "https://www.elmarknadshandboken.se/Dokumentation/Texter/NEMHB.pdf",
+      "edition": "26A version2026-04-01",
+      "sections": [
+        "4.3.5 pages106-107",
+        "10.2.1 page198"
+      ],
+      "interpretation": "F reading scope depends on actual changed source; future supplier before own delivery has a distinct exception; method watch deadline is not reading deadline."
+    }
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261001042609_ediel_source_owned_z06f_reading_followup.sql",
+      "sha256": "0eeb5bc5daaddc0ebd17e6fbe3f6f7964fbfaad9773a631dc9b7cd5321cb5fe5"
+    },
+    {
+      "path": "scripts/ediel-z06f-reading-followup-sql-regression.mjs",
+      "sha256": "72529dde18ae7a34b2ee72013c125a3f13e54286e3fa9cea2daba13eaa59d400"
+    }
+  ],
+  "unexecuted": [
+    "Actual recovery-owned same-OID persistence wrapper integration",
+    "Genuine complete source review → applyF → actual accepted UTILTS → observer native/API/browser",
+    "Whole repo clean/ancestor upgrade, generated artifacts, build/exact-head CI",
+    "Complete original expected/prohibited clause approval"
+  ],
+  "masterplan_approval": false
+}

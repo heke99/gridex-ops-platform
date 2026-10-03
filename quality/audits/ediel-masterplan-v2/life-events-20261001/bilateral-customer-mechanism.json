@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "status": "BOUNDED_IMPLEMENTATION_MECHANISM_ONLY",
+  "original_statuses_changed": false,
+  "criterion_leads": [
+    "P-09",
+    "SC-030",
+    "AT-Z06E-SUPPLIER",
+    "AI-03"
+  ],
+  "producer": "public.ediel_archive_bilateral_customer_source_v1",
+  "review_owner": "public.ediel_review_bilateral_customer_source_v1",
+  "consumer": "public.ediel_apply_reviewed_customer_source_v1",
+  "committed_witness": "public.ediel_witness_confirmed_customer_source_v1",
+  "same_snapshot_reader": "public.ediel_confirmed_customer_snapshot_v1",
+  "native_scope_fence_dependency": "20261001004953_ediel_current_company_permission_denies.sql",
+  "executed": [
+    {
+      "command": "npx vitest run __tests__/ediel-bilateral-customer-source.test.ts __tests__/ediel-confirmed-customer-source.test.ts __tests__/ediel-ai-confirmed-customer-history.test.ts",
+      "result": "21/21 PASS",
+      "meaning": "server port and WeakMap/pure projection mechanism, not native/source approval"
+    },
+    {
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-service-check/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-requested-change-sql-regression.mjs",
+      "result": "all five bounded actual SQL phases PASS",
+      "meaning": "real new native function bodies executed with explicitly synthetic immutable source/canonical/supply/issuer/central-lock boundaries"
+    },
+    {
+      "command": "targeted ESLint",
+      "result": "PASS"
+    }
+  ],
+  "unverified": [
+    "authentic full Supabase/Postgres clean and genuine ancestor replay",
+    "whole expected/prohibited criterion evidence on final frozen candidate",
+    "actual native positive current HTTP/API/UI consumer and concurrency",
+    "exact-head build and CI"
+  ],
+  "external_prerequisites": [
+    "authentic competent DSO bilateral agreement source bytes and current receipt key authority",
+    "authentic current issuer representation for this own supplier, agreement, environment and purpose",
+    "actual signed counterparty receipt bound to the exact received original, own native claims, PDF bytes and permitted customer fields"
+  ],
+  "internal_remaining_scope_limit": "Incoming customer facets now accept repeated physical LIN registers for exactly one point+agency group, reading customer/date/reference from its first physical register only. Distinct physical objects remain held pending an atomic whole-source multi-object customer facet owner; this is internal remaining implementation.",
+  "prohibited_claims": [
+    "synthetic issuer data is real legal approval",
+    "PGlite is authentic native replay",
+    "green partial tests approve any original ID or F0\u2013F7",
+    "bilateral review can create death status or a Z09 outbound request",
+    "caller flags or platform-admin permission establish an external fact"
+  ],
+  "first_register_scope": {
+    "migration": "20261001013836_ediel_customer_first_register_scope.sql",
+    "normative_source": "PRODAT 26.A r3 pp15\u201316,47,114\u2013116",
+    "bounded_checks": [
+      "same point+agency repeated LIN native producers",
+      "distinct physical point refused",
+      "first register missing UD cannot borrow later UD"
+    ],
+    "authentic_native_execution": "NOT_RUN"
+  }
+}

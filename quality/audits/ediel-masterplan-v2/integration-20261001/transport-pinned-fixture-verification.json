@@ -1,0 +1,468 @@
+{
+  "date": "2026-10-01",
+  "implementationBaseHead": "a007b3a1",
+  "parentHeadAtRun": "e3ac1a24808d7eaeff321deb82860219a6b19f97",
+  "scope": "Finite synthetic current named native-read boundaries, actual production decoder/WeakMap mint/consumers and provider association mechanics; NOT genuine Supabase replay, real source original workbook registration, issuer authority, legal/TGT/AGT acceptance, customer delivery or whole masterplan approval.",
+  "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-date-event-send.test.ts __tests__/ediel-prodat-death-status-smtp.test.ts __tests__/ediel-prodat-dependent-subtype-send.test.ts __tests__/ediel-prodat-free-text-smtp.test.ts __tests__/ediel-prodat-reporting-chain.test.ts __tests__/ediel-prodat-reporting-smtp.test.ts __tests__/ediel-smime-archive-send-guard.test.ts __tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts",
+  "executed": true,
+  "passed": 103,
+  "failed": 0,
+  "files": [
+    {
+      "file": "__tests__/ediel-prodat-date-event-send.test.ts",
+      "tests": [
+        {
+          "fullName": "direct SMTP protects actual Z09D even under row label Z09",
+          "status": "passed"
+        },
+        {
+          "fullName": "direct SMTP protects actual Z09D even under row label Z04",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+      "tests": [
+        {
+          "fullName": "actual shared SMTP rejects unqualified death scope Z05/Z05 before external edges",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual shared SMTP rejects unqualified death scope Z06/Z04 before external edges",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual shared SMTP rejects unqualified death scope Z09/Z09 before external edges",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual shared SMTP rejects unqualified death scope Z04/Z06 before external edges",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+      "tests": [
+        {
+          "fullName": "source D cells at the real row and send boundaries test: forged complete snapshot cannot suppress the missing Z09F method",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries test: intentional-invalid-send flag cannot suppress a migrated D defect",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries test: missing field223 is blocking, not a test-only warning",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries test: row preflight and transport lock keep the D gate",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries production: forged complete snapshot cannot suppress the missing Z09F method",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries production: intentional-invalid-send flag cannot suppress a migrated D defect",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries production: missing field223 is blocking, not a test-only warning",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries production: row preflight and transport lock keep the D gate",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \":\"",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \"*\"",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \"^\"",
+          "status": "passed"
+        },
+        {
+          "fullName": "source D cells at the real row and send boundaries does not run outbound D enforcement in syntax-only inbound row preflight",
+          "status": "passed"
+        },
+        {
+          "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"]]",
+          "status": "passed"
+        },
+        {
+          "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]]]",
+          "status": "passed"
+        },
+        {
+          "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"\"]]]",
+          "status": "passed"
+        },
+        {
+          "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]]]",
+          "status": "passed"
+        },
+        {
+          "fullName": "field223 and optional coded-field evidence cannot disappear rejects an empty optional coded method when its CCI is supplied",
+          "status": "passed"
+        },
+        {
+          "fullName": "retains a supplied matrix code list when the D outcome is optional",
+          "status": "passed"
+        },
+        {
+          "fullName": "a wrong caller code or application reference cannot hide D defects before transport",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+      "tests": [
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z01/PRODAT before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z01/APERAK before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z13/PRODAT before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z13/APERAK before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z14/PRODAT before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z14/APERAK before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z15/PRODAT before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z15/APERAK before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z18/PRODAT before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks invalid FTX Z18/APERAK before route/context I/O",
+          "status": "passed"
+        },
+        {
+          "fullName": "valid optional FTX=false passes its text gate and holds without a qualified rule pack",
+          "status": "passed"
+        },
+        {
+          "fullName": "valid optional FTX=true passes its text gate and holds without a qualified rule pack",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/:+?'",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/:+?'",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/*;!~",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/*;!~",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/^|!%",
+          "status": "passed"
+        },
+        {
+          "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/^|!%",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+      "tests": [
+        {
+          "fullName": "active form/action saves notes then actual create-send chain keeps one exact association and reaches mocked provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "real autopilot association supports direct-send with omitted step and no reattachment",
+          "status": "passed"
+        },
+        {
+          "fullName": "owner reload checks tenant-filtered exact link before run filtering",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects missingLink before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects duplicateLink before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects wrongStep before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects wrongCompany before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects staleRowLabel before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects notesCleared before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects sourceChanged before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects routeChanged before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects freshClock before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects pureEvidence before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects missingEvidence before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP rejects alteredLI before archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "create active action rejects wrongCompany without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "create active action rejects wrongStep without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "create active action rejects duplicate without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "create active action rejects missingLink without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "direct active action rejects wrongCompany without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "direct active action rejects wrongStep without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "direct active action rejects duplicate without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "direct active action rejects missingLink without reattaching or sending",
+          "status": "passed"
+        },
+        {
+          "fullName": "repeat active direct action does not duplicate a successful send or association",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects missingOriginal before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runCompany before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runEnvironment before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runStatus before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runRevision before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runRole before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "independently pinned source rejects runCase before draft insert/archive/provider",
+          "status": "passed"
+        },
+        {
+          "fullName": "stale form CAS cannot overwrite saved notes",
+          "status": "passed"
+        },
+        {
+          "fullName": "active clear action leaves a tombstone and never creates or sends",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual post-autopilot route attachment is checked again before message insert",
+          "status": "passed"
+        },
+        {
+          "fullName": "selected dynamic malformed cannot fall back to built-in",
+          "status": "passed"
+        },
+        {
+          "fullName": "selected dynamic mismatchedCase cannot fall back to built-in",
+          "status": "passed"
+        },
+        {
+          "fullName": "selected dynamic duplicate cannot fall back to built-in",
+          "status": "passed"
+        },
+        {
+          "fullName": "server expected context is independent of serialized facts and returned snapshots",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual notes CAS rejects an update between read and write",
+          "status": "passed"
+        },
+        {
+          "fullName": "denied company permission stops the public save action before notes mutation",
+          "status": "passed"
+        },
+        {
+          "fullName": "authorized manual draft action uses the same saved source and separate send path",
+          "status": "passed"
+        },
+        {
+          "fullName": "company authorization precedes active reporting create/autopilot effects",
+          "status": "passed"
+        },
+        {
+          "fullName": "original private 8.1.1 has explicit indefinite term and B71 in the actual chain",
+          "status": "passed"
+        },
+        {
+          "fullName": "original private 8.1.2 has explicit indefinite term and B71 in the actual chain",
+          "status": "passed"
+        },
+        {
+          "fullName": "active form reviews saved revision, anchor and assessments; note-only edit preserves facts",
+          "status": "passed"
+        },
+        {
+          "fullName": "active form distinguishes missing and cleared revisions without repopulating revoked facts",
+          "status": "passed"
+        },
+        {
+          "fullName": "active form marks source notes unusable without displaying stale saved declarations",
+          "status": "passed"
+        },
+        {
+          "fullName": "active form marks route notes unusable without displaying stale saved declarations",
+          "status": "passed"
+        },
+        {
+          "fullName": "active form marks invalid notes unusable without displaying stale saved declarations",
+          "status": "passed"
+        },
+        {
+          "fullName": "prescribed LI and ANJ service characters survive active notes, actual builder and shared SMTP guards",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-prodat-reporting-smtp.test.ts",
+      "tests": [
+        {
+          "fullName": "actual SMTP blocks unsourced raw Z13 under row Z13",
+          "status": "passed"
+        },
+        {
+          "fullName": "actual SMTP blocks unsourced raw Z13 under row Z04",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+      "tests": [
+        {
+          "fullName": "Exact MIME archive pre-send guard performs zero SMTP calls when exact MIME archival cannot be persisted",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard submits the exact same bytes only after archival succeeds",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard archives other raw MIME modes through the common exact-byte authority",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard compiles attachment MIME once and submits only archived bytes after the provider fence",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard blocks direct helper callers without durable tenant archive scope",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard keeps archived provider bytes private across a mutating entry callback",
+          "status": "passed"
+        },
+        {
+          "fullName": "Exact MIME archive pre-send guard requires TLS and certificate validation for the provider hop",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "__tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts",
+      "tests": [
+        {
+          "fullName": "synthetic customer journey stops immediately before external SMTP walks application -> legal evidence -> PDF -> all customer mail -> switch Z03 -> recipient certificate gate",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "artifactSha256": "b2ef79b878a930d48d98938082cc589f446c5a88293ec02355d757a7536f7e9b",
+  "native": "NOT_RUN_LOCAL",
+  "browser": "NOT_RUN_LOCAL",
+  "wholeCriterionApproval": false
+}

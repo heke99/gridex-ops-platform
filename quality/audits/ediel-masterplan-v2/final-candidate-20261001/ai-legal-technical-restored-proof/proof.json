@@ -1,0 +1,91 @@
+{
+  "observed_at": "2026-10-01T09:57:45.111397+00:00",
+  "owner": "root",
+  "base_head": "971df5955937745d3b50db64d61e29cefd9f0dc0",
+  "protected_421_source": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "incoming_source_migration": "20261001061000_ediel_ai_legal_technical_party_scope.sql reviewed; not blindly applied",
+  "new_forward": "20261001092522_ediel_ai_legal_technical_party_composition.sql",
+  "checks": {
+    "unit": {
+      "result": "PASS 26/26",
+      "raw_stdout_sha256": "1ff6a724a20b98ce3d5a004ec25e3013581a65945e9c7f91a2991d997c06486f",
+      "raw_stdout_bytes": 236,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/unit.log",
+      "artifact_sha256": "812ae51d32d8b00ff8f832c74e975d966c3fca4d76d81e74e0c94993a1ec2356",
+      "artifact_bytes": 235
+    },
+    "bounded": {
+      "result": "PASS 84 mechanical assertions",
+      "raw_stdout_sha256": "5d3c66e215f4b4e94ad0bf28bcc446667c98b6e9a7b085ab0458a5590774b910",
+      "raw_stdout_bytes": 832,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/bounded.log",
+      "artifact_sha256": "8cd74ae0a0c948384760412f22987cec4100531670a6dc13960dcc39666c9255",
+      "artifact_bytes": 376
+    },
+    "red": {
+      "result": "EXPECTED_FAIL actual older composed history rejects legal CSV scope with a different technical receiver",
+      "raw_stdout_sha256": "5102c2f3c26e0fbf671a4e6f94d1ea93a47d39bfee8ca62d93b1fd3cde19b182",
+      "raw_stdout_bytes": 28534,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/red.log",
+      "artifact_sha256": "702c4afb9542fa238cc983319db54c5925a027a5bd8c08e2e741294486b9c459",
+      "artifact_bytes": 215
+    },
+    "app_tsc": {
+      "result": "PASS",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 0,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/app_tsc.log",
+      "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifact_bytes": 0
+    },
+    "scripts_tsc": {
+      "result": "PASS",
+      "raw_stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_stdout_bytes": 0,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/scripts_tsc.log",
+      "artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "artifact_bytes": 0
+    },
+    "eslint": {
+      "result": "PASS no lint errors (Node proxy experimental notice only)",
+      "raw_stdout_sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "raw_stdout_bytes": 174,
+      "artifact_path": "quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/eslint.log",
+      "artifact_sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "artifact_bytes": 174
+    }
+  },
+  "preserved": [
+    "033 confirmed customer history and life-event patches",
+    "45349 five-key full-customer/delta/structural whole-row composition",
+    "20550 actual purpose/environment/current-decision producer and send gates",
+    "63426 current graph entry lock prefix",
+    "actual pg_proc OID/owner/ACL/config/security/volatility assertions",
+    "non-AI ACK matrix rows and readiness body"
+  ],
+  "changes": [
+    "qualified legal CSV supplier/network names and IDs distinct from technical intent/message sender/receiver",
+    "AI_LIST AI explicit ACK-none only",
+    "native immutable-original current-read replay before current new-export decisions or requeue",
+    "actual GoTrue current actor/company/membership and ban/native-clock check before personal original disclosure",
+    "catalog communication.send for fresh prepare; native phase/current read authority remains separate"
+  ],
+  "dependencies": [
+    "092425 current scoped permission/actor helpers",
+    "missing current primary R source chain allocated to requirements owner; must integrate before frozen native verification"
+  ],
+  "not_run": [
+    "authentic native replay",
+    "native/HTTP positive and adversarial AI chain on final head",
+    "interactive browser on final head",
+    "new generated schema/types/fingerprint",
+    "whole build and exact-head CI"
+  ],
+  "whole_criterion_accepted": false,
+  "limitations": [
+    "Bounded fixture registry/purpose/actor inputs explicitly synthetic; these do not qualify any real issuer, mandate or registry source",
+    "Third-party supplier-wide transport mandate remains held without authenticated source producer/fact; no approval seed",
+    "033 artifact identities are historical evidence, not new candidate schema",
+    "Native prepared original-reader probe added to actual archive/review/import/queue fixture, still unrun"
+  ]
+}

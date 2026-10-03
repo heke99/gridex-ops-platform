@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "publication": "15",
+  "published_commit": "47f4ed18d24169ea7f4800c66d920e1cf2e3a485",
+  "published_tree": "2fa50c613b243c90144808060822e6bf094251b7",
+  "local_source_commit": "c02deec2392efa359486377e6c1487fc99620380",
+  "local_source_tree": "2fa50c613b243c90144808060822e6bf094251b7",
+  "parent": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "changed_files": 67,
+  "all_actual_contents_loaded_and_size_verified": true,
+  "github_created_tree_matches_actual_local_tree": true,
+  "update_ref_force": false,
+  "own_draft_pr": 424,
+  "protected_refs_changed": false,
+  "authentic_head_033_receipts_not_promoted_to_this_head": true,
+  "github_actions_on_publication": {
+    "observed_at": "2026-10-01T09:12:00Z",
+    "associated_workflow_runs": 0,
+    "check_suites_apps": [
+      "vercel",
+      "coderabbitai",
+      "railway-app",
+      "claude",
+      "div3rsa"
+    ],
+    "action": "Use contents API for this additive publication receipt to request ordinary synchronize event; no CI success claimed."
+  },
+  "whole352_accepted": 0,
+  "final_candidate": false
+}

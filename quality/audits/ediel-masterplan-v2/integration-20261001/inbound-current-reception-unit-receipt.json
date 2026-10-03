@@ -1,0 +1,161 @@
+{
+  "sourceHeadBeforeOwnedFixtureCommit": "240dbc2f6a967aef2692d475cdab9c0afbf892dc",
+  "sourceFiles": {
+    "__tests__/fixtures/inbound-reception-db.ts": "7ee34ca30b770073afb78d0d8d20b2a260bea1770e363aafb0deae93be5d5b84",
+    "__tests__/ediel-inbound-received-context.test.ts": "f37df02b86c9da441d02582ff7ccb16d0d260a81d1f6c1a70e8cf58352311145",
+    "__tests__/ediel-inbound-source-conflict.test.ts": "f2890de63138ad4788fb97e7c16790e071bce25f22e3cdcc2b49804c2783bd8e",
+    "lib/inbound-mail/inboundStatusUpdater.ts": "afa6c446e79913fa0925083938ee94e341d679aa93a0cfabb95997217a18523e",
+    "lib/ediel/inbound/receptions.ts": "339c8a09c04892c2f99d1e225f61edb0c186ac09f992fb4282cdec72d9d11931"
+  },
+  "networkBoundary": "Only loopback and local IPC; synthetic unit keys; external sockets rejected before DNS.",
+  "counts": {
+    "numTotalTests": 33,
+    "numPassedTests": 33,
+    "numFailedTests": 0
+  },
+  "cases": [
+    {
+      "file": "ediel-inbound-received-context.test.ts",
+      "tests": [
+        {
+          "name": "reads the exact original without rewriting its receive snapshot in test",
+          "status": "passed"
+        },
+        {
+          "name": "reads the exact original without rewriting its receive snapshot in production",
+          "status": "passed"
+        },
+        {
+          "name": "uses the real retained mail receipt for a fresh source instead of the current application clock",
+          "status": "passed"
+        },
+        {
+          "name": "preserves old source clock/context and all business state when new native reception is protocol_duplicate",
+          "status": "passed"
+        },
+        {
+          "name": "preserves old source clock/context and all business state when new native reception is identity_conflict",
+          "status": "passed"
+        },
+        {
+          "name": "propagates exact physical receipt constraint immutable_ediel_received_context_cannot_change without a success event",
+          "status": "passed"
+        },
+        {
+          "name": "propagates exact physical receipt constraint immutable_ediel_receipt_time_cannot_change without a success event",
+          "status": "passed"
+        },
+        {
+          "name": "propagates exact physical receipt constraint received_ediel_context_cannot_be_backfilled without a success event",
+          "status": "passed"
+        },
+        {
+          "name": "does not reclassify an unrelated receipt error '42501'/'immutable_ediel_receipt_time_cannot_c…'",
+          "status": "passed"
+        },
+        {
+          "name": "does not reclassify an unrelated receipt error '23514'/'other: immutable_ediel_received_conte…'",
+          "status": "passed"
+        },
+        {
+          "name": "does not reclassify an unrelated receipt error '23514'/'received_ediel_context_cannot_be_back…'",
+          "status": "passed"
+        },
+        {
+          "name": "requires the actual actor before original or reception writes",
+          "status": "passed"
+        },
+        {
+          "name": "requires the actual parse before original or reception writes",
+          "status": "passed"
+        },
+        {
+          "name": "does not borrow an original receive clock from the other environment into test",
+          "status": "passed"
+        },
+        {
+          "name": "does not borrow an original receive clock from the other environment into production",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "ediel-inbound-source-conflict.test.ts",
+      "tests": [
+        {
+          "name": "retains exact-byte source retry without new writes or events in test",
+          "status": "passed"
+        },
+        {
+          "name": "retains exact-byte source retry without new writes or events in production",
+          "status": "passed"
+        },
+        {
+          "name": "retains fresh insertion with database-owned immutable hash",
+          "status": "passed"
+        },
+        {
+          "name": "rejects changed retained raw_payload before new canonical writes",
+          "status": "passed"
+        },
+        {
+          "name": "rejects changed retained message_family before new canonical writes",
+          "status": "passed"
+        },
+        {
+          "name": "rejects changed retained message_standard before new canonical writes",
+          "status": "passed"
+        },
+        {
+          "name": "preserves the exact physical source error and cause 'immutable_ediel_payload_cannot_change'",
+          "status": "passed"
+        },
+        {
+          "name": "preserves the exact physical source error and cause 'immutable_ediel_payload_cannot_change'",
+          "status": "passed"
+        },
+        {
+          "name": "preserves unrelated error classification '23514'/'other_constraint'",
+          "status": "passed"
+        },
+        {
+          "name": "preserves unrelated error classification '42501'/'immutable_ediel_payload_cannot_change'",
+          "status": "passed"
+        },
+        {
+          "name": "preserves unrelated error classification '23514'/'other: immutable_ediel_payload_cannot…'",
+          "status": "passed"
+        },
+        {
+          "name": "preserves unrelated error classification '23514'/'immutable_ediel_payload_cannot_change…'",
+          "status": "passed"
+        },
+        {
+          "name": "holds a revoked current actor before reading or observing the old original",
+          "status": "passed"
+        },
+        {
+          "name": "holds a revoked current permission before reading or observing the old original",
+          "status": "passed"
+        },
+        {
+          "name": "holds actual protocol_duplicate reception rather than adopting old original business success",
+          "status": "passed"
+        },
+        {
+          "name": "holds actual identity_conflict reception rather than adopting old original business success",
+          "status": "passed"
+        },
+        {
+          "name": "does not borrow a differently scoped company_id canonical original",
+          "status": "passed"
+        },
+        {
+          "name": "does not borrow a differently scoped direction canonical original",
+          "status": "passed"
+        }
+      ]
+    }
+  ],
+  "scope": "Actual application source-writer and authorization code, finite declared database/reception ports; no native database, legal issuer, business approval, browser or final-candidate acceptance."
+}

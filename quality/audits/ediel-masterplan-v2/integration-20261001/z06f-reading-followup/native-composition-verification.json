@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "criterion": "AT-Z06F-SUPPLIER",
+  "candidateBase": "1636c66118abbc4dab4fc73c59fbe19a1b0dbc4b",
+  "dependency": "33c16b8b same51410 owner +42609/44958 source producer +actual45349 composed source grants",
+  "nativeFile": "scripts/ediel-z06f-reading-followup-native.test.ts",
+  "newHelperFiles": [
+    "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+    "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts"
+  ],
+  "nativeTestCount": 8,
+  "native": {
+    "status": "PREPARED_NOT_EXECUTED",
+    "receipts": [],
+    "executionRequirement": "Ordinary source-owner native config must include this new file on the same final candidate. Local psql/docker unavailable; parent-owned isolated CI supplies actual local Supabase. No conditional skip or test success substitutes for an unavailable native owner."
+  },
+  "actualChain": [
+    "existing actual signed contract/publication/archive/POA producer; actual sent Z03 synthetic external SMTP receipt",
+    "actual native Z04 original canonical/source session and normal supplier business RPC create supply; no private accepted seeds",
+    "current scoped non-admin operator; separately reviewed complete original baseline and complete physical Z06F with own valid259 register101/meter METER-1/effective minute",
+    "actual safeApply review delegates native structural apply;42609 trigger derives immutable F-only expectation",
+    "real initial registry owner retained through actual tenant point matching and structural qualification, final source evidence/sourceRulePack capture",
+    "actual physical MDR E30 own AES/MG/QTY220/DTM597 and current real admission clock; prepare genuine consumed contract and actual native persist",
+    "new51410 owner observes private accepted membership/stored_contract after persistence before any authorized read-reconcile",
+    "actual receipt SHA/source/transaction/registered meter boundary, immutable F expectation, no extra outbound market request; replay invariant",
+    "register/meter/agency/date/NULL mismatch cases persist the actual owner outcome unconditionally and keep expectation pending; G creates no F expectation; current customer capability DENY/foreigncompany/caller INSERT blocked"
+  ],
+  "sourceLimits": [
+    "Fixture future supply/effective valid time is explicitly physical declared synthetic source input; source message_received_at is always actual native clock_timestamp(), no UNB/reference-date replacement. Canonical header/guide/source/method owners must qualify the exact bytes.",
+    "Only external customer legal test facts and SMTP are synthetic. Original/publication/signature/PDF archive, source context/namespace/current company authority, structural approval and accepted persistence use actual producers.",
+    "Complete typed UNSM unitpreflight8/8 does not approve any source, reading, market activation or whole criterion. Native8 tests remain unexecuted.",
+    "Whole AT-Z06F requires authentic final-candidate native/HTTP/replay/artifacts/browser/build/exact-head CI plus literal expected/prohibited review."
+  ],
+  "local": {
+    "status": "PASS_BOUNDED_WIRE_AND_TYPES",
+    "fullUnsmWireTests": 8,
+    "scriptsTypecheck": "PASS",
+    "unitTypecheck": "PASS",
+    "eslint": "PASS",
+    "receipts": [
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/native-wire-grammar-receipt.json",
+        "sha256": "af59b5b584fbbd52d3f712d04a80f52e9ccfda2cb1bcbb1d10764dc2e238d53f"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/native-scripts-typecheck.log",
+        "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/native-unit-typecheck.log",
+        "sha256": "cc5870e3be6a1c7e7f17bb5f276535a2cf12b943ab8c3d3b15c66cf7be267aca"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/integration-20261001/z06f-reading-followup/native-eslint.log",
+        "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+      }
+    ]
+  },
+  "wholeCriterion": {
+    "status": "NOT_APPROVED",
+    "missing": [
+      "Native8 actual producer cases on the final frozen candidate",
+      "Authentic replay/generated artifacts/HTTP/browser/build/exact-head CI",
+      "External current activation/production legal facts separately from mechanism tests"
+    ]
+  }
+}
