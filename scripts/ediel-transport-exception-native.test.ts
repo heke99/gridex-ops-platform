@@ -45,9 +45,15 @@ const effects=(s:Awaited<ReturnType<typeof seed>>)=>nativeSql(`SELECT jsonb_buil
  'operations',(SELECT count(*) FROM gridex_transport_exception.operations WHERE message_id=${literal(s.m.id)}),
  'alarms',(SELECT count(*) FROM gridex_transport_exception.alarms WHERE message_id=${literal(s.m.id)}),
  'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(s.m.id)}));`)
+// CI's postgres is not a superuser and holds only the creator's ADMIN
+// membership (no SET/INHERIT). A SET-capable membership exists only inside
+// this transaction and is revoked before commit, so the owner keeps no members.
+const asTransportExceptionOwner=(statement:string)=>nativeSql<string>(`BEGIN;GRANT gridex_ediel_transport_exception_owner TO CURRENT_USER WITH SET TRUE;
+ SET LOCAL ROLE gridex_ediel_transport_exception_owner;DO $owner$BEGIN PERFORM set_config('gridex.transport_exception_owner_result',coalesce((${statement})::text,''),true);END$owner$;
+ RESET ROLE;REVOKE gridex_ediel_transport_exception_owner FROM CURRENT_USER;SELECT to_jsonb(nullif(current_setting('gridex.transport_exception_owner_result'),''));COMMIT;`)
 it('native prospective owner stays unseeded and service/foreign/current revoked actors cannot fabricate reserve facts',async()=>{
  const s=await seed(),before=effects(s)
- expect(nativeSql(`SELECT jsonb_build_object('login',rolcanlogin,'members',(SELECT count(*) FROM pg_auth_members WHERE roleid=r.oid)) FROM pg_roles r WHERE rolname='gridex_ediel_transport_exception_owner';`)).toEqual({login:false,members:0})
+ expect(nativeSql(`SELECT jsonb_build_object('login',rolcanlogin,'members',(SELECT count(*) FROM pg_auth_members WHERE roleid=r.oid AND (inherit_option OR set_option))) FROM pg_roles r WHERE rolname='gridex_ediel_transport_exception_owner';`)).toEqual({login:false,members:0})
  expect(await read(s,randomUUID())).toMatchObject({error:null,data:{status:'held',missing:['transport_exception_approved_source_absent']}})
  expect(()=>nativeSql(`SET ROLE service_role;SELECT to_jsonb(${s.publish});RESET ROLE;`)).toThrow(/permission denied/)
  const foreign=await rpc('ediel_read_transport_exception_v1',{p_company_id:s.f.companyId,p_message_id:s.m.id,p_actor_user_id:randomUUID(),p_exception_id:randomUUID()})
@@ -55,7 +61,7 @@ it('native prospective owner stays unseeded and service/foreign/current revoked 
 },120000)
 it('native actual normal original dispatch binds source/approval and records separate bounded attempt/deviation/alarm once',async()=>{
  const s=await seed()
- const id=nativeSql<string>(`SET ROLE gridex_ediel_transport_exception_owner;SELECT to_jsonb(${s.publish});RESET ROLE;`)
+ const id=asTransportExceptionOwner(`SELECT ${s.publish}`)
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
  smtp.send.mockResolvedValue({accepted:[s.m.receiver_email],rejected:[],messageId:'synthetic-native-reserve-provider',response:'250 synthetic accepted'})
  const result=await sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})
@@ -66,21 +72,21 @@ it('native actual normal original dispatch binds source/approval and records sep
   'exact',(SELECT bool_and(binding->>'sourceDigest'=${literal(sha(JSON.stringify(s.source)))} AND binding->>'approvalDigest'=${literal(sha(JSON.stringify(s.approval)))}) FROM gridex_transport_exception.operations WHERE message_id=${literal(s.m.id)}));`))
   .toEqual({events:['prepared','entered','observed'],alarms:1,exact:true})
  const revocation={schema:'gridex_transport_exception_revocation_v1',approvalId:id,companyId:s.f.companyId,reasonReference:'synthetic://native-revocation-after-actual-acceptance'}
- nativeSql(`SET ROLE gridex_ediel_transport_exception_owner;SELECT public.ediel_revoke_transport_exception_v1(${literal(id)},${literal(s.reviewer)},convert_to(${literal(JSON.stringify(revocation))},'UTF8'));RESET ROLE;`)
+ asTransportExceptionOwner(`SELECT public.ediel_revoke_transport_exception_v1(${literal(id)},${literal(s.reviewer)},convert_to(${literal(JSON.stringify(revocation))},'UTF8')) IS NULL`)
  const fresh=await getEdielMessageById(s.m.id,{companyId:s.f.companyId})
  expect(fresh).not.toBeNull()
  await expect(sendEdielMessageViaSmtp(fresh!,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).resolves.toMatchObject({accepted:[s.m.receiver_email]})
  expect(smtp.send).toHaveBeenCalledTimes(1);expect(effects(s)).toEqual({operations:1,alarms:1,attempts:1})
 },120000)
 it('native current source revocation holds before provider entry without partial transport/deviation/alarm writes',async()=>{
- const s=await seed(),id=nativeSql<string>(`SET ROLE gridex_ediel_transport_exception_owner;SELECT to_jsonb(${s.publish});RESET ROLE;`)
+ const s=await seed(),id=asTransportExceptionOwner(`SELECT ${s.publish}`)
  nativeSql(`UPDATE public.user_permissions SET is_active=false WHERE user_id=${literal(s.reviewer)} AND company_id=${literal(s.f.companyId)} AND permission_id IN(SELECT id FROM public.permissions WHERE key='communication.write');`)
  const before=effects(s)
  await expect(sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).rejects.toMatchObject({message:expect.stringMatching(/transport_exception_current_actor_required/)})
  expect(effects(s)).toEqual(before);expect(smtp.send).not.toHaveBeenCalled()
 },120000)
 it('native final administrator-alarm write failure rolls back the complete fresh prepare stage before SMTP',async()=>{
- const s=await seed(),id=nativeSql<string>(`SET ROLE gridex_ediel_transport_exception_owner;SELECT to_jsonb(${s.publish});RESET ROLE;`)
+ const s=await seed(),id=asTransportExceptionOwner(`SELECT ${s.publish}`)
  const name='native_reserve_alarm_'+randomUUID().replaceAll('-',''),before=effects(s)
  nativeSql(`CREATE FUNCTION gridex_transport_exception.${name}() RETURNS trigger LANGUAGE plpgsql AS $probe$
  BEGIN IF NEW.message_id=${literal(s.m.id)}::uuid THEN RAISE EXCEPTION 'native_reserve_final_alarm_failure';END IF;RETURN NEW;END $probe$;
