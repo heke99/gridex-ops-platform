@@ -1213,3 +1213,9 @@ OPEN — mixed PRODAT Z04 cluster (z04-ack 6, prodat-mixed 3, raw-scope 2): ROOT
  - DB birth guard bound_prodat_response_v1/prodat_structural_response_v1 only accepts ERC100 backed by partition effect receipts (committed_supply_effects_v1), not prodat_mixed_object_receipts.
  - Tests expect mixed reply tables (replyIntents/consumptions). DECISION NEEDED: (A) partition owner + combined final reply in createReceivedProdatCommittedEffectAcks (tests updated), or (B) restore mixed owner + extend committed_supply_effects to mixed receipts (forward migration).
 OPEN — document-reference concurrent Z08: dispatch requires a genuine Z08/Z25 rescission original (mandate chain) in the doc-ref company.
+
+## 2026-10-03 checkpoint (204983e2)
+Design A implemented (d1714807 + 20261003100100). Local native: prodat-mixed 6/6, z04-ack 16/16, raw-scope 1/2.
+OPEN raw-scope "actual full mixed own ACK replays exact subsets": read_scope_v2 -> read_business_original_v1(...,'prepare') tries to INSERT gridex_ediel_ack_guide.outbound_prodat_scopes for a partition-path combined ACK (scopes already reserved: 2 rows). Investigate why the read path re-reserves (old mixed path short-circuited via mixed tables).
+OPEN: document-reference concurrent Z08 (needs Z08/Z25 rescission original), transport-data query-plan (post-main-merge), 5 Playwright specs + after-browser verifications.
+Local stack note: never start native tests before "[harness] holding stack" (fixture writes break 084343 replay).
