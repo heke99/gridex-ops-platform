@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import {
   companyAllowsEstimatedMeteringValues,
   evaluateMeteringCompletenessForMonth,
@@ -690,11 +691,25 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }))
     .filter((entry) => entry.meteringPointId)
   if (meteringPoints.length > 0) {
-    const allowEstimated = await companyAllowsEstimatedMeteringValues(input.companyId)
+    const [allowEstimated, requirements] = await Promise.all([
+      companyAllowsEstimatedMeteringValues(input.companyId),
+      loadMeteringResolutionRequirements({
+        companyId: input.companyId,
+        meteringPointIds: meteringPoints.map((entry) => entry.meteringPointId),
+        onDate: `${billingMonth}-01`,
+      }),
+    ])
     meteringCompleteness = await evaluateMeteringCompletenessForMonth({
       companyId: input.companyId,
       billingMonth,
-      meteringPoints,
+      meteringPoints: meteringPoints.map((entry) => {
+        const requirement = requirements.get(entry.meteringPointId)
+        return {
+          ...entry,
+          requiredResolution: requirement?.contractResolution ?? null,
+          meterCannotDeliver: requirement?.meterCannotDeliver ?? false,
+        }
+      }),
       allowEstimatedValues: allowEstimated,
     })
     for (const issue of meteringCompleteness.issues) {

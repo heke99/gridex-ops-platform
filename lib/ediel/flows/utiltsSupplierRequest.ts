@@ -21,6 +21,14 @@ import {
   canonicalUtiltsResolutionClass,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { normalizeMeteringResolution, type MeteringResolution } from '@/lib/metering/contractMeteringResolution'
+
+const UTILTS_RESOLUTION_CLASS: Record<MeteringResolution, 'monthly' | 'daily' | 'hourly' | 'quarter_hour'> = {
+  month: 'monthly',
+  day: 'daily',
+  hour: 'hourly',
+  quarter_hour: 'quarter_hour',
+}
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -123,7 +131,14 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
-  const resolution = canonicalUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
+  // The contract decides the resolution (set when the data request was created);
+  // the meter's reading frequency is only the fallback for requests without it.
+  const contractRequestedResolution = normalizeMeteringResolution(
+    record(dataRequest.request_payload).requested_resolution,
+  )
+  const resolution = contractRequestedResolution
+    ? UTILTS_RESOLUTION_CLASS[contractRequestedResolution]
+    : canonicalUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
 
   // Route/actor selection happens first. The selected route may carry an exact
   // field-311 Application Reference, but it is NOT authoritative by itself: the
@@ -218,6 +233,7 @@ export async function prepareAndQueueUtiltsE73(params: {
       siteType: site?.site_type ?? 'consumption',
       readingFrequency: meteringPoint?.reading_frequency ?? null,
       resolution,
+      requestedResolution: contractRequestedResolution,
     },
   })
 
