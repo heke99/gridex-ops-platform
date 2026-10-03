@@ -2,7 +2,6 @@
 // current legal role, applied structural state, accepted reading or data grant.
 import {randomUUID} from 'node:crypto'
 import {structuralOwnerSource} from '../../__tests__/helpers/structuralOwnerFixtures'
-import {priorE30PointWire} from '../../__tests__/helpers/priorUtiltsStructureFixtures'
 export type Z06fNativeWireScope={external:string;sender:string;receiver:string;brpEdielId:string;caseReference:string;gridAreaCode:string;requestedStartDate:string}
 /** The Z06 F/G change instant (DTM+157) and its exact own reading (DTM+597):
  * twelve days after the fixture's future supply start, as EDIFACT 203. */
@@ -18,10 +17,19 @@ export function z06fNativeStructureWire(f:Z06fNativeWireScope,kind:'F'|'G',docum
   .replaceAll('DTM+92:202610010000:203',`DTM+92:${f.requestedStartDate.replaceAll('-','')}0000:203`).replaceAll('DTM+157:202610150000:203',`DTM+157:${z06fNativeChangeInstant(f)}:203`)
 }
 export type Z06fNativeReadingOptions={register?:string;meter?:string;agency?:string;point?:string;date?:'next-day';quantity?:string}
+/** A supplier receives the grid owner's register reading as E66 (DDQ); E30 is
+ * only ever received by a grid owner. One monthly E66 period starts at the
+ * change instant: SEQ1 is the own start reading at that exact instant, SEQ2 the
+ * period end reading and SEQ3 the period energy. In this scope `receiver` is
+ * the grid owner (MS) and `sender` the receiving supplier (MR). */
 export function z06fNativeReadingWire(f:Z06fNativeWireScope,options:Z06fNativeReadingOptions={}){
- let raw=priorE30PointWire('E64',options.meter??'METER-1',options.point??f.external).replaceAll('91100',f.receiver).replaceAll('21660',f.sender).replaceAll('RFF+AES:101',`RFF+AES:${options.register??'101'}`)
-  .replaceAll('LOC+239+TES:SVK:260',`LOC+239+${f.gridAreaCode}:SVK:260`).replaceAll('202610150000',z06fNativeChangeInstant(f,options.date==='next-day'?1:0)).replaceAll('QTY+220:10000',`QTY+220:${options.quantity??'10000'}`)
- raw=raw.replaceAll('GRIDEX2607E66001','READ-'+randomUUID().replaceAll('-','').slice(0,28)).replaceAll('GRIDEX2607E66MSG001','DOC-'+randomUUID().replaceAll('-','').slice(0,28))
- if(options.agency)raw=raw.replace(`LOC+172+${options.point??f.external}::9`, `LOC+172+${options.point??f.external}::${options.agency}`)
- return raw
+ const start=z06fNativeChangeInstant(f,options.date==='next-day'?1:0),endDate=new Date(Date.UTC(+start.slice(0,4),+start.slice(4,6),+start.slice(6,8)))
+ const end=`${endDate.toISOString().slice(0,10).replaceAll('-','')}0000`,point=options.point??f.external,quantity=options.quantity??'10000',register=options.register??'101'
+ const document='DOC-'+randomUUID().replaceAll('-','').slice(0,28),transaction='READ-'+randomUUID().replaceAll('-','').slice(0,28)
+ const lines=["UNA:+.? '","UNB+UNOC:3+"+f.receiver+":ZZ+"+f.sender+":ZZ+260831:1811+260831181101++23-DDQ-E66-T++1'","UNH+1+UTILTS:D:02B:UN:E5SE5A'",`BGM+E66::260+${document}+9+AB'`,
+  "DTM+137:202609301811:203'","DTM+735:?+0100:406'","MKS+23+E02::260'",`NAD+MS+${f.receiver}:SVK:260'`,`NAD+MR+${f.sender}:SVK:260'`,"NAD+DDQ'",`IDE+24+${transaction}'`,
+  `LOC+172+${point}::${options.agency??'9'}'`,`LOC+239+${f.gridAreaCode}:SVK:260'`,"LIN+++8716867000030:::9'",`DTM+324:${start}${end}:719'`,`DTM+597:${end}:203'`,"DTM+354:1:802'","STS+7++E64::260'","MEA+AAZ++KWH'","CCI+++E12::260'","CAV+E17::260'",
+  "SEQ++1'",`RFF+AES:${register}'`,`RFF+MG:${options.meter??'METER-1'}'`,`QTY+220:${quantity}'`,`DTM+597:${start}:203'`,"CCI+++E22::260'","CAV+E27::260'",
+  "SEQ++2'",`RFF+AES:${register}'`,"QTY+220:11000'",`DTM+597:${end}:203'`,"CCI+++E22::260'","CAV+E27::260'","SEQ++3'","QTY+136:500'"]
+ return [...lines,`UNT+${lines.length-1}+1'`,"UNZ+1+260831181101'"].join('\n')
 }

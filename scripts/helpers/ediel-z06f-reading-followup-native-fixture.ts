@@ -8,6 +8,7 @@ import {createRequestedChangeSupplyFixture} from './ediel-requested-change-nativ
 import {createBilateralSourceOperator} from './ediel-bilateral-customer-native-fixture'
 import {z06fNativeStructureWire,z06fNativeReadingWire,type Z06fNativeReadingOptions} from './ediel-z06f-reading-followup-native-wire'
 import {utiltsNativeSourceFixture} from '../../__tests__/helpers/utiltsNativeSourceFixture'
+import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './utiltsConsumptionParties'
 import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
 import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
 import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
@@ -59,14 +60,19 @@ export async function createZ06fReadingNativeFixture(provider:(email:string)=>vo
  }
  const reading=async(options:Z06fNativeReadingOptions={})=>{
   const raw=z06fNativeReadingWire(f,options)
-  const message=await capture(raw,'UTILTS','E30',null),initial=await initialCanonicalUtiltsDecision(message),policy=initial.policy
+  // The grid-owner issuer carries its synthetic approved issuer registration
+  // and a reviewed history ground bound to this admission (as in the ESCO suite).
+  registerUtiltsIssuer(sql,literal,f.receiver,f.actorUserId)
+  const message=await capture(raw,'UTILTS','E66','UTILTS:E66:E5SE5A:current-r3')
+  seedUtiltsIssuerHistoryGround(sql,literal,message.id,f.actorUserId)
+  const initial=await initialCanonicalUtiltsDecision(message),policy=initial.policy
   const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initial,message})??undefined,periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initial,message})??undefined
   const provisional=runUtiltsRuntimeForMessage(message,{canonicalPolicy:policy,issuerIdentityAuthority,periodicReasonAuthority}),matches=await matchUtiltsTransactionsForTenant({message,facts:provisional.facts})
   const validated:EdielMessageRow={...message,business_match_status:matches.every(x=>x.matchStatus==='matched')?'matched':'unmatched',parsed_payload:{...message.parsed_payload,utiltsTransactionMatches:matches,normalizedMeteringPayload:{...provisional.normalizedPayload,utiltsTransactionMatches:matches}}}
   const qualified=await qualifyReceivedUtiltsStructure({message:validated,canonicalPolicy:policy,issuerIdentityAuthority,periodicReasonAuthority,runtime:runUtiltsRuntimeForMessage(validated,{canonicalPolicy:policy,issuerIdentityAuthority,periodicReasonAuthority})})
   await recordFinalCanonicalUtiltsDecision({original:message,validated,initialDecision:initial,runtime:qualified.runtime})
   const contracts=await prepareUtiltsConsumptionContracts({message:validated,runtime:qualified.runtime,policy,matches,dataRequest:null,fallback:{customerId:f.customerId,siteId:f.siteId,meteringPointId:f.pointId,gridOwnerId:f.gridId},allowConsumption:true})
-  const input={actorUserId:operator.id,companyId:f.companyId,environment:'test' as const,sourceMessageId:message.id,messageCode:'E30',rawPayload:message.raw_payload!,contracts,transactions:buildUtiltsTransactionPersistencePayload({messageCode:'E30',transactions:qualified.runtime.facts.transactions,rawSegments:utiltsRuntimeSegments(qualified.runtime.facts),dispositions:qualified.runtime.transactionDispositions,matches})}
+  const input={actorUserId:operator.id,companyId:f.companyId,environment:'test' as const,sourceMessageId:message.id,messageCode:'E66',rawPayload:message.raw_payload!,contracts,transactions:buildUtiltsTransactionPersistencePayload({messageCode:'E66',transactions:qualified.runtime.facts.transactions,rawSegments:utiltsRuntimeSegments(qualified.runtime.facts),dispositions:qualified.runtime.transactionDispositions,matches})}
   return {message,qualified,input,persist:()=>persistUtiltsTransactionResults(input)}
  }
  const read=(source:string)=>supabaseService.rpc('ediel_read_z06f_reading_followup_v1',{p_company_id:f.companyId,p_environment:'test',p_actor_user_id:operator.id,p_source_message_id:source})

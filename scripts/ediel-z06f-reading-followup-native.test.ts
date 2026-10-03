@@ -32,7 +32,9 @@ it('actual F apply creates own pending expectation; accepted physical AES/MG/QTY
  expect(await reading.persist()).toMatchObject([{disposition:'accepted',persistenceStatus:'persisted'}])
  const observed=own(f,change.message.id);expect(observed.expectations).toEqual(before.expectations);expect(observed.observations).toHaveLength(1)
  const receipt=observed.observations[0];expect(receipt).toMatchObject({utilts_source_message_id:reading.message.id,transaction_id:reading.qualified.runtime.facts.transactions[0].transactionId,source_payload_hash:createHash('sha256').update(reading.message.raw_payload!).digest('hex')})
- expect(receipt.receipt).toMatchObject({utiltsSourceId:reading.message.id,observation:'actual_accepted_persisted_member',reading:[{registerId:'101',meterNumber:'METER-1'}]})
+ expect(receipt.receipt).toMatchObject({utiltsSourceId:reading.message.id,observation:'actual_accepted_persisted_member',
+  // The E66 member carries its own start reading at the change instant and the period-end reading.
+  reading:[{registerId:'101',meterNumber:'METER-1',sourceQuantity:['220','10000']},{registerId:'101',meterNumber:'METER-1',sourceQuantity:['220','11000']}]})
  expect(sql(`SELECT to_jsonb(gridex_utilts_binding.stored_contract_v1(${literal(f.f.companyId)},${literal(reading.message.id)},${literal(receipt.transaction_id)}) IS NOT NULL)`)).toBe(true)
  const view=await f.read(change.message.id);expect(view.error).toBeNull();expect(view.data).toMatchObject({criterion:'AT-Z06F-SUPPLIER',expectations:[{status:'reading_observed',automaticRequestAllowed:false,deadline:null}]})
  expect(f.snapshots().outbound).toBe(outboundBefore);expect(external.send).toHaveBeenCalledTimes(1)
