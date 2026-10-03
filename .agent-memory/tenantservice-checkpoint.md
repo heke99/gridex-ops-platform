@@ -121,6 +121,12 @@ Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that fi
 - Vercel prod+preview: GRIDEX_INVOICE_DELIVERY_RESOLVER=shared, GRIDEX_PORTAL_IDENTITY_ENFORCEMENT=enforce (user approved 2026-10-02).
 - User decisions 2026-10-02: Nordfin NOT built now (stays listed, would be a tenant option later). Capway runs in TEST only. Add file-based invoicing: tenant downloads a file the invoice provider imports.
 
+## #440 MERGED (2026-10-02 ~14:15 UTC, d110808): invoice file export + Capway test hardening
+- Migration invoice_file_export applied in prod (ledger 347): catalog file_export selectable; invoice_export_files (append-only, RLS, service-role read); invoice_export_items.export_file_id; gridex_create_invoice_export_file_v1 (all-or-nothing claim, items + customer_invoices sent, audit).
+- lib/billing/invoiceFileExport.ts (CSV/XLSX/JSON from stored rows), OPS Fakturor section + /admin/billing/invoice-files/[id], docs/ops-invoice-providers-and-file-export.md.
+- Fixes: prepare uses selected provider; retry cron parks configuration_error per item; test center pre-checks Capway/test/enabled.
+- Plan status: API/UI build complete. Remaining: timings analysis 2026-10-03 (scheduled), node-forge before 2026-11-01, browser verification (needs user), Capway prod creds (user, when going live).
+
 ## Independent Gridex Web integration dependency (2026-10-02 ~17:45 UTC), unpublished candidate
 
 - Isolated branch `fix/portal-identity-contract-2026-10-02` from origin/main `e98cef3aeefd0c564a4436e2e409bb0a5262c866` (remote rechecked unchanged). No Ediel checkpoint/branch, existing PR, rollout flag or production migration/data modified.

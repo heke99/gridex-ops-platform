@@ -35,7 +35,7 @@ customer records, not supplied customers; contract/lifecycle code keeps that sta
 
 Re-verified: typecheck, lint, `npx vitest run` (430 files / 6590 tests), `npm run security:rbac`.
 
-## Phase 2 (20261003120000_customer_portfolio_phase2.sql)
+## Phase 2 (20261003131000_customer_portfolio_phase2.sql)
 
 Added: persisted forecast snapshots (past months immutable), batch active-customer
 counts, churn reasons, forecast vs actual, cohort retention, bidding-zone split,

@@ -121,10 +121,16 @@ export async function GET(request: NextRequest) {
     // These reads are independent once the feed fingerprint misses. Starting
     // them together removes an avoidable network/database waterfall from the
     // website checkout path without changing freshness or validation rules.
+    // Each branch's own duration is logged (load_revision/load_tenant/load_offers) so the critical
+    // path inside 'load' can be measured before anything is optimized.
+    const branch = <T,>(name: string, work: Promise<T>) => {
+      const branchStart = Date.now()
+      return work.then((value) => { timings[`load_${name}`] = Date.now() - branchStart; return value })
+    }
     const [revision, tenant, offers] = await Promise.all([
-      loadPublicationRevision(auth.context.companyId, 'website'),
-      loadExternalTenantContext(auth.client),
-      loadPublicContracts({ client: auth.client, customerType: query.customerType }),
+      branch('revision', loadPublicationRevision(auth.context.companyId, 'website')),
+      branch('tenant', loadExternalTenantContext(auth.client)),
+      branch('offers', loadPublicContracts({ client: auth.client, customerType: query.customerType })),
     ])
     lap('load')
     currentTenantReference = tenant.tenant_reference

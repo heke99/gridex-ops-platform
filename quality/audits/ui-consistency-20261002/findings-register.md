@@ -104,3 +104,12 @@ duplicates; English and platform jargon shown to tenants.
 | P3 | pricing used the run's month for spot/source prices | fixed: prices follow the billed period (identical for regular underlays) |
 | P4 | pre-existing static regressions red on main and not in CI: gridex-canonical-market-resolution-quote-billing, gridex-invoice-fee-canonical, gridex-svk-billing-area | open (not caused by this change) |
 | P5 | no history and no intake annual consumption left the period blocked with no follow-up | fixed: `ensureHistoricalMeteringRequest` opens a metering permission and queues PRODAT Z13VH history (last 12 months to yesterday; POA covering metering data required, else `missing_authorization`); system runs leave a draft + operator task; idempotent per metering point. Note: the Z13 dispatcher itself is still gated in `lib/ediel/flows/prodatSwitch.ts` (Ediel masterplan workstream) |
+
+## Grid-owner request entry points (2026-10-03)
+| # | Finding | Status |
+|---|---|---|
+| G1 | Batch 2B automation inserted customer_info_requests with automation_key/automation_origin columns that do not exist (canonical and hosted); the PostgREST error was swallowed, so the automation never created a request | fixed: migration 20261003110000 adds the columns + unique (company_id, automation_key); automation now goes through the canonical entry point |
+| G2 | createCustomerInfoRequest wrote the request and its "created" event as two statements | fixed: `gridex_create_customer_info_request_v1` validates customer/site/metering point for the tenant, dedupes on automation_key, writes request + event in one transaction; applied on hosted, probed (rolled back) |
+| G3 | dead `lib/cis/db-grid-owner.ts` with a direct-insert grid-owner data request bypassing the atomic RPC | fixed: removed (no importers; only historical audit JSON referenced its hash) |
+| G4 | facility lookups have two creation paths (energy resolver via Ediel/contact route, manual-email orchestrator) | accepted: different channels, both dedupe open requests (resolver lookup / unique open-request index) |
+| B1 | Three static billing regressions (canonical-market-resolution-quote-billing, invoice-fee-canonical, svk-billing-area) failed on main | fixed: checks pointed at pre-split files and pre-rewrite Swedish doc text; behavior verified present (customerApplicationProcess.ts, publicContracts.part-1..3, resolveBillingUnderlayPriceArea, billing_underlays_price_area_snapshot_guard); checks repointed and the locked-price-area/DB-guard rule documented in the external integration guide |

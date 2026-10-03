@@ -74,3 +74,29 @@ where route like '%public-contracts%' and metadata ? 'timings_ms' and created_at
 ```
 
 - **No optimization yet:** none has been made, because the slowest phase has not been measured. Response logging and the usage event run after `duration_ms` is captured, so they are not included in that figure.
+
+## Follow-up 2026-10-03 (production, 36 logged requests 2026-10-02 10:12 → 2026-10-03 09:28 UTC)
+
+| Phase | p50 ms | p95 ms |
+|---|---|---|
+| auth | 44 | 147 |
+| fingerprint | 41 | — |
+| load | 437 | 708 |
+| build | 9.5 | — |
+| total (duration_ms) | 533 | 917 |
+
+- **Slowest phase: `load`** (~82 % of p50). The parallel reads from #436 lowered `load` from ~550 ms (hours before the deploy) to ~430 ms (after); total p50 went from ~650 ms to ~530 ms.
+- **Not the database.** `EXPLAIN ANALYZE` for the tenant with traffic: `canonical_visible_public_contracts_v` plans in ~38 ms and executes in ~7 ms (warm); `canonical_public_contract_delivery_readiness_v` ~34 ms + 17 ms. Planning of the large views is the biggest database cost but still ~50 ms per query.
+- **Not region latency.** Vercel functions run in `arn1` and Supabase in `eu-north-1` (both Stockholm).
+- **Likely cause: serial round trips inside the three parallel branches.** `loadExternalTenantContext` reads the tenant reference and then the readiness checks; `listPublicContractOffers` makes two rounds, and its price-option loader reads options and then area prices. The critical path is therefore 3+ round trips, but which branch dominates is not yet measured.
+- **Next measurement (deployed with this change):** `timings_ms` now also has `load_revision`, `load_tenant` and `load_offers` (log only). Query after traffic:
+
+```sql
+select percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'load_revision')::int) revision_p50,
+       percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'load_tenant')::int) tenant_p50,
+       percentile_cont(0.5) within group (order by (metadata->'timings_ms'->>'load_offers')::int) offers_p50
+from public.integration_api_requests
+where route like '%public-contracts%' and metadata->'timings_ms' ? 'load_offers' and created_at > now() - interval '7 days';
+```
+
+- **Candidate optimizations, to be applied only to the branch the measurement points at:** (a) read the tenant reference and the readiness checks together; (b) fetch area prices together with price options; (c) move the offer feed into one database function (removes a round trip and repeat view planning). Each is kept only if the branch's p50 drops.

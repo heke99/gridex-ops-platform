@@ -40,6 +40,8 @@ A website integration must not treat a postcode result, coordinate, candidate ow
 
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
 
+Invoicing never re-resolves the price area. Billing uses the locked `price_area` from the quote/contract price snapshot, and the database also rejects direct writes of a billing underlay whose price area is missing or differs from that snapshot (`billing_contract_price_area_missing`, `billing_underlay_price_area_mismatch`).
+
 ## Idempotency and retries
 
 Use stable idempotency keys for logical write operations. Send a stable `Idempotency-Key` on every endpoint documented as idempotent, especially quote creation and customer-application submission. Reuse the same key only when retrying the same logical operation with the same intent.

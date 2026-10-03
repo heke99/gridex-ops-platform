@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP 1
--- Run after 10_behaviour.sql and 20261003120000_customer_portfolio_phase2.sql.
+-- Run after 10_behaviour.sql and 20261003131000_customer_portfolio_phase2.sql.
 reset role; reset test.uid; reset test.role;
 insert into metering_points values ('00000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-00000000000a','SE3'),('00000000-0000-0000-0000-0000000000d3','00000000-0000-0000-0000-00000000000a',null);
 insert into customers(id, company_id, full_name) values ('00000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-00000000000a','Anna Kund');

@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { churnReasonLabel, mapForecastRow, mapPortfolioMonthRow, portfolioMonthsCsv, summarizeForecastHorizons, type PortfolioForecastMonth } from '@/lib/analytics/customerPortfolio'
 
-const migration = readFileSync('supabase/migrations/20261003110000_customer_portfolio_analytics_whitelabel.sql', 'utf8')
+const migration = readFileSync('supabase/migrations/20261003130000_customer_portfolio_analytics_whitelabel.sql', 'utf8')
 const whiteLabelPage = readFileSync('app/admin/whitelabel/portfolio/page.tsx', 'utf8')
 const assignAction = readFileSync('app/admin/platform/white-labels/actions.ts', 'utf8')
 
@@ -102,7 +102,7 @@ describe('system-wide customer count consistency', () => {
 })
 
 describe('customer portfolio phase 2', () => {
-  const phase2 = readFileSync('supabase/migrations/20261003120000_customer_portfolio_phase2.sql', 'utf8')
+  const phase2 = readFileSync('supabase/migrations/20261003131000_customer_portfolio_phase2.sql', 'utf8')
   const dashboard = readFileSync('lib/analytics/companyDashboardSummary.ts', 'utf8')
   const usage = readFileSync('lib/tenant/usageStats.ts', 'utf8')
   const statistics = readFileSync('lib/tenant/companyStatistics.ts', 'utf8')

@@ -22,7 +22,7 @@ create table public.consumption_profile_month_weights (profile_id uuid, month_nu
 create table public.white_label_platforms (id uuid primary key default gen_random_uuid(), name text, slug text, status text default 'active');
 create table public.white_label_platform_memberships (white_label_platform_id uuid, user_id uuid, membership_role text, status text default 'active');
 create table public.audit_logs (id uuid primary key default gen_random_uuid(), company_id uuid, actor_user_id uuid, entity_type text, entity_id text, action text, old_values jsonb, new_values jsonb, metadata jsonb, created_at timestamptz default now());
--- phase 2 (20261003120000)
+-- phase 2 (20261003131000)
 create table public.customers (id uuid primary key, company_id uuid, full_name text, company_name text, first_name text, last_name text, customer_number text);
 create table public.metering_points (id uuid primary key, company_id uuid, bidding_zone_code text);
 create table public.customer_contracts (id uuid primary key default gen_random_uuid(), company_id uuid, customer_id uuid, ends_at date, termination_reason text);

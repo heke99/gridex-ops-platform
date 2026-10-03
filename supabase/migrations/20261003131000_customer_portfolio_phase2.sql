@@ -2,7 +2,7 @@
 -- persisted forecast snapshots, churn reasons, forecast vs actual, cohort
 -- retention, bidding-zone split and expiring powers of attorney.
 -- All read RPCs assert tenant or white-label read access first
--- (gridex_customer_portfolio_assert_read, 20261003110000).
+-- (gridex_customer_portfolio_assert_read, 20261003130000).
 
 -- ---------------------------------------------------------------------------
 -- 1. Persisted forecast snapshots
@@ -45,7 +45,7 @@ create index if not exists powers_of_attorney_company_valid_to_idx
 
 -- ---------------------------------------------------------------------------
 -- 2. Per-point forecast; the company forecast aggregates it (same algorithm as
---    20261003110000, now reusable for the bidding-zone split)
+--    20261003130000, now reusable for the bidding-zone split)
 -- ---------------------------------------------------------------------------
 create or replace function public.gridex_customer_portfolio_point_forecast_internal(
   p_company_id uuid,
