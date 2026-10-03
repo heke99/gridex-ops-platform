@@ -149,83 +149,83 @@ jobs:
           NATIVE_SUITE_FAILED=0
           if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
             echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            TYPE_COMPARISON_FAILED=1
+            { TYPE_COMPARISON_FAILED=1; echo "::error::TYPE_COMPARISON_FAILED set at step line $LINENO"; }
           fi
           if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
             echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
-            TYPE_COMPARISON_FAILED=1
+            { TYPE_COMPARISON_FAILED=1; echo "::error::TYPE_COMPARISON_FAILED set at step line $LINENO"; }
           fi
 
           if ! python3 scripts/ediel-received-context-upgrade-regression.py; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
           # the verified original input available to both native case passes.
           export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
           [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenantservice-identity-billing-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-archive-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenant-fk-and-test-customer-delete-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-close-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-switch-away-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-legal-anonymization-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supplier-switch-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-decision-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/grid-owner-data-request-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/power-of-attorney-expiry-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/billing-import-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-source-followup-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-portal-lifecycle-regression.sql; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! node scripts/customer-merge-portal-concurrency-regression.mjs "postgresql://postgres:postgres@127.0.0.1:54322/postgres"; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
           if ! GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
@@ -251,53 +251,53 @@ jobs:
           # Only generated disposable credentials enter this unuploaded file.
           node -e 'const fs=require("node:fs");const s=JSON.parse(fs.readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8"));fs.writeFileSync(process.env.RUNNER_TEMP+"/e035-native-sensitive.json",JSON.stringify({...s,password:process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD}),{mode:0o600})'
           if ! npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-bilateral-customer-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-customer-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_BILATERAL_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_BILATERAL_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-bilateral-prodat-profile-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-prodat-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-customer-record-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-record-retention-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_PROCESS_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_PROCESS_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-finance-copy-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-finance-copy-retention-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_FINANCE_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_FINANCE_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run --config scripts/ediel-decision-original-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-decision-original-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_DECISION_RETENTION_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_DECISION_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           if ! npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-native-junit.xml; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
-          [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || NATIVE_SUITE_FAILED=1
+          [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           # Missing prerequisites still fail this gate. Other independently
           # produced native/browser receipts remain collectible on the same head.
           [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_CASE_FIXTURE_PATH
@@ -311,67 +311,67 @@ jobs:
           [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_BLOB_RETENTION_FIXTURE_PATH
           npx playwright install --with-deps chromium
           if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs e2e/browser/ediel-customer-record-retention-local.spec.mjs e2e/browser/ediel-business-incident-local.spec.mjs e2e/browser/ediel-message-content-retention-local.spec.mjs e2e/browser/ediel-process-journal-retention-local.spec.mjs e2e/browser/ediel-finance-copy-retention-local.spec.mjs e2e/browser/ediel-decision-evidence-retention-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
-            NATIVE_SUITE_FAILED=1
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if [[ -s "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_RCS_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_RCS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           rm -f "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}"
           if [[ -s "${GRIDEX_REGULATED_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_REGULATED_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_BILATERAL_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_BILATERAL_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-bilateral-customer-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-customer-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_BILATERAL_PROFILE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-bilateral-prodat-profile-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-prodat-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_AI_PURPOSE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_RECORD_RETENTION_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_RECORD_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-customer-record-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-record-retention-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_BLOB_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_PROCESS_RETENTION_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_PROCESS_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_FINANCE_RETENTION_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_FINANCE_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-finance-copy-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-finance-copy-retention-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_DECISION_RETENTION_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_DECISION_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-decision-original-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-decision-original-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           if [[ -s "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_EDIEL_INCIDENT_VERIFY_AFTER_BROWSER=1 npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-after-browser-junit.xml; then
-              NATIVE_SUITE_FAILED=1
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
             fi
           fi
           rm -f "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}"
