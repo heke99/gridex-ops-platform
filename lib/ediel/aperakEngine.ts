@@ -305,7 +305,9 @@ export function renderAperakEdiel(params: {
           ? [`DOC+${escapeEdifactValue(utiltsDocument!.messageCode)}:SVK:260+${escapeEdifactValue(previousMessageReference)}`] : []),
         originalAckLegalNadSegment('MS', utiltsReplySender(utiltsParties!.legalReceiver, params.source.legalReceiverEdielId)),
         originalAckLegalNadSegment('MR', utiltsParties!.legalSender),
-        'NAD+DDQ',
+        // U A509: the reply keeps the original's actually stated subordinate
+        // role(s) (NAD without party id before the first IDE), e.g. DDQ or DGI.
+        ...utiltsSubordinateRoles(params.source.rawPayload).map(role => `NAD+${role}`),
       ]
     : [
         `BGM+++${bgmFunction}`,
@@ -453,4 +455,16 @@ function utiltsReplySender(original: OriginalAckLegalParty, resolvedOwnLegalId: 
   const valid = u.legalAgencies.includes(agency ?? '') && (agency !== u.svkAgency || qualifier === u.svkQualifier)
   if (valid || !resolvedOwnLegalId || id !== resolvedOwnLegalId) return original
   return Object.freeze({ id, identityComponents: Object.freeze([id, u.svkQualifier, u.svkAgency]), country: original.country })
+}
+
+
+/** Subordinate party roles of a UTILTS original's header: NAD segments other
+ * than MS/MR that name no party, in physical order (U A509). */
+function utiltsSubordinateRoles(rawPayload: string | null | undefined): string[] {
+  if (!rawPayload) return []
+  const wire = tokenizeEdifact(rawPayload)
+  const firstDetail = wire.segments.findIndex(t => t.tag === 'IDE')
+  const header = firstDetail < 0 ? wire.segments : wire.segments.slice(0, firstDetail)
+  return header.filter(t => t.tag === 'NAD' && !['MS', 'MR'].includes(segmentComposite(t, 1, wire.una)[0] ?? '')
+    && !segmentComposite(t, 2, wire.una).some(Boolean)).map(t => segmentComposite(t, 1, wire.una)[0] ?? '').filter(Boolean)
 }

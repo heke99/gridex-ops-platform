@@ -74,7 +74,9 @@ async function seed(mode:'V'|'VH'='V',period?:{start?:string;end?:string|null}){
   // The grid-owner issuer carries its synthetic approved issuer/transport
   // mandate and a reviewed history ground (as in the consumption suite).
   registerUtiltsIssuer(sql,lit,receiver,ids.actor)
-  const physical=utiltsErrGatewayFixture({company:ids.company,receiver:sender,transactions:[{reference,outcome}]}),fresh=utiltsNativeSourceFixture(physical.raw_payload!.replaceAll('91100',receiver).replaceAll('23-DDQ-E66-T','23-DGI-E66-T').replace("NAD+DDQ'","NAD+DGI'").replace("STS+7++E88::260'","STS+7++E23::260'"),randomUUID()),source=await insert(fresh.raw,'UTILTS','E66')
+  const physical=utiltsErrGatewayFixture({company:ids.company,receiver:sender,transactions:[{reference,outcome}]}),fresh=utiltsNativeSourceFixture(physical.raw_payload!.replaceAll('91100',receiver).replaceAll('23-DDQ-E66-T','23-DGI-E66-T').replace("NAD+DDQ'","NAD+DGI'").replace("STS+7++E88::260'","STS+7++E23::260'")
+   // Field 203 is unique per issuer over time: each source has its own document number.
+   .replaceAll('GRIDEX2607E66MSG001',`D${randomUUID().replaceAll('-','').slice(0,16)}`),randomUUID()),source=await insert(fresh.raw,'UTILTS','E66')
   seedUtiltsIssuerHistoryGround(sql,lit,source.id,ids.actor)
   const initial=await initialCanonicalUtiltsDecision(source),issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initial,message:source})??undefined,periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initial,message:source})??undefined,qualified=await qualifyReceivedUtiltsStructure({message:source,canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority,runtime:runUtiltsRuntimeForMessage(source,{canonicalPolicy:initial.policy,issuerIdentityAuthority,periodicReasonAuthority})})
   expect(qualified.runtime.transactionDispositions.map(x=>x.disposition)).toEqual([expected])
@@ -129,12 +131,16 @@ async function archiveReviewEvidence(f:Awaited<ReturnType<typeof seed>>,mismatch
  }
  return {hash,receiptIds,artifacts}
 }
-async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},evidence?:Awaited<ReturnType<typeof archiveReviewEvidence>>){
- const {hash,receiptIds,artifacts}=evidence??await archiveReviewEvidence(f)
- // Before approval only activation is missing; approve_assignment activates
- // and requires 'authorized' atomically (20261001000926).
+/** Archived/reviewed evidence, then the assignment approval: activation is the
+ * only missing assessment item, and approve_assignment requires 'authorized'
+ * atomically (20261001000926). */
+async function approveAssignment(f:Awaited<ReturnType<typeof seed>>){
  expect(sql(`SELECT public.ediel_service_assignment_assessment_v1(${lit(f.ids.company)},${lit(f.assignment)})`)).toEqual({status:'held',missing:['assignment_not_active']})
  expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'})
+}
+async function qualify(f:Awaited<ReturnType<typeof seed>>,shared?:{permissionId:string;z13:EdielMessageRow;z14:EdielMessageRow},evidence?:Awaited<ReturnType<typeof archiveReviewEvidence>>){
+ const {hash,receiptIds,artifacts}=evidence??await archiveReviewEvidence(f)
+ if(sql<string>(`SELECT to_jsonb(status) FROM public.ediel_service_assignments WHERE company_id=${lit(f.ids.company)} AND id=${lit(f.assignment)}`)!=='active')await approveAssignment(f)
  let permission:{id:string;li:string},z13:EdielMessageRow,z14:EdielMessageRow
  if(shared){
   expect(await coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'})).toMatchObject({status:'reuse_permission',permissionId:shared.permissionId})
@@ -231,6 +237,9 @@ it.each(['V','VH'] as const)('genuine archived/reviewed %s scope, sent Z13, nati
  // A genuine current communication contract is required separately from data
  // permission. No absent agreement is turned into a national error or E87.
  const evidence=await archiveReviewEvidence(f)
+ // The periodic reason owner (20261001041152) needs the approved assignment's
+ // current communication agreement, not a data grant or Z14.
+ await approveAssignment(f)
  // Protocol-defined E87 negative is allowed without positive data approval.
  const negative=await f.utilts('processability_rejected','NATIVE-ESCO-NEGATIVE-'+mode)
  expect(await negative.persist()).toMatchObject([{disposition:'processability_rejected',persistenceStatus:'not_applicable'}]);const negativeAck=await negative.ack();expect(negativeAck.message_family).toBe('UTILTS_ERR');expect(f.effects().series).toBe(0);expect(f.effects().contracts).toBe(0)
