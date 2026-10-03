@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
 const port=vi.hoisted(()=>({smtp:vi.fn()}))
@@ -9,6 +9,7 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {supabaseService} from '@/lib/supabase/service'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {seedCustomerRecordRetentionNativeFixture,createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-record-retention-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 it('actual disposable source/current class owners qualify a standalone archived-only UI fixture, then verify independent post-browser native receipts',async()=>{
  const path=process.env.GRIDEX_RECORD_RETENTION_FIXTURE_PATH,password=process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD
  if(!path||!password||process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_record_retention_browser_fixture_required')
@@ -26,5 +27,5 @@ it('actual disposable source/current class owners qualify a standalone archived-
  // Native precheck: no retention-ready/approved/tombstone source was seeded.
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.record_decisions WHERE company_id=${literal(f.companyId)}`)).toBe(0)
  const profile=await supabaseService.from('user_profiles').select('id,user_status').in('id',[f.submitter.id,f.reviewer.id,readonly.id,foreign.id]);expect(profile.error).toBeNull();expect(profile.data).toHaveLength(4)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,companyName:'Synthetic normal switch native',targetId:f.targets[k],retentionClass:k,actorId:f.submitter.id,actorEmail:f.submitter.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readonlyId:readonly.id,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,documentBase64:document.toString('base64'),documentHash:claim.documentHash,issuerReceipt:receipt}),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,companyName:'Synthetic normal switch native',targetId:f.targets[k],retentionClass:k,actorId:f.submitter.id,actorEmail:f.submitter.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readonlyId:readonly.id,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,documentBase64:document.toString('base64'),documentHash:claim.documentHash,issuerReceipt:receipt},{mode:0o600})
 },180000)

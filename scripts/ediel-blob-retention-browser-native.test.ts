@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {createClient} from '@supabase/supabase-js'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
@@ -10,6 +10,7 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {supabaseService} from '@/lib/supabase/service'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-change-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 const hash=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
 async function user(company:string,permissions:string[],password:string){
  const email=randomUUID()+'@example.invalid',created=await supabaseService.auth.admin.createUser({email,password,email_confirm:true});expect(created.error).toBeNull();const id=created.data.user!.id
@@ -50,5 +51,5 @@ it('genuine local source/archive owners prepare standalone archived-only message
  }
  for(const u of [actor,reviewer,readonly,foreign]){const listed=await u.client.rpc('ediel_current_retention_companies_v1',{});expect(listed.error).toBeNull();expect(listed.data.map((c:{companyId:string})=>c.companyId)).toEqual([u===foreign?foreignCompany:f.companyId])}
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.blob_decisions WHERE company_id=${literal(f.companyId)}`)).toBe(0)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,actorId:actor.id,actorEmail:actor.email,reviewerId:reviewer.id,reviewerEmail:reviewer.email,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,mimePath:mime.path,sourceMessageId:f.source,targets} satisfies Fixture),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,actorId:actor.id,actorEmail:actor.email,reviewerId:reviewer.id,reviewerEmail:reviewer.email,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,mimePath:mime.path,sourceMessageId:f.source,targets} satisfies Fixture,{mode:0o600})
 },180000)

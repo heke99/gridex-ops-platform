@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto'
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const external=vi.hoisted(()=>({smtp:vi.fn()}))
@@ -13,6 +13,7 @@ import {createRequestedCustomerChangeNativeFixture} from './helpers/ediel-reques
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 import {archiveRequestedCustomerChangeSource} from '@/lib/ediel/production/requestedCustomerChangeSource'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 afterEach(()=>{vi.unstubAllEnvs();external.smtp.mockReset()})
 it('actual non-death source archive independent review and atomic original are produced by interactive browser actions',async()=>{
  const path=process.env.GRIDEX_REQUESTED_CUSTOMER_CHANGE_FIXTURE_PATH
@@ -30,5 +31,5 @@ it('actual non-death source archive independent review and atomic original are p
  const held=await archiveRequestedCustomerChangeSource({...f.submission('READONLY held outgoing original',heldBytes,false),companyId:f.companyId,actorUserId:f.uploader.id})
  expect(held.missing).toContain('authentic_current_outgoing_customer_mandate')
  const before=sql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.company_id=${literal(f.companyId)} ORDER BY id LIMIT 1),'supply',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.customer_supply_periods p WHERE p.company_id=${literal(f.companyId)}))`)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,periodId:f.period,agreementId:f.agreementId,actorId:f.uploader.id,actorEmail:f.uploader.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readerEmail:f.reader.email,outsiderEmail:outsider.email,readOnlyArtifactId:held.artifactId,readOnlySourceText:heldBytes.toString(),readOnlySourceHash:held.sourceHash,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceText:bytes.toString(),rawPayload:f.rawPayload,submission,clause:f.clause,before}),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,periodId:f.period,agreementId:f.agreementId,actorId:f.uploader.id,actorEmail:f.uploader.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readerEmail:f.reader.email,outsiderEmail:outsider.email,readOnlyArtifactId:held.artifactId,readOnlySourceText:heldBytes.toString(),readOnlySourceHash:held.sourceHash,sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceText:bytes.toString(),rawPayload:f.rawPayload,submission,clause:f.clause,before},{mode:0o600})
 },120000)

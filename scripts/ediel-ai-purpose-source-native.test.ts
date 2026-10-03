@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto'
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 const effects=vi.hoisted(()=>({smtp:vi.fn()}))
 vi.mock('server-only',()=>({}))
@@ -13,6 +13,7 @@ import {createAiPurposeSourceFixture} from './helpers/ediel-ai-purpose-native-fi
 import {createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {archiveAiPurposeSource,reviewAiPurposeSource,readAiPurposeSourceArtifact,readAiPurposeSourceBytes} from '@/lib/ediel/production/aiPurposeSource'
+import {writeBrowserFixture} from './helpers/browserFixture'
 afterEach(()=>{vi.unstubAllEnvs();effects.smtp.mockReset()})
 it('actual immutable purpose archive, separate scoped original review and current issuer authority, with source/DENY/revocation continuity',async()=>{
  const path=process.env.GRIDEX_AI_PURPOSE_FIXTURE_PATH
@@ -48,7 +49,7 @@ it('actual immutable purpose archive, separate scoped original review and curren
   expect((await reviewNetworkRegistrySource({...registry,companyId:f.companyId,actorUserId:network.reviewer.id,decision:'approve',reason:'Synthetic actual browser registry independent review',clause:network.clause})).status).toBe('authorized')
   const networkBytes=network.pdf('interactive network original');networkBrowser={networkBrowser:network.submission('SYNTHETIC BROWSER NETWORK REGISTRY',networkBytes,'2'),networkSourceText:networkBytes.toString(),networkBrowserSourceHash:createHash('sha256').update(networkBytes).digest('hex'),networkNativeArtifactId:registry.artifactId,networkSubmitterEmail:network.uploader.email,networkReviewerEmail:network.reviewer.email,networkReviewerId:network.reviewer.id,networkClause:network.clause}
  }
- if(path){const browserBytes=f.pdf('interactive browser legal original'),browser=f.submission('SYNTHETIC BROWSER LEGAL PURPOSE',browserBytes);writeFileSync(path,JSON.stringify({companyId:f.companyId,fixtureStage:'legal_contract_before_received_z04',downstreamEvidence:{status:'not_executed',reason:'This fixture qualifies independent source producers only; actual canonical Z04/ACK and supply/customer/AI chain remain a separate native test.'},submitterEmail:f.uploader.email,reviewerEmail:f.reviewer.email,reviewerId:f.reviewer.id,readerEmail:f.reader.email,outsiderEmail:outsider.email,nativeArtifactId:artifact.artifactId,nativeAiMessageId:null,...networkBrowser,browserSourceHash:createHash('sha256').update(browserBytes).digest('hex'),browser,clause:f.clause,sourceText:browserBytes.toString()}),{mode:0o600})}
+ if(path){const browserBytes=f.pdf('interactive browser legal original'),browser=f.submission('SYNTHETIC BROWSER LEGAL PURPOSE',browserBytes);writeBrowserFixture(path,{companyId:f.companyId,fixtureStage:'legal_contract_before_received_z04',downstreamEvidence:{status:'not_executed',reason:'This fixture qualifies independent source producers only; actual canonical Z04/ACK and supply/customer/AI chain remain a separate native test.'},submitterEmail:f.uploader.email,reviewerEmail:f.reviewer.email,reviewerId:f.reviewer.id,readerEmail:f.reader.email,outsiderEmail:outsider.email,nativeArtifactId:artifact.artifactId,nativeAiMessageId:null,...networkBrowser,browserSourceHash:createHash('sha256').update(browserBytes).digest('hex'),browser,clause:f.clause,sourceText:browserBytes.toString()},{mode:0o600})}
  sql(`INSERT INTO public.user_permission_overrides(company_id,user_id,permission_key,effect,valid_from,valid_to,is_active) VALUES(NULL,${literal(f.reviewer.id)},'ediel.ai_purpose.review','deny',now()-interval '1 day',now()+interval '1 day',true)`);expect((await current()).status).toBe('held')
  sql(`UPDATE public.user_permission_overrides SET valid_to=now()-interval '1 second' WHERE user_id=${literal(f.reviewer.id)} AND permission_key='ediel.ai_purpose.review'`);expect((await current()).status).toBe('authorized')
  // Browser fixture must remain current; ordinary native execution separately

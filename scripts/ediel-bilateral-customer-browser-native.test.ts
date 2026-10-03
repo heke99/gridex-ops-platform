@@ -1,5 +1,5 @@
 import {createHash,randomUUID} from 'node:crypto'
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const effects=vi.hoisted(()=>({smtp:vi.fn()}))
@@ -11,6 +11,7 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {createBilateralCustomerSourceFixture,createBilateralSourceOperator} from './helpers/ediel-bilateral-customer-native-fixture'
 import {archiveBilateralCustomerSource} from '@/lib/ediel/production/bilateralCustomerSource'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 afterEach(()=>{vi.unstubAllEnvs();effects.smtp.mockReset()})
 it('genuine received bilateral source is archived reviewed and applied only by actual browser actions',async()=>{
  const path=process.env.GRIDEX_BILATERAL_FIXTURE_PATH
@@ -28,5 +29,5 @@ it('genuine received bilateral source is archived reviewed and applied only by a
  const readOnlyBytes=f.pdf('private held original'),readOnlyArtifact=await archiveBilateralCustomerSource({...f.submission('READONLY held original',readOnlyBytes,false),companyId:f.companyId,actorUserId:f.uploader.id})
  expect(readOnlyArtifact.status).toBe('archived')
  const before=sql(`SELECT jsonb_build_object('customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.id=${literal(f.customerId)}),'supply',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM public.customer_supply_periods p WHERE p.company_id=${literal(f.companyId)}))`)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,sourceMessageId:f.sourceMessageId,periodId:f.period,agreementId:f.agreementId,contractId:f.contractId,actorId:f.uploader.id,actorEmail:f.uploader.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readerEmail:f.reader.email,outsiderEmail:outsider.email,readOnlyArtifactId:readOnlyArtifact.artifactId,readOnlySourceHash:createHash('sha256').update(readOnlyBytes).digest('hex'),readOnlySourceText:readOnlyBytes.toString(),sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceText:bytes.toString(),submission,clause:f.clause,before}),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,sourceMessageId:f.sourceMessageId,periodId:f.period,agreementId:f.agreementId,contractId:f.contractId,actorId:f.uploader.id,actorEmail:f.uploader.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readerEmail:f.reader.email,outsiderEmail:outsider.email,readOnlyArtifactId:readOnlyArtifact.artifactId,readOnlySourceHash:createHash('sha256').update(readOnlyBytes).digest('hex'),readOnlySourceText:readOnlyBytes.toString(),sourceHash:createHash('sha256').update(bytes).digest('hex'),sourceText:bytes.toString(),submission,clause:f.clause,before},{mode:0o600})
 },120000)

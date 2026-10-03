@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {createHash} from 'node:crypto'
 import {type SupabaseClient} from '@supabase/supabase-js'
 import {NextRequest} from 'next/server'
@@ -13,6 +13,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {POST} from '@/app/api/ediel/invoice-file-retention/route'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {seedInvoiceFileRetentionNativeFixture} from './helpers/ediel-invoice-file-retention-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 type Fixture={companyId:string;actorId:string;actorEmail:string;readonlyEmail:string;foreignCompanyId:string;foreignEmail:string;retentionClass:'customer_invoice_document_pdf_bytes';targetId:string;sourceId:string;sourceHash:string;byteLength:number;storagePath:string;contractHash:string}
 it('actual signed-PDF source capture pre/browser/post retains exact bytes/hash with current archived actors and never invents qualified billing, legal approval or deletion',async()=>{
  const path=process.env.GRIDEX_INVOICE_FILE_RETENTION_FIXTURE_PATH,password=process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD
@@ -26,5 +27,5 @@ it('actual signed-PDF source capture pre/browser/post retains exact bytes/hash w
  const f=await seedInvoiceFileRetentionNativeFixture(password);current.company=f.companyId;current.client=f.writer.client
  const response=await POST(new NextRequest('http://localhost/api/ediel/invoice-file-retention',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'capture',retentionClass:'customer_invoice_document_pdf_bytes',targetId:f.documentId})}));expect(response.status,await response.clone().text()).toBe(200);const source=(await response.json()).data
  for(const actor of [f.writer,f.readonly,f.foreign]){const r=await actor.client.rpc('ediel_current_retention_companies_v1',{});expect(r.error).toBeNull();expect(r.data.map((row:{companyId:string})=>row.companyId)).toEqual([actor===f.foreign?f.foreignCompanyId:f.companyId])}
- writeFileSync(path,JSON.stringify({companyId:f.companyId,actorId:f.writer.id,actorEmail:f.writer.email,readonlyEmail:f.readonly.email,foreignCompanyId:f.foreignCompanyId,foreignEmail:f.foreign.email,retentionClass:'customer_invoice_document_pdf_bytes',targetId:f.documentId,sourceId:source.sourceId,sourceHash:f.sourceHash,byteLength:f.byteLength,storagePath:f.path,contractHash:f.documentSha256} satisfies Fixture),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,actorId:f.writer.id,actorEmail:f.writer.email,readonlyEmail:f.readonly.email,foreignCompanyId:f.foreignCompanyId,foreignEmail:f.foreign.email,retentionClass:'customer_invoice_document_pdf_bytes',targetId:f.documentId,sourceId:source.sourceId,sourceHash:f.sourceHash,byteLength:f.byteLength,storagePath:f.path,contractHash:f.documentSha256} satisfies Fixture,{mode:0o600})
 },240000)

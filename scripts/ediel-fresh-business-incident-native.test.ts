@@ -4,11 +4,12 @@ import {beforeEach,describe,expect,it,vi} from 'vitest'
 vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:async(...args:unknown[])=>(await import('./fixtures/ediel-service-evidence-native')).nativeEscoExternal.send(...args)})}}))
 import {spawn} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {reportFreshEdielBusinessIncident,readFreshEdielBusinessIncident,readFreshEdielBusinessIncidentAccess} from '@/lib/ediel/incidents/freshBusinessIncident'
 import {seedNativeEscoFixture,qualifyNativeEscoFixture,resetNativeEscoFixture,nativeEscoSql as sql,nativeEscoLiteral as lit,nativeEscoExternal as external,NATIVE_ESCO_DB as DB} from './fixtures/ediel-service-evidence-native'
+import {writeBrowserFixture} from './helpers/browserFixture'
 const counts=(c:string)=>sql<Record<string,number>>(`SELECT jsonb_build_object('incidents',(SELECT count(*) FROM gridex_ediel_business_incidents.incidents WHERE company_id=${lit(c)}),'plans',(SELECT count(*) FROM gridex_ediel_business_incidents.plans WHERE company_id=${lit(c)}),'events',(SELECT count(*) FROM gridex_ediel_business_incidents.events WHERE company_id=${lit(c)}))`)
 const verifyAfterBrowser=process.env.GRIDEX_EDIEL_INCIDENT_VERIFY_AFTER_BROWSER==='1'
 describe.skipIf(verifyAfterBrowser)('genuine incident producer and browser fixture',()=>{
@@ -60,7 +61,7 @@ it('actual own-company read-only incident inspection requalifies current origina
  await expect(readFreshEdielBusinessIncident({companyId:f.ids.company,actorUserId:reader.id,incidentId:found.incidentId})).rejects.toMatchObject({message:expect.stringContaining('reader_forbidden')})
  sql(`UPDATE public.user_permission_overrides SET is_active=false WHERE id=${lit(deny)}`);expect(f.effects()).toEqual(stable);expect(counts(f.ids.company)).toEqual(stableCount)
  const path=process.env.GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH
- if(path)writeFileSync(path,JSON.stringify({companyId:f.ids.company,writerId:writer.id,readerId:reader.id,outsiderId:outsider.id,outsiderCompanyId:foreign.ids.company,writerEmail:writer.email,readerEmail:reader.email,outsiderEmail:outsider.email,nativeIncidentId:found.incidentId,baselineEffects:stable,originalHashes:sql(`SELECT jsonb_object_agg(id::text,encode(sha256(convert_to(raw_payload,'UTF8')),'hex')) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND id IN(${lit(command.sourceMessageId)},${lit(command.ackMessageId)})`),sourceMessageId:command.sourceMessageId,ackMessageId:command.ackMessageId,scopeReference:command.scopeReference,nativeFinding:command.finding.summary}),{mode:0o600})
+ if(path)writeBrowserFixture(path,{companyId:f.ids.company,writerId:writer.id,readerId:reader.id,outsiderId:outsider.id,outsiderCompanyId:foreign.ids.company,writerEmail:writer.email,readerEmail:reader.email,outsiderEmail:outsider.email,nativeIncidentId:found.incidentId,baselineEffects:stable,originalHashes:sql(`SELECT jsonb_object_agg(id::text,encode(sha256(convert_to(raw_payload,'UTF8')),'hex')) FROM public.ediel_messages WHERE company_id=${lit(f.ids.company)} AND id IN(${lit(command.sourceMessageId)},${lit(command.ackMessageId)})`),sourceMessageId:command.sourceMessageId,ackMessageId:command.ackMessageId,scopeReference:command.scopeReference,nativeFinding:command.finding.summary},{mode:0o600})
 })
 
 })

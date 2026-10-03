@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
@@ -8,6 +8,7 @@ import {nativeSql as sql,literal,seedNormalSwitchNativeFixture} from './helpers/
 import {createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-record-retention-native-fixture'
 import {mixedProdatNativeWire} from './helpers/ediel-mixed-prodat-native-wire'
 import {PROCESS_JOURNAL_RETENTION_CLASSES,type ProcessJournalRetentionClass} from '@/lib/ediel/retention/processJournalRetention'
+import {writeBrowserFixture} from './helpers/browserFixture'
 type Target={retentionClass:ProcessJournalRetentionClass;targetId:string;documentBase64:string;documentHash:string;sourceHash:string;issuerReceipt:Record<string,string>;immutable:Record<string,unknown>;decisionId?:string}
 type Fixture={companyId:string;actorId:string;actorEmail:string;reviewerId:string;reviewerEmail:string;readonlyEmail:string;foreignCompanyId:string;foreignEmail:string;targets:Target[]}
 const digest=(b:Buffer)=>createHash('sha256').update(b).digest('hex')
@@ -60,5 +61,5 @@ it('genuine pre-market contract/signature/PDF/POA and installed prospective owne
   targets.push({retentionClass,targetId:ids[retentionClass],documentBase64:document.toString('base64'),documentHash,sourceHash:reply.data.sourceHash,issuerReceipt:{issuerId:issuer,payloadBase64:bytes.toString('base64'),signatureHex:createHmac('sha256',key).update(bytes).digest('hex')},immutable:stable(retentionClass,row)})
  }
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.process_decisions WHERE company_id=${literal(f.companyId)}`)).toBe(0)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,actorId:writer.id,actorEmail:writer.email,reviewerId:reviewer.id,reviewerEmail:reviewer.email,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,targets} satisfies Fixture),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,actorId:writer.id,actorEmail:writer.email,reviewerId:reviewer.id,reviewerEmail:reviewer.email,readonlyEmail:readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,targets} satisfies Fixture,{mode:0o600})
 },180000)

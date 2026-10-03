@@ -1,10 +1,11 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {createClient} from '@supabase/supabase-js'
 import {expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 import {supabaseService} from '@/lib/supabase/service'
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {createRegulatedSupplyGroundNativeFixture} from './helpers/ediel-regulated-supply-ground-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 it('real browser fixture retains actual signed scope and checks post-browser archive/review origins without claiming a legal issuer',async()=>{
  const path=process.env.GRIDEX_REGULATED_FIXTURE_PATH,password=process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD
  if(!path||!password||process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_disposable_regulated_browser_fixture_required')
@@ -19,5 +20,5 @@ it('real browser fixture retains actual signed scope and checks post-browser arc
   const db=createClient('http://127.0.0.1:54321',process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{persistSession:false}}),signed=await db.auth.signInWithPassword({email:`${id}@example.invalid`,password});expect(signed.error).toBeNull()
   const current=await db.rpc('canonical_authenticated_tenant_context',{p_selected_company_id:f.companyId});expect(current.error).toBeNull();expect(current.data).toMatchObject({authorized:true,selected_company_id:f.companyId})
  }
- writeFileSync(path,JSON.stringify({companyId:f.companyId,contractId:f.contractId,point:f.external,agreementId:f.agreement,actorId:f.actorUserId,actorEmail:`${f.actorUserId}@example.invalid`,reviewerId:f.reviewer,reviewerEmail:`${f.reviewer}@example.invalid`,sourceHash:f.sourceHash,sourceText:f.bytes.toString(),submission}),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,contractId:f.contractId,point:f.external,agreementId:f.agreement,actorId:f.actorUserId,actorEmail:`${f.actorUserId}@example.invalid`,reviewerId:f.reviewer,reviewerEmail:`${f.reviewer}@example.invalid`,sourceHash:f.sourceHash,sourceText:f.bytes.toString(),submission},{mode:0o600})
 },120000)

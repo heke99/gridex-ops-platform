@@ -1,4 +1,4 @@
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {createHash,randomUUID} from 'node:crypto'
 import {expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
@@ -7,6 +7,7 @@ vi.mock('@/lib/website/customerApplicationWorkflowBridge',()=>({transitionCorrel
 import {nativeSql as sql,literal} from './helpers/ediel-normal-switch-native-fixture'
 import {createCustomerRecordRetentionNativeUser} from './helpers/ediel-customer-record-retention-native-fixture'
 import {seedFinanceCopyRetentionNativeFixture} from './helpers/ediel-finance-copy-retention-native-fixture'
+import {writeBrowserFixture} from './helpers/browserFixture'
 type Target={retentionClass:'settlement_calculation_body'|'settlement_audit_body';targetId:string;table:string;columns:string[];documentBase64:string;documentHash:string;sourceHash:string;issuerReceipt:Record<string,string>;immutable:Record<string,unknown>;decisionId?:string}
 type Fixture={companyId:string;actorId:string;actorEmail:string;reviewerId:string;reviewerEmail:string;readonlyEmail:string;foreignCompanyId:string;foreignEmail:string;settlementId:string;auditCount:number;targets:Target[]}
 const digest=(b:Buffer)=>createHash('sha256').update(b).digest('hex'),metadata=(row:Record<string,unknown>,columns:string[])=>Object.fromEntries(Object.entries(row).filter(([key])=>!columns.includes(key)))
@@ -34,5 +35,5 @@ it('genuine installed manual finance owners produce two separately bound archive
   targets.push({retentionClass,targetId,table,columns:[...columns],documentBase64:document.toString('base64'),documentHash:digest(document),sourceHash:basis.data.sourceHash,issuerReceipt:f.policy(basis.data,document),immutable:metadata(row,[...columns])})
  }
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_retention.finance_decisions WHERE company_id=${literal(f.companyId)}`)).toBe(0)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,actorId:f.writer.id,actorEmail:f.writer.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readonlyEmail:f.readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,settlementId:f.target,auditCount:sql<number>(`SELECT to_jsonb(count(*)) FROM public.portfolio_settlement_audit_log WHERE settlement_id=${literal(f.target)}`),targets} satisfies Fixture),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,actorId:f.writer.id,actorEmail:f.writer.email,reviewerId:f.reviewer.id,reviewerEmail:f.reviewer.email,readonlyEmail:f.readonly.email,foreignCompanyId:foreignCompany,foreignEmail:foreign.email,settlementId:f.target,auditCount:sql<number>(`SELECT to_jsonb(count(*)) FROM public.portfolio_settlement_audit_log WHERE settlement_id=${literal(f.target)}`),targets} satisfies Fixture,{mode:0o600})
 },240000)

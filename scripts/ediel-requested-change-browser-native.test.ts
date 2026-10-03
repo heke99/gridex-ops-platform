@@ -1,6 +1,6 @@
 import {createClient} from '@supabase/supabase-js'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
-import {readFileSync,writeFileSync} from 'node:fs'
+import {readFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 const effects=vi.hoisted(()=>({smtp:vi.fn()}))
@@ -15,6 +15,7 @@ import {createRequestedChangeSupplyFixture} from './helpers/ediel-requested-chan
 import {archiveRequestedChangeSource,reviewRequestedChangeArtifact,readRequestedChangeArtifact,type RequestedChangeSourceSubmission} from '@/lib/ediel/production/requestedChangeIntake'
 import {readRequestedChangeSource} from '@/lib/ediel/production/requestedChangeSource'
 import {prepareAndQueueProdatRequestedChange} from '@/lib/ediel/flows/prodatRequestedChange'
+import {writeBrowserFixture} from './helpers/browserFixture'
 const hash=(bytes:Buffer)=>createHash('sha256').update(bytes).digest('hex')
 afterEach(()=>{vi.unstubAllEnvs();effects.smtp.mockReset()})
 async function actor(company:string,keys:string[]){
@@ -68,5 +69,5 @@ it('actual archived issuer source, separate native review, qualified Z09 queue a
  expect((await prepareAndQueueProdatRequestedChange({companyId:f.companyId,eventId:approved.eventId,actorUserId:submitter.id,preferredRouteId:route})).status).toBe('existing')
  await expect(readRequestedChangeArtifact({companyId:foreign,artifactId:native.artifactId,actorUserId:outsider.id})).rejects.toBeTruthy()
  const browserBytes=Buffer.from('SYNTHETIC browser issuer original source'),browser=submission('SYNTHETIC BROWSER SOURCE',browserBytes)
- writeFileSync(path,JSON.stringify({companyId:f.companyId,pointId:f.pointId,supplySource:f.source,periodId:f.period,contractId:f.contractId,external:f.external,submitterEmail:submitter.email,reviewerEmail:reviewer.email,reviewerId:reviewer.id,readerEmail:reader.email,outsiderEmail:outsider.email,nativeArtifactId:native.artifactId,nativeEventId:approved.eventId,browserSourceHash:hash(browserBytes),browser,sourceText:browserBytes.toString()}),{mode:0o600})
+ writeBrowserFixture(path,{companyId:f.companyId,pointId:f.pointId,supplySource:f.source,periodId:f.period,contractId:f.contractId,external:f.external,submitterEmail:submitter.email,reviewerEmail:reviewer.email,reviewerId:reviewer.id,readerEmail:reader.email,outsiderEmail:outsider.email,nativeArtifactId:native.artifactId,nativeEventId:approved.eventId,browserSourceHash:hash(browserBytes),browser,sourceText:browserBytes.toString()},{mode:0o600})
 })
