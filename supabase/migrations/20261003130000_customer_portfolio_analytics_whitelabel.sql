@@ -578,8 +578,7 @@ begin
     return;
   end if;
 
-  execute 'drop trigger if exists gridex_guard_company_white_label_platform on public.companies';
-  execute 'create trigger gridex_guard_company_white_label_platform
+  execute 'create or replace trigger gridex_guard_company_white_label_platform
     before update of white_label_platform_id on public.companies
     for each row execute function public.gridex_guard_company_white_label_platform()';
 end

@@ -9,7 +9,7 @@
 -- ---------------------------------------------------------------------------
 create table if not exists public.customer_portfolio_forecast_snapshots (
   id uuid primary key default gen_random_uuid(),
-  company_id uuid not null references public.companies(id) on delete restrict,
+  company_id uuid not null references public.companies(id),
   as_of_month date not null,
   month date not null,
   month_index integer not null check (month_index between 1 and 24),
@@ -369,16 +369,23 @@ begin
     select 1 from public.customer_portfolio_forecast_snapshots s
     where s.company_id = p_company_id and s.as_of_month = v_month
   ) then
-    delete from public.customer_portfolio_forecast_snapshots s
-    where s.company_id = p_company_id and s.as_of_month = v_month;
-
-    insert into public.customer_portfolio_forecast_snapshots (
+    -- The horizon is always the same 12 months for a given as_of_month, so an upsert
+    -- replaces the whole run without removing rows.
+    insert into public.customer_portfolio_forecast_snapshots as fs (
       company_id, as_of_month, month, month_index, forecast_kwh, low_kwh, high_kwh,
       metering_points, points_with_history, computed_at
     )
     select p_company_id, v_month, f.month, f.month_index, f.forecast_kwh, f.low_kwh, f.high_kwh,
            f.metering_points, f.points_with_history, now()
-    from public.gridex_customer_portfolio_forecast_internal(p_company_id, v_month, 12) f;
+    from public.gridex_customer_portfolio_forecast_internal(p_company_id, v_month, 12) f
+    on conflict (company_id, as_of_month, month) do update set
+      month_index = excluded.month_index,
+      forecast_kwh = excluded.forecast_kwh,
+      low_kwh = excluded.low_kwh,
+      high_kwh = excluded.high_kwh,
+      metering_points = excluded.metering_points,
+      points_with_history = excluded.points_with_history,
+      computed_at = excluded.computed_at;
   end if;
 
   return v_row;
