@@ -49,5 +49,8 @@ export async function renderAndQueueAiList(input:{companyId:string;actorUserId:s
  if(['sent','dispatching','provider_accepted','delivered','acknowledged','queued'].includes(message.status))return message
  await queuePreparedEdielMessage({actorUserId:input.actorUserId,messageId:message.id,intentId:intent.id,externalReference:message.external_reference})
  await updateIntentLifecycle(intent.id,{outboxStatus:'queued',actorUserId:input.actorUserId})
- return message
+ // Return the persisted queued state, not the pre-queue draft snapshot.
+ const queued=await getEdielMessageById(message.id,{companyId:input.companyId})
+ if(!queued||queued.company_id!==input.companyId||queued.intent_id!==intent.id)throw new Error('ai_list_queued_message_unavailable')
+ return queued
 }

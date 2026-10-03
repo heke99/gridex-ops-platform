@@ -14,6 +14,7 @@ beforeEach(()=>{
  vi.clearAllMocks();mocks.authorize.mockResolvedValue(undefined);mocks.intent.mockResolvedValue({id:intentId,companyId:company,environment:'test',messageFamily:'AI_LIST',messageCode:'AI',senderEdielId:'12345',receiverEdielId:'54321',communicationRouteId:'route',customerId:'customer',customerSiteId:'site',routeProfileId:'profile',payload:{fromDate:'20261001',toDate:'20261101'}})
  mocks.render.mockResolvedValue({draft:{rawPayload:'fresh-source-owned-CSV',fileName:'AI.csv',mimeType:'text/csv'},basis:{history:{evidence:{snapshotId:'snapshot',readsetHash:'b'.repeat(64),rowSources:[]}}}})
  mocks.rpc.mockImplementation(async name=>({data:name==='gridex_ai_outbound_origin_status_v1'?{status:'new'}:{status:'original'},error:null}));mocks.finalize.mockResolvedValue(message)
+ mocks.message.mockResolvedValue({...message,status:'queued'})
 })
 describe('actual AI intent/render/original/finalize/outbox chain',()=>{
  it('records only a freshly recomputed complete source snapshot before actual message persistence and queues the same intent',async()=>{
@@ -21,6 +22,12 @@ describe('actual AI intent/render/original/finalize/outbox chain',()=>{
   expect(mocks.render).toHaveBeenCalledTimes(1)
   expect(mocks.rpc).toHaveBeenCalledWith('gridex_ai_record_outbound_original_v1',expect.objectContaining({p_company_id:company,p_intent_id:intentId,p_snapshot_id:'snapshot',p_readset_hash:'b'.repeat(64),p_raw_payload:'fresh-source-owned-CSV'}))
   expect(mocks.finalize).toHaveBeenCalledTimes(1);expect(mocks.queue).toHaveBeenCalledWith(expect.objectContaining({messageId:'message',intentId}))
+ })
+ it('returns the persisted queued message, never the pre-queue draft snapshot',async()=>{
+  expect(await renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).toMatchObject({id:'message',status:'queued'})
+  expect(mocks.message).toHaveBeenCalledWith('message',{companyId:company})
+  mocks.message.mockResolvedValue({...message,company_id:'00000000-0000-4000-8000-000000000099',status:'queued'})
+  await expect(renderAndQueueAiList({companyId:company,actorUserId:actor,intentId,routeContext:route})).rejects.toThrow('ai_list_queued_message_unavailable')
  })
  it('allows exact write capability to prepare with no separate READ or SEND grant',async()=>{
   mocks.authorize.mockImplementation(async input=>{if(!(input.permission==='communication.write'||input.permissionAnyOf?.includes('communication.write')))throw Error('prepare permission absent')})
