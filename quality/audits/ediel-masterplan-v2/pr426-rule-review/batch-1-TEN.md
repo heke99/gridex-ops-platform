@@ -27,9 +27,9 @@ saknade effekter eller saknade beteendetester.
 ## Bekräftade defekter (fp-check TRUE_POSITIVE)
 | ID | Allvar | Defekt | Riktad åtgärd |
 |---|---|---|---|
-| F-TEN-01 | medel | `createEdielExecutionContext` saknar produktionsanropare (lib/ediel/core/executionContext.ts:160). | Anropa före utgående send/kundmutation; beteendetest för avvisning. |
-| F-TEN-02 | låg | `resolveCanonicalActorContext` utan companyId faller tillbaka på global aktör (actorRegistry.ts:55-71); nås från legacy-adminsidan. | Kräv companyId; hoppa över uppslag när scope saknas. |
-| F-TEN-03 | medel | Endast en aktiv `ediel_actor_settings`-rad per bolag/miljö (config.ts:240-256); `tenantHasMarketRole` oanvänd. | Forward-migration med marknadsroll i aktörsprofil + rollgrind för DDQ/DGI. |
+| F-TEN-01 ✅ a7ad87a9 | medel | `createEdielExecutionContext` saknar produktionsanropare (lib/ediel/core/executionContext.ts:160). | Anropa före utgående send/kundmutation; beteendetest för avvisning. |
+| F-TEN-02 ✅ a7ad87a9 | låg | `resolveCanonicalActorContext` utan companyId faller tillbaka på global aktör (actorRegistry.ts:55-71); nås från legacy-adminsidan. | Kräv companyId; hoppa över uppslag när scope saknas. |
+| F-TEN-03 ✅ a7ad87a9 | medel | Endast en aktiv `ediel_actor_settings`-rad per bolag/miljö (config.ts:240-256); `tenantHasMarketRole` oanvänd. | Forward-migration med marknadsroll i aktörsprofil + rollgrind för DDQ/DGI. |
 | F-TEN-04 ✅ rättad 2c78bede | medel | `inboundTenantResolver.ts:152` tar NAD+MS/DDQ som juridisk mottagare → feltillskrivning via delat ombud. | Använd `extractMarketActorEdielIdFromRawPayload` (DO/MR), annars håll. |
 
 ## Uppföljning (ej avgjort)
@@ -53,3 +53,15 @@ D14 ambiguous (fail-closed korrekt), D15 wire-unikhet (reservationstabell finns)
 - F-TEN-01 och F-TEN-03 hänger ihop: en verifierad execution context kräver avsändarroll per process (DDQ/DGI),
   vilket kräver rollbundna aktörsprofiler. Designbeslut begärt av ägaren innan implementation.
 - TEN-06 kvar för godkännande: SC-014 (teknisk CONTRL i karantänfallet) saknar beteendetest.
+
+## Status efter a7ad87a9 (ägarbeslut: rollbundna profiler + kernel)
+- Processen (23-DDQ/23-DGI) väljer tenantens leverantörs- eller ESCO-profil via befintlig kolumn `actor_role`
+  (ingen schemaändring). Profilen kräver motsvarande verifierad marknadsroll i tenantidentiteten.
+- Kernel (`createCanonicalOutboundMessage`) kräver att wire-avsändaren är rollprofilens transportidentitet och
+  sparar en fryst execution context i `executionContextSnapshot.executionContext` innan utkastet skrivs.
+- Ingen tenantlös global aktör används längre (`canonical_actor_company_required`).
+- Tester: `ediel-actor-role-profiles.test.ts`, `ediel-outbound-execution-context.test.ts` (rött före, grönt efter);
+  hela unitsviten 9496/9496.
+- **Produktionspåverkan:** en DGI-sändning (t.ex. Z13) kräver nu en aktiv ESCO-profil (`actor_role='energy_service_company'`)
+  och rollen `energy_service_company` i tenantidentiteten. Produktion har i dag endast en aktiv leverantörsprofil.
+- Godkännande av TEN-01 sker när CI (inkl. native) är grön på a7ad87a9 eller senare. TEN-02 kräver dessutom SC-001 och SC-002.

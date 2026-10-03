@@ -1059,3 +1059,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-03 Granskning av #426 regel för regel startad: plan/status i `quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`; batch 1 (TEN-01..14) körs. Framåt: två regler i taget, godkända innan nästa par.
 - 2026-10-03 Batch 1 TEN granskad: 14/14 PARTIAL, bekräftade F-TEN-01..04 (se pr426-rule-review/batch-1-TEN.md). Nästa: rätta F-TEN-04 + F-TEN-01 (test först), sedan batch 2 ESCO.
 - 2026-10-03 F-TEN-04 rättad (2c78bede). F-TEN-01+F-TEN-03 väntar på ägarens designbeslut (rollbundna aktörsprofiler + central execution context i kernel). TEN-06 saknar SC-014-test före godkännande.
+- 2026-10-03 a7ad87a9: rollbundna aktörsprofiler + verifierad outbound execution context (F-TEN-01/02/03). DGI kräver nu aktiv ESCO-profil. Nästa: CI-grönt → godkänn TEN-01; TEN-06 SC-014-test; TEN-02 SC-001/SC-002.
