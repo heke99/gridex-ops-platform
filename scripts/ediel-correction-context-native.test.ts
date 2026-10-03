@@ -407,6 +407,9 @@ async function outboundSeed(){
  const marketActor=n.marketActorId,marketActorName=sql<string>(`SELECT to_jsonb(name) FROM public.platform_market_actors WHERE id=${literal(marketActor)}`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_outbound_owner.consumptions WHERE source_message_id=${literal(n.original.id)}`)).toBe(1)
  expect(sql(`SELECT to_jsonb(can_use_for_prodat) FROM public.actor_readiness_status WHERE platform_market_actor_id=${literal(marketActor)}`)).toBe(true)
+ // The chain's route served the Z03 start; this route is now the Z08 dispatch
+ // route (the outbox worker requires the profile's own message code).
+ sql(`UPDATE public.ediel_route_profiles SET business_code='Z08' WHERE company_id=${literal(n.companyId)} AND communication_route_id=${literal(n.routeId)}`)
  // The producer queued exactly one outbox item for its original.
  const outboxId=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(n.companyId)} AND ediel_message_id=${literal(n.original.id)} AND status='queued'`)
  expect(outboxId).toMatch(/^[0-9a-f-]{36}$/)
@@ -764,7 +767,7 @@ it('outbound historical sent status is uninstrumented and scoped unrelated origi
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
  UPDATE public.ediel_messages SET status='sent',message_sent_at=clock_timestamp() WHERE id=${literal(f.messageId)};`)
  const read=(point:string)=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point})});`)
- expect(read('735123456789012345')).toMatchObject({complete:false,originalCount:1,gaps:expect.arrayContaining([expect.objectContaining({messageId:f.messageId,reason:'uninstrumented_original'})])})
+ expect(read(f.point)).toMatchObject({complete:false,originalCount:1,gaps:expect.arrayContaining([expect.objectContaining({messageId:f.messageId,reason:'uninstrumented_original'})])})
  expect(read('735999999999999999')).toMatchObject({complete:false,originalCount:0,originals:[]})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.events WHERE message_id=${literal(f.messageId)}`)).toBe(0)
 })
@@ -816,21 +819,27 @@ it('outbound owner rejects same-transaction visibility witness',async()=>{
 it('outbound owner counts scope before its original bound and names overflow',async()=>{
  const f=await outboundSeed()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';`)
- // Retain every real canonical trigger; bound seed statements independently of
- // the reader's unchanged 10-second budget and its exact 1001-row oracle.
- for(let batch=0;batch<20;batch++)sql(`INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text))).*
- FROM public.ediel_messages m CROSS JOIN generate_series(1,50) WHERE m.id=${literal(f.messageId)};`)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound'`)).toBe(1001)
+ // Historical outbound rows that predate the national original and wire
+ // namespace guards (which now refuse byte-identical Z08H copies). An isolated
+ // native database emulates them; the reader reads the rows directly and its
+ // unchanged 10-second budget and exact 1001-row oracle are what is tested.
+ for(let batch=0;batch<20;batch++)sql(`BEGIN; SET LOCAL session_replication_role=replica;
+ INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'outbound_request_id',NULL,'source_operation_id',gen_random_uuid()::text))).*
+ FROM public.ediel_messages m CROSS JOIN generate_series(1,50) WHERE m.id=${literal(f.messageId)}; COMMIT;`)
+ // The chain's own Z03 start and replies are outside the Z08 reader scope.
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)} AND direction='outbound' AND message_code='Z08'`)).toBe(1001)
  const read=(point:string)=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point})});`)
- expect(read('735123456789012345')).toMatchObject({complete:false,originalCount:1001,reason:'scoped_original_count_overflow'})
+ expect(read(f.point)).toMatchObject({complete:false,originalCount:1001,reason:'scoped_original_count_overflow'})
  expect(read('735999999999999999')).toMatchObject({complete:false,originalCount:0,originals:[]})
 })
 it.each([{bytes:262145,count:1,reason:'scoped_original_bytes_overflow'},{bytes:200000,count:32,reason:'scoped_original_attempt_bytes_overflow'}])('outbound bounded reader reports $reason',async({bytes,count,reason})=>{
  const f=await outboundSeed()
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT ${literal(f.actorUserId)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.read';
- INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'source_operation_id',gen_random_uuid()::text,'raw_payload',repeat('X',${bytes})))).*
- FROM public.ediel_messages m CROSS JOIN generate_series(1,${count}) WHERE m.id=${literal(f.messageId)};`)
- expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:'735123456789012345'})});`))
+ -- Historical oversized rows predating the wire namespace guard (see above).
+ BEGIN; SET LOCAL session_replication_role=replica;
+ INSERT INTO public.ediel_messages SELECT (jsonb_populate_record(NULL::public.ediel_messages,to_jsonb(m)||jsonb_build_object('id',gen_random_uuid(),'outbound_request_id',NULL,'source_operation_id',gen_random_uuid()::text,'raw_payload',repeat('X',${bytes})))).*
+ FROM public.ediel_messages m CROSS JOIN generate_series(1,${count}) WHERE m.id=${literal(f.messageId)}; COMMIT;`)
+ expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:f.point})});`))
   .toMatchObject({complete:false,originalCount:count+1,reason})
 })
 
@@ -884,10 +893,12 @@ it('outbound result witness failure retains the accepted event and reader gap wi
   expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:false,facts:expect.objectContaining({classification:'accepted'})})])
   sql(`DROP TRIGGER native_witness_fail_${suffix} ON gridex_outbound_dispatch.witnesses; DROP FUNCTION public.native_witness_fail_${suffix}();`);installed=false
   sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)};`)
-  await expect(directOutbound(f)).rejects.toMatchObject({name:'SmtpDeliveryUncertainError'})
+  // The recorded accepted provider result is a replay: projections are
+  // repaired without a provider call (ReplayAccepted); the witness gap remains.
+  await directOutbound(f)
   expect(provider).toHaveBeenCalledTimes(1)
   expect(outboundFacts(f).filter(e=>e.kind==='provider_result')).toEqual([expect.objectContaining({witnessed:false})])
-  expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:'735123456789012345'})});`))
+  expect(sql(`SET ROLE service_role; SELECT gridex_outbound_dispatch.readset_v1(${literal(f.companyId)},'test',${literal(f.actorUserId)},${literal({point:f.point})});`))
    .toMatchObject({complete:false,originalCount:1,gaps:expect.arrayContaining([expect.objectContaining({messageId:f.messageId,reason:'unwitnessed_event'})])})
  }finally{
   if(installed)sql(`DROP TRIGGER native_witness_fail_${suffix} ON gridex_outbound_dispatch.witnesses; DROP FUNCTION public.native_witness_fail_${suffix}();`)
