@@ -80,6 +80,23 @@ def named(name, sql):
     return f"SET application_name={literal(name)};\n{sql}"
 
 
+def wait_transaction_blocked_by(waiter, blocker):
+    """Require an observed row-owner XID wait, not merely a soft lock queue."""
+    sql = f"""SELECT EXISTS(
+      SELECT 1 FROM pg_stat_activity a JOIN pg_stat_activity b ON b.application_name={literal(blocker)}
+      JOIN pg_locks w ON w.pid=a.pid JOIN pg_locks held ON held.pid=b.pid
+      WHERE a.application_name={literal(waiter)} AND a.wait_event_type='Lock'
+        AND w.locktype='transactionid' AND NOT w.granted
+        AND held.locktype='transactionid' AND held.granted AND held.mode='ExclusiveLock'
+        AND w.transactionid=held.transactionid);"""
+    deadline = time.monotonic() + 8
+    while time.monotonic() < deadline:
+        if query(sql) == "t":
+            return
+        time.sleep(0.05)
+    raise AssertionError(f"Native backend {waiter} never waited on the row owner {blocker}")
+
+
 engine = query("SELECT current_database()||'|'||current_setting('server_version');")
 name, version = engine.split("|", 1)
 if name != DATABASE or version.split(".")[0] not in ("16", "17"):
@@ -92,13 +109,16 @@ if query("SELECT count(*) FROM pg_namespace WHERE nspname='auth';") != "0":
 
 fixture = subprocess.run([shutil.which("node") or "node", "scripts/lib/staff-sql-fixture.cjs"], cwd=ROOT, env=ENV, text=True, capture_output=True, timeout=20, check=True)
 query(fixture.stdout)
-required = {"20261003220000_staff_api_sessions.sql", "20261003220500_staff_support_commands.sql", "20261003221000_staff_support_attachments.sql"}
+required = {"20261003220000_staff_api_sessions.sql", "20261003220500_staff_support_commands.sql", "20261003221000_staff_support_attachments.sql", "20261003224139_staff_api_storage_integrity.sql", "20261003225321_staff_attachment_lock_order.sql", "20261003230216_staff_native_account_policy_columns.sql", "20261003231500_staff_machine_auth.sql", "20261003232132_staff_command_client_policy_binding.sql"}
 migrations = sorted((ROOT / "supabase/migrations").glob("20261003*_staff_*.sql"))
 if not required.issubset({path.name for path in migrations}):
     raise SystemExit("Native package is missing a required staff forward migration")
 source_hashes = {path: hashlib.sha256((ROOT / path).read_bytes()).hexdigest() for path in (
-    "scripts/staff-api-native-regression.py", "scripts/staff-api-sql-regression.sql", "scripts/lib/staff-sql-fixture.cjs",
-    "scripts/sql/gridex-supabase-compatible-bootstrap.sql", "supabase/schema.sql")}
+    "scripts/staff-api-native-regression.py", "scripts/staff-api-sql-regression.sql", "scripts/staff-api-machine-auth-regression.sql", "scripts/lib/staff-sql-fixture.cjs",
+    "scripts/sql/gridex-supabase-compatible-bootstrap.sql", "supabase/schema.sql",
+    "supabase/migrations/20260809191057_authenticate_integration_request_route_cost.sql",
+    "supabase/migrations/20260810185155_gridex_canonical_architecture_p0.sql",
+    "supabase/migrations/20260810224500_canonical_review_remediation_v1.sql")}
 source_hashes["generated_fixture_sql"] = hashlib.sha256(fixture.stdout.encode()).hexdigest()
 for path in migrations:
     text = path.read_text()
@@ -108,6 +128,7 @@ for path in migrations:
     query(text)
 regression = (ROOT / "scripts/staff-api-sql-regression.sql").read_text()
 query(regression)
+query((ROOT / "scripts/staff-api-machine-auth-regression.sql").read_text())
 
 # Reuse only the synthetic setup section for independent connections. The
 # behavioral test above rolls every fixture back; this database is disposable.
@@ -289,11 +310,190 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
         raise AssertionError("Event timestamp/case version used time before the observed content lock wait")
 evidence.append("conversation timestamp and case version are captured after an observed content row-lock wait")
 
+# Core commands acquire the actor mutation budget before the case. Force a note
+# to own that budget while it waits on a held case, then start a new attachment.
+# Reservation must queue on the note's budget XID before trying to own the case;
+# the previous case->budget ordering either queued on the wrong owner or could
+# deadlock with a core writer. Both actual commands must commit exactly once.
+coexist_note_key = "native-note-attachment-coexist-001"
+coexist_attachment_key = "native-attachment-note-coexist-001"
+note_before = int(query("SELECT count(*) FROM public.customer_case_events WHERE event_type='support_internal_note';"))
+attachment_before = int(query("SELECT count(*) FROM public.customer_case_attachments;"))
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+    blocker = pool.submit(query, named("staff-native-core-case-lock", f"BEGIN;SELECT id FROM public.customer_cases WHERE id={literal(CASE_ID)} FOR UPDATE;SELECT pg_sleep(5);COMMIT;"))
+    wait_backend("staff-native-core-case-lock", "Timeout", "PgSleep")
+    core_writer = pool.submit(attempt, named("staff-native-core-note-writer", note.replace(note_key, coexist_note_key)))
+    wait_transaction_blocked_by("staff-native-core-note-writer", "staff-native-core-case-lock")
+    upload_writer = pool.submit(attempt, named("staff-native-core-attachment-writer", reserve(coexist_attachment_key)))
+    wait_transaction_blocked_by("staff-native-core-attachment-writer", "staff-native-core-note-writer")
+    blocker.result()
+    core_result, upload_result = core_writer.result(), upload_writer.result()
+    if not core_result["ok"] or core_result["value"]["replayed"] is not False or not upload_result["ok"] or upload_result["value"]["state"] != "acquired":
+        raise AssertionError(f"Same-actor core note and attachment did not both commit without a lock cycle: {core_result}, {upload_result}")
+if int(query("SELECT count(*) FROM public.customer_case_events WHERE event_type='support_internal_note';")) != note_before + 1 or int(query("SELECT count(*) FROM public.customer_case_attachments;")) != attachment_before + 1:
+    raise AssertionError("Concurrent core note/attachment produced missing or duplicate business effects")
+if query(f"SELECT count(*) FROM public.staff_api_support_receipts WHERE idempotency_key={literal(coexist_note_key)};") != "1" or query(f"SELECT count(*) FROM public.staff_api_attachment_receipts WHERE idempotency_key={literal(coexist_attachment_key)};") != "1":
+    raise AssertionError("Concurrent core note/attachment did not each retain exactly one protected receipt")
+evidence.append("same actor/case note plus attachment: observed budget-before-case wait, both commit once without deadlock")
+
+# Use a separate empty case so a canonical same-tenant customer move is legal
+# under the real composite case-owner FKs. A reserve first observes customer A,
+# waits on A's quota, then must reject the changed customer rather than recording
+# an attachment under that old quota. The complete request/hash stays unchanged.
+moved_customer = service_query(f"INSERT INTO public.customers(company_id,status,full_name,customer_number) VALUES({literal(COMPANY)},'active','Synthetic moved case customer','SYN-MOVED-QUOTA') RETURNING id;")
+moved_case = service_query(f"INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,priority,title,source,metadata) VALUES({literal(COMPANY)},{literal(CUSTOMER)},'other','open','normal','Synthetic moved-customer lock case','tenant_support_admin','{{\"support_case\":true}}') RETURNING id;")
+moved_case_reference = service_query(f"SELECT public.staff_api_public_reference('support_case',{literal(COMPANY)},{literal(moved_case)});")
+moved_key = "native-reserve-case-customer-moved-001"
+moved_reserve = reserve(moved_key).replace(literal(CASE_REFERENCE), literal(moved_case_reference))
+move_attachment_before = query("SELECT count(*) FROM public.customer_case_attachments;")
+move_receipt_before = query("SELECT count(*) FROM public.staff_api_attachment_receipts;")
+move_audit_before = query("SELECT count(*) FROM public.audit_logs WHERE action='staff_support_attachment_reserved';")
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+    blocker = pool.submit(query, named("staff-native-moved-customer-quota-lock", f"BEGIN;SELECT pg_advisory_xact_lock(pg_catalog.hashtextextended(concat_ws(':','support-attachment-quota',{literal(COMPANY)},{literal(CUSTOMER)}),0));SELECT pg_sleep(5);COMMIT;"))
+    wait_backend("staff-native-moved-customer-quota-lock", "Timeout", "PgSleep")
+    queued = pool.submit(attempt, named("staff-native-moved-customer-reserve", moved_reserve))
+    wait_backend("staff-native-moved-customer-reserve", "Lock", "advisory")
+    if query("SELECT EXISTS(SELECT 1 FROM pg_stat_activity a JOIN pg_stat_activity b ON b.application_name='staff-native-moved-customer-quota-lock' WHERE a.application_name='staff-native-moved-customer-reserve' AND b.pid=ANY(pg_blocking_pids(a.pid)));") != "t":
+        raise AssertionError("Customer-move reserve was not observed waiting on the original customer quota")
+    service_query(f"UPDATE public.customer_cases SET customer_id={literal(moved_customer)},updated_at=clock_timestamp() WHERE id={literal(moved_case)} AND company_id={literal(COMPANY)};")
+    blocker.result()
+    expect_error(queued.result(), "40001", "support_case_version_conflict")
+if query("SELECT count(*) FROM public.customer_case_attachments;") != move_attachment_before or query("SELECT count(*) FROM public.staff_api_attachment_receipts;") != move_receipt_before or query("SELECT count(*) FROM public.audit_logs WHERE action='staff_support_attachment_reserved';") != move_audit_before:
+    raise AssertionError("Customer changed during quota wait left an attachment, receipt or reservation audit")
+if query(f"SELECT count(*) FROM public.staff_api_attachment_receipts WHERE idempotency_key={literal(moved_key)};") != "0":
+    raise AssertionError("Denied unchanged upload request retained a receipt after case-customer movement")
+if query(f"SELECT customer_id::text FROM public.customer_cases WHERE id={literal(moved_case)};") != moved_customer:
+    raise AssertionError("Customer-move barrier failed to commit the actual canonical case owner")
+evidence.append("case-customer move during observed original-quota wait: unchanged reserve returns 40001 and leaves no row/receipt/audit")
+
+# A staff proof remains client-bound when a native business command resumes
+# after a client-policy edit. Exercise both new work and the exact receipt from
+# the first program: authorization must precede replay as well as creation.
+policy_counts_sql = """SELECT jsonb_build_object(
+  'cases',(SELECT count(*) FROM public.customer_cases),
+  'events',(SELECT count(*) FROM public.customer_case_events),
+  'audits',(SELECT count(*) FROM public.audit_logs),
+  'receipts',(SELECT count(*) FROM public.staff_api_support_receipts));"""
+original_create_key = "native-concurrent-create-001"
+if COMMAND.count(original_create_key) != 1:
+    raise AssertionError("Client-policy replay must reuse the first exact create command")
+original_receipt_sql = f"SELECT to_jsonb(r) FROM public.staff_api_support_receipts r WHERE company_id={literal(COMPANY)} AND api_client_id={literal(CLIENT)} AND actor_user_id={literal(STAFF)} AND operation='create' AND resource_reference='' AND idempotency_key={literal(original_create_key)};"
+client_policy_changes = (
+    ("profile", "profile_key='tenant_website'", "profile_key='custom'"),
+    ("kind", "metadata=jsonb_set(coalesce(metadata,'{}'::jsonb),'{integration_kind}','\"tenant_website\"'::jsonb)",
+     "metadata=jsonb_set(coalesce(metadata,'{}'::jsonb),'{integration_kind}','\"staff_support_v1\"'::jsonb)"),
+)
+
+
+def queued_client_policy_change(name, change, sql):
+    """Witness a command blocked by the transaction editing this client row."""
+    blocker_name, waiter_name = f"staff-native-client-{name}-lock", f"staff-native-client-{name}-writer"
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        blocker = pool.submit(query, named(blocker_name, f"BEGIN;UPDATE public.integration_api_clients SET {change} WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};SELECT pg_sleep(5);COMMIT;"))
+        wait_backend(blocker_name, "Timeout", "PgSleep")
+        queued = pool.submit(attempt, named(waiter_name, sql))
+        wait_transaction_blocked_by(waiter_name, blocker_name)
+        if query(f"""SELECT EXISTS(
+          SELECT 1 FROM pg_stat_activity a JOIN pg_stat_activity b ON b.application_name={literal(blocker_name)}
+          JOIN pg_locks held ON held.pid=b.pid JOIN pg_locks owned ON owned.pid=a.pid
+          JOIN pg_locks waiting ON waiting.pid=a.pid JOIN pg_locks xid_owner ON xid_owner.pid=b.pid
+          WHERE a.application_name={literal(waiter_name)} AND a.wait_event_type='Lock'
+            AND b.pid=ANY(pg_blocking_pids(a.pid))
+            AND waiting.locktype='transactionid' AND NOT waiting.granted
+            AND xid_owner.locktype='transactionid' AND xid_owner.granted AND xid_owner.mode='ExclusiveLock'
+            AND waiting.transactionid=xid_owner.transactionid
+            AND held.relation='public.integration_api_clients'::regclass AND held.granted AND held.mode='RowExclusiveLock'
+            AND owned.relation=held.relation AND owned.granted AND owned.mode='RowShareLock');""") != "t":
+            raise AssertionError("Client-policy command was not observed waiting on the actual integration client row owner")
+        blocker.result()
+        return queued.result()
+
+
+for policy_name, change, restore in client_policy_changes:
+    for mode in ("fresh", "replay"):
+        if query(f"SELECT profile_key||'|'||(metadata->>'integration_kind') FROM public.integration_api_clients WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};") != "custom|staff_support_v1":
+            raise AssertionError("Client-policy wait test requires the exact dedicated staff client")
+        key = original_create_key if mode == "replay" else f"native-client-{policy_name}-fresh-create-001"
+        receipt_sql = f"SELECT count(*) FROM public.staff_api_support_receipts WHERE company_id={literal(COMPANY)} AND api_client_id={literal(CLIENT)} AND actor_user_id={literal(STAFF)} AND operation='create' AND resource_reference='' AND idempotency_key={literal(key)};"
+        receipt_before = query(receipt_sql)
+        if receipt_before != ("1" if mode == "replay" else "0"):
+            raise AssertionError(f"Client-policy {policy_name}/{mode} receipt precondition failed")
+        counts_before = json.loads(query(policy_counts_sql))
+        original_receipt_before = json.loads(query(original_receipt_sql))
+        command = COMMAND if mode == "replay" else COMMAND.replace(original_create_key, key)
+        try:
+            expect_error(queued_client_policy_change(f"{policy_name}-{mode}", change, command), "42501", "Staff command is not authorized")
+            if json.loads(query(policy_counts_sql)) != counts_before or query(receipt_sql) != receipt_before or json.loads(query(original_receipt_sql)) != original_receipt_before:
+                raise AssertionError(f"Client-policy {policy_name}/{mode} denial changed a case, event, audit or protected receipt")
+        finally:
+            query(f"UPDATE public.integration_api_clients SET {restore} WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};")
+        if query(f"SELECT profile_key||'|'||(metadata->>'integration_kind') FROM public.integration_api_clients WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};") != "custom|staff_support_v1":
+            raise AssertionError("Client-policy wait test did not restore the exact staff client")
+        restored = service_json(COMMAND)
+        if restored["replayed"] is not True or restored["data"] != results[0]["data"] or json.loads(query(policy_counts_sql)) != counts_before or json.loads(query(original_receipt_sql)) != original_receipt_before:
+            raise AssertionError("Restored client policy did not replay the exact existing response without effects")
+        evidence.append(f"client {policy_name} change during observed client-row wait: {mode} create denied 42501 with no case/event/audit/receipt change")
+
+# Mutable Auth must honor the same policy at bootstrap, acquisition and commit.
+# Each variant owns a new synthetic vault row; the earlier Auth/logout and
+# business session state remains untouched. A refused completion must persist
+# its block rather than roll that block back with an exception.
+old_auth_row = query(f"SELECT to_jsonb(s) FROM public.staff_api_sessions s WHERE id={literal(AUTH_SESSION)};")
+for policy_name, change, restore in client_policy_changes:
+    for auth_operation in ("bootstrap", "acquire", "complete"):
+        if query(f"SELECT profile_key||'|'||(metadata->>'integration_kind') FROM public.integration_api_clients WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};") != "custom|staff_support_v1":
+            raise AssertionError("Auth client-policy wait test requires the exact staff client")
+        auth_id = query("SELECT gen_random_uuid();")
+        auth_refresh_hash = hashlib.sha256(f"synthetic-client-policy:{auth_id}".encode()).hexdigest()
+        auth_operation_key = f"native-auth-client-{policy_name}-{auth_operation}-001"
+        bootstrap_sql = f"INSERT INTO public.staff_api_sessions(id,user_id,company_id,api_client_id,native_session_id,encrypted_payload,refresh_hash,stage,native_aal,expires_at) VALUES({literal(auth_id)},{literal(STAFF)},{literal(COMPANY)},{literal(CLIENT)},{literal(NATIVE)},'synthetic-client-policy-payload',{literal(auth_refresh_hash)},'authenticated','aal1',clock_timestamp()+interval '8 hours') RETURNING jsonb_build_object('session_id',id);"
+        acquire_sql = f"SELECT public.staff_api_acquire_session_operation({literal(auth_id)},{literal(CLIENT)},{literal(COMPANY)},{literal(auth_operation_key)},'refresh',{literal(DIGEST)},1,{literal(auth_refresh_hash)});"
+        if auth_operation != "bootstrap":
+            service_json(bootstrap_sql)
+        if auth_operation == "complete":
+            pending_auth = service_json(acquire_sql)
+            if pending_auth["state"] != "acquired":
+                raise AssertionError("Mutable Auth policy completion requires an actual pending refresh lease")
+            auth_sql = f"SELECT to_jsonb(public.staff_api_complete_session_operation({literal(auth_id)},{literal(pending_auth['lease_id'])},'must-never-commit-client-policy-payload',{literal(NATIVE)},'authenticated','aal1',{literal('f' * 64)},'must-never-commit-client-policy-receipt',true));"
+        else:
+            auth_sql = bootstrap_sql if auth_operation == "bootstrap" else acquire_sql
+        vault_sql = f"SELECT to_jsonb(s) FROM public.staff_api_sessions s WHERE id={literal(auth_id)};"
+        operations_sql = f"SELECT count(*) FROM public.staff_api_session_operations WHERE session_id={literal(auth_id)};"
+        vault_before = query(vault_sql)
+        operations_before = query(operations_sql)
+        try:
+            outcome = queued_client_policy_change(f"auth-{policy_name}-{auth_operation}", change, auth_sql)
+            if auth_operation == "complete":
+                if not outcome["ok"] or outcome["value"] != 0:
+                    raise AssertionError(f"Revoked client Auth completion did not commit its private failure sentinel: {outcome}")
+                blocked = json.loads(query(vault_sql))
+                if blocked["status"] != "blocked" or blocked["lease_id"] is not None or blocked["lease_expires_at"] is not None or blocked["revision"] != 1 or blocked["encrypted_payload"] != "synthetic-client-policy-payload" or blocked["refresh_hash"] != auth_refresh_hash:
+                    raise AssertionError("Refused Auth completion did not retain the old vault data and a durable cleared-lease block")
+                if query(f"SELECT status||'|'||(encrypted_receipt IS NULL)::text||'|'||(completed_revision IS NULL)::text FROM public.staff_api_session_operations WHERE session_id={literal(auth_id)} AND operation_key={literal(auth_operation_key)};") != "blocked|true|true":
+                    raise AssertionError("Refused Auth completion retained a pending operation or published an encrypted receipt")
+            else:
+                expect_error(outcome, "42501", "Staff integration client is not authorized")
+                if query(vault_sql) != vault_before:
+                    raise AssertionError("Refused Auth bootstrap/acquire created or modified a vault session")
+            if query(operations_sql) != operations_before:
+                raise AssertionError("Refused Auth client-policy command inserted or deleted an operation")
+        finally:
+            query(f"UPDATE public.integration_api_clients SET {restore} WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};")
+        if query(f"SELECT profile_key||'|'||(metadata->>'integration_kind') FROM public.integration_api_clients WHERE id={literal(CLIENT)} AND company_id={literal(COMPANY)};") != "custom|staff_support_v1":
+            raise AssertionError("Auth client-policy wait test did not restore the exact staff client")
+        evidence.append(f"client {policy_name} change during observed client-row wait: Auth {auth_operation} refuses authority; completion blocks durably")
+if query(f"SELECT to_jsonb(s) FROM public.staff_api_sessions s WHERE id={literal(AUTH_SESSION)};") != old_auth_row:
+    raise AssertionError("Isolated Auth client-policy programs changed the earlier Auth/logout vault row")
+
 # Existing support/native/customer insertion paths share the same trigger quota.
-# Seed 17 current rows including the recovered staff attachment, plus an old row
+# Seed exactly 17 current rows including previously tested staff attachments, plus an old row
 # and a foreign-tenant row that must not spend this customer's rolling quota.
 insert_base = "INSERT INTO public.customer_case_attachments(company_id,customer_id,customer_case_id,public_reference,file_name,declared_mime_type,byte_size,sha256,storage_path,visibility,uploaded_by_kind,scan_status,created_at)"
-service_query(f"{insert_base} SELECT {literal(COMPANY)},{literal(CUSTOMER)},{literal(CASE_ID)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),'synthetic-'||g||'.pdf','application/pdf',100,{literal(DIGEST)},'synthetic/native-'||g,CASE WHEN g%2=0 THEN 'internal' ELSE 'customer' END,CASE WHEN g%2=0 THEN 'staff' ELSE 'customer' END,'quarantined',clock_timestamp() FROM generate_series(1,16) g;")
+current_attachments = int(query(f"SELECT count(*) FROM public.customer_case_attachments WHERE company_id={literal(COMPANY)} AND customer_id={literal(CUSTOMER)} AND created_at>=clock_timestamp()-interval '24 hours';"))
+seed_count = 17 - current_attachments
+if seed_count < 0:
+    raise AssertionError("Earlier concurrency programs exceeded the shared-quota seed target")
+service_query(f"{insert_base} SELECT {literal(COMPANY)},{literal(CUSTOMER)},{literal(CASE_ID)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),'synthetic-'||g||'.pdf','application/pdf',100,{literal(DIGEST)},'synthetic/native-'||g,CASE WHEN g%2=0 THEN 'internal' ELSE 'customer' END,CASE WHEN g%2=0 THEN 'staff' ELSE 'customer' END,'quarantined',clock_timestamp() FROM generate_series(1,{seed_count}) g;")
 service_query(f"{insert_base} VALUES({literal(COMPANY)},{literal(CUSTOMER)},{literal(CASE_ID)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),'old-synthetic.pdf','application/pdf',100,{literal(DIGEST)},'synthetic/old','internal','staff','quarantined',clock_timestamp()-interval '25 hours');")
 foreign_case = service_query("INSERT INTO public.customer_cases(company_id,customer_id,case_type,status,priority,title,source,metadata) VALUES('22222222-2222-4222-8222-222222222222','cccccccc-cccc-4ccc-8ccc-cccccccccccc','other','open','normal','Synthetic foreign quota','tenant_support_admin','{\"support_case\":true}') RETURNING id;")
 service_query(f"{insert_base} VALUES('22222222-2222-4222-8222-222222222222','cccccccc-cccc-4ccc-8ccc-cccccccccccc',{literal(foreign_case)},'support_attachment_'||replace(gen_random_uuid()::text,'-',''),'foreign-synthetic.pdf','application/pdf',100,{literal(DIGEST)},'synthetic/foreign','internal','staff','quarantined',clock_timestamp());")

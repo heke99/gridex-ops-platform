@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import CreateApiClientForm from './CreateApiClientForm'
+import CreateStaffApiClientForm from './CreateStaffApiClientForm'
 import {
   deleteIntegrationApiClientAction,
   setIntegrationApiClientStatusAction,
@@ -342,6 +343,14 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
         </aside>
       </div>
 
+      <div className="mt-8">
+        <CreateStaffApiClientForm
+          key={defaultCompanyId ?? 'new-staff-client'}
+          companies={companies.map(({ id, name, status }) => ({ id, name, status }))}
+          defaultCompanyId={defaultCompanyId}
+        />
+      </div>
+
       <section className="mt-8 rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-950">Bolagens integrationsstatus</h2>
@@ -365,6 +374,7 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
                 const origins = valueList(client.allowed_origins).length ? valueList(client.allowed_origins) : valueList(metadata.allowed_origins)
                 const clientWebhooks = webhooksByClient.get(client.id) ?? []
                 const tenantWebsite = isTenantWebsiteIntegrationClient(client)
+                const staffIntegration = client.profile_key === 'custom' && metadata.integration_kind === 'staff_support_v1'
                 const live = tenantWebsite && client.status === 'active' && client.launch_ready === true
                 const launchBlockers = normalizeLaunchBlockers(client.launch_blockers)
 
@@ -392,20 +402,31 @@ export default async function PlatformApiClientsPage({ searchParams }: PageProps
                             {origins.length ? origins.map((origin) => <div key={origin}>{origin}</div>) : <div>Inga origins</div>}
                             {clientWebhooks.map((webhook) => <div key={webhook.id}>Webhook: {webhook.endpoint_url}</div>)}
                           </div>
-                          <form action={updateIntegrationApiClientPermissionsAction} className="grid gap-3">
-                            <input type="hidden" name="clientId" value={client.id} />
-                            {INTEGRATION_API_PERMISSION_GROUPS.map((group) => {
-                              const active = group.scopes.some((scope) => valueList(client.scopes).includes(scope))
-                              return (
-                                <label key={group.groupKey} className="flex gap-2 text-xs text-slate-700">
-                                  <input type="checkbox" name="permissionGroups" value={group.groupKey} defaultChecked={active} />
-                                  <span><strong>{group.label}</strong><br /><span className="text-slate-500">{group.description}</span></span>
-                                </label>
-                              )
-                            })}
-                            <textarea name="allowedOrigins" rows={3} defaultValue={origins.join('\n')} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs" />
-                            <button className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800">Spara avancerat</button>
-                          </form>
+                          {staffIntegration ? (
+                            <div className="space-y-2 text-xs text-slate-600">
+                              <p className="font-semibold text-slate-800">Fast personalintegration</p>
+                              <p>Webbdomän: https://support123.gridex.se</p>
+                              <ul className="space-y-1">
+                                {valueList(client.scopes).map((scope) => <li key={scope}><code>{scope}</code></li>)}
+                              </ul>
+                              <p>Nyckeln används enbart som GRIDEX_STAFF_API_KEY i supportwebbens servermiljö.</p>
+                            </div>
+                          ) : (
+                            <form action={updateIntegrationApiClientPermissionsAction} className="grid gap-3">
+                              <input type="hidden" name="clientId" value={client.id} />
+                              {INTEGRATION_API_PERMISSION_GROUPS.map((group) => {
+                                const active = group.scopes.some((scope) => valueList(client.scopes).includes(scope))
+                                return (
+                                  <label key={group.groupKey} className="flex gap-2 text-xs text-slate-700">
+                                    <input type="checkbox" name="permissionGroups" value={group.groupKey} defaultChecked={active} />
+                                    <span><strong>{group.label}</strong><br /><span className="text-slate-500">{group.description}</span></span>
+                                  </label>
+                                )
+                              })}
+                              <textarea name="allowedOrigins" rows={3} defaultValue={origins.join('\n')} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs" />
+                              <button className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-xs font-semibold text-emerald-800">Spara avancerat</button>
+                            </form>
+                          )}
                         </div>
                       </details>
                     </td>

@@ -37,13 +37,15 @@ DECLARE
   case_ref text; customer_ref text; foreign_ref text; result jsonb; replay jsonb;
   operation jsonb; lease uuid; command_sql text; count_before bigint; items bigint; step jsonb; tuple jsonb;
   digest text := repeat('a',64); cursor_count integer:=0; case_id uuid; attachment_ref text; previous_lease uuid;
-  old_updated timestamptz; counts jsonb;
+  old_updated timestamptz; counts jsonb; policy_sid uuid; policy_hash text; auth_snapshot jsonb;
 BEGIN
   -- Reachability is tested against the actual forward migration ACLs.
   PERFORM pg_temp.staff_assert(NOT has_table_privilege('authenticated','public.staff_api_sessions','SELECT'),'browser cannot read vault');
   PERFORM pg_temp.staff_assert(NOT has_table_privilege('anon','public.staff_api_support_receipts','SELECT'),'anonymous cannot read receipts');
   PERFORM pg_temp.staff_assert(NOT has_function_privilege('authenticated','public.staff_api_support_command(uuid,bigint,uuid,uuid,uuid,uuid,text,text,text,text,jsonb)','EXECUTE'),'browser cannot invoke commands');
   PERFORM pg_temp.staff_assert(NOT has_function_privilege('authenticated','public.staff_api_native_account_state(uuid,uuid)','EXECUTE'),'browser cannot inspect native Auth state');
+  PERFORM pg_temp.staff_assert(NOT has_function_privilege('authenticated','public.staff_api_client_policy_allowed(uuid,uuid,text)','EXECUTE'),'browser cannot invoke private staff client policy');
+  PERFORM pg_temp.staff_assert(NOT has_function_privilege('anon','public.staff_api_check_session_bootstrap()','EXECUTE'),'anonymous cannot invoke vault bootstrap trigger');
   PERFORM pg_temp.staff_assert((SELECT relrowsecurity FROM pg_class WHERE oid='public.staff_api_sessions'::regclass),'vault RLS enabled');
   PERFORM pg_temp.staff_assert((SELECT relrowsecurity FROM pg_class WHERE oid='public.staff_api_support_receipts'::regclass),'receipt RLS enabled');
 
@@ -55,9 +57,9 @@ BEGIN
   INSERT INTO public.role_permissions(role_id,permission_id) SELECT role_id,p.id FROM public.permissions p WHERE p.key IN ('cases.read','cases.write','customers.read');
   INSERT INTO public.company_memberships(company_id,user_id,status,role_key) VALUES(a,staff,'active','support'),(b,other_staff,'active','support'),(a,customer_user,'active','customer');
   INSERT INTO public.user_roles(user_id,company_id,role_id,role) VALUES(staff,a,role_id,'support'),(other_staff,b,role_id,'support');
-  INSERT INTO public.integration_api_clients(id,company_id,name,key_prefix,secret_hash,scopes)
-    VALUES(client,a,'Synthetic staff client','synthetic',repeat('0',64),ARRAY['staff_sessions.write','staff_context.read','staff_customers.read','staff_support.read','staff_support.write']),
-      (other_client,b,'Synthetic other client','synthetic2',repeat('1',64),ARRAY['staff_support.write']);
+  INSERT INTO public.integration_api_clients(id,company_id,name,key_prefix,secret_hash,scopes,profile_key,metadata)
+    VALUES(client,a,'Synthetic staff client','synthetic',repeat('0',64),ARRAY['staff_sessions.write','staff_context.read','staff_customers.read','staff_support.read','staff_support.write'],'custom','{"integration_kind":"staff_support_v1"}'),
+      (other_client,b,'Synthetic other client','synthetic2',repeat('1',64),ARRAY['staff_support.write'],'custom','{"integration_kind":"staff_support_v1"}');
   INSERT INTO auth.sessions(id,user_id,not_after,aal) VALUES(native,staff,now()+interval '2 hours','aal1');
   INSERT INTO public.staff_api_sessions(id,user_id,company_id,api_client_id,native_session_id,encrypted_payload,refresh_hash,stage,native_aal,expires_at)
     VALUES(sid,staff,a,client,native,'synthetic_encrypted_payload',repeat('b',64),'authenticated','aal1',now()+interval '8 hours'),
@@ -179,6 +181,26 @@ BEGIN
   PERFORM pg_temp.staff_expect(command_sql,'42501');
   PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_support_command(%L,1,%L,%L,%L,%L,''reply'',%L,''synthetic-reply-key-001'',%L,%L::jsonb)',sid,staff,native,client,a,case_ref,digest,jsonb_build_object('message','Customer-visible synthetic reply','kind','message')),'42501');
   UPDATE public.company_memberships SET status='active' WHERE company_id=a AND user_id=staff;
+  -- Native machine-profile revocation must deny both a fresh command and
+  -- replay of an already committed receipt, not only the next HTTP guard.
+  SELECT jsonb_build_object('events',(SELECT count(*) FROM public.customer_case_events),
+    'receipts',(SELECT count(*) FROM public.staff_api_support_receipts),
+    'audits',(SELECT count(*) FROM public.audit_logs),'updated_at',updated_at)
+    INTO counts FROM public.customer_cases WHERE id=case_id;
+  UPDATE public.integration_api_clients SET metadata='{"integration_kind":"customer_portal"}' WHERE id=client;
+  PERFORM pg_temp.staff_expect(command_sql,'42501','Staff command is not authorized');
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_support_command(%L,1,%L,%L,%L,%L,''note'',%L,''synthetic-kind-revoked-new'',%L,%L::jsonb)',sid,staff,native,client,a,case_ref,digest,jsonb_build_object('message','Must not persist')),'42501','Staff command is not authorized');
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_support_command(%L,1,%L,%L,%L,%L,''reply'',%L,''synthetic-reply-key-001'',%L,%L::jsonb)',sid,staff,native,client,a,case_ref,digest,jsonb_build_object('message','Customer-visible synthetic reply','kind','message')),'42501','Staff command is not authorized');
+  UPDATE public.integration_api_clients SET metadata='{"integration_kind":"staff_support_v1"}',profile_key='tenant_website' WHERE id=client;
+  PERFORM pg_temp.staff_expect(command_sql,'42501','Staff command is not authorized');
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_support_command(%L,1,%L,%L,%L,%L,''note'',%L,''synthetic-profile-revoked-new'',%L,%L::jsonb)',sid,staff,native,client,a,case_ref,digest,jsonb_build_object('message','Must not persist')),'42501','Staff command is not authorized');
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_support_command(%L,1,%L,%L,%L,%L,''reply'',%L,''synthetic-reply-key-001'',%L,%L::jsonb)',sid,staff,native,client,a,case_ref,digest,jsonb_build_object('message','Customer-visible synthetic reply','kind','message')),'42501','Staff command is not authorized');
+  UPDATE public.integration_api_clients SET profile_key='custom' WHERE id=client;
+  PERFORM pg_temp.staff_assert((SELECT count(*) FROM public.customer_case_events)=(counts->>'events')::bigint
+    AND (SELECT count(*) FROM public.staff_api_support_receipts)=(counts->>'receipts')::bigint
+    AND (SELECT count(*) FROM public.audit_logs)=(counts->>'audits')::bigint
+    AND (SELECT updated_at FROM public.customer_cases WHERE id=case_id)=(counts->>'updated_at')::timestamptz,
+    'dedicated profile/kind revocation leaves no fresh mutation, audit or receipt and denies exact replay');
   -- An independent active read grant must not keep write privileges contributed
   -- by an individually expired role. Native single-active-tenant-role uniqueness
   -- remains intact. expires_at is a verified live OPS column.
@@ -223,6 +245,60 @@ BEGIN
   PERFORM pg_temp.staff_assert(public.staff_api_complete_session_operation(auth_sid,lease,'new_synthetic_ciphertext',native,'authenticated','aal1',repeat('e',64),'synthetic_encrypted_receipt',true)=2,'one advanced refresh revision');
   operation:=public.staff_api_acquire_session_operation(auth_sid,client,a,'synthetic-refresh-operation','refresh',digest,1,repeat('c',64));
   PERFORM pg_temp.staff_assert(operation->>'state'='replay','exact completed refresh receipt replays');
+  -- A completed Auth receipt cannot be retrieved after profile/kind revocation;
+  -- no new native-consuming lease or vault bootstrap may be admitted either.
+  SELECT to_jsonb(x) INTO auth_snapshot FROM public.staff_api_sessions x WHERE id=auth_sid;
+  FOR step IN SELECT value FROM jsonb_array_elements('[{"profile":"tenant_website","kind":"staff_support_v1"},{"profile":"custom","kind":"customer_portal"}]'::jsonb) LOOP
+    UPDATE public.integration_api_clients SET profile_key=step->>'profile',metadata=jsonb_build_object('integration_kind',step->>'kind') WHERE id=client;
+    PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_acquire_session_operation(%L,%L,%L,''synthetic-refresh-operation'',''refresh'',%L,1,%L)',auth_sid,client,a,digest,repeat('c',64)),'42501','Staff integration client is not authorized');
+    PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_acquire_session_operation(%L,%L,%L,''synthetic-policy-new-password'',''password'',%L,2,NULL)',auth_sid,client,a,digest),'42501','Staff integration client is not authorized');
+    PERFORM pg_temp.staff_expect(format('INSERT INTO public.staff_api_sessions(id,user_id,company_id,api_client_id,native_session_id,encrypted_payload,refresh_hash,stage,native_aal,expires_at) VALUES(%L,%L,%L,%L,%L,''must_not_store'',%L,''authenticated'',''aal1'',clock_timestamp()+interval ''8 hours'')','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',staff,a,client,native,repeat('9',64)),'42501','Staff integration client is not authorized');
+    PERFORM pg_temp.staff_assert((SELECT to_jsonb(x)=auth_snapshot FROM public.staff_api_sessions x WHERE id=auth_sid),'revoked Auth acquire/replay leaves stored credentials and lease unchanged');
+    PERFORM pg_temp.staff_assert(NOT EXISTS(SELECT 1 FROM public.staff_api_session_operations WHERE session_id=auth_sid AND operation_key='synthetic-policy-new-password'),'revoked Auth acquire creates no pending operation');
+    PERFORM pg_temp.staff_assert(NOT EXISTS(SELECT 1 FROM public.staff_api_sessions WHERE id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'),'revoked bootstrap creates no vault');
+    UPDATE public.integration_api_clients SET profile_key='custom',metadata=jsonb_build_object('integration_kind','staff_support_v1') WHERE id=client;
+  END LOOP;
+  -- The explicit Auth scope is independently required even on an existing
+  -- authenticated vault; a support-only machine row cannot mutate credentials.
+  UPDATE public.integration_api_clients SET scopes=ARRAY['staff_support.write'] WHERE id=client;
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_acquire_session_operation(%L,%L,%L,''synthetic-policy-no-session-scope'',''refresh'',%L,2,NULL)',auth_sid,client,a,digest),'42501','Staff integration client is not authorized');
+  UPDATE public.integration_api_clients SET scopes=ARRAY['staff_sessions.write','staff_context.read','staff_customers.read','staff_support.read','staff_support.write'] WHERE id=client;
+  UPDATE public.companies SET is_active=false WHERE id=a;
+  PERFORM pg_temp.staff_expect(format('SELECT public.staff_api_acquire_session_operation(%L,%L,%L,''synthetic-policy-inactive-company'',''password'',%L,2,NULL)',auth_sid,client,a,digest),'42501','Staff integration client is not authorized');
+  UPDATE public.companies SET is_active=true WHERE id=a;
+
+  -- Native Auth may have consumed credentials before current machine policy
+  -- changes. Finalization must COMMIT a durable block, preserve old credentials,
+  -- and withhold its receipt. A SQL exception here would undo the block.
+  FOR step IN SELECT value FROM jsonb_array_elements('[{"profile":"tenant_website","kind":"staff_support_v1"},{"profile":"custom","kind":"customer_portal"}]'::jsonb) LOOP
+    policy_sid:=gen_random_uuid(); policy_hash:=md5(policy_sid::text)||md5(policy_sid::text);
+    INSERT INTO public.staff_api_sessions(id,user_id,company_id,api_client_id,native_session_id,encrypted_payload,refresh_hash,stage,native_aal,expires_at)
+      VALUES(policy_sid,staff,a,client,native,'old_synthetic_credentials',policy_hash,'authenticated','aal1',clock_timestamp()+interval '8 hours');
+    operation:=public.staff_api_acquire_session_operation(policy_sid,client,a,'synthetic-policy-pending-password','password',digest,1,NULL);
+    PERFORM pg_temp.staff_assert(operation->>'state'='acquired','current policy admits a native-consuming password lease');
+    lease:=(operation->>'lease_id')::uuid;
+    UPDATE public.integration_api_clients SET profile_key=step->>'profile',metadata=jsonb_build_object('integration_kind',step->>'kind') WHERE id=client;
+    PERFORM pg_temp.staff_assert(public.staff_api_complete_session_operation(policy_sid,lease,'must_not_store_new_credentials',native,'authenticated','aal1',repeat('8',64),'must_not_store_receipt',true)=0,'revoked Auth completion commits blocked sentinel');
+    PERFORM pg_temp.staff_assert((SELECT status='blocked' AND revision=1 AND lease_id IS NULL AND lease_expires_at IS NULL AND encrypted_payload='old_synthetic_credentials' AND refresh_hash=policy_hash FROM public.staff_api_sessions WHERE id=policy_sid),'revoked complete durably blocks without rotating/storing native credentials');
+    PERFORM pg_temp.staff_assert((SELECT status='blocked' AND encrypted_receipt IS NULL AND completed_revision IS NULL FROM public.staff_api_session_operations WHERE session_id=policy_sid AND operation_key='synthetic-policy-pending-password'),'revoked complete stores no successful Auth receipt');
+    UPDATE public.integration_api_clients SET profile_key='custom',metadata=jsonb_build_object('integration_kind','staff_support_v1') WHERE id=client;
+    operation:=public.staff_api_acquire_session_operation(policy_sid,client,a,'synthetic-policy-after-restore','refresh',digest,1,NULL);
+    PERFORM pg_temp.staff_assert(operation->>'state'='invalid','restoring machine policy does not reactivate blocked credentials');
+  END LOOP;
+
+  -- Preserve a read already admitted by the HTTP boundary and allow logout to
+  -- remove authority after a policy change; neither mints a new Auth revision.
+  policy_sid:=gen_random_uuid(); policy_hash:=md5(policy_sid::text)||md5(policy_sid::text);
+  INSERT INTO public.staff_api_sessions(id,user_id,company_id,api_client_id,native_session_id,encrypted_payload,refresh_hash,stage,native_aal,expires_at)
+    VALUES(policy_sid,staff,a,client,native,'old_read_credentials',policy_hash,'authenticated','aal1',clock_timestamp()+interval '8 hours');
+  operation:=public.staff_api_acquire_session_operation(policy_sid,client,a,'synthetic-policy-inflight-read','validate',digest,1,NULL);
+  lease:=(operation->>'lease_id')::uuid;
+  UPDATE public.integration_api_clients SET metadata=jsonb_build_object('integration_kind','customer_portal') WHERE id=client;
+  PERFORM pg_temp.staff_assert(public.staff_api_complete_session_operation(policy_sid,lease,'validated_read_credentials',native,'authenticated','aal1',NULL,NULL,false)=1,'an admitted validate read can finish without minting a new revision');
+  operation:=public.staff_api_logout_session(policy_sid,client,a,'synthetic-policy-authority-reduction',digest,'synthetic_logout_receipt');
+  PERFORM pg_temp.staff_assert(operation->>'state'='revoked' AND (SELECT status='revoked' FROM public.staff_api_sessions WHERE id=policy_sid),'logout still removes authority after machine policy revocation');
+  UPDATE public.integration_api_clients SET metadata=jsonb_build_object('integration_kind','staff_support_v1') WHERE id=client;
+
   operation:=public.staff_api_acquire_session_operation(auth_sid,client,a,'synthetic-validate-operation','validate',digest,2,NULL);
   lease:=(operation->>'lease_id')::uuid;
   PERFORM public.staff_api_logout_session(auth_sid,client,a,'synthetic-logout-operation',digest,'synthetic_logout_receipt');

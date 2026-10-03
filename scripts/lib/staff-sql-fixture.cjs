@@ -10,6 +10,8 @@ const tables = new Set([
   'customers', 'customer_sites', 'customer_contacts', 'customer_addresses',
   'customer_cases', 'customer_case_events', 'customer_case_attachments', 'audit_logs',
   'platform_table_classification',
+  'integration_api_rate_limit_buckets', 'tenant_website_installation_receipts',
+  'company_capabilities',
 ])
 
 function buildStaffFixture(root, { wasm = false } = {}) {
@@ -26,6 +28,8 @@ function buildStaffFixture(root, { wasm = false } = {}) {
     'gridex_is_current_session_allowed', 'canonical_authenticated_tenant_context',
     'canonical_authenticated_tenant_context_v1_scoped',
     'gridex_actor_has_company_permission', 'gridex_update_customer_case_status',
+    'authenticate_integration_request_v1', 'authenticate_integration_request_v1_credential_core',
+    'integration_api_scope_present_v1', 'integration_api_rate_limit_check',
   ])
   for (const block of blocks) {
     const aclTable = /GRANT [^;]* ON TABLE public\.([a-z0-9_]+) TO service_role;/.exec(block)
@@ -81,19 +85,34 @@ CREATE TABLE IF NOT EXISTS auth.mfa_factors (
  factor_type text NOT NULL, status text NOT NULL, friendly_name text
 );
 `
-  const policies = `
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS must_change_password boolean NOT NULL DEFAULT false;
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS password_changed_at timestamptz;
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS temporary_password_set_at timestamptz;
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS temporary_password_expires_at timestamptz;
--- This optional live Auth-adjacent column is absent from the committed dump,
--- but verified through information_schema on OPS before this fixture was built.
-ALTER TABLE public.user_roles ADD COLUMN IF NOT EXISTS expires_at timestamptz;
-`
+  // The public schema dump intentionally omits private credential functions.
+  // Recover the real native body and its exact historical rename/ACL statements
+  // from committed migrations; no substitute authentication implementation.
+  const authSource = fs.readFileSync(path.join(root, 'supabase/migrations/20260809191057_authenticate_integration_request_route_cost.sql'), 'utf8')
+  const canonicalSource = fs.readFileSync(path.join(root, 'supabase/migrations/20260810185155_gridex_canonical_architecture_p0.sql'), 'utf8')
+  const privateSource = fs.readFileSync(path.join(root, 'supabase/migrations/20260810224500_canonical_review_remediation_v1.sql'), 'utf8')
+  const exact = (source, pattern, label) => {
+    const matches = [...source.matchAll(pattern)]
+    if (matches.length !== 1) throw new Error(`Expected one source-defined ${label}, found ${matches.length}`)
+    return matches[0][0]
+  }
+  const nativeCredential = [
+    exact(authSource, /create or replace function public\.authenticate_integration_request_v1\([\s\S]+?\n\$\$;/g, 'native credential core'),
+    exact(canonicalSource, /alter function public\.authenticate_integration_request_v1\([\s\S]+?\) rename to authenticate_integration_request_v1_credential_core;/g, 'canonical core rename'),
+    exact(privateSource, /create schema if not exists private;/g, 'private credential schema'),
+    exact(privateSource, /revoke all on schema private[^;]+;/g, 'private schema ACL'),
+    exact(privateSource, /alter function public\.authenticate_integration_request_v1_credential_core\([\s\S]+?\) set schema private;/g, 'private credential move'),
+    exact(privateSource, /alter function private\.authenticate_integration_request_v1_credential_core\([\s\S]+?\) rename to authenticate_integration_request_v1_secret_internal;/g, 'private credential rename'),
+    exact(privateSource, /revoke all on function private\.authenticate_integration_request_v1_secret_internal\([\s\S]+?\) from public, anon, authenticated, service_role;/g, 'private credential ACL'),
+  ]
+  const nativeAuthPrivileges = ['authenticate_integration_request_v1', 'authenticate_integration_request_v1_credential_core'].flatMap(name => [
+    exact(privateSource, new RegExp(`revoke all on function public\\.${name}\\([\\s\\S]+?\\) from public, anon, authenticated;`, 'g'), `${name} revoke`),
+    exact(privateSource, new RegExp(`grant execute on function public\\.${name}\\([\\s\\S]+?\\) to service_role;`, 'g'), `${name} grant`),
+  ])
   return [bootstrap, factorSurface, 'SET check_function_bodies=off;',
-    ...[...needed].flatMap(name => functions.get(name)), ...definitions,
+    ...nativeCredential, ...[...needed].flatMap(name => functions.get(name)), ...definitions,
     ...constraints.filter(body => !body.includes('FOREIGN KEY')), ...uniqueIndexes,
-    ...constraints.filter(body => body.includes('FOREIGN KEY')), policies, ...triggers, ...privileges,
+    ...constraints.filter(body => body.includes('FOREIGN KEY')), ...triggers, ...privileges, ...nativeAuthPrivileges,
     'SET check_function_bodies=on;'].join('\n')
 }
 

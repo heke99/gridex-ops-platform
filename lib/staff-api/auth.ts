@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { type NextRequest, type NextResponse } from 'next/server'
-import { requireIntegrationApiAccess, type IntegrationApiAuthResult } from '@/lib/integrations/apiAuth'
+import { requireStaffIntegrationApiAccess, type IntegrationApiAuthResult } from '@/lib/integrations/apiAuth'
 import { publicReference } from '@/lib/integrations/publicReferences'
 import { StaffApiError, staffApiErrorResponse, staffRequestIds, type StaffResponseContext } from '@/lib/staff-api/errors'
 import { staffHash, staffReference, verifyStaffProof } from '@/lib/staff-api/crypto'
@@ -13,7 +13,7 @@ export type { StaffApiContext } from '@/lib/staff-api/context'
 export async function requireStaffIntegration(request: NextRequest, scope: string) {
   // Staff v1 has one canonical machine-credential location; no legacy fallback.
   if (!/^Bearer [^\s]+$/i.test(request.headers.get('authorization') ?? '')) throw new StaffApiError(401, 'api_key_required', 'An integration API key is required.')
-  const auth = await requireIntegrationApiAccess(request, [scope])
+  const auth = await requireStaffIntegrationApiAccess(request, [scope])
   if (!auth.ok) throw new StaffApiError(auth.status, auth.errorCode, auth.error, auth.status >= 500 || auth.status === 429, [], auth.retryAfterSeconds, auth.rateLimit)
   return auth
 }

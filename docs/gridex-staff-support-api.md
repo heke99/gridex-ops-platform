@@ -32,6 +32,17 @@ Ordinary customer identity headers, customer assertions, Web roles and a caller'
 staff/company/customer UUID cannot authorize staff. Native Auth access and
 refresh credentials remain inside OPS.
 
+Create the dedicated key in native OPS platform administration at
+`/admin/platform/api-clients`, using the separate staff-client form. It creates
+an independent `custom` client marked `staff_support_v1`, with the five staff
+scopes and origin `https://support123.gridex.se`. The credential is displayed
+once, after its creation audit and activation succeed; only its hash is stored.
+Creation and staff-client lifecycle changes require current, unexpired platform
+administration authority. The website permission editor cannot convert it to a
+website client. Staff machine authentication retains the native credential,
+tenant, scope, IP, origin and traffic checks, and uses its own route policy;
+website installation receipts and `api_sales` readiness do not authorize staff.
+
 `POST /api/v1/staff/sessions` accepts JSON `{email,password}` and returns a
 server-only session receipt: `status`, `staff_access_token`, opaque
 `refresh_token`, `token_type`, `expires_in`, `expires_at`, `refresh_expires_at`,

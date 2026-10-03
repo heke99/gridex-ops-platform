@@ -2,19 +2,29 @@
 
 ## Separate staff API workstream — 2026-10-03
 
-User requires API-only Web staff authentication/customer/support access on
-`support123.gridex.se`. Source branch `feat/staff-support-api-2026-10-03` starts
-at OPS `2c8e283e4fb6b232fe4e249352e33e8baeff14b1`; no Ediel memory/task is replaced.
-Standalone staff contract `2026-10-03.1` is materialized with raw SHA
-`cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71`;
-legacy `.4` remains unchanged. Four forward migrations are checksum-registered.
-Full local OPS tests pass (440 files/6,682 tests), TypeScript/lint/API/RBAC gates pass,
-and selected actual SQL passes the single-connection PostgreSQL17.5 WASM diagnostic.
-Evidence and remaining limitations: `quality/tenantservice/staff-api-verification-2026-10-03.md`.
-Next: publish source draft, run native16.15/17.6 and full clean replay, use real replay
-DB type/schema artifacts, rerun exact-head CI/build, then coordinate secure
-configuration/migrations/live provider and two-company role verification.
-No production migration, configuration, publication or live staff success is claimed.
+User requires staff-only `support123.gridex.se` and API-only OPS staff Auth,
+customer/support data. OPS source baseline2c8e283e; Ediel memory is unchanged.
+Standalone staff2026-10-03.1 raw SHA
+cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71;
+legacy .4 unchanged. All8 forward migrations are checksum-registered; first4
+published bytes remain immutable. Real native deadlock, clean-replay policy gap,
+Website-only machine auth and current-client commit authority are corrected.
+Final local OPS443 files/6707 tests and app/test/script TypeScript, API/RBAC,
+performance/service-role gates pass. All8 actual selected SQL/machine core pass
+single-connection PG17.5 diagnostic; final native/full Supabase replay pending.
+
+Web PR43 f640d29028199006623ac3e3888170e0fbe1b90e tree4f8ce40d88a5e2f2ba69fb7d6533e52f9c7b2786:
+quality37161878576, OpenAPI37161878579, native16/17 37161878583 all SUCCESS.
+Previewdpl_8EQuim2JX1S5K8dZAdN6mNhVvBnv READY. Fixed all-path NextAction
+host bypass, with compiled actual14-path denials plus main/asset controls.
+Provider/two-company authenticated production is not established by these gates.
+
+Evidence: quality/tenantservice/staff-api-verification-2026-10-03.md.
+Next: publish final OPS source corrections; run native16.15/17.6/full replay;
+install genuine DB type/schema/fingerprint artifacts; qualify exact head; then
+coordinate secure keys/settings/migrations/cutover and real provider/Storage/RBAC.
+OPS dashboard access remains unavailable to the logged-in Web Supabase account.
+No production activation is claimed. Preserve every non-staff checkpoint section.
 
 Status: #425 MERGED (squash `d548e23`). Follow-up in progress. Last updated 2026-10-01 ~20:40 UTC.
 

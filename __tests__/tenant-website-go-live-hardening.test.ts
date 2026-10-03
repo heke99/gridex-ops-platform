@@ -109,7 +109,7 @@ describe('tenant website canonical go-live hardening', () => {
     expect(apiClientsActions).toContain('TENANT_WEBSITE_ACTIVATION_REQUIRES_CANONICAL_GO_LIVE')
     expect(apiClientsActions).toContain('canonicala go-live-flödet')
     expect(apiClientsActions).toMatch(
-      /select\('id,company_id,status,profile_key,scopes'\)/,
+      /select\('id,company_id,status,profile_key,scopes,metadata'\)/,
     )
 
     const sharedClassifier = readFileSync('lib/integrations/tenantWebsiteClient.ts', 'utf8')

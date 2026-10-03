@@ -1,85 +1,116 @@
-# Separate OPS staff support API — verification checkpoint
+# OPS staff support API — verification checkpoint
 
-This feature continues the user's authorized Gridex Web/RBAC/support plan. Web
-must use documented OPS APIs for staff authentication and all customer/support
-data. The staff-only Web host stays `support123.gridex.se`; it does not host the
-native OPS console. The source baseline is OPS `2c8e283e4fb6b232fe4e249352e33e8baeff14b1`.
+The user requires staff-only `support123.gridex.se` in Web, with staff Auth,
+customer data and support operations through documented OPS APIs. Source baseline:
+OPS `2c8e283e4fb6b232fe4e249352e33e8baeff14b1`. Ediel work is unchanged.
 
-The frozen standalone contract is `staff-support-v1`, version `2026-10-03.1`.
-Current and immutable document SHA-256:
+The independent `staff-support-v1` contract is `2026-10-03.1`, raw document SHA-256
 `cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71`.
-Legacy Website/Customer Portal `.4` and its supported version floor remain unchanged.
+Website/Customer Portal `.4`, archived artifacts and supported floor stay unchanged.
 
-## Implemented behavior
+## Published Web qualification
 
-- Dedicated machine key plus OPS-issued, short-lived personal proof. Encrypted
-  provider credentials stay in the OPS vault; Web receives no native tokens.
-- Native account/session/MFA/password state, current permission definitions and
-  individually unexpired contributing grants are checked. Platform administrators
-  can read only the API-key tenant and cannot use the staff write exception.
-- Recovery eligibility is checked before native recovery-link generation.
-- Tenant-forced customer/support projections and complete DB keyset pagination.
-- Service-only transactional commands reauthorize after waits, bind actor/client/
-  company/session, and atomically commit effects, events, audit and replay receipts.
-- Upload reservation precedes Storage; verified readback and finalization preserve
-  an original-key recovery path. PDF/PNG/JPEG inspection and content hashes are
-  enforced. This is content inspection, not an antivirus service.
-- Read 60/min; new mutations 20/min; authorized exact replays are free. The shared
-  20/customer/rolling-24h attachment quota is serialized across insert paths.
-- Native support read guards use their dedicated permission instead of unrelated
-  operational task permissions.
+Web PR43 head `f640d29028199006623ac3e3888170e0fbe1b90e`, tree
+`4f8ce40d88a5e2f2ba69fb7d6533e52f9c7b2786`, passed all exact-head workflows:
 
-## Executed local checks
+| Workflow | Run | Passing jobs |
+| --- | --- | --- |
+| Quality, including compiled HTTP action checks | 37161878576 | 111316835621 |
+| Native database regression | 37161878583 | PG16.15 111316835592; PG17.6 111316835706 |
+| OpenAPI compatibility | 37161878579 | 111316835769 |
 
-- Node 22: full OPS suite, 440 files / 6,682 tests; targeted mounted authentication,
-  resources, attachment and contract suites also pass.
-- App/test/script TypeScript at the workflow's 4 GB budget; lint has zero errors
-  and 104 existing non-staff warnings.
-- API documentation, compatibility, local release, RBAC (24 checks), performance,
-  dependency audit and service-role ratchet pass.
-- Optional PostgreSQL 17.5 WASM diagnostic executes the actual selected source
-  tables/native permission helpers and the four forward staff migrations. This is
-  a single-connection diagnostic, not a full Supabase replay or PG16/17 native proof.
-- SQL behavior covers wrong client/company, permission definition/individual-role
-  revocation, native session expiry, password restrictions, stale updates and closed
-  cases, original-key replays, event/audit rollback faults, attachment lease recovery,
-  and complete traversal of 1,108 customers, 311 support cases and more than 600 entries.
-- Authenticated insert/update on all three indexed native tables succeeds while
-  private staff helper EXECUTE stays denied; EXPLAIN uses each reference index.
-- Browser-role access to private vault/receipt tables and command RPCs is denied.
+Vercel preview `dpl_8EQuim2JX1S5K8dZAdN6mNhVvBnv` is READY for this head:
+https://gridex-fknhzdl0a-div3rsa.vercel.app. This is source/build qualification,
+not an authenticated OPS provider, Storage or two-company production journey.
 
-## Review-driven corrections
+An independent actual Next Server Action probe found that the former extension
+matcher let legacy customer login run on the staff host. The correction matches
+all paths, denies staff mutations before asset exceptions, and rejects staff
+hosts in native login and shared customer Auth factories. Compiled tests assert
+403 without a native redirect on 14 page/extension/framework/icon/brand paths;
+main login and real SVG reads remain usable. Four intentionally admitted staff
+API paths also denied native dispatch with zero external/provider fetch attempts.
+Full Web tests, lint, TypeScript, production build and 12 mounted staff UI
+scenarios pass. CI now requires the compiled HTTP regression after build.
 
-The diagnostic caught and corrected an Auth helper dependency-order error and
-private-function index ACLs that broke existing native writes. Review also corrected
-expired role/permission/platform grants, recovery issuance before eligibility,
-timestamps captured before lock waits, and transaction-start expiration checks.
-The fourth CLI-created migration classifies Auth infrastructure and adds composite
-company/client foreign keys without modifying registered earlier migration bytes.
-The tenant invariant gate names the vault's high-entropy refresh-hash uniqueness as
-a credential exemption; no business-key isolation check is disabled.
+## OPS implemented boundaries
 
-## Remaining release gates
+- Separate machine key plus client/tenant-bound personal proof. Native provider
+  credentials stay encrypted in OPS; Web holds an encrypted host-only cookie.
+- Current native account, session, MFA, password policy and individually unexpired
+  contributing permission grants. Platform administrators can read only the key's
+  tenant; support writes require current eligible tenant staff and `cases.write`.
+- Customer/support projections, keyset pagination, fresh transactional write
+  guards, full-body idempotency, atomic effects/events/audit/receipts.
+- Upload reservation, stable-path recovery, verified readback/finalization,
+  PDF/PNG/JPEG inspection and shared 20/customer/rolling-24h quota. Inspection
+  does not establish an antivirus service. Reads 60/min; new mutations 20/min.
+- Dedicated native staff-client creation: fixed five scopes/origin, independent
+  paused row, checked audit before activation and one-time credential display.
+  Staff creation/lifecycle requires current platform authority; the Website
+  permission editor cannot convert the staff client.
+- Separate service-only staff machine RPC retains the real credential core's
+  hash, tenant, scope, IP, origin, expiry and atomic traffic protection. It pins
+  all 26 authenticated method/path pairs. Customer/Website profiles are denied;
+  Website installation receipts and `api_sales` do not authorize staff.
+- Commit-time dedicated-client policy covers business commands and replay,
+  atomic vault bootstrap, mutable Auth acquisition/replay and finalization.
+  Revoked completion durably blocks the vault/operation and publishes no receipt.
+  In-flight read validation and reducing-authority logout retain their policies.
 
-Native PG16.15/17.6 observed-wait/concurrency scenarios, full Supabase clean replay,
-generated DB types/schema/fingerprint from that replay, frozen-tree build/bundle and
-exact-head CI remain required. Provider/Storage and authenticated two-company live
-verification are not implied by local mocks or the WASM diagnostic. Production
-migrations, keys/scopes/recovery origin and Web deployment are not activated here.
+## Verified forward corrections
 
-The published legacy API still has invoice reference, granular pagination and
-stored-versus-meter facility reference gaps. See
-`docs/gridex-api-contract-gaps-2026-10-03.md`; do not invent undocumented joins or DTOs.
+The first four published staff migration bytes remain unchanged. Eight CLI-owned
+forward migrations are now checksum-registered; none is applied to production here.
 
-## Skill routing and scope
+| Forward correction | Actual evidence |
+| --- | --- |
+| `20261003224139_staff_api_storage_integrity.sql` | Infrastructure classification and composite company/client FKs; named high-entropy refresh-hash uniqueness exemption, no broad business invariant exemption. |
+| `20261003225321_staff_attachment_lock_order.sql` | Real PG16/17 CI exposed quota/case and budget/case lock cycles. The new function uses the shared order and rejects a customer change during quota wait. Native rerun required. |
+| `20261003230216_staff_native_account_policy_columns.sql` | Authentic clean-replay schema lacked existing live native password-policy fields and role expiry. Fixture no longer supplies these missing columns itself. |
+| `20261003231500_staff_machine_auth.sql` | Actual-source credential SQL proves all 26 admitted route pairs, scope/cost/window enforcement, policy denial variants and unchanged Website readiness. |
+| `20261003232132_staff_command_client_policy_binding.sql` | Actual SQL RED reproduced stale profile/kind authority; business/Auth guards and durable finalization block now pass. |
 
-Applied repository understanding, plan/execution, parallel ownership, targeted
-test-first debugging, code-security, spec-to-code, Supabase/Postgres and completion
-verification workflows. Next.js route/layout owners read installed Next16 docs.
-Static threat/permission/DTO/storage review and actual behavioral tests were used;
-this is a narrow staff feature, not a repeated repository-wide 42-skill audit.
-Ediel/masterplan tasks, rollout flags and production data are outside this change.
+## Executed local and prior CI evidence
 
-Next: publish the source-only draft, obtain clean-replay artifacts, install the
-generated files without hand edits, and qualify the resulting exact commit before
-coordinated production configuration/cutover.
+Final Node22 OPS suite: **443 files / 6,707 tests pass**. App/test/script TypeScript,
+API docs/compatibility/local release, RBAC, performance and service-role ratchet pass.
+The five focused auth/client/store/legacy suites pass 50 tests. Initial OPS full
+production build and bundle budget passed at the CI 4 GB heap; published initial
+quality-release-gates succeeded. The final forward candidate still requires CI.
+
+PostgreSQL17.5 WASM executes all eight migrations against selected actual source
+schema/helpers and the historical credential core's exact body/rename/ACL chain.
+Business, Auth and machine-auth SQL pass, including isolation/revocation, stale
+writes, receipt replay, event/audit rollback, leases, private ACLs, native indexed
+writes, full 1,108-customer/311-case/600+-entry traversal and quota boundaries.
+This single-connection diagnostic is not full Supabase replay or native concurrency.
+
+Previous native runs exposed a synthetic visibility error, then a real deadlock;
+those failing runs are not release proof. The final native runner requires all
+8 migrations and adds observed row-owner waits for business/Auth policy changes.
+Exact final PG16.15/17.6 execution remains required.
+
+Authentic initial replay artifact11287132201 ZIP SHA-256
+`63b6a052498cd28676bc9259c7d1307f75fc33ce9e08e2af6c1ccb3a8a79cf3d`
+was verified and exposed the native-policy history gap. Final generated DB types,
+schema and fingerprint must come from a fresh all-eight clean replay; no generated
+files have been hand-edited or imported from the stale four-migration capture.
+
+## Remaining release work
+
+Publish the frozen OPS correction, execute native and full clean replay, install
+its genuine generated artifacts/provenance, and require fresh exact-head green CI.
+Then coordinate migration/configuration/deployment with the existing Web cutover
+plan and verify real staff/roles/two tenants, provider recovery and Storage.
+The current Supabase dashboard account can access Web, but not OPS. Dedicated
+keys/server settings, production migrations and staff deployment are not activated.
+
+Known legacy invoice-reference, granular pagination and facility-reference gaps
+are recorded in `docs/gridex-api-contract-gaps-2026-10-03.md`. Adding the staff
+family does not fix those independent Customer Portal documentation gaps.
+
+Skill routing: source understanding, bounded parallel ownership, test-first
+confirmed fixes, security/contract review, Supabase/Postgres and completion gates.
+Installed Next16 docs govern the matcher/action/layout behavior. This continues
+the existing staff task and does not rerun or replace the separate Ediel audit.

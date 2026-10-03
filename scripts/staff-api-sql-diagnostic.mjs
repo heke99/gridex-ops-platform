@@ -14,7 +14,7 @@ const { buildStaffFixture } = require('./lib/staff-sql-fixture.cjs')
 const { PGlite } = await import(pathToFileURL(modulePath).href)
 const database = new PGlite()
 const migrations = readdirSync(resolve(root, 'supabase/migrations')).filter(name => /^20261003\d{6}_staff_[a-z0-9_]+\.sql$/.test(name)).sort()
-if (migrations.length < 4) throw new Error('Expected implemented staff schema, commands, attachments and storage integrity migrations')
+if (migrations.length < 8) throw new Error('Expected all eight implemented staff schema, policy, command and machine authentication migrations')
 let phase = 'source_fixture'
 try {
   await database.exec(buildStaffFixture(root, { wasm: true }))
@@ -27,6 +27,8 @@ try {
   const tests = readFileSync(resolve(root, 'scripts/staff-api-sql-regression.sql'), 'utf8')
   phase = 'sql_behavior_regression'
   await database.exec(tests)
+  phase = 'machine_auth_behavior_regression'
+  await database.exec(readFileSync(resolve(root, 'scripts/staff-api-machine-auth-regression.sql'), 'utf8'))
   const { rows } = await database.query('select version() as engine')
   process.stdout.write(JSON.stringify({ status: 'passed', engine: rows[0].engine, migrations, mode: 'single_connection_wasm_diagnostic', full_native_replay: false, provider_storage_verified: false }) + '\n')
 } catch (error) {

@@ -86,7 +86,7 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     throw new Error(`Unexpected RPC ${name}`)
   },
 } }))
-vi.mock('@/lib/integrations/apiAuth', () => ({ requireIntegrationApiAccess: async (_r: unknown, scopes: string[]) => state.key && scopes.every((s) => state.scopes.includes(s)) ? { ok: true, client: { id: state.client, company_id: state.company, scopes: state.scopes }, context: {}, rateLimit: { limit: 120, count: 1, remaining: 119, resetAt: '2026-10-03T23:00:00Z' } } : { ok: false, status: state.key ? 403 : 401, errorCode: 'api_scope_missing', error: 'Denied' } }))
+vi.mock('@/lib/integrations/apiAuth', () => ({ requireStaffIntegrationApiAccess: async (_r: unknown, scopes: string[]) => state.key && scopes.every((s) => state.scopes.includes(s)) ? { ok: true, client: { id: state.client, company_id: state.company, scopes: state.scopes }, context: {}, rateLimit: { limit: 120, count: 1, remaining: 119, resetAt: '2026-10-03T23:00:00Z' } } : { ok: false, status: state.key ? 403 : 401, errorCode: 'api_scope_missing', error: 'Denied' } }))
 vi.mock('@/lib/auth/smtpTransactionalEmail', () => ({ getAuthSmtpReadiness: () => ({ ready: true }), sendTransactionalEmail: async () => undefined }))
 vi.mock('@/lib/tenant/emailBranding', () => ({ getTenantEmailBranding: async () => ({ displayName: 'Gridex' }), renderTenantEmailLayout: () => '<p>recovery</p>' }))
 
