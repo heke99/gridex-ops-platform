@@ -78,3 +78,25 @@ describe('customer portfolio database contract', () => {
     expect(migration).toMatch(/revoke all on function public\.gridex_snapshot_customer_portfolio_month\(uuid, date\) from public, anon, authenticated/)
   })
 })
+
+describe('system-wide customer count consistency', () => {
+  const builder = readFileSync('lib/analytics/monthlyMetricsBuilder.ts', 'utf8')
+  const fallback = readFileSync('lib/analytics/db.ts', 'utf8')
+  const companyPage = readFileSync('app/admin/companies/[id]/page.tsx', 'utf8')
+  const actorActions = readFileSync('app/admin/platform/actor-testing/actions.ts', 'utf8')
+
+  it('never derives new/ended customers from customers.created_at or ended_at', () => {
+    for (const source of [builder, fallback, companyPage]) {
+      expect(source).not.toMatch(/'customers'[^\n]*'(created_at|ended_at)'/)
+      expect(source).not.toMatch(/'customers', companyId, \[\s*\{ column: 'created_at'/)
+    }
+    expect(builder).toContain('gridex_snapshot_customer_portfolio_month')
+    expect(fallback).toContain('getPortfolioMonthForCompany')
+    expect(companyPage).toContain('getPortfolioMonthForCompany')
+  })
+
+  it('does not let white-label membership grant Ediel actor-testing writes', () => {
+    expect(actorActions).not.toContain('userCanManageActorTestingForCompany')
+    expect(actorActions).toContain('requireCompanyScopedActionAccess(companyId)')
+  })
+})

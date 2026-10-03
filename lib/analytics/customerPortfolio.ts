@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { asNumber } from '@/lib/analytics/utils'
+import { asNumber, monthStart } from '@/lib/analytics/utils'
+import { supabaseService } from '@/lib/supabase/service'
 
 // "Kundportfölj": customer counts, churn and forward consumption per tenant.
 // All figures come from security-checked RPCs; tenant and white-label access is
@@ -157,4 +158,19 @@ export async function getWhiteLabelPortfolioOverview(platformId: string, month: 
     forecast6mKwh: asNumber(row.forecast_6m_kwh),
     forecast12mKwh: asNumber(row.forecast_12m_kwh),
   }))
+}
+
+// Server-side (service role) single-month figures for callers that already
+// enforced tenant access, e.g. dashboards and the analytics fallback. Same
+// definition as the tenant page, so every screen shows the same numbers.
+export async function getPortfolioMonthForCompany(companyId: string, month: string): Promise<PortfolioMonthRow | null> {
+  const safeMonth = monthStart(month)
+  const { data, error } = await supabaseService.rpc('gridex_customer_portfolio_summary', {
+    p_company_id: companyId,
+    p_from: safeMonth,
+    p_to: safeMonth,
+  })
+  if (error) throw error
+  const row = ((data ?? []) as Record<string, unknown>[])[0]
+  return row ? mapPortfolioMonthRow(row) : null
 }
