@@ -108,6 +108,14 @@ export function prodatAckObjectScopes(params:{
   const scoped=params.applicationErrors.filter(error=>error.prodatOccurrence?.scope!=='header')
   if(!scoped.length)return []
   const references=scoped.map(error=>{
+   // A complete mixed reply carries ERC 100 for each committed own sibling:
+   // exactly its own first LIN by unique LI and object identity.
+   if(error.ercCode==='100'&&!error.prodatOccurrence){
+    const index=error.lineItemReference&&uniqueOwn(error.lineItemReference)?all.indexOf(error.lineItemReference):-1
+    const own=index<0?undefined:first[index]
+    if(!own||(own.itemId??null)!==(error.referenceNumber??null))throw new Error('aperak_prodat_requested_scope_unqualified')
+    return scopeFor(own)
+   }
    if(!isQualifiedProdatApplicationError(error))throw new Error('aperak_prodat_requested_scope_unqualified')
    const own=error.prodatOccurrence!
    const actual=prodatErrorOccurrence({rawSegments:sourceWire.segments.map(token=>token.raw),una:sourceWire.una,code:params.messageCode},[],own.scope,own.lineIndex??undefined)

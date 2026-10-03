@@ -210,6 +210,10 @@ export function renderAperakEdiel(params: {
   /** Canonical header-guide provenance; message scope alone grants nothing. */
   utiltsHeaderRejected?: boolean
   prodatAcknowledgementLineIndices?:readonly number[]
+  /** Prospective response projection only (never a sendable reply): an
+   * own-negative object may be projected before the processing owner has
+   * supplied its siblings' outcomes. Object scope stays exact. */
+  prodatProspectiveObjectProjection?: true
 }): AperakEngineResult {
   const isUtiltsSource = usesUtiltsAperakProfile(params.source.messageFamily)
   let headerRejected = Boolean(params.utiltsHeaderRejected)
@@ -387,7 +391,7 @@ export function renderAperakEdiel(params: {
       if (matches.length !== 1) throw new Error('APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH')
       answered.add(matches[0].lineIndex)
     }
-    if (objects.some(object => !answered.has(object.lineIndex))) throw new Error('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+    if (params.prodatProspectiveObjectProjection !== true && objects.some(object => !answered.has(object.lineIndex))) throw new Error('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
   }
 
   for (const [errorIndex, error] of errors.entries()) {

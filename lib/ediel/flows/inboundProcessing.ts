@@ -593,7 +593,8 @@ async function createAutomaticPositiveAcks(params: {
  * domain receipt. A held response cannot reinterpret a completed business TX. */
 async function createCommittedDomainAcks(actorUserId:string,message:EdielMessageRow):Promise<string[]>{
   if(!message.company_id)return[];
-  try{return await createReceivedProdatCommittedEffectAcks({actorUserId,companyId:message.company_id,sourceMessageId:message.id})}
+  try{return await createReceivedProdatCommittedEffectAcks({actorUserId,companyId:message.company_id,sourceMessageId:message.id,
+    ownNegativeErrors:canonicalResponsePlanFromMessage(message).find(plan=>plan.family==='APERAK'&&plan.outcome==='negative')?.applicationErrors?.filter(isQualifiedProdatApplicationError)})}
   catch(error){
     await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'APERAK',
       reason:formatErrorMessage(error,'Egna positiva svar inväntar beständiga skrivkvitton.')});

@@ -37,7 +37,9 @@ export function buildReceivedProdatResponseValidation(message:EdielMessageRow,de
    if(plan.outcome==='negative'&&(!plan.applicationErrors?.length||!plan.applicationErrors.every(isQualifiedProdatApplicationError)))return null
    const rendered=renderAperakEdiel({source:{id:message.id,messageFamily:'PRODAT',messageCode:message.message_code,
     rawPayload:message.raw_payload,messageReceivedAt:message.message_received_at},refs:{},externalReference:'OWNER',transactionReference:'OWNER',
-    outcome:plan.outcome,applicationErrors:plan.applicationErrors})
+    outcome:plan.outcome,applicationErrors:plan.applicationErrors,
+    // Projection of the prospective own outcome: unanswered siblings stay held.
+    ...(plan.outcome==='negative'?{prodatProspectiveObjectProjection:true as const}:{})})
    const own=tokenizeEdifact(rendered.segments.map(segment=>segment+"'").join(''))
    const scope=segmentComposite(own.segments.find(segment=>segment.tag==='BGM'),3,own.una)[0]==='27'?'message':'object'
    for(const [index,segment]of own.segments.entries()){

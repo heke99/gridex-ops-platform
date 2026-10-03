@@ -1,4 +1,4 @@
-import {buildAperakDraft} from '@/lib/ediel/ack'
+import {buildAperakDraft,type EdielAperakApplicationError} from '@/lib/ediel/ack'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import {readReceivedProdatFinalResponsePlan,receivedProdatFinalResponseQualification} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
@@ -11,7 +11,9 @@ import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 /** Manual approval consumes actual native own effects. Each own response and
  * outbox identity is immutable; retries repair only an absent prepared outbox. */
-export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId:string;companyId:string;sourceMessageId:string;objectLineIndices?:readonly number[]}):Promise<string[]>{
+export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId:string;companyId:string;sourceMessageId:string;objectLineIndices?:readonly number[]
+ /** The source's own qualified negatives (initial mixed reply only). */
+ ownNegativeErrors?:readonly EdielAperakApplicationError[]}):Promise<string[]>{
  await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permission:'communication.send'})
  const source=await getEdielMessageById(input.sourceMessageId)
  if(!source||source.company_id!==input.companyId||!source.raw_payload||source.direction!=='inbound'||source.message_family!=='PRODAT'||!['Z04','Z05','Z06','Z10','Z14','Z15'].includes(source.message_code))throw new Error('prodat_structural_response_source_required')
@@ -43,6 +45,29 @@ export async function createReceivedProdatCommittedEffectAcks(input:{actorUserId
  const final=await readReceivedProdatFinalResponsePlan({companyId:input.companyId,sourceMessageId:source.id,rawPayload:source.raw_payload,
   objectLineIndices:input.objectLineIndices?remaining:undefined})
  if(!final){if(ids.length&&input.objectLineIndices===undefined)return ids;throw new Error('prodat_structural_response_own_effect_unavailable')}
+ // A mixed source is answered once, completely: its own qualified negatives
+ // and ERC 100 for exactly the objects whose committed effect receipts the
+ // final response plan returns. No sibling is answered without its receipt.
+ if(input.ownNegativeErrors?.length&&input.objectLineIndices===undefined&&!fixed.size){
+  const positives=final.plans.map(plan=>{
+   const indices=receivedProdatFinalResponseQualification({plan,sourceMessage:final.sourceMessage}),own=physical.find(group=>group.segments[0].index===indices?.[0])
+   if(!indices||indices.length!==1||!own||!plan.acknowledgedReferences[0])throw new Error('prodat_structural_response_scope_required')
+   return {ercCode:'100',fieldCode:null,text:'OK',referenceQualifier:own.itemId?'Z07':null,referenceNumber:own.itemId,lineItemReference:plan.acknowledgedReferences[0]}
+  })
+  const applicationErrors=[...input.ownNegativeErrors,...positives]
+  let ack=await readExistingAckBeforeDraft({actorUserId:input.actorUserId,sourceMessage:final.sourceMessage,ackFamily:'APERAK',outcome:'negative',ackScope:'object',
+   acknowledgedReferences:applicationErrors.map(error=>error.lineItemReference).filter((reference):reference is string=>Boolean(reference))})
+  const retained=ack!==null
+  if(!ack){
+   const qualification=await readSourceBoundOutboundAckRulePackEvidence({companyId:input.companyId,environment:source.environment,sourceMessageId:source.id})
+   const draft=buildAperakDraft({actorUserId:input.actorUserId,sourceMessage:qualification.sourceMessage,outcome:'negative',ackScope:'object',ackSourceQualification:qualification,applicationErrors})
+   ack=await createCanonicalAckMessage({actorUserId:input.actorUserId,sourceMessage:qualification.sourceMessage,ackFamily:'APERAK',outcome:'negative',draft})
+  }
+  await createOutboxItem({actorUserId:input.actorUserId,message:ack,sourceMessageId:source.id,status:retained?'prepared':'queued',queueOnlyIfInserted:true,
+   payload:{createdBy:'reviewed_structural_source_effect',sourceMessageId:source.id,objectLineIndices:final.plans.map(plan=>plan.objectLineIndices[0]),
+    effectReceiptIds:final.plans.map(plan=>plan.effectReceiptId),ackFamily:'APERAK',outcome:'mixed'}})
+  return [ack.id]
+ }
  for(const plan of final.plans){
   if(fixed.has(plan.objectLineIndices[0]))continue
   const indices=receivedProdatFinalResponseQualification({plan,sourceMessage:final.sourceMessage})

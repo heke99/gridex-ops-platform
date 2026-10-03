@@ -49,12 +49,16 @@ describe('same-plan P response projection, without source approval',()=>{
   const diagnostic=prodatFieldDiagnostic('213','missing',input(message.raw_payload!,'Z04'),scoped.map(segment=>segment.raw),'P-own',0)
   const errors=projectProdatDiagnostics([{severity:'error',blocking:true,code:'OWN_MISSING',title:'Own missing',description:'Synthetic own failure',prodatDiagnostic:diagnostic}]).applicationErrors
   decision.applicationDecision='rejected';decision.responsePlan=[{family:'APERAK',outcome:'negative',reason:'Own validator plan',applicationErrors:errors}]
-  // BGM34 must answer every physical object: the real renderer refuses a plan
-  // that leaves a sibling unanswered, so no facet (and no sibling success) exists.
+  // BGM34 must answer every physical object: the real renderer refuses a
+  // sendable plan that leaves a sibling unanswered.
   expect(()=>renderAperakEdiel({source:{id:message.id,messageFamily:'PRODAT',messageCode:message.message_code,rawPayload:message.raw_payload,
    messageReceivedAt:message.message_received_at},refs:{},externalReference:'OWNER',transactionReference:'OWNER',outcome:'negative',applicationErrors:errors}))
    .toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
-  expect(buildReceivedProdatResponseValidation(message,decision)).toBeNull()
+  // The prospective facet projects only the own negative; the sibling stays
+  // held and no sibling success exists (its ERC 100 needs a committed effect).
+  const facet=buildReceivedProdatResponseValidation(message,decision)
+  expect(facet?.objects.map(object=>object.outcome)).toEqual(['negative','held'])
+  expect(facet?.responses.some(response=>response.ercCode==='100')).toBe(false)
  })
  it('keeps objects held when no APERAK was actually planned',()=>{
   const {message,decision}=fixture(object('1','A','FIRST'));decision.responsePlan=[]

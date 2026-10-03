@@ -242,3 +242,6 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 
 ## 2026-10-03 — Ingen separation of duties för closure-granskning
 Ägarbeslut: granskaren (reviewerUserId) får vara samma/annan behörig tenantanvändare som källans aktör. DB-bindningen till behörighet är tillräcklig. Testet prövar i stället att obehörig granskare avvisas.
+
+## 2026-10-03 — Blandade PRODAT Z04: design A med rättning
+Ägarbeslut: partitionsägaren (043234/043602) äger blandade Z04. Ett komplett BGM34-svar skapas av createReceivedProdatCommittedEffectAcks: egna kvalificerade negativa + ERC100 endast för objekt med committed effektkvitto. Facetten projicerar negativet med syskon held. Framåtmigration 20261003100100 låter require_before_prodat_scope_v1 delegera ERC100-omfång till domain_response_birth när källan är partitionsägd. Den äldre mixed-ägaren (prodat_mixed_*) används inte.
