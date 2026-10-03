@@ -1,7 +1,7 @@
 # Customer portfolio side track: checkpoint
 
-Status: Phase 1–2 VERIFIED and merged (#474, squash `b1c79ae`). Performance pass IN_PROGRESS
-on branch `claude/portfolio-market-whitelabel-r8rn05` (restarted from main after #474 merged).
+Status: Phase 1–2 VERIFIED (#474, squash `b1c79ae`). Performance pass VERIFIED and merged
+(#477, squash `a7e4082`), applied to production as ledger version `20261003152539`.
 Last updated 2026-10-03.
 
 Separate from the Ediel checkpoint (`checkpoint.json`), `current-task.md` and `handover.md`.
@@ -31,7 +31,7 @@ Do not edit those files from this track.
 - **Migrations:**
   - `20261003130000_customer_portfolio_analytics_whitelabel.sql`
   - `20261003131000_customer_portfolio_phase2.sql`
-  - `20261003150000_portfolio_analytics_rollups_performance.sql` (performance pass, not yet applied)
+  - `20261003150000_portfolio_analytics_rollups_performance.sql` (performance pass, production ledger `20261003152539`)
 - **Libraries:**
   - `lib/analytics/customerPortfolio.ts` (data plus CSV)
   - `components/admin/analytics/CustomerPortfolioViews.tsx`
@@ -66,9 +66,10 @@ Do not edit those files from this track.
   | Nightly snapshot | 9 630 ms | 200 ms |
 
 - **Analytics month:** previously ~4 HTTP queries per customer (N+1) with client-side sums truncated by the PostgREST row cap; now one transaction of 1.2 s with exact totals (684 000 kWh equals raw).
-- **Next action:**
-  1. Push and open a PR.
-  2. Import types and schema from the exact-head `clean-migration-replay` artifact.
-  3. Get CI green.
-  4. Apply 150000 to production, then verify read-only.
-  5. Merge (squash), then update this file.
+- **Production verification (2026-10-03, read-only plus one rebuild):**
+  - the table is classified `system`;
+  - `authenticated` has no SELECT on the table and no EXECUTE on the rebuild function;
+  - `gridex_rebuild_company_analytics_month` returned customers=4 and zones=4, and used the latest forecast run;
+  - the security advisors show no new findings for these objects;
+  - the rollup has 0 rows because production has no metering values in the last 13 months yet.
+- **Next action:** none on this track. Monitor the first nightly cron run.
