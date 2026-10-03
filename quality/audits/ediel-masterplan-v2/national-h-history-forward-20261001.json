@@ -1,0 +1,13 @@
+{
+  "source": "/workspace/scratch/145123787247/gridex-scripts",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001114500_ediel_national_supply_rescission_archived_mandate.sql",
+      "sha256": "50880e539a6d4db610bd38e086ac28f9fa6c8b128117178c31312c82829fe011"
+    },
+    {
+      "path": "scripts/ediel-national-supply-rescission-source-sql-regression.mjs",
+      "sha256": "79035b96ebf6cf23b82a19aabd302dc4bbd526469ecc2287118cf0589ff4b277"
+    }
+  ]
+}

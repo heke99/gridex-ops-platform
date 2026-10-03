@@ -1,0 +1,21 @@
+{
+  "status": "IMPLEMENTED_MECHANISM_ONLY_NATIVE_CONCURRENCY_NOT_RUN",
+  "reason": "After structural A apply, retained B observation cannot wait on B source writer while holding namespace advisory; B writer may need that same namespace after actual persist. No late global graph SHARE-prefix acquired after write modes.",
+  "changes": [
+    "Protected accepted history observer uses source FOR SHARE SKIP LOCKED and existing whole stored contract; it adds no actor/send/business authorization",
+    "Current own-permission public read rechecks actual retained accepted bindings; no caller approval or resend",
+    "Same-OID latest apply-v2 delegates genuine current guards and atomic effects first, then returns separate live reading-followup diagnostics; original immutable receipt/result bytes unchanged"
+  ],
+  "verification": "PGlite declared synthetic mechanism suite PASS including live actual apply-output observation. Actual native concurrency, full source/native/API/browser/CI remain unexecuted.",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001044958_ediel_reading_followup_observation_lock_order.sql",
+      "sha256": "b989fa8f0ce7e8abcc4ea83055966b08ef03b9152d9fecd341326eebb6c127cb"
+    },
+    {
+      "path": "scripts/ediel-z06f-reading-followup-sql-regression.mjs",
+      "sha256": "36c8b0ecfe27a3bf76459fe9e7754a9c23ee1a5a833b35d0d753db90f0c15bb6"
+    }
+  ],
+  "masterplan_approval": false
+}

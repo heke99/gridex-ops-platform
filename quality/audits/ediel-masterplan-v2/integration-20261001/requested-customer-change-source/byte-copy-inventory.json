@@ -1,0 +1,74 @@
+[
+  {
+    "class": "requested_customer_change_original_pdf",
+    "table": "gridex_requested_customer_changes.artifacts",
+    "columns": [
+      "source_bytes"
+    ],
+    "boundBytes": 8388608,
+    "owner": "public.ediel_archive_requested_customer_change_v1",
+    "metadata": [
+      "id",
+      "company_id",
+      "environment",
+      "source_hash",
+      "source_reference",
+      "source_version",
+      "created_at"
+    ],
+    "removal": "Separate class/purpose decision and current origin revocation before byte erasure; no current purge adapter in this packet."
+  },
+  {
+    "class": "requested_customer_change_agreed_edifact_original",
+    "table": "gridex_requested_customer_changes.artifacts",
+    "columns": [
+      "raw_payload"
+    ],
+    "boundBytes": 1048576,
+    "owner": "public.ediel_archive_requested_customer_change_v1",
+    "metadata": [
+      "claims.payloadHash",
+      "agreement_id",
+      "supply_period_id",
+      "contract_id"
+    ],
+    "removal": "Exact source original class; cannot cascade with PDF or bilateral/death artifacts."
+  },
+  {
+    "class": "requested_customer_change_customer_token_copy",
+    "table": "gridex_requested_customer_changes.artifacts",
+    "columns": [
+      "claims.customerTokens"
+    ],
+    "owner": "private source_claims_v1 physical first own register reconstruction",
+    "metadata": [
+      "claims_hash",
+      "claims.scope"
+    ],
+    "removal": "Separate structured PII copy and immutable claims hash continuity; whole claims JSON is signed evidence."
+  },
+  {
+    "class": "requested_customer_change_event_edifact_copy",
+    "table": "gridex_customer_life_events.events",
+    "columns": [
+      "approved_raw_payload"
+    ],
+    "owner": "public.ediel_review_requested_customer_change_v1 atomic authorized event",
+    "metadata": [
+      "approved_payload_hash",
+      "approved_scope",
+      "source_sha256",
+      "legal_decision_reference"
+    ],
+    "removal": "Existing source event current qualification must hold after originating artifact purge; preserve immutable accepted original/provider receipts."
+  },
+  {
+    "class": "requested_customer_change_normal_outbound_original_copies",
+    "table": "Existing gridex_customer_life_events.originals / desired_changes and public.ediel_messages / ediel_outbox",
+    "columns": [
+      "Existing original rendered payload and source snapshot fields"
+    ],
+    "owner": "Existing prepareAndQueueCustomerLifeEventZ09 and native atomic original owner",
+    "removal": "Existing independently scoped outbound original/intent/journal retention owners; no blanket cascade introduced."
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "baseline": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "package": "recreated_h_owned_end_and_captured_profile_currentness",
+  "lost_commit_restored": false,
+  "migration": "20261001083335_ediel_bilateral_prodat_owned_end_and_recorded_supply_currentness.sql",
+  "cli": "supabase 2.119.0 migration new ediel_bilateral_prodat_owned_end_and_recorded_supply_currentness",
+  "red": {
+    "command": "EDIEL_EXPECT_OWNED_END_BASELINE_RED=1 node scripts/ediel-bilateral-prodat-owned-end-sql-regression.mjs",
+    "result": "FAIL: P13/AT-Z05H own end applied false !== true"
+  },
+  "green": [
+    {"command": "node scripts/ediel-bilateral-prodat-owned-end-sql-regression.mjs", "checks": 47, "result": "PASS", "scope": "finite PGlite mechanics only"},
+    {"command": "EDIEL_MIXED_NATIONAL_SOURCE=1 node scripts/ediel-bilateral-prodat-owned-end-sql-regression.mjs", "checks": 47, "result": "PASS", "scope": "finite heterogeneous H/L mechanics only"},
+    {"command": "tsc --noEmit -p tsconfig.scripts.json", "result": "PASS"}
+  ],
+  "expected": ["exact owned accepted end/version/history", "captured own profile and transition in same transaction", "historical initial scope preserved for later basis", "final-value and invoice follow-up initiated after actual source commit", "immutable replay"],
+  "prohibited": ["caller-approved source", "whole-source rewrite or synthetic sibling source", "other customer/point end", "current DENY/revoked captured profile authorizing end or later basis", "positive ACK before committed end", "audit failure leaving period or profile effects"],
+  "native": {
+    "file": "scripts/ediel-bilateral-prodat-h-original-native.test.ts",
+    "new_cases": 2,
+    "source_chain": "real contract/signature/PDF/POA -> first H Z03 -> local SMTP accepted private owner -> original H Z04 -> whole canonical capture -> actual period -> independent archived H end profile -> full H Z05 -> actual processInboundEdielMessage",
+    "external_boundary": "synthetic issuer/representation/legal receipt; not genuine legal approval",
+    "result": "NOT_RUN: no local native Supabase/PostgreSQL runner; authentic same-head CI required"
+  },
+  "whole_requirements_approved": [],
+  "remaining": ["authentic clean/upgrade/native HTTP/browser/build/exact-head CI", "whole literal P13/AT-P13/AT-Z05H acceptance including actual final-value/invoice follow-up", "LK and national Z08H original/end packages", "UNKNOWN sibling partial-good-scope gap"],
+  "known_limit": "the inherited period basis compares JSON timestamp serialization under the native Supabase UTC session; the mechanics fixture explicitly uses UTC"
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "baseHead": "b980d29f716f05a293b31bb9fe0f98a8e47d91f0",
+  "candidate": "exactlistedfilebytes_beforefinalfreeze",
+  "sourceFileSha256": {
+    "scripts/test-ediel-prodat-characteristic-fields.cjs": "5014af2e33d1ad1c660b5e4b32c5518626472f0747e598bb0a66857bea135e12",
+    "scripts/test-ediel-prodat-document-fields.cjs": "ada0a5da86c74b143cbfa00969acfcc0ea912fceaec1441108ad7c2870d66b8d",
+    "scripts/test-ediel-prodat-party-fields.cjs": "7310b2e332ffa16448c8dcee6c5327fe83fd720d881505424ce90b629f1fbe7f",
+    "scripts/test-ediel-prodat-reference-fields.cjs": "cb7d33731e985b61c003efd2b059210144d8dc4ad849886169f0e038ead17da3",
+    "scripts/helpers/ediel-source-manifest-vm.cjs": "daa8732d39ca4165417b8d7b1457feca6f7e001d9d9c3c84b109425f6212e266",
+    "lib/ediel/core/kernelLegacy.ts": "b6680e10b8b743678b895804661a6e497740893bf778b274b871bfa34c3bab21",
+    "lib/ediel/flows/inboundProcessing.ts": "bcb65d99db7d18a11a0423b385a3ac2beb702197a33bfb5a6134f088103ee0ec",
+    "__tests__/ediel-inbound-prelegal-syntax.test.ts": "e9500e02069e25b2e6ef4d04bd00c0c4d7d6818259a5ae5a2071ba54be7a2d4a",
+    "__tests__/ediel-source-producer-reference.test.ts": "fe99e4f7b180ad64b9e114c3b7b011febbe001fba82003cf5b26a65182e7c67a"
+  },
+  "sourceOnly": {
+    "executed": 647,
+    "passed": 647,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "2ba0d791c398027b79a8d88e0e68b64d92e3d3d6c232a6e44e77ac63828a9766",
+    "boundary": "realpureparsers/renderers/fieldrules; finitepredesignatedprojectionports; allotherIOdeniedbeforeDNS"
+  },
+  "prelegalAndProducer": {
+    "executed": 9,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "453ec4a714923d23c90ebb950ddf0bc4c5a4b23e6f199eb3a4253044e228b0ba",
+    "scope": "knownphysicaldirectorytechnicalrejectionprecedesinactivefamilygate; unsupportedPRODATeditionheld; changedwire/revokedactor/outboundhold; specificsyntheticcommandresolution+realprotocolreferenceallocation"
+  },
+  "genuineNative": "NOT_EXECUTED",
+  "criterionApproval": false,
+  "wholeMasterplanApproval": false
+}

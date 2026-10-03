@@ -1,0 +1,34 @@
+{
+  "status": "PASS",
+  "checks": 49,
+  "evidenceKind": "BOUNDED_ACTUAL_PUBLIC_COLUMNS",
+  "native": {
+    "status": "PREPARED_NOT_RUN",
+    "cases": 11,
+    "file": "scripts/ediel-inbound-reception-actual-columns-native.test.ts"
+  },
+  "wholeCriterionApproved": false,
+  "recordedAt": "2026-10-01T08:48:15.454399+00:00",
+  "baseHead": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "oldLostCommitRestored": false,
+  "immutable60131Changed": false,
+  "static": {
+    "scriptsTypecheck": "PASS",
+    "ESLint": "PASS"
+  },
+  "permissionCatalog": {
+    "source": "supabase/migrations/20260924003708_communication_permission_registry_completion.sql",
+    "SHA256": "83d11f7c4b5afcec905a8b161f2aa07a92fc9a2883ff65f9ca49bfcf71773f38",
+    "keys": [
+      "communication.read",
+      "communication.send"
+    ],
+    "unknownWriteKeySeeded": false
+  },
+  "newForward": "supabase/migrations/20261001084343_ediel_inbound_reception_canonical_permission.sql",
+  "limits": [
+    "bounded fixture Auth/RBAC/schema is explicitly synthetic",
+    "native GoTrue retained-mail/parser/original current actor probes prepared not executed",
+    "no actual Supabase/native/browser/exact-head CI result or whole criterion approval"
+  ]
+}

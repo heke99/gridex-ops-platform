@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "status": "NATIVE_AND_BROWSER_EXECUTION_PENDING",
+  "original_statuses_changed": false,
+  "baseline": "e0aaafe30f1d33be2212c2a92573c16db816a065",
+  "ordinary_native_suite": "scripts/ediel-ai-purpose-source-native.test.ts",
+  "reusable_fixture": "scripts/helpers/ediel-ai-purpose-native-fixture.ts#createAiPurposeSourceFixture",
+  "actual_production_chain": [
+    "strict bounded original PDF archive against current owncompany actor",
+    "native legal-supplier/profile and exact purpose/environment/validity/retention claims",
+    "current private issuer-competence/representation and exact HMAC source/claim/clause receipt",
+    "independent company-scoped reviewer with no default ediel.ai_purpose.review grant",
+    "atomic immutable original/review/actual private purpose-decision origin",
+    "exact environment authority before personal storage, intent/original and current send",
+    "scoped private attachment API and actual interactive archive/open/read/review UI"
+  ],
+  "local_executed": [
+    {
+      "command": "npx vitest run __tests__/ediel-ai-purpose-http.test.ts __tests__/ediel-ai-purpose-source.test.ts __tests__/ediel-bilateral-native-wire.test.ts __tests__/ediel-ai-list-history.test.ts __tests__/ediel-ai-confirmed-customer-history.test.ts --reporter=dot",
+      "result": "34 PASS in5 discovered suites, purpose domain/API20 tests"
+    },
+    {
+      "command": "EDIEL_PGLITE_MODULE=<toolchain> node scripts/ediel-ai-purpose-sql-regression.mjs",
+      "result": "PASS actual archive/review/issuer HMAC/byte-clause/current review DENY/representation revocation/native pre-storage purpose/env/private ACL; explicitly synthetic tenant/issuer/no-op central lock and compile-only old original/send predecessors"
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit -p tsconfig.app.json --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "NODE_OPTIONS=--max-old-space-size=8192 npx tsc --noEmit -p tsconfig.scripts.json --pretty false",
+      "result": "PASS"
+    },
+    {
+      "command": "targeted ESLint all new/modified purpose TypeScript",
+      "result": "PASS"
+    }
+  ],
+  "native_assertions_pending": [
+    "actual signedcontract/PDFStorage/Z03/current legal supplier and actual GoTrue own grants, stage before received Z04",
+    "missing authenticated legal issuer held with no decision",
+    "selfreview and forged source clause refused",
+    "actual qualified original and independent review decision/sourcebyte continuity",
+    "opaque idempotent decision/current exact environment",
+    "foreigncompany document denial",
+    "global/current reviewer DENY and native representation revocation",
+    "actual browser upload/open/download/review same original",
+    "same frozen full native ancestor/clean replay CI"
+  ],
+  "synthetic_boundaries": [
+    "disposable remote legal issuer competence/representation HMAC registry bootstrap",
+    "bounded external SMTP/customer notification",
+    "PGlite-only no-op central full-schema lock and compile-only historical original/send predecessors"
+  ],
+  "not_seeded": [
+    "private approved artifact/review/purpose decisions",
+    "approved AI intents or originals",
+    "qualified network registry facts"
+  ],
+  "remaining_internal": [
+    "native/browser execution of both implemented original source producers",
+    "separate full genuine canonical Z04/customer/AI queue/provider/history verification, without accepted source seeding",
+    "frozen exact-head clean/ancestor/build/CI verification"
+  ],
+  "external_facts_still_required": [
+    "actual issuer legal competence and current legal representation evidence for a real company",
+    "actual legal basis/purpose/retention original and authenticated receipt for production use"
+  ],
+  "prohibited_claims": [
+    "synthetic issuer fixture is authentic legal approval",
+    "PGlite is native replay",
+    "purpose authority grants BI outbound",
+    "purpose source owner replaces network registry source authority",
+    "local partial green approves original352/masterplan"
+  ],
+  "producer_fixture_scope": {
+    "factory": "scripts/helpers/ediel-legal-source-stage-native-fixture.ts#createLegalSourceStageFixture",
+    "stage": "legal_contract_before_received_z04",
+    "explicit_zero_effects": [
+      "received inbound messages",
+      "customer supply periods",
+      "AI messages and outbound origins"
+    ],
+    "history": "Not executed; no genuine queued AI message is claimed by this source-producer fixture."
+  }
+}

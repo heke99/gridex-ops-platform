@@ -1,0 +1,873 @@
+{
+  "version": 1,
+  "date": "2026-10-01T04:12:21.725894+00:00",
+  "candidate": "shared-v4 uncommitted composition over c652d383; final frozen head binding remains pending root integration",
+  "reviewer": "transport_runtime; self-authored finite fixture and retention components, independent newer-owner merge review only",
+  "wholeCriterionAccepted": false,
+  "scope": "mechanical association/private-journal/control flow; real production decoders/opaque mint/consumer; no native qualification or legal/readiness/market acceptance",
+  "codeSha256": {
+    "app/admin/ediel/actors/actions.ts": "ab94ed9ee2b1628aaf2f4056eabd8829e2c0d78fa28bc2303310ca5ea0bf92a3",
+    "lib/actor-registry/importActorRegistry.ts": "4b7c36461d2ff7fae6c7b1a39a7c134b3b9e7aed22e65523a638707dfeceacc1",
+    "lib/actor-registry/parseActorRegistryXml.ts": "dff3e127ba777d3d5d36daa8ea64f225ac703c6b227e302f3f776828534a3a09",
+    "lib/ediel/transport/index.part-2.ts": "c416392ac403bc602a9be292521d4846bf854a2bef7f25b3fb3958dcb7ff6342",
+    "__tests__/fixtures/ediel-pinned-prodat-read-boundary.ts": "75ccff7728d30a21ac84575a0254b4d1b719450b9af1656960cc1ce3bd0e63b8",
+    "supabase/migrations/20261001040446_ediel_current_registry_txt_source_parity.sql": "b4bc0cc1747c38f6ca9a801aac0521857073aa2093ea4d2f7e4bf2a1fe0cb4a0"
+  },
+  "unit": {
+    "passed": 158,
+    "failed": 0,
+    "reportSha256": "78634778c3986bde0ec256c06ac39a4973b663ddc33056aa39dead7f255341ca",
+    "testCases": [
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities preserves company market and exact legal/technical identities without granting representation",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities preserves a generic explicitly different transport party",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities inherits the official Market/Company context and preserves original source values",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities rejects malformed XML and custom entities before producing source records",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities uses AST records so comments and CDATA cannot inject actors or legal identities",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities rejects DTD/entity sources before import creates records",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <Email>contact@example.invalid</Email>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <Address><Street>Source street</Street><Email>postal@example.invalid</Email></Address>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <EDIFACTDetails><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type=\"SMTP\">edi@example.invalid</CommunicationAddress></EDIFACTDetails>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <EDIFACTDetails Type=\"PRODAT\"><PartyId>21660</PartyId><CommunicationAddress Type=\"SMTP\">edi@example.invalid</CommunicationAddress></EDIFACTDetails>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <EDIFACTDetails Type=\"PRODAT\"><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress Type=\"SMTP\">edi@example.invalid</CommunicationAddress></EDIFACTDetails>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities retains incomplete source fragments and diagnostics without inventing a route from <EDIFACTDetails Type=\"PRODAT\"><PartyId>21660</PartyId><InterchangePartyId>99888</InterchangePartyId><CommunicationAddress>edi@example.invalid</CommunicationAddress></EDIFACTDetails>",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities preserves absent country and exact explicit family/application/technical identity as separate source facts",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities does not manufacture application identity from family or discard a separate complete route",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-actor-registry-source.test.ts",
+        "fullName": "actor source identities holds conflicting parent and Company market/country instead of silently choosing one",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary retains exact declared Latin1 upload bytes independently of parsed Unicode",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary rejects undecodable or unimplemented source encodings before database apply",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary retains exact uploaded Latin1 bytes through the actual shared XML producer",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary holds a text/byte mismatch before any native import",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary uses one atomic RPC for shared XML import even when old force reprocess was requested",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary requires a real actor and propagates atomic database failures without partial fallback",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary holds a zero-route historical result without replacing its immutable batch",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary reads the exact frozen old source result before a current parser can reject its previous format",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-atomic-registry-import.test.ts",
+        "fullName": "actual atomic registry producer source boundary surfaces the native zero-route diagnostic without local partial-import fallback",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "selects actual GoTrue actor/company cookie and forwards unchanged archived decision bytes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects caller authority field companyId before archive",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects caller authority field actorUserId before archive",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "holds current session failure not authenticated without any lifecycle effect",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "holds current session failure wrong company session without any lifecycle effect",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "holds current session failure class deny without any lifecycle effect",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects invalid document bytes without archive",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects oversize document bytes without archive",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "reads metadata without exporting decision bytes or inventing approval",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "reviewer reads actual hashed document as private download",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects inconsistent native company before review or byte export",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects inconsistent native class before review or byte export",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects inconsistent native document hash before review or byte export",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "preserves a held native separate review and source-specific storage-pending receipt",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "rejects caller physical completion claims before the actual two-phase consumer",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-message-retention-http.test.ts",
+        "fullName": "explicit read-only class session receives metadata while document and all mutations hold before lifecycle effects",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-date-event-send.test.ts",
+        "fullName": "direct SMTP protects actual Z09D even under row label Z09",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-date-event-send.test.ts",
+        "fullName": "direct SMTP protects actual Z09D even under row label Z04",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+        "fullName": "actual shared SMTP rejects unqualified death scope Z05/Z05 before external edges",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+        "fullName": "actual shared SMTP rejects unqualified death scope Z06/Z04 before external edges",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+        "fullName": "actual shared SMTP rejects unqualified death scope Z09/Z09 before external edges",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-death-status-smtp.test.ts",
+        "fullName": "actual shared SMTP rejects unqualified death scope Z04/Z06 before external edges",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries test: forged complete snapshot cannot suppress the missing Z09F method",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries test: intentional-invalid-send flag cannot suppress a migrated D defect",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries test: missing field223 is blocking, not a test-only warning",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries test: row preflight and transport lock keep the D gate",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries production: forged complete snapshot cannot suppress the missing Z09F method",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries production: intentional-invalid-send flag cannot suppress a migrated D defect",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries production: missing field223 is blocking, not a test-only warning",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries production: row preflight and transport lock keep the D gate",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \":\"",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \"*\"",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries wire-derived valid mandatory method/validity passes the bounded gate with \"^\"",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "source D cells at the real row and send boundaries does not run outbound D enforcement in syntax-only inbound row preflight",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"]]",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]]]",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"\"]]]",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "field223 and optional coded-field evidence cannot disappear rejects dangling, empty and equal duplicate reasons: [[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]],[\"CCI\",\"\",\"Z13\"],[\"CAV\",[\"E64\"]]]",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "field223 and optional coded-field evidence cannot disappear rejects an empty optional coded method when its CCI is supplied",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "retains a supplied matrix code list when the D outcome is optional",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "fullName": "a wrong caller code or application reference cannot hide D defects before transport",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z01/PRODAT before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z01/APERAK before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z13/PRODAT before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z13/APERAK before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z14/PRODAT before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z14/APERAK before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z15/PRODAT before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z15/APERAK before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z18/PRODAT before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "actual SMTP blocks invalid FTX Z18/APERAK before route/context I/O",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "valid optional FTX=false passes its text gate and holds without a qualified rule pack",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "valid optional FTX=true passes its text gate and holds without a qualified rule pack",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/:+?'",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/:+?'",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/*;!~",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/*;!~",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold APERAK/^|!%",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "fullName": "leading APERAK cannot bypass actual SMTP FTX hold PRODAT/^|!%",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "a reporting assessment cannot replace a missing source-qualified positive original",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "the actual opaque adapter rejects a private-original response for different bytes before insert",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form/action saves notes then actual create-send chain keeps one exact association and reaches mocked provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "real autopilot association supports direct-send with omitted step and no reattachment",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "owner reload checks tenant-filtered exact link before run filtering",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects missingLink before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects duplicateLink before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects wrongStep before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects wrongCompany before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects staleRowLabel before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects notesCleared before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects sourceChanged before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects routeChanged before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects freshClock before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects pureEvidence before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects missingEvidence before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual SMTP rejects alteredLI before archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "create active action rejects wrongCompany without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "create active action rejects wrongStep without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "create active action rejects duplicate without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "create active action rejects missingLink without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "direct active action rejects wrongCompany without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "direct active action rejects wrongStep without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "direct active action rejects duplicate without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "direct active action rejects missingLink without reattaching or sending",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "repeat active direct action does not duplicate a successful send or association",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects missingOriginal before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runCompany before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runEnvironment before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runStatus before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runRevision before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runRole before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "independently pinned source rejects runCase before draft insert/archive/provider",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "stale form CAS cannot overwrite saved notes",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active clear action leaves a tombstone and never creates or sends",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual post-autopilot route attachment is checked again before message insert",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "selected dynamic malformed cannot fall back to built-in",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "selected dynamic mismatchedCase cannot fall back to built-in",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "selected dynamic duplicate cannot fall back to built-in",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "server expected context is independent of serialized facts and returned snapshots",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "actual notes CAS rejects an update between read and write",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "denied company permission stops the public save action before notes mutation",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "authorized manual draft action uses the same saved source and separate send path",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "company authorization precedes active reporting create/autopilot effects",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "original private 8.1.1 has explicit indefinite term and B71 in the actual chain",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "original private 8.1.2 has explicit indefinite term and B71 in the actual chain",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form reviews saved revision, anchor and assessments; note-only edit preserves facts",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form distinguishes missing and cleared revisions without repopulating revoked facts",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form marks source notes unusable without displaying stale saved declarations",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form marks route notes unusable without displaying stale saved declarations",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "active form marks invalid notes unusable without displaying stale saved declarations",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-chain.test.ts",
+        "fullName": "prescribed LI and ANJ service characters survive active notes, actual builder and shared SMTP guards",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-smtp.test.ts",
+        "fullName": "actual SMTP blocks unsourced raw Z13 under row Z13",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-prodat-reporting-smtp.test.ts",
+        "fullName": "actual SMTP blocks unsourced raw Z13 under row Z04",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-zero-route-preview.test.ts",
+        "fullName": "actual registry zero-route preview/apply consumer persists a blocking all-zero diagnostic and marks preview unsafe even for a non-grid actor",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-zero-route-preview.test.ts",
+        "fullName": "actual registry zero-route preview/apply consumer retains the diagnostic preview then rejects new apply without an actor/route mutation RPC",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-zero-route-preview.test.ts",
+        "fullName": "actual registry zero-route preview/apply consumer retains source-specific missing route fields and country in the actual preview",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-zero-route-preview.test.ts",
+        "fullName": "actual registry zero-route preview/apply consumer does not write a preview or inspect the registry after platform authorization rejects",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-registry-zero-route-preview.test.ts",
+        "fullName": "actual registry zero-route preview/apply consumer reads a genuine prior result before current parsing/preview and never reapplies the old batch",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-requested-change-transport-source.test.ts",
+        "fullName": "actual fresh Z09E send cannot replace current source authority with parsed JSON",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-requested-change-transport-source.test.ts",
+        "fullName": "actual fresh Z09F send cannot replace current source authority with parsed JSON",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-requested-change-transport-source.test.ts",
+        "fullName": "actual fresh Z09G send cannot replace current source authority with parsed JSON",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard performs zero SMTP calls when exact MIME archival cannot be persisted",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard submits the exact same bytes only after archival succeeds",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard archives other raw MIME modes through the common exact-byte authority",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard compiles attachment MIME once and submits only archived bytes after the provider fence",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard blocks direct helper callers without durable tenant archive scope",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard keeps archived provider bytes private across a mutating entry callback",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "fullName": "Exact MIME archive pre-send guard requires TLS and certificate validation for the provider hop",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "fullName": "SMTP acceptance followed by persistence failure preserves acceptance evidence when the atomic projection write throws",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "fullName": "SMTP acceptance followed by persistence failure preserves acceptance evidence when the event write throws",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "fullName": "SMTP acceptance followed by persistence failure preserves successful SMTP results when persistence succeeds",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "fullName": "SMTP acceptance followed by persistence failure treats a returned audit persistence error as reconciliation-required",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/ediel-smtp-post-acceptance.test.ts",
+        "fullName": "SMTP acceptance followed by persistence failure does not relabel a pre-send failure as uncertain",
+        "status": "passed"
+      },
+      {
+        "file": "__tests__/synthetic-customer-journey-pre-smtp.e2e.test.ts",
+        "fullName": "synthetic customer journey stops immediately before external SMTP walks application -> legal evidence -> PDF -> all customer mail -> switch Z03 -> recipient certificate gate",
+        "status": "passed"
+      }
+    ]
+  },
+  "executedOther": [
+    {
+      "name": "current registry TXT parity",
+      "status": "PASS 24 checks",
+      "receiptSha256": "892f5b9c276e70388b4dbd36f32c7278ae57b5b9a7dc27a7ef48905e784ebc50",
+      "boundary": "actual PostgreSQL installed functions on minimal synthetic PGlite schema; no real admin/native readiness claim",
+      "countryBoundary": "exact latest native actor UPDATE list preserves declared countryCode; FI source+same legal route updates once; missing/unknown country and postal metadata without declared country remain held and cannot overwrite FI. No broad ISO-country/readiness approval follows."
+    },
+    {
+      "name": "blob-retention read-only scope/current Auth adaptation",
+      "status": "PASS all emitted phases",
+      "receiptSha256": "51c8cfc89015f81be9fa279397a2a276ed69d1d023a944343b199bdb008355df",
+      "boundary": "actual installed lifecycle functions, synthetic legal issuer and tenant data on PGlite; no physical Storage/native proof"
+    },
+    {
+      "name": "authentic TXT grammar",
+      "status": "PASS",
+      "facts": {
+        "sourceHash": "ee26868abc53f7ed60918806d81e225e4ba33cd6ae24afcecc741805fd34f0de",
+        "sourceBytes": 97717,
+        "parserHash": "0e605a15a7e91769be08f23ac764c716e36fa089294813943572265b27a5e227",
+        "encoding": "utf-8",
+        "logicalActors": 697,
+        "markets": {
+          "EL": 651,
+          "GAS": 46
+        },
+        "registeredRoutes": 1126,
+        "metadataOnlyActors": 134,
+        "multilineAddressRecords": 1,
+        "routeFamilies": {
+          "PRODAT": 563,
+          "UTILTS": 563
+        },
+        "generatedAt": "2026-09-10T06:34:58Z",
+        "grantsAuthority": false
+      }
+    }
+  ],
+  "notRun": [
+    "actual Supabase clean/upgrade replay on composed frozen head",
+    "actual native/blob/browser initial+interactive+post verification",
+    "build",
+    "exact-head CI"
+  ],
+  "preserved": [
+    "accepted private-journal replay before fresh authority",
+    "actual death/customerMasterdata/requestedChanges opaque sources in final positional ports",
+    "sourceRulePack/technicalSyntaxAck/current receipt expectations/TM-watch/TR09 certificate/TLS bindings",
+    "incoming one-use owner/fixed-byte fixture consumes",
+    "incoming prior immutable registry read before parse/no-zero-route success/strict declared source field hold",
+    "public source originals stay private"
+  ],
+  "updatedOracle": [
+    {
+      "family": "invalid physical FTX",
+      "old": "national FTX SMTP diagnostic first",
+      "new": "actual UNSM_ELEMENT_LENGTH_INVALID blocks SMTP; independently assert national PRODAT_FTX diagnostic against same unchanged wire; no route/archive/provider/business effects"
+    }
+  ]
+}

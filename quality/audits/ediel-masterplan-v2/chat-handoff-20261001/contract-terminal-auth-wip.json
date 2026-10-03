@@ -1,0 +1,17 @@
+{
+  "state": "SUPERSEDED by contract-brp-terminal-auth-142500-receipt.json",
+  "base": "a8db3a1178b1cc73013133a751f94a2a57dd8198",
+  "owner": "history; checkpoint saved by integrator after owner capacity error",
+  "files": [
+    "scripts/ediel-contract-intake-sql-regression.mjs"
+  ],
+  "finding": "Five finite installed-body cases returned after current permission became denied during final audit/source wait. No authentic native or concurrency qualification. One discarded fixture syntax error is not a product finding.",
+  "remaining": [
+    "Implement guarded 20261001142500 forward with result materialization before terminal current actor on all returns of ten contract/BRP public intake ports",
+    "Guard success edge after final waits in private contract current_v1 and BRP origin_current_v1; preserve exact source/issuer/legal predicates, OIDs/ACL/config/defaults",
+    "Run five retained RED cases GREEN; add equivalent BRP temporal authority/rollback probes",
+    "Actual native/GoTrue/HTTP on frozen candidate"
+  ],
+  "emptyTemplate": "Unmodified zero-byte CLI template 140938 removed; no applied migration altered",
+  "logSha256": "39ea070e1bb1ad28c8b0607c76c85d4cea91927e8bf5bd5e639f53637fb93e3d"
+}

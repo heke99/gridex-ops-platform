@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-01",
+  "codeBaseHead": "f57da77e333fdcfe6e6a2f7f7d6d565676e254f3",
+  "frozenCandidateHead": null,
+  "criterionIds": [
+    "DB-04",
+    "AT-DB-04"
+  ],
+  "wholeCriterionAccepted": false,
+  "source": "Exact original DB-04 requires tenant/actor,status/deadline,references,object/period/version,foreign-key actual selections",
+  "nativeSuite": "scripts/ediel-transport-data-query-plan-native.test.ts",
+  "nativeTestFullName": "measures actual tenant/environment/actor/deadline/reference and object/period/version/FK plans on unqualified native rows",
+  "nativeStatus": "NOT_RUN_LOCAL_NO_DISPOSABLE_SUPABASE",
+  "dataset": {
+    "capturedSyntheticRawReceivingMessages": 10000,
+    "companies": 2,
+    "requestMetadataVersions": 20000,
+    "acceptedMeasurements": 0,
+    "qualifiedPrivateSources": 0,
+    "readyFlagsSeeded": false,
+    "productionTriggers": "all enabled; assert capture/series tenant and immutable gates; no disable or planner hint",
+    "transaction": "BEGIN/ROLLBACK only on literal127.0.0.1:54322; actual full installed schema"
+  },
+  "queries": [
+    "tenant+test environment+family+received queue order",
+    "exact own sender+receiver+interchange reference",
+    "own actor+received+deadline queue metadata",
+    "own external object+grid+half-open period+version+current",
+    "actual own source foreign key",
+    "actual supersedes foreign key",
+    "protected captured original own environment+cutoff history"
+  ],
+  "assertions": [
+    "EXPLAIN ANALYZE BUFFERS JSON before assertions even on failure",
+    "actual used expected indexes rather than index presence",
+    "actual selected row cardinality per query",
+    "execution time under500ms without planner hints",
+    "source/current/revision hashes and references remain unqualified",
+    "zero foreign tenant/environment contamination",
+    "zero meter values; no invoice or accepted source minted"
+  ],
+  "executed": {
+    "scopedNativeTS": "PASS",
+    "ownedESLint": "PASS",
+    "TStranspilation": "PASS",
+    "nativePlansLatency": "NOT_RUN"
+  },
+  "pending": "Root must execute actual native suite on same final candidate and retain observed plans/latency; synthetic metadata benchmark does not prove qualified SLA timer or production readiness."
+}

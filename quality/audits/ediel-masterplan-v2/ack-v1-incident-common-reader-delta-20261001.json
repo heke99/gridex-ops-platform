@@ -1,0 +1,31 @@
+{
+  "owner": "/root/ack_prodat",
+  "kind": "bounded installed v1/incident common private original reader closure",
+  "created_at": "2026-10-01T14:07:38.237155+00:00",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001134500_ediel_ack_v1_incident_common_private_original_reader.sql",
+      "sha256": "b6cdfc3aef4e6019949b26942e25916f252aa3ebab9334beedfaa3c609aef803"
+    },
+    {
+      "path": "scripts/ediel-ack-common-reader-flow-closure-sql-regression.mjs",
+      "sha256": "af348de115a2003ce5f9d51da445c9e9e18e58de0536eb40d8c9c60e5802eb85"
+    }
+  ],
+  "implementation": {
+    "read_v1": "same signature/OID/owner/ACL/config, original scope/input guard; canonical private original enumeration+exact immutable birth tuple and actual wire sequence applicability; common prepare qualifier; selected own terminal requalification after sequence receipt read; local typed sequence/relation/outcome projection only",
+    "create_v1": "existing native transaction and final own identity assertions on replay and after last immutable birth receipt; NULL/different final qualification raises rollback",
+    "incident": "inspect READ adapter; original_v1 and original_read_v2 retain real positive physical scope/actual accepted_source_basis/current role and source gates; qualified local record replaces public relation/outcome cache reads; local report uses current prepare WRITE; read uses current READ; no SEND grant required to read immutable historical accepted receipt",
+    "original_candidate_discovery": "bounded immutable creation_receipts source/tenant/env/sourcehash/ACKhash extra candidate; technical validators unchanged; supports technical CONTRL without business witness",
+    "effects": "no public cache/relationship repairs; no remint on retained original replay; incident original ACK bytes/history/outcome unchanged, contact/correction plans remain held/trafficAuthorized=false"
+  },
+  "verification": {
+    "actual_forward_mechanics": "79 cumulative PASS (51 reused current base +28 additional), /tmp/ack-v1-incident-common-reader-delta.log; Node22; actual21918/23824/30525 installed functions and actual134500 forward; canonical clock/current permissions and installed accepted_source_basis reader; synthetic finite sourceapproval/route/private journal boundary rows, NOT authentic native/provider acceptance",
+    "covered": "null/foreign relation+wrong outcome/parsed status cache; readonly tripwires; READvsWRITEvsSEND; actual negative cannot become positive incident; actual raw-positive guide plus private accepted journal; late incident event WRITEdeny complete rollback; sourceapproval unavailable held; actual technical envelope/CONTRL validators and birth-discovery; immutable birth delete deny; current WRITEdeny; terminal own second/third reads timeddeny; actual fresh v1 last receipt error/expiry/corrupt sequence tuple rollback and successful birth/replay; older unreceipted scoped UTILTS ERR/partial APERAK NULL read and birth explicitly held without effects; explicit physical ERR token and APERAK transaction matching preserved",
+    "lint": "canonical eslint9.39.4 exit0 /tmp/ack-v1-incident-common-reader-lint.log",
+    "function_identity": "OID owner ACL security config defaults arguments and return type preserved for read_v1/create_v1/actor/inspect/originals/report",
+    "acceptance": "NOT_PROMOTED; root frozen candidate authentic DB/UI/CI verification required"
+  },
+  "peer_review": "Bounded /root/utilts review: terminal phase/incident applicability clear; concrete unreceipted scoped UTILTS whole-source ambiguity corrected to explicit historical_ack_sequence_basis_unavailable; four targeted regressions PASS79 cumulative. Native acceptance NOT_RUN.",
+  "remaining_owned": "root-approved separate134600 ancient technical chain selector and persisted technical reader; exact private namespace ALLkeys/firsthash plus captured technical source/reply source tuple and common qualifier, no backfill/publiccache authority"
+}

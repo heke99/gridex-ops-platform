@@ -1,0 +1,57 @@
+{
+  "baseHead": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "lockSha256": "1c8eb8730937a96799a4a53665e4f060f020b9513fa87ec5e2d550678a562cf8",
+  "scope": "OPS02 protected readonly F/G and ordinary process watches",
+  "wholeLiteralApproved": false,
+  "native": {
+    "status": "NOT_RUN",
+    "reason": "Local Docker/psql/Supabase unavailable; root exact candidate CI required"
+  },
+  "interactiveBrowser": {
+    "status": "NOT_RUN"
+  },
+  "red": {
+    "report": "restored-ops02-red.json",
+    "tests": 7,
+    "pass": 2,
+    "fail": 5,
+    "exit": 1
+  },
+  "green": {
+    "report": "restored-ops02-unit.json",
+    "tests": 33,
+    "pass": 33,
+    "fail": 0,
+    "exit": 0
+  },
+  "lint": {
+    "scope": [
+      "lib/ediel/operations/processNextAction.ts",
+      "app/admin/ediel/process-watches/page.tsx",
+      "app/admin/customer-info-requests/page.tsx",
+      "__tests__/ediel-process-next-action-owner-port.test.ts",
+      "__tests__/ediel-process-next-action-view.test.ts",
+      "__tests__/ediel-metering-method-next-action.test.ts",
+      "__tests__/ediel-process-watches-view.test.ts"
+    ],
+    "exit": 0
+  },
+  "syntaxTranspile": {
+    "diagnostics": 0,
+    "fullTypecheck": false
+  },
+  "fileSha256": {
+    "lib/ediel/operations/processNextAction.ts": "b486a4edaf34fd8906a94c9d62f28b4980a23069b847bc1f0d4582ee82aafbfc",
+    "app/admin/ediel/process-watches/page.tsx": "907286eb39ee931f2bd004b6163ec24b8293f73a994b3826bea23e52b3f7f3e5",
+    "app/admin/customer-info-requests/page.tsx": "fdbd232addfee7fbf1227106cbdae01e748e49e15b973934ee659bc9dcf128eb",
+    "__tests__/ediel-process-next-action-owner-port.test.ts": "6f4ba6b0be37ecffd5bd092b8d3de41a9793c04bec67ecd6b1261d5325a344c3",
+    "__tests__/ediel-process-next-action-view.test.ts": "13cd74da6c570c52cb49f0e78d397dfaa385d8df418d9da437cfcc04bbae5fb3",
+    "__tests__/ediel-metering-method-next-action.test.ts": "fe1690f3ea129cb2079ec25434665b31ba71389796f324462a0ff9432774486e",
+    "__tests__/ediel-process-watches-view.test.ts": "88829b4daf03713c2b6d7e494a5281fa94ea19795ff55c9b62e6891c85ad8d25"
+  },
+  "limitations": [
+    "Finite service ports in unit/server view fixtures prove consumer and no-effects decisions, not native authority approval.",
+    "No provider/customer/Ediel/counterparty traffic was executed.",
+    "Native production permissions and current grants remain in each owner RPC; UI access flags authorize display only."
+  ]
+}

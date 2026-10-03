@@ -1,0 +1,32 @@
+[
+  {
+    "source": "6376e27e011d219ab2710f0c6ebccc56c6821176",
+    "tree": "eadbc24214917dd11b0179b065d7921aca8ec7a4",
+    "sourceParents": [
+      "32aae260e12c56044f3b57dc9411ee7b1d4fd6a9"
+    ],
+    "sourceRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+    "targetRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+    "expectedTarget": ""
+  },
+  {
+    "source": "9dca678fe75a6a52128cf5b47cd79e6d8d5d3f14",
+    "tree": "2d86ad93ba387a20b07483e870ec9d3fc0f3244b",
+    "sourceParents": [
+      "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+    ],
+    "sourceRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+    "targetRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+    "expectedTarget": ""
+  },
+  {
+    "source": "7cc1b3438a8382645179c36595596271634b83fe",
+    "tree": "1100cb4d0aed799c3d169621d32a29670aa8b819",
+    "sourceParents": [
+      "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+    ],
+    "sourceRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+    "targetRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+    "expectedTarget": ""
+  }
+]

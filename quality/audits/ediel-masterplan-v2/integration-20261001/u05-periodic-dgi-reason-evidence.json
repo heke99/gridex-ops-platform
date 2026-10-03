@@ -1,0 +1,525 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Additive U05/AT-U05 implementation evidence; frozen original registries and previous reviews unchanged",
+  "candidateBase": "6c3ccfceef2b80861fb881387d227b06e5b592e2",
+  "runtimeBaselineBlobs": {
+    "runtimeDecision.ts": "399102e47fbf29cb19d6c21a2e2e66778d64409e",
+    "utiltsEngine.ts": "b016c0715e08bd4cbf688e463a588eba2ed743f5"
+  },
+  "sourceQualification": {
+    "facts": [
+      {
+        "source": "U",
+        "fileName": "260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf",
+        "libraryFileId": "file_0000000022b48210b8d3db9e3c62173f",
+        "libraryRef": "libfile_a98507823af88191b28e2e33c0f29828",
+        "locator": "change log page6 line269, version25.A.2 2025-05-07; section3.6.11 pages40–41 lines1855–1920",
+        "fact": "Periodic to ESCO defaults E23 rather than E88, unless expressly agreed; reason once per message."
+      },
+      {
+        "source": "OE",
+        "fileName": "UTILTS-APERAK_ver_E5SE5A_exempelsamling_objekt_el_250430.pdf",
+        "libraryFileId": "file_00000000696471f487b097a7d6fd790a",
+        "libraryRef": "libfile_6dbfccce33348191b0c6ad3dba492616",
+        "locator": "Example2g page45 lines2630–2740; change log page2 line38",
+        "fact": "Physical periodic UNB23-DGI-E66-T/NADDGI/STS7E23 example."
+      }
+    ],
+    "limits": [
+      "Library source page-text inspected; original PDF bytes were not downloaded or rehashed by this packet. Frozen original source hashes remain unchanged.",
+      "Retrieved U text has internal25-A-5 header despite25-A-4 filename. This is recorded source-version ambiguity, not silent promotion of a neighboring edition. OE2g and frozen literal corroborate E23; signed native agreements qualify actual explicit source facts only.",
+      "No production legal authority is supplied by the declared synthetic trusted issuer/representation fixture.",
+      "Unknown periodic point without a matching current actual source assignment holds locally; missing source scope never creates a national field223 defect."
+    ]
+  },
+  "implementation": {
+    "paths": [
+      "lib/ediel/utilts.ts",
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/utiltsEngine.ts",
+      "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "lib/ediel/utilts/qualifyReceivedStructure.ts",
+      "lib/ediel/utilts/periodicReasonAuthority.ts",
+      "lib/ediel/utilts/periodicReasonGuide.ts",
+      "lib/ediel/services/periodicReason.ts",
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql"
+    ],
+    "findings": [
+      "Opaque source/policy-bound reason capability read once in actual initial registry owner and reused in real final/structural owner. Copy, changed original or alternate capability cannot finalize.",
+      "Protected role/actual AppRef/physical own IDE/STS/point/product/period qualify existing actual assignment plus two authenticated source contracts with separate no-default company reviewer. Positive grant and Z14 remain separate storage authority.",
+      "Matching actual qualified non-ESCO receiver gets protected not_applicable; unknown or stale role/source remains local hold. No global E88 profile or fabricated rejection from absence.",
+      "Same-OID first-effect function retains original + issuer delegates before separate reason outcome check; same-OID positive storage retains current grant-set and actual full source/contract checks."
+    ]
+  },
+  "rows": [
+    {
+      "id": "U-05",
+      "literalRegistryHash": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "pointer": "docs/ediel/masterplan-v2/registers/rules.json#/77",
+      "literalRowHash": "263ef42f96fc025ed3275a9d8e91c9143f202903c57a993a4d25dc4cdff48e9c",
+      "candidateBase": "6c3ccfceef2b80861fb881387d227b06e5b592e2",
+      "givenCriteria": [
+        {
+          "literal": "E66 i DGI-rollen",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": "lib/ediel/utilts/periodicReasonAuthority.ts",
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner"
+          ]
+        }
+      ],
+      "whenCriteria": [
+        {
+          "literal": "Periodisk rapportering",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": "lib/ediel/core/runtimeDecision.ts",
+          "testFullName": [
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability",
+            "final UTILTS actual matching owner to native evidence handoff retains the one initial registry pass and appends the actual structural-qualified own facet before capture",
+            "final UTILTS actual matching owner to native evidence handoff holds an unconfirmed own facet before any positive source capture or native effect",
+            "final UTILTS actual matching owner to native evidence handoff captures the genuine named source witness for an all-negative own outcome without making a positive facet",
+            "final UTILTS actual matching owner to native evidence handoff freezes a genuine negative-only final facet under registry hold without capturing or inventing a pack"
+          ]
+        }
+      ],
+      "expectedCriteria": [
+        {
+          "literal": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": [
+            "lib/ediel/utilts.ts",
+            "lib/ediel/utilts/periodicReasonGuide.ts",
+            "gridex_ediel_services.periodic_reason_projection_v1",
+            "gridex_ediel_services.require_periodic_outcome_v1"
+          ],
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+            "periodic DGI wire candidate; current native send/business authority remains independently required cannot turn a payload flag or payload reason into an authenticated E88 exception",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence permits E88 only with the actual scoped two-contract review receipts returned by the native owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds missing-receipt before positive effects without fabricating field223 rejection",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects copied capabilities, changed original bytes and a different selected policy",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO source",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO scope",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO own-IDE",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO missing-contract",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability"
+          ],
+          "sqlProbe": [
+            "Actual independently archived signed E23 DSO/service sources and independent generic+periodic reviews qualify own E23",
+            "New current signed E88 DSO/service sources qualify E88 only after both explicit periodic reviews",
+            "Actual native first-effect helper rejects accepted wrong reason and invented guide_rejected reason issue; prescribed actual mismatch negative is permitted",
+            "Actual current reviewer/issuer representation/generic review/receiver changes hold; no grant/Z14 needed for own negative communication"
+          ]
+        },
+        {
+          "literal": "Kontrollera roll, Application Reference, underordnad roll och behörigheter.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": [
+            "lib/ediel/utilts.ts",
+            "lib/ediel/utilts/periodicReasonGuide.ts",
+            "gridex_ediel_services.periodic_reason_projection_v1",
+            "gridex_ediel_services.require_periodic_outcome_v1"
+          ],
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+            "periodic DGI wire candidate; current native send/business authority remains independently required cannot turn a payload flag or payload reason into an authenticated E88 exception",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence permits E88 only with the actual scoped two-contract review receipts returned by the native owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds missing-receipt before positive effects without fabricating field223 rejection",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects copied capabilities, changed original bytes and a different selected policy",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO source",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO scope",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO own-IDE",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO missing-contract",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability"
+          ],
+          "sqlProbe": [
+            "Actual independently archived signed E23 DSO/service sources and independent generic+periodic reviews qualify own E23",
+            "New current signed E88 DSO/service sources qualify E88 only after both explicit periodic reviews",
+            "Actual native first-effect helper rejects accepted wrong reason and invented guide_rejected reason issue; prescribed actual mismatch negative is permitted",
+            "Actual current reviewer/issuer representation/generic review/receiver changes hold; no grant/Z14 needed for own negative communication"
+          ]
+        }
+      ],
+      "prohibitedCriteria": [
+        {
+          "literal": "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": [
+            "lib/ediel/utilts.ts",
+            "gridex_ediel_services.signed_periodic_reason_claims_v1"
+          ],
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required keeps nonperiodic DDQ own reason unchanged",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt"
+          ],
+          "sqlProbe": [
+            "Caller reasonCode/self-review/hash forgery and unsigned contract kinds refused",
+            "Revoked actual grant/Z14 does not turn qualified contract reason into unauthorized data approval; positive storage has separate retained grant-set consumer"
+          ]
+        }
+      ],
+      "local": {
+        "status": "PASS_BOUNDED",
+        "unitTests": 29,
+        "sqlNewProbes": 13,
+        "receipts": [
+          {
+            "kind": "UNIT_PROTECTED_IO_MODEL",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-unit.json",
+            "sha256": "58b4d82c3acb34d6925480ea42731e498bc4f11fd1c032c425f4a4a0daa580b0"
+          },
+          {
+            "kind": "EXACT_BASELINE_ENGINE_RED",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-engine-red.json",
+            "sha256": "8fac428aacf07df6b47ed95ca6ca6e4b5935a1af147c82e0b981b421d5d6fbb1"
+          },
+          {
+            "kind": "PGLITE_ACTUAL_FUNCTIONS_FINITE_DEPENDENCIES",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-sql.log",
+            "sha256": "b0abe713dd494abe618a3d6e39948e6ff4a1d1a08c01f9edd1a50f1ab12ab7fe"
+          },
+          {
+            "kind": "TYPECHECK_OTHER_OWNERS_FAIL",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-typecheck.log",
+            "sha256": "94062d4681675baabae64e48f541b0c3cd83183257aedef72d893d1fe8dc1f0a"
+          },
+          {
+            "kind": "ESLINT",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-eslint.log",
+            "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+          }
+        ],
+        "scope": "Actual consumer functions with finite declared protected original, current-role, storage and Z14 dependencies; issuer registry/legal source facts explicitly synthetic. Native old original/issuer delegates are preserved by function-definition check, not claimed executed by this bounded harness."
+      },
+      "native": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "browser": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "exactHeadCi": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "wholeCriterion": {
+        "status": "NOT_APPROVED",
+        "missing": [
+          "Same final frozen candidate authentic replay/generated artifacts/native-HTTP/browser/build/exact-head CI and independent whole literal acceptance",
+          "Outbound default E23 is a full-UNSM candidate; authentic protected send admission/witness and native bilateral/current beneficiary/source scope must qualify the actual send",
+          "Authentic current production issuer/representation/mandate and precise selected-edition source authority are external activation facts"
+        ]
+      }
+    },
+    {
+      "id": "AT-U-05",
+      "literalRegistryHash": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "pointer": "docs/ediel/masterplan-v2/registers/acceptance_tests.json#/149",
+      "literalRowHash": "69172a36d0818e34622b56886943931d282454317c3037bb6c874ad8915da95b",
+      "candidateBase": "6c3ccfceef2b80861fb881387d227b06e5b592e2",
+      "givenCriteria": [
+        {
+          "literal": "E66 i DGI-rollen",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": "lib/ediel/utilts/periodicReasonAuthority.ts",
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner"
+          ]
+        }
+      ],
+      "whenCriteria": [
+        {
+          "literal": "Periodisk rapportering – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": "lib/ediel/core/runtimeDecision.ts",
+          "testFullName": [
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability",
+            "final UTILTS actual matching owner to native evidence handoff retains the one initial registry pass and appends the actual structural-qualified own facet before capture",
+            "final UTILTS actual matching owner to native evidence handoff holds an unconfirmed own facet before any positive source capture or native effect",
+            "final UTILTS actual matching owner to native evidence handoff captures the genuine named source witness for an all-negative own outcome without making a positive facet",
+            "final UTILTS actual matching owner to native evidence handoff freezes a genuine negative-only final facet under registry hold without capturing or inventing a pack"
+          ]
+        }
+      ],
+      "expectedCriteria": [
+        {
+          "literal": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet. → Kontrollera roll, Application Reference, underordnad roll och behörigheter.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": [
+            "lib/ediel/utilts.ts",
+            "lib/ediel/utilts/periodicReasonGuide.ts",
+            "gridex_ediel_services.periodic_reason_projection_v1",
+            "gridex_ediel_services.require_periodic_outcome_v1"
+          ],
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+            "periodic DGI wire candidate; current native send/business authority remains independently required cannot turn a payload flag or payload reason into an authenticated E88 exception",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+            "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence permits E88 only with the actual scoped two-contract review receipts returned by the native owner",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds missing-receipt before positive effects without fabricating field223 rejection",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects copied capabilities, changed original bytes and a different selected policy",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO source",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO scope",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO own-IDE",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO missing-contract",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability"
+          ],
+          "sqlProbe": [
+            "Actual independently archived signed E23 DSO/service sources and independent generic+periodic reviews qualify own E23",
+            "New current signed E88 DSO/service sources qualify E88 only after both explicit periodic reviews",
+            "Actual native first-effect helper rejects accepted wrong reason and invented guide_rejected reason issue; prescribed actual mismatch negative is permitted",
+            "Actual current reviewer/issuer representation/generic review/receiver changes hold; no grant/Z14 needed for own negative communication"
+          ]
+        }
+      ],
+      "prohibitedCriteria": [
+        {
+          "literal": "Påför inte en global E88-fakturaprofil på DGI-trafik.",
+          "status": "BOUNDED_CONSUMER_EVIDENCE",
+          "actualconsumer": [
+            "lib/ediel/utilts.ts",
+            "gridex_ediel_services.signed_periodic_reason_claims_v1"
+          ],
+          "testFullName": [
+            "periodic DGI wire candidate; current native send/business authority remains independently required keeps nonperiodic DDQ own reason unchanged",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+            "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt"
+          ],
+          "sqlProbe": [
+            "Caller reasonCode/self-review/hash forgery and unsigned contract kinds refused",
+            "Revoked actual grant/Z14 does not turn qualified contract reason into unauthorized data approval; positive storage has separate retained grant-set consumer"
+          ]
+        }
+      ],
+      "local": {
+        "status": "PASS_BOUNDED",
+        "unitTests": 29,
+        "sqlNewProbes": 13,
+        "receipts": [
+          {
+            "kind": "UNIT_PROTECTED_IO_MODEL",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-unit.json",
+            "sha256": "58b4d82c3acb34d6925480ea42731e498bc4f11fd1c032c425f4a4a0daa580b0"
+          },
+          {
+            "kind": "EXACT_BASELINE_ENGINE_RED",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-engine-red.json",
+            "sha256": "8fac428aacf07df6b47ed95ca6ca6e4b5935a1af147c82e0b981b421d5d6fbb1"
+          },
+          {
+            "kind": "PGLITE_ACTUAL_FUNCTIONS_FINITE_DEPENDENCIES",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-sql.log",
+            "sha256": "b0abe713dd494abe618a3d6e39948e6ff4a1d1a08c01f9edd1a50f1ab12ab7fe"
+          },
+          {
+            "kind": "TYPECHECK_OTHER_OWNERS_FAIL",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-typecheck.log",
+            "sha256": "94062d4681675baabae64e48f541b0c3cd83183257aedef72d893d1fe8dc1f0a"
+          },
+          {
+            "kind": "ESLINT",
+            "path": "quality/audits/ediel-masterplan-v2/integration-20261001/u05-periodic-eslint.log",
+            "sha256": "7125f194612fcff2f454c05d848e7cb71facc1967b4d5017e25b34fdee3ba74f"
+          }
+        ],
+        "scope": "Actual consumer functions with finite declared protected original, current-role, storage and Z14 dependencies; issuer registry/legal source facts explicitly synthetic. Native old original/issuer delegates are preserved by function-definition check, not claimed executed by this bounded harness."
+      },
+      "native": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "browser": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "exactHeadCi": {
+        "status": "NOT_EXECUTED",
+        "receipts": []
+      },
+      "wholeCriterion": {
+        "status": "NOT_APPROVED",
+        "missing": [
+          "Same final frozen candidate authentic replay/generated artifacts/native-HTTP/browser/build/exact-head CI and independent whole literal acceptance",
+          "Outbound default E23 is a full-UNSM candidate; authentic protected send admission/witness and native bilateral/current beneficiary/source scope must qualify the actual send",
+          "Authentic current production issuer/representation/mandate and precise selected-edition source authority are external activation facts"
+        ]
+      }
+    }
+  ],
+  "executedTestFullNames": [
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+      "fullName": "periodic DGI wire candidate; current native send/business authority remains independently required renders own national defaultE23 and actual legal NAD facts, while selecting full02B without any send/grant RPC",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+      "fullName": "periodic DGI wire candidate; current native send/business authority remains independently required cannot turn a payload flag or payload reason into an authenticated E88 exception",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+      "fullName": "periodic DGI wire candidate; current native send/business authority remains independently required keeps nonperiodic DDQ own reason unchanged",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-owner-chain.test.ts",
+      "fullName": "periodic source-capability initial/final native-I/O boundary model, NOT native execution reuses the initial actual periodic and issuer tokens across matching and structure without another guide/scope read",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-owner-chain.test.ts",
+      "fullName": "periodic source-capability initial/final native-I/O boundary model, NOT native execution refuses a final matching invocation that drops the genuine periodic token, before source capture",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-owner-chain.test.ts",
+      "fullName": "periodic source-capability initial/final native-I/O boundary model, NOT native execution cannot extract the original token from copied decisions or a changed original",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence consumes protected current ESCO defaultE23 using own physical IDE and preserves the actual owner",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects inherited E88 without authenticated agreement, at original field223, with zero accepted transactions or ERR",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence permits E88 only with the actual scoped two-contract review receipts returned by the native owner",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence preserves other qualified receiver roles only with their protected same-source not-applicable receipt",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds missing-token before positive effects without fabricating field223 rejection",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds missing-receipt before positive effects without fabricating field223 rejection",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence holds revoked-representation before positive effects without fabricating field223 rejection",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence rejects copied capabilities, changed original bytes and a different selected policy",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO source",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO scope",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO own-IDE",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence refuses mismatched protected DTO missing-contract",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+      "fullName": "actual periodic DGI national consumer with declared protected I/O model, not native evidence cannot finalize an otherwise accepted source under a different periodic capability",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-final-validation-flow.test.ts",
+      "fullName": "final UTILTS actual matching owner to native evidence handoff retains the one initial registry pass and appends the actual structural-qualified own facet before capture",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-final-validation-flow.test.ts",
+      "fullName": "final UTILTS actual matching owner to native evidence handoff holds an unconfirmed own facet before any positive source capture or native effect",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-final-validation-flow.test.ts",
+      "fullName": "final UTILTS actual matching owner to native evidence handoff captures the genuine named source witness for an all-negative own outcome without making a positive facet",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-final-validation-flow.test.ts",
+      "fullName": "final UTILTS actual matching owner to native evidence handoff freezes a genuine negative-only final facet under registry hold without capturing or inventing a pack",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar places transaction FTX before SG7/SG8 instead of after its own QTY observation",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar refuses quantity on E73 because the selected national Request table contains no observation quantity",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar refuses valueKwh on E73 because the selected national Request table contains no observation quantity",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar refuses requestedQuantity on E73 because the selected national Request table contains no observation quantity",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar creates a request without fabricated SEQ/QTY and still selects its own full directory",
+      "status": "passed"
+    },
+    {
+      "testPath": "__tests__/ediel-utilts-outbound-full-grammar.test.ts",
+      "fullName": "actual UTILTS outbound producer full selected 02B grammar holds missing legal source parties despite valid transport identities",
+      "status": "passed"
+    }
+  ],
+  "wholeApprovedCount": 0
+}

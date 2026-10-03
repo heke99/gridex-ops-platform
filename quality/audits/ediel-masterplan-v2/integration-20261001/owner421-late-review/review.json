@@ -1,0 +1,397 @@
+{
+  "ownerHead": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "base": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+  "currentRootReadHead": "47c8dfb8c3157b196054a6b27e6455482e74e494",
+  "rows": [
+    {
+      "path": "__tests__/ediel-ai-intent-gateway.test.ts",
+      "ownerBlob": "f92f2bd2632e8f7cb568ea41dda87d7fe27a6e61",
+      "public033Blob": "c940894ecd2d73bed97d3b00890f75307e151c3a",
+      "currentRootBlob": "c940894ecd2d73bed97d3b00890f75307e151c3a",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-ai-legal-transport-parties.test.ts",
+      "ownerBlob": "e33200c7388c3780056c45437e1ec9610fa4f692",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "__tests__/ediel-ai-list-format.test.ts",
+      "ownerBlob": "21029a95b47cc933527580704abdcb8dcf815a00",
+      "public033Blob": "b15c144218337580df73c8b034dd3d7dc61ada39",
+      "currentRootBlob": "b15c144218337580df73c8b034dd3d7dc61ada39",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-ai-prospective-original.test.ts",
+      "ownerBlob": "198556e6481b28001e141a5ed22ac73478ce896a",
+      "public033Blob": "c437fe7ac7e8db129905422e04d1bcd1645d276f",
+      "currentRootBlob": "c437fe7ac7e8db129905422e04d1bcd1645d276f",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-recovery-date-context.test.ts",
+      "ownerBlob": "0494f33e02420fd63f5cb1f8c7f82d097c0bd627",
+      "public033Blob": "7f0323f9614f178d688280c5a152ae29896a67fa",
+      "currentRootBlob": "7f0323f9614f178d688280c5a152ae29896a67fa",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-recovery-reporting-context.test.ts",
+      "ownerBlob": "b4f01cd533f122339d8ccd2a8abb40f43f8a6684",
+      "public033Blob": "6f3a4b43b19ecb3e3c7378b964413799cd5ebb3a",
+      "currentRootBlob": "6f3a4b43b19ecb3e3c7378b964413799cd5ebb3a",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-service-permission-recovery-origin.test.ts",
+      "ownerBlob": "b3a9d9f6134f09e1365de5d2d0c2b7c7bbb3e40e",
+      "public033Blob": "1ca3799a137e76d835ccf60599738e3dd925679c",
+      "currentRootBlob": "1ca3799a137e76d835ccf60599738e3dd925679c",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "__tests__/ediel-service-recovery-lineage.test.ts",
+      "ownerBlob": "e0a23468be929303cf2c4530c4e95696b6586654",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "lib/ediel/ack/canonicalAckEngine.ts",
+      "ownerBlob": "6fadfdbfe94ac6268e77b0114503c6f49c3b5543",
+      "public033Blob": "e81cb8060a0e25eff3a845cdfa89daa19215230b",
+      "currentRootBlob": "e81cb8060a0e25eff3a845cdfa89daa19215230b",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/aiList.ts",
+      "ownerBlob": "d1d00332810ca0e8009c777d5b7a9e175254af72",
+      "public033Blob": "2c2e40f1fb86a1ba38a53db80713dde979a3e5fd",
+      "currentRootBlob": "2c2e40f1fb86a1ba38a53db80713dde979a3e5fd",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/aiListFormat.ts",
+      "ownerBlob": "bec79668810da15cd47a798baf6bb123b43e93d1",
+      "public033Blob": "67700d1f67cbe0a0be1b48909b2b7bc53bb4a726",
+      "currentRootBlob": "67700d1f67cbe0a0be1b48909b2b7bc53bb4a726",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/aiListOrigination.ts",
+      "ownerBlob": "8af898b970aab90fdb532a21cb1cf068b8f429d2",
+      "public033Blob": "4c998fd1c0cffb23017e30984d980224f3cc9e0d",
+      "currentRootBlob": "4c998fd1c0cffb23017e30984d980224f3cc9e0d",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/aiListPartyBasis.ts",
+      "ownerBlob": "ff5c77ed17cd75d3e5bc61706d73d8b62cdb6da2",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "lib/ediel/flows/aiListFlow.ts",
+      "ownerBlob": "8d0168ebdb5b4b276c498bb8ab737f80e806fd59",
+      "public033Blob": "b59df9fa3c98ab08b1038e9aaebb2bea01da7d50",
+      "currentRootBlob": "b59df9fa3c98ab08b1038e9aaebb2bea01da7d50",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/intent/aiListGateway.ts",
+      "ownerBlob": "473e728c213fe9ff7d4daa9965ab68cfc41c03b0",
+      "public033Blob": "e8f9cdef26317ee85a3805bb522ecb3053101d98",
+      "currentRootBlob": "e8f9cdef26317ee85a3805bb522ecb3053101d98",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/aiList.ts",
+      "ownerBlob": "a54c6fd14ef862cfec033fd1518fc40575bb06ac",
+      "public033Blob": "c9fbeeb986f80a2cc5a079304ac6f6bc51d26f5e",
+      "currentRootBlob": "c9fbeeb986f80a2cc5a079304ac6f6bc51d26f5e",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/intent/types.ts",
+      "ownerBlob": "ff6c67b3ee0bf5e965eb8b04aeebd22bfa258671",
+      "public033Blob": "0f2e6ede7388621bd8fccf25323882335fc50239",
+      "currentRootBlob": "0f2e6ede7388621bd8fccf25323882335fc50239",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/recovery/reportingContext.ts",
+      "ownerBlob": "95afb85014927e50e8de296b484a357dcf169ba0",
+      "public033Blob": "b20ad434b3f604fbdc3719d7e8af2b17f379a254",
+      "currentRootBlob": "b20ad434b3f604fbdc3719d7e8af2b17f379a254",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/recovery/sourceContext.ts",
+      "ownerBlob": "2d76f4b953a21066c179365d0988d3b37210b6ea",
+      "public033Blob": "85875f25ec2f46f76db7bf2256c6f672a138f700",
+      "currentRootBlob": "85875f25ec2f46f76db7bf2256c6f672a138f700",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/services/permissionOrigin.ts",
+      "ownerBlob": "0c500d91ebf5a191dd7cff0219fae55d650b7a4d",
+      "public033Blob": "44fb071c4b83d4c04227d647ec1bc0fc6828fd81",
+      "currentRootBlob": "44fb071c4b83d4c04227d647ec1bc0fc6828fd81",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "lib/ediel/services/reporting.ts",
+      "ownerBlob": "81a224921b0f1bed1c8a98b073c1db0809b2805a",
+      "public033Blob": "7359a6d7fc1ce6ef6eeeff158caf7295d30a5bac",
+      "currentRootBlob": "7359a6d7fc1ce6ef6eeeff158caf7295d30a5bac",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-ai-registry-dispatch-20261001.md",
+      "ownerBlob": "c0274206d3224e7e3ea899df6c10d77cdc2b1a77",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/codephase-service-recovery-lineage-20261001.md",
+      "ownerBlob": "3ee32681aaae65bc4cb03180558675c54497facf",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/process-code-phase-assessment-20261001.json",
+      "ownerBlob": "3d4842e5afe1645a3f914a7980168e20b0ffd7a7",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/process-recovery-lineage-phase-20261001.md",
+      "ownerBlob": "824b97d1480ec0037e849a94754463191c0b9654",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/process-recovery-source-adapters-20261001.md",
+      "ownerBlob": "ce745e0153ced90e89f541456b508f600ca51f63",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "scripts/ediel-ai-origination-embedded-check.mjs",
+      "ownerBlob": "0676d7c886637912690968a8a8d02a1441fb67d7",
+      "public033Blob": "37039e23fe045f38d0f8978dea8b6552f29c0f44",
+      "currentRootBlob": "37039e23fe045f38d0f8978dea8b6552f29c0f44",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "scripts/ediel-customer-event-recovery-lineage-regression.mjs",
+      "ownerBlob": "43d0ac40eb1b5cf321df7d078c2ca31076695c89",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "scripts/ediel-prodat-recovery-phase-regression.mjs",
+      "ownerBlob": "b6df6de0d009b158d9d1a53ce06591f8a8794b74",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "scripts/ediel-service-administration-sql-regression.mjs",
+      "ownerBlob": "f6702ce262fe828dd440d50f4271ea627304b82f",
+      "public033Blob": "46124185c20b70d9f5082c6a457c8b3796dfc9c2",
+      "currentRootBlob": "46124185c20b70d9f5082c6a457c8b3796dfc9c2",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "scripts/ediel-service-origin-phase-sql-regression.mjs",
+      "ownerBlob": "9173e15dd6372b3c88b1c2428eb766a91aa4e15d",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "scripts/ediel-service-origin-source-composition.mjs",
+      "ownerBlob": "4f00d2855392641ffdd233c77aae06b5ad2d1d85",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "ownerBlob": "6ad8dc1058880384ad95567787f4deece7bd4c39",
+      "public033Blob": "c79fc8ba5985b1ad315999c70d4431a129b44b6a",
+      "currentRootBlob": "c79fc8ba5985b1ad315999c70d4431a129b44b6a",
+      "status": "DIFFERENT_BYTES"
+    },
+    {
+      "path": "supabase/migrations/20261001041631_ediel_customer_event_recovery_source_lineage.sql",
+      "ownerBlob": "fed464a7ea0455db5513c23c49921f11fb137f8e",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "supabase/migrations/20261001055807_ediel_customer_event_recovery_fresh_transport_cohort.sql",
+      "ownerBlob": "6e4c32b3d907e35d2cc210d500edaf0a643be581",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "supabase/migrations/20261001061000_ediel_ai_legal_technical_party_scope.sql",
+      "ownerBlob": "7d0cc1f180e745000796ddfc8be755251a97263f",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+      "ownerBlob": "87caa2b851869452f962fa105ee82904b3bf881b",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "supabase/migrations/20261001062832_ediel_service_origin_recovery_execution_phase.sql",
+      "ownerBlob": "f8cb5bb39351caa3903a61560a75ecf0ae81bdf5",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    },
+    {
+      "path": "supabase/migrations/20261001065415_ediel_recovery_current_service_source_bridge.sql",
+      "ownerBlob": "134ad8a0351c8fd126fcdd7f9f41ee70d0a396df",
+      "public033Blob": null,
+      "currentRootBlob": null,
+      "status": "MISSING"
+    }
+  ],
+  "comparisonScope": "last seven commits f461436f\u21923c7342c6 only; 8052 exact ancestor verified separately; do not reimport whole497-path ancestor delta",
+  "ancestor": {
+    "head": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+    "actualAncestorOfReviewedOwner": true,
+    "command": "git merge-base --is-ancestor 8052ebff1dd3746d0b4664b5f2533164a3497ae7 3c7342c6",
+    "exit": 0
+  },
+  "byteComparisonCounts": {
+    "MISSING": 18,
+    "DIFFERENT_BYTES": 21,
+    "SAME_BYTES": 0
+  },
+  "implementationWrites": [],
+  "reviewEvidence": "READ_ONLY_STATIC_SEMANTIC_REVIEW",
+  "testsExecutedOnIncomingPackage": false,
+  "wholeCriterionApproved": false,
+  "preserveRoot": [
+    "service captured requestTiming/assertCapturedServiceRequestTiming and source-owned network period timing43917",
+    "all four received source facets/immutable issuer/original and observed admission clocks",
+    "full UNSM selected-edition blocking",
+    "current Auth and DENY/current actor semantics",
+    "atomic ACK raw/body/read-only replay OID/ACL owners",
+    "already integrated namespace/context retention/reception original guards"
+  ],
+  "groups": [
+    {
+      "scope": "customer event correction lineage",
+      "sourceCommit": "f461436f",
+      "paths": [
+        "supabase/migrations/20261001041631_ediel_customer_event_recovery_source_lineage.sql",
+        "supabase/migrations/20261001055807_ediel_customer_event_recovery_fresh_transport_cohort.sql",
+        "scripts/ediel-customer-event-recovery-lineage-regression.mjs"
+      ],
+      "actualMissingConsumer": "private approved event origin through exact recovery_message\u2192operation chain; immediate failed original retained and corrected objects constrained to approved physicalpoint/agency/LI; fresh prepare/enter prelocks lineage before source owner",
+      "ownerCoordination": "root assigns customer event/source owner plus transport_runtime for mutate wrapper",
+      "integrationNote": "compose wrapper above actual installed current transport delegate; preserve established/accepted reservation delegation and existing current native source graph order"
+    },
+    {
+      "scope": "PRODAT established recovery execution phases",
+      "sourceCommit": "f461436f",
+      "paths": [
+        "supabase/migrations/20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+        "lib/ediel/recovery/sourceContext.ts",
+        "lib/ediel/recovery/reportingContext.ts",
+        "scripts/ediel-prodat-recovery-phase-regression.mjs"
+      ],
+      "actualMissingConsumer": "sourceOriginMessageId exact immutable terminal original over bounded cycle checked lineage; current execution actor distinct from historic creator; established-source noINSERT qualifier; prepare/send retry/current journal gates",
+      "ownerCoordination": "root source recovery owner; transport_runtime for historical mutate/send authority hunks; ci_ownership authority review",
+      "integrationNote": "new SQL prepare actor uses nonexistent communication.write, same canonicalcatalog gap as reception; must use actual catalog-qualified operation authority rather than seed newkey. Incoming SQL rewrites mutable delegates by exact body needle; inspect actual alias snapshots before applying and retain later source locks/clock/issuer/context layers"
+    },
+    {
+      "scope": "service recovery terminal source and source-only phase authority",
+      "sourceCommits": [
+        "13be9fe1",
+        "808681ea"
+      ],
+      "paths": [
+        "lib/ediel/services/permissionOrigin.ts",
+        "lib/ediel/services/reporting.ts",
+        "supabase/migrations/20261001062832_ediel_service_origin_recovery_execution_phase.sql",
+        "supabase/migrations/20261001065415_ediel_recovery_current_service_source_bridge.sql",
+        "scripts/ediel-service-origin-phase-sql-regression.mjs",
+        "scripts/ediel-service-origin-source-composition.mjs",
+        "__tests__/ediel-service-recovery-lineage.test.ts"
+      ],
+      "actualMissingConsumer": "current qualified Z13/Z18 terminal source owns correction; immediate failed message remains original; exact company/environment/customer/intent/sourcehash/objectpoint/customer/reason/LI matching; source creator is provenance while current prepare/send actor qualifies independently",
+      "ownerCoordination": "ci_ownership owns current timing43917 and genuine service native chain; root service/recovery semantic integration",
+      "integrationNote": "DO NOT blindreplace TS permissionOrigin: incoming removes requestTiming type and assertCapturedServiceRequestTiming. DO NOT blindapply62832: actual033 context_v1 body is current_request_timing_v1\u2192context_before_source_timing_v1 plus requestTiming proof; incoming shape requires older context_before_requested_method_v1 then overwrites context_v1. Compose source-only read phase with complete actual timing/evidence/source chain; preserve immutable original eleven/13term receipts. Existing3arg public send basis staysunchanged, new4arg read-only phase needs currentcanonicalcatalog authority"
+    },
+    {
+      "scope": "AI legal header versus technical transport parties and exact original replay",
+      "sourceCommits": [
+        "cf298abe",
+        "70bcb5e8",
+        "99e4b1b9"
+      ],
+      "paths": [
+        "lib/ediel/aiListPartyBasis.ts",
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiListFormat.ts",
+        "lib/ediel/aiListOrigination.ts",
+        "lib/ediel/flows/aiListFlow.ts",
+        "lib/ediel/intent/aiListGateway.ts",
+        "lib/ediel/intent/renderers/aiList.ts",
+        "lib/ediel/intent/types.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "supabase/migrations/20261001061000_ediel_ai_legal_technical_party_scope.sql",
+        "scripts/ediel-ai-origination-embedded-check.mjs",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ],
+      "actualMissingConsumer": "native intent/current source owner binds exact legal supplier/network CSV names+IDs separately from row/SMTP technical parties; opaque native TS object required for fresh render; qualified immutable bound replay returns existingmessage before newregistry/history/write selection and requeue; actual AIcode has zeroEDIFACT ACK policy",
+      "ownerCoordination": "requirements_evidence AI source/applied-history owner, ci_ownership canonical ACK matrix narrow AI row and protectedread review, root sharedintent type; transport_runtime readiness/source wrapper",
+      "integrationNote": "AI source row/epoch overloaded exact legal constraints must retain later full original AI543xx ownreads/role privacy/effect lineage. New native transport mandate helper deliberately always held for thirdparty; absent real mandated producer is explicitly held, not passed. Neither new format-only helper nor WeakSet substitute protected original/current source owner. Type additions expectedLegalSupplier/Network narrowonly, keep all current shared intent fields. OriginalCSV sourceidentity/hashunchanged. No BIACK expansion or implicit legal\u2192technical alias."
+    }
+  ],
+  "mergeRisks": [
+    {
+      "kind": "INTERNAL",
+      "fact": "incoming62832 exact body-shape guard is incompatible with actual033 timing context",
+      "source": "actual033-service-context.sql",
+      "impact": "clean replay fails before native; overwriting it would lose actual captured request-day/network-period proof",
+      "nextAction": "compose phase factoring through current timing wrapper and immutable evidence owner in new compatible forward, preserve original owner bytes/history"
+    },
+    {
+      "kind": "INTERNAL",
+      "fact": "incoming prepare phase gates use communication.write absent from actualcanonical permission catalog",
+      "source": "registry20260924003708 + incoming61029/62832 + existing84343reception finding",
+      "impact": "genuine catalog grants cannot prepare ordinary recovery; synthetic keyed authorization mocks hide it",
+      "nextAction": "currentcatalog-qualified operation mapping and realcatalog negative/positive native test; do not add fictitious grants"
+    },
+    {
+      "kind": "EXTERNAL",
+      "fact": "thirdparty AI transport_mandate_basis_v1 has no authenticated approved original legal mandate producer in incoming61000",
+      "impact": "thirdparty AI remainsheld; ordinary ownlegal transport branch can still qualify independent expectedmechanics",
+      "nextAction": "record exact source issuer/representation mandate needed; no blanket AI activation"
+    }
+  ]
+}

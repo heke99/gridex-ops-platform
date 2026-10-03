@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Read-only final-qualification map; no checks started and no runtime/acceptance certification.",
+  "observedAtUtc": "2026-10-01T12:24:14.482277+00:00",
+  "observedSource": {
+    "repository": "heke99/gridex-ops-platform",
+    "branch": "codex/ediel-composed-rules-20261001",
+    "head": "1d7172ebe3ba01d5390a845f7087d546a9d2c3d2",
+    "tree": "f22804877b49cb78217f790de138e931cf67848f",
+    "dirty": false,
+    "frozen": false
+  },
+  "sourceFileSha256": {
+    ".github/workflows/ops-hardening.yml": "30d2432d379ef31034ce00870b86b381817a187d288441e9ac66d8c5db0ac7ce",
+    ".github/workflows/full-e2e.yml": "14dd9f7cff1cf54dbd4575165b9048638c64ea1be4de7e6ee81a95184ece4779",
+    ".github/workflows/browser-quality-e2e.yml": "1b22d834938a7929224d71a8791daffd5a8b877baf83af193763a938cf033787",
+    ".github/workflows/ediel-masterplan-v2.yml": "c4867444198096a3cf78a6a414d02b823a9489388c5ed82b8c647522b656cae2",
+    ".github/workflows/tenant-integrity-regression.yml": "46d45b2364ad8b7bf2d80e7399b40a5835565bd34003c274d06f4e6dd6ebb890",
+    "scripts/gridex-aud-003-clean-replay.sh": "87ba4ea12885a0f3e34789f569dbb02976f80f12322b5e83131670a551767022",
+    "scripts/gridex-ediel-upgrade-replay.sh": "7a2be7a742c4bf1225d65892a3a5f622a2e79c789ebb7e3e0bcfe3b5d6279b55",
+    "scripts/gridex-ediel-upgrade-inputs.py": "a927790a3da3f8d6f9978c05a798a97412d589a0e5c6342322fc4437dc76f465",
+    "scripts/ediel-source-owner-native.config.ts": "6670a0556cffc8cf2817354f0ca6b979cc9351cd7edbf30e315a9a2cd4ec8385",
+    "scripts/ediel-utilts-consumption-native.test.ts": "afe3da219274e7b74c02a07797b76755b00abd6ab952dfc25507f4029f98ccb4",
+    "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql": "26b9153c1f478ec5e5c924da0a7c7edc68a5d01da91a2a0aaa93b850ea527083",
+    "scripts/supabase-types-manifest.json": "e592e06d4044958715a7d0893225228c41bf6d98a16b016df01a517ccc419e3d",
+    "supabase/schema.fingerprint.json": "87acb18a0d94c63795f31999e81516d0af8f8bff82094f642d837ed33e671375",
+    "package.json": "4d233901e35dc9d1cd9e2227e8177d6f453725425a4b49728fa65a4adab3548c"
+  },
+  "projectMandatoryPrJobs": [
+    {
+      "workflow": "OPS hardening",
+      "job": "verify",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "migration checksums/history/contract/generated-type manifest",
+        "upgrade-input/redaction selftests",
+        "migration provenance regression",
+        "app typecheck",
+        "targeted transaction persistence/disposition tests",
+        "OPS/error-boundary/security regressions"
+      ]
+    },
+    {
+      "workflow": "OPS hardening",
+      "job": "quality-release-gates",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "lint",
+        "script and test typechecks",
+        "quality mechanical tests + unit suite",
+        "API docs/OpenAPI/runtime/client compatibility and release verification",
+        "static RBAC",
+        "performance/file/bundle budgets",
+        "build"
+      ]
+    },
+    {
+      "workflow": "OPS hardening",
+      "job": "clean-migration-replay",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "authentic disposable empty Supabase17 replay with checksum-pinned foundation/prerequisites/history and CLI-owned observed dev ledger",
+        "all public/gridex_* schema snapshot and catalog fingerprint",
+        "authentic local generated types + approved nullable override; byte/hash comparison remains blocking",
+        "36 source-owner native test files, genuine PostgreSQL/PostgREST/GoTrue/Storage mechanisms where applicable",
+        "11 named fixture/native producer suites plus business-incident fixture",
+        "13 browser specs using actual local login/click/form/keyboard/reload; separately identify request.* API probes",
+        "post-browser native persistence/read-model verification",
+        "tenant SQL invariants against the replay DB",
+        "parity injected-drift selftest",
+        "final committed canonical schema comparator"
+      ],
+      "artifacts": [
+        "gridex-rem-002-clean-replay: rem002-clean-replay.log, rem002-database.types.ts, rem002-schema-snapshot/, native and after-browser JUnit, e2e-artifacts; local secrets redacted before upload"
+      ]
+    },
+    {
+      "workflow": "OPS hardening",
+      "job": "upgrade-migration-replay",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "authentic ancestor d30fa0203f0499a8e15faeddda7676af81296c86 replay",
+        "exact committed manifests/old source bytes preserved; genuinely additive later migration timestamps",
+        "retained-before equals retained-after and no historical legal readiness fabricated",
+        "independent second candidate clean replay",
+        "all public/gridex_* upgraded vs clean schema.sql/fingerprint equality",
+        "upgraded vs clean generated types equality; committed types/manifest hash comparator"
+      ],
+      "artifacts": [
+        "gridex-rem-002-upgrade-replay: rem002-upgrade-replay.log and rem002-upgrade/{upgrade-inputs.json,retained-before.json,retained-after.json,upgraded/,clean/}"
+      ]
+    },
+    {
+      "workflow": "Gridex full E2E",
+      "job": "smoke",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "PROJECT_E2E executable contract and tenant-wide deterministic/static smoke certificate; not a native DB/runtime certificate"
+      ],
+      "artifacts": [
+        "gridex-e2e-smoke-{run_id}"
+      ]
+    },
+    {
+      "workflow": "Gridex full E2E",
+      "job": "coverage",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "measured Vitest V8 unit coverage and committed coverage ratchet"
+      ],
+      "artifacts": [
+        "gridex-coverage-{run_id}"
+      ]
+    },
+    {
+      "workflow": "Gridex full E2E",
+      "job": "pr-certificate",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "both smoke and coverage must execute and pass; skipped is failure"
+      ],
+      "artifacts": [
+        "gridex-pr-release-certificate-{run_id}"
+      ]
+    },
+    {
+      "workflow": "Gridex browser and quality E2E",
+      "job": "browser-public",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "pinned Playwright1.60.0 public/accessibility interactive browser smoke; protected domain proof comes from OPS local browser specs"
+      ],
+      "artifacts": [
+        "gridex-browser-public-{run_id}"
+      ]
+    },
+    {
+      "workflow": "Ediel masterplan v2 regressions",
+      "job": "targeted-regressions",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "immutable original rule/contract/spec/source references integrity",
+        "guide/calendar boundaries UTC, Europe/Stockholm, Pacific/Apia",
+        "PRODAT parser/render/preflight/party/date/register/subtype/component consumers",
+        "APERAK guide binding + UTILTS retained decisions + SMTP/DSN protocol regressions",
+        "exact head/tree/pr head/base and archived source checksum"
+      ],
+      "artifacts": [
+        "ediel-source-{run_id}-{run_attempt}"
+      ]
+    },
+    {
+      "workflow": "Tenant integrity regression",
+      "job": "tenant-integrity-regression",
+      "trigger": "pull_request on exact head; path filters where declared",
+      "covers": [
+        "tenant integrity/shutdown static contracts",
+        "service-role tenant writer ratchet"
+      ]
+    }
+  ],
+  "mandatoryInterpretation": "10 declared applicable PR jobs across the existing five project workflows. Repository branch-protection/ruleset enforced status contexts have not been independently retrieved by this map; do not claim an admin setting from workflow existence.",
+  "nativeSuiteCount": 36,
+  "browserScopeExamples": [
+    {
+      "source": "e2e/browser/ediel-case-local.spec.mjs:78",
+      "actualUI": "login, status select, Tab/Enter save, reload and screenshot; native after-browser row/history check"
+    },
+    {
+      "source": "e2e/browser/ediel-ai-purpose-local.spec.mjs:8",
+      "actualUI": "PDF+receipt file input, upload click, separate reviewer form/keyboard submit, writer reload; original download via request.get is API evidence"
+    },
+    {
+      "source": "e2e/browser/ediel-requested-change-local.spec.mjs",
+      "actualUI": "source/customer fields and upload/review/queue buttons + reload; API-denial assertions explicitly separate"
+    },
+    {
+      "source": "e2e/browser/ediel-network-registry-local.spec.mjs",
+      "actualUI": "network dated original upload, separate source review and reload; native source/certificate guard fixtures remain synthetic external boundary"
+    }
+  ],
+  "excludedUnrequestedJobs": [
+    "Full E2E full (main/schedule/manual), runtime-staging, real-customer-staging, nightly-release-certificate",
+    "Browser browser-staging, k6 smoke/spike/soak, ZAP staging, staging-quality-certificate: protected staging configuration/label/manual requirements; do not dispatch or label under current no-traffic scope"
+  ],
+  "remainingDirectGuards": [
+    {
+      "id": "catalog-utilts-old6-dependencies",
+      "status": "PENDING_AUTHENTIC_CATALOG_RECEIPT",
+      "existing": "scripts/ediel-utilts-consumption-native.test.ts ~871 checks old public6 absent, authenticated public7 denied and service-role private predecessor denied; prospective/replay current operator refusal ~1576. No pg_depend receipt found.",
+      "query": "SELECT pg_describe_object(d.classid,d.objid,d.objsubid) AS dependent,d.deptype FROM pg_depend d WHERE d.refclassid='pg_proc'::regclass AND d.refobjid=to_regprocedure('gridex_utilts_binding.persist_consumption_before_actor_v1(uuid,text,uuid,text,text,jsonb)')::oid ORDER BY 1,2;",
+      "required": "Record renamed predecessor OID + new public7 OID/owner/ACL/defaults; examine every dependant, including callable SECURITY DEFINER consumers, against expected protected delegation. pg_depend cannot prove absence of untracked PL/pgSQL/dynamic SQL references; combine installed pg_get_functiondef and existing callsite inventory. Do not drop the preserved predecessor or assume renamed OID updates textual calls."
+    },
+    {
+      "id": "all-installed-callables",
+      "status": "PENDING_AUTHENTIC_CATALOG_RECEIPT",
+      "query": "SELECT p.oid,p.oid::regprocedure::text AS signature,pg_get_userbyid(p.proowner) AS owner,p.prosecdef,p.provolatile,p.proconfig,p.proacl,p.pronargdefaults,r.rolname,has_schema_privilege(r.rolname,n.oid,'USAGE') AS schema_usage,has_function_privilege(r.rolname,p.oid,'EXECUTE') AS effective_execute,pg_get_functiondef(p.oid) AS definition FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace CROSS JOIN (VALUES('anon'),('authenticated'),('service_role'))r(rolname) WHERE p.prokind IN('f','p') AND (n.nspname='public' OR starts_with(n.nspname,'gridex_')) ORDER BY signature,r.rolname;",
+      "required": "Use actual catalog + inherited-role membership; classify every effective public/private callable against owner/source/phase/current policy and preserved-only delegation. Snapshot functions, triggers, policies and pg_depend in clean and upgraded DB. Compare expected RPC signatures/argument names/defaults with generated types/OpenAPI and real adapters. app DataAPI schemas public,graphql_public; public extra searchpath/extensions. Private denied EXECUTE alone does not prove a SECDEF wrapper cannot reach it."
+    },
+    {
+      "id": "exact-installed-permission-phase",
+      "status": "PENDING_FINAL_NATIVE_RESULTS",
+      "required": "Prove actual catalog contains prepare communication.write without default grants; AI origination WRITE and send SEND/ediel.send, separate personal-original READ; ACK/new other family writers retain original phase requirements. Direct alias and service/authenticated/anon alternatives denied. Existing source-bound mjs regressions are reduced/mechanical and not automatically invoked by npm test or the targeted workflow."
+    },
+    {
+      "id": "current-policy-after-wait",
+      "status": "PENDING_FINAL_NATIVE_RESULTS",
+      "existing": "native consumption operator replay refusal + genuine source-owner deny/role/issuer revocation waits exist; reduced UTILTS phase/helper waits declare synthetic graph models.",
+      "required": "On the final installed DB execute pre-effect and terminal-after-inner-wait temporal/deny/revocation regressions. Check expiry uses execution wallclock; rollback includes audit/history/receipts/intent/idempotency and no escaped ACK/sink effects. Keep genuine concurrent-native evidence separate from pg_sleep/model tests."
+    },
+    {
+      "id": "actor-registry-clean-versus-recorded40446",
+      "status": "PENDING_FINAL_NATIVE_RESULTS",
+      "required": "CI ancestor upgrade handles d30fa020 through new forward additions; preserve separate recorded40446 upgrade catalog receipt for new40445/103439 compatibility. Both reduced mechanical paths passed, but those do not by themselves prove authentic complete branch upgrade."
+    },
+    {
+      "id": "runtime-parity-and-original-contract-accounting",
+      "status": "PENDING_FROZEN_CANDIDATE",
+      "required": "Reconcile existing 121 original IDs +231 original acceptance contracts and consumer matrix with actual frozen code, regression outcomes and external holds. Integrity/register counts are not complete business acceptance. Confirm relevant runtime/OpenAPI/guide/client checks cover newly added endpoints; old global green cannot qualify changed code."
+    },
+    {
+      "id": "fresh-authentic-generated-artifacts",
+      "status": "PENDING_ROOT_GENERATION",
+      "observed": "supabase-types-manifest still records 2026-09-26 authentic generation and migration tail20260929234037, while current candidate contains later/new signatures. This map did not run or edit types/schema/fingerprint.",
+      "required": "Root generate with exact candidate disposable DB and declared CLI/PG versions; preserve origin run/artifact hashes. Refresh types/schema/fingerprint/checksum metadata from actual generation only. Freeze/requalify resulting runtime code SHA and retain separate evidence SHA where docs-only commit is used."
+    }
+  ],
+  "publicationRunRead": {
+    "tool": "mcp__codex_apps__github_fetch",
+    "method": "GET",
+    "testedUrl": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/runs?branch=codex%2Fediel-history-publication-20261001&event=push&per_page=100&page=1",
+    "actualResult": {
+      "isError": false,
+      "total_count": 0,
+      "workflow_runs": []
+    },
+    "wrapperLimitation": "fetch_commit_workflow_runs filters pull_request and returns first page only; unsuitable for push bootstrap existence.",
+    "collectProtocol": [
+      "Repeat generic GET once actual bootstrap branch/head exists; filter exact head_sha, event=push, workflow path and current run_attempt. Bootstrap is publication evidence only.",
+      "After exact sourcebranch publication/freeze and draft PR, GET actions/runs?branch=codex%2Fediel-composed-rules-20261001&event=pull_request&per_page=100&page=N; filter exact frozen head_sha.",
+      "Paginate until no additional runs. For each run GET /actions/runs/{id}/jobs?filter=latest&per_page=100&page=N and /artifacts?per_page=100&page=N; existing job/step/artifact wrappers return first page only.",
+      "Retain run_id/attempt/head_sha/URL/conclusion/job steps + downloaded redacted artifacts and checksum. Skipped/cancelled/missing/old-head jobs do not qualify. Generic binary fetch is unsupported; use artifact download tool."
+    ]
+  },
+  "finalEvidenceChecklist": [
+    "Freeze only after all internally feasible owner packages are composed and dirty tree is resolved; record source branch/PR/SHA/tree and immutable source references.",
+    "Run focused regressions for any final fix; then same candidate relevant tests/lint/app+scripts+tests typechecks/build and declared PR jobs. Do not restart full qualification for evidence-only documentation.",
+    "Root alone executes isolated authentic clean and ancestor upgrade. No shared DB reset, production migration or external Ediel/customer traffic.",
+    "Collect actual catalog/OID/dependency/role/RPC current-authority guards; account for native API versus interactive UI probes and synthetic external sources.",
+    "Publish exact 121/231 outcomes with real code/callpaths/effects/UI and qualified evidence; precise missing issuer/source/configuration/permission integration holds remain fail-closed.",
+    "Record qualified code SHA/tree separately from final evidence SHA, CI run/attempt/artifact IDs/hashes and exact migrations/types/schema fingerprints; bootstrap success is not final CI success."
+  ]
+}

@@ -1,0 +1,1443 @@
+{
+ "batch": 1,
+ "family": "TEN",
+ "head": "0c848701",
+ "rules": [
+  {
+   "id": "TEN-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Tenant, legal actor, operational role and technical identity are distinct types",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:6-16",
+      "lib/ediel/tenant/tenantEdielIdentity.ts:145-193",
+      "lib/ediel/core/actorRegistry.ts:60-83"
+     ],
+     "tests": [
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: records explicit delegation and dated platform identity without asserting verification",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: requires explicit transport representation while preserving the separate legal recipient"
+     ],
+     "gap": "Only on the identity resolver path. When companyId is null, the legacy actor path falls back to a single ediel_id."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Create a verified execution context before customer mutation",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/executionContext.ts:160-200",
+      "lib/ediel/tenant/resolveInboundTenant.ts:471"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds an incorrectly persisted company instead of applying business validation in that tenant"
+     ],
+     "gap": "Nothing outside its own file calls createEdielExecutionContext/validateEdielExecutionContext, and no test calls them either. No authorizeEdielContext layer exists. Inbound gets a verified tenant through resolveInboundTenant. Outbound has no single verified-context gate before mutation."
+    },
+    {
+     "effect": "on_failure",
+     "text": "Tenant name/domain/email must not replace market identity",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:471",
+      "lib/ediel/core/actorRegistry.ts:63-67"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: derives the tenant from current legal identity and actual transport, not company metadata",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: missing or truncated candidate evidence cannot create a default tenant"
+     ],
+     "gap": "Covers the inbound side only. No outbound test checks the mismatch error in actorRegistry."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Distinct types -> verified execution context before mutation",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/executionContext.ts:104"
+     ],
+     "tests": [],
+     "gap": "Same gap as on_pass: the execution-context builder is dead code and has no behaviour test."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Name/domain/email not used as market identity",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:471"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: derives the tenant from current legal identity and actual transport, not company metadata"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The canonical EdielExecutionContext builder/validator is never called. TEN-01's verified-context gate has no consumers.",
+     "evidence": [
+      "lib/ediel/core/executionContext.ts:104",
+      "lib/ediel/core/executionContext.ts:160"
+     ]
+    },
+    {
+     "claim": "resolveCanonicalActorContext with no companyId skips tenant identity resolution. It uses the global (company_id IS NULL) actor settings ediel_id as both legal and transport identity.",
+     "evidence": [
+      "lib/ediel/core/actorRegistry.ts:55-71",
+      "lib/ediel/config.ts:260-266"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Tenant's verified legal Ediel id is used; the shared mailbox is a transport property",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:118-193",
+      "lib/ediel/tenant/tenantEdielIdentity.ts:212-222",
+      "lib/ediel/core/actorRegistry.ts:62-71"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: a stronger transport-route hint cannot replace a different verified legal actor",
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: rejects a platform identifier from another actor"
+     ],
+     "gap": "The outbound path that puts the legal id on the wire (actorRegistry -> routeRegistry:168) has no behaviour test for the legal-vs-legacy mismatch."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Keep the existing decision on own Ediel ids; separate actor profiles for DDQ/DGI",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/config.ts:242-257",
+      "lib/ediel/config.ts:473-474"
+     ],
+     "tests": [],
+     "gap": "Own legal ids are kept per tenant. However, ediel_actor_settings allows only one active row per company/environment (more than one throws 'ambiguous'). No separate DDQ and DGI actor profiles exist. DDQ/DGI is only derived from the subaddress in the APP ref. tenantHasMarketRole has no callers."
+    },
+    {
+     "effect": "on_failure",
+     "text": "Do not switch everyone to the Gridex id or auto-register a technical representative",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:161-181",
+      "lib/ediel/config.ts:256-257"
+     ],
+     "tests": [
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: does not turn a malformed delegation interval into direct representation",
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: rejects ambiguous delegation while retaining legitimate multiple roles"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "text": "Verified legal id; separate DDQ/DGI profiles",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:145"
+     ],
+     "tests": [
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: returns exact scoped inputs and limits its authority"
+     ],
+     "gap": "No DDQ/DGI profile separation and no test for it."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No blanket Gridex id, no automatic technical representative",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:161-181"
+     ],
+     "tests": [
+      "__tests__/tenant-ediel-identity-evidence.test.ts :: does not turn a malformed delegation interval into direct representation"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-001",
+     "text": "Tenant A orders Z03L: A's identity on wire, 23-DDQ-PRODAT, no data from B",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/prodatSupplyRescission.ts:15",
+      "lib/ediel/core/actorRegistry.ts:70"
+     ],
+     "tests": [],
+     "gap": "Flows hardcode 23-DDQ-PRODAT. No two-tenant E2E/integration test of Z03L party identity was found."
+    },
+    {
+     "effect": "SC-002",
+     "text": "Tenant B orders Z13V: B's ESCO legal actor, 23-DGI-PRODAT, no Z03, no assumed Gridex representative",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "Searched for 23-DGI, DGI-PRODAT, Z13V, energy_service_company and tenantHasMarketRole callers. Found only utilts.ts:418 (E66 DGI) and config.ts:474. No DGI-PRODAT outbound flow and no test."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Only one active actor settings row is allowed per tenant/environment, so the required separate DDQ/DGI actor profiles cannot be represented.",
+     "evidence": [
+      "lib/ediel/config.ts:250-254"
+     ]
+    },
+    {
+     "claim": "tenantHasMarketRole (ESCO vs supplier) is never used to gate outbound DDQ/DGI processes.",
+     "evidence": [
+      "lib/ediel/tenant/tenantEdielIdentity.ts:225"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Operating tenant/actor is the ESCO provider; beneficiary tenant is explicit; customer and DSO contracts give the market basis",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:15",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:179-203",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:86",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:213",
+      "lib/ediel/services/commands.ts:4"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native first request captures the actual server day and DSO period once...",
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native archive refuses DSO network-period terms on another actual contract kind..."
+     ],
+     "gap": "The assessment requires an energy_service_company role, a single legal EdielId, a non-self beneficiary_company_id, and verified end_user_contract and dso_contract evidence. Tests run this for real, but no test isolates the missing-role case (provider_legal_esco_role_missing)."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Z13 is sent in the real ESCO actor's DGI role, with no internal tenant ids in the EDIFACT",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:274-279"
+     ],
+     "tests": [],
+     "gap": "Native tests check only permission_required or held and assert external.send was not called. No test renders the outbound Z13 and checks that the UNB/NAD sender is the provider EdielId in the DGI role and that no tenant or beneficiary UUID appears in the wire."
+    },
+    {
+     "effect": "on_failure",
+     "text": "A SaaS agreement or owning the platform does not grant metering-value permission",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:197-202",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:253-269"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction",
+      "__tests__/ediel-service-command-consumer.test.ts :: does not treat a native source error or held assignment as permission to originate"
+     ],
+     "gap": "No explicit test of the specific case: service_contract alone with no end_user or DSO contract gives held."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Condition holds, so Z13 goes out in the ESCO DGI role without tenant ids",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:274"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native first request captures..."
+     ],
+     "gap": "The path is tested only up to permission_required. The Z13 wire content is not verified."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "A SaaS agreement or platform ownership gives no permission",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:197-202"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native pending metering actor DENY wins..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-003",
+     "text": "P acts legally in DGI and the mission is linked to K internally. K's UUID is not sent as a legal Ediel id, and K gets no unlimited provider access",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:249-269"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions..."
+     ],
+     "gap": "Scoped beneficiary access is tested. No test asserts that K's UUID is absent from the outbound EDIFACT."
+    },
+    {
+     "effect": "SC-004",
+     "text": "Access goes through an explicit grant in P's service; no invented market identity is required",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:249-281"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK..."
+     ],
+     "gap": "No test explicitly checks that the beneficiary needs no EdielId (the seed simply never creates one)."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "TEN-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "InterchangePartyId and legal PartyId are kept separately; only an explicitly documented relation is supported",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:50-64",
+      "lib/actor-registry/parseActorRegistryTxt.ts:50"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves company market and exact legal/technical identities without granting representation",
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves a generic explicitly different transport party"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "text": "Route technically via the agent without changing the legal actor",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/routeMaterializer.ts:307",
+      "lib/ediel/core/routeRegistry.ts:292"
+     ],
+     "tests": [],
+     "gap": "The materializer sends to interchange_party_id, but represented routes are always stored as needs_review with isVerified=false. representation_requires_mandate is written but never read, so there is no path to approve a documented agent relation and activate the route. The only transport-mandate support is ESCO-specific (tenant_counterparty_relations with ediel_transport_agent, grants migration :200-201)."
+    },
+    {
+     "effect": "on_failure",
+     "text": "Do not force technical==legal; do not assume a shared SMTP address means an agent mandate",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:56-64"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves company market and exact legal/technical identities without granting representation"
+     ],
+     "gap": "Unequal identities are accepted and not granted representation. No test covers the shared-SMTP case."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Identities kept apart, and routing via the agent",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/routeMaterializer.ts:264-266"
+     ],
+     "tests": [],
+     "gap": "No behaviour test routes a message via an agent."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Do not force equality; shared SMTP is not a mandate",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:56"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves a generic explicitly different transport party"
+     ],
+     "gap": "No shared-SMTP test."
+    },
+    {
+     "effect": "SC-009",
+     "text": "With InterchangePartyId 82150 and legal PartyId 62110, identities are kept and the delegation is checked",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/actor-registry/parseActorRegistryXml.ts:56-64"
+     ],
+     "tests": [
+      "__tests__/ediel-actor-registry-source.test.ts :: preserves company market and exact legal/technical identities without granting representation"
+     ],
+     "gap": "No check of an authorized delegation for receive or route. Inbound handling with an agent is not tested."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "counterparty_ediel_id takes party_id first and falls back to interchange_party_id, so when party_id is missing a technical id can be stored as the legal counterparty.",
+     "evidence": [
+      "lib/ediel/routeMaterializer.ts:264-267"
+     ]
+    },
+    {
+     "claim": "The representation_requires_mandate flag is never read, so a documented agent relation can never become routable.",
+     "evidence": [
+      "lib/actor-registry/parseActorRegistryXml.ts:62-64",
+      "lib/actor-registry/parseActorRegistryTxt.ts:50"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "The business process sets the role, not a global default field",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatApplicationReference.ts:19-23",
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:242-249",
+      "lib/ediel/rulebook/prodatRulebook.ts:92"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-z06-product-review.test.ts :: Z06 with 23-DGI-PRODAT throws canonical_ediel_application_reference_not_allowed",
+      "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts (application_reference_not_allowed cases)"
+     ],
+     "gap": "Legacy role inference is still present. lib/ediel/rulebook/fieldRuleRegistry.ts:68-73 and lib/ediel/config.ts:474 work out DDQ/DGI from a substring or the processGroup name."
+    },
+    {
+     "effect": "on_pass",
+     "text": "23-DDQ-PRODAT for supplier processes, 23-DGI-PRODAT for permission processes",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatApplicationReference.ts:20",
+      "lib/ediel/rulebook/canonicalRules.ts:93-109"
+     ],
+     "tests": [
+      "__tests__/ediel-service-permission-native-customer-fields.test.ts :: renders the actual native customer country while preserving Z13 field restrictions (wire contains 23-DGI-PRODAT)",
+      "__tests__/ediel-prodat-energy-product.test.ts :: source-qualified clean control Z13/Z14"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "Z14 must not activate supply; Z04 does not give a general ESCO permission",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/flows/supplyMarketTransition.ts:51 (only Z04/Z05)",
+      "lib/ediel/permissions/permissionMarketTransition.ts:78-82 (only Z14/Z15)",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:234,250 (SQL gate: Z14/Z15 plus energy_service_company legal context)"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-market-consumers.test.ts :: does not submit unrelated or unassigned sources {message_code:'Z04'}",
+      "__tests__/ediel-supply-market-consumers.test.ts :: holds unrelated/unassigned source before mutation (Z08 only)"
+     ],
+     "gap": "No test sends Z14 to applySupplyMarketSource or to ediel_apply_supply_source_v1. The SQL supply wrapper chain was not confirmed to reject Z14 at the DB layer."
+    },
+    {
+     "effect": "at_expected",
+     "text": "AT-TEN-05 expected (= condition + on_pass)",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:242-249"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-z06-product-review.test.ts"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No cross-activation between Z14 and Z04",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/supplyMarketTransition.ts:51",
+      "lib/ediel/permissions/permissionMarketTransition.ts:78-82"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-market-consumers.test.ts :: does not submit unrelated ... Z04"
+     ],
+     "gap": "The Z14 to supply direction has no test."
+    },
+    {
+     "effect": "SC-001",
+     "text": "Party identity A on the wire, 23-DDQ-PRODAT, no Gridex id",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/rulebook/prodatApplicationReference.ts:20"
+     ],
+     "tests": [],
+     "gap": "No behaviour test found that asserts both the tenant legal actor and 23-DDQ on a Z03 wire. __tests__/ediel-normal-switch-intent-gateway.test.ts was not confirmed to assert these."
+    },
+    {
+     "effect": "SC-012",
+     "text": "Z14 drives permission and Z04 drives supply in separate state machines",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/supplyMarketTransition.ts:51",
+      "lib/ediel/permissions/permissionMarketTransition.ts:78"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-market-consumers.test.ts :: Z04 case"
+     ],
+     "gap": "Same gap as on_failure: Z14 into supply is untested."
+    },
+    {
+     "effect": "SC-018",
+     "text": "Active supply does not automatically become a DGI permission",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:234,250"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-market-consumers.test.ts :: does not submit ... Z04"
+     ],
+     "gap": "Only covered at the TypeScript gate level."
+    },
+    {
+     "effect": "AT-Z*-SUPPLIER/ESCO (rule_ids include TEN-05)",
+     "text": "The application reference per BGM code",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/canonicalEdielPolicy.ts:242-249"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
+      "scripts/test-ediel-prodat-free-text.cjs"
+     ],
+     "gap": "Only the application-reference part was reviewed. The business effects belong to the P-01/ENV-06 reviews."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A legacy validator still infers DGI from the processGroup name or a substring rather than from the canonical process profile",
+     "evidence": [
+      "lib/ediel/rulebook/fieldRuleRegistry.ts:68-73",
+      "lib/ediel/rulebook/validatorLegacy.ts:86-95",
+      "lib/ediel/config.ts:474"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Attribute the technical receiver, legal receiver, role/market and origin context",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:444-491",
+      "lib/inbound-mail/inboundTenantResolver.ts:144-172",
+      "lib/inbound-mail/inboundTenantResolver.ts:82-124 (origin ACK is matched by reversing the parties)"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: derives the tenant from current legal identity and actual transport, not company metadata",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: requires explicit transport representation while preserving the separate legal recipient",
+      "__tests__/ediel-tenant-qualified-ack-routing.test.ts :: qualifies the actual sent original before a stronger mutable transport hint"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "text": "Identify a single legally responsible actor and derive the tenant from it",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:469-491"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds multiple tenants sharing one legal actor without a uniquely qualified original"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "Unclear attribution goes to protected quarantine; the tenant is never guessed from a customer id",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:241-269 (manual_review, companyId null)",
+      "lib/ediel/tenant/resolveInboundTenant.ts:481-486"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: missing or truncated candidate evidence cannot create a default tenant",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: a stronger transport-route hint cannot replace a different verified legal actor"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "text": "AT-TEN-06 expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:444-491"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Quarantine; no guessed tenant",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:241-269"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds an incorrectly persisted company instead of applying business validation in that tenant"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-014",
+     "text": "Protected staging; do not guess the tenant; do not fabricate object errors on our own configuration gap",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:474,486",
+      "lib/inbound-mail/edielInboundProcessor.ts:241-269"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds stale local identity and unsupported local roles without fabricating sender object errors"
+     ],
+     "gap": "Source-backed technical CONTRL/ACK handling for the quarantined case was not verified. The mail path returns manual_review without a CONTRL decision."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The mail-path resolver can take the legal receiver from NAD MS (the sender) when DO/MR is missing. This contradicts the comment that MS is never the legal receiver. The test covers only extractMarketActorEdielIdFromRawPayload, not firstParty.",
+     "evidence": [
+      "lib/inbound-mail/inboundTenantResolver.ts:152",
+      "lib/ediel/tenant/resolveInboundTenant.ts:113",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts:54"
+     ]
+    },
+    {
+     "claim": "When there is no NAD, the legal receiver falls back to the UNB transport receiver, so a technical agent could be treated as the legal actor. This is partly mitigated by the transport-equality check.",
+     "evidence": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:119"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Each useful data part is matched against the permission and the service assignment; the transport envelope and the business grant are separate scopes",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:230-274 (beneficiary_series_page_filtered_v2: grant/assignment/permission/site/series object+product+period checks)",
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:7-69 (latest public wrapper)"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: beneficiaryPage checks L55-58 (outside_grant, beneficiary_forbidden)",
+      "scripts/ediel-service-grant-sql-regression.mjs :: rejected(project(),/ediel_series_outside_grant/) L72",
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: provenanceCheck outside_grant/revoked"
+     ],
+     "gap": "The tests are PGlite .mjs behaviour runners, not in the glob patterns you listed. No test uses a single multi-transaction file with mixed owners."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Owner keeps the raw file; beneficiaries see only permitted objects, periods and fields",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:267-271 (field whitelist, raw never returned)",
+      "lib/ediel/services/projection.ts:5-47 (strips non-granted keys)",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts:12-20 (raw EML scoped to the owner companyId)"
+     ],
+     "tests": [
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: check L24 (no raw_payload/observations in page)",
+      "__tests__/ediel-beneficiary-projection-provenance.test.ts :: rejects unauthorized quality/raw row fields and strips private extra attributes",
+      "__tests__/ediel-beneficiary-projection-api.test.ts :: uses the authenticated selected tenant and actor for the actual current-grant RPC"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "Do not give the whole EML/file to a tenant entitled to only one transaction",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts:12-20",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:267"
+     ],
+     "tests": [],
+     "gap": "No test shows that a beneficiary tenant asking for the provider's raw/transport copy is denied. The transport-copy API test does not cover a cross-tenant beneficiary."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Matching per data part; owner keeps raw; filtered beneficiary view",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:254-262"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: L55-57"
+     ],
+     "gap": "No multi-object file fixture where only one object is granted."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Whole EML/file is not given to a tenant with a one-transaction grant",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts:12-20"
+     ],
+     "tests": [],
+     "gap": "No negative test for a cross-tenant raw request."
+    },
+    {
+     "effect": "SC-008",
+     "text": "K requests raw file or full export → filtered projection only; other customers' content is not disclosed",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:254,267-271"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: series_outside_grant L72"
+     ],
+     "gap": "No 'full export' endpoint/test. No mixed-object file E2E. A raw request by K is not tested."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A grant holds arrays of object_ids/product_ids, so one grant can cover several objects/products. Rows are not separate per object or product, which weakens the per-data-part scope.",
+     "evidence": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:79-84"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Separate data_access_grants per beneficiary, purpose, object, product and time range",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:79-96",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:125 (latest create_grant insert)"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: grant/grant2 for uid(2)/uid(3) L35-40"
+     ],
+     "gap": "Grants are per beneficiary and purpose, but objects and products are arrays inside one grant, not separate grants."
+    },
+    {
+     "effect": "on_pass",
+     "text": "One market receipt and ACK; then separate internal distribution per valid grant",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:225 (current_service_grant_set_v2)",
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:55-67 (per-grant consumer receipt)"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: multiCheck L40 (one transaction, two grant scopes in positive_service_scope_receipts)",
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: separate consumerReceiptId per grant L23"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "No automatic copying to all tenants with the same GSRN",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/services/projection.ts:3-4 (read-time projection, no copy)",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:236-241 (grant tied to beneficiary_company_id)"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: L57 (uid(2) cannot use grant2; uid(999) forbidden)"
+     ],
+     "gap": "Data is read through the projection only. There is no explicit test that a third tenant with the same GSRN and no grant sees nothing beyond the forbidden check."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Separate grants; one receipt/ACK; distribution per grant",
+     "verdict": "PARTIAL",
+     "code": [
+      "see condition/on_pass"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: L40,L55-56"
+     ],
+     "gap": "The per-object/product separation is not enforced."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No automatic copying to all tenants with the same GSRN",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:236-241"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: L57"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-004",
+     "text": "A SaaS tenant gets access via an explicit grant, with no invented Ediel id",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:236 (membership/permission only, no actor identity required for beneficiary)"
+     ],
+     "tests": [],
+     "gap": "No test asserts that the beneficiary has no Ediel identity or that none is created."
+    },
+    {
+     "effect": "SC-005",
+     "text": "One upstream receipt and ACK, two internal projections; no double billing or duplicate ACKs",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:225"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: L40-41,L55-56"
+     ],
+     "gap": "The 'no double billing' part is absent: there is no test or code linking projections to billing. The duplicate-ACK check is implicit only."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Each grant stores object_ids/product_ids as arrays, so 'separate grant per object/product' is not enforced.",
+     "evidence": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:82-83"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-09",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Coordinate market_permission across service assignments; beneficiary-id is not a new market actor",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:312-345 (coordinate_before_source_timing_v1, wrapped by public.ediel_coordinate_service_permission_v1 at 20261001043917_ediel_service_source_network_period_timing.sql:250)",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:12-40 (assignment has provider_actor_id; beneficiary_company_id only; check company_id<>beneficiary)"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "text": "Reuse only legally/semantically compatible permission; keep assignment grants separate",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:333-345 (compatibility join: same env/provider/customer/DSO/purpose/mode, scope superset, authorized assessment)",
+      "20260930143025_...grants_v1.sql:158-163 (grant scope guard bound to its own assignment)"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 same actual market permission reused...",
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions..."
+     ],
+     "gap": "No native negative test showing that an incompatible scope, purpose or mode gets a new permission instead of reuse."
+    },
+    {
+     "effect": "on_failure",
+     "text": "No duplicate Z13; no ending of shared permission for others",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:321 (advisory lock on market tuple), :325-330 (end_assignment returns assignment_ended when sharing>0; no Z18)"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ... (other.z13.id==first.z13.id; Z18 count 0; permission row unchanged)"
+     ],
+     "gap": "No concurrency test of two simultaneous request_access calls."
+    },
+    {
+     "effect": "at_expected",
+     "text": "condition -> on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "see condition/on_pass"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No duplicate Z13 or ending of shared state",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:325-330"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-005",
+     "text": "One upstream receipt/ACK, two internal projections; no double ACK per beneficiary",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:230-290"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions..."
+     ],
+     "gap": "The no-double-invoicing part is not tested."
+    },
+    {
+     "effect": "SC-006",
+     "text": "K1 ends: K1 access blocked, K2 continues; no automatic Z18",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:325-330"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-015",
+     "text": "Pending Z13 from another assignment: check new-object/repeat cases from the Handbook (HB); the beneficiary-id must not bypass the 21-day flow",
+     "verdict": "PARTIAL",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:333-345 (reuses pending statuses draft/z13_ready/z13_sent/waiting...)"
+     ],
+     "tests": [],
+     "gap": "No Handbook new-object/repeat-request logic. A new object outside the existing scope just creates a new draft permission. No test with a pending (unanswered) Z13."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "end_assignment checks sharing only for the most recently linked permission (LIMIT 1). If an assignment is linked to several permissions, the others are not evaluated for market_termination_required.",
+     "evidence": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:327-329"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Access checked against current grant versions; market end and internal revocation are distinct events",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:248 (expected version, status active, revoked_at null), :254 (market permission status checked separately)",
+      "lib/ediel/services/projection.ts:6"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK ... (revoke_grant -> ediel_grant_not_current while other mission reads)",
+      "__tests__/ediel-beneficiary-projection-provenance.test.ts (RPC args only, mocked)"
+     ],
+     "gap": "Applies only to the API read and the ACK/storage paths. No export or job path exists."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Stop future unauthorized use; keep permitted history/audit",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930143025_ediel_service_assignment_grants_v1.sql:103-125 (ediel_service_history triggers)",
+      "20261001015846_...:248"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK ... (original ACK replay and seal preserved after revoke)",
+      "scripts/ediel-service-evidence-native.test.ts :: real pending grant revocation wins before accepted storage..."
+     ],
+     "gap": "The retention-policy side is not defined."
+    },
+    {
+     "effect": "on_failure",
+     "text": "A revoked grant is not reactivated by Z15C",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "20260930143025_ediel_service_assignment_grants_v1.sql:168 (trigger raises ediel_revoked_grant_requires_new_basis)",
+      "20261001044351_ediel_partial_permission_source_effects.sql:150-200 (Z15C path does not touch ediel_data_access_grants)"
+     ],
+     "tests": [],
+     "gap": "Only covered by the pglite .mjs scripts (scripts/ediel-service-grant-sql-regression.mjs:76, scripts/ediel-service-administration-sql-regression.mjs:77), which are outside the accepted test set. No native Z15C plus revoked-grant test."
+    },
+    {
+     "effect": "at_expected",
+     "text": "condition -> on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "see above"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 ..."
+     ],
+     "gap": "Export and job enforcement are missing."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No reactivation through Z15C",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "20260930143025_...grants_v1.sql:168"
+     ],
+     "tests": [],
+     "gap": "No behaviour test in the accepted test set."
+    },
+    {
+     "effect": "SC-006",
+     "text": "K1 access blocked, K2 judged separately",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20260930184042_...administration_commands_v1.sql:325-330"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-010",
+     "text": "Export job re-checks the grant version at lease time",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No beneficiary export job or lease found. Searched lease/export_job/job across files that reference ediel_data_access_grants, beneficiary_series_page or projectEdielSeriesToBeneficiary: only readiness migrations matched."
+    },
+    {
+     "effect": "SC-011",
+     "text": "Z15C restores the market permission; the beneficiary grant stays blocked",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "20261001044351_ediel_partial_permission_source_effects.sql:159-182",
+      "20260930143025_...grants_v1.sql:168"
+     ],
+     "tests": [],
+     "gap": "No end-to-end test."
+    },
+    {
+     "effect": "SC-071",
+     "text": "Concurrent revocation and distribution: current version plus transaction boundary",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "20261001015846_...:281-286 (lock_current_graph_v2 then FOR SHARE grant re-read :247-248)"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC071 pending %s beneficiary DENY wins before real projection...",
+      "scripts/ediel-service-evidence-native.test.ts :: real pending grant revocation wins before accepted storage..."
+     ],
+     "gap": "The SC071 test uses a DENY override, not a revocation of the grant row during projection."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "TEN-11",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Skilj eget konfigurationsfel från avsändarens anvisnings-/funktionsfel",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/tenant/resolveInboundTenant.ts:354-406 (resolved/ambiguous/unresolved)",
+      "lib/ediel/tenant/resolveInboundTenant.ts:425-490",
+      "lib/ediel/flows/inboundProcessing.ts:926-946"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds stale local identity and unsupported local roles without fabricating sender object errors",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds multiple tenants sharing one legal actor without a uniquely qualified original",
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: missing or truncated candidate evidence cannot create a default tenant"
+     ],
+     "gap": "Local config faults are classified as unresolved/ambiguous. They are kept separate from sender faults."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Behåll teknisk kvittens där säkert; utred egen konfig utan dataexponering",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/inboundProcessing.ts:868-900 (syntax CONTRL before tenant routing)",
+      "lib/inbound-mail/edielInboundProcessor.ts:241-268 (manual_review + unresolved item + task)"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-prelegal-syntax.test.ts :: qualifies physical syntax and its negative CONTRL before an unknown family activation gate"
+     ],
+     "gap": "The technical CONTRL is tested and is sent before tenant routing. The investigation task stores the full parsed message and tenant candidates in its metadata while companyId is null. No test shows that this causes no data exposure."
+    },
+    {
+     "effect": "on_failure",
+     "text": "Ingen E10 / 42/209 enbart pga lokalt fel tenantval",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/flows/inboundProcessing.ts:931-946 (returns before runtime/business; ackDecision no_negative_contrl_for_routing_unresolved)",
+      "lib/inbound-mail/edielInboundProcessor.ts:241-268"
+     ],
+     "tests": [],
+     "gap": "No test calls processInboundEdielMessage with a non-resolved tenant and checks that no ACK or E10 is created. The resolver tests only check the status."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Skilj konfigfel från avsändarfel → behåll teknisk kvittens",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/flows/inboundProcessing.ts:885-946"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-prelegal-syntax.test.ts :: qualifies physical syntax and its negative CONTRL before an unknown family activation gate"
+     ],
+     "gap": "No end-to-end test covers a valid message with an unresolved tenant, where a positive CONTRL is kept and the business path is held."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Ingen E10/42/209 för lokalt fel tenantval",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/flows/inboundProcessing.ts:931-946",
+      "lib/ediel/utiltsEngine.part-1.ts:377-391 (E10 only after tenant known)"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-object-context-boundary.test.ts :: runs complete E66 structural/processability validation before tenant resolution without inventing UNKNOWN_METERING_POINT"
+     ],
+     "gap": "The object-boundary test is engine-level only. No test covers APERAK 42/209 suppression under an unresolved tenant."
+    },
+    {
+     "effect": "SC-014",
+     "text": "Skyddad staging; gissa inte tenant; inga fabricerade objektfel",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/inbound-mail/edielMailboxPoller.part-2.ts:804-808,965-998",
+      "lib/inbound-mail/edielInboundProcessor.ts:241-268"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-verified-tenant-context.test.ts :: holds an incorrectly persisted company instead of applying business validation in that tenant"
+     ],
+     "gap": "Not guessing the tenant is tested. That staging is protected (RLS on ediel_unresolved_items, metadata exposure) was not verified, and no integration test covers it."
+    },
+    {
+     "effect": "SC-047",
+     "text": "E10 i rätt mottagarkontext; inga nya objekt/korstenant-sök",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:377-391"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-object-context-boundary.test.ts :: keeps UNKNOWN_METERING_POINT fail-closed once a tenant is known but the object is unresolved"
+     ],
+     "gap": "Absence of a cross-tenant lookup is not explicitly asserted."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The tenant-unresolved investigation task stores the full parsed payload and tenant candidates while companyId is null. This may expose data to a cross-tenant or global queue.",
+     "evidence": [
+      "lib/inbound-mail/edielInboundProcessor.ts:261-267"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-12",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Sammansatta tenantref, explicit delegation, grantfilter; service creds ≠ global",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:230-279 (company_id-scoped joins, grant/assignment/permission chain)",
+      "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql:19,26 (REVOKE service_role)",
+      "lib/ediel/services/projection.ts:7"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries"
+     ],
+     "gap": "This holds for the beneficiary projection only. In lib, the supabaseService (service role) is used broadly, with an app-layer assertEdielTenantActor check in only some paths. This is not shown to apply across the system."
+    },
+    {
+     "effect": "on_pass",
+     "text": "RLS/RPC verifierar actor/role/tenant även i bakgrundsjobb; isolera cache/sök/export",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:235-236 (membership+permission check),248 (grant version)",
+      "app/api/ediel/beneficiary/series/[seriesId]/route.ts:13-17"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects",
+      "__tests__/ediel-beneficiary-projection-api.test.ts :: uses the authenticated selected tenant and actor for the actual current-grant RPC"
+     ],
+     "gap": "No cache or search isolation was found. Background-job actor checks are only shown on the ACK/service-scope paths."
+    },
+    {
+     "effect": "on_failure",
+     "text": "Ingen OR-baserad superadminläcka till beneficiaries",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:236 (no admin bypass in beneficiary RPC)"
+     ],
+     "tests": [
+      "__tests__/ediel-beneficiary-projection-api.test.ts :: preserves unauthorized response and prevents missing selected tenant reads"
+     ],
+     "gap": "Generic RLS policies still use an 'is_platform_admin() or ...' OR pattern (see defects). No test asserts that admin cannot reach beneficiary data."
+    },
+    {
+     "effect": "at_expected",
+     "text": "som condition+on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "see above"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 ..."
+     ],
+     "gap": "Cache, search and general export are not covered."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Ingen OR-superadminläcka",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "No behaviour test exists for this."
+    },
+    {
+     "effect": "SC-007",
+     "text": "Annan tenants GSRN ger avslag utan data",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:236,239,255"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries (ediel_beneficiary_forbidden)"
+     ],
+     "gap": "Only the beneficiary series API is covered. Other GSRN APIs and exports were not verified."
+    },
+    {
+     "effect": "SC-010",
+     "text": "Ompröva grantversion vid lease/export",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:246-248"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects",
+      "__tests__/ediel-beneficiary-projection-api.test.ts :: never exposes owner diagnostics when a grant was revoked or version changed"
+     ],
+     "gap": "No leased export-job path was found. The check happens per read."
+    },
+    {
+     "effect": "SC-071",
+     "text": "Samtidig återkallelse vs distribution",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:233-247 (FOR SHARE locks),284"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "RLS policies with an 'is_platform_admin() OR ...' / 'OR service_role' pattern remain. They are not shown to be unreachable from beneficiary data.",
+     "evidence": [
+      "supabase/migrations/20260714160000_canonical_contract_runtime_completion.sql:304",
+      "supabase/migrations/20260519_batch_6d2_runtime_governance_completion.sql:295-319",
+      "supabase/migrations/20260611100000_energy_resolver_grid_area_operations.sql:536"
+     ]
+    },
+    {
+     "claim": "The beneficiary RPC trusts the caller-supplied p_actor_user_id under service-role invocation. Actor binding therefore depends on the API route.",
+     "evidence": [
+      "lib/ediel/services/projection.ts:7",
+      "app/api/ediel/beneficiary/series/[seriesId]/route.ts:17"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-13",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Protocol sender/application IDs (BGM/UNB/IDE) must be unique even when several tenants share one legal ESCO",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/referenceRegistry.ts:71",
+      "lib/ediel/core/referenceGenerator.ts:3"
+     ],
+     "tests": [
+      "__tests__/ediel-reference-allocation.test.ts :: uses all UUID entropy within the source transaction bound even with long context",
+      "__tests__/ediel-reference-allocation.test.ts :: shares bounded interchange generation with actual PRODAT callers without tenant counters"
+     ],
+     "gap": "Uniqueness depends only on randomness. UNB references are 14 hex digits (56 bits). No global unique index exists on outbound wire references; the only ones found are inbound ones, scoped by company_id (supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql:2083). Nothing at the database level stops a cross-tenant collision under a shared ESCO."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Store internal UUIDs and wire IDs separately; every acknowledgement has one unambiguous origin",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack/sourceCorrelation.ts:204",
+      "lib/ediel/core/tenantResolver.ts:140",
+      "lib/ediel/flows/inboundAckProcessing.ts:191",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:1"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: binds exact released own IDE and reversed physical identities",
+      "__tests__/ediel-ack-source-correlation.test.ts :: does not authorize a reference-only hit with wrong %s",
+      "__tests__/ediel-ack-source-correlation.test.ts :: extracts only physical original lookup values, not own DM or own interchange"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "Tenant-local counters must not collide externally; LI alone is not a tenant key",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/referenceRegistry.ts:76",
+      "lib/ediel/ack/sourceCorrelation.ts:213"
+     ],
+     "tests": [
+      "__tests__/ediel-reference-allocation.test.ts :: shares bounded interchange generation with actual PRODAT callers without tenant counters",
+      "__tests__/ediel-ack-source-correlation.test.ts :: binds PRODAT FR/DO and transaction LI, never a LIN line number"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "text": "Unique allocation and separate storage of UUIDs and wire IDs",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/referenceRegistry.ts:71"
+     ],
+     "tests": [
+      "__tests__/ediel-reference-allocation.test.ts :: uses all UUID entropy within the source transaction bound even with long context"
+     ],
+     "gap": "Same gap as the condition: random-only allocation with no enforced cross-tenant uniqueness."
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "No external counter collisions; LI is not used as a tenant key",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack/sourceCorrelation.ts:213"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: refuses duplicate wire identities across tenant rows even with supplied company",
+      "__tests__/ediel-ack-source-correlation.test.ts :: qualifies source-prescribed first14 UCI and refuses same-prefix originals before company restriction"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-013",
+     "text": "An ACK for actor B in a shared mailbox is correlated to B using parties, market, role and original references; tenant A's case is unchanged",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/ack/sourceCorrelation.ts:204",
+      "lib/ediel/core/tenantResolver.ts:140"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: does not authorize a reference-only hit with wrong %s"
+     ],
+     "gap": "Correlation is unit-tested only. A real collision with two candidates fails closed as 'ambiguous' rather than choosing B. No integration test shows tenant A's case is left unchanged."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Two qualifying originals in different tenants make correlation return 'ambiguous' before expectedCompanyId is applied. A legitimate collision then becomes unresolvable instead of being disambiguated to B as SC-013 expects.",
+     "evidence": [
+      "lib/ediel/ack/sourceCorrelation.ts:215",
+      "lib/ediel/ack/sourceCorrelation.ts:217"
+     ]
+    },
+    {
+     "claim": "No database uniqueness on outbound UNB, BGM or IDE wire references across tenants.",
+     "evidence": [
+      "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql:2083"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TEN-14",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "text": "Establish who is ESCO, the entitled recipient, the contracting party and the allowed internal recipient; document data-protection roles",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:178",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:191",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:197",
+      "lib/ediel/services/authorization.ts:8"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native archive refuses DSO network-period terms on another actual contract kind before any artifact or business effect"
+     ],
+     "gap": "The assessment function was found only in the original migration. Later migrations redefine the approve_assignment command (latest: supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:97) but not the assessment."
+    },
+    {
+     "effect": "on_pass",
+     "text": "Allow bounded activation once evidence exists",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:97"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: approveAssignment helper (expects approved_waiting_permission), used by ESCO02 native first request captures the actual server day and DSO period once; current replay attempts no permission/link/receipt insert"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "text": "Keep the assignment held until concrete rights exist; a role name is not legal proof",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:197",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:204"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native archive refuses DSO network-period terms on another actual contract kind before any artifact or business effect (assessment and approve_assignment return held)"
+     ],
+     "gap": "The legal ESCO check is still a role_code row (line 191). It is backed by verified evidence, but nothing tests that a role row alone is refused."
+    },
+    {
+     "effect": "at_expected",
+     "text": "Activation is authorized only after the evidence set is verified",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:205"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native first request captures the actual server day and DSO period once; current replay attempts no permission/link/receipt insert"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "text": "Assignment stays held without rights; role names are not evidence",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:191"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction"
+     ],
+     "gap": "No test sets the role row present with evidence missing and asserts held, specifically for privacy_roles."
+    },
+    {
+     "effect": "SC-003",
+     "text": "Provider P acts legally in DGI and the assignment is linked to K internally; K's UUID is never sent as a legal Ediel ID and K gets no unrestricted provider access",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/tenantResolver.ts:150",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:205"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries"
+     ],
+     "gap": "No test asserts that the outbound NAD/UNB carries P's Ediel ID and never the beneficiary UUID."
+    }
+   ],
+   "suspected_defects": []
+  }
+ ]
+}

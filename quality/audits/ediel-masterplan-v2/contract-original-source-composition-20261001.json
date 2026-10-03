@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-01T11:22:19.567771+00:00",
+  "owner": "history",
+  "workspace": "/workspace/scratch/145123787247/gridex-intake",
+  "branch": "codex/ediel-contract-source-intake-20261001",
+  "status": {
+    "implementation": "COMPLETE_BOUNDED_FOUR_KIND_INTAKE",
+    "wiring": "AUTHENTICATED_API_ACTION_OPS_AND_EXISTING_NATIVE_COMMON_CONSUMERS",
+    "whole_acceptance": "UNQUALIFIED_COMPOSED_CANDIDATE_REQUIRED"
+  },
+  "original_rule_support": [
+    "DB-05",
+    "P-08",
+    "TEN-05",
+    "P-01",
+    "ENV-06"
+  ],
+  "acceptance_support": [
+    "AT-DB-05",
+    "SC-070",
+    "SC-029",
+    "AT-P-08",
+    "AT-Z09D-SUPPLIER",
+    "AT-Z09F-SUPPLIER",
+    "AT-Z09G-SUPPLIER"
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261001103832_ediel_contract_original_source_intake_atomic.sql",
+      "sha256": "e0ce1e91b9dc51e1bf2f2d5cb7131924a0da33da4761c82e3c6b7653a9df8a44"
+    },
+    {
+      "path": "lib/ediel/production/contractOriginalSourceIntake.ts",
+      "sha256": "b79f30e79ad7fd458bc3ef0fb1dedd383a032cbd90565b2d943822e5a5beaadd"
+    },
+    {
+      "path": "app/api/admin/ediel/contract-originals/route.ts",
+      "sha256": "9434e4cc525d9502a1f616ec337a75bef37ae271cc8d60c2efb8824d9c61a9ca"
+    },
+    {
+      "path": "app/admin/ediel/contract-originals/actions.ts",
+      "sha256": "5c3873674c7edc3a5423d46730b4d39a688f12e961868f1a0dafc8e0c65c1923"
+    },
+    {
+      "path": "app/admin/ediel/contract-originals/page.tsx",
+      "sha256": "2126656e7e780c490f4eb2eece16f3223d2c14b24d0f46a3f95c2d85deea9cae"
+    },
+    {
+      "path": "__tests__/ediel-contract-original-intake.test.ts",
+      "sha256": "b9a3b364956365fe40b928a51e07590c50138aedad63c8e20fd04830094daed6"
+    },
+    {
+      "path": "__tests__/ediel-contract-original-http.test.ts",
+      "sha256": "c8900db86a384d746fc41e653cbb949dce8053c777d8035df8cde051213cac30"
+    },
+    {
+      "path": "scripts/ediel-contract-intake-sql-regression.mjs",
+      "sha256": "cee8b64df760a3f9da02688bd3025cc875fb062e59759aca7c3dcd9f7c44e4d0"
+    },
+    {
+      "path": "docs/ediel/contracts/contract-original-intake.md",
+      "sha256": "eec5bc04b699e6df39459c93504a87ef5a3fbe57ddbc7b3c017af32e1f298127"
+    },
+    {
+      "path": "supabase/migrations/20261001112929_ediel_contract_source_intake_lock_order.sql",
+      "sha256": "bb5c0a970a2a214b2e65881cf2fd9765828750d632104aa050abda8b64de80f1"
+    }
+  ],
+  "targeted_verification": {
+    "sql": {
+      "status": "PASS",
+      "checks": 53,
+      "script": "scripts/ediel-contract-intake-sql-regression.mjs",
+      "provenance": "Actual new migration, native source DDL/canonical validators/receipt HMAC/private-copy predicates; finite SYNTHETIC Auth/network/custody/supply/issuer boundaries, no native/full-replay/market proof",
+      "lock_order_provenance": "Actual native common consumer and canonical method context/production reserve bodies and OID/owner/ACL/config; lock declaration/call ordering only, not native concurrent scheduling evidence."
+    },
+    "unit": {
+      "status": "PASS",
+      "files": 2,
+      "tests": 10
+    },
+    "lint": "PASS",
+    "app_types": "PASS",
+    "targeted_tests_types": "PASS",
+    "full_tests_types": {
+      "status": "FAIL_PREEXISTING_BASE_TEST",
+      "path": "__tests__/ediel-process-watches-view.test.ts",
+      "line": 32,
+      "reason": "union optional undefined properties incompatible with Record<string,string|string[]>; file untouched"
+    },
+    "script_syntax": "PASS"
+  },
+  "native_effects": [
+    "immutable original artifact and audit",
+    "independent review plus established source row plus qualification plus audit in single local transaction",
+    "same artifact/source hash deduplication",
+    "existing producer persistent request/intent/message ownership",
+    "current source check at preserved native common function OID; expiry/revocation/read/retry/replay",
+    "existing protected retention catalog/view/policy/physical guard for two independent original copies"
+  ],
+  "interfaces": [
+    "gridex_contract_source_intake.current_v1(uuid,text,uuid)",
+    "gridex_contract_source_intake.qualifications(target_id,company_id,kind,artifact_id,row_hash)",
+    "public.ediel_contract_intake_scope_v1(uuid,uuid,uuid,text,text)",
+    "public.ediel_archive_contract_original_source_v1(uuid,uuid,uuid,text,text,jsonb)",
+    "public.ediel_review_contract_original_source_v1(uuid,uuid,uuid,jsonb)",
+    "public.ediel_read_contract_original_source_v1(uuid,uuid,uuid)",
+    "public.ediel_list_contract_original_sources_v1(uuid,uuid,uuid)"
+  ],
+  "external_records": [
+    {
+      "record": "current issuer key and legal authority source hash/reference",
+      "scope": "tenant/environment",
+      "state": "UNSEEDED_FAIL_CLOSED",
+      "remaining": "independently register a genuine authorized legal issuer configuration; never caller-claimed verified authority"
+    },
+    {
+      "record": "current legal representation for all applicable original purposes",
+      "scope": "tenant/environment/legal_actor/kind/issuer",
+      "state": "UNSEEDED_FAIL_CLOSED",
+      "remaining": "qualified source/mandate configuration and actual signed original packet matching verified PDF"
+    },
+    {
+      "record": "genuine native BRP/network/route sources",
+      "scope": "selected established producer",
+      "state": "EXISTING_FAIL_CLOSED_DOMAIN_CONSUMER",
+      "remaining": "actual external records required by existing producers; independent BRP owner implements its distinct original intake"
+    }
+  ],
+  "root_integration": [
+    "cherry-pick isolated package commit",
+    "add shared OPS nav link to /admin/ediel/contract-originals",
+    "raise existing serverActions5mb to25mb; root explicitly approved combined20MiB bounded originals",
+    "retention shared TS classes/permission/UI inclusion coordinated to recovery_transport",
+    "freeze then authentic DB replay/upgrade/generated artifacts/native authenticated HTTP/UI/build/fullCI on composed SHA; do not treat targeted synthetic fixtures as acceptance"
+  ],
+  "rollback": "Additive schema and immutable source rows; original common consumer OID/owner/ACL/config preserved. Roll application back retaining DB enforcement and custody; no original migration bytes edited, no destructive down migration; later repair additive only.",
+  "commit_sha": "823606064a9a908ab6d94b848ef36fb1103525a0",
+  "tree_sha": "74c2a20d64501ccc085e4892552267995cad0dd0",
+  "commits": [
+    "056d6505d27cc5b8d26356de9c42b3c3544c92a6",
+    "823606064a9a908ab6d94b848ef36fb1103525a0"
+  ]
+}

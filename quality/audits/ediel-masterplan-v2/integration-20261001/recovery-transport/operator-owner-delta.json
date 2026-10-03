@@ -1,0 +1,129 @@
+{
+  "owner": "recovery-transport",
+  "workspace": "/workspace/scratch/145123787247/gridex-recovery",
+  "branch": "work/recovery-transport-20261001",
+  "baseSha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+  "incomingSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "provenance": "Owner OPS delta supersedes only listed paths. Previous36/base+12/UDmethod+8/physicalLI manifests are immutable checkpoints. Root owns composite qualified codeSha, evidenceSha, shared nav and generated artifacts. Root requested bounded ACK current native read projection before importing the first11-file manifest; current paths/hashes override that unimported checkpoint, which is not a qualified runtime candidate.",
+  "paths": [
+    "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql",
+    "lib/ediel/recovery/operatorWorkspace.ts",
+    "lib/ediel/recovery/prodatRecovery.ts",
+    "app/admin/ediel/prodat-recovery/page.tsx",
+    "app/admin/ediel/prodat-recovery/actions.ts",
+    "app/admin/ediel/prodat-recovery/workspace.tsx",
+    "__tests__/ediel-prodat-recovery-consumer.test.ts",
+    "__tests__/ediel-recovery-operator-actions.test.ts",
+    "__tests__/ediel-recovery-operator-workspace.test.ts",
+    "scripts/ediel-recovery-operator-read-sql-regression.mjs",
+    "scripts/ediel-prodat-recovery-ops-browser.mjs"
+  ],
+  "sha256": {
+    "supabase/migrations/20261001141500_ediel_prodat_recovery_operator_read_port.sql": "61c86825201ca1b67fd6aefaaaf673051a9e9d5b2951cbb11bce076b9df09eee",
+    "lib/ediel/recovery/operatorWorkspace.ts": "c1f80a8991b870a79f5f5dc806c44442778e6cda0ee99068cd10270f2db11b5b",
+    "lib/ediel/recovery/prodatRecovery.ts": "358e040cca506506eb58d59a65640d85a55f7622a5ae8aaa4a4f7f9405d1ec36",
+    "app/admin/ediel/prodat-recovery/page.tsx": "5cab3f6e77d4f47ffb945a629a46d4787b4c7d93acddb73e2dd9a26833f626aa",
+    "app/admin/ediel/prodat-recovery/actions.ts": "515436b99f51c05e2ae9c80f1f0f0cb343cd954a219585580f032420454b6db4",
+    "app/admin/ediel/prodat-recovery/workspace.tsx": "423b265f31eca014bdfcfa0bffc3cd6422f6ba974abf011c527f698a27a1f863",
+    "__tests__/ediel-prodat-recovery-consumer.test.ts": "7b0a149ba5552cb62e541101a02f8094deff3a0bac3b891a220ecaae49125ea8",
+    "__tests__/ediel-recovery-operator-actions.test.ts": "a90fa4453f964b9db8237f3c2cbd4d82102bff9cc0281be260bb0b27c9d33f09",
+    "__tests__/ediel-recovery-operator-workspace.test.ts": "11cd5cb09783b0f2b05b62eb19c997fff1f9cd9bc2b17782f89fcc8faaf55c5a",
+    "scripts/ediel-recovery-operator-read-sql-regression.mjs": "777e1e06dd4ed49b6d313f182383ee20ce5c8489c47f18fa2f574a89c6e126cb",
+    "scripts/ediel-prodat-recovery-ops-browser.mjs": "a5d237012be785332c35e171c5f2668e1a79e33ca7ac2fd83f4be28dc3d0c4cd"
+  },
+  "rulesAndContracts": [
+    "TR-05",
+    "SC-040",
+    "AT-TR-05",
+    "TR-02",
+    "TR-03",
+    "TR-10",
+    "TEN-01",
+    "CALL-03",
+    "OPS recovery actual UI/read-model connection"
+  ],
+  "implementation": {
+    "codeStatus": "IMPLEMENTED_AND_CONNECTED",
+    "nativeRead": "ediel_prodat_recovery_workspace_v1 uses SAME current require_recovery_execution_actor_v1 catalog gate with explicit read=communication.read; old prepare/write and send predicates unchanged. Service-only own capped original/ACK/actual private correction carrier/actual private journal attempt metadata; selected retained raw only when exact SHA and own row; actual current source held distinctly. Current actor rechecked after selected row lock and before return; no invented public journal table or direct private grants.",
+    "producer": "prepareProdatRecoveryDraft shares ALL recoverProdat source/reference/intent/current protected context/finalize chain with existing prepareAndQueueProdatRecovery; WRITE-only local draft persistence stops before SEND queue. Existing admin API queue behavior retained.",
+    "consumer": "queuePersistedProdatRecovery reads actual persisted own PRODAT/current draft, gets operation from stored message and calls same protected queueRecoveryDraft/current private reserve+source guards+nativequeue. A separate current SEND executor may queue without a new WRITE/LI/UD preparation. Sent originals cannot reset through queue selector.",
+    "UI": "/admin/ediel/prodat-recovery page→current session selected tenant/actor→actual native read model; proper accessible forms→ServerAction rejects unknown/duplicate authority fields→same server module directly→native command/proof→authenticated current native durable readback→reload permalink. Environment from actual selected original/persisted row, never form choice. Further correction underlay selects immediate failed message (terminal original is resolved natively). Separate READ/WRITE/SEND controls, actual negative ACK and actual transport-attempt selections only; no caller verified/source/actor flags. Provider delivery separate from durable local queue.",
+    "callPaths": [
+      "existing admin recovery API continues same shared producer/queue",
+      "new protected OPS ServerAction uses same module directly, no own HTTP roundtrip",
+      "native source/current/transport journal/direct alternatives continue original shared phase/lineage guards",
+      "native private journal discovery→operator selection→current servercommand→durable corrected message/outbox→native readmodel/UI actual reload"
+    ],
+    "ackProjection": "Selected record -> same shared readBusinessAckStatusForDisplay and businessAckStatusPresentation -> current immutable native125000 receipt/source snapshot. Every workspace contrl/aperak cache field discarded. UI exposes qualified/held/unproven presentation from canonical helper, never cache fallback. Actual last ACK-read denial explicitly holds family status and withholds selected raw content. Native businessAck parser/authority remains root-owned; no new ACK engine."
+  },
+  "verification": [
+    {
+      "kind": "actual_sql_bodies_mechanics",
+      "status": "PASS",
+      "checks": 77,
+      "reusedChecks": 34,
+      "newChecks": 43,
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-recovery-operator-read-sql-regression.mjs",
+      "scope": "Actual installed current catalog + new read query; explicit finite grants, relation fixtures, source current delegate, graph injection for grant revoke after selected lock and before result. No authentic source/native Supabase/concurrency claim."
+    },
+    {
+      "kind": "vitest",
+      "status": "PASS",
+      "tests": 75,
+      "suites": 6,
+      "toolchain": "Node22, Vitest4.1.9, exact root package-lock npmci readonly",
+      "command": "/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-prodat-recovery-consumer.test.ts __tests__/ediel-recovery-correction-references.test.ts __tests__/ediel-recovery-metering-method-context.test.ts __tests__/ediel-recovery-operator-actions.test.ts __tests__/ediel-recovery-operator-workspace.test.ts __tests__/ediel-prodat-recovery-gateway.test.ts",
+      "scope": "Prior75-test canonical OPS checkpoint. Subsequent bounded ACK projection source/4files is qualified by42 affected current tests below; unchanged command/native source tests retained. Root final candidate reruns required final chain."
+    },
+    {
+      "kind": "eslint",
+      "status": "PASS",
+      "scope": "All8 changed TS/TSX/test paths with exact root lock ESLint9.39.4/Next16.3.5 compiled parser"
+    },
+    {
+      "kind": "tsc",
+      "status": "PASS",
+      "scope": "Scoped actual app/imported dependencies and scoped6 targeted test/imported dependencies, TS5.9.3/Supabase2.103.0, configs /tmp/gridex-recovery-operator-app-tsconfig.json and /tmp/gridex-recovery-operator-test-tsconfig.json"
+    },
+    {
+      "kind": "node_check",
+      "status": "PASS",
+      "scope": "New actual mechanical native read SQL script and real UI browser runner"
+    },
+    {
+      "kind": "browser",
+      "status": "NOT_RUN",
+      "scope": "New runner uses only actual clicks, forms and reload, no Playwright request/API substitutes. Requires root frozen runtime/baseURL, actual own test session storage/message/negativeACK/genuine correctedwire and source provenance; preparing and queueing exclusively actual TEST selection with explicit local queue flag. Screenshots+result codeSha emitted to explicit evidence directory."
+    },
+    {
+      "kind": "vitest_after_ack_read_projection",
+      "status": "PASS",
+      "tests": 42,
+      "suites": 3,
+      "toolchain": "Node22, exact root package-lock Vitest4.1.9",
+      "scope": "Actual shared ACK reader + presentation with native protocol fixtures; cached positive cannot be green, immutable qualified result controls family state, held/unproven remain explicit, current late READ denial masks original bytes, actor/company/environment scope preserved; existing producer and action gates retained.",
+      "command": "/tmp/ediel-toolchain/node_modules/node/bin/node node_modules/vitest/vitest.mjs run __tests__/ediel-recovery-operator-actions.test.ts __tests__/ediel-recovery-operator-workspace.test.ts __tests__/ediel-prodat-recovery-consumer.test.ts"
+    },
+    {
+      "kind": "eslint_and_scoped_app_test_tsc_after_ack_projection",
+      "status": "PASS",
+      "scope": "Changed4TS/TSX/tests warning-free; exact Node22 lock eslint9.39.4 and app/testTSC5.9.3. Native141500 unchanged at77-pass SQL SHA."
+    }
+  ],
+  "migrationCompatibility": "Additive service-only current native READ port and bounded phase extension preserve installed helper OID/fullmetadata/ACL; old WRITE/SEND gates and shared protected command/producer behavior retained. Private source/journal tables remain private; new read-only metadata does not mint scope. New pages/action use retained native bindings and current policy. No main merge, production migration, traffic or shared DB reset performed.",
+  "remainingRootQualification": [
+    "Add root-owned Ediel nav discovery link /admin/ediel/prodat-recovery",
+    "Freeze exact composite code/migrations/schema/types/UI version; new borrowed dependency source mirrors excluded from owner import",
+    "Full canonical lint/app/test/script types/build and migration integrity",
+    "Authentic native blank replay/upgrade, actual HTTP transactional/revocation/idempotence/retry/current-role proof on same candidate",
+    "Run actual new browser script against same frozen test-only runtime with qualified genuine sources; source/issuer missing must remain explicit held criterion",
+    "Required actual CI on exact published head; preserve separate codeSha/evidenceSha"
+  ],
+  "externalBlockers": [
+    "No authentic external issuer/original/incoming canonical receipt or runtime session is fabricated by this packet. Current source/issuer absence remains native-held. Mechanical synthetic sources cannot qualify original acceptance contracts."
+  ],
+  "dependencies": {
+    "root-owned lib/ediel/inbound/businessAckReadModel.ts (readonly mirror, excluded from owner import)": "5d706da654624ca9fbb78a4e323822e6e46c4a911a82a4ac208cf88596d0ebf7",
+    "root-owned supabase/migrations/20261001125000_ediel_current_permission_clock_and_business_ack_status_read.sql": "5a0d3defa7f2a2498a654a04667440c08e46da9223735490473d35ce88ae4ec2"
+  }
+}

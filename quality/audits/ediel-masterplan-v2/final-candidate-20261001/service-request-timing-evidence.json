@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "component": "ESCO02 actual signed network period and captured request calendar",
+  "componentParent": "1dab1414",
+  "dependencyOriginalCommit": "8fa1f7c6",
+  "dependencyPurpose": "Current authenticated periodic DGI reason producer; native helper consumes separate reviews of both own contracts",
+  "wholeCriterionVerdict": "PARTIAL_INTERNAL",
+  "nativeStatus": "NOT_EXECUTED",
+  "nativeCasesPrepared": 29,
+  "browserStatus": "NOT_EXECUTED",
+  "sameFinalCandidateCI": "NOT_EXECUTED",
+  "codeFiles": [
+    {
+      "path": "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+      "sha256": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece"
+    },
+    {
+      "path": "lib/ediel/services/requestTiming.ts",
+      "sha256": "d72608968239aaf7d0f35791a74c2dd5995538be89391307c7fd12ec0ebd986d"
+    },
+    {
+      "path": "lib/ediel/services/permissionOrigin.ts",
+      "sha256": "48227f42fd6303c69d36c8952654d338ed9a5ebea7845a2840b1b03102ea4921"
+    },
+    {
+      "path": "lib/ediel/services/evidenceReview.ts",
+      "sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c"
+    },
+    {
+      "path": "lib/ediel/services/administration.ts",
+      "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8"
+    },
+    {
+      "path": "__tests__/ediel-service-request-timing.test.ts",
+      "sha256": "96eeca8f8de8e76ed024546bd36e796b0bed9b91ae88400ff6401ac517248b18"
+    },
+    {
+      "path": "scripts/ediel-service-request-timing-sql-regression.mjs",
+      "sha256": "b8b59a3eadd56faa3bb12236712581608d4d9dc807f2c245d2ba429d6fb169c4"
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "3045eefa24705854201ef14d6ccf8e61e6eb371c611bb378767d8491dda7c1a1"
+    }
+  ],
+  "actualBoundedEvidence": [
+    {
+      "kind": "red",
+      "receipt": "/tmp/ediel-service-timing-final-red.log",
+      "sha256": "e31be8f0dd684ed8132013da301f47366217d32084ed96536891c664426ee948",
+      "status": "EXPECTED_FAILURE"
+    },
+    {
+      "kind": "sql",
+      "receipt": "/tmp/ediel-service-timing-final-sql.log",
+      "sha256": "4e93a2e9f65ddfa7ab1ca35beab93dfdbedd18ca118185df996e400a73531151",
+      "status": "PASS"
+    },
+    {
+      "kind": "unit",
+      "receipt": "/tmp/ediel-service-timing-final-unit.log",
+      "sha256": "00d7c0597b8f9511b00d7bd6c2c5695518c69f4d34caddff98ae034565869007",
+      "status": "PASS"
+    },
+    {
+      "kind": "scripts-tsc",
+      "receipt": "/tmp/ediel-service-timing-final-scripts-tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    },
+    {
+      "kind": "lint",
+      "receipt": "/tmp/ediel-service-timing-final-lint.log",
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8",
+      "status": "PASS"
+    }
+  ],
+  "counts": {
+    "timingSql": 25,
+    "inheritedSql": 64,
+    "unit": 52,
+    "failedUnit": 0
+  },
+  "redActual": "Old native coordinator returns permission_required for fresh authentic staged/reviewed DSO period and assignment outside three years/network-contract bound; expected held. Finite retained resolver and fixture dependencies are explicitly synthetic, not native proof.",
+  "externalPrerequisites": [
+    "Actual issuer/representation legal authority and authentic customer/DSO/service source agreements remain unverified; synthetic native registry/bootstrap proves only implementation mechanics.",
+    "Strict original PRODAT D96A dual-own-Z07+LI correlation remains held pending authoritative norm resolution; no grammar exemption or dropped own reference."
+  ],
+  "remainingInternalProof": [
+    "Actual clean/upgrade replay of this new forward, generated schema/types, all 29 native HTTP/PG cases on one frozen candidate.",
+    "Actual two-session DENY/request and same fresh request races, tripwire no-insert retry and last-write rollback in native PostgreSQL.",
+    "Whole literal criterion review after integration, same-head CI/browser where applicable."
+  ]
+}

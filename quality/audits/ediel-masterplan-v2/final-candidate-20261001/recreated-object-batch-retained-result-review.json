@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "baseHead": "283394cee7f99071b3dcc87199f8c842595489c1",
+  "scope": "Read actual completed object batch result before any fresh byte/write gate; current actor/current captured legal role and immutable private review/graph/native operation proof; authorized tombstone required for absent bytes",
+  "files": [
+    {
+      "path": "supabase/migrations/20261001092757_ediel_completed_object_batch_read_after_retention.sql",
+      "sha256": "3561bc75ca9fc99462a947ebf0a17fb09cf1f450ebd61af4540cce7145886c3a"
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "sha256": "a53ff6e8e95d3d65cfe02f95afaedf3ac7d67a26241aea9fe6b2009a97fd1174"
+    },
+    {
+      "path": "scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs",
+      "sha256": "2cb1136d9284aba0290029e08107866a7b9bac9a03c17fcd795de40313302b67"
+    },
+    {
+      "path": "scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+      "sha256": "8cc514b3e6ddec56c20843f52c1a3b73ee30191059142193d383d145f3e97740"
+    },
+    {
+      "path": "__tests__/ediel-prodat-register-batch-application.test.ts",
+      "sha256": "11409f818cf109954dcabeee73f3e556821dfcb118afbe6e4c476d2093e280b5"
+    }
+  ],
+  "evidence": [
+    {
+      "receipt": "restored-ack-batch-retained-red.json",
+      "command": "old283394 inboundCases restored transiently then reverted in finally; updated retained-byte/current-revoke test fixtures",
+      "failed": 2,
+      "passed": 0,
+      "status": "RED",
+      "limit": "one positive retained-byte replay fails on old source-byte gate; second is error-port mismatch, not an additional old authorization bypass"
+    },
+    {
+      "receipt": "restored-ack-batch-retained-unit.json",
+      "command": "Node22 vitest targeted batch/register/normative authority suites",
+      "passed": 71,
+      "failed": 0,
+      "status": "PASS_LOCAL_UNIT"
+    },
+    {
+      "command": "Node22 scripts/ediel-prodat-object-batch-first-effect-sql-regression.mjs",
+      "passed": 41,
+      "failed": 0,
+      "status": "PASS_BOUNDED_SQL",
+      "limit": "Actual forward/current deny/role/readonly SQL executed with finite synthetic original/facet/endpoint/graph/retention dependencies; no real legal purge or native race claimed"
+    },
+    {
+      "command": "Node22 tsc tests/scripts; eslint four changed runtime/test scripts; git diff --check",
+      "status": "PASS"
+    },
+    {
+      "command": "ordinary disposable native suite scripts/ediel-prodat-object-batch-current-source-native.test.ts",
+      "cases": 11,
+      "status": "CONSTRUCTED_NOT_RUN",
+      "includes": "genuine original/facets/graph producers; readonly result after write DENY with independent current read grants; native DENY phantom race"
+    }
+  ],
+  "wholeCriterionVerdict": "PARTIAL_INTERNAL",
+  "remaining": [
+    "Authentic same-head native execution including signed legal-purge/tombstone producer and actual retained result replay",
+    "Final same-head replay/build/browser/generated/CI and literal full352 evidence still required"
+  ],
+  "storage": "Only existing minimal private review and graph hashes reused; no raw reconstruction/new byte copies/native receipt fabrication"
+}

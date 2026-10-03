@@ -1,0 +1,78 @@
+{
+  "source_baseline": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+  "implementation": {
+    "mixed_entry": {
+      "original_blob": "6284bab6722a665346235f73164c6642b207acfa",
+      "candidate_blob": "bef5339c0b40e05723a6235b93c2379e9636ef22",
+      "exact_only_two_hunks": true,
+      "whole_header_path_unchanged": true,
+      "native_ordinary_entrypoint_test": "scripts/ediel-prodat-mixed-native.test.ts",
+      "native_executed_here": false,
+      "unknown_sibling_whole_clause_still_internal_gap": true
+    },
+    "source_ledger": {
+      "actual_033_dump_sha256": "8d4b077827e534b2015cf9c123bcfc605613e3ed4b4e53266be4101fa57c73a6",
+      "actual_capture_context_column": "public.ediel_messages.execution_context_snapshot.receivedUtiltsContext",
+      "strict_manifest_ids_hashes_clock_nulls": true,
+      "security_fixed_path_assertion_preserved": true,
+      "native_executed_here": false
+    },
+    "workflow": {
+      "independent_failures_collected": 4,
+      "each_failure_sets_native_suite_failed": true,
+      "migration_failures_still_stop_replay": true,
+      "final_failure_not_suppressed": true
+    },
+    "sc072": {
+      "before": {
+        "tests": 3,
+        "passed": 0,
+        "failed": 3,
+        "cause": "BGM-only source fails actual full97A grammar"
+      },
+      "after": {
+        "tests": 4,
+        "passed": 4,
+        "failed": 0,
+        "scope": "actual codec/full97A and independent T24.A6 lexical oracle; two real shared mapping faults rejected by independent source"
+      }
+    },
+    "gas": {
+      "before": {
+        "tests": 25,
+        "passed": 17,
+        "failed": 8
+      },
+      "after": {
+        "tests": 26,
+        "passed": 26,
+        "failed": 0,
+        "scope": "actual fresh source read boundaries plus GAS/current canonical guard; mocked exact absent/refused RPCs only; no real SMTP"
+      }
+    },
+    "mixed_source_facet_units": {
+      "tests": 7,
+      "passed": 7,
+      "whole_scope_approval": false
+    },
+    "rbac_service_catalog": {
+      "checks": 24,
+      "passed": 24,
+      "warnings": 0
+    },
+    "scripts_typescript": {
+      "passed": true,
+      "command": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json"
+    },
+    "application_typescript": {
+      "passed": true,
+      "command": "node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json",
+      "whole_candidate_conformance_asserted": false
+    }
+  },
+  "native_count_added": 11,
+  "native_config_file_count": 34,
+  "native_http_browser_not_run_locally": true,
+  "frozen_original_33_unchanged": true,
+  "whole352_accepted": 0
+}

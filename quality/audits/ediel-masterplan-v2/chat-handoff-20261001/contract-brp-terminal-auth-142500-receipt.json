@@ -1,0 +1,27 @@
+{
+  "state": "IMPLEMENTED_SQL_MECHANICS_VERIFIED; not native/HTTP/browser qualified",
+  "base": "49a40a2e5427c91d1724d8d4257a5ca5b2f7c084",
+  "migrations": {
+    "20261001142500_ediel_contract_brp_intake_terminal_current_authority.sql": "7ce799a14b37d40020cea07cf035359507d11bd831ba12e67e195618e8e775bf",
+    "20261001142510_ediel_signed_brp_intake_terminal_current_authority.sql": "986ed5763189575b7e5ac32af17dbe6d94e8913d7b0c082b161dbde70cf8bf46"
+  },
+  "design": "Each of 10 public intake ports (5 contract, 5 BRP) keeps OID/ACL/owner/config/defaults; original body moved verbatim into a private non-executable copy; public body materializes the exact jsonb result, then runs the caller's actor_v1 for the same mode/kind as last step; no wait after it; deny raises 42501 and the statement rolls back. Private success edges contract current_v1 and BRP origin_current_v1 re-check the reviewer after the last source/receipt read.",
+  "additionalFinding": "gridex_requested_changes.scoped_permission_v1 evaluated override validity at transaction start (now()); a deny becoming current within the statement was invisible to intake actors. 142510 switches only the override clock to clock_timestamp() with guarded predecessor and unchanged metadata.",
+  "evidence": {
+    "contract": {
+      "log": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/contract-terminal-auth-142500-green.log",
+      "logSha256": "3906d07987f07600ae1777a663f2cda0a6e9e5b792e39ff082f2cc185e8c7c84",
+      "result": "5 retained RED cases GREEN; 85 checks incl. OID/ACL/metadata preservation and private copy ACL; baseline env without effect now that forward is always loaded"
+    },
+    "brp": {
+      "log": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/brp-terminal-auth-142510-green-and-baseline-red.log",
+      "logSha256": "40c5466d79d8790da676196bde6419923294916b51483a6d25e5161354bedfe7",
+      "result": "297 checks PASS with 142510; GRIDEX_BRP_TERMINAL_BASELINE=1 (forward omitted) reproduces 2 RED: review approve after origin, read after final check"
+    },
+    "adjacent": "brp-certification-copy-retention 204, supply-rescission-intake-session 117, brp-change 39, switch-production-brp-binding 19 PASS; migration integrity 947 files/850 groups PASS; eslint on changed scripts PASS"
+  },
+  "authority": "Finite SYNTHETIC timing/permission ports in PGlite; no native Supabase/GoTrue/HTTP, concurrency or authentic issuer evidence.",
+  "remaining": [
+    "native/GoTrue/HTTP and concurrency on frozen candidate"
+  ]
+}

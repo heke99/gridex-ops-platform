@@ -1,0 +1,40 @@
+{
+  "owner": "/root/ack_prodat",
+  "kind": "bounded private business ACK reader delta",
+  "created_at": "2026-10-01T12:39:50.705125+00:00",
+  "files": [
+    {
+      "path": "__tests__/ediel-business-ack-native-list.test.ts",
+      "sha256": "3acdfefde04d769aad2b6d7052c2dedba52a76922e724b68938ad5f1766b66a4"
+    },
+    {
+      "path": "lib/ediel/inbound/businessAckMessages.ts",
+      "sha256": "83ad3a00e9cbdd4790d5c5ce9f2567000f912b59006f4bc8270c4aea0635b9f3"
+    },
+    {
+      "path": "scripts/ediel-duplicate-103-owner-sql-regression.mjs",
+      "sha256": "de49251411f34fe31a16402e8444ac4d15d6410fb9f11d7f49a7338f874bc781"
+    },
+    {
+      "path": "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql",
+      "sha256": "15a69eb8004f41608503ae374286f0d4d92a5eca083f0eb1ed6e160ad0779b4c"
+    }
+  ],
+  "verification": {
+    "latest_reader_delta_unit": "3files27/27PASS at2026-10-01T14:29:53Z using vitest4.1.11; /tmp/ack-private-business-original-units.log",
+    "latest_reader_delta_native_mechanics": "38PASS actual installed read_exact/owner/private candidate function plus actual124000 forward; finite source/context/guide IO; relationNULL/foreign, wrongcache, READ/WRITE separation, immutablebirthoutcome mismatch, immutableguide preservation, captured-profile denial/currentdeny, terminal timedDENY-after-guidewait rollback; /tmp/ack-private-business-original-delta.log; NOT native acceptance",
+    "latest_reader_delta_lint": "3files0errors; /tmp/ack-private-business-original-lint-final.log"
+  },
+  "interface": {
+    "private": "gridex_ediel_duplicate_responses.read_business_original_v1(uuid,text,uuid,uuid,text,uuid,text)",
+    "phase": {
+      "prepare": "communication.write",
+      "read": "communication.read"
+    },
+    "source": "Derived bounded copy of installed read_exact_v2; all source/namespace/wire/guide/ledger/domain guards retained; exact private candidate binding and original owner assertion with local record relation projection",
+    "effect": "readonly; stored public related_message_id/ack_outcome remain untouched",
+    "root_consumer": "125000 current READ status port (root owns wiring)",
+    "shared_originals": "original read_exact_v2/owner require_v1 remain unchanged; parent owns remaining shared reader wiring"
+  },
+  "formal_acceptance": "NOT_PROMOTED; finite mechanics and unit evidence only"
+}

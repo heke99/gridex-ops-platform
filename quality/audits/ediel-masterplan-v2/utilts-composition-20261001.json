@@ -1,0 +1,586 @@
+{
+  "packet": "UTILTS composed source/runtime/storage/current-actor family",
+  "date": "2026-10-01",
+  "provenance": {
+    "base_sha": "bba3163741c513a94938c63ffe88cf6089be78d1",
+    "incoming_sha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+    "branch": "compose-utilts",
+    "workspace": "/workspace/scratch/145123787247/gridex-utilts",
+    "qualified_runtime_sha": null,
+    "explanation": "Uncommitted isolated composed packet. Root owns integrated candidate SHA/final native/generated/browser/CI qualification. File hashes qualify scoped test input only."
+  },
+  "files": {
+    "__tests__/ediel-utilts-decision-reuse.test.ts": "c369ca8744e8c374de6b295b14672d4387071f18011054d54e13d3fbd17b5e93",
+    "__tests__/ediel-utilts-err-application-plan.test.ts": "4606b1267a9a98d1d2443f87f7f302b22fa7102a06ff36ddfdb0aadff57f7c83",
+    "__tests__/ediel-utilts-err-gateway.test.ts": "7f841b7891c5868bb7e081c92c165bd8f3743d01c10afdba34dd5340a0022fa6",
+    "__tests__/ediel-utilts-final-validation-flow.test.ts": "830414f1b65374622b9c18a7d9ea72c9dde8d8467ac2232915b6533a054d35f0",
+    "__tests__/ediel-utilts-object-context-boundary.test.ts": "c86c6a5766138c32ea680eb4450dfc7dd501681e0ea31d1b55e03d8f7d32c5d3",
+    "__tests__/ediel-utilts-persistence-processor.test.ts": "57c350d3c1274e45cfd6935429fae01f48e94052ed4acdb1c9b2248dc8a46a27",
+    "__tests__/ediel-utilts-runtime-cutoff.test.ts": "2e95fa4fc3d221a8d814ce88ae75cece91a8c4df652f2b254822ed7f1e6e3c72",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts": "7a70832dec55762bafc77082a63ed4bda80f700edfab34463917334c51a4edbf",
+    "lib/ediel/flows/utiltsDataRequest.part-2.ts": "e638cc7150f794e5dd2d1fc5a979c49dad563e3d7e87b2a66350d302aecf2da8",
+    "lib/ediel/flows/utiltsInboundPolicyProcessor.ts": "0e337b8eff83124d187d882381a65eaf40db5ab1ac07472b1f04c59f4c05ec2d",
+    "lib/ediel/utilts/consumptionContract.ts": "d89623bac597774debf45019c21bae5a0421fc6b3687575048509e07645f2f2e",
+    "lib/ediel/utilts/consumptionPreparation.ts": "a6c0614527c8ffacee394707200300918684279dcdf56c9931bc04e23c3379a2",
+    "lib/ediel/utilts/engine.ts": "2c3a8d0dcf1e517907fa40862116c9a513fd45e698223884fce8b61c379b897f",
+    "lib/ediel/utilts/physicalReference.ts": "cdc1b082db1fffeb3d370e2a348f855cfa0644c7dcca302f82ef41fb2c96e31d",
+    "lib/ediel/utilts/qualifyReceivedStructure.ts": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+    "lib/ediel/utilts/validateUtilts.ts": "85cdb941f2a847fc0bbbd15ab74f2306b5e40a4891c8d2f5005992305f7179f2",
+    "lib/ediel/utiltsEngine.ts": "ff0fe04f6888c0257dde773216173f1c12b0ea6708b1025a6af163499558f6f6",
+    "lib/ediel/utilts/transactionPersistence.ts": "1803d5705d23cf337e7eb65060fb976f11211376471dcdedbfe389f3662e15b5",
+    "__tests__/ediel-utilts-own-505-admission.test.ts": "61c8e01e0d0a76487d0668c08e6cf157336a5d69c40274c46efbf4f0ba332bdb",
+    "__tests__/ediel-utilts-current-execution-actor.test.ts": "d62c164d4a85e645408712c1043cc57bbbf8e04ea1a4da4249edf7a8c8f2549d",
+    "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql": "26b9153c1f478ec5e5c924da0a7c7edc68a5d01da91a2a0aaa93b850ea527083",
+    "scripts/ediel-utilts-current-actor-sql-regression.mjs": "4c7a5414333863e3adc1b897d0ef906829698b418301bb2152be2693f82f3d1c"
+  },
+  "changes": [
+    "Faithful differential composition preserves independent original/source/object/IDE conditions, current tenant legal/technical actor and periodic opaque reason source. No parallel engine or acceptance-as-rule duplication.",
+    "Immutable exact observed rejected reference V3 remains no-consumption; UNSM35 syntax limit wins over national505. National invalid syntax-valid own reference negative copied losslessly.",
+    "Raw preview uses explicit evaluationAt rather than fabricated receipt; all actual receive routes retain registered ingress source clock.",
+    "Both actual processors authorize current tenant metering.write before source links, assessments, persistence and ACK. UUID actual operator propagates through persistence RPC.",
+    "Native public7arg actor-scoped current permission with private original6arg storage owner retained. Actual canonical scoped permission wallclock helper plus current authusers/profile/accepted membership/tenant; pre/post inner-owner guard handles timed deny while waiting.",
+    "All source storage/relations/outcomes/readings/idempotent historical contracts remain the established native owner. Revoked current authority cannot replay or disclose prior results."
+  ],
+  "verification": {
+    "vitest": {
+      "status": "PASS",
+      "files": 14,
+      "tests": 249,
+      "logs": [
+        "/tmp/utilts-reconciled-tests.log",
+        "/tmp/utilts-final-package-tests.log"
+      ],
+      "later_affected_rerun": "ediel-utilts-s02-required-scope28PASS after explicit preview option correction"
+    },
+    "scoped_types": {
+      "status": "PASS",
+      "command": "tsc --project tsconfig.utilts-scoped.tmp.json --pretty false",
+      "scope": [
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-err-application-plan.test.ts",
+        "__tests__/ediel-utilts-err-gateway.test.ts",
+        "__tests__/ediel-utilts-final-validation-flow.test.ts",
+        "__tests__/ediel-utilts-object-context-boundary.test.ts",
+        "__tests__/ediel-utilts-persistence-processor.test.ts",
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/engine.ts",
+        "lib/ediel/utilts/physicalReference.ts",
+        "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "lib/ediel/utilts/validateUtilts.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "__tests__/ediel-utilts-own-505-admission.test.ts",
+        "__tests__/ediel-utilts-current-execution-actor.test.ts"
+      ],
+      "diagnostics": 0
+    },
+    "scoped_eslint": {
+      "status": "PASS",
+      "warnings": 0,
+      "errors": 0,
+      "log": "/tmp/utilts-lint.log"
+    },
+    "sql_mechanical": {
+      "status": "PASS",
+      "checks": 23,
+      "command": "EDIEL_PGLITE_MODULE=/tmp/ediel-toolchain/node_modules/@electric-sql/pglite/dist/index.js node scripts/ediel-utilts-current-actor-sql-regression.mjs",
+      "actual_bodies": "Actual10758 scoped permission body with installed92425 rename/wallclock port and actual1110500 wrapper; reduced tables, lock stubs and modeled original storage delegate explicitly declared.",
+      "temporal_cases": [
+        "Deny effective after transaction-start wait rejects without effects",
+        "Expiring deny after transaction-start wait allows current real tenant grant",
+        "Deny effective during modeled inner-owner wait rejects and rolls back preceding native effect"
+      ],
+      "red_green": "Replacing actual helper clock_timestamp port with original now() fails expected rejection at afterTransactionWait; corrected port passes23.",
+      "native_acceptance": "NOT_RUN"
+    },
+    "full_candidate_native_replay_upgrade_generated_schema_types_browser_CI": "NOT_RUN_BY_THIS_OWNER"
+  },
+  "migration_compatibility": {
+    "published_bytes": "Untouched",
+    "new_forward": "20261001110500_ediel_utilts_current_execution_actor.sql",
+    "old6arg_public": "Absent after forward; renamed native OID/body retained privately",
+    "new7arg_public": "Service role only, actor DEFAULTNULL fails closed",
+    "private_helpers": "Public/anon/authenticated/service EXECUTE revoked",
+    "callers": "Actual native/HTTP test fixtures updated by script_contracts owner; no actorless production caller found in bounded UTILTS invocation inventory",
+    "rollback": "Forward-only repair preserves earlier storage owner/history. Do not re-enable insecure six-argument public RPC. No DB reset, production migration or real traffic was performed."
+  },
+  "rules": [
+    {
+      "id": "U-01",
+      "owner": "utilts",
+      "normative_source": "U §3.1; CODE; SYS",
+      "original_requirement": "Objektvärden, prognoser, aggregat och requests är uttryckligen skilda. Kontrollera aktuell roll, inte alltid en Supplier-gate.",
+      "implementation_paths": [
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/rulebook/utiltsRulebook.ts",
+        "lib/ediel/utilts/canonicalMessageEngine.ts",
+        "lib/ediel/profiles/messageProfileCatalog.ts",
+        "lib/ediel/inboundRequestAutomation.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/meteringObservationParser.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-01"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-02",
+      "owner": "utilts",
+      "normative_source": "U §2,3.8–3.9",
+      "original_requirement": "Bevara huvud, SG5/IDE-transaktion och SEQ-observation samt varje upprepad grupp.",
+      "implementation_paths": [
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "lib/ediel/utilts/observationOrderGuide.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/core/receivedUtiltsTransactionValidation.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/meteringObservationParser.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/core/physicalDocumentReference.ts",
+        "lib/ediel/utilts/physicalReference.ts",
+        "__tests__/ediel-utilts-aperak-physical-document.test.ts",
+        "supabase/migrations/20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "__tests__/ediel-utilts-own-505-admission.test.ts",
+        "scripts/ediel-utilts-aperak-dm-capacity-sql-regression.mjs",
+        "scripts/ediel-utilts-rejected-reference-sql-regression.mjs",
+        "supabase/migrations/20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-02"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-03",
+      "owner": "utilts",
+      "normative_source": "U §5.2 s.107; bilaga1–2",
+      "original_requirement": "Syntax följs av huvudets anvisningskontroll, transaktionens anvisningskontroll och därefter funktionskontroll endast för godkänd transaktion.",
+      "implementation_paths": [
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/meteringObservationParser.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/issuerIdentityAuthority.ts",
+        "supabase/migrations/20261001015127_ediel_utilts_foreign_issuer_observed_identity_authority.sql",
+        "scripts/ediel-utilts-issuer-authority-sql-regression.mjs",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [
+        "UNSEEDED external issuer basis: authentic versioned foreign legal-issuer registry original bytes/hash and legal approval; separately authenticated full UNB transport-agent mandate original/version/validity/approval; source-bound complete over-time/all-applications other-prior-issued originals including genuine issuance references and bytes/hashes; authentic deletion history, lawful retention decision and approved normalized absence/collision decision bound to original source UUID/rawSHA/namespace/versions/epoch. Current platform identifiers, route addresses and empty local observations cannot substitute for these grounds. Missing grounds keep eligible own IDE effects held with no fabricated national code."
+      ],
+      "acceptance_ids": [
+        "SC-044",
+        "SC-045",
+        "SC-047",
+        "SC-048",
+        "AT-U-03"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-04",
+      "owner": "utilts",
+      "normative_source": "U §3.6.14,5.2",
+      "original_requirement": "Ankomstordning ensam är inte avvisningsskäl. Använd registrerings-/uppdateringstid 512/532 för dataversionen.",
+      "implementation_paths": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+        "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+        "lib/ediel/utilts/consumptionSinks.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "SC-046",
+        "AT-U-04"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-05",
+      "owner": "utilts",
+      "normative_source": "U ändringslogg25.A.2; OE exempel2g",
+      "original_requirement": "Anledning ska vara E23, inte E88, om inte annat är uttryckligen överenskommet.",
+      "implementation_paths": [
+        "lib/ediel/rulebook/utiltsMarketEngine.ts",
+        "lib/ediel/rulebook/utiltsApplicationReference.ts",
+        "lib/ediel/utilts/packagingGuide.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-05"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-06",
+      "owner": "utilts",
+      "normative_source": "U §3.3,3.7.3",
+      "original_requirement": "Application Reference avser begärd S02/E66 respektive S03/E31. Objekt/områden, parter, produkt och period ska motsvara begäran.",
+      "implementation_paths": [
+        "lib/ediel/rulebook/utiltsApplicationReference.ts",
+        "lib/ediel/flows/utiltsSupplierRequest.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "SC-052",
+        "AT-U-06"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-07",
+      "owner": "utilts",
+      "normative_source": "U §1.8,3.1",
+      "original_requirement": "S06 är inte i bruk, S08 är avvecklat och andra profiler kräver andra roller än standard-DDQ/DGI.",
+      "implementation_paths": [
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/core/futureCapabilityPolicy.ts",
+        "lib/ediel/rulebook/utiltsMarketEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-07"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-08",
+      "owner": "utilts",
+      "normative_source": "U bilaga2 s.131; PZ14fält",
+      "original_requirement": "Kontrollera mot faktiskt erhållen strukturinformation för perioden. ESCO-Z14 innehåller inte nödvändigtvis hela mätarstrukturen.",
+      "implementation_paths": [
+        "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "lib/ediel/sources/structuralSourceReadset.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [
+        "Authentic issuer/original/deletion coverage, retention decision and versioned positive object/mandate/sink evidence remain required."
+      ],
+      "acceptance_ids": [
+        "SC-049",
+        "AT-U-08"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-09",
+      "owner": "utilts",
+      "normative_source": "U §3.6,3.7; SYS",
+      "original_requirement": "NULL/saknat, noll, tecken, ställning, energi, effekt, kvalitet och upplösning är olika typer.",
+      "implementation_paths": [
+        "lib/ediel/utilts/exactDecimal.ts",
+        "lib/ediel/utilts/quantityUnitScope.ts",
+        "lib/ediel/utilts/quantityPrecision.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/billing/sourceBasis.ts",
+        "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
+        "supabase/migrations/20260930193740_ediel_utilts_canonical_transaction_facets.sql",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/meteringObservationParser.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [
+        "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
+      ],
+      "acceptance_ids": [
+        "SC-053",
+        "AT-U-09"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-10",
+      "owner": "utilts",
+      "normative_source": "U §3.6.18; bilaga2",
+      "original_requirement": "Beräkna intervall från faktisk period, produkt och fast tidszon. En kalendermånad är inte alltid30 dygn.",
+      "implementation_paths": [
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utilts/quantityPrecision.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/sourceBasis.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/utilts/consumptionPreparation.ts",
+        "lib/ediel/utilts/meteringObservationParser.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [
+        "Quarterly register-reading instrument precision requires authentic received meter-resolution evidence; source exception for nonstandard energy unit/precision requires genuine applicable bilateral/industry/legal basis. Missing basis stays held; not guessed from values."
+      ],
+      "acceptance_ids": [
+        "SC-050",
+        "AT-U-10"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-11",
+      "owner": "utilts",
+      "normative_source": "U §1.8; bilaga2",
+      "original_requirement": "E19 och ställnings-/energijämförelsen utgår. Energivärdeskontroller E97/E98/E90 avgränsas enligt guiden till E30/aggregat.",
+      "implementation_paths": [
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/utilts/profiles.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "SC-050",
+        "AT-U-11"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-12",
+      "owner": "utilts",
+      "normative_source": "U §2,3.6.11,3.6.19",
+      "original_requirement": "Anledning till transaktionen är samma i meddelandet. Mätarbyte och olika skeden kan kräva separata underlag.",
+      "implementation_paths": [
+        "lib/ediel/utilts/packagingGuide.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-12"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-13",
+      "owner": "utilts",
+      "normative_source": "U §3.9 BGM s.72",
+      "original_requirement": "Skicka funktionskod9; ta emot5 utan avvisning enbart därför. Skicka AB; NA ensam är inte avvisningsgrund.",
+      "implementation_paths": [
+        "lib/ediel/utilts/headerGuide.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-13"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-14",
+      "owner": "utilts",
+      "normative_source": "U §5.2; SYS",
+      "original_requirement": "Godkänd affärsbehandling och beständig lagring ska vara klara före extern positiv APERAK.",
+      "implementation_paths": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/utilts/positiveAckAuthority.ts",
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/utilts/issuerIdentityAuthority.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "supabase/migrations/20261001015127_ediel_utilts_foreign_issuer_observed_identity_authority.sql",
+        "scripts/ediel-utilts-issuer-authority-sql-regression.mjs",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [
+        "UNSEEDED external issuer basis: authentic versioned foreign legal-issuer registry original bytes/hash and legal approval; separately authenticated full UNB transport-agent mandate original/version/validity/approval; source-bound complete over-time/all-applications other-prior-issued originals including genuine issuance references and bytes/hashes; authentic deletion history, lawful retention decision and approved normalized absence/collision decision bound to original source UUID/rawSHA/namespace/versions/epoch. Current platform identifiers, route addresses and empty local observations cannot substitute for these grounds. Missing grounds keep eligible own IDE effects held with no fabricated national code."
+      ],
+      "acceptance_ids": [
+        "SC-054",
+        "AT-U-14"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-15",
+      "owner": "utilts",
+      "normative_source": "U §3.6.19 s.48",
+      "original_requirement": "En UTILTS-överföring UNB–UNZ innehåller endast ett meddelande UNH–UNT och en juridisk mottagare. Blanda inte skeden, anledning eller kvart-/månadsupplösning enligt Application Reference.",
+      "implementation_paths": [
+        "lib/ediel/utilts/packagingGuide.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-15"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-16",
+      "owner": "utilts",
+      "normative_source": "T §7.6; U §3.6.20 s.48–49",
+      "original_requirement": "T anger rekommenderad maxstorlek10MB; U anger fortfarande1MB och999transaktioner. Skilj rekommendation från syntax/nationell kardinalitet.",
+      "implementation_paths": [
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-16"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-17",
+      "owner": "utilts",
+      "normative_source": "U bilaga1 s.121",
+      "original_requirement": "När bilaga1 säger om möjligt används i första hand fältnummer; annars, om möjligt, angiven segment-/elementreferens med max17tecken.",
+      "implementation_paths": [
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/ack/errorCodeMapper.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-17"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-18",
+      "owner": "utilts",
+      "normative_source": "U §3.6.18 s.47",
+      "original_requirement": "Håll energier sammanhängande och tidsordnade; ställningar sammanhängande och tidsordnade. Blockens inbördes ordning är valfri. Samma ställning med tid får inte dupliceras inom transaktionen.",
+      "implementation_paths": [
+        "lib/ediel/utilts/observationOrderGuide.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-18"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    },
+    {
+      "id": "U-19",
+      "owner": "utilts",
+      "normative_source": "U §3.6.12; bilaga1 s.126",
+      "original_requirement": "Referens till PRODAT-ärende används för korrelation där den går att knyta; bilaga1 anger inga kontroller av värdet och ingen avvisning om kvalificeraren inte är TN.",
+      "implementation_paths": [
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "supabase/migrations/20261001110500_ediel_utilts_current_execution_actor.sql"
+      ],
+      "external_blockers": [],
+      "acceptance_ids": [
+        "AT-U-19"
+      ],
+      "code_status": "COMPOSED_EXISTING_EXECUTABLE_OWNER_PLUS_CURRENT_ACTOR_GUARD",
+      "verification": "SCOPED_ONLY_FINAL_CANDIDATE_NOT_RUN"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+# Actual read-only retention integration and browser contract, 2026-10-01
+
+Forward migration 20261001031103 adds metadata-only `ediel.retention.read` consumption to the already installed blob decision reader. It calls the actual private `record_read_actor_v1` and checks the immutable decision's original/MIME class grant in the same transaction. The original function's OID, owner, ACL and search_path remain unchanged. Legal decision original bytes still require the separate current review permission. Mutation authority does not follow a read grant.
+
+Executed locally: actual SQL function bodies from 00500/00710/012305/15940/22426/25642/031103 on a bounded synthetic PGlite schema. The previously rejected archived read-only actor now reads own class metadata, with NULL document bytes; document export, review mutation, foreign company, global current DENY and disabled actor are rejected. Existing source hashes, tombstones and physical-pending semantics remain. This is SQL mechanism evidence, not authentic Supabase replay/Auth owner/RLS, actual issuer competence or physical Storage deletion proof.
+
+Executed unit HTTP/domain tests preserve actual named native-read parameters, current GoTrue identity/server-selected company/current permission ports, held legal source and actual two-phase pending responses. Independent read-only HTTP checks deny all original document and mutation endpoints before lifecycle effects. Scoped native TypeScript, ESLint and browser spec syntax checks pass. Interactive browser and native fixture execution are NOT_RUN locally (no disposable native Supabase).
+
+The dedicated native fixture creates a genuine local signed contract and actual journal-accepted Z03, then canonical received Z04 source/application ownership through the production owners. It independently reads real Storage MIME bytes/hash. Only provider observation and legal issuer competence/HMAC configuration are explicitly synthetic. It does not seed private approved/ready/accepted source rows. It creates archived-only submitter/purger, separate reviewer, read-only own member and foreign member with explicit class permissions and no admin role. No retention decision is seeded; the browser must upload the actual decision documents through the API/UI, separately review, revoke an independent policy, and purge both received-original copies and actual MIME Storage bytes.
+
+Browser file `e2e/browser/ediel-message-content-retention-local.spec.mjs` uses `/retention/message-content` and the actual dedicated company selector. It covers keyboard review, byte-exact decision download, revoked hold, class-specific purge, reload, logout/no current authority, read-only 375px/zoom2 and foreign tenant/caller JSON denial. A separate post-browser native invocation checks actual decision/reviewer/revocation/tombstone identities, private/public source erasure, source-authority revocation, real Storage HTTP 404 and exactly one physical MIME completion event. Assertions are not claimed executed before that invocation succeeds.
+
+Run on the same frozen candidate using the root-controlled workflow:
+
+1. Set local disposable native status, `GRIDEX_BLOB_RETENTION_FIXTURE_PATH` and synthetic case-user password; run Vitest with `scripts/ediel-blob-retention-browser-native.config.ts`.
+2. Run the local interactive Playwright case against the built candidate with the same fixture path and `GRIDEX_EDIEL_CASE_LOCAL_E2E=1`.
+3. Set `GRIDEX_BLOB_RETENTION_VERIFY_AFTER_BROWSER=1`; rerun the native fixture config to independently verify the browser's durable effects.
+
+The browser fixture contains only synthetic actor emails/IDs and is mode 0600. Password is supplied through the existing case-test environment and is not written into the fixture or repository. This packet does not approve DB-05, its AT, SC-067, any external legal policy, or the masterplan as a whole.
+
+Actual local HTTP/domain result: 26/26 PASS in `ediel-message-retention-http.test.ts` and `ediel-blob-retention-port.test.ts`. Browser tests wait for the specific actual metadata response/hash and qualified record before the next write; old status text cannot stand in for a completed current operation. The responsive metadata grid uses one column at narrow/zoomed widths; no browser visual pass is claimed locally.

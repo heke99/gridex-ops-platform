@@ -1,0 +1,2574 @@
+{
+  "title": "Independent PRODAT owner literal review, all69 assigned original IDs",
+  "review_basis_head": "37ead678f1d1a8eed0eb1bf0a6d4b17a18ddc83c",
+  "input_sha256": "43a298b56f33bc192bd9c539175e025c6899cd4506dcd8fd00cc1f724e025afa",
+  "method": "Exact own literal criteria are retained per ID. Source/consumer scope and permitted/prohibited effects were reviewed independently; no inherited status or linked/twin approval is promoted.",
+  "status": "IN_PROGRESS_IMPLEMENTATION; no whole69 or352 approval",
+  "counts": {
+    "assigned": 69,
+    "rule_cards": 17,
+    "AT_P": 17,
+    "SC": 12,
+    "supplier": 23,
+    "whole_verified": 0
+  },
+  "receipt_index": [
+    {
+      "packet": "e926560a",
+      "scope": "Five actual grammar/V6 finite-boundary suites",
+      "result": "74/74 PASS",
+      "log": "/tmp/gridex-prodat-v6-five-green.log",
+      "native_authority": "NOT_PROVED_BY_FINITE_UNIT_IO"
+    },
+    {
+      "packet": "5ac6329794fd76a18e3887f909d92b573e555e8b",
+      "scope": "Remaining dependent-field diagnostics/HOLD55 and native-result closure consumer11",
+      "result": "66/66 PASS",
+      "log": "/tmp/gridex-prodat-v6-followup-green.log",
+      "native_authority": "NOT_PROVED_BY_BOUNDED_DIAGNOSTICS_OR_NATIVE_RESULT_MODEL"
+    },
+    {
+      "packet": "current isolated H source-start packet after37ead678",
+      "scope": "Actual installed PostgreSQL normal/mixed execution bodies; finite exact profile-admission boundary, own grants/tenant/rollback/reader/consumer/outbox",
+      "result": "33 checks PASS in all-H and33 PASS in mixed H/L",
+      "log": [
+        "/tmp/gridex-h-supply-green5.log",
+        "/tmp/gridex-h-national-mixed-green2.log"
+      ],
+      "native_authority": "MECHANICS_ONLY_SYNTHETIC_PROFILE_ADMISSION"
+    },
+    {
+      "packet": "current isolated H source-start packet after37ead678",
+      "scope": "Real legacy consumer+external committed-native-result boundary H4/closure11",
+      "result": "15/15 PASS",
+      "log": "/tmp/gridex-h-consumer-unit-green.log",
+      "native_authority": "NOT_PROVED_BY_EXTERNAL_RESULT_MODEL"
+    }
+  ],
+  "internal_work_still_required": [
+    "Actual H-end, H/Z08 legal rescission and LK/Z08 request+matching consumers/current operational-profile recheck",
+    "Outgoing authenticated agreed nondeath Z09E purpose/mandate producer and real current send context",
+    "Final correct96A own-reference/P17 rendering under independent ACK owner",
+    "Authentic full mixed distinct-customer/known-point oracle and same-final-candidate native/HTTP/browser/build/CI"
+  ],
+  "external_production_facts_not_supplied": [
+    "Real authenticated bilateral signed agreements/issuer representation/current independent reviews; synthetic H native verifier boundary cannot supply them",
+    "Actual A/D legal grounds, issuer representations, current own contracts/production links for production operation",
+    "Market/counterparty/TGT/AGT approval or traffic authorization; never inferred from internal green checks"
+  ],
+  "assessments": [
+    {
+      "id": "P-01",
+      "literal_criteria": {
+        "applies_to": "Alla P",
+        "trigger": "Fältkontroll",
+        "condition": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt.",
+        "on_pass": "Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+        "on_failure": "Inget fältnummer från regex över DTM/RFF-text.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2,2.6,3.3",
+      "independent_whole_criterion_review": "Independently require numeric field/group/component metadata, parents 3/110 and D/overlay evaluation. Regex resemblance cannot select a field or parent. Each own object/LI and source edition must stay bound.",
+      "expected_effect_oracle": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt. → Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+      "prohibited_effect_oracle": "Inget fältnummer från regex över DTM/RFF-text.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-02",
+      "literal_criteria": {
+        "applies_to": "Extra X/icke-tillämplig D",
+        "trigger": "Giltig syntax och extra data",
+        "condition": "Nationell extra information som ska ignoreras får inte utlösa negativ APERAK.",
+        "on_pass": "Ignorera för affärsprojektion; bevara råpayload.",
+        "on_failure": "Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P bilaga4 s.119",
+      "independent_whole_criterion_review": "Tolerated X and false-D input remains byte-identical and has no effect or newly invented negative. Distinguish structural UNSM overflow from a guide-tolerated in-grammar value; a refused full grammar is not a positive application oracle.",
+      "expected_effect_oracle": "Nationell extra information som ska ignoreras får inte utlösa negativ APERAK. → Ignorera för affärsprojektion; bevara råpayload.",
+      "prohibited_effect_oracle": "Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/prodatDateValidation.ts",
+        "lib/ediel/prodat/prodatEnergyProduct.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-03",
+      "literal_criteria": {
+        "applies_to": "D-villkor",
+        "trigger": "Utgående profil",
+        "condition": "Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering.",
+        "on_pass": "Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
+        "on_failure": "Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2",
+      "independent_whole_criterion_review": "Evaluate true, false and unknown separately from current source facts. False D retains its independent O/X semantics; missing authority must hold the affected own object/send. No public flag qualifies a native source.",
+      "expected_effect_oracle": "Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
+      "prohibited_effect_oracle": "Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-prodat-remaining-d-consumers.test.ts",
+        "__tests__/ediel-prodat-register-preflight.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-04",
+      "literal_criteria": {
+        "applies_to": "Z14N/NAD",
+        "trigger": "Fältkontroll",
+        "condition": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR.",
+        "on_pass": "Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+        "on_failure": "Kräv inte land316 ellerIT233/234 utan grupp.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2 s.20–22",
+      "independent_whole_criterion_review": "N/Z14 inactive parent cannot create child UD/IT/country316 requirements. Active-parent value/shape/date checks remain bounded unless the whole wire and real source owner independently qualify.",
+      "expected_effect_oracle": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+      "prohibited_effect_oracle": "Kräv inte land316 ellerIT233/234 utan grupp.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-05",
+      "literal_criteria": {
+        "applies_to": "Z04/Z06/Z10",
+        "trigger": "LIN-grupper behandlas",
+        "condition": "314ärglobaltsekvensnr;258registerindex per objekt; alla register och villkor enligt bilaga2.",
+        "on_pass": "Kontrollera registerspecifika kärnfält, ärv tillåten första-registerinformation.",
+        "on_failure": "Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P bilaga2 s.114–116",
+      "independent_whole_criterion_review": "Use global 314 versus own 258 separately; second-and-later registers inherit only their own first register. Validate every physical object and each register, not only the selected/summarized object.",
+      "expected_effect_oracle": "314ärglobaltsekvensnr;258registerindex per objekt; alla register och villkor enligt bilaga2. → Kontrollera registerspecifika kärnfält, ärv tillåten första-registerinformation.",
+      "prohibited_effect_oracle": "Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-06",
+      "literal_criteria": {
+        "applies_to": "Kund och anläggning",
+        "trigger": "Render/validate",
+        "condition": "NADUD SE1/SE2 kodlisteansvarig260 i aktuellprofil; Z13 använder inte födelsedatum som kund-id.",
+        "on_pass": "Bevara verifierad kundidentitet och skyddade-identitetsregler.",
+        "on_failure": "Ingen UUID-fallback/namngissning; ändra inte allaZZZglobalt.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P s.79–80; bilaga3",
+      "independent_whole_criterion_review": "Own UD customer identity must use applicable SE1/SE2/260 physical grammar and protected current customer relation. No UUID, display-name fallback, unqualified ZZZ global or guessed Z13 birth identity.",
+      "expected_effect_oracle": "NADUD SE1/SE2 kodlisteansvarig260 i aktuellprofil; Z13 använder inte födelsedatum som kund-id. → Bevara verifierad kundidentitet och skyddade-identitetsregler.",
+      "prohibited_effect_oracle": "Ingen UUID-fallback/namngissning; ändra inte allaZZZglobalt.",
+      "code_paths_read": [
+        "lib/ediel/prodat/customerIdentity.ts",
+        "lib/ediel/prodat/prodatPartyFields.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-identity-li-compliance.test.ts",
+        "__tests__/ediel-prodat-party-consumers.test.ts",
+        "__tests__/ediel-prodat-reporting-builders.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-07",
+      "literal_criteria": {
+        "applies_to": "Z13/Z14",
+        "trigger": "Energi-id och rapportperiod",
+        "condition": "Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93.",
+        "on_pass": "CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
+        "on_failure": "Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P s.49–52,69–72",
+      "independent_whole_criterion_review": "506 is the fifth CAV component (second 7110); preserve empty placeholders/roundtrip. 90/91 differ from 242 and 92/93. An LI-only LIN remains a physical object for its applicable grammar.",
+      "expected_effect_oracle": "Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
+      "prohibited_effect_oracle": "Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatEnergyProduct.ts",
+        "lib/ediel/prodat/prodatDateFields.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-08",
+      "literal_criteria": {
+        "applies_to": "Z09D",
+        "trigger": "Start eller slut produktionsavtal",
+        "condition": "210 XOR211; inte216 i stället.",
+        "on_pass": "Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+        "on_failure": "Båda: P-APERAK40/109; ingen generell157.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2,3.3",
+      "independent_whole_criterion_review": "Z09D requires own 210 xor211 with correct92/93 and excludes157. Both dates produce own40/109. Current bounded diagnostic is preserved; final dual-reference APERAK structure is still an internal renderer/native acceptance dependency.",
+      "expected_effect_oracle": "210 XOR211; inte216 i stället. → Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+      "prohibited_effect_oracle": "Båda: P-APERAK40/109; ingen generell157.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDateEvents.ts",
+        "lib/ediel/prodat/prodatDateValidation.ts",
+        "lib/ediel/rulebook/businessSemantics.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-date-events.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "__tests__/ediel-prodat-date-event-actions.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-09",
+      "literal_criteria": {
+        "applies_to": "Z06E/Z09E",
+        "trigger": "Kundlivshändelse",
+        "condition": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse.",
+        "on_pass": "Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+        "on_failure": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2,2.6,bilaga1; HB kap.4.4",
+      "independent_whole_criterion_review": "310 is death-only source status (Z17/Z41). Bankruptcy/other E34 cannot become death. Authenticated death producer is separate from outgoing agreed nondeath customer-change mandate; the latter remains an internal producer gap under active implementation.",
+      "expected_effect_oracle": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "prohibited_effect_oracle": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-death-status-inbound.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-10",
+      "literal_criteria": {
+        "applies_to": "Z01/Z02 i leverantörsrollen",
+        "trigger": "Uppgiftskontroll",
+        "condition": "Korrelera Z02 till Z01 med LI, parter, objekt, nätområde och kundidentitet. Z02 är inte en startbekräftelse.",
+        "on_pass": "Verifiera uppgifterna; gör därefter en separat prövning av om en Z03 ska skapas.",
+        "on_failure": "Ingen aktiv leverans och ingen automatisk Z03 utan återstående avtals- och datumkontroller.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P bilaga1; HB kap.4",
+      "independent_whole_criterion_review": "Z01/Z02/LI, parties, customer/point/grid evidence is information only. Actual Z03 contract/date/start gate remains separate; neither response nor transport activates supply.",
+      "expected_effect_oracle": "Korrelera Z02 till Z01 med LI, parter, objekt, nätområde och kundidentitet. Z02 är inte en startbekräftelse. → Verifiera uppgifterna; gör därefter en separat prövning av om en Z03 ska skapas.",
+      "prohibited_effect_oracle": "Ingen aktiv leverans och ingen automatisk Z03 utan återstående avtals- och datumkontroller.",
+      "code_paths_read": [
+        "lib/onboarding/inboundEdielLinking.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/z02-atomic-worker-convergence.test.ts",
+        "__tests__/z02-raw-receipt-before-verification.test.ts",
+        "__tests__/z02-inbound-parsing-hardening.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-11",
+      "literal_criteria": {
+        "applies_to": "Z03/Z04 av typen L eller LK",
+        "trigger": "Bekräftelse av byte eller flytt",
+        "condition": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK.",
+        "on_pass": "Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+        "on_failure": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §3.2; HB kap.4",
+      "independent_whole_criterion_review": "Normal L/LK supplier switch uses exact actually sent Z03 and native whole own Z04 confirmation before positive ACK. Future confirmation is not active supply. Late CONTRL/APERAK and retries cannot regress or activate the switch.",
+      "expected_effect_oracle": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK. → Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+      "prohibited_effect_oracle": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+      "code_paths_read": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/atomic-supply-activation.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-12",
+      "literal_criteria": {
+        "applies_to": "Z04A och Z04D",
+        "trigger": "Anvisning eller mottagningsplikt",
+        "condition": "Verifiera respektive roll, avtal, nätområde och produktionskoppling.",
+        "on_pass": "Använd en särskild transitionsprofil som inte kräver en vanlig egen Z03.",
+        "on_failure": "Kräv inte samma förutsättningar som Z04L, men kringgå inte de särskilda behörighetskraven.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.1–2.2; HB kap.4,10",
+      "independent_whole_criterion_review": "A/D require genuine archived legal ground, independent qualified review/current issuer/actor/counterparty/customer/point/contract and effective date; D separately owns production319/consumption linkage. Internal archive/review/native producer exists; authentic production legal records have not been supplied. No ordinary Z03 prerequisite.",
+      "expected_effect_oracle": "Verifiera respektive roll, avtal, nätområde och produktionskoppling. → Använd en särskild transitionsprofil som inte kräver en vanlig egen Z03.",
+      "prohibited_effect_oracle": "Kräv inte samma förutsättningar som Z04L, men kringgå inte de särskilda behörighetskraven.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/atomic-supply-activation.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-13",
+      "literal_criteria": {
+        "applies_to": "Z05 och Z08",
+        "trigger": "Leveransslut",
+        "condition": "Matcha den leveransrelation och den tidshändelse som faktiskt avses.",
+        "on_pass": "Versionera slutet, bevara historiken och initiera relevant slutvärdes- och fakturauppföljning.",
+        "on_failure": "Radera inte kunden, andra anläggningar eller ESCO-grants.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2; HB kap.4; SYS",
+      "independent_whole_criterion_review": "End only the accepted own versioned supply relationship at the source end minute; preserve customer/history/other points and ESCO grants. Create final-value/billing task after actual native commit. H-end current bilateral-profile consumer is still an internal gap; unit external committed-result model is not native proof.",
+      "expected_effect_oracle": "Matcha den leveransrelation och den tidshändelse som faktiskt avses. → Versionera slutet, bevara historiken och initiera relevant slutvärdes- och fakturauppföljning.",
+      "prohibited_effect_oracle": "Radera inte kunden, andra anläggningar eller ESCO-grants.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-lifecycle.test.ts",
+        "__tests__/atomic-supply-activation.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-14",
+      "literal_criteria": {
+        "applies_to": "Z03C, Z04C, Z05C och Z15C",
+        "trigger": "Återtag",
+        "condition": "Bind till rätt original. Hantera ordningsfel utan dubbel affärseffekt.",
+        "on_pass": "Gör endast den kancellering eller kompensation som hör till processen.",
+        "on_failure": "Skapa inte Z13C/Z14C och använd inte en generell C-variant för alla Z-funktioner.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.1,2.2,1.7; HB kap.4,11",
+      "independent_whole_criterion_review": "C03/04/05 retain separate actual original, cancellation window, source ordering and correct compensation. Requested cancellation is not confirmed cancellation; no generic all-C mutation, 13C/14C guess, silent causal drop or wrong-object restoration.",
+      "expected_effect_oracle": "Bind till rätt original. Hantera ordningsfel utan dubbel affärseffekt. → Gör endast den kancellering eller kompensation som hör till processen.",
+      "prohibited_effect_oracle": "Skapa inte Z13C/Z14C och använd inte en generell C-variant för alla Z-funktioner.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-15",
+      "literal_criteria": {
+        "applies_to": "Z06 och Z10",
+        "trigger": "Giltig strukturändring",
+        "condition": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start.",
+        "on_pass": "Använd rätt mätare, register och produkt för varje tidsperiod.",
+        "on_failure": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P §2.2; U §3.6.10,3.6.13",
+      "independent_whole_criterion_review": "Effective source time and received time both matter for point, meter, register, product and energy versions. Retain measurements and correct historical version; source-owned incoming structure producers exist, final native dated-delta proof is pending.",
+      "expected_effect_oracle": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+      "prohibited_effect_oracle": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/safeApplyReview.ts",
+        "lib/ediel/utilts/receivedStructuralSources.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-structural-owner-fixtures.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-16",
+      "literal_criteria": {
+        "applies_to": "Z08LK, Z03H, Z04H, Z05H, Z04A och andra E34-fall",
+        "trigger": "Kapabilitetsprövning",
+        "condition": "Kombinationen ska vara tillåten och omfattas av dokumenterad motpartsspecifik överenskommelse och implementation.",
+        "on_pass": "Aktivera bara avtalad omfattning och giltighet.",
+        "on_failure": "Ett globalt bilateral=true eller ett testgodkännande för annan aktör räcker inte.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P s.65; SYS",
+      "independent_whole_criterion_review": "H/LK require actual archived bilateral agreement/profile with independent review, authenticated issuer, current company/legal/counterparty/grid/code/date and exact source grammar. First H original is produced before any original exists; no accepted-L rewrite. H-start private native consumer is implemented in this packet; actual H-end, Z08LK business producer/consumer and outgoing agreed nondeath E producer remain internal work. Real production agreements are external facts absent here.",
+      "expected_effect_oracle": "Kombinationen ska vara tillåten och omfattas av dokumenterad motpartsspecifik överenskommelse och implementation. → Aktivera bara avtalad omfattning och giltighet.",
+      "prohibited_effect_oracle": "Ett globalt bilateral=true eller ett testgodkännande för annan aktör räcker inte.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/intent/intentEngine.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "P-17",
+      "literal_criteria": {
+        "applies_to": "PRODAT med LIN-grupper",
+        "trigger": "Sekvenskontroll",
+        "condition": "Första fält 314 ska vara 1 och följande nummer ska vara obrutet stigande.",
+        "on_pass": "Fortsätt genom samtliga relevanta objekt och register.",
+        "on_failure": "Avvisa hela meddelandet med P-APERAK BGM27 och relevant felinformation; tolka inte sekvensfelet som fel anläggnings-id.",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument."
+      },
+      "source_reference": "P bilaga4 s.119",
+      "independent_whole_criterion_review": "Global LIN first1/unbroken sequence and own-first/later-register rules must cover the whole physical source. Global314 requires whole BGM27, not invented105 or a sibling100. Actual strict renderer holds own-dual-reference cases; renderer owner is implementing the internal native assembly gap.",
+      "expected_effect_oracle": "Första fält 314 ska vara 1 och följande nummer ska vara obrutet stigande. → Fortsätt genom samtliga relevanta objekt och register.",
+      "prohibited_effect_oracle": "Avvisa hela meddelandet med P-APERAK BGM27 och relevant felinformation; tolka inte sekvensfelet som fel anläggnings-id.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-028",
+      "literal_criteria": {
+        "name": "Energiproduktens komponentposition",
+        "given": "Z13 eller Z14 innehåller generiskt energiprodukt-id, fält 506.",
+        "when": "Serialisera och parsa meddelandet.",
+        "expected": "Den andra förekomsten av 7110 bevaras som femte komponent i CAV.",
+        "prohibited": "Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "ENV-02",
+        "P-07"
+      ],
+      "independent_whole_criterion_review": "Exact fifth CAV506 and empty components roundtrip; no off-by-one242 or silent discard.",
+      "expected_effect_oracle": "Den andra förekomsten av 7110 bevaras som femte komponent i CAV.",
+      "prohibited_effect_oracle": "Tomma komponenter får inte tas bort så att uppgiften flyttas till produktkod, fält 242.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatEnergyProduct.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-energy-product-scope.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-029",
+      "literal_criteria": {
+        "name": "Z09D: start eller slut på avtal",
+        "given": "Det finns separata korrekta avsikter för avtalsstart och avtalsslut.",
+        "when": "Bygg dessa, och prova ett inkommande meddelande med båda datumen.",
+        "expected": "Använd DTM+92 eller DTM+93. Ett inkommande meddelande med båda ger P-APERAK med ERC 40 och särskild kod 109.",
+        "prohibited": "DTM+157 får inte ersätta avtalsdatumen.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-08"
+      ],
+      "independent_whole_criterion_review": "Own92/93 exclusive Z09D dates, no157; both40/109 own negative diagnostic must survive. Final dual-reference source-qualified ACK remains pending.",
+      "expected_effect_oracle": "Använd DTM+92 eller DTM+93. Ett inkommande meddelande med båda ger P-APERAK med ERC 40 och särskild kod 109.",
+      "prohibited_effect_oracle": "DTM+157 får inte ersätta avtalsdatumen.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDateEvents.ts",
+        "lib/ediel/prodat/render/dateSegments.ts",
+        "lib/ediel/prodat/prodatDiagnosticProjection.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-field-identity-inbound.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-031",
+      "literal_criteria": {
+        "name": "Extra, icke tillämpliga PRODAT-uppgifter",
+        "given": "Syntaxen är giltig men meddelandet innehåller extra uppgifter som ska ignoreras enligt PRODAT-anvisningen.",
+        "when": "Gör mottagningskontrollen.",
+        "expected": "Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.",
+        "prohibited": "Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-02"
+      ],
+      "independent_whole_criterion_review": "Guide-tolerated ignored extra input preserved in immutable original, no business write or invented negative; emitting a new extra outgoing field is independently forbidden.",
+      "expected_effect_oracle": "Ingen negativ APERAK enbart för dessa extrauppgifter; uppgifterna påverkar inte affärsdata.",
+      "prohibited_effect_oracle": "Mottagningstoleransen innebär inte att den egna byggaren ska börja skicka dessa uppgifter.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/prodatDateValidation.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-date-event-review.test.ts",
+        "__tests__/ediel-prodat-remaining-d-incoming.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-032",
+      "literal_criteria": {
+        "name": "Ett falskt D-villkor kan ge frivillig uppgift",
+        "given": "Z06E eller Z06G innehåller ett fält vars specificerade villkor gör det obligatoriskt endast i Z06F och annars frivilligt.",
+        "when": "Prova både med och utan fältet.",
+        "expected": "Den föreskrivna O-grenen används; falskt D-villkor gör inte alltid fältet till X.",
+        "prohibited": "Inför ingen strängare mottagningsregel utan källstöd.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-03"
+      ],
+      "independent_whole_criterion_review": "False D means its own O/X rule, not blanket forbidden; independently check E/G profile field and source-dependent applicability.",
+      "expected_effect_oracle": "Den föreskrivna O-grenen används; falskt D-villkor gör inte alltid fältet till X.",
+      "prohibited_effect_oracle": "Inför ingen strängare mottagningsregel utan källstöd.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/prodatSubtypePolicy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-033",
+      "literal_criteria": {
+        "name": "Flera register och flera objekt",
+        "given": "Z04 eller Z10 innehåller flera mätarregister och två separata objekt.",
+        "when": "Bygg och behandla meddelandet.",
+        "expected": "Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2.",
+        "prohibited": "Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-05",
+        "ENV-02"
+      ],
+      "independent_whole_criterion_review": "Every register of every own object is checked; second object failure cannot invent first/other success. Protected mixed own commit/outbox implementation exists; authentic multi-customer native whole candidate proof remains pending.",
+      "expected_effect_oracle": "Globalt LIN-sekvensnummer, fält 314, och registerindex, fält 258, följer respektive regel. Register 2 och högre följer bilaga 2.",
+      "prohibited_effect_oracle": "Ett fel i andra registret får inte döljas av första. Alla basmatrisens R-fält ska inte krävas upprepade gånger utan stöd.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/prodatRegisterReadings.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-034",
+      "literal_criteria": {
+        "name": "Felaktig LIN-sekvens",
+        "given": "Första LIN-numret är 2, eller sekvensen har en lucka eller fel ordning. Syntaxen är i övrigt giltig.",
+        "when": "Gör den nationella kontrollen.",
+        "expected": "Hela PRODAT-meddelandet avvisas med rätt P-APERAK och BGM/1225 = 27.",
+        "prohibited": "Korrekt UNH/UNT räcker inte för att godkänna den nationella sekvensen.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-17"
+      ],
+      "independent_whole_criterion_review": "Whole unbroken LIN proof and whole BGM27/314; no105 substitution or partial whole-success. Strict final renderer/native dependency is open.",
+      "expected_effect_oracle": "Hela PRODAT-meddelandet avvisas med rätt P-APERAK och BGM/1225 = 27.",
+      "prohibited_effect_oracle": "Korrekt UNH/UNT räcker inte för att godkänna den nationella sekvensen.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-035",
+      "literal_criteria": {
+        "name": "Z02 verifierar uppgifter, inte leverans",
+        "given": "En behörig uppgiftsförfrågan kan entydigt korreleras.",
+        "when": "Ta emot ett giltigt Z02.",
+        "expected": "Lagra tillåten verifierad information och gör en separat prövning av nästa affärssteg.",
+        "prohibited": "Skapa inte aktiv leverans eller ett Z04-bekräftat tillstånd.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-10"
+      ],
+      "independent_whole_criterion_review": "Z02 is information only with own source/LI; no premature switch, supply or business positive source authority.",
+      "expected_effect_oracle": "Lagra tillåten verifierad information och gör en separat prövning av nästa affärssteg.",
+      "prohibited_effect_oracle": "Skapa inte aktiv leverans eller ett Z04-bekräftat tillstånd.",
+      "code_paths_read": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/onboarding/inboundEdielLinking.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/z02-raw-receipt-before-verification.test.ts",
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-036",
+      "literal_criteria": {
+        "name": "Z04 anländer före positiv APERAK",
+        "given": "Z03 har skickats. Ett korrekt korrelerat Z04 anländer före positiv APERAK.",
+        "when": "Behandla först Z04 och sedan APERAK.",
+        "expected": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
+        "prohibited": "Avvisa inte Z04 enbart på grund av ankomstordningen.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-11",
+        "ACK-06"
+      ],
+      "independent_whole_criterion_review": "Late CONTRL/APERAK preserves immutable switch/supply progress and retained original; authentic same-candidate replay proof pending.",
+      "expected_effect_oracle": "Registrera den bekräftade perioden. Den sena APERAK kompletterar kvittensstatus utan att backa affärstillståndet.",
+      "prohibited_effect_oracle": "Avvisa inte Z04 enbart på grund av ankomstordningen.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-037",
+      "literal_criteria": {
+        "name": "Leveransstart ligger i framtiden",
+        "given": "Ett korrekt Z04 har mottagits med ett framtida startdatum.",
+        "when": "Kör aktiveringsjobbet före och vid starttidpunkten.",
+        "expected": "Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.",
+        "prohibited": "SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-11"
+      ],
+      "independent_whole_criterion_review": "Future accepted Z04 remains confirmed and activates only at actual due time through protected current native source; no ACK-trigger activation.",
+      "expected_effect_oracle": "Ingen förtida aktivering. Endast rätt, fortsatt giltiga period aktiveras vid rätt start.",
+      "prohibited_effect_oracle": "SMTP-acceptans eller en teknisk kvittens får inte tidigarelägga startdatumet.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/operations/supplierSwitchActivation.ts",
+        "supabase/migrations/20260903090000_atomic_supplier_switch_activation_sweep.sql"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-038",
+      "literal_criteria": {
+        "name": "Z04A och Z04D utan egen Z03",
+        "given": "Rätt särskild grund för anvisning respektive mottagningspliktig produktion finns.",
+        "when": "Ta emot respektive meddelande.",
+        "expected": "Använd särskild process och dess kontroller.",
+        "prohibited": "Ett generellt krav på en föregående egen Z03 får inte blockera dessa korrekta specialprocesser.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-12"
+      ],
+      "independent_whole_criterion_review": "A/D separate legal producer and current point/contract/production grounds without normal Z03; actual production ground records absent, native mechanism pending.",
+      "expected_effect_oracle": "Använd särskild process och dess kontroller.",
+      "prohibited_effect_oracle": "Ett generellt krav på en föregående egen Z03 får inte blockera dessa korrekta specialprocesser.",
+      "code_paths_read": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/rulebook/deadlinePolicy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-039",
+      "literal_criteria": {
+        "name": "Kancellering anländer före originalet",
+        "given": "Original och kancellering kommer från rätt motpart men anländer i omvänd ordning.",
+        "when": "Bearbeta enligt tillämplig korrelations- och kancelleringsregel.",
+        "expected": "Bevara båda meddelandena och deras orsakskedja. Eventuell intern väntan måste hålla föreskrivna kvittensfrister; annars krävs rätt externt utfall eller kontakt.",
+        "prohibited": "Ingen dubbel aktivering, tyst bortkastning eller gissad kompensation mot ett annat original.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "P-14"
+      ],
+      "independent_whole_criterion_review": "Own cancellation reversal uses correct actually sent original, deadline and received ordering; preserve causal pending state/deduplication and correct compensating own end/start only.",
+      "expected_effect_oracle": "Bevara båda meddelandena och deras orsakskedja. Eventuell intern väntan måste hålla föreskrivna kvittensfrister; annars krävs rätt externt utfall eller kontakt.",
+      "prohibited_effect_oracle": "Ingen dubbel aktivering, tyst bortkastning eller gissad kompensation mot ett annat original.",
+      "code_paths_read": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "SC-040",
+      "literal_criteria": {
+        "name": "Rättelse efter negativ APERAK",
+        "given": "En identifierad del av ett eget PRODAT har avvisats.",
+        "when": "Rätta uppgiften och skapa en tillåten ny sändning.",
+        "expected": "Nytt BGM-id och spårbar relation till det oförändrat arkiverade originalet.",
+        "prohibited": "Återanvänd inte meddelandeidentiteten från den avvisade sändningen.",
+        "layer": "Integration/E2E"
+      },
+      "source_reference": [
+        "TR-05"
+      ],
+      "independent_whole_criterion_review": "Correction creates a new immutable BGM/document with exact original relationship and source-qualified own scope; never overwrite prior accepted original or reapply prior package.",
+      "expected_effect_oracle": "Nytt BGM-id och spårbar relation till det oförändrat arkiverade originalet.",
+      "prohibited_effect_oracle": "Återanvänd inte meddelandeidentiteten från den avvisade sändningen.",
+      "code_paths_read": [
+        "lib/ediel/core/referenceRegistry.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-correction-outbound-scope.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-01",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-01",
+        "given": "Alla P",
+        "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt. → Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+        "prohibited": "Inget fältnummer från regex över DTM/RFF-text.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-01"
+      ],
+      "independent_whole_criterion_review": "Independently require numeric field/group/component metadata, parents 3/110 and D/overlay evaluation. Regex resemblance cannot select a field or parent. Each own object/LI and source edition must stay bound.",
+      "expected_effect_oracle": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt. → Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+      "prohibited_effect_oracle": "Inget fältnummer från regex över DTM/RFF-text.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-02",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-02",
+        "given": "Extra X/icke-tillämplig D",
+        "when": "Giltig syntax och extra data – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Nationell extra information som ska ignoreras får inte utlösa negativ APERAK. → Ignorera för affärsprojektion; bevara råpayload.",
+        "prohibited": "Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-02"
+      ],
+      "independent_whole_criterion_review": "Tolerated X and false-D input remains byte-identical and has no effect or newly invented negative. Distinguish structural UNSM overflow from a guide-tolerated in-grammar value; a refused full grammar is not a positive application oracle.",
+      "expected_effect_oracle": "Nationell extra information som ska ignoreras får inte utlösa negativ APERAK. → Ignorera för affärsprojektion; bevara råpayload.",
+      "prohibited_effect_oracle": "Skilj verkligt för många syntaxelement från tillåtna men ej använda nationella fält.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/prodatDateValidation.ts",
+        "lib/ediel/prodat/prodatEnergyProduct.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-03",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-03",
+        "given": "D-villkor",
+        "when": "Utgående profil – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
+        "prohibited": "Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-03"
+      ],
+      "independent_whole_criterion_review": "Evaluate true, false and unknown separately from current source facts. False D retains its independent O/X semantics; missing authority must hold the affected own object/send. No public flag qualifies a native source.",
+      "expected_effect_oracle": "Treutfall: sant/falskt/okänt; falskt kan vara O eller X enligt specifik notering. → Rfält fylls från auktoritativa fakta; Ofält enligt medvetet val.",
+      "prohibited_effect_oracle": "Ingen blanketregel Dfalse=forbidden; saknad lokal fakta blockerar egen sändning.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-prodat-remaining-d-consumers.test.ts",
+        "__tests__/ediel-prodat-register-preflight.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-04",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-04",
+        "given": "Z14N/NAD",
+        "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+        "prohibited": "Kräv inte land316 ellerIT233/234 utan grupp.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-04"
+      ],
+      "independent_whole_criterion_review": "N/Z14 inactive parent cannot create child UD/IT/country316 requirements. Active-parent value/shape/date checks remain bounded unless the whole wire and real source owner independently qualify.",
+      "expected_effect_oracle": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+      "prohibited_effect_oracle": "Kräv inte land316 ellerIT233/234 utan grupp.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-05",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-05",
+        "given": "Z04/Z06/Z10",
+        "when": "LIN-grupper behandlas – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "314ärglobaltsekvensnr;258registerindex per objekt; alla register och villkor enligt bilaga2. → Kontrollera registerspecifika kärnfält, ärv tillåten första-registerinformation.",
+        "prohibited": "Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-05"
+      ],
+      "independent_whole_criterion_review": "Use global 314 versus own 258 separately; second-and-later registers inherit only their own first register. Validate every physical object and each register, not only the selected/summarized object.",
+      "expected_effect_oracle": "314ärglobaltsekvensnr;258registerindex per objekt; alla register och villkor enligt bilaga2. → Kontrollera registerspecifika kärnfält, ärv tillåten första-registerinformation.",
+      "prohibited_effect_oracle": "Kopiera inte basmatrisens allaR till register2+; ignorera extra upprepade icke-styrande fält där guiden säger det.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-06",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-06",
+        "given": "Kund och anläggning",
+        "when": "Render/validate – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "NADUD SE1/SE2 kodlisteansvarig260 i aktuellprofil; Z13 använder inte födelsedatum som kund-id. → Bevara verifierad kundidentitet och skyddade-identitetsregler.",
+        "prohibited": "Ingen UUID-fallback/namngissning; ändra inte allaZZZglobalt.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-06"
+      ],
+      "independent_whole_criterion_review": "Own UD customer identity must use applicable SE1/SE2/260 physical grammar and protected current customer relation. No UUID, display-name fallback, unqualified ZZZ global or guessed Z13 birth identity.",
+      "expected_effect_oracle": "NADUD SE1/SE2 kodlisteansvarig260 i aktuellprofil; Z13 använder inte födelsedatum som kund-id. → Bevara verifierad kundidentitet och skyddade-identitetsregler.",
+      "prohibited_effect_oracle": "Ingen UUID-fallback/namngissning; ändra inte allaZZZglobalt.",
+      "code_paths_read": [
+        "lib/ediel/prodat/customerIdentity.ts",
+        "lib/ediel/prodat/prodatPartyFields.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-identity-li-compliance.test.ts",
+        "__tests__/ediel-prodat-party-consumers.test.ts",
+        "__tests__/ediel-prodat-reporting-builders.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-07",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-07",
+        "given": "Z13/Z14",
+        "when": "Energi-id och rapportperiod – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
+        "prohibited": "Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-07"
+      ],
+      "independent_whole_criterion_review": "506 is the fifth CAV component (second 7110); preserve empty placeholders/roundtrip. 90/91 differ from 242 and 92/93. An LI-only LIN remains a physical object for its applicable grammar.",
+      "expected_effect_oracle": "Energiprodukt506 i andra7110; rapportstart90,slut91; detta är inte242aggregatprodukt eller avtals92/93. → CAV+::::energi-id, rätt DTM och faktisktLIN även utan objekt-id.",
+      "prohibited_effect_oracle": "Saknad/feluppgift klassificeras perfält; referensexempel med positiv kvittens är inte automatisk norm.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatEnergyProduct.ts",
+        "lib/ediel/prodat/prodatDateFields.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-08",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-08",
+        "given": "Z09D",
+        "when": "Start eller slut produktionsavtal – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "210 XOR211; inte216 i stället. → Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+        "prohibited": "Båda: P-APERAK40/109; ingen generell157.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-08"
+      ],
+      "independent_whole_criterion_review": "Z09D requires own 210 xor211 with correct92/93 and excludes157. Both dates produce own40/109. Current bounded diagnostic is preserved; final dual-reference APERAK structure is still an internal renderer/native acceptance dependency.",
+      "expected_effect_oracle": "210 XOR211; inte216 i stället. → Bygg92eller93; vid giltig mottagning uppdatera rätt produktionsrelation.",
+      "prohibited_effect_oracle": "Båda: P-APERAK40/109; ingen generell157.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDateEvents.ts",
+        "lib/ediel/prodat/prodatDateValidation.ts",
+        "lib/ediel/rulebook/businessSemantics.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-date-events.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "__tests__/ediel-prodat-date-event-actions.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-09",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-09",
+        "given": "Z06E/Z09E",
+        "when": "Kundlivshändelse – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+        "prohibited": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-09"
+      ],
+      "independent_whole_criterion_review": "310 is death-only source status (Z17/Z41). Bankruptcy/other E34 cannot become death. Authenticated death producer is separate from outgoing agreed nondeath customer-change mandate; the latter remains an internal producer gap under active implementation.",
+      "expected_effect_oracle": "Fält310ärdödsfallsstatus; andraE34-fall behöver rätt process/överenskommelse. → Z09E inkluderarUD; Z06E gör bara behöriga och källstödda uppdateringar.",
+      "prohibited_effect_oracle": "Konkurs ska inte automatiskt bli dödsfall; övrigaZ09ska inte fåUD.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-death-status-inbound.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-10",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-10",
+        "given": "Z01/Z02 i leverantörsrollen",
+        "when": "Uppgiftskontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Korrelera Z02 till Z01 med LI, parter, objekt, nätområde och kundidentitet. Z02 är inte en startbekräftelse. → Verifiera uppgifterna; gör därefter en separat prövning av om en Z03 ska skapas.",
+        "prohibited": "Ingen aktiv leverans och ingen automatisk Z03 utan återstående avtals- och datumkontroller.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-10"
+      ],
+      "independent_whole_criterion_review": "Z01/Z02/LI, parties, customer/point/grid evidence is information only. Actual Z03 contract/date/start gate remains separate; neither response nor transport activates supply.",
+      "expected_effect_oracle": "Korrelera Z02 till Z01 med LI, parter, objekt, nätområde och kundidentitet. Z02 är inte en startbekräftelse. → Verifiera uppgifterna; gör därefter en separat prövning av om en Z03 ska skapas.",
+      "prohibited_effect_oracle": "Ingen aktiv leverans och ingen automatisk Z03 utan återstående avtals- och datumkontroller.",
+      "code_paths_read": [
+        "lib/onboarding/inboundEdielLinking.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/z02-atomic-worker-convergence.test.ts",
+        "__tests__/z02-raw-receipt-before-verification.test.ts",
+        "__tests__/z02-inbound-parsing-hardening.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-11",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-11",
+        "given": "Z03/Z04 av typen L eller LK",
+        "when": "Bekräftelse av byte eller flytt – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK. → Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+        "prohibited": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-11"
+      ],
+      "independent_whole_criterion_review": "Normal L/LK supplier switch uses exact actually sent Z03 and native whole own Z04 confirmation before positive ACK. Future confirmation is not active supply. Late CONTRL/APERAK and retries cannot regress or activate the switch.",
+      "expected_effect_oracle": "Kontrollera rätt objekt, parter, LI, undertyp och datum. En giltig Z04 kan komma före positiv APERAK. → Registrera bekräftad framtida leverans; aktivera vid rätt tid om ärendet fortfarande är giltigt.",
+      "prohibited_effect_oracle": "SMTP250, CONTRL, APERAK och Z02 räcker inte för aktivering. Sena kvittenser får inte backa ett giltigt affärstillstånd.",
+      "code_paths_read": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/atomic-supply-activation.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-12",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-12",
+        "given": "Z04A och Z04D",
+        "when": "Anvisning eller mottagningsplikt – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Verifiera respektive roll, avtal, nätområde och produktionskoppling. → Använd en särskild transitionsprofil som inte kräver en vanlig egen Z03.",
+        "prohibited": "Kräv inte samma förutsättningar som Z04L, men kringgå inte de särskilda behörighetskraven.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-12"
+      ],
+      "independent_whole_criterion_review": "A/D require genuine archived legal ground, independent qualified review/current issuer/actor/counterparty/customer/point/contract and effective date; D separately owns production319/consumption linkage. Internal archive/review/native producer exists; authentic production legal records have not been supplied. No ordinary Z03 prerequisite.",
+      "expected_effect_oracle": "Verifiera respektive roll, avtal, nätområde och produktionskoppling. → Använd en särskild transitionsprofil som inte kräver en vanlig egen Z03.",
+      "prohibited_effect_oracle": "Kräv inte samma förutsättningar som Z04L, men kringgå inte de särskilda behörighetskraven.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/atomic-supply-activation.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-13",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-13",
+        "given": "Z05 och Z08",
+        "when": "Leveransslut – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Matcha den leveransrelation och den tidshändelse som faktiskt avses. → Versionera slutet, bevara historiken och initiera relevant slutvärdes- och fakturauppföljning.",
+        "prohibited": "Radera inte kunden, andra anläggningar eller ESCO-grants.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-13"
+      ],
+      "independent_whole_criterion_review": "End only the accepted own versioned supply relationship at the source end minute; preserve customer/history/other points and ESCO grants. Create final-value/billing task after actual native commit. H-end current bilateral-profile consumer is still an internal gap; unit external committed-result model is not native proof.",
+      "expected_effect_oracle": "Matcha den leveransrelation och den tidshändelse som faktiskt avses. → Versionera slutet, bevara historiken och initiera relevant slutvärdes- och fakturauppföljning.",
+      "prohibited_effect_oracle": "Radera inte kunden, andra anläggningar eller ESCO-grants.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-lifecycle.test.ts",
+        "__tests__/atomic-supply-activation.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-14",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-14",
+        "given": "Z03C, Z04C, Z05C och Z15C",
+        "when": "Återtag – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Bind till rätt original. Hantera ordningsfel utan dubbel affärseffekt. → Gör endast den kancellering eller kompensation som hör till processen.",
+        "prohibited": "Skapa inte Z13C/Z14C och använd inte en generell C-variant för alla Z-funktioner.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-14"
+      ],
+      "independent_whole_criterion_review": "C03/04/05 retain separate actual original, cancellation window, source ordering and correct compensation. Requested cancellation is not confirmed cancellation; no generic all-C mutation, 13C/14C guess, silent causal drop or wrong-object restoration.",
+      "expected_effect_oracle": "Bind till rätt original. Hantera ordningsfel utan dubbel affärseffekt. → Gör endast den kancellering eller kompensation som hör till processen.",
+      "prohibited_effect_oracle": "Skapa inte Z13C/Z14C och använd inte en generell C-variant för alla Z-funktioner.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-prodat-lifecycle.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-15",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-15",
+        "given": "Z06 och Z10",
+        "when": "Giltig strukturändring – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+        "prohibited": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-15"
+      ],
+      "independent_whole_criterion_review": "Effective source time and received time both matter for point, meter, register, product and energy versions. Retain measurements and correct historical version; source-owned incoming structure producers exist, final native dated-delta proof is pending.",
+      "expected_effect_oracle": "Lagra giltighetstid och mottagningstid separat. En framtida leverantör kan behöva struktur före start. → Använd rätt mätare, register och produkt för varje tidsperiod.",
+      "prohibited_effect_oracle": "Skriv inte över historiken i en enda global rad och dubbelräkna inte registerenergi.",
+      "code_paths_read": [
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+        "lib/ediel/safeApplyReview.ts",
+        "lib/ediel/utilts/receivedStructuralSources.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-structural-owner-fixtures.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-16",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-16",
+        "given": "Z08LK, Z03H, Z04H, Z05H, Z04A och andra E34-fall",
+        "when": "Kapabilitetsprövning – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Kombinationen ska vara tillåten och omfattas av dokumenterad motpartsspecifik överenskommelse och implementation. → Aktivera bara avtalad omfattning och giltighet.",
+        "prohibited": "Ett globalt bilateral=true eller ett testgodkännande för annan aktör räcker inte.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-16"
+      ],
+      "independent_whole_criterion_review": "H/LK require actual archived bilateral agreement/profile with independent review, authenticated issuer, current company/legal/counterparty/grid/code/date and exact source grammar. First H original is produced before any original exists; no accepted-L rewrite. H-start private native consumer is implemented in this packet; actual H-end, Z08LK business producer/consumer and outgoing agreed nondeath E producer remain internal work. Real production agreements are external facts absent here.",
+      "expected_effect_oracle": "Kombinationen ska vara tillåten och omfattas av dokumenterad motpartsspecifik överenskommelse och implementation. → Aktivera bara avtalad omfattning och giltighet.",
+      "prohibited_effect_oracle": "Ett globalt bilateral=true eller ett testgodkännande för annan aktör räcker inte.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/intent/intentEngine.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-P-17",
+      "literal_criteria": {
+        "name": "Regelkontrakt: P-17",
+        "given": "PRODAT med LIN-grupper",
+        "when": "Sekvenskontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+        "expected": "Första fält 314 ska vara 1 och följande nummer ska vara obrutet stigande. → Fortsätt genom samtliga relevanta objekt och register.",
+        "prohibited": "Avvisa hela meddelandet med P-APERAK BGM27 och relevant felinformation; tolka inte sekvensfelet som fel anläggnings-id.",
+        "layer": "Planerat regelbeteendeprov"
+      },
+      "source_reference": [
+        "P-17"
+      ],
+      "independent_whole_criterion_review": "Global LIN first1/unbroken sequence and own-first/later-register rules must cover the whole physical source. Global314 requires whole BGM27, not invented105 or a sibling100. Actual strict renderer holds own-dual-reference cases; renderer owner is implementing the internal native assembly gap.",
+      "expected_effect_oracle": "Första fält 314 ska vara 1 och följande nummer ska vara obrutet stigande. → Fortsätt genom samtliga relevanta objekt och register.",
+      "prohibited_effect_oracle": "Avvisa hela meddelandet med P-APERAK BGM27 och relevant felinformation; tolka inte sekvensfelet som fel anläggnings-id.",
+      "code_paths_read": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundMatcher.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-ack-boundary.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "scripts/ediel-z04-ack-native.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-prodat-aperak-inbound-consumer.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z01L-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z01L",
+        "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+        "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+        "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z01/Z22 own D14 information request before any supplier switch; actual point/LI/source parties, no supply creation.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z01; fält223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-z01-customer-info-linkage-regression.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z02L-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z02L",
+        "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+        "when": "Svar på egen korrelerad Z01.",
+        "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z02/Z22 own answer to exact Z01: safe information intake only, no switch activation.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z02; fält223=Z22; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-z01-customer-info-linkage-regression.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z03L-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z03L",
+        "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+        "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z03/Z22 actual signed contract/POA/site/customer/point/date/route produces genuine first original, not SMTP flags as business acceptance.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z03; fält223=Z22; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04L-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04L",
+        "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+        "when": "Nätägarens affärsbekräftelse på egen Z03.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z22 exact actually sent original; native own confirmation before100 and future-period guards; no unrelated sibling mutation.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z22; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z05L-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z05L",
+        "given": "SUPPLIER; Z05L kan referera till Z08H; Z05LK kan vara följd av utflytt efter Z09E men är inte Z09E-svar.",
+        "when": "Nätägarens information till tidigare leverantör.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z05/Z22 source-qualified own end can follow actual H/Z08; end matching own version/time, preserve history and other grants.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z05; fält223=Z22; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z01LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z01LK",
+        "given": "SUPPLIER; Kund/fullmakt, anläggning, nätområde och avtalad tilltänkt start enligt fältprofil.",
+        "when": "Behörig kontroll av kundens nätavtalsuppgifter inför möjlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+        "expected": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z01/Z23 applicable move-in information; date bounded up to14 calendar months and exact own source, no switch.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z01; fält223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan begäras men positiv APERAK är ingen startspärr.; Skapa uppgiftsärende och bevakning; ingen leveransaktivering.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-z01-customer-info-linkage-regression.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z02LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z02LK",
+        "given": "SUPPLIER; Inte Z03 eller Z04; får inte aktivera leverans.",
+        "when": "Svar på egen korrelerad Z01.",
+        "expected": "23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z02/Z23 own move-in reply to correct information original; no independent supply authority.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z02; fält223=Z23; Generera CONTRL och tillämplig APERAK; inget automatiskt kvittenskrav före behandling.; Validera rätt kund/objekt/nätområde/LI; lagra verifierade uppgifter; pröva därefter om separat Z03-kommando är redo.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatDocumentFields.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-z01-customer-info-linkage-regression.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z03LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z03LK",
+        "given": "SUPPLIER; Startfönster L D-14 dagar; LK senast inflyttningsdagen; max14 kalendermånader före.",
+        "when": "Nytt giltigt leveransavtal; L=leverantörsbyte, LK=kund- och leverantörsbyte/flytt.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z03/Z23 actual signed own move-in by-day date up to14 calendar months; real first original/current point/customer, no generic billing activation.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z03; fält223=Z23; CONTRL, APERAK, rätt Z04L/LK; dessa är olika förväntningar.; Skapa bytes-/flyttärende och tillåtna timers, inte aktiv leverans.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04LK",
+        "given": "SUPPLIER; Z04 får komma före positiv APERAK. Samma LI ensamt räcker inte för korrelation.",
+        "when": "Nätägarens affärsbekräftelse på egen Z03.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z23 exact real sent original, correct own customer/start/reason and all registers; confirms future relation only before100.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z23; CONTRL och tillämplig APERAK i retur.; Skapa bekräftad framtida leveransperiod; aktivera först vid korrekt start och oförändrat giltigt ärende.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z05LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z05LK",
+        "given": "SUPPLIER; Z05L kan referera till Z08H; Z05LK kan vara följd av utflytt efter Z09E men är inte Z09E-svar.",
+        "when": "Nätägarens information till tidigare leverantör.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z05/Z23 genuine own closure can follow deathE; it is not immediate business response to Z09E. Preserve own effective minute/history.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z05; fält223=Z23; CONTRL och tillämplig APERAK; normalt ingen egen affärsbekräftelse tillbaka.; Avsluta berörd leveransperiod vid angivet giltigt slut, planera slutvärden/slutunderlag; behåll historik.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z03C-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z03C",
+        "given": "SUPPLIER; Referera rätt originalärende/objekt/kund; L senast4dagar före, LK senast inflyttningsdagen.",
+        "when": "Återtag av eget bytes-/flyttärende inom kancelleringsfönstret.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z03/Z24 requested cancellation of exact L/LK original within L4-days-before or LK-by-day window; requested does not mean completed.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z03; fält223=Z24; CONTRL, APERAK och enligt förloppet Z04C.; Markera kancellering begärd; inte färdig enbart på SMTP250.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04C-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04C",
+        "given": "SUPPLIER; Bevara original- och kancelleringsordning; kancellering före original lagras för begränsad korrelation, ingen godtycklig aktivering.",
+        "when": "Bekräftelse/korrigering som upphäver berört startförlopp.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z24; CONTRL och tillämplig APERAK.; Upphäv endast rätt bekräftade/framtida period; vid redan verkställd effekt starta kontrollerad kompensation.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z24 actual own cancellation answer, reverse only correct unexecuted own start; preserve other/customer rows and causal pending compensation.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z24; CONTRL och tillämplig APERAK.; Upphäv endast rätt bekräftade/framtida period; vid redan verkställd effekt starta kontrollerad kompensation.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z05C-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z05C",
+        "given": "SUPPLIER; Skilj återtag av leveransslut från ESCO Z15C.",
+        "when": "Tidigare meddelat leveransslut återtas.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z05/Z24 continuation reverses exact own accepted ending source/version at source end time; no unrelated revival or deleted history.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z05; fält223=Z24; CONTRL och tillämplig APERAK.; Återställ rätt avslutsbeslut efter kontroll; skapa inte duplicerad leveransperiod.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04A-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04A",
+        "given": "SUPPLIER; Dokumenterad anvisningsöverenskommelse i rätt nätområde; kräver inte egen Z03.",
+        "when": "Nätägarens anvisning när aktören är behörig anvisad leverantör.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z26; CONTRL och tillämplig APERAK.; Registrera anvisningsprocess och korrekt start.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z26 own anvisning archive/legal review/issuer/counterparty/currentpoint/contract/time; no ordinary Z03 prerequisite. Authentic legal records remain absent.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z26; CONTRL och tillämplig APERAK.; Registrera anvisningsprocess och korrekt start.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04D-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04D",
+        "given": "SUPPLIER; Inte bara mikroproduktion; inte generell Z03-guard eller konsumentaktivering.",
+        "when": "Mottagningsplikt för produktion enligt tillämpligt produktionsförlopp.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z70; CONTRL och tillämplig APERAK.; Skapa separat produktions-/mottagningsrelation, knyt till förbrukningsobjekt via319.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z70 own production obligation with separate319/current linked consumption relation; not merely microproduction flag or ordinary consumer switch.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z70; CONTRL och tillämplig APERAK.; Skapa separat produktions-/mottagningsrelation, knyt till förbrukningsobjekt via319.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z03H-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z03H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z03; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z03/Z25 genuine first original from current authenticated bilateral profile; no fallbackH→L or accepted L overwrite. Native original probes not run here.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z03; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z04H-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z04H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z04; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z04/Z25 sourcequalified bilateral exact own sent H original/contract/date/registers; private native start implementation now mechanical32+unit4 but genuine full pipeline probes pending.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z04; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z05H-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z05H",
+        "given": "SUPPLIER; Känd kod ≠ generell produktionsbehörighet; konkret avtal och exakta fält/timers krävs.",
+        "when": "Särskilt avtalad användning av ospecificerad/hävningsanknuten transaktion.",
+        "expected": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z05/Z25 own documented bilateral end/current relation/version/time; final work after commit, no blanket H approval. Internal native own-end consumer still pending.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z05; fält223=Z25; Kvittens och affärsförlopp enligt uttrycklig bilateral process.; Ingen automatisk standardeffekt utan fastställd bilateral transitionsprofil.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z08H-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z08H",
+        "given": "SUPPLIER; Juridiska förutsättningar för hävning måste vara dokumenterade; ingen automatisk hävning enbart vid betalningsflagga.",
+        "when": "Behörigt avslut/hävning av elhandelsavtal.",
+        "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z08/Z25 actual legally authorized rescission and exact own relation; nonpayment/public flag alone cannot mandate end. Separate actual producer/consumer internal work pending.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z08; fält223=Z25; CONTRL, APERAK och relevant Z05L enligt förlopp.; Bevakad avslutsbegäran och kontrollerat leveransslut.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z08LK-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z08LK",
+        "given": "SUPPLIER; Inte universell ersättning för Z03LK.",
+        "when": "Bilateral användning för kund-/leverantörsbyte.",
+        "expected": "23-DDQ-PRODAT; BGM=Z08; fält223=Z23; Svar enligt uttryckligt avtal.; Bara den överenskomna avsluts-/flyttprocessen.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z08/Z23 actual bilateral bounded termination request with own original/current accepted relation; not national universal Z03LK substitute. Internal producer/consumer still pending.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z08; fält223=Z23; Svar enligt uttryckligt avtal.; Bara den överenskomna avsluts-/flyttprocessen.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/flows/prodatSwitch.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs",
+        "scripts/gridex-supplier-remaining-business-regression.cjs",
+        "scripts/ediel-z04-ack-native.test.ts"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z09B-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z09B",
+        "given": "SUPPLIER; Senast en kalendermånad före; rätt aktör/område/avtal; AI-lista ersätter inte Z09B.",
+        "when": "Byte av balansansvarig för berörda leveransrelationer.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z09/Z27 actual own actor/area/contract BRP change one calendar month before date, version history and exact point; no AI/global registry overwrite.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z09; fält223=Z27; CONTRL och APERAK; uppdatering enligt BRP-förloppet.; Versionera BRP-ansvar vid datumet, inte tenantglobal överlagring av historiken.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/prodat/prodatMeterChangeAuthority.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z09D-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z09D",
+        "given": "SUPPLIER; 210 XOR 211, aldrig DTM157 som ersättning; inte NAD+UD på Z09D.",
+        "when": "Produktionsavtal tecknas eller upphör.",
+        "expected": "23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z09/Z70 production contract own92 xor93, no157 and noUD; exact production relation and dated consumer. Bounded contradictory-dates tests do not establish final ACK acceptance.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z09; fält223=Z70; CONTRL och APERAK; eventuella efterföljande mottagningspliktsförlopp separat.; Starta/avsluta rätt produktionsavtal.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/prodat/prodatMeterChangeAuthority.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    },
+    {
+      "id": "AT-Z10M-SUPPLIER",
+      "literal_criteria": {
+        "name": "Meddelandefall Z10M",
+        "given": "SUPPLIER; Gamla/nya mätarnummer olika; flerregisteroverlay; tio vardagar som sändningsfrist för nätägaren.",
+        "when": "Nätägarens mätarbyte.",
+        "expected": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "layer": "Planerat meddelande-/rollprov"
+      },
+      "source_reference": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "independent_whole_criterion_review": "DDQ/Z10/E58 distinct old/new meter, all registers, source version boundary and ten business-day DSO deadline; readings via UTILTS preserved, no duplicate energy/billing.",
+      "expected_effect_oracle": "23-DDQ-PRODAT; BGM=Z10; fält223=E58; CONTRL och APERAK; avläsningar/energier via relevanta UTILTS-transaktioner.; Versionera ny/gammal mätare/register och gränstid, bevara tidigare mätvärden.",
+      "prohibited_effect_oracle": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+      "code_paths_read": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/prodat/prodatMessageSupportRegistry.ts",
+        "lib/ediel/prodat/prodatAperak.ts",
+        "lib/ediel/stateMachines/prodatLifecycle.ts",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/prodat/prodatMeterChangeAuthority.ts"
+      ],
+      "test_paths_indexed_not_automatically_qualified": [
+        "scripts/ediel-rule-regression.cjs",
+        "scripts/test-ediel-prodat-characteristic-fields.cjs"
+      ],
+      "actual_bounded_receipt_scope": "Only the exact packet/test scopes in receipt_index apply; read the whole literal expected and prohibited clauses independently. Twin/link IDs confer no approval.",
+      "whole_criterion_result": "NOT_VERIFIED",
+      "required_remaining_proof": [
+        "Frozen composed final candidate actual positive/negative/edge source and tenant evidence",
+        "Authentic native transaction/replay/rollback/current-grant/concurrency proof wherever persistence applies",
+        "Same-candidate native/HTTP/browser/build/generated schema/type artifacts/exact-head CI",
+        "Independent own criterion permitted and forbidden effects review; green test counts confer no approval"
+      ]
+    }
+  ]
+}

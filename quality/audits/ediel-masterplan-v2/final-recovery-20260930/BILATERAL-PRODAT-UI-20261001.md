@@ -1,0 +1,9 @@
+# Bilateral PRODAT profile archive/review UI — bounded delivery
+
+Base: `9dd947ee`, containing the protected producer `7280a61d` and ACK lock-prefix follow-up. Root remains the sole publisher and checkpoint owner.
+
+The new `/admin/ediel/bilateral-prodat-sources` page reads the server-selected company, current permissions, own enabled agreements and own grid areas. Shared catalog metadata is selected only after this actual guard. No client field grants authority. The HTTP/native producer rechecks the exact original, legal namespace, actual normalized source grammar, archived issuer mandate and independent reviewer. Original download uses the existing private, no-store source port. Profile review does not create supply, ACK or reply-outbox effects.
+
+A committed disposable browser/native initial+post fixture uses the actual signed-contract/normal-source helper and real archive/review ports. Issuer key, representation and agreement configuration are explicitly synthetic mechanics boundaries and grant no real normative production approval. Browser assertions cover exact uploaded bytes, forbidden self review, independent keyboard review, reload, mobile layout and CSS 200% zoom. Native post checks one exact archive/profile/origin and zero supply periods, positive-source receipts, mixed outbox and ACKs. Native/browser execution is NOT_RUN locally: Docker/PostgreSQL/psql are unavailable. The central workflow and navigation remain root-owned.
+
+Targeted producer/capability unit suite, application and scripts TypeScript, changed-file lint, spec syntax and diff whitespace are recorded in `/tmp/gridex-p16-ui-*` local logs. Final exact-head CI, generated artifacts, clean+upgrade replay, native/browser/build and all whole literal criteria remain pending. H/LK native business consumers and actual outgoing profile ownership are not established by this UI packet.
