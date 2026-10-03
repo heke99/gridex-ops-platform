@@ -239,7 +239,7 @@ Sida {pageResult.page} av {pageResult.totalPages}. Visar {showingFrom}-{showingT
 
  <div className="rounded-3xl border border-emerald-200 bg-emerald-50/60 p-6 shadow-sm ">
  <div className="text-sm text-slate-700 ">
- Aktiva kunder
+ Kundposter med aktiv status
  </div>
  <div className="mt-2 text-3xl font-semibold text-slate-950 ">
  {pageResult.counts.active}

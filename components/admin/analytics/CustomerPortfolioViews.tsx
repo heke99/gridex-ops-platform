@@ -1,4 +1,5 @@
-import type { PortfolioForecastMonth, PortfolioHorizon, PortfolioMonthRow } from '@/lib/analytics/customerPortfolio'
+import type { ReactNode } from 'react'
+import { churnReasonLabel, type PortfolioForecastMonth, type PortfolioHorizon, type PortfolioInsights, type PortfolioMonthRow } from '@/lib/analytics/customerPortfolio'
 import { formatMwh, formatNumber } from '@/lib/analytics/utils'
 
 function formatPercent(value: number | null) {
@@ -136,6 +137,87 @@ export function CustomerPortfolioPanel({ months, forecastMonths, horizons }: { m
         <h2 className="text-lg font-black text-slate-950">Kunder, fullmakter och mätvärden per månad</h2>
         <PortfolioMonthTable rows={months} />
       </section>
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-lg font-black text-slate-950">{title}</h2>
+      <div className="mt-4">{children}</div>
+    </section>
+  )
+}
+
+function SmallTable({ headers, rows, empty }: { headers: string[]; rows: Array<Array<string>>; empty: string }) {
+  if (rows.length === 0) return <p className="text-sm font-semibold text-slate-600">{empty}</p>
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead className="text-left text-xs font-black uppercase tracking-wide text-slate-500">
+          <tr>{headers.map((header, index) => <th key={header} className={`px-3 py-2 ${index > 0 ? 'text-right' : ''}`}>{header}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 tabular-nums">
+          {rows.map((cells, rowIndex) => (
+            <tr key={rowIndex}>{cells.map((cell, index) => <td key={index} className={`px-3 py-2 ${index > 0 ? 'text-right' : 'font-bold text-slate-800'}`}>{cell}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function PortfolioInsightsPanel({ insights }: { insights: PortfolioInsights }) {
+  const reasonTotals = new Map<string, number>()
+  for (const row of insights.churnReasons) reasonTotals.set(row.reason, (reasonTotals.get(row.reason) ?? 0) + row.customers)
+  const reasons = [...reasonTotals.entries()].sort((a, b) => b[1] - a[1])
+  const zoneLabel = (zone: string) => (zone === 'UNKNOWN' ? 'Okänt elområde' : zone)
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <Section title="Fullmakter som löper ut inom 30 dagar">
+        <SmallTable
+          headers={['Kund', 'Omfattning', 'Giltig till', 'Dagar kvar']}
+          rows={insights.expiringPoa.map((row) => [row.customerName ?? 'Okänd kund', row.scope ?? '–', row.validTo, formatNumber(row.daysLeft)])}
+          empty="Inga giltiga fullmakter löper ut de närmaste 30 dagarna."
+        />
+      </Section>
+      <Section title="Varför kunder lämnar (12 mån)">
+        <SmallTable
+          headers={['Orsak', 'Kunder']}
+          rows={reasons.map(([reason, count]) => [churnReasonLabel(reason), formatNumber(count)])}
+          empty="Inga kunder har lämnat under perioden."
+        />
+      </Section>
+      <Section title="Elområden">
+        <SmallTable
+          headers={['Elområde', 'Aktiva kunder', 'Anläggningar', 'Prognos 12 mån']}
+          rows={insights.zones.map((row) => [zoneLabel(row.zone), formatNumber(row.activeCustomers), formatNumber(row.meteringPoints), formatMwh(row.forecast12mKwh)])}
+          empty="Inga aktiva anläggningar."
+        />
+      </Section>
+      <Section title="Prognos mot utfall">
+        <SmallTable
+          headers={['Månad', 'Prognos', 'Utfall', 'Avvikelse']}
+          rows={[...insights.accuracy].reverse().filter((row) => row.forecastKwh !== null || row.actualKwh !== null).map((row) => [
+            row.month.slice(0, 7),
+            row.forecastKwh === null ? '–' : formatMwh(row.forecastKwh),
+            row.actualKwh === null ? '–' : formatMwh(row.actualKwh),
+            row.diffPercent === null ? '–' : `${row.diffPercent > 0 ? '+' : ''}${row.diffPercent.toLocaleString('sv-SE', { maximumFractionDigits: 1 })} %`,
+          ])}
+          empty="Ingen sparad prognos att jämföra med ännu. Den nattliga körningen sparar prognosen vid varje månadsstart."
+        />
+      </Section>
+      <div className="xl:col-span-2">
+        <Section title="Kohorter – andel kunder kvar">
+          <SmallTable
+            headers={['Startmånad', 'Kunder', 'Efter 1 mån', '3 mån', '6 mån', '12 mån']}
+            rows={[...insights.cohorts].reverse().map((row) => [row.cohortMonth.slice(0, 7), formatNumber(row.customers), formatPercent(row.retained1m), formatPercent(row.retained3m), formatPercent(row.retained6m), formatPercent(row.retained12m)])}
+            empty="Inga nya kunder de senaste 12 månaderna."
+          />
+        </Section>
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 -- Minimal schema stub for running the customer-portfolio migration in isolation.
 -- Usage: see scripts/sql/customer-portfolio/README.md
-create role anon; create role authenticated; create role service_role; create role authenticator;
+create role anon; create role authenticated; create role service_role bypassrls; create role authenticator;
 create schema auth;
 create table auth.users(id uuid primary key);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true),'')::uuid $$;
@@ -22,3 +22,9 @@ create table public.consumption_profile_month_weights (profile_id uuid, month_nu
 create table public.white_label_platforms (id uuid primary key default gen_random_uuid(), name text, slug text, status text default 'active');
 create table public.white_label_platform_memberships (white_label_platform_id uuid, user_id uuid, membership_role text, status text default 'active');
 create table public.audit_logs (id uuid primary key default gen_random_uuid(), company_id uuid, actor_user_id uuid, entity_type text, entity_id text, action text, old_values jsonb, new_values jsonb, metadata jsonb, created_at timestamptz default now());
+-- phase 2 (20261003120000)
+create table public.customers (id uuid primary key, company_id uuid, full_name text, company_name text, first_name text, last_name text, customer_number text);
+create table public.metering_points (id uuid primary key, company_id uuid, bidding_zone_code text);
+create table public.customer_contracts (id uuid primary key default gen_random_uuid(), company_id uuid, customer_id uuid, ends_at date, termination_reason text);
+create table public.customer_lifecycle_events (id uuid primary key default gen_random_uuid(), company_id uuid, customer_id uuid, event_type text, event_status text default 'completed', effective_date date, reason text, created_at timestamptz default now());
+alter table public.powers_of_attorney add column scope text default 'supplier_switch';

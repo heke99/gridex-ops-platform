@@ -75,9 +75,9 @@ const TABLE_METRICS: TableMetric[] = [
   },
   {
     key: 'customers_active',
-    label: 'Aktiva kunder',
+    label: 'Kundposter med aktiv status',
     table: 'customers',
-    description: 'Kunder utan avslutad/inaktiv status där kolumnen finns.',
+    description: 'Kundposter med aktiv status. Kunder med pågående leverans visas i Kundportfölj.',
     billingHint: 'Kan användas för aktiv kundbas.',
     filters: [{ column: 'status', value: ['active', 'onboarding', 'current'], op: 'in' }],
   },

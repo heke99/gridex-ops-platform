@@ -93,7 +93,7 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
   const deviations = missing + asNumber(metric.failed_metering_requests)
   return [
     { key: 'customers', label: 'Kunder totalt', value: formatNumber(asNumber(metric.total_customers)), hint: percentChange(asNumber(metric.total_customers), asNumber(previous?.total_customers)), status: 'info', href: '/admin/customers' },
-    { key: 'new_customers', label: 'Nya kunder denna månad', value: formatNumber(asNumber(metric.new_customers)), hint: percentChange(asNumber(metric.new_customers), asNumber(previous?.new_customers)), status: 'ok', href: '/admin/customers' },
+    { key: 'new_customers', label: 'Nya kunder denna månad', value: metric.new_customers === null ? '–' : formatNumber(asNumber(metric.new_customers)), hint: percentChange(asNumber(metric.new_customers), asNumber(previous?.new_customers)), status: 'ok', href: '/admin/customers' },
     { key: 'sites', label: 'Aktiva anläggningar', value: formatNumber(asNumber(metric.active_sites)), hint: `${formatNumber(asNumber(metric.total_sites))} anläggningar totalt`, status: 'info' },
     { key: 'metering_points', label: 'Aktiva mätpunkter', value: formatNumber(asNumber(metric.active_metering_points)), hint: `${formatNumber(asNumber(metric.total_metering_points))} mätpunkter totalt`, status: 'info', href: '/admin/metering' },
     { key: 'received', label: 'Mottagna mätvärden', value: formatNumber(asNumber(metric.metering_values_received)), hint: 'Inkomna värden för vald period', status: 'ok', href: '/admin/metering' },

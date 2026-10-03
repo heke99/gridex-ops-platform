@@ -1,7 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
-import { CustomerPortfolioPanel } from '@/components/admin/analytics/CustomerPortfolioViews'
+import { CustomerPortfolioPanel, PortfolioInsightsPanel } from '@/components/admin/analytics/CustomerPortfolioViews'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
-import { getCustomerPortfolio } from '@/lib/analytics/customerPortfolio'
+import { getCustomerPortfolio, getCustomerPortfolioInsights } from '@/lib/analytics/customerPortfolio'
 import { addMonths, monthStart } from '@/lib/analytics/utils'
 import { getOperationalCompanyScope } from '@/lib/tenant/scope'
 
@@ -20,7 +20,11 @@ export default async function CustomerPortfolioPage({ searchParams }: PageProps)
     return <div className="p-8">Bolag saknas.</div>
   }
 
-  const portfolio = await getCustomerPortfolio(companyId, addMonths(month, -11), month)
+  const from = addMonths(month, -11)
+  const [portfolio, insights] = await Promise.all([
+    getCustomerPortfolio(companyId, from, month),
+    getCustomerPortfolioInsights(companyId, from, month),
+  ])
 
   return (
     <div className="min-h-screen">
@@ -32,8 +36,10 @@ export default async function CustomerPortfolioPage({ searchParams }: PageProps)
             <input type="month" name="month" defaultValue={month.slice(0, 7)} className="mt-1 block rounded-2xl border border-slate-300 px-3 py-2" />
           </label>
           <button className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-black text-white hover:bg-slate-800">Visa</button>
+          <a href={`/admin/analytics/portfolio/export?month=${month.slice(0, 7)}`} className="rounded-2xl border border-slate-300 px-4 py-2.5 text-sm font-black text-slate-800 hover:bg-slate-50">Exportera CSV</a>
         </form>
         <CustomerPortfolioPanel {...portfolio} />
+        <PortfolioInsightsPanel insights={insights} />
       </div>
     </div>
   )

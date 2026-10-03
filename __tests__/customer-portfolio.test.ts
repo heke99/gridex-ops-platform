@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { mapForecastRow, mapPortfolioMonthRow, summarizeForecastHorizons, type PortfolioForecastMonth } from '@/lib/analytics/customerPortfolio'
+import { churnReasonLabel, mapForecastRow, mapPortfolioMonthRow, portfolioMonthsCsv, summarizeForecastHorizons, type PortfolioForecastMonth } from '@/lib/analytics/customerPortfolio'
 
 const migration = readFileSync('supabase/migrations/20261003110000_customer_portfolio_analytics_whitelabel.sql', 'utf8')
 const whiteLabelPage = readFileSync('app/admin/whitelabel/portfolio/page.tsx', 'utf8')
@@ -98,5 +98,65 @@ describe('system-wide customer count consistency', () => {
   it('does not let white-label membership grant Ediel actor-testing writes', () => {
     expect(actorActions).not.toContain('userCanManageActorTestingForCompany')
     expect(actorActions).toContain('requireCompanyScopedActionAccess(companyId)')
+  })
+})
+
+describe('customer portfolio phase 2', () => {
+  const phase2 = readFileSync('supabase/migrations/20261003120000_customer_portfolio_phase2.sql', 'utf8')
+  const dashboard = readFileSync('lib/analytics/companyDashboardSummary.ts', 'utf8')
+  const usage = readFileSync('lib/tenant/usageStats.ts', 'utf8')
+  const statistics = readFileSync('lib/tenant/companyStatistics.ts', 'utf8')
+  const whiteLabelExport = readFileSync('app/admin/whitelabel/portfolio/export/route.ts', 'utf8')
+
+  it('asserts read access in every new read RPC before returning data', () => {
+    for (const fn of [
+      'gridex_customer_portfolio_churn_reasons',
+      'gridex_customer_portfolio_forecast_accuracy',
+      'gridex_customer_portfolio_cohorts',
+      'gridex_customer_portfolio_bidding_zones',
+      'gridex_customer_portfolio_expiring_poa',
+      'gridex_customer_portfolio_forecast',
+      'gridex_customer_portfolio_active_counts',
+    ]) {
+      const body = phase2.slice(phase2.indexOf(`function public.${fn}(`))
+      expect(body.slice(0, body.indexOf('return query'))).toContain('gridex_customer_portfolio_assert_read(')
+    }
+  })
+
+  it('stores forecasts atomically and never rewrites a past month', () => {
+    expect(phase2).toContain('create table if not exists public.customer_portfolio_forecast_snapshots')
+    expect(phase2).toContain('enable row level security')
+    expect(phase2).toMatch(/if v_month >= v_current or not exists/)
+    expect(phase2).toContain('pg_advisory_xact_lock')
+  })
+
+  it('uses the supplied-customer definition for every "Aktiva kunder" KPI', () => {
+    expect(dashboard).toContain('getActiveCustomerCounts([companyId])')
+    expect(dashboard).not.toMatch(/'customers', companyId, \[\{ column: 'status'/)
+    expect(usage).toContain('getActiveCustomerCounts(companies.map')
+    expect(statistics).not.toContain("label: 'Aktiva kunder'")
+  })
+
+  it('keeps the white-label export read-only and scoped to the platform', () => {
+    expect(whiteLabelExport).toContain("anyOf: ['whitelabel.read']")
+    expect(whiteLabelExport).toContain('Bolaget tillhör inte plattformen.')
+    expect(whiteLabelExport).not.toMatch(/\.(insert|update|upsert|delete)\(/)
+  })
+
+  it('builds a CSV with outcome and forecast rows', () => {
+    const csv = portfolioMonthsCsv(
+      [mapPortfolioMonthRow({ month: '2026-05-01', active_customers: 2, new_customers: 1, churned_customers: 1, churn_rate: 0.5 })],
+      [mapForecastRow({ month: '2026-06-01', month_index: 1, forecast_kwh: 416.667, low_kwh: 380, high_kwh: 450 })],
+    )
+    const lines = csv.split('\n')
+    expect(lines[0].split(';')[0]).toBe('typ')
+    expect(lines[1]).toMatch(/^utfall;2026-05-01;2;1;1;0;0.5;/)
+    expect(lines[2]).toMatch(/^prognos;2026-06-01;.*;416.667;380;450$/)
+  })
+
+  it('labels churn reasons in Swedish and passes unknown free text through', () => {
+    expect(churnReasonLabel('move_out')).toBe('Flytt')
+    expect(churnReasonLabel('unknown')).toBe('Okänd')
+    expect(churnReasonLabel('Flyttade utomlands')).toBe('Flyttade utomlands')
   })
 })

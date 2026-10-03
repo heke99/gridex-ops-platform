@@ -93,7 +93,10 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
     openIssues,
   ] = await Promise.all([
     safeCount('customers', companyId),
-    getPortfolioMonthForCompany(companyId, month).catch(() => null),
+    getPortfolioMonthForCompany(companyId, month).catch((error: unknown) => {
+      console.error('customer portfolio fallback failed', { companyId, month, error })
+      return undefined
+    }),
     safeCount('customer_sites', companyId),
     safeCount('customer_sites', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
     safeCount('metering_points', companyId),
@@ -105,9 +108,10 @@ export async function buildLiveMonthlyFallback(companyId: string, month: string)
   return {
     month: monthStart(month),
     total_customers: totalCustomers,
-    active_customers: portfolio?.activeCustomers ?? 0,
-    new_customers: portfolio?.newCustomers ?? 0,
-    ended_customers: portfolio?.churnedCustomers ?? 0,
+    // undefined = the RPC failed: keep null so the page shows "–" rather than 0
+    active_customers: portfolio === undefined ? null : portfolio?.activeCustomers ?? 0,
+    new_customers: portfolio === undefined ? null : portfolio?.newCustomers ?? 0,
+    ended_customers: portfolio === undefined ? null : portfolio?.churnedCustomers ?? 0,
     total_sites: totalSites,
     active_sites: activeSites,
     total_metering_points: totalMeteringPoints,

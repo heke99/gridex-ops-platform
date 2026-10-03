@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { asNumber, monthStart } from '@/lib/analytics/utils'
+import { asNumber, buildCsv, monthStart } from '@/lib/analytics/utils'
 import { supabaseService } from '@/lib/supabase/service'
 
 // "Kundportfölj": customer counts, churn and forward consumption per tenant.
@@ -173,4 +173,111 @@ export async function getPortfolioMonthForCompany(companyId: string, month: stri
   if (error) throw error
   const row = ((data ?? []) as Record<string, unknown>[])[0]
   return row ? mapPortfolioMonthRow(row) : null
+}
+
+// Supplied customers/points at a date, batched. The one "active customer"
+// definition used by every KPI (dashboard, platform usage, Kundportfölj).
+export async function getActiveCustomerCounts(companyIds: string[], at?: string): Promise<Map<string, { activeCustomers: number; activeMeteringPoints: number }>> {
+  const result = new Map<string, { activeCustomers: number; activeMeteringPoints: number }>()
+  if (companyIds.length === 0) return result
+  const { data, error } = await supabaseService.rpc('gridex_customer_portfolio_active_counts', {
+    p_company_ids: companyIds,
+    p_at: at ?? new Date().toISOString().slice(0, 10),
+  })
+  if (error) throw error
+  for (const row of (data ?? []) as Record<string, unknown>[]) {
+    result.set(String(row.company_id), {
+      activeCustomers: asNumber(row.active_customers),
+      activeMeteringPoints: asNumber(row.active_metering_points),
+    })
+  }
+  return result
+}
+
+export type ChurnReasonRow = { month: string; reason: string; customers: number }
+export type ForecastAccuracyRow = { month: string; forecastKwh: number | null; actualKwh: number | null; diffKwh: number | null; diffPercent: number | null }
+export type CohortRow = { cohortMonth: string; customers: number; retained1m: number | null; retained3m: number | null; retained6m: number | null; retained12m: number | null }
+export type BiddingZoneRow = { zone: string; activeCustomers: number; meteringPoints: number; forecast12mKwh: number }
+export type ExpiringPoaRow = { id: string; customerId: string | null; customerName: string | null; scope: string | null; validTo: string; daysLeft: number }
+
+export type PortfolioInsights = {
+  churnReasons: ChurnReasonRow[]
+  accuracy: ForecastAccuracyRow[]
+  cohorts: CohortRow[]
+  zones: BiddingZoneRow[]
+  expiringPoa: ExpiringPoaRow[]
+}
+
+const nullableNumber = (value: unknown) => (value === null || value === undefined ? null : asNumber(value))
+
+export async function getCustomerPortfolioInsights(companyId: string, from: string, to: string): Promise<PortfolioInsights> {
+  const supabase = await createSupabaseServerClient()
+  const [churn, accuracy, cohorts, zones, poa] = await Promise.all([
+    supabase.rpc('gridex_customer_portfolio_churn_reasons', { p_company_id: companyId, p_from: from, p_to: to }),
+    supabase.rpc('gridex_customer_portfolio_forecast_accuracy', { p_company_id: companyId, p_from: from, p_to: to }),
+    supabase.rpc('gridex_customer_portfolio_cohorts', { p_company_id: companyId, p_months: 12 }),
+    supabase.rpc('gridex_customer_portfolio_bidding_zones', { p_company_id: companyId }),
+    supabase.rpc('gridex_customer_portfolio_expiring_poa', { p_company_id: companyId, p_days: 30 }),
+  ])
+  for (const response of [churn, accuracy, cohorts, zones, poa]) if (response.error) throw response.error
+  const rows = (value: unknown) => (value ?? []) as Record<string, unknown>[]
+  return {
+    churnReasons: rows(churn.data).map((row) => ({ month: String(row.month).slice(0, 10), reason: String(row.reason ?? 'unknown'), customers: asNumber(row.customers) })),
+    accuracy: rows(accuracy.data).map((row) => ({
+      month: String(row.month).slice(0, 10),
+      forecastKwh: nullableNumber(row.forecast_kwh),
+      actualKwh: nullableNumber(row.actual_kwh),
+      diffKwh: nullableNumber(row.diff_kwh),
+      diffPercent: nullableNumber(row.diff_percent),
+    })),
+    cohorts: rows(cohorts.data).map((row) => ({
+      cohortMonth: String(row.cohort_month).slice(0, 10),
+      customers: asNumber(row.customers),
+      retained1m: nullableNumber(row.retained_1m),
+      retained3m: nullableNumber(row.retained_3m),
+      retained6m: nullableNumber(row.retained_6m),
+      retained12m: nullableNumber(row.retained_12m),
+    })),
+    zones: rows(zones.data).map((row) => ({
+      zone: String(row.bidding_zone_code ?? 'UNKNOWN'),
+      activeCustomers: asNumber(row.active_customers),
+      meteringPoints: asNumber(row.metering_points),
+      forecast12mKwh: asNumber(row.forecast_12m_kwh),
+    })),
+    expiringPoa: rows(poa.data).map((row) => ({
+      id: String(row.power_of_attorney_id),
+      customerId: (row.customer_id as string | null) ?? null,
+      customerName: (row.customer_name as string | null) ?? null,
+      scope: (row.scope as string | null) ?? null,
+      validTo: String(row.valid_to).slice(0, 10),
+      daysLeft: asNumber(row.days_left),
+    })),
+  }
+}
+
+export const CHURN_REASON_LABELS: Record<string, string> = {
+  unknown: 'Okänd',
+  move_out: 'Flytt',
+  terminate: 'Uppsägning',
+  switch_away: 'Bytt leverantör',
+  price: 'Pris',
+}
+
+export function churnReasonLabel(reason: string): string {
+  return CHURN_REASON_LABELS[reason] ?? reason
+}
+
+const CSV_HEADERS = ['typ', 'manad', 'aktiva_kunder', 'nya_kunder', 'lamnade_kunder', 'netto', 'churn', 'fullmakter_begarda', 'fullmakter_signerade', 'fullmakter_giltiga', 'matvardesbegaran', 'varav_historiska', 'varav_lopande', 'misslyckade', 'prognos_kwh', 'prognos_lag_kwh', 'prognos_hog_kwh']
+
+export function portfolioMonthsCsv(months: PortfolioMonthRow[], forecast: PortfolioForecastMonth[]): string {
+  return buildCsv(CSV_HEADERS, [
+    ...months.map((row) => ({
+      typ: 'utfall', manad: row.month, aktiva_kunder: row.activeCustomers, nya_kunder: row.newCustomers,
+      lamnade_kunder: row.churnedCustomers, netto: row.netChange, churn: row.churnRate,
+      fullmakter_begarda: row.poaRequested, fullmakter_signerade: row.poaSigned, fullmakter_giltiga: row.poaActive,
+      matvardesbegaran: row.meteringRequestsTotal, varav_historiska: row.meteringRequestsHistorical,
+      varav_lopande: row.meteringRequestsOngoing, misslyckade: row.meteringRequestsFailed,
+    })),
+    ...forecast.map((row) => ({ typ: 'prognos', manad: row.month, prognos_kwh: row.forecastKwh, prognos_lag_kwh: row.lowKwh, prognos_hog_kwh: row.highKwh })),
+  ])
 }

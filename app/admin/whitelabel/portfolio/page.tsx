@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
-import { CustomerPortfolioPanel } from '@/components/admin/analytics/CustomerPortfolioViews'
+import { CustomerPortfolioPanel, PortfolioInsightsPanel } from '@/components/admin/analytics/CustomerPortfolioViews'
 import { requireAdminPageAccess } from '@/lib/admin/guards'
-import { getCustomerPortfolio, getWhiteLabelPortfolioOverview, listReadableWhiteLabelPlatforms } from '@/lib/analytics/customerPortfolio'
+import { getCustomerPortfolio, getCustomerPortfolioInsights, getWhiteLabelPortfolioOverview, listReadableWhiteLabelPlatforms } from '@/lib/analytics/customerPortfolio'
 import { addMonths, formatMwh, formatNumber, monthStart } from '@/lib/analytics/utils'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +28,12 @@ export default async function WhiteLabelPortfolioPage({ searchParams }: PageProp
 
   const tenants = await getWhiteLabelPortfolioOverview(platform.id, month)
   const selected = tenants.find((row) => row.companyId === params.company) ?? null
-  const detail = selected ? await getCustomerPortfolio(selected.companyId, addMonths(month, -11), month) : null
+  const detail = selected
+    ? await Promise.all([
+        getCustomerPortfolio(selected.companyId, addMonths(month, -11), month),
+        getCustomerPortfolioInsights(selected.companyId, addMonths(month, -11), month),
+      ])
+    : null
   const totals = tenants.reduce(
     (sum, row) => ({
       active: sum.active + row.activeCustomers,
@@ -78,8 +83,12 @@ export default async function WhiteLabelPortfolioPage({ searchParams }: PageProp
 
         {selected && detail ? (
           <>
-            <p className="text-sm font-bold text-slate-600"><Link href={href()} className="text-emerald-800 underline">← Alla bolag</Link> · {selected.companyName}</p>
-            <CustomerPortfolioPanel {...detail} />
+            <p className="text-sm font-bold text-slate-600">
+              <Link href={href()} className="text-emerald-800 underline">← Alla bolag</Link> · {selected.companyName} ·{' '}
+              <a href={`/admin/whitelabel/portfolio/export?platform=${platform.id}&company=${selected.companyId}&month=${month.slice(0, 7)}`} className="text-emerald-800 underline">Exportera CSV</a>
+            </p>
+            <CustomerPortfolioPanel {...detail[0]} />
+            <PortfolioInsightsPanel insights={detail[1]} />
           </>
         ) : (
           <>
