@@ -1,3 +1,4 @@
+// masterplan: SC-025, SC-027
 import { beforeEach, it, expect, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';
 import { reportingId, reportingNow, reportingPrepared } from './fixtures/prodat-reporting-permission';

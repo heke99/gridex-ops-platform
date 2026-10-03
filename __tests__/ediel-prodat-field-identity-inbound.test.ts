@@ -1,3 +1,4 @@
+// masterplan: SC-029
 import {beforeEach,it,expect,vi} from 'vitest'
 import {raw,line,qty,common,characteristic,type Parts} from './fixtures/prodat-register'
 import {source,z10,head,own} from './fixtures/prodat-identity'

@@ -1,3 +1,4 @@
+// masterplan: SC-027
 import { it, expect } from 'vitest';
 import { validateProdatReportingPermission as validate } from '@/lib/ediel/rulebook/prodatReportingPermissionPolicy';
 import { copyReportingSelection, reportingBusinessMinute, reportingEvaluationMinute, type ReportingObject, type PureSelection } from '@/lib/ediel/prodat/prodatReportingPermissionContext';
