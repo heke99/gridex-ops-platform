@@ -91,10 +91,18 @@ assertIncludes('app/api/admin/customer-contract-documents/[documentId]/route.ts'
   'downloadAndVerifyCustomerContractDocument',
   'new Uint8Array(pdf)',
 ])
+// Published website contracts are created through the offer-bound
+// gridex_create_website_customer_contract RPC, now called inside the review's
+// single transaction (gridex_save_website_application_review_v1).
 assertIncludes('app/admin/website-applications/actions.ts', [
-  'gridex_create_website_customer_contract',
+  'gridex_save_website_application_review_v1',
+  "mode: 'published'",
   'public_contract_offer_id',
   'offer_reference',
+])
+assertIncludes('supabase/migrations/20261003100000_website_application_review_atomic.sql', [
+  'public.gridex_create_website_customer_contract(',
+  "p_contract->>'mode' = 'published'",
 ])
 assertExcludes('app/admin/website-applications/actions.ts', [
   "terms_version: 'v1'",

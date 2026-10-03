@@ -58,7 +58,7 @@ assert(!applicationProcess.includes("'switch.confirmed'") && !applicationCommuni
 assert(reviewEngine.includes('canSendAgreementConfirmation'), 'readiness model separates agreement confirmation guard')
 assert(reviewEngine.includes('requestedStartDate') && reviewEngine.includes('confirmedStartDate') && reviewEngine.includes('actualStartDate'), 'requested/confirmed/actual start dates are separated')
 assert(applicationPage.includes('Kundansökningar') && applicationPage.includes('Kontrollera om redo'), 'admin UI exposes customer application work queue and readiness check')
-assert(applicationActions.includes('upsertApplicationMeteringPoint') && applicationActions.includes('power_of_attorney_accepted'), 'admin actions can complete metering/fullmakt data')
+assert(applicationActions.includes('planApplicationMeteringPoint') && applicationActions.includes('gridex_save_website_application_review_v1') && applicationActions.includes('power_of_attorney_accepted'), 'admin actions can complete metering/fullmakt data in one transaction')
 assert(migration.includes('needs_information') && migration.includes('ready_for_switch'), 'migration allows customer application lifecycle statuses')
 assert(hardeningMigration.includes('customers_intake_status_check') && hardeningMigration.includes('ready_for_operations') && hardeningMigration.includes('needs_completion'), 'hardening migration remaps old invalid customer intake statuses before recreating constraint')
 assert(
