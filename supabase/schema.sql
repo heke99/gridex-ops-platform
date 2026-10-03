@@ -22080,8 +22080,8 @@ CREATE FUNCTION gridex_received_sources.append_validation(p_company_id uuid, p_e
   -- The protected delegate has already verified the tenant-bound retained
   -- source/hash. A physical technical source may retain company_id NULL;
   -- this check observes those exact same bytes without assigning a tenant.
-  SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_source_message_id AND (company_id=p_company_id OR company_id IS NULL) AND environment=p_environment AND direction='inbound'
-   AND encode(sha256(convert_to(raw_payload,'UTF8')),'hex')=p_source_payload_hash FOR SHARE;
+  SELECT s.raw_payload INTO STRICT m.raw_payload FROM gridex_received_sources.sources s WHERE s.source_message_id=p_source_message_id AND s.company_id=p_company_id AND s.environment=p_environment
+   AND s.raw_payload IS NOT NULL AND s.payload_hash=p_source_payload_hash AND encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')=p_source_payload_hash;
   PERFORM gridex_ediel_ack_guide.require_unused_unh_v1(m.raw_payload,'inbound');END IF;
  RETURN result;END $$;
 
@@ -22264,8 +22264,8 @@ CREATE FUNCTION gridex_received_sources.append_validation_before_unused_unh_v1(p
   -- The protected delegate has already verified the tenant-bound retained
   -- source/hash. A physical technical source may retain company_id NULL;
   -- this check observes those exact same bytes without assigning a tenant.
-  SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_source_message_id AND (company_id=p_company_id OR company_id IS NULL) AND environment=p_environment AND direction='inbound'
-   AND encode(sha256(convert_to(raw_payload,'UTF8')),'hex')=p_source_payload_hash FOR SHARE;
+  SELECT s.raw_payload INTO STRICT m.raw_payload FROM gridex_received_sources.sources s WHERE s.source_message_id=p_source_message_id AND s.company_id=p_company_id AND s.environment=p_environment
+   AND s.raw_payload IS NOT NULL AND s.payload_hash=p_source_payload_hash AND encode(sha256(convert_to(s.raw_payload,'UTF8')),'hex')=p_source_payload_hash;
   PERFORM gridex_ediel_ack_guide.require_message_reference_profile_v1(m.raw_payload);END IF;
  RETURN result;END $$;
 
