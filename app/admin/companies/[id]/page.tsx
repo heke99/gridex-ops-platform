@@ -1,3 +1,4 @@
+import { getPortfolioMonthForCompany } from '@/lib/analytics/customerPortfolio'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
@@ -270,12 +271,11 @@ function countDisplay(
 
 async function getCompanyOperationalStats(companyId: string): Promise<CompanyOperationalStats> {
   const from = monthStartIso()
-  const [newCustomersThisMonth, closedCustomersThisMonth, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth] = await Promise.all([
-    safeCompanyCount('customers', companyId, [{ column: 'created_at', op: 'gte', value: from }]),
-    safeCompanyCount('customers', companyId, [
-      { column: 'updated_at', op: 'gte', value: from },
-      { column: 'status', op: 'in', value: ['terminated', 'moved', 'closed', 'inactive'] },
-    ]),
+  // New/closed customers use the shared supply-period definition (Kundportfölj).
+  const [portfolio, openWithdrawals, queuedEmails, failedEmails, sentEmailsThisMonth] = await Promise.all([
+    getPortfolioMonthForCompany(companyId, from)
+      .then((row) => ({ ok: true as const, row }))
+      .catch((error: { code?: string }) => ({ ok: false as const, errorCode: error?.code ?? 'portfolio' })),
     safeCompanyCount('customer_operation_tasks', companyId, [
       { column: 'task_type', value: 'customer_withdrawal_followup' },
       { column: 'status', op: 'in', value: ['open', 'in_progress', 'blocked'] },
@@ -289,8 +289,8 @@ async function getCompanyOperationalStats(companyId: string): Promise<CompanyOpe
   ])
 
   return {
-    newCustomersThisMonth: countDisplay(newCustomersThisMonth),
-    closedCustomersThisMonth: countDisplay(closedCustomersThisMonth),
+    newCustomersThisMonth: portfolio.ok ? portfolio.row?.newCustomers ?? 0 : `Kunde inte hämtas (${portfolio.errorCode})`,
+    closedCustomersThisMonth: portfolio.ok ? portfolio.row?.churnedCustomers ?? 0 : `Kunde inte hämtas (${portfolio.errorCode})`,
     openWithdrawals: countDisplay(openWithdrawals),
     queuedEmails: countDisplay(queuedEmails),
     failedEmails: countDisplay(failedEmails),

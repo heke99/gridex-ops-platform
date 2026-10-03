@@ -6,12 +6,12 @@
   ],
   "sections": {
     "columns": {
-      "count": 11029,
-      "sha256": "e328d533442e23ce5883439c8592d69d1ff3e0ce08bb4007364d0702172b4623"
+      "count": 11052,
+      "sha256": "85846c52a76d68a0881432419f7a8afedbe5b567801564b2518c038ae8d43bba"
     },
     "constraints": {
-      "count": 2451,
-      "sha256": "a5640f59c155bdf33ea5085eb0e42ee70ea4323f24741664500fb8759bc624dd"
+      "count": 2459,
+      "sha256": "411d957774d270aa4c28003043129b16ca5491af6769eb149a501c9ef68f1500"
     },
     "enums": {
       "count": 4,
@@ -22,28 +22,28 @@
       "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
     },
     "function_grants": {
-      "count": 1711,
-      "sha256": "3a60c13067adee5b9366dc48035942fba59ad5cb18f94df3fde6d938cf597d3b"
+      "count": 1762,
+      "sha256": "85d76d7827da3e5ad8d9e2099ac6d5d85e4df31279c1f327f9fc96486601bb65"
     },
     "functions": {
-      "count": 667,
-      "sha256": "a2bd51707ca6be14e70fea92716514b55636b6af0f693de1205107350da4d9f6"
+      "count": 686,
+      "sha256": "240f55d085730f3a5cebea93278e5a4f992820234d4b3e3c56fb8237ee014541"
     },
     "indexes": {
-      "count": 2363,
-      "sha256": "be0f280c92fd8aa4a522c967b3c0eba2caf862cc0544ae42517edf582c962864"
+      "count": 2370,
+      "sha256": "28eae42871f3b553be48c6da1102e09a0ec47af3c1bf5d7b24efa59a8a2dc5a7"
     },
     "policies": {
       "count": 2557,
       "sha256": "f95b3937f65d8ba09ed35870df3df58a3d069ae502a63259a83b83dbc2f0624c"
     },
     "relation_grants": {
-      "count": 13637,
-      "sha256": "1e06a7a3e9fe6d60050d99ec0ce2de169282560195f6f3dc18be34a9fde4edd6"
+      "count": 13653,
+      "sha256": "c7fdf2982a0a53e244ffda2566de9de11b5c6496ca2cb7a753de3bd01ac3b4aa"
     },
     "relations": {
-      "count": 614,
-      "sha256": "c1d1f24e26f65b7f430ea4f5eb7cc46499104a3a52c235f8ee389904f9133638"
+      "count": 615,
+      "sha256": "0b19d17204e754a5c22419d517dc8ce5bc4f8aee3c8413bc01424980f6ebef67"
     },
     "schema_grants": {
       "count": 11,
@@ -58,5 +58,5 @@
       "sha256": "4304c22be10221ac18aed68efe4661519763dcb935ae99feecc8b614e1619026"
     }
   },
-  "sha256": "648748be520f4c73a708794871db6c000a73788046c574085184a393c6cbeb87"
+  "sha256": "b7d58aeaa623e4986d9cd75b6fbd0c9ad1fd2bc776f5c7ae65e6e8c02c2c06a9"
 }

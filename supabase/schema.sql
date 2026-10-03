@@ -13898,6 +13898,64 @@ end;
 $$;
 
 --
+-- Name: gridex_assign_company_to_whitelabel(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid) RETURNS public.companies
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_old uuid;
+  v_row public.companies;
+begin
+  if not public.gridex_user_is_platform_admin() then
+    raise exception 'Only platform superadmins can assign white-label platforms' using errcode = '42501';
+  end if;
+
+  select c.white_label_platform_id into v_old
+  from public.companies c
+  where c.id = p_company_id
+  for update;
+
+  if not found then
+    raise exception 'Company not found' using errcode = 'P0002';
+  end if;
+
+  if p_white_label_platform_id is not null and not exists (
+    select 1 from public.white_label_platforms p
+    where p.id = p_white_label_platform_id and p.status in ('active', 'paused')
+  ) then
+    raise exception 'White-label platform not found or not active' using errcode = 'P0002';
+  end if;
+
+  if v_old is not distinct from p_white_label_platform_id then
+    select * into v_row from public.companies c where c.id = p_company_id;
+    return v_row;
+  end if;
+
+  perform set_config('gridex.white_label_assignment', 'on', true);
+  update public.companies c
+     set white_label_platform_id = p_white_label_platform_id,
+         updated_at = now()
+   where c.id = p_company_id
+  returning c.* into v_row;
+  perform set_config('gridex.white_label_assignment', '', true);
+
+  insert into public.audit_logs (company_id, actor_user_id, entity_type, entity_id, action, old_values, new_values, metadata)
+  values (
+    p_company_id, auth.uid(), 'company', p_company_id::text,
+    case when p_white_label_platform_id is null then 'white_label.detach' else 'white_label.assign' end,
+    jsonb_build_object('white_label_platform_id', v_old),
+    jsonb_build_object('white_label_platform_id', p_white_label_platform_id),
+    jsonb_build_object('source', 'gridex_assign_company_to_whitelabel')
+  );
+
+  return v_row;
+end;
+$$;
+
+--
 -- Name: gridex_assign_customer_contract_identity_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23486,6 +23544,531 @@ CREATE FUNCTION public.gridex_customer_operation_outcome_class(p_status text, p_
 $$;
 
 --
+-- Name: gridex_customer_portfolio_active_counts(uuid[], date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_active_counts(p_company_ids uuid[], p_at date DEFAULT CURRENT_DATE) RETURNS TABLE(company_id uuid, active_customers integer, active_metering_points integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_id uuid;
+  v_at date := coalesce(p_at, current_date);
+begin
+  if p_company_ids is null or cardinality(p_company_ids) > 1000 then
+    raise exception 'Between 0 and 1000 companies are required' using errcode = '22023';
+  end if;
+
+  foreach v_id in array p_company_ids loop
+    perform public.gridex_customer_portfolio_assert_read(v_id);
+  end loop;
+
+  return query
+  select ids.id,
+         count(distinct sp.customer_id)::integer,
+         count(distinct sp.metering_point_id)::integer
+  from unnest(p_company_ids) as ids(id)
+  left join public.customer_supply_periods sp
+    on sp.company_id = ids.id
+   and sp.status <> 'cancelled'
+   and sp.start_date <= v_at
+   and (sp.end_date is null or sp.end_date > v_at)
+  group by ids.id;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_assert_read(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_assert_read(p_company_id uuid) RETURNS void
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_platform_id uuid;
+begin
+  if p_company_id is null then
+    raise exception 'company_id is required' using errcode = '22023';
+  end if;
+
+  if coalesce(auth.role(), '') = 'service_role' then
+    return;
+  end if;
+
+  if public.gridex_can_read_company(p_company_id) then
+    return;
+  end if;
+
+  select c.white_label_platform_id into v_platform_id
+  from public.companies c
+  where c.id = p_company_id;
+
+  if v_platform_id is not null and public.gridex_user_can_read_whitelabel_platform(v_platform_id) then
+    return;
+  end if;
+
+  raise exception 'Not allowed to read portfolio for this company' using errcode = '42501';
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_bidding_zones(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_bidding_zones(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE) RETURNS TABLE(bidding_zone_code text, active_customers integer, metering_points integer, forecast_12m_kwh numeric)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_at date := coalesce(p_as_of, current_date);
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+
+  return query
+  with active as (
+    select sp.customer_id, sp.metering_point_id,
+           coalesce(nullif(upper(trim(mp.bidding_zone_code)), ''), 'UNKNOWN') as zone
+    from public.customer_supply_periods sp
+    left join public.metering_points mp on mp.id = sp.metering_point_id
+    where sp.company_id = p_company_id and sp.status <> 'cancelled'
+      and sp.start_date <= v_at and (sp.end_date is null or sp.end_date > v_at)
+  ),
+  fc as (
+    select coalesce(nullif(upper(trim(mp.bidding_zone_code)), ''), 'UNKNOWN') as zone, sum(pf.kwh) as kwh
+    from public.gridex_customer_portfolio_point_forecast_internal(p_company_id, v_at, 12) pf
+    left join public.metering_points mp on mp.id = pf.metering_point_id
+    group by 1
+  )
+  select z.zone,
+         count(distinct a.customer_id)::integer,
+         count(distinct a.metering_point_id)::integer,
+         round(coalesce(max(fc.kwh), 0), 3)
+  from (select zone from active union select zone from fc) z
+  left join active a on a.zone = z.zone
+  left join fc on fc.zone = z.zone
+  group by z.zone
+  order by z.zone;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_churn_reasons(uuid, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_churn_reasons(p_company_id uuid, p_from date, p_to date) RETURNS TABLE(month date, reason text, customers integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+  if p_from is null or p_to is null or p_from > p_to or p_to - p_from > 3700 then
+    raise exception 'Invalid period' using errcode = '22023';
+  end if;
+
+  return query
+  with spans as (
+    select sp.customer_id,
+           case when bool_or(sp.end_date is null) then null else max(sp.end_date) end as last_end
+    from public.customer_supply_periods sp
+    where sp.company_id = p_company_id and sp.status <> 'cancelled'
+    group by sp.customer_id
+  ),
+  churned as (
+    select s.customer_id, s.last_end
+    from spans s
+    where s.last_end between date_trunc('month', p_from)::date
+                         and (date_trunc('month', p_to) + interval '1 month' - interval '1 day')::date
+  )
+  select date_trunc('month', ch.last_end)::date,
+         coalesce(
+           (select nullif(trim(cc.termination_reason), '') from public.customer_contracts cc
+             where cc.company_id = p_company_id and cc.customer_id = ch.customer_id
+               and cc.termination_reason is not null
+             order by cc.ends_at desc nulls last limit 1),
+           (select coalesce(nullif(trim(e.reason), ''), e.event_type) from public.customer_lifecycle_events e
+             where e.company_id = p_company_id and e.customer_id = ch.customer_id
+               and e.event_status = 'completed' and e.event_type in ('move_out', 'terminate')
+             order by e.effective_date desc nulls last, e.created_at desc limit 1),
+           'unknown'
+         ) as reason,
+         count(*)::integer
+  from churned ch
+  group by 1, 2
+  order by 1, 3 desc;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_cohorts(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer DEFAULT 12) RETURNS TABLE(cohort_month date, customers integer, retained_1m numeric, retained_3m numeric, retained_6m numeric, retained_12m numeric)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_months integer := least(greatest(coalesce(p_months, 12), 1), 36);
+  v_from date := (date_trunc('month', current_date) - make_interval(months => v_months - 1))::date;
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+
+  return query
+  with periods as (
+    select sp.customer_id, sp.start_date, sp.end_date
+    from public.customer_supply_periods sp
+    where sp.company_id = p_company_id and sp.status <> 'cancelled'
+  ),
+  firsts as (
+    select p.customer_id, date_trunc('month', min(p.start_date))::date as cohort
+    from periods p group by p.customer_id
+  ),
+  cohort_members as (
+    select f.cohort, f.customer_id from firsts f where f.cohort >= v_from
+  ),
+  checks as (
+    select cm.cohort, cm.customer_id, k.k,
+           (cm.cohort + make_interval(months => k.k + 1) - interval '1 day')::date as at_date
+    from cohort_members cm
+    cross join (values (1), (3), (6), (12)) as k(k)
+  ),
+  results as (
+    select c.cohort, c.k, c.at_date,
+           exists (select 1 from periods p where p.customer_id = c.customer_id
+                    and p.start_date <= c.at_date and (p.end_date is null or p.end_date > c.at_date)) as active
+    from checks c
+  )
+  select cm.cohort,
+         count(distinct cm.customer_id)::integer,
+         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 1),
+         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 3),
+         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 6),
+         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 12)
+  from cohort_members cm
+  group by cm.cohort
+  order by cm.cohort;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_expiring_poa(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer DEFAULT 30) RETURNS TABLE(power_of_attorney_id uuid, customer_id uuid, customer_name text, scope text, valid_to date, days_left integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+
+  return query
+  select x.id, x.customer_id,
+         coalesce(nullif(trim(c.full_name), ''), nullif(trim(c.company_name), ''),
+                  nullif(trim(concat_ws(' ', c.first_name, c.last_name)), ''), c.customer_number),
+         x.scope, x.valid_to, (x.valid_to - current_date)::integer
+  from public.powers_of_attorney x
+  left join public.customers c on c.id = x.customer_id and c.company_id = x.company_id
+  where x.company_id = p_company_id
+    and x.status in ('signed', 'accepted', 'active', 'completed')
+    and x.valid_to between current_date and current_date + least(greatest(coalesce(p_days, 30), 1), 365)
+  order by x.valid_to, x.id
+  limit 500;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_forecast(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_forecast(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE) RETURNS TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+  return query
+  select * from public.gridex_customer_portfolio_forecast_cached_internal(p_company_id, coalesce(p_as_of, current_date));
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_forecast_accuracy(uuid, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_forecast_accuracy(p_company_id uuid, p_from date, p_to date) RETURNS TABLE(month date, forecast_kwh numeric, actual_kwh numeric, diff_kwh numeric, diff_percent numeric)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+  if p_from is null or p_to is null or p_from > p_to or p_to - p_from > 3700 then
+    raise exception 'Invalid period' using errcode = '22023';
+  end if;
+
+  return query
+  with months as (
+    select gs::date as m
+    from generate_series(date_trunc('month', p_from)::date, date_trunc('month', p_to)::date, interval '1 month') gs
+  ),
+  fc as (
+    select s.as_of_month as m, s.forecast_kwh
+    from public.customer_portfolio_forecast_snapshots s
+    where s.company_id = p_company_id and s.month_index = 1
+  ),
+  act as (
+    select date_trunc('month', mv.period_start)::date as m, sum(mv.value_kwh) as kwh
+    from public.metering_values mv
+    where mv.company_id = p_company_id
+      and mv.is_current and mv.reading_type = 'consumption' and mv.value_kwh is not null
+      and mv.period_start >= date_trunc('month', p_from)
+      and mv.period_start < date_trunc('month', p_to) + interval '1 month'
+    group by 1
+  )
+  select mo.m, fc.forecast_kwh, round(act.kwh, 3),
+         round(act.kwh - fc.forecast_kwh, 3),
+         case when fc.forecast_kwh > 0 then round((act.kwh - fc.forecast_kwh) / fc.forecast_kwh * 100, 2) end
+  from months mo
+  left join fc on fc.m = mo.m
+  left join act on act.m = mo.m
+  order by mo.m;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_forecast_cached_internal(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_forecast_cached_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE) RETURNS TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_month date := date_trunc('month', coalesce(p_as_of, current_date))::date;
+begin
+  if exists (
+    select 1 from public.customer_portfolio_forecast_snapshots s
+    where s.company_id = p_company_id and s.as_of_month = v_month
+  ) then
+    return query
+    select s.month, s.month_index, s.forecast_kwh, s.low_kwh, s.high_kwh, s.metering_points, s.points_with_history
+    from public.customer_portfolio_forecast_snapshots s
+    where s.company_id = p_company_id and s.as_of_month = v_month
+    order by s.month;
+  else
+    return query select * from public.gridex_customer_portfolio_forecast_internal(p_company_id, v_month, 12);
+  end if;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_forecast_internal(uuid, date, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_forecast_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12) RETURNS TABLE(month date, month_index integer, forecast_kwh numeric, low_kwh numeric, high_kwh numeric, metering_points integer, points_with_history integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_start date := date_trunc('month', coalesce(p_as_of, current_date))::date;
+  v_months integer := least(greatest(coalesce(p_months, 12), 1), 24);
+begin
+  return query
+  with targets as (
+    select (v_start + make_interval(months => i))::date as t_month, i + 1 as idx
+    from generate_series(0, v_months - 1) i
+  ),
+  pp as (
+    select * from public.gridex_customer_portfolio_point_forecast_internal(p_company_id, v_start, v_months)
+  )
+  select t.t_month, t.idx,
+         round(coalesce(sum(pp.kwh), 0), 3),
+         round(coalesce(sum(pp.kwh * case when pp.exact then 0.92 when pp.has_history then 0.85 else 0.7 end), 0), 3),
+         round(coalesce(sum(pp.kwh * case when pp.exact then 1.08 when pp.has_history then 1.15 else 1.3 end), 0), 3),
+         count(pp.metering_point_id)::integer,
+         count(pp.metering_point_id) filter (where pp.has_history)::integer
+  from targets t
+  left join pp on pp.month = t.t_month
+  group by t.t_month, t.idx
+  order by t.t_month;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_monthly_internal(uuid, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_monthly_internal(p_company_id uuid, p_from date, p_to date) RETURNS TABLE(month date, active_customers_start integer, active_customers integer, new_customers integer, churned_customers integer, net_change integer, churn_rate numeric, active_metering_points integer, poa_requested integer, poa_signed integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, metering_requests_ongoing integer, metering_requests_failed integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  return query
+  with months as (
+    select gs::date as m_start,
+           (gs + interval '1 month' - interval '1 day')::date as m_end
+    from generate_series(date_trunc('month', p_from)::date, date_trunc('month', p_to)::date, interval '1 month') gs
+  ),
+  periods as (
+    select sp.customer_id, sp.metering_point_id, sp.start_date, sp.end_date
+    from public.customer_supply_periods sp
+    where sp.company_id = p_company_id
+      and sp.status <> 'cancelled'
+  ),
+  customer_span as (
+    select p.customer_id,
+           min(p.start_date) as first_start,
+           case when bool_or(p.end_date is null) then null else max(p.end_date) end as last_end
+    from periods p
+    group by p.customer_id
+  ),
+  poa as (
+    select x.created_at::date as created_on, x.signed_at::date as signed_on,
+           x.valid_from, x.valid_to, x.status
+    from public.powers_of_attorney x
+    where x.company_id = p_company_id
+  ),
+  req as (
+    select x.requested_at::date as requested_on, x.status, x.request_scope,
+           x.requested_period_start
+    from public.grid_owner_data_requests x
+    where x.company_id = p_company_id
+  )
+  select
+    m.m_start,
+    (select count(distinct p.customer_id) from periods p
+       where p.start_date <= m.m_start - 1 and (p.end_date is null or p.end_date > m.m_start - 1))::integer,
+    (select count(distinct p.customer_id) from periods p
+       where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end))::integer,
+    (select count(*) from customer_span cs where cs.first_start between m.m_start and m.m_end)::integer,
+    (select count(*) from customer_span cs where cs.last_end between m.m_start and m.m_end)::integer,
+    null::integer,
+    null::numeric,
+    (select count(distinct p.metering_point_id) from periods p
+       where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end))::integer,
+    (select count(*) from poa x where x.created_on between m.m_start and m.m_end)::integer,
+    (select count(*) from poa x where x.signed_on between m.m_start and m.m_end)::integer,
+    (select count(*) from poa x
+       where x.status in ('signed', 'accepted', 'active', 'completed')
+         and coalesce(x.valid_from, x.signed_on, x.created_on) <= m.m_end
+         and (x.valid_to is null or x.valid_to >= m.m_end))::integer,
+    (select count(*) from req r where r.requested_on between m.m_start and m.m_end)::integer,
+    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
+       and r.request_scope in ('meter_values', 'billing_underlay')
+       and r.requested_period_start is not null and r.requested_period_start < date_trunc('month', r.requested_on)::date)::integer,
+    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
+       and r.request_scope in ('meter_values', 'billing_underlay')
+       and (r.requested_period_start is null or r.requested_period_start >= date_trunc('month', r.requested_on)::date))::integer,
+    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
+       and r.status in ('failed', 'rejected', 'error'))::integer
+  from months m
+  order by m.m_start;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_point_forecast_internal(uuid, date, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_point_forecast_internal(p_company_id uuid, p_as_of date DEFAULT CURRENT_DATE, p_months integer DEFAULT 12) RETURNS TABLE(month date, month_index integer, metering_point_id uuid, kwh numeric, has_history boolean, exact boolean)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_start date := date_trunc('month', coalesce(p_as_of, current_date))::date;
+  v_hist_from date := (date_trunc('month', coalesce(p_as_of, current_date)) - interval '12 months')::date;
+  v_months integer := least(greatest(coalesce(p_months, 12), 1), 24);
+begin
+  return query
+  with targets as (
+    select (v_start + make_interval(months => i))::date as t_month, i + 1 as idx
+    from generate_series(0, v_months - 1) i
+  ),
+  profile as (
+    select w.month_number, w.weight_percent * 12 / 100.0 as factor
+    from public.consumption_profile_month_weights w
+    where w.profile_id = (
+      select cp.id from public.consumption_profiles cp
+      where cp.is_default = true and (cp.company_id = p_company_id or cp.company_id is null)
+      order by (cp.company_id is null), cp.created_at
+      limit 1
+    )
+  ),
+  points as (
+    select sp.metering_point_id,
+           case when bool_or(sp.end_date is null) then null else max(sp.end_date) end as supply_end
+    from public.customer_supply_periods sp
+    where sp.company_id = p_company_id
+      and sp.status <> 'cancelled'
+      and sp.start_date <= v_start
+      and (sp.end_date is null or sp.end_date >= v_start)
+    group by sp.metering_point_id
+  ),
+  history as (
+    select mv.metering_point_id,
+           extract(month from mv.period_start)::integer as month_number,
+           sum(mv.value_kwh) as kwh
+    from public.metering_values mv
+    join points pt on pt.metering_point_id = mv.metering_point_id
+    where mv.company_id = p_company_id
+      and mv.is_current
+      and mv.reading_type = 'consumption'
+      and mv.value_kwh is not null
+      and mv.period_start >= v_hist_from
+      and mv.period_start < v_start
+    group by 1, 2
+  ),
+  point_avg as (
+    select h.metering_point_id, avg(h.kwh) as avg_kwh from history h group by 1
+  ),
+  company_avg as (
+    select avg(pa.avg_kwh) as avg_kwh from point_avg pa
+  )
+  select t.t_month, t.idx, pt.metering_point_id,
+         greatest(0, coalesce(
+           h.kwh,
+           pa.avg_kwh * coalesce(pr.factor, 1),
+           (select ca.avg_kwh from company_avg ca) * coalesce(pr.factor, 1),
+           0
+         )),
+         (pa.metering_point_id is not null),
+         (h.kwh is not null)
+  from targets t
+  cross join points pt
+  left join history h on h.metering_point_id = pt.metering_point_id
+    and h.month_number = extract(month from t.t_month)::integer
+  left join point_avg pa on pa.metering_point_id = pt.metering_point_id
+  left join profile pr on pr.month_number = extract(month from t.t_month)::integer
+  where pt.supply_end is null or pt.supply_end >= t.t_month;
+end;
+$$;
+
+--
+-- Name: gridex_customer_portfolio_summary(uuid, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_portfolio_summary(p_company_id uuid, p_from date DEFAULT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '11 mons'::interval))::date, p_to date DEFAULT CURRENT_DATE) RETURNS TABLE(month date, active_customers_start integer, active_customers integer, new_customers integer, churned_customers integer, net_change integer, churn_rate numeric, active_metering_points integer, poa_requested integer, poa_signed integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, metering_requests_ongoing integer, metering_requests_failed integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  perform public.gridex_customer_portfolio_assert_read(p_company_id);
+  if p_from is null or p_to is null or p_from > p_to or p_to - p_from > 3700 then
+    raise exception 'Invalid period' using errcode = '22023';
+  end if;
+
+  return query
+  select r.month, r.active_customers_start, r.active_customers, r.new_customers, r.churned_customers,
+         r.active_customers - r.active_customers_start,
+         case when r.active_customers_start > 0
+              then round(r.churned_customers::numeric / r.active_customers_start, 4) end,
+         r.active_metering_points, r.poa_requested, r.poa_signed, r.poa_active,
+         r.metering_requests_total, r.metering_requests_historical, r.metering_requests_ongoing,
+         r.metering_requests_failed
+  from public.gridex_customer_portfolio_monthly_internal(p_company_id, p_from, p_to) r;
+end;
+$$;
+
+--
 -- Name: gridex_customer_retention_until_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -30322,6 +30905,31 @@ begin
 end $$;
 
 --
+-- Name: gridex_guard_company_white_label_platform(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_company_white_label_platform() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  if new.white_label_platform_id is not distinct from old.white_label_platform_id then
+    return new;
+  end if;
+
+  if coalesce(current_setting('gridex.white_label_assignment', true), '') = 'on'
+     or coalesce(auth.role(), '') = 'service_role'
+     -- direct database sessions (migrations, operators) carry no JWT at all
+     or (auth.uid() is null and coalesce(auth.role(), '') not in ('anon', 'authenticated'))
+     or public.gridex_user_is_platform_admin() then
+    return new;
+  end if;
+
+  raise exception 'Only platform superadmins can change a company''s white-label platform' using errcode = '42501';
+end;
+$$;
+
+--
 -- Name: gridex_guard_immutable_meter_reading_series(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -32437,6 +33045,26 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uuid, p_customer_type text) IS 'Tenant-scoped external feed for contracts published to the api channel.';
+
+--
+-- Name: gridex_list_readable_whitelabel_platforms(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_list_readable_whitelabel_platforms() RETURNS TABLE(id uuid, name text, slug text, status text, membership_role text)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  return query
+  select p.id, p.name, p.slug, p.status,
+         coalesce(m.membership_role, case when public.gridex_user_is_platform_admin() then 'platform_admin' end)
+  from public.white_label_platforms p
+  left join public.white_label_platform_memberships m
+    on m.white_label_platform_id = p.id and m.user_id = auth.uid() and m.status = 'active'
+  where public.gridex_user_can_read_whitelabel_platform(p.id)
+  order by p.name;
+end;
+$$;
 
 --
 -- Name: gridex_lock_commercial_child(); Type: FUNCTION; Schema: public; Owner: -
@@ -47038,6 +47666,126 @@ end
 $$;
 
 --
+-- Name: company_monthly_metrics; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.company_monthly_metrics (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    month date NOT NULL,
+    total_customers integer DEFAULT 0,
+    active_customers integer DEFAULT 0,
+    new_customers integer DEFAULT 0,
+    ended_customers integer DEFAULT 0,
+    total_sites integer DEFAULT 0,
+    active_sites integer DEFAULT 0,
+    total_metering_points integer DEFAULT 0,
+    active_metering_points integer DEFAULT 0,
+    metering_values_received integer DEFAULT 0,
+    metering_values_missing integer DEFAULT 0,
+    requested_metering_values integer DEFAULT 0,
+    successful_metering_requests integer DEFAULT 0,
+    failed_metering_requests integer DEFAULT 0,
+    forecast_kwh numeric DEFAULT 0,
+    actual_kwh numeric DEFAULT 0,
+    diff_kwh numeric DEFAULT 0,
+    diff_percent numeric,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    churned_customers integer DEFAULT 0 NOT NULL,
+    net_change integer DEFAULT 0 NOT NULL,
+    churn_rate numeric,
+    poa_requested integer DEFAULT 0 NOT NULL,
+    poa_signed integer DEFAULT 0 NOT NULL,
+    poa_active integer DEFAULT 0 NOT NULL,
+    metering_requests_total integer DEFAULT 0 NOT NULL,
+    metering_requests_historical integer DEFAULT 0 NOT NULL,
+    metering_requests_ongoing integer DEFAULT 0 NOT NULL,
+    metering_requests_failed integer DEFAULT 0 NOT NULL,
+    portfolio_source_version text,
+    portfolio_computed_at timestamp with time zone
+);
+
+--
+-- Name: gridex_snapshot_customer_portfolio_month(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_snapshot_customer_portfolio_month(p_company_id uuid, p_month date) RETURNS public.company_monthly_metrics
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_month date := date_trunc('month', p_month)::date;
+  v_current date := date_trunc('month', current_date)::date;
+  v_row public.company_monthly_metrics;
+begin
+  if p_company_id is null or p_month is null then
+    raise exception 'company_id and month are required' using errcode = '22023';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('customer_portfolio:' || p_company_id::text || ':' || v_month::text, 0));
+
+  insert into public.company_monthly_metrics as cmm (
+    company_id, month, active_customers, new_customers, ended_customers, churned_customers,
+    net_change, churn_rate, poa_requested, poa_signed, poa_active,
+    metering_requests_total, metering_requests_historical, metering_requests_ongoing,
+    metering_requests_failed, portfolio_source_version, portfolio_computed_at, updated_at
+  )
+  select p_company_id, v_month, s.active_customers, s.new_customers, s.churned_customers, s.churned_customers,
+         s.active_customers - s.active_customers_start,
+         case when s.active_customers_start > 0 then round(s.churned_customers::numeric / s.active_customers_start, 4) end,
+         s.poa_requested, s.poa_signed, s.poa_active,
+         s.metering_requests_total, s.metering_requests_historical, s.metering_requests_ongoing,
+         s.metering_requests_failed,
+         'customer_portfolio_v2', now(), now()
+  from public.gridex_customer_portfolio_monthly_internal(p_company_id, v_month, v_month) s
+  on conflict (company_id, month) do update set
+    active_customers = excluded.active_customers,
+    new_customers = excluded.new_customers,
+    ended_customers = excluded.ended_customers,
+    churned_customers = excluded.churned_customers,
+    net_change = excluded.net_change,
+    churn_rate = excluded.churn_rate,
+    poa_requested = excluded.poa_requested,
+    poa_signed = excluded.poa_signed,
+    poa_active = excluded.poa_active,
+    metering_requests_total = excluded.metering_requests_total,
+    metering_requests_historical = excluded.metering_requests_historical,
+    metering_requests_ongoing = excluded.metering_requests_ongoing,
+    metering_requests_failed = excluded.metering_requests_failed,
+    portfolio_source_version = excluded.portfolio_source_version,
+    portfolio_computed_at = excluded.portfolio_computed_at,
+    updated_at = excluded.updated_at
+  returning cmm.* into v_row;
+
+  if v_month >= v_current or not exists (
+    select 1 from public.customer_portfolio_forecast_snapshots s
+    where s.company_id = p_company_id and s.as_of_month = v_month
+  ) then
+    -- The horizon is always the same 12 months for a given as_of_month, so an upsert
+    -- replaces the whole run without removing rows.
+    insert into public.customer_portfolio_forecast_snapshots as fs (
+      company_id, as_of_month, month, month_index, forecast_kwh, low_kwh, high_kwh,
+      metering_points, points_with_history, computed_at
+    )
+    select p_company_id, v_month, f.month, f.month_index, f.forecast_kwh, f.low_kwh, f.high_kwh,
+           f.metering_points, f.points_with_history, now()
+    from public.gridex_customer_portfolio_forecast_internal(p_company_id, v_month, 12) f
+    on conflict (company_id, as_of_month, month) do update set
+      month_index = excluded.month_index,
+      forecast_kwh = excluded.forecast_kwh,
+      low_kwh = excluded.low_kwh,
+      high_kwh = excluded.high_kwh,
+      metering_points = excluded.metering_points,
+      points_with_history = excluded.points_with_history,
+      computed_at = excluded.computed_at;
+  end if;
+
+  return v_row;
+end;
+$$;
+
+--
 -- Name: gridex_snapshot_with_invoice_fee(jsonb, numeric, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -50388,6 +51136,34 @@ CREATE FUNCTION public.gridex_user_can_manage_company(p_company_id uuid) RETURNS
 $$;
 
 --
+-- Name: gridex_user_can_read_whitelabel_platform(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid) RETURNS boolean
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+-- plpgsql (not sql) so the body is resolved at call time: the white-label tables
+-- are absent in the canonical clean replay (see 20260829194612).
+begin
+  return p_white_label_platform_id is not null
+    and public.gridex_is_current_session_allowed()
+    and (
+      public.gridex_user_is_platform_admin()
+      or exists (
+        select 1
+        from public.white_label_platform_memberships m
+        join public.white_label_platforms p on p.id = m.white_label_platform_id
+        where m.white_label_platform_id = p_white_label_platform_id
+          and m.user_id = auth.uid()
+          and m.status = 'active'
+          and p.status <> 'archived'
+      )
+    );
+end;
+$$;
+
+--
 -- Name: gridex_user_company_ids(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -52223,6 +52999,43 @@ begin
     'contract_model_version','2026-07-21.2'
   );
 end $$;
+
+--
+-- Name: gridex_whitelabel_portfolio_overview(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date DEFAULT CURRENT_DATE) RETURNS TABLE(company_id uuid, company_name text, company_status text, active_customers integer, new_customers integer, churned_customers integer, net_change integer, poa_requested integer, poa_active integer, metering_requests_total integer, metering_requests_historical integer, forecast_month_kwh numeric, forecast_3m_kwh numeric, forecast_6m_kwh numeric, forecast_12m_kwh numeric)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_temp'
+    AS $$
+declare
+  v_month date := date_trunc('month', coalesce(p_month, current_date))::date;
+begin
+  if not public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id)
+     and coalesce(auth.role(), '') <> 'service_role' then
+    raise exception 'Not allowed to read this white-label platform' using errcode = '42501';
+  end if;
+
+  return query
+  select c.id, c.name, c.status,
+         s.active_customers, s.new_customers, s.churned_customers,
+         s.active_customers - s.active_customers_start,
+         s.poa_requested, s.poa_active, s.metering_requests_total, s.metering_requests_historical,
+         f.m1, f.m3, f.m6, f.m12
+  from public.companies c
+  cross join lateral public.gridex_customer_portfolio_monthly_internal(c.id, v_month, v_month) s
+  cross join lateral (
+    select sum(x.forecast_kwh) filter (where x.month_index <= 1) as m1,
+           sum(x.forecast_kwh) filter (where x.month_index <= 3) as m3,
+           sum(x.forecast_kwh) filter (where x.month_index <= 6) as m6,
+           sum(x.forecast_kwh) as m12
+    from public.gridex_customer_portfolio_forecast_cached_internal(c.id, v_month) x
+  ) f
+  where c.white_label_platform_id = p_white_label_platform_id
+    and c.status <> 'deleted_test_only'
+  order by c.name;
+end;
+$$;
 
 --
 -- Name: gridex_witness_correction_concern_v1(uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -54757,35 +55570,6 @@ CREATE TABLE public.bidding_zones (
     name text,
     country_code text DEFAULT 'SE'::text,
     is_active boolean DEFAULT true,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now()
-);
-
---
--- Name: company_monthly_metrics; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.company_monthly_metrics (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid NOT NULL,
-    month date NOT NULL,
-    total_customers integer DEFAULT 0,
-    active_customers integer DEFAULT 0,
-    new_customers integer DEFAULT 0,
-    ended_customers integer DEFAULT 0,
-    total_sites integer DEFAULT 0,
-    active_sites integer DEFAULT 0,
-    total_metering_points integer DEFAULT 0,
-    active_metering_points integer DEFAULT 0,
-    metering_values_received integer DEFAULT 0,
-    metering_values_missing integer DEFAULT 0,
-    requested_metering_values integer DEFAULT 0,
-    successful_metering_requests integer DEFAULT 0,
-    failed_metering_requests integer DEFAULT 0,
-    forecast_kwh numeric DEFAULT 0,
-    actual_kwh numeric DEFAULT 0,
-    diff_kwh numeric DEFAULT 0,
-    diff_percent numeric,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
@@ -61112,6 +61896,29 @@ CREATE TABLE public.customer_portal_write_idempotency (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT customer_portal_write_idempotency_status_check CHECK ((status = ANY (ARRAY['processing'::text, 'completed'::text, 'failed'::text])))
+);
+
+--
+-- Name: customer_portfolio_forecast_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_portfolio_forecast_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    as_of_month date NOT NULL,
+    month date NOT NULL,
+    month_index integer NOT NULL,
+    forecast_kwh numeric DEFAULT 0 NOT NULL,
+    low_kwh numeric DEFAULT 0 NOT NULL,
+    high_kwh numeric DEFAULT 0 NOT NULL,
+    metering_points integer DEFAULT 0 NOT NULL,
+    points_with_history integer DEFAULT 0 NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_portfolio_forecast_snapshots_forecast_kwh_check CHECK ((forecast_kwh >= (0)::numeric)),
+    CONSTRAINT customer_portfolio_forecast_snapshots_high_kwh_check CHECK ((high_kwh >= (0)::numeric)),
+    CONSTRAINT customer_portfolio_forecast_snapshots_low_kwh_check CHECK ((low_kwh >= (0)::numeric)),
+    CONSTRAINT customer_portfolio_forecast_snapshots_month_index_check CHECK (((month_index >= 1) AND (month_index <= 24))),
+    CONSTRAINT customer_portfolio_forecast_snapshots_month_start CHECK (((as_of_month = (date_trunc('month'::text, (as_of_month)::timestamp with time zone))::date) AND (month = (date_trunc('month'::text, (month)::timestamp with time zone))::date)))
 );
 
 --
@@ -75380,6 +76187,20 @@ ALTER TABLE ONLY public.customer_portal_write_idempotency
     ADD CONSTRAINT customer_portal_write_idempotency_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_portfolio_forecast_snapshots customer_portfolio_forecast_snapshots_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_portfolio_forecast_snapshots
+    ADD CONSTRAINT customer_portfolio_forecast_snapshots_key UNIQUE (company_id, as_of_month, month);
+
+--
+-- Name: customer_portfolio_forecast_snapshots customer_portfolio_forecast_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_portfolio_forecast_snapshots
+    ADD CONSTRAINT customer_portfolio_forecast_snapshots_pkey PRIMARY KEY (id);
+
+--
 -- Name: customer_readiness_snapshots customer_readiness_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -79459,6 +80280,12 @@ CREATE INDEX customer_contract_signature_requests_expiry_idx ON public.customer_
 CREATE UNIQUE INDEX customer_contracts_company_contract_number_uidx ON public.customer_contracts USING btree (company_id, contract_number) WHERE (contract_number IS NOT NULL);
 
 --
+-- Name: customer_contracts_company_customer_ends_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_contracts_company_customer_ends_idx ON public.customer_contracts USING btree (company_id, customer_id, ends_at);
+
+--
 -- Name: customer_contracts_company_customer_number_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -80549,6 +81376,12 @@ CREATE INDEX customer_supply_periods_company_customer_period_idx ON public.custo
 --
 
 CREATE UNIQUE INDEX customer_supply_periods_company_id_id_uidx ON public.customer_supply_periods USING btree (company_id, id);
+
+--
+-- Name: customer_supply_periods_portfolio_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_supply_periods_portfolio_idx ON public.customer_supply_periods USING btree (company_id, customer_id, start_date, end_date) WHERE (status <> 'cancelled'::text);
 
 --
 -- Name: customers_archived_idx; Type: INDEX; Schema: public; Owner: -
@@ -81815,6 +82648,12 @@ CREATE INDEX grid_owner_data_requests_company_operation_idx ON public.grid_owner
 --
 
 CREATE INDEX grid_owner_data_requests_company_operation_scope_idx ON public.grid_owner_data_requests USING btree (company_id, operation_id, customer_id, site_id, grid_owner_id, request_scope, created_at DESC) WHERE (operation_id IS NOT NULL);
+
+--
+-- Name: grid_owner_data_requests_company_requested_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX grid_owner_data_requests_company_requested_idx ON public.grid_owner_data_requests USING btree (company_id, requested_at);
 
 --
 -- Name: grid_owner_data_requests_company_site_status_facility_idx; Type: INDEX; Schema: public; Owner: -
@@ -87757,6 +88596,12 @@ CREATE UNIQUE INDEX power_of_attorney_scopes_poa_scope_uidx ON public.power_of_a
 CREATE INDEX powers_of_attorney_company_contract_status_idx ON public.powers_of_attorney USING btree (company_id, contract_id, status, created_at DESC) WHERE (contract_id IS NOT NULL);
 
 --
+-- Name: powers_of_attorney_company_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX powers_of_attorney_company_created_idx ON public.powers_of_attorney USING btree (company_id, created_at);
+
+--
 -- Name: powers_of_attorney_company_customer_contract_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -87797,6 +88642,12 @@ CREATE INDEX powers_of_attorney_company_external_customer_id_idx ON public.power
 --
 
 CREATE INDEX powers_of_attorney_company_site_status_idx ON public.powers_of_attorney USING btree (company_id, customer_site_id, status, created_at DESC) WHERE (customer_site_id IS NOT NULL);
+
+--
+-- Name: powers_of_attorney_company_valid_to_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX powers_of_attorney_company_valid_to_idx ON public.powers_of_attorney USING btree (company_id, valid_to) WHERE (valid_to IS NOT NULL);
 
 --
 -- Name: powers_of_attorney_portal_keyset_idx; Type: INDEX; Schema: public; Owner: -
@@ -93775,6 +94626,13 @@ ALTER TABLE ONLY public.customer_portal_write_idempotency
 
 ALTER TABLE ONLY public.customer_portal_write_idempotency
     ADD CONSTRAINT customer_portal_write_idempotency_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
+
+--
+-- Name: customer_portfolio_forecast_snapshots customer_portfolio_forecast_snapshots_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_portfolio_forecast_snapshots
+    ADD CONSTRAINT customer_portfolio_forecast_snapshots_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: customer_readiness_snapshots customer_readiness_snapshots_customer_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -100400,6 +101258,12 @@ CREATE POLICY customer_portal_requests_service_role_all ON public.customer_porta
 --
 
 ALTER TABLE public.customer_portal_write_idempotency ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: customer_portfolio_forecast_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_portfolio_forecast_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: customer_readiness_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
@@ -118043,6 +118907,14 @@ GRANT ALL ON FUNCTION public.gridex_assert_utilts_transaction_coverage(p_source_
 GRANT ALL ON FUNCTION public.gridex_assert_verified_site_owner_for_manual_outbox() TO service_role;
 
 --
+-- Name: FUNCTION gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid) TO authenticated;
+
+--
 -- Name: FUNCTION gridex_assign_customer_contract_identity_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118911,6 +119783,106 @@ REVOKE ALL ON FUNCTION public.gridex_customer_operation_outcome_class(p_status t
 GRANT ALL ON FUNCTION public.gridex_customer_operation_outcome_class(p_status text, p_attempts integer, p_max_attempts integer) TO service_role;
 
 --
+-- Name: FUNCTION gridex_customer_portfolio_active_counts(p_company_ids uuid[], p_at date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_active_counts(p_company_ids uuid[], p_at date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_active_counts(p_company_ids uuid[], p_at date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_active_counts(p_company_ids uuid[], p_at date) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_assert_read(p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_assert_read(p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_assert_read(p_company_id uuid) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_assert_read(p_company_id uuid) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_bidding_zones(p_company_id uuid, p_as_of date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_bidding_zones(p_company_id uuid, p_as_of date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_bidding_zones(p_company_id uuid, p_as_of date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_bidding_zones(p_company_id uuid, p_as_of date) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_churn_reasons(p_company_id uuid, p_from date, p_to date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_churn_reasons(p_company_id uuid, p_from date, p_to date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_churn_reasons(p_company_id uuid, p_from date, p_to date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_churn_reasons(p_company_id uuid, p_from date, p_to date) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_cohorts(p_company_id uuid, p_months integer) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_expiring_poa(p_company_id uuid, p_days integer) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_forecast(p_company_id uuid, p_as_of date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_forecast(p_company_id uuid, p_as_of date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast(p_company_id uuid, p_as_of date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast(p_company_id uuid, p_as_of date) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_forecast_accuracy(p_company_id uuid, p_from date, p_to date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_forecast_accuracy(p_company_id uuid, p_from date, p_to date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast_accuracy(p_company_id uuid, p_from date, p_to date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast_accuracy(p_company_id uuid, p_from date, p_to date) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_forecast_cached_internal(p_company_id uuid, p_as_of date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_forecast_cached_internal(p_company_id uuid, p_as_of date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast_cached_internal(p_company_id uuid, p_as_of date) TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_forecast_internal(p_company_id uuid, p_as_of date, p_months integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_forecast_internal(p_company_id uuid, p_as_of date, p_months integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_forecast_internal(p_company_id uuid, p_as_of date, p_months integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_monthly_internal(p_company_id uuid, p_from date, p_to date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_monthly_internal(p_company_id uuid, p_from date, p_to date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_monthly_internal(p_company_id uuid, p_from date, p_to date) TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_point_forecast_internal(p_company_id uuid, p_as_of date, p_months integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_point_forecast_internal(p_company_id uuid, p_as_of date, p_months integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_point_forecast_internal(p_company_id uuid, p_as_of date, p_months integer) TO service_role;
+
+--
+-- Name: FUNCTION gridex_customer_portfolio_summary(p_company_id uuid, p_from date, p_to date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_portfolio_summary(p_company_id uuid, p_from date, p_to date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_summary(p_company_id uuid, p_from date, p_to date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_customer_portfolio_summary(p_company_id uuid, p_from date, p_to date) TO authenticated;
+
+--
 -- Name: FUNCTION gridex_customer_retention_until_v1(p_customer_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -119462,6 +120434,13 @@ REVOKE ALL ON FUNCTION public.gridex_guard_canonical_public_offer() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_guard_canonical_public_offer() TO service_role;
 
 --
+-- Name: FUNCTION gridex_guard_company_white_label_platform(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_company_white_label_platform() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_guard_company_white_label_platform() TO service_role;
+
+--
 -- Name: FUNCTION gridex_guard_immutable_meter_reading_series(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -119778,6 +120757,14 @@ GRANT ALL ON FUNCTION public.gridex_list_customer_operation_events(p_company_id 
 
 REVOKE ALL ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uuid, p_customer_type text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_list_external_api_contracts(p_company_id uuid, p_customer_type text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_list_readable_whitelabel_platforms(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_list_readable_whitelabel_platforms() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_list_readable_whitelabel_platforms() TO service_role;
+GRANT ALL ON FUNCTION public.gridex_list_readable_whitelabel_platforms() TO authenticated;
 
 --
 -- Name: FUNCTION gridex_lock_commercial_child(); Type: ACL; Schema: public; Owner: -
@@ -121155,6 +122142,20 @@ REVOKE ALL ON FUNCTION public.gridex_set_metering_billing_gate(p_company_id uuid
 GRANT ALL ON FUNCTION public.gridex_set_metering_billing_gate(p_company_id uuid, p_metering_value_id uuid, p_normalized_value_id uuid, p_gate jsonb) TO service_role;
 
 --
+-- Name: TABLE company_monthly_metrics; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.company_monthly_metrics TO authenticated;
+GRANT ALL ON TABLE public.company_monthly_metrics TO service_role;
+
+--
+-- Name: FUNCTION gridex_snapshot_customer_portfolio_month(p_company_id uuid, p_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_snapshot_customer_portfolio_month(p_company_id uuid, p_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_snapshot_customer_portfolio_month(p_company_id uuid, p_month date) TO service_role;
+
+--
 -- Name: FUNCTION gridex_snapshot_with_invoice_fee(p_snapshot jsonb, p_amount numeric, p_website_card_visible boolean); Type: ACL; Schema: public; Owner: -
 --
 
@@ -121480,6 +122481,14 @@ GRANT ALL ON FUNCTION public.gridex_user_can_manage_company(p_company_id uuid) T
 GRANT ALL ON FUNCTION public.gridex_user_can_manage_company(p_company_id uuid) TO authenticated;
 
 --
+-- Name: FUNCTION gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid) TO authenticated;
+
+--
 -- Name: FUNCTION gridex_user_company_ids(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -121629,6 +122638,14 @@ GRANT ALL ON FUNCTION public.gridex_verify_contract_lifecycle_backfill(p_company
 
 REVOKE ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_verify_contract_schema_alignment() TO service_role;
+
+--
+-- Name: FUNCTION gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_whitelabel_portfolio_overview(p_white_label_platform_id uuid, p_month date) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_witness_correction_concern_v1(p_company_id uuid, p_environment text, p_capture_id uuid, p_facts_hash text); Type: ACL; Schema: public; Owner: -
@@ -122042,13 +123059,6 @@ GRANT ALL ON TABLE public.ai_list_imports TO service_role;
 
 GRANT ALL ON TABLE public.bidding_zones TO authenticated;
 GRANT ALL ON TABLE public.bidding_zones TO service_role;
-
---
--- Name: TABLE company_monthly_metrics; Type: ACL; Schema: public; Owner: -
---
-
-GRANT ALL ON TABLE public.company_monthly_metrics TO authenticated;
-GRANT ALL ON TABLE public.company_monthly_metrics TO service_role;
 
 --
 -- Name: TABLE forecast_runs; Type: ACL; Schema: public; Owner: -
@@ -123186,6 +124196,12 @@ GRANT ALL ON TABLE public.customer_portal_requests TO service_role;
 --
 
 GRANT ALL ON TABLE public.customer_portal_write_idempotency TO service_role;
+
+--
+-- Name: TABLE customer_portfolio_forecast_snapshots; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_portfolio_forecast_snapshots TO service_role;
 
 --
 -- Name: TABLE customer_readiness_snapshots; Type: ACL; Schema: public; Owner: -
