@@ -177,6 +177,9 @@ Older Current sections below are historical and SUPERSEDED.
 Verified run IDs and exact head `3251d8c85c1eaa1b97132120fdebbb47756a1974`: Ediel/browser/Full E2E/OPS success, OPS native 382/382 with prior E035 case passing, clean replay and type/schema parity. Reviewed full diff and zero review threads; updated #420 description without changing its head, made one merge to `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`, verified remote main and Vercel READY same SHA. No market activation or #310 change. Branched from new main; added test-only sanitized RPC-stage trace for the unresolved E035 Storage case and bounded identity/activation evidence. Local scripts TS, lint, diff pass; native/new PR pending.
 
 Older Current sections below are historical and SUPERSEDED.
+## 2026-10-03 — UI/billing workstream (separate from Ediel masterplan)
+
+Merged: #467 contract-driven metering resolution + atomic website application review; #468 preliminary billing from history (last year → last 4 weeks → intake annual) with reconciliation on next invoice, grid-owner history request when no estimate; #469 single atomic customer-info/grid-owner request entry (gridex_create_customer_info_request_v1, automation_key dedupe; Batch 2B fixed); #470 three stale billing static regressions repaired. Register: quality/audits/ui-consistency-20261002/findings-register.md. Handed to masterplan agent: Z13 history-request dispatch gate in lib/ediel/flows/prodatSwitch.ts. Does not change the Ediel current/next action below.
 
 ## Current — 2026-09-28 PR #420 normative import correction
 

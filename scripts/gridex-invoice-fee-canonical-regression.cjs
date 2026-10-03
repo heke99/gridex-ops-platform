@@ -28,7 +28,7 @@ const customerAgreementViews =
   read('app/portal/avtal/page.tsx') +
   read('components/admin/customers/CustomerContractOfferEligibilityCard.tsx') +
   read('components/admin/customers/contracts/CustomerContractsCard.tsx')
-const publicContracts = read('lib/website/publicContracts.ts')
+const publicContracts = ['lib/website/publicContracts.ts', 'lib/website/publicContracts.part-1.ts', 'lib/website/publicContracts.part-2.ts', 'lib/website/publicContracts.part-3.ts'].map(read).join('\n')
 const priceSourceResolver = read('lib/pricing/priceSourceResolver.ts')
 const cisContractPayload = read('lib/cis/db-shared.ts')
 const migration = read('supabase/migrations/20260720183000_invoice_fee_canonical_contract_completion.sql')

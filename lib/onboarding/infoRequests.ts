@@ -537,6 +537,9 @@ export async function createCustomerInfoRequest(input: {
   notes?: string | null;
   externalReference?: string | null;
   operationId?: string | null;
+  /** Idempotency for automated callers: one request per key and company. */
+  automationKey?: string | null;
+  automationOrigin?: string | null;
 }) {
   const companyId = requireUuid(input.companyId, "company_id");
   const actorUserId = requireUuid(input.actorUserId, "actor_user_id");
@@ -566,10 +569,12 @@ export async function createCustomerInfoRequest(input: {
     );
   }
 
-  const { data, error } = await supabaseService
-    .from("customer_info_requests")
-    .insert({
-      company_id: companyId,
+  // Request and its "created" event are written in one tenant-checked
+  // transaction; an automation key returns the existing request instead.
+  const { data, error } = await supabaseService.rpc("gridex_create_customer_info_request_v1", {
+    p_company_id: companyId,
+    p_actor_user_id: actorUserId,
+    p_request: {
       customer_id: customerId,
       request_type: input.requestType,
       target_party_type: input.targetPartyType,
@@ -579,37 +584,17 @@ export async function createCustomerInfoRequest(input: {
       grid_owner_id: anchors.gridOwnerId,
       operation_id: operationId,
       current_supplier_name: input.currentSupplierName ?? null,
-      status: "draft",
       requested_data_categories: normalizedCategories,
-      verified_payload: input.externalReference
-        ? { externalReference: input.externalReference }
-        : {},
+      verified_payload: input.externalReference ? { externalReference: input.externalReference } : {},
       notes: input.notes ?? null,
-      created_by: actorUserId,
-      updated_by: actorUserId,
-    })
-    .select("*")
-    .single();
-
-  if (error) throw error;
-
-  await supabaseService.from("customer_info_request_events").insert({
-    company_id: companyId,
-    customer_info_request_id: data.id,
-    customer_id: customerId,
-    event_type: "created",
-    message: "Uppgiftsbegäran skapades.",
-    payload: {
-      requested_data_categories: normalizedCategories,
-      siteId: anchors.siteId,
-      meteringPointId: anchors.meteringPointId,
-      gridOwnerId: anchors.gridOwnerId,
-      operationId,
+      automation_key: input.automationKey ?? null,
+      automation_origin: input.automationOrigin ?? null,
     },
-    created_by: actorUserId,
   });
-
-  return data as CustomerInfoRequestRow;
+  if (error) throw error;
+  const result = data as { created?: boolean; request?: CustomerInfoRequestRow } | null;
+  if (!result?.request) throw new Error("customer_info_request_not_created");
+  return result.request;
 }
 
 export async function createAuthorizationScope(input: {
