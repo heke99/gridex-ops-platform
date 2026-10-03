@@ -1,6 +1,7 @@
 import type { ParsedEdifactEnvelope } from '@/lib/inbound-mail/edielEmailParser'
 import { supabaseService } from '@/lib/supabase/service'
 import {
+  extractMarketActorEdielIdFromRawPayload,
   resolveInboundTenantFromIdentifiers,
   type InboundTenantEvidence,
   type InboundTenantResolution as SharedInboundTenantResolution,
@@ -30,15 +31,6 @@ function clean(value: unknown): string | null {
 
 function upper(value: unknown): string {
   return String(value ?? '').trim().toUpperCase()
-}
-
-function firstParty(parsed: ParsedEdifactEnvelope, ...qualifiers: string[]): string | null {
-  for (const qualifier of qualifiers) {
-    const values = parsed.parties[qualifier]
-    const value = Array.isArray(values) ? clean(values[0]) : null
-    if (value) return value
-  }
-  return null
 }
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
@@ -149,7 +141,8 @@ export async function resolveTenantForInboundEdiel(input: {
   environment?: string | null
   parsed: ParsedEdifactEnvelope
 }): Promise<InboundTenantResolution> {
-  const marketActorEdielId = firstParty(input.parsed, 'DO', 'DDQ', 'MR', 'MS') ?? input.parsed.receiverEdielId
+  // Only the family's legal receiver NAD (PRODAT DO, UTILTS MR) names the market actor; never the sender MS.
+  const marketActorEdielId = extractMarketActorEdielIdFromRawPayload(input.parsed.rawPayload) ?? input.parsed.receiverEdielId
   const outbound = await findCompanyIdFromMatchedOutbound(input.parsed, input.environment)
   const resolution = await resolveInboundTenantFromIdentifiers({
     existingCompanyId: input.existingCompanyId ?? outbound.companyId,
