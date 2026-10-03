@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect, unstable_rethrow } from 'next/navigation'
-import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
+import { isPlatformAdminContext, requireAdminActionAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import {
   requireEdielProductionActivateActionAccess,
   requireEdielTestAttestActionAccess,
@@ -15,7 +15,6 @@ import { getEdielMessageById } from '@/lib/ediel/db'
 import {
   buildActorTestResultEvidence,
   getActorTestCase,
-  userCanManageActorTestingForCompany,
   type ActorTestStatus,
 } from '@/lib/ediel/actorTesting'
 import { logTenantGovernanceEvent } from '@/lib/tenant/governance'
@@ -42,9 +41,14 @@ async function assertActorTestingCompanyAccess(
   admin: Awaited<ReturnType<typeof requireAdminActionAccess>>,
   companyId: string
 ) {
-  const isPlatformAdmin = isPlatformAdminContext(admin)
-  const allowed = await userCanManageActorTestingForCompany(admin.userId, companyId, isPlatformAdmin)
-  if (!allowed) throw new Error('Du saknar behörighet att hantera Ediel för detta bolag.')
+  // White-label membership is read-only: writes need platform admin or an
+  // active admin membership in this specific company.
+  if (isPlatformAdminContext(admin)) return
+  try {
+    await requireCompanyScopedActionAccess(companyId)
+  } catch {
+    throw new Error('Du saknar behörighet att hantera Ediel för detta bolag.')
+  }
 }
 function normalizeResultStatus(value: string): ActorTestStatus {
   if (value === 'passed') throw new Error('passed kan endast sättas av den maskinella evidensmotorn.')

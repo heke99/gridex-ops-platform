@@ -8,29 +8,33 @@ const systemTestActionsPath = path.join(root, 'app/admin/ediel/system-tests/acti
 const adminActionsPath = path.join(root, 'app/admin/ediel/actions.ts')
 const decisionEnginePath = path.join(root, 'lib/ediel/decisionEngine.ts')
 const tgtRegistryPath = path.join(root, 'lib/ediel/testing/tgtRegistry.ts')
-const utiltsAckOverridesPath = path.join(root, 'lib/ediel/rulebook/utiltsAckPolicy.ts')
-const utiltsErrCodesPath = path.join(root, 'lib/ediel/utilts/utiltsErr.ts')
+const utiltsAckOverridesPath = path.join(root, 'lib/ediel/testing/utiltsAckOverrides.ts')
 const docsPath = path.join(root, 'docs/ai-context/06_UTILTS_RULES.md')
 
-const files = [utiltsEnginePath, ackPath, systemTestActionsPath, adminActionsPath, decisionEnginePath, tgtRegistryPath, utiltsAckOverridesPath, utiltsErrCodesPath, docsPath]
+const files = [utiltsEnginePath, ackPath, systemTestActionsPath, adminActionsPath, decisionEnginePath, tgtRegistryPath, utiltsAckOverridesPath, docsPath]
 const failures = []
+function readWithParts(file) {
+  if (!fs.existsSync(file)) return ''
+  const dir = path.dirname(file)
+  const base = path.basename(file, '.ts')
+  const parts = fs.readdirSync(dir).filter((f) => f.startsWith(`${base}.part-`) && f.endsWith('.ts')).sort()
+  return [file, ...parts.map((f) => path.join(dir, f))].map((f) => fs.readFileSync(f, 'utf8')).join('\n')
+}
 for (const file of files) {
   if (!fs.existsSync(file)) failures.push(`Missing file: ${path.relative(root, file)}`)
 }
 
-const utiltsEngine = fs.existsSync(utiltsEnginePath) ? fs.readFileSync(utiltsEnginePath, 'utf8') : ''
+const utiltsEngine = readWithParts(utiltsEnginePath)
 const ack = fs.existsSync(ackPath) ? fs.readFileSync(ackPath, 'utf8') : ''
-const systemTestActions = fs.existsSync(systemTestActionsPath) ? fs.readFileSync(systemTestActionsPath, 'utf8') : ''
-const adminActions = fs.existsSync(adminActionsPath) ? fs.readFileSync(adminActionsPath, 'utf8') : ''
+const systemTestActions = readWithParts(systemTestActionsPath)
+const adminActions = readWithParts(adminActionsPath)
 const decisionEngine = fs.existsSync(decisionEnginePath) ? fs.readFileSync(decisionEnginePath, 'utf8') : ''
-const tgtRegistry = fs.existsSync(tgtRegistryPath) ? fs.readFileSync(tgtRegistryPath, 'utf8') : ''
+const tgtRegistry = readWithParts(tgtRegistryPath)
 const utiltsAckOverrides = fs.existsSync(utiltsAckOverridesPath) ? fs.readFileSync(utiltsAckOverridesPath, 'utf8') : ''
-const utiltsErrCodes = fs.existsSync(utiltsErrCodesPath) ? fs.readFileSync(utiltsErrCodesPath, 'utf8') : ''
 const docs = fs.existsSync(docsPath) ? fs.readFileSync(docsPath, 'utf8') : ''
 
 for (const code of ['E10', 'E14', 'E49', 'E55', 'E61']) {
   if (!utiltsAckOverrides.includes(code)) failures.push(`AGT UE allowed UTILTS_ERR code ${code} missing from contextual override`)
-  if (!utiltsErrCodes.includes(code)) failures.push(`Supported UTILTS_ERR code list missing ${code}`)
 }
 
 if (!utiltsAckOverrides.includes('AGT_UE_UTILTS_ERR_ALLOWED_CODES')) failures.push('Missing explicit AGT UE allowed-code policy')

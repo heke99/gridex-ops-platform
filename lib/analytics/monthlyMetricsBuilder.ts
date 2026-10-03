@@ -47,9 +47,6 @@ export async function buildCompanyMonthlyMetrics(companyId: string, month: strin
 
   const [
     totalCustomers,
-    activeCustomers,
-    newCustomers,
-    endedCustomers,
     totalSites,
     activeSites,
     totalMeteringPoints,
@@ -63,9 +60,6 @@ export async function buildCompanyMonthlyMetrics(companyId: string, month: strin
     missingMeteringValues,
   ] = await Promise.all([
     countRows('customers', companyId),
-    countRows('customers', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
-    countRows('customers', companyId, (query) => query.gte('created_at', start).lt('created_at', end)),
-    countRows('customers', companyId, (query) => query.gte('ended_at', start).lt('ended_at', end)),
     countRows('customer_sites', companyId),
     countRows('customer_sites', companyId, (query) => query.in('status', ACTIVE_STATUSES)),
     countRows('metering_points', companyId),
@@ -88,9 +82,7 @@ export async function buildCompanyMonthlyMetrics(companyId: string, month: strin
       company_id: companyId,
       month: safeMonth,
       total_customers: totalCustomers,
-      active_customers: activeCustomers,
-      new_customers: newCustomers,
-      ended_customers: endedCustomers,
+      // active/new/ended customers are owned by the supply-period snapshot below
       total_sites: totalSites,
       active_sites: activeSites,
       total_metering_points: totalMeteringPoints,
@@ -108,6 +100,14 @@ export async function buildCompanyMonthlyMetrics(companyId: string, month: strin
     }, { onConflict: 'company_id,month' })
 
   if (error) throw error
+
+  // Customer counts, churn, POA and metering-request volumes come from one atomic
+  // supply-period snapshot so every screen uses the same definition.
+  const { error: snapshotError } = await supabaseService.rpc('gridex_snapshot_customer_portfolio_month', {
+    p_company_id: companyId,
+    p_month: safeMonth,
+  })
+  if (snapshotError) throw snapshotError
 
   await Promise.all([
     buildCustomerMonthlyMetrics(companyId, safeMonth),

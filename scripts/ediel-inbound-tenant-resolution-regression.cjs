@@ -17,11 +17,11 @@ const sharedResolver = read('lib/ediel/tenant/resolveInboundTenant.ts')
 const inboundProcessor = read('lib/inbound-mail/edielInboundProcessor.ts')
 const emailParser = read('lib/inbound-mail/edielEmailParser.ts')
 const matcher = read('lib/inbound-mail/inboundMatcher.ts')
-const poller = read('lib/inbound-mail/edielMailboxPoller.ts')
+const poller = ['lib/inbound-mail/edielMailboxPoller.ts', 'lib/inbound-mail/edielMailboxPoller.part-1.ts', 'lib/inbound-mail/edielMailboxPoller.part-2.ts'].map(read).join('\n')
 const ackProcessing = read('lib/ediel/flows/inboundAckProcessing.ts')
 const statusUpdater = read('lib/inbound-mail/inboundStatusUpdater.ts')
 const runtimeFlow = read('lib/ediel/flows/inboundProcessing.ts')
-const actions = read('app/admin/ediel/actions.ts')
+const actions = ['app/admin/ediel/actions.ts', 'app/admin/ediel/actions.part-2.ts'].map(read).join('\n')
 const detailsPage = read('app/admin/ediel/messages/[id]/page.tsx')
 
 

@@ -89,6 +89,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'switches', label: 'Leverantörsbyten', href: '/admin/operations/switches', description: 'Start, status och slutförande', pageKey: 'operations.switches' },
       { key: 'metering', label: 'Mätvärden', href: '/admin/metering', description: 'Mätvärdesrequests och inkomna värden', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
+      { key: 'customer_portfolio', label: 'Kundportfölj', href: '/admin/analytics/portfolio', description: 'Nya och lämnade kunder, fullmakter och förbrukningsprognos', pageKey: 'analytics.workspace' },
       { key: 'outbound', label: 'Utskick', href: '/admin/outbound', description: 'Extern kommunikation i affärsspråk', pageKey: 'outbound.queue' },
       { key: 'data_quality', label: 'Datakvalitet', href: '/admin/data-quality', description: 'Datakvalitet, fullmakter, webhooks och e-postdomäner', pageKey: 'operations.integrity' },
     ],
@@ -117,6 +118,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'White-label',
     description: 'Egna bolag, go-live och aktörstester',
     items: [
+      { key: 'whitelabel.portfolio', label: 'Portföljöversikt', href: '/admin/whitelabel/portfolio', description: 'Kunder, fullmakter och prognos per bolag (läsbehörighet)', requiredPermissions: ['whitelabel.read'] },
       { key: 'whitelabel.companies', label: 'Mina bolag', href: '/admin/whitelabel/companies', description: 'Bolag under din white-label-plattform', requiredPermissions: ['whitelabel.read'] },
       { key: 'whitelabel.go_live', label: 'Go-live', href: '/admin/whitelabel/go-live', description: 'Produktionsförberedelser per bolag', requiredPermissions: ['whitelabel.read'] },
       { key: 'whitelabel.actor_testing', label: 'Aktörstester', href: '/admin/whitelabel/actor-testing', description: 'Teststatus för dina bolag', requiredPermissions: ['whitelabel.read'] },
@@ -171,6 +173,7 @@ const PLATFORM_NAVIGATION: AdminNavigationGroup[] = [
       { key: 'facility_requests', label: 'Anläggningsuppgifter', href: '/admin/facility-requests', description: 'Saknade anläggnings-ID, mätpunkter och nätägaruppgifter', pageKey: 'operations.tasks' },
       { key: 'metering', label: 'Mätvärdesåtkomst', href: '/admin/metering', description: 'Mätvärden och tillstånd', pageKey: 'metering.workspace' },
       { key: 'analytics', label: 'Analys', href: '/admin/analytics', description: 'Kunder, mätpunkter, prognos och avvikelser', pageKey: 'analytics.workspace' },
+      { key: 'customer_portfolio', label: 'Kundportfölj', href: '/admin/analytics/portfolio', description: 'Nya och lämnade kunder, fullmakter och förbrukningsprognos', pageKey: 'analytics.workspace' },
       { key: 'billing', label: 'Fakturaunderlag', href: '/admin/billing', description: 'Underlag och exportberedskap', pageKey: 'billing.workspace' },
       { key: 'billing_integrations', label: 'Fakturaintegrationer', href: '/admin/billing/integrations', description: 'Capway/Aptic, providerstatus och anslutningstest', pageKey: 'billing.workspace' },
       { key: 'partner_exports', label: 'Partnerexporter', href: '/admin/partner-exports', description: 'Exportkö och status mot faktureringspartner', pageKey: 'partner_exports.workspace' },

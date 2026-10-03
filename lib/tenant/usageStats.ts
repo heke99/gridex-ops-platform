@@ -1,3 +1,4 @@
+import { getActiveCustomerCounts } from '@/lib/analytics/customerPortfolio'
 import { unstable_cache } from 'next/cache'
 import { supabaseService } from '@/lib/supabase/service'
 
@@ -117,6 +118,8 @@ async function listCompanies(): Promise<Array<{ id: string; name: string | null;
 
 async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
   const companies = await listCompanies()
+  // Supplied customers today: the shared Kundportfölj definition, one batch call.
+  const activeCounts = await getActiveCustomerCounts(companies.map((company) => company.id))
 
   return Promise.all(
     companies.map(async (company) => {
@@ -158,7 +161,7 @@ async function listTenantUsageStatsUncached(): Promise<TenantUsageStatsRow[]> {
         latestExportAt,
       ] = await Promise.all([
         safeCount('customers', [{ column: 'company_id', value: companyId }]),
-        safeCount('customers', [{ column: 'company_id', value: companyId }, { column: 'status', value: 'active' }]),
+        Promise.resolve(activeCounts.get(companyId)?.activeCustomers ?? 0),
         safeCount('customer_contracts', [{ column: 'company_id', value: companyId }]),
         safeCount('customer_sites', [{ column: 'company_id', value: companyId }]),
         safeCount('metering_points', [{ column: 'company_id', value: companyId }]),
