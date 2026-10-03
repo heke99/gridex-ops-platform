@@ -27,11 +27,11 @@ if (!tgtEdifact.includes("? 'S18'")) failures.push('E4/Z13VH Systemtest fallback
 if (!tgtEdifact.includes('const reasonForTransaction = isHistoricalPermissionTransaction(transactionType)')) failures.push('Permission line builder must force S18 for historical transaction type')
 if (!tgtEdifact.includes('? historicalReportStartDateTime()')) failures.push('Z13VH Systemtest must use deterministic historical report start')
 if (!tgtEdifact.includes('? historicalReportEndDateTime()')) failures.push('Z13VH Systemtest must use deterministic historical report end')
-if (!tgtEdifact.includes('z13vh_reason_for_transaction_mismatch')) failures.push('Systemtest validation must block Z13VH payloads rendered with S17')
 if (!genericBuilder.includes('subtypeOrReasonCode: input.variant ?? input.context.reasonForTransaction')) failures.push('Production builder must let explicit historical variant override stale portal reason')
 if (!genericBuilder.includes('const reasonForTransaction = policy.transactionReasonCode') || !subtypeRegistry.includes("subtype: 'VH', transactionReasonCode: 'S18'")) failures.push('Production builder must resolve historical variant to S18')
 if (!dateSegments.includes("reportStartDate: get(['reportStartDate','reportStartDateTime', ...(report ? ['startDate'] : [])])") || !dateSegments.includes("contractStartDate: get(['contractStartDate','agreementStartDateTime'")) failures.push('Production Z13VH must use reportStartDateTime/context.startDate, not agreementStartDateTime')
-if (!payloadPreflight.includes('PRODAT_Z13VH_REASON_FOR_TRANSACTION_MISMATCH')) failures.push('Final payload preflight must block Z13VH/S17 mismatch before send')
+// No DTM+91/S17 payload block: masterplan SC-027 requires DTM+91 for a time-bounded
+// S17 permission. VH is guarded at build time (variant VH always renders S18, above).
 if (!tgtEdifact.includes('CAV+::::${energyProductId}')) failures.push('Systemtest builder must render field 506 energy product as CAV+::::<id>, not CAV+:::<id>')
 if (!tgtEdifact.includes('energy_product_cav_component_mismatch')) failures.push('Systemtest validation must block field 506 rendered in the wrong CAV component')
 if (!genericBuilder.includes('function prodatCavValue2')) failures.push('Production builder must have a dedicated helper for CAV value component 2')

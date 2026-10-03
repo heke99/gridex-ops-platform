@@ -77,7 +77,11 @@ export function shouldMaterializePerGridOwner(params: {
 }): boolean {
   const family = normalize(params.messageFamily)
   if (family === 'CONTRL' || family === 'APERAK' || family === 'UTILTS_ERR') return false
-  if (family === 'PRODAT' && params.messageCode) getCanonicalProdatProfile(params.messageCode)
+  if (family === 'PRODAT') {
+    const code = normalize(params.messageCode)
+    if (!code) throw new Error('ediel_route_scope_prodat_code_required')
+    if (!getCanonicalProdatProfile(code)) throw new Error(`ediel_route_scope_prodat_profile_missing:${code}`)
+  }
   return true
 }
 
