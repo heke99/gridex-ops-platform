@@ -97546,6 +97546,16 @@ export type Database = {
         Args: { p_payload: Json; p_table: unknown }
         Returns: Json
       }
+      gridex_internal_write_tenant_row_v1: {
+        Args: {
+          p_allowed: string[]
+          p_company_id: string
+          p_id: string
+          p_table: unknown
+          p_values: Json
+        }
+        Returns: string
+      }
       gridex_invoice_fee_readiness: {
         Args: { p_row_amount: number; p_snapshot: Json }
         Returns: Json
@@ -98901,6 +98911,18 @@ export type Database = {
           p_source?: string
         }
         Returns: string
+      }
+      gridex_save_website_application_review_v1: {
+        Args: {
+          p_application?: Json
+          p_application_id: string
+          p_company_id: string
+          p_contract?: Json
+          p_customer?: Json
+          p_metering_point?: Json
+          p_site?: Json
+        }
+        Returns: Json
       }
       gridex_scan_ediel_canonical_repairs: {
         Args: {

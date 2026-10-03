@@ -22,6 +22,7 @@ import {
   canonicalSupplierUtiltsApplicationReference,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -124,6 +125,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
+  // The contract's requested resolution (set when the data request was created)
+  // travels with the request; the wire resolution stays bound to the qualified
+  // dated meter structure below.
+  const contractRequestedResolution = normalizeMeteringResolution(
+    record(dataRequest.request_payload).requested_resolution,
+  )
 
   // Route/actor selection happens first. The selected route may carry an exact
   // field-311 Application Reference, but it is NOT authoritative by itself: the
@@ -225,6 +232,7 @@ export async function prepareAndQueueUtiltsE73(params: {
       timeSeriesProduct:sourceStructure.fields.productCode,
       structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
       resolution:sourceStructure.resolution,
+      requestedResolution: contractRequestedResolution,
     },
   })
 

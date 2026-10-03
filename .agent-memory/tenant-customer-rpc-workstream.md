@@ -48,3 +48,10 @@ Branch `claude/ui-audit`: PR A (security) in progress. Order: A security → B b
 Owner granted full Supabase approval (2026-10-02) and asked to proceed stepwise.
 PR A = #462 MERGED. PR B = #463: types regenerated (2f24cc9a), verify green, replay pending; merge when green. PR C on branch claude/ui-audit-c (stacked on B): C1 status labels pushed; next C: raw UUIDs → names, company <select> instead of free-text company_id; then open PR C after B merges.
 Next: PR B (broken/dead), then C (raw codes/labels), D (clutter/wording), E (intake/contracts/onboarding: website review → onboardCustomerGraph, contractStatus allow-list, offer-not-found error, onboarding role hierarchy/last-admin, provisioning RPC).
+## 2026-10-03 — contract-driven metering + website review RPC (branch claude/contract-driven-metering)
+Owner: metering requests follow the customer's contract (portfolio/fixed/variable month/hour/quarter), never hard-coded.
+Single source: lib/metering/contractMeteringResolution.ts (price snapshot interval → contract type; meter only caps).
+Used by: metering completeness (billing + autopilot), createGridOwnerDataRequest (requested_resolution), UTILTS E73/E66.
+Migration 20261003100000 gridex_save_website_application_review_v1 applied on hosted (schema_migrations has both
+20261003030146 [auto by apply_migration] and 20261003100000). Next: PR, regenerate types from replay, merge.
+

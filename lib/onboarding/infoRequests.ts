@@ -652,7 +652,8 @@ export async function createAuthorizationScope(input: {
 
 export async function createMeteringPermissionDraft(input: {
   companyId: string;
-  actorUserId: string;
+  /** Null for system runs (e.g. the billing cron). */
+  actorUserId: string | null;
   customerId: string;
   siteId?: string | null;
   meteringPointId?: string | null;

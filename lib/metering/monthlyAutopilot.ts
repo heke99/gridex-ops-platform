@@ -3,6 +3,7 @@ import { createGridOwnerDataRequest } from '@/lib/cis/db'
 import { ensureAndPrepareUtiltsFromDataRequest } from '@/lib/cis/edielAutomation'
 import { createCustomerDataTask } from '@/lib/customers/dataTasks'
 import { evaluateMeteringCompletenessForMonth } from '@/lib/metering/validation'
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
 
 export type MeteringAutopilotDecision = 'AUTO' | 'RETRY' | 'REVIEW' | 'STOP'
@@ -62,6 +63,12 @@ export async function runMeteringMarketDataAutopilot(input: {
 }): Promise<MeteringAutopilotResult> {
   const bounds = stockholmMonthBounds(input.billingMonth)
   const points = await listTenantMeteringPoints(input.companyId)
+  // What each point's contract needs (month/hour/quarter-hour), loaded once.
+  const requirements = await loadMeteringResolutionRequirements({
+    companyId: input.companyId,
+    meteringPointIds: points.map((point) => point.id),
+    onDate: `${input.billingMonth}-01`,
+  })
   const decisions: MeteringAutopilotResult['decisions'] = []
 
   for (const point of points) {
@@ -86,18 +93,41 @@ export async function runMeteringMarketDataAutopilot(input: {
       continue
     }
 
+    const requirement = requirements.get(point.id)
     const completeness = await evaluateMeteringCompletenessForMonth({
       companyId: input.companyId,
       billingMonth: input.billingMonth,
-      meteringPoints: [{ meteringPointId: point.id }],
+      meteringPoints: [{
+        meteringPointId: point.id,
+        requiredResolution: requirement?.contractResolution ?? null,
+        meterCannotDeliver: requirement?.meterCannotDeliver ?? false,
+      }],
       allowEstimatedValues: false,
     })
     const issueCodes = [...new Set(completeness.issues.map((issue) => issue.code))]
-    const missing = issueCodes.some((code) => code === 'metering_values_missing' || code === 'metering_gap')
+    // Values too coarse for the contract are requested again at the contract's resolution.
+    const missing = issueCodes.some((code) =>
+      code === 'metering_values_missing' || code === 'metering_gap' || code === 'metering_resolution_insufficient')
     const unsafeForBilling = issueCodes.some((code) => code === 'metering_overlap' || code === 'metering_estimated')
 
     if (!missing && !unsafeForBilling) {
       decisions.push({ meteringPointId: point.id, customerId, decision: 'AUTO', issueCodes })
+      continue
+    }
+
+    if (requirement?.meterCannotDeliver) {
+      // Asking the grid owner again cannot help: the meter only reports monthly.
+      await createCustomerDataTask({
+        companyId: input.companyId,
+        customerId,
+        customerSiteId: siteId,
+        meteringPointId: point.id,
+        taskType: 'contact_grid_owner',
+        priority: 'high',
+        description: `Avtalet kräver ${requirement.contractResolution === 'hour' ? 'timvärden' : 'kvartsvärden'} men mätpunkten rapporteras per månad. Kontrollera avtalstypen eller begär intervallavläsning hos nätägaren.`,
+        actorUserId: input.actorUserId,
+      })
+      decisions.push({ meteringPointId: point.id, customerId, decision: 'REVIEW', issueCodes })
       continue
     }
 
@@ -116,7 +146,13 @@ export async function runMeteringMarketDataAutopilot(input: {
           automationOrigin: 'metering_market_data_autopilot_v1',
           automationKey,
           notes: `Automatisk begäran om saknade validerade mätvärden för ${input.billingMonth}.`,
-          requestPayload: { billing_month: input.billingMonth, issue_codes: issueCodes, time_zone: bounds.timeZone },
+          requestPayload: {
+            billing_month: input.billingMonth,
+            issue_codes: issueCodes,
+            time_zone: bounds.timeZone,
+            requested_resolution: requirement?.requestResolution ?? null,
+            requested_resolution_source: requirement?.source ?? null,
+          },
         })
         await ensureAndPrepareUtiltsFromDataRequest({
           actorUserId: input.actorUserId,

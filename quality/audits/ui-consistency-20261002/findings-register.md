@@ -50,8 +50,8 @@ duplicates; English and platform jargon shown to tenants.
 | E4 | tenant admins could change their own role and demote the last company administrator | fixed: `roleChangeGuard` in both role forms (+ tests); audit text no longer says "superadmin" for tenants |
 | E5 | website review fell back to bare site/metering-point inserts on any schema error, dropping grid owner/area fields | fixed: fallbacks removed, errors surface |
 | E6 | website review stored only raw UUID grid owners and dropped platform ids | fixed: `normalizeGridOwnerIdToOps` like admin intake |
-| E7 | website channel defaults (site/MP `active`, monthly reading, `variable_monthly`) differ from admin intake (`draft`, hourly, `variable_hourly`) | needs product decision: the defaults drive Ediel metering requests and site process checks; documented, not changed |
-| E8 | website review writes site, metering point and contract as separate statements (not one transaction) | open: needs a review RPC; each write is tenant-scoped and idempotent on re-save |
+| E7 | website channel defaults (monthly reading, `variable_monthly`) differ from admin intake | fixed per owner decision (2026-10-03): metering requests follow the customer's contract (`lib/metering/contractMeteringResolution.ts`); website no longer guesses `monthly` meters or a contract type; contract type comes from the accepted offer |
+| E8 | website review writes site, metering point and contract as separate statements (not one transaction) | fixed: `gridex_save_website_application_review_v1` (migration 20261003100000) writes site, MP, contract, customer intake and application in one locked transaction; applied on hosted and probed (rolled back) |
 
 
 ### PR B progress
@@ -86,3 +86,21 @@ duplicates; English and platform jargon shown to tenants.
 | D4 | customer list repeated Kundintag/Avtal buttons in the side card | fixed: one button row |
 | D5 | customer card "Fler åtgärder" menu only repeated the tab bar | fixed: removed (test updated to forbid it) |
 | D6 | English/internal jargon in headings and buttons (Publish, Save draft, Batch 2C, Batch 7A.1, Sweep 7.8, Partner exports, Customer Integrity / Operations Dashboard, "platformstyrda") | fixed: Swedish, user-facing wording |
+
+## Contract-driven metering (2026-10-03, owner request)
+| # | Finding | Status |
+|---|---|---|
+| M1 | billing completeness only checked time coverage: one monthly total counted as "complete" for hourly/quarter-hour contracts, so interval values were never requested | fixed: completeness takes each point's contract resolution; `metering_resolution_insufficient` blocks invoicing and the autopilot re-requests |
+| M2 | hourly/quarter contract on a monthly-read meter was not detected | fixed: `metering_point_resolution_mismatch` blocks and opens a grid-owner task instead of a pointless re-request |
+| M3 | grid-owner meter-value requests carried no resolution; UTILTS used the meter's reading frequency | fixed: requests store `requested_resolution` from the contract (capped by the meter); E73 payload carries it |
+| M4 | E66 draft mapped monthly → 1440 (day) and hourly meters → 15 (quarter-hour) | fixed: contract resolution → 15/60/1440 |
+| M5 | `lib/cis/db-grid-owner.ts` still has a direct-insert `createGridOwnerDataRequest` bypassing the atomic RPC | open (dead code, no importers); left because Ediel masterplan gate manifests hash the file |
+
+## Preliminary billing and reconciliation (2026-10-03, owner decision)
+| # | Finding | Status |
+|---|---|---|
+| P1 | missing metering values blocked the invoice entirely; `billing_adjustment_cases` / `gridex_register_late_metering_correction` existed but nothing used them | fixed: missing periods/gaps are billed from the customer's history (`lib/billing/consumptionEstimate.ts`: same period last year → last 4 weeks average → intake annual consumption with monthly profile), keeping the contract's hour/quarter shape; marked preliminary on the invoice |
+| P2 | no settlement of preliminary periods | fixed: when an invoiced (locked) preliminary period gets complete final values, the next run credits the preliminary quantity and charges the final one over the original period (energy-dependent components only, prices of the original month); net = difference on the next invoice |
+| P3 | pricing used the run's month for spot/source prices | fixed: prices follow the billed period (identical for regular underlays) |
+| P4 | pre-existing static regressions red on main and not in CI: gridex-canonical-market-resolution-quote-billing, gridex-invoice-fee-canonical, gridex-svk-billing-area | open (not caused by this change) |
+| P5 | no history and no intake annual consumption left the period blocked with no follow-up | fixed: `ensureHistoricalMeteringRequest` opens a metering permission and queues PRODAT Z13VH history (last 12 months to yesterday; POA covering metering data required, else `missing_authorization`); system runs leave a draft + operator task; idempotent per metering point. Note: the Z13 dispatcher itself is still gated in `lib/ediel/flows/prodatSwitch.ts` (Ediel masterplan workstream) |

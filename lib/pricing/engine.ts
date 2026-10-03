@@ -204,6 +204,8 @@ function underlayToInput(
 
   return {
     companyId,
+    preliminary: Boolean(payload.estimate),
+    reconciliationOf: stringValue(payload.reconciliation_of),
     billingUnderlayId: stringValue(underlay.id),
     customerId: stringValue(underlay.customer_id),
     customerSiteId:
@@ -351,6 +353,15 @@ export async function calculatePricingPreviewForUnderlay(input: {
 
   const billingMonth =
     underlayPeriod?.billingMonth ?? normalizeBillingMonth(underlay.periodStart);
+  // Prices follow the period being billed. For a reconciliation run in a later
+  // month that is the original preliminary period, not the run's month.
+  const priceMonth = /^\d{4}-\d{2}-\d{2}$/.test(underlay.periodStart)
+    ? underlay.periodStart.slice(0, 7)
+    : billingMonth;
+  // Fixed monthly/invoice fees were charged on the preliminary invoice.
+  const energyComponentsOnly =
+    underlay.energyDirection === "consumption_correction" ||
+    Boolean(underlay.reconciliationOf);
 
   if (underlay.energyDirection === "production") {
     let productionResult: PricingPreviewResult;
@@ -414,7 +425,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
   );
   if (requiresSpotPrice) {
     const spotImport = await ensureSpotPricesForBillingMonth({
-      billingMonth,
+      billingMonth: priceMonth,
       priceAreas: [underlay.priceArea as PriceArea],
       reason: "billing_underlay",
     });
@@ -427,7 +438,7 @@ export async function calculatePricingPreviewForUnderlay(input: {
   const sourceValues = await resolveBasePriceSourceValues({
     companyId: input.companyId,
     priceArea: underlay.priceArea as PriceArea,
-    billingMonth,
+    billingMonth: priceMonth,
     pricePlanVersionId: underlay.pricePlanVersionId ?? null,
     fixedSekPerKwh: fixedOre !== null ? fixedOre / 100 : null,
   });
@@ -501,12 +512,9 @@ export async function calculatePricingPreviewForUnderlay(input: {
 
   const component = calculatePriceComponents({
     underlay,
-    components:
-      underlay.energyDirection === "consumption_correction"
-        ? config.priceComponents.filter(
-            isConsumptionCorrectionVariableComponent,
-          )
-        : config.priceComponents,
+    components: energyComponentsOnly
+      ? config.priceComponents.filter(isConsumptionCorrectionVariableComponent)
+      : config.priceComponents,
     baseAmountExVat: base.lines.reduce(
       (sum, line) => sum + line.amountExVat,
       0,
@@ -519,7 +527,17 @@ export async function calculatePricingPreviewForUnderlay(input: {
   warnings.push(...component.warnings);
   errors.push(...component.errors);
 
-  const calculatedLines = [...base.lines, ...component.lines];
+  // Invoice wording: preliminary periods and their later settlement are explicit.
+  const periodLabel = priceMonth;
+  const labelledLines = [...base.lines, ...component.lines].map((line) => ({
+    ...line,
+    description: underlay.reconciliationOf
+      ? `Avräkning ${periodLabel} (${underlay.energyDirection === "consumption_correction" ? "preliminär förbrukning krediteras" : "faktisk förbrukning"}) – ${line.description}`
+      : underlay.preliminary
+        ? `Preliminär – uppskattad förbrukning ${periodLabel} – ${line.description}`
+        : line.description,
+  }));
+  const calculatedLines = labelledLines;
   const result = finalizePricingPreview({
     billingUnderlayId: input.billingUnderlayId,
     lines:
