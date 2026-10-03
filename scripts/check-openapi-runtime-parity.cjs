@@ -47,7 +47,19 @@ while ((match = routeRe.exec(registrySource))) {
 const specs = [
   JSON.parse(fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8')),
   JSON.parse(fs.readFileSync('docs/openapi/customer-portal-v1.json', 'utf8')),
+  JSON.parse(fs.readFileSync('docs/openapi/staff-support-v1.json', 'utf8')),
 ]
+const staffRegistrySource = fs.readFileSync('lib/staff-api/routeRegistry.ts', 'utf8')
+const staffRegistryJson = staffRegistrySource.slice(staffRegistrySource.indexOf(' = ') + 3).trim()
+for (const route of JSON.parse(staffRegistryJson)) {
+  const publicPath = route.publicPath ?? route.path
+  registry.push({ method: route.method, path: publicPath, runtimePath: route.path,
+    normalizedPath: publicPath.replace(/\[[^\]]+\]/g, '{}'), scopes: route.scopes,
+    operationId: route.method.toLowerCase() + publicPath.split('/').filter(Boolean).map(segment => segment.replace(/^\[|\]$/g, '').split(/[^A-Za-z0-9]+/).filter(Boolean).map(part => part[0].toUpperCase() + part.slice(1)).join('')).join(''),
+    scopeMode: 'all', rateLimitClass: route.rateLimitClass, idempotencyRequired: route.idempotencyRequired === true,
+    cachePolicy: route.path.includes('/openapi/') ? route.path.includes('/2026-') ? 'public-immutable' : 'private-revalidate' : 'no-store',
+    publicIdPolicy: route.path.includes('/openapi/') ? 'none' : 'opaque-references' })
+}
 const failures = []
 const operations = []
 for (const spec of specs) {
@@ -82,7 +94,7 @@ function normalizeScopeMode(value) {
 
 function immutableOpenApiArtifact(route) {
   const match = route.runtimePath.match(
-    /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1)\.json$/,
+    /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1|staff-support-v1)\.json$/,
   )
   if (!match) return null
   return {

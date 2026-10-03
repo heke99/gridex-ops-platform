@@ -147,6 +147,9 @@ export async function addSupportAttachment(input: CaseScope & {
   }).select(COLUMNS).single()
   if (insert.error) {
     await supabaseService.storage.from(SUPPORT_ATTACHMENT_BUCKET).remove([storagePath]).catch(() => undefined)
+    if (insert.error.message === 'attachment_quota_exceeded') {
+      throw new SupportAttachmentError('attachment_quota_exceeded', 'För många bilagor för kunden det senaste dygnet. Försök igen senare.', 429)
+    }
     throw insert.error
   }
 

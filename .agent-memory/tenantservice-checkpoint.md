@@ -1,5 +1,21 @@
 # Tenantservice side track: checkpoint
 
+## Separate staff API workstream — 2026-10-03
+
+User requires API-only Web staff authentication/customer/support access on
+`support123.gridex.se`. Source branch `feat/staff-support-api-2026-10-03` starts
+at OPS `2c8e283e4fb6b232fe4e249352e33e8baeff14b1`; no Ediel memory/task is replaced.
+Standalone staff contract `2026-10-03.1` is materialized with raw SHA
+`cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71`;
+legacy `.4` remains unchanged. Four forward migrations are checksum-registered.
+Full local OPS tests pass (440 files/6,682 tests), TypeScript/lint/API/RBAC gates pass,
+and selected actual SQL passes the single-connection PostgreSQL17.5 WASM diagnostic.
+Evidence and remaining limitations: `quality/tenantservice/staff-api-verification-2026-10-03.md`.
+Next: publish source draft, run native16.15/17.6 and full clean replay, use real replay
+DB type/schema artifacts, rerun exact-head CI/build, then coordinate secure
+configuration/migrations/live provider and two-company role verification.
+No production migration, configuration, publication or live staff success is claimed.
+
 Status: #425 MERGED (squash `d548e23`). Follow-up in progress. Last updated 2026-10-01 ~20:40 UTC.
 
 Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that file.

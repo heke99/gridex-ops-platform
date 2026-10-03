@@ -2,7 +2,7 @@ export type ApiPermissionGroup = {
   groupKey: string
   label: string
   description: string
-  category: 'website' | 'portal' | 'events'
+  category: 'website' | 'portal' | 'events' | 'staff'
   scopes: string[]
   recommendedDefault: boolean
   riskLevel: 'low' | 'normal' | 'high'
@@ -191,6 +191,56 @@ export const INTEGRATION_API_PERMISSION_GROUPS: ApiPermissionGroup[] = [
     recommendedDefault: true,
     riskLevel: 'high',
     sortOrder: 60,
+  },
+  {
+    groupKey: 'staff_sessions',
+    label: 'Personalinloggning',
+    description: 'Integrationen får hantera personalens OPS-inloggning. Varje medarbetare måste verifieras med sitt eget konto; API-nyckeln ger ingen personlig behörighet.',
+    category: 'staff',
+    scopes: ['staff_sessions.write'],
+    recommendedDefault: false,
+    riskLevel: 'high',
+    sortOrder: 70,
+  },
+  {
+    groupKey: 'staff_context',
+    label: 'Personalens behörigheter',
+    description: 'Verifierad personal får läsa sitt aktuella bolag och sina egna OPS-behörigheter.',
+    category: 'staff',
+    scopes: ['staff_context.read'],
+    recommendedDefault: false,
+    riskLevel: 'normal',
+    sortOrder: 71,
+  },
+  {
+    groupKey: 'staff_customers',
+    label: 'Personalens kundlista',
+    description: 'Verifierad personal får läsa kunder inom sitt bolag när den egna OPS-behörigheten tillåter det.',
+    category: 'staff',
+    scopes: ['staff_customers.read'],
+    recommendedDefault: false,
+    riskLevel: 'normal',
+    sortOrder: 72,
+  },
+  {
+    groupKey: 'staff_support_read',
+    label: 'Läs support som personal',
+    description: 'Verifierad personal med supportbehörighet får läsa bolagets supportärenden, interna historik och bilagor.',
+    category: 'staff',
+    scopes: ['staff_support.read'],
+    recommendedDefault: false,
+    riskLevel: 'normal',
+    sortOrder: 73,
+  },
+  {
+    groupKey: 'staff_support_write',
+    label: 'Handlägg support som personal',
+    description: 'Verifierad personal med ändringsbehörighet får skapa och handlägga bolagets supportärenden under sin egen identitet.',
+    category: 'staff',
+    scopes: ['staff_support.write'],
+    recommendedDefault: false,
+    riskLevel: 'high',
+    sortOrder: 74,
   },
 ]
 

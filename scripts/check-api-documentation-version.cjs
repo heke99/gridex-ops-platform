@@ -12,6 +12,20 @@ const legacyFiles = [
   'docs/single-api-key-tenant-integration.md',
 ]
 const failures = []
+const { metadata: staffMetadata } = require('./lib/staff-openapi-artifacts.cjs')
+const staff = staffMetadata(process.cwd())
+const staffDocument = JSON.parse(fs.readFileSync('docs/openapi/staff-support-v1.json', 'utf8'))
+const staffGuide = fs.readFileSync('docs/gridex-staff-support-api.md', 'utf8')
+const staffErrors = fs.readFileSync('lib/staff-api/errors.ts', 'utf8')
+if (staffDocument.info?.version !== staff.version || staffDocument['x-contract-schema-version'] !== staff.version) {
+  failures.push('Staff OpenAPI must reuse its independent canonical version')
+}
+if (!staffGuide.includes(staff.version) || !staffGuide.includes(staff.currentPath) || !staffGuide.includes(staff.manifestPath)) {
+  failures.push('Staff human guide must identify its independent version, specification and manifest')
+}
+if (!staffErrors.includes('STAFF_API_CONTRACT_VERSION') || /contract_schema_version:\s*['"]/.test(staffErrors)) {
+  failures.push('Staff response helpers must reuse the independent runtime version source')
+}
 
 for (const file of legacyFiles) {
   const source = fs.readFileSync(file, 'utf8')
@@ -52,6 +66,12 @@ if (!partnerGuide.includes("redirect('/developers/customer-portal-api#partner-ap
 }
 if (!customerPortalDeveloperRoute.includes('PARTNER_API_VERSION') || !customerPortalDeveloperRoute.includes('partnerOpenApi')) {
   failures.push('The unified API page must render Partner API version and endpoints from canonical sources')
+}
+for (const marker of ['STAFF_API_CONTRACT_VERSION', 'STAFF_OPENAPI_PATH', 'STAFF_RELEASE_MANIFEST_PATH', 'id="staff-support"', 'rows={staffRows}']) {
+  if (!customerPortalDeveloperRoute.includes(marker)) failures.push(`Unified API page is missing independent Staff API marker: ${marker}`)
+}
+if (!customerPortalDeveloperRoute.includes("!path.startsWith('/api/v1/staff/')") || !customerPortalDeveloperRoute.includes("!path.includes('/staff-')")) {
+  failures.push('Staff API and staff documentation endpoints must be excluded from the Website endpoint family')
 }
 
 for (const marker of [
@@ -153,4 +173,4 @@ if (failures.length) {
   console.error(failures.map((failure) => `- ${failure}`).join('\n'))
   process.exit(1)
 }
-console.log(`API documentation parity OK (Gridex API ${legacyExpected}; Partner API ${partnerExpected}).`)
+console.log(`API documentation parity OK (Gridex API ${legacyExpected}; Partner API ${partnerExpected}; Staff API ${staff.version}).`)

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "contract_name": "staff-support-v1",
+  "contract_version": "2026-10-03.1",
+  "minimum_staff_integration_version": "2026-10-03.1",
+  "guide_version": "2026-10-03.1",
+  "released_at": "2026-10-03T21:51:31.000Z",
+  "build_commit": "unknown",
+  "capabilities": [
+    "staff.sessions",
+    "staff.context",
+    "staff.customers.read",
+    "staff.support.read",
+    "staff.support.write",
+    "staff.support.attachments"
+  ],
+  "specification": {
+    "url": "https://app.gridex.se/api/v1/openapi/staff-support-v1.json",
+    "immutable_url": "https://app.gridex.se/api/v1/openapi/2026-10-03.1/staff-support-v1.json",
+    "sha256": "cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71"
+  }
+}

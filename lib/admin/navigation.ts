@@ -65,7 +65,7 @@ const COMPANY_NAVIGATION: AdminNavigationGroup[] = [
     title: 'Ärenden',
     description: 'Kundsupport via webb, telefon och OPS',
     items: [
-      { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'operations.tasks' },
+      { key: 'customer_cases', label: 'Supportärenden', href: '/admin/customer-cases', description: 'Kundärenden, svar, interna anteckningar och samtal', pageKey: 'customer.cases' },
       { key: 'messages', label: 'Meddelanden', href: '/admin/messages', description: 'EDIEL-meddelanden, utskick och kommunikationshistorik', pageKey: 'operations.tasks' },
     ],
   },

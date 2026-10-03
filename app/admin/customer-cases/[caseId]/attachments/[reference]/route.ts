@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 /** Staff download of a released attachment within the active tenant only. Always served as a download. */
 export async function GET(_request: Request, { params }: { params: Promise<{ caseId: string; reference: string }> }) {
-  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const context = await requireAdminPageKeyAccess('customer.cases')
   const scope = await resolveAdminTenantReadScope(context)
   if (!scope.companyId) return new NextResponse('Not found', { status: 404 })
   const { caseId, reference } = await params
