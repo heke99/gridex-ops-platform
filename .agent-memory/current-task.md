@@ -1,5 +1,6 @@
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
 
+OBS 02:10: grenmigrationer nu 20261002233000–20261002234900 (20 st; 234800 original_message_id-form, 234900 definer-port för svars-auktoritet). CI-sanning för hela sviter (lokal DB växer och ger statement timeouts vid helsvitskörning; kör enskilda tester lokalt). CI 3bb576cd: 83 fel, correction-context 2 → åtgärdade i cc073ed7.
 OBS 23:40: main lade till 20261002230000_customer_merge_portal_lifecycle → grenens 18 migrationer omnumrerade till 20261002233000–20261002234700 (032abc99). Containern startades om en gång (dockerd: `(nohup dockerd >/tmp/claude-0/dockerd.log 2>&1 &)`; DB överlever). Unit 9441/9441.
 
 Branch `claude/zealous-rubin-6axb91`, draft PR heke99/gridex-ops-platform#426. Användaren: fortsätt stegvis med hela planen tills allt är grönt och mergat; P16B avgjort (RFF+Z07 och RFF+LI båda tillåtna i E2SE6A APERAK). Grenmigrationer omnumrerade till 20261002233000–231700 (efter main).
