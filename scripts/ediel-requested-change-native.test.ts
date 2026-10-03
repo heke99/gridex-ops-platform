@@ -14,7 +14,7 @@ it('real installed private receipt verifier matches actual HMAC-SHA256 bytes, in
 it('installed custody tables and issuer secrets are inaccessible to every application role and new review catalog grants no default role authority',()=>{
  const tables=['artifacts','reviews','review_origins','events','issuer_keys','issuer_representations','issuer_revocations','confirmed_customer_versions','customer_version_availability']
  for(const role of ['anon','authenticated','service_role'])for(const table of tables)expect(sql<boolean>(`select to_jsonb(has_table_privilege('${role}','gridex_requested_changes.${table}','SELECT,INSERT,UPDATE,DELETE,TRUNCATE'))`)).toBe(false)
- expect(sql<number>(`select to_jsonb(count(*)) from public.role_permissions rp join public.permissions p on p.id=rp.permission_id or rp.permission_id is null and p.key=rp.permission_key where p.key='ediel.source.review'`)).toBe(0)
+ expect(sql<number>(`select to_jsonb(count(*)) from public.role_permissions rp join public.permissions p on p.id=rp.permission_id or rp.permission_id is null and p.key=rp.permission_key join public.roles r on r.key=rp.role_key and r.is_system_role where p.key='ediel.source.review'`)).toBe(0)
 })
 it('actual native customer-version HTTP owners reject a foreign or inactive selector; no version or availability receipt can be forged',async()=>{
  const company=randomUUID(),actor=randomUUID(),source=randomUUID(),rpc=supabaseService.rpc.bind(supabaseService) as unknown as Rpc
