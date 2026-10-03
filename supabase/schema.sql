@@ -101259,12 +101259,6 @@ ALTER TABLE public.customer_portal_write_idempotency ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_portfolio_forecast_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: customer_portfolio_forecast_snapshots customer_portfolio_forecast_snapshots_select; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY customer_portfolio_forecast_snapshots_select ON public.customer_portfolio_forecast_snapshots FOR SELECT TO authenticated USING (public.gridex_can_read_company(company_id));
-
---
 -- Name: customer_readiness_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -124201,7 +124195,6 @@ GRANT ALL ON TABLE public.customer_portal_write_idempotency TO service_role;
 --
 
 GRANT ALL ON TABLE public.customer_portfolio_forecast_snapshots TO service_role;
-GRANT SELECT ON TABLE public.customer_portfolio_forecast_snapshots TO authenticated;
 
 --
 -- Name: TABLE customer_readiness_snapshots; Type: ACL; Schema: public; Owner: -
