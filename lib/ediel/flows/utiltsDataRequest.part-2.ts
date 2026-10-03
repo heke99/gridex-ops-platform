@@ -27,6 +27,7 @@ import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptio
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
 import { allUtiltsTransactionMeteringPointsMatched, createUtiltsRuntimeAcks, ensureJson, linkInboundUtiltsMessageCanonically, markDataRequestOutboundAcknowledged, matchUtiltsTransactionsForTenant, maybeCreateBillingUnderlay, maybeIngestMeteringValue, resolveUtiltsRuntimeTestCaseCode, stringOrNull } from './utiltsDataRequest.part-1'
+import { normalizeMeteringResolution, utiltsResolutionCode } from '@/lib/metering/contractMeteringResolution'
 
 export async function prepareAndQueueUtiltsE73(params: {
   actorUserId: string
@@ -288,12 +289,15 @@ export async function prepareAndQueueUtiltsE66(params: {
       registrationTime: params.registrationTime ?? new Date().toISOString(),
       quantity: params.quantity ?? 0,
       unit: 'KWH',
-      resolution:
-        meteringPoint?.reading_frequency === 'monthly'
-          ? '1440'
-          : meteringPoint?.reading_frequency === 'daily'
-            ? '1440'
-            : '15',
+      // Contract resolution from the data request first; otherwise what the meter
+      // delivers. Hourly meters were previously sent as quarter-hour (15).
+      resolution: utiltsResolutionCode(
+        normalizeMeteringResolution(
+          (dataRequest.request_payload as Record<string, unknown> | null)?.requested_resolution,
+        ) ??
+          normalizeMeteringResolution(meteringPoint?.reading_frequency) ??
+          'quarter_hour',
+      ),
       siteType: site?.site_type ?? 'consumption',
     },
   })

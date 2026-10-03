@@ -172,4 +172,41 @@ describe('evaluateMeteringCompletenessForMonth', () => {
       })
     ).rejects.toThrow(/YYYY-MM/)
   })
+
+  it('blocks a monthly total when the contract needs hourly values', async () => {
+    state.tables.normalized_metering_values = [value()]
+
+    const result = await evaluateMeteringCompletenessForMonth({
+      companyId: 'company-1',
+      billingMonth: MONTH,
+      meteringPoints: [{ meteringPointId: 'mp-1', requiredResolution: 'hour' }],
+    })
+
+    expect(result.status).toBe('incomplete')
+    expect(result.issues.map((issue) => issue.code)).toContain('metering_resolution_insufficient')
+  })
+
+  it('accepts a monthly total for a monthly contract', async () => {
+    state.tables.normalized_metering_values = [value()]
+
+    const result = await evaluateMeteringCompletenessForMonth({
+      companyId: 'company-1',
+      billingMonth: MONTH,
+      meteringPoints: [{ meteringPointId: 'mp-1', requiredResolution: 'month' }],
+    })
+
+    expect(result.status).toBe('complete')
+  })
+
+  it('blocks when the meter cannot deliver the contract resolution', async () => {
+    state.tables.normalized_metering_values = [value()]
+
+    const result = await evaluateMeteringCompletenessForMonth({
+      companyId: 'company-1',
+      billingMonth: MONTH,
+      meteringPoints: [{ meteringPointId: 'mp-1', requiredResolution: 'quarter_hour', meterCannotDeliver: true }],
+    })
+
+    expect(result.issues.map((issue) => issue.code)).toContain('metering_point_resolution_mismatch')
+  })
 })

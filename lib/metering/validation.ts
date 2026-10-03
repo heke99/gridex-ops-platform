@@ -1,8 +1,16 @@
 import { supabaseService } from '@/lib/supabase/service'
 import { stockholmMonthBounds } from '@/lib/time/stockholm'
+import { resolutionMinutes, type MeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 export type MeteringCompletenessIssue = {
-  code: 'metering_values_missing' | 'metering_gap' | 'metering_overlap' | 'metering_estimated' | 'metering_total_mismatch'
+  code:
+    | 'metering_values_missing'
+    | 'metering_gap'
+    | 'metering_overlap'
+    | 'metering_estimated'
+    | 'metering_total_mismatch'
+    | 'metering_resolution_insufficient'
+    | 'metering_point_resolution_mismatch'
   message: string
   severity: 'blocked' | 'warning'
   meteringPointId?: string | null
@@ -18,6 +26,7 @@ export type MeteringCompletenessResult = {
   issues: MeteringCompletenessIssue[]
 }
 
+const RESOLUTION_LABEL: Record<MeteringResolution, string> = { month: 'månadsvärden', day: 'dygnsvärden', hour: 'timvärden', quarter_hour: 'kvartsvärden' }
 const ESTIMATED_QUALITY_STATUSES = new Set(['estimated', 'preliminary', 'temp', 'temporary', 'calculated'])
 const COVERAGE_BLOCK_THRESHOLD = 0.999
 const TOTAL_MISMATCH_TOLERANCE = 0.01
@@ -66,7 +75,14 @@ async function loadNormalizedValues(input: { companyId: string; meteringPointIds
 export async function evaluateMeteringCompletenessForMonth(input: {
   companyId: string
   billingMonth: string
-  meteringPoints: Array<{ meteringPointId: string; expectedKwh?: number | null }>
+  meteringPoints: Array<{
+    meteringPointId: string
+    expectedKwh?: number | null
+    /** Resolution the customer's contract needs; values coarser than this cannot be billed. */
+    requiredResolution?: MeteringResolution | null
+    /** The meter cannot deliver the contract's resolution (e.g. hourly contract on a monthly-read meter). */
+    meterCannotDeliver?: boolean
+  }>
   allowEstimatedValues?: boolean
 }): Promise<MeteringCompletenessResult> {
   const bounds = stockholmMonthBounds(input.billingMonth)
@@ -89,6 +105,9 @@ export async function evaluateMeteringCompletenessForMonth(input: {
 
   let estimatedValueCount = 0
   for (const entry of input.meteringPoints) {
+    if (entry.meterCannotDeliver && entry.requiredResolution) {
+      issues.push({ code: 'metering_point_resolution_mismatch', message: `Avtalet kräver ${RESOLUTION_LABEL[entry.requiredResolution]} men mätpunkten rapporteras bara per månad. Kontrollera avtalet eller be nätägaren byta till intervallavläsning.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { required_resolution: entry.requiredResolution } })
+    }
     const pointRows = byMeteringPoint.get(entry.meteringPointId) ?? []
     if (pointRows.length === 0) {
       issues.push({ code: 'metering_values_missing', message: 'Inga normaliserade mätvärden finns för mätpunkten i fakturaperioden.', severity: 'blocked', meteringPointId: entry.meteringPointId })
@@ -114,6 +133,16 @@ export async function evaluateMeteringCompletenessForMonth(input: {
     const coverage = coveredMs / windowMs
     if (overlapMs > 0) issues.push({ code: 'metering_overlap', message: `Mätvärden överlappar varandra (${Math.round(overlapMs / 3_600_000)} h dubbeltäckning) och riskerar dubbelfakturering.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { overlap_hours: overlapMs / 3_600_000 } })
     if (coverage < COVERAGE_BLOCK_THRESHOLD) issues.push({ code: 'metering_gap', message: `Mätvärden täcker bara ${(coverage * 100).toFixed(1)} % av perioden (${Math.round((windowMs - coveredMs) / 3_600_000)} h saknas).`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { coverage_percent: coverage * 100, missing_hours: (windowMs - coveredMs) / 3_600_000, time_zone: bounds.timeZone } })
+    if (entry.requiredResolution && !entry.meterCannotDeliver && intervals.length > 0) {
+      // Values must be at least as fine as the contract needs: a monthly total
+      // covers the period but cannot price an hourly or quarter-hour contract.
+      const requiredMs = resolutionMinutes(entry.requiredResolution) * 60_000
+      const coarsest = intervals.reduce((max, interval) => Math.max(max, interval.end - interval.start), 0)
+      // An hour can be 60 min only; allow DST/rounding slack, and treat any month as month.
+      if (entry.requiredResolution !== 'month' && coarsest > requiredMs * 1.05) {
+        issues.push({ code: 'metering_resolution_insufficient', message: `Avtalet kräver ${RESOLUTION_LABEL[entry.requiredResolution]} men mätvärdena är grövre (${Math.round(coarsest / 60_000)} min per värde). Begär mätvärden med rätt upplösning.`, severity: 'blocked', meteringPointId: entry.meteringPointId, details: { required_resolution: entry.requiredResolution, coarsest_interval_minutes: coarsest / 60_000 } })
+      }
+    }
     const estimatedForPoint = intervals.filter((interval) => interval.estimated).length
     if (estimatedForPoint > 0) issues.push({ code: 'metering_estimated', message: `${estimatedForPoint} mätvärde(n) är preliminära/estimerade. Slutfaktura kräver slutliga värden.`, severity: input.allowEstimatedValues ? 'warning' : 'blocked', meteringPointId: entry.meteringPointId, details: { estimated_count: estimatedForPoint } })
     const expectedKwh = typeof entry.expectedKwh === 'number' && Number.isFinite(entry.expectedKwh) ? entry.expectedKwh : null

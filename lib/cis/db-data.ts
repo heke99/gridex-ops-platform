@@ -1,3 +1,4 @@
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import { supabaseService } from '@/lib/supabase/service'
 import type { UtiltsConsumptionContractV1 } from '@/lib/ediel/utilts/consumptionContract'
 import type {
@@ -230,7 +231,28 @@ export async function createGridOwnerDataRequest(input: {
   const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
   await requireCompanyOperationalForWrites(companyId)
 
-  const requestPayload = mergeJsonObjects(input.requestPayload ?? {}, {
+  // Metering values are requested at the resolution the customer's contract
+  // needs (month / hour / quarter-hour), capped by what the meter delivers.
+  let resolutionPayload: Record<string, unknown> = {}
+  if (input.requestScope === 'meter_values' && input.meteringPointId && !input.requestPayload?.requested_resolution) {
+    const requirement = (
+      await loadMeteringResolutionRequirements({
+        companyId,
+        meteringPointIds: [input.meteringPointId],
+        onDate: input.requestedPeriodStart?.slice(0, 10) ?? null,
+      })
+    ).get(input.meteringPointId)
+    if (requirement) {
+      resolutionPayload = {
+        requested_resolution: requirement.requestResolution,
+        requested_resolution_source: requirement.source,
+        contract_resolution: requirement.contractResolution,
+        meter_cannot_deliver_contract_resolution: requirement.meterCannotDeliver,
+      }
+    }
+  }
+
+  const requestPayload = mergeJsonObjects({ ...resolutionPayload, ...(input.requestPayload ?? {}) }, {
     company_id: companyId,
     request_scope: input.requestScope,
     requested_period_start: input.requestedPeriodStart ?? null,

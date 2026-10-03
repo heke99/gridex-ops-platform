@@ -259,7 +259,9 @@ export async function onboardCanonicalWebsiteCustomerGraph(input: {
           status: "active",
           metering_type: selected.energyDirection,
           measurement_type: clean(meterInput?.measurement_type) ?? selected.energyDirection,
-          reading_frequency: clean(meterInput?.reading_frequency) ?? "monthly",
+          // Meter capability is the grid owner's fact (Z02/PRODAT corrects it). Until then use the
+          // schema default (interval meter) so contract-driven metering requests are not capped to monthly.
+          reading_frequency: clean(meterInput?.reading_frequency) ?? "hourly",
           grid_area_code: explicitMeteringGridAreaCode(input.body),
           price_area_code: explicitMeteringPriceAreaCode(input.body),
           bidding_zone_code: explicitMeteringPriceAreaCode(input.body),
