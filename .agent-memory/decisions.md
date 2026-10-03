@@ -30,6 +30,10 @@ Actual delivery guard rejected direct utiltsRulebook ownership inack.ts. Preserv
 
 After native a671a663407/411 reproduced both defects (all previous407 passed), derive ERR process from the canonical UTILTS profile and use complete original IDE for transaction-scoped ERR lookup/operation/23505 recovery. Retain APERAK and unscoped code sequencing. Independent review approves the bounded change pending exact-head native/five delivery gates. No repair of immutable historical wrong ACKs or claim of native concurrent deduplication. Formal ACK-08/SC-044/CALL-11 acceptance remains partial.
 
+## 2026-10-03 — Ediel masterplan delivery contract (owner decision)
+
+Masterplan work now follows the "Ediel masterplan v2 delivery contract" in AGENTS.md: one rule to done, behaviour tests tagged `// masterplan: <IDs>`, approval in coverage.json in the same PR, small PRs merged when green, priority TEN → ESCO → ACK. `npm run ediel:masterplan-v2:test-coverage -- --check` runs in CI. Approved on main: ENV-04, P-01, P-04, AT-ENV-04, SC-024..030, SC-032, SC-033. Verified complete on #426 head 1b5ed5d79 and to be approved when that code lands: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067.
+
 ## 2026-09-24 — Task3a necessary S/MIME serial representation correction
 
 Native298/301 revealed actual existing inspectCmsRecipientInfo printed-serial parser treats OpenSSL decimal1234 as hex rather than certificate04D2; regex also truncates a prefixed0x form. Parent inspected index.part-1.ts530 and authorized narrowly correcting recognized OpenSSL serial representations after actual local crypto reproduction. Keep original native1234 fixture; do not choose serial9 to hide the defect. Exact integer conversion, no Number precision loss, wrong serial remains rejected; expected-certificate normalization and fallback policy unchanged. Focused real crypto tests and independent fix3 review mandatory. No broader crypto refactor or published migration change.

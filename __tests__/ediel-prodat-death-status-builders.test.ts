@@ -1,3 +1,4 @@
+// masterplan: SC-030
 import {selectedAddressFact,selectedInvoiceeFact} from './fixtures/prodat-ud'
 import {it,expect} from 'vitest'
 import {buildProfiledProdatSegments} from '@/lib/ediel/prodat/builders/profileRenderer'

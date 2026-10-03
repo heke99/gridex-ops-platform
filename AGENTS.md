@@ -234,6 +234,36 @@ Do not modify production code until the finding is evidenced and passes
 45. Do not state that work is complete unless the required checks were executed
     successfully and the results are recorded.
 
+## Ediel masterplan v2 delivery contract
+
+Applies to all work against `docs/ediel/masterplan-v2/` (owner decision 2026-10-03).
+
+1. **One rule at a time, to done.** Pick one rule card (or a small cluster that
+   shares code) and implement every `condition`/`on_pass`/`on_failure` and every
+   acceptance contract `expected`/`prohibited` effect from
+   `docs/ediel/masterplan-v2/registers/{rules,acceptance_tests}.json`.
+2. **Every effect has an asserting behaviour test.** Call the code; do not
+   string-match source files. Tag each test file with the IDs it proves:
+   `// masterplan: P-04, AT-P-04, SC-024`.
+3. **Approve in the same PR.** When all effects of an ID are asserted and green,
+   set it in `quality/audits/ediel-masterplan-v2/coverage.json` (rule
+   `VERIFIED`, contract `PASSED`) with the code and test paths as evidence.
+   `npm run ediel:masterplan-v2:test-coverage` lists tagged-green candidates;
+   `-- --check` (run in CI) fails if an approved ID has no tagged test or a
+   tagged test fails. Market activation and counterparty testing stay separate
+   gates and do not block code approval.
+4. **Small PRs, merged when green.** One rule or cluster per PR, merged the same
+   day CI is green. No long-lived composed candidate branches; rebase or split
+   instead of accumulating hundreds of files.
+5. **Minimal paperwork.** The test and the coverage row are the evidence. Record
+   one line per merge in `.agent-memory/handover.md`; do not write new audit
+   narratives per step.
+6. **Priority:** TEN (beneficiary/data-access grants) → ESCO (Z13 21-day repeat,
+   Z15VH, scoped market permission) → ACK (correlation key, incident flow) →
+   remaining partial cards.
+7. **Shared work:** before starting a cluster, check open PRs and
+   `.agent-memory/handover.md` so two sessions never fix the same thing.
+
 ## Non-negotiable project invariants
 
 - Review the complete relevant execution path, not only the current diff.

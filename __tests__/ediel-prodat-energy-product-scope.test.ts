@@ -1,3 +1,4 @@
+// masterplan: SC-028
 import {it,expect} from 'vitest'
 import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'

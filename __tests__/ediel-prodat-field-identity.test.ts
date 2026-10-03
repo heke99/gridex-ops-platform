@@ -1,3 +1,4 @@
+// masterplan: P-01, SC-029
 import {expectOwnReferencePair} from './helpers/p16bHold'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {describe,it,expect,vi} from 'vitest'

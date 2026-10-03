@@ -1,3 +1,4 @@
+// masterplan: SC-028
 import {beforeEach,it,expect,vi} from 'vitest'
 import {characteristic} from './fixtures/prodat-register'
 import {guideOrderedFixtureRaw as raw} from './helpers/prodatGuideOrderedFixture'

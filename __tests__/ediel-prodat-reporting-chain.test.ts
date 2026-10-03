@@ -1,3 +1,4 @@
+// masterplan: SC-025, SC-027
 import {transportJournalFixture} from './fixtures/ediel-transport-journal';
 import { beforeEach, it, expect, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';

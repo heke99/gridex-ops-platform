@@ -308,6 +308,11 @@ Older Current sections below are historical and SUPERSEDED.
 #420 head `3251d8c85c1eaa1b97132120fdebbb47756a1974` passed four exact-head workflows, OPS native 382/382 and replay/types/schema; merged remote main `53bf989b0ad402bb2ce151c186eea31f1ec9cf03` with same-SHA Vercel READY `dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu`. The physical field202 safe hold is delivered, not outbound 41/42 APERAK or market activation. E035 `delete/before_witness` passed on this run but its earlier `unconfirmed` root remains unknown. Next branch `codex/ediel-v2-identity-e035-owner-20260928` is local at this checkpoint with test-only RPC-boundary diagnostics and source/activation audit; local scripts TS/lint/diff pass, native PR pending. Next: push/open one draft, inspect actual native, then qualify 203/505 legal issuer/history and LOC175 object/mandate. #310 untouched.
 
 Older Current sections below are historical and SUPERSEDED.
+
+## 2026-10-03 — Ediel masterplan delivery contract (owner decision)
+
+Masterplan work now follows the "Ediel masterplan v2 delivery contract" in AGENTS.md: one rule to done, behaviour tests tagged `// masterplan: <IDs>`, approval in coverage.json in the same PR, small PRs merged when green, priority TEN → ESCO → ACK. `npm run ediel:masterplan-v2:test-coverage -- --check` runs in CI. Approved on main: ENV-04, P-01, P-04, AT-ENV-04, SC-024..030, SC-032, SC-033. Verified complete on #426 head 1b5ed5d79 and to be approved when that code lands: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067.
+
 ## 2026-10-03 — UI/billing workstream (separate from Ediel masterplan)
 
 Merged: #467 contract-driven metering resolution + atomic website application review; #468 preliminary billing from history (last year → last 4 weeks → intake annual) with reconciliation on next invoice, grid-owner history request when no estimate; #469 single atomic customer-info/grid-owner request entry (gridex_create_customer_info_request_v1, automation_key dedupe; Batch 2B fixed); #470 three stale billing static regressions repaired. Register: quality/audits/ui-consistency-20261002/findings-register.md. Handed to masterplan agent: Z13 history-request dispatch gate in lib/ediel/flows/prodatSwitch.ts. Does not change the Ediel current/next action below.
