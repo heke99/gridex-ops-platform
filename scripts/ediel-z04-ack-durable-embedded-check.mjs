@@ -35,7 +35,28 @@ if(process.argv.includes('--record-native-syntax-facet')){
   const source=JSON.parse(psql(`SELECT to_jsonb(m) FROM public.ediel_messages m JOIN public.companies c ON c.id=m.company_id WHERE m.id=${sqlLiteral(supplied.id)}::uuid AND m.company_id=${sqlLiteral(supplied.company_id)}::uuid AND c.name='Z04 ACK durable fixture' AND m.metadata->>'nativeFixture'='ediel-z04-ack-durable-v1';`))
   assert.equal(source.raw_payload,supplied.raw_payload);assert.equal(source.id,supplied.id);assert.equal(source.company_id,supplied.company_id)
   const {hash,facts}=await syntaxFacet(source)
-  psql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.ediel_record_technical_syntax_facet_v1(${sqlLiteral(source.company_id)}::uuid,${sqlLiteral(source.id)}::uuid,${sqlLiteral(hash)},${sqlLiteral(facts)}); COMMIT;`)
+  // The technical syntax port requires the fixture's current tenant actor (142520).
+  const actor=psql(`SELECT user_id FROM public.company_memberships WHERE company_id=${sqlLiteral(source.company_id)}::uuid AND status='active' AND is_active`)
+  assert.ok(uuid(actor),'single current fixture actor')
+  psql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.ediel_record_technical_syntax_facet_v2(${sqlLiteral(source.company_id)}::uuid,${sqlLiteral(source.id)}::uuid,${sqlLiteral(hash)},${sqlLiteral(facts)},${sqlLiteral(actor)}::uuid,'prepare'); COMMIT;`)
+  // Production receive order (lib/ediel/flows/inboundProcessing.ts): the
+  // canonical owner decides and records the source validation, including its
+  // PRODAT response facet, through the same service-role RPC as the app.
+  if(!process.env.SUPABASE_SERVICE_ROLE_KEY){
+   const status=JSON.parse(execFileSync('supabase',['status','-o','json'],{encoding:'utf8',timeout:60000}))
+   assert.equal(status.API_URL,'http://127.0.0.1:54321','disposable local stack only')
+   process.env.NEXT_PUBLIC_SUPABASE_URL=status.API_URL;process.env.SUPABASE_SERVICE_ROLE_KEY=status.SERVICE_ROLE_KEY;process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY=status.ANON_KEY
+  }
+  assert.equal(process.env.NEXT_PUBLIC_SUPABASE_URL,'http://127.0.0.1:54321','disposable local stack only')
+  const {resolveCanonicalRuntimeDecisionWithRegistry}=await modules.ssrLoadModule('/lib/ediel/core/runtimeDecision.ts')
+  const {recordReceivedSourceValidation}=await modules.ssrLoadModule('/lib/ediel/core/receivedSourceValidationLedger.ts')
+  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(source)
+  // The fixture omits field 213: syntax passes, the application owner rejects it.
+  assert.equal(decision.syntaxDecision,'accepted',JSON.stringify(decision.issues))
+  assert.equal(decision.applicationDecision,'rejected',JSON.stringify(decision.issues))
+  assert.ok(decision.issues.some(issue=>issue.prodatDiagnostic?.fieldNumber==='213'),'field 213 is the rejection')
+  const recorded=await recordReceivedSourceValidation({original:source,validated:source,resolvedCompanyId:source.company_id,decision})
+  assert.equal(recorded?.status,'recorded',JSON.stringify(recorded))
   console.log('Synthetic disposable-CI source: actual canonical syntax facet committed')
  }catch(error){console.error(error.message);process.exitCode=1}finally{await modules.close()}
 }else{
