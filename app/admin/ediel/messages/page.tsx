@@ -258,7 +258,7 @@ export default async function AdminEdielMessagesPage({
  <input type="hidden" name="cleanupScope" value="test_only" />
  <label className="grid gap-1 text-sm font-semibold text-red-950">
  Bekräftelse
- <input name="confirmation" placeholder="RADERA TESTDATA" className="w-64 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm text-slate-900" />
+ <input aria-label="Bekräftelse" name="confirmation" placeholder="RADERA TESTDATA" className="w-64 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm text-slate-900" />
  </label>
  <label className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-950">
  <input type="checkbox" name="dryRun" defaultChecked />

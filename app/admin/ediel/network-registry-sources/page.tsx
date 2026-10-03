@@ -1,11 +1,14 @@
 import {requireAdminPageAccess} from '@/lib/admin/guards'
 import {createSupabaseServerClient} from '@/lib/supabase/server'
+// tenant_ediel_profiles is service-only (no authenticated grant); read it for
+// the guarded company only, after the page's server permission check.
+import {supabaseService} from '@/lib/supabase/service'
 import NetworkRegistryWorkspace from './workspace'
 export const dynamic='force-dynamic'
 export default async function NetworkRegistrySourcesPage({searchParams}:{searchParams:Promise<{artifactId?:string}>}){
  const access=await requireAdminPageAccess({allOf:['communication.read','customers.read','contracts.read']})
  if(!access.companyId||!['communication.read','customers.read','contracts.read'].every(p=>access.permissions.includes(p)))return <main className="p-6"><h1 className="text-2xl font-semibold">Nätregisterunderlag</h1><p>Välj ett bolag med behörighet att läsa kommunikation, kunder och avtal.</p></main>
- const db=await createSupabaseServerClient(),[profiles,owners]=await Promise.all([db.from('tenant_ediel_profiles').select('environment').eq('company_id',access.companyId).eq('market','electricity').eq('is_enabled',true),db.from('grid_owners').select('id,name,ediel_id').eq('company_id',access.companyId).eq('is_active',true)])
+ const db=await createSupabaseServerClient(),[profiles,owners]=await Promise.all([supabaseService.from('tenant_ediel_profiles').select('environment').eq('company_id',access.companyId).eq('market','electricity').eq('is_enabled',true),db.from('grid_owners').select('id,name,ediel_id').eq('company_id',access.companyId).eq('is_active',true)])
  const ids=[...new Set((owners.data??[]).map(o=>o.ediel_id).filter((v):v is string=>Boolean(v)))],identifiers=ids.length?await db.from('platform_actor_identifiers').select('actor_id,identifier_value').eq('identifier_type','EdielId').eq('is_verified',true).in('identifier_value',ids):{data:[],error:null}
  const actors=[...new Set((identifiers.data??[]).map(i=>i.actor_id))],networks=actors.length?await db.from('platform_market_actors').select('id,name').eq('status','active').in('id',actors):{data:[],error:null}
  if(profiles.error||owners.error||identifiers.error||networks.error)return <main className="p-6"><h1 className="text-2xl font-semibold">Nätregisterunderlag</h1><p role="alert">Bolagets aktuella nät- och Ediel-underlag kunde inte läsas.</p></main>

@@ -9,7 +9,7 @@ export default async function BilateralProdatPage({searchParams}:{searchParams:P
  const db=await createSupabaseServerClient(),companyId=access.companyId
  const [points,agreements,packs]=await Promise.all([
   db.from('metering_points').select('grid_area_code').eq('company_id',companyId).limit(1000),
-  db.from('tenant_bilateral_agreements').select('id,environment,capability_code,source_reference').eq('company_id',companyId).eq('is_enabled',true).in('capability_code',['PRODAT:BILATERAL:normal_start_h','PRODAT:BILATERAL:own_end_h','PRODAT:BILATERAL:closure_request_lk']).limit(100),
+  supabaseService.from('tenant_bilateral_agreements').select('id,environment,capability_code,source_reference').eq('company_id',companyId).eq('is_enabled',true).in('capability_code',['PRODAT:BILATERAL:normal_start_h','PRODAT:BILATERAL:own_end_h','PRODAT:BILATERAL:closure_request_lk']).limit(100),
   // Shared public catalog metadata after the actual server company/read guard.
   // Selection grants no source or bilateral authority; native scope rechecks it.
   supabaseService.from('ediel_rule_packs').select('id,guide_version,guide_revision').eq('family','PRODAT').eq('market','electricity').in('status',['active','transition']).eq('guide_version','26.A').eq('guide_revision','3').limit(20),

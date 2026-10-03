@@ -1,6 +1,7 @@
 import {requireAdminPageAccess} from '@/lib/admin/guards'
 import {createSupabaseServerClient} from '@/lib/supabase/server'
 import RegulatedSupplyWorkspace,{type GroundChoice} from './workspace'
+import {supabaseService} from '@/lib/supabase/service'
 export const dynamic='force-dynamic'
 export default async function RegulatedSupplyPage({searchParams}:{searchParams:Promise<{artifactId?:string}>}){
  const access=await requireAdminPageAccess({allOf:['communication.read','contracts.read','metering.read']})
@@ -11,7 +12,7 @@ export default async function RegulatedSupplyPage({searchParams}:{searchParams:P
   db.from('customer_contracts').select('id,customer_id,metering_point_id,contract_number,status').eq('company_id',companyId).in('status',['signed','active']).limit(200),
   db.from('metering_points').select('id,customer_id,ediel_metering_point_id,product_direction').eq('company_id',companyId).limit(200),
   db.from('customer_supply_periods').select('id,customer_id,metering_point_id,start_date,end_date').eq('company_id',companyId).in('status',['active','confirmed_by_grid_owner']).limit(200),
-  db.from('tenant_bilateral_agreements').select('id,environment,capability_code,source_reference').eq('company_id',companyId).eq('is_enabled',true).in('capability_code',['PRODAT:Z04:A','PRODAT:Z04:D']).limit(100),
+  supabaseService.from('tenant_bilateral_agreements').select('id,environment,capability_code,source_reference').eq('company_id',companyId).eq('is_enabled',true).in('capability_code',['PRODAT:Z04:A','PRODAT:Z04:D']).limit(100),
  ])
  if(contracts.error||points.error||agreements.error||periods.error)return <main className="p-6"><h1 className="text-xl font-semibold">Rättsgrund för särskild leverans</h1><p role="alert">Bolagets avtal och anläggningar kunde inte läsas med aktuell behörighet.</p></main>
  const choices:GroundChoice[]=[]

@@ -320,7 +320,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
           </div>
           <form className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-4" action="/admin/ediel/actors">
             <label className="text-xs font-bold text-slate-700">Roll
-              <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Roll" name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla roller</option>
                 <option value="grid_owner">Nätägare</option>
                 <option value="electricity_supplier">Elleverantörer</option>
@@ -330,7 +330,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700">Status
-              <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Status" name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla statusar</option>
                 <option value="active">Aktiv</option>
                 <option value="needs_review">Kräver granskning</option>
@@ -339,14 +339,14 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700 md:col-span-1">Sök
-              <input name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+              <input aria-label="Sök" name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
             </label>
             <div className="flex items-end gap-2">
               <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>
               <a href="/admin/ediel/actors" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
             </div>
             <label className="text-xs font-semibold text-slate-700">Källmarknad
-              <select name="market" defaultValue={params.market ?? 'all'} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Källmarknad" name="market" defaultValue={params.market ?? 'all'} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla</option><option value="EL">EL</option><option value="GAS">GAS (spärrad)</option><option value="unknown">Källmarknad saknas</option>
               </select>
             </label>

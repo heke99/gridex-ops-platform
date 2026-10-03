@@ -121,7 +121,7 @@ export default async function EdielOutboxPage() {
             <form action={processEdielOutboxAction} className="flex flex-wrap items-end gap-3">
               <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
                 Miljö
-                <select name="environment" className="mt-1 block rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal">
+                <select aria-label="Miljö" name="environment" className="mt-1 block rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal">
                   <option value="">Alla</option>
                   <option value="test">Test</option>
                   <option value="production">Produktion</option>
@@ -129,7 +129,7 @@ export default async function EdielOutboxPage() {
               </label>
               <label className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">
                 Limit
-                <input name="limit" defaultValue="10" className="mt-1 block w-20 rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Limit" name="limit" defaultValue="10" className="mt-1 block w-20 rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
               <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800">Processa kö</button>
             </form>

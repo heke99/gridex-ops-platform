@@ -86,6 +86,12 @@ textarea {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
+/* Long Swedish compounds, hashes and e-mail addresses must wrap instead of
+   widening the page at mobile width and 200 % zoom (WCAG 1.4.10 reflow). */
+.admin-saas-content :where(h1, h2, h3, p, dd, dt, label, li) {
+  overflow-wrap: anywhere;
+}
+
 .admin-saas-content > :where(div) {
   animation: adminFadeIn 160ms ease-out;
 }
