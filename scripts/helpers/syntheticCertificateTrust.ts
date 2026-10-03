@@ -31,8 +31,14 @@ export function publishSyntheticRecipientTrust(input:{companyId:string;actorUser
    originalReference:'SYNTHETIC owner register',legalAuthorityReference:'SYNTHETIC legal authority',processAuthorityReference:'SYNTHETIC process authority',
    ownerRegisterReference:'SYNTHETIC owner register reference',validFrom:new Date(Date.now()-60_000).toISOString(),validTo:new Date(Date.now()+86_400_000).toISOString(),actorUserId:input.actorUserId}
   const materials={anchors:[anchor],intermediates:[],crls:[crl],recipientFingerprints:[fingerprint]}
-  const registrationId=sql<string>(`BEGIN; SET LOCAL ROLE gridex_ediel_certificate_authority_owner;
-   SELECT to_jsonb(public.gridex_ediel_certificate_trust_publish_v1(${literal(scope)}::jsonb,decode(${literal(register.toString('hex'))},'hex'),${literal(materials)}::jsonb)); COMMIT;`)
+  // CI's postgres is not a superuser: membership exists only inside this
+  // transaction and is revoked before commit, so the NOLOGIN owner role keeps
+  // no lasting members.
+  const registrationId=sql<string>(`BEGIN; GRANT gridex_ediel_certificate_authority_owner TO CURRENT_USER;
+   SET LOCAL ROLE gridex_ediel_certificate_authority_owner;
+   CREATE TEMP TABLE synthetic_trust_publication ON COMMIT DROP AS SELECT public.gridex_ediel_certificate_trust_publish_v1(${literal(scope)}::jsonb,decode(${literal(register.toString('hex'))},'hex'),${literal(materials)}::jsonb) AS id;
+   RESET ROLE; REVOKE gridex_ediel_certificate_authority_owner FROM CURRENT_USER;
+   SELECT to_jsonb(id) FROM synthetic_trust_publication; COMMIT;`)
   return {registrationId,leafPem,leaf,fingerprint}
  }finally{rmSync(dir,{recursive:true,force:true})}
 }

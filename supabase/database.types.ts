@@ -98744,6 +98744,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_require_outbound_reply_basis_v1: {
+        Args: { m: Database["public"]["Tables"]["ediel_messages"]["Row"] }
+        Returns: undefined
+      }
       gridex_require_utilts_positive_ack_authority_v1: {
         Args: {
           p_ack_message_id?: string
