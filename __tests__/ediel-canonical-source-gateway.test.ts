@@ -11,6 +11,8 @@ import {isQualifiedDeathStatusContext} from '@/lib/ediel/prodat/prodatDeathStatu
 const io=vi.hoisted(()=>({actor:vi.fn(),replay:vi.fn(),rpc:vi.fn(),registryDispatch:vi.fn(),duplicate:vi.fn(),ackDuplicate:vi.fn(),validation:vi.fn(),witness:vi.fn(),legacyCreate:vi.fn(),create:vi.fn(),conflict:vi.fn(),endpoint:vi.fn(),technical:vi.fn(),technicalRoute:vi.fn(),sourcePack:vi.fn(),route:vi.fn(),positiveRead:vi.fn(),positiveMatch:vi.fn(),positivePrepare:vi.fn(),negativeRead:vi.fn(),negativeMatch:vi.fn(),negativePrepare:vi.fn(),commonRead:vi.fn(),commonPrepare:vi.fn(),commonRoute:vi.fn(),aiOriginal:vi.fn(),version:vi.fn(),references:vi.fn(),ackReferences:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(name:string,args:Record<string,unknown>)=>io.rpc.getMockImplementation()?io.rpc(name,args):io.replay(name,args)}}))
 vi.mock('@/lib/ediel/config',()=>({getEdielRouteRuntimeByCommunicationRouteId:vi.fn()}))
+// The tenant's verified supplier profile for the DDQ process (TEN-01/TEN-02 gate).
+vi.mock('@/lib/ediel/core/actorRegistry',()=>({resolveCanonicalActorContext:async()=>({actor:{id:'supplier-profile'},actorRole:'supplier',senderEdielId:'LOCAL',legalActorEdielId:'LOCAL',transportActorEdielId:'LOCAL',marketRoles:['electricity_supplier']})}))
 vi.mock('@/lib/actor-registry/registryMarketSource',()=>({readRegistryDispatchSource:io.registryDispatch}))
 vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:io.actor}))
 vi.mock('@/lib/ediel/core/atomicAckPersistence',()=>({persistAtomicOutboundAck:(input:CreateEdielMessageInput)=>io.create(input)}))
@@ -40,7 +42,7 @@ function message(patch:Partial<EdielMessageRow>={}):EdielMessageRow{return {
  communication_route_id:null,outbound_request_id:null,switch_request_id:null,grid_owner_data_request_id:null,partner_export_id:null,customer_id:null,site_id:null,metering_point_id:null,grid_owner_id:null,raw_payload:raw,parsed_payload:{},validation_report:{},
  requires_contrl:true,requires_aperak:true,contrl_status:null,aperak_status:null,utilts_err_status:null,ack_outcome:null,syntax_check_status:null,functional_check_status:null,failure_reason:null,
  message_created_at:null,message_received_at:null,message_sent_at:null,parsed_at:null,validated_at:null,acknowledged_at:null,failed_at:null,ack_due_at:null,created_at:'2026-09-30T12:00:00Z',updated_at:'2026-09-30T12:00:00Z',created_by:null,updated_by:null,...patch}}
-const draft=():CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z01',sourceOperationId:operation,rawPayload:raw,routeProfileId:'route-profile'})
+const draft=():CreateEdielMessageInput=>({actorUserId:actor,companyId:company,environment:'test',direction:'outbound',messageStandard:'edifact',messageFamily:'PRODAT',messageCode:'Z01',sourceOperationId:operation,rawPayload:raw,routeProfileId:'route-profile',applicationReference:'23-DDQ-PRODAT',senderEdielId:'LOCAL',receiverEdielId:'REMOTE',communicationRouteId:'route'})
 const evidence=()=>({companyId:company,environment:'test',sourceMessageId:sourceId,sourceHash:createHash('sha256').update(raw,'utf8').digest('hex')})
 const snapshot=()=>({profileKey:'canonical-z01',profileVersionId:'profile',version:'26.A:r3',checksum:'a'.repeat(64),originalWitness:{rulePack:{id:'pack',source_hash:'a'.repeat(64),guide_version:'26.A',guide_revision:3},messageProfile:{id:'profile',profile_key:'canonical-z01'}}})
 const ackDraft=():CreateEdielMessageInput=>({...draft(),messageFamily:'CONTRL',messageCode:'CONTRL',companyId:null,rawPayload:"UNB+UNOC:3+LOCAL:ZZ:LOCAL-SUB+REMOTE:ZZ:REMOTE-SUB+260930:1201+ACKI++APP++++1'UNH+1+CONTRL:2:2:UN:EDIEL2'UCI+ACTUAL+REMOTE:ZZ:REMOTE-SUB+LOCAL:ZZ:LOCAL-SUB+4'UNT+3+1'UNZ+1+ACKI'"})
@@ -200,7 +202,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
  it('direct public creator obtains canonical validation and a one-use original witness instead of trusting supplied snapshot',async()=>{
   await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:{...draft(),rulePackSnapshot:{forged:true},executionContextSnapshot:{outboundOwnerWitnessId:'caller-token'}}})
   expect(io.validation).toHaveBeenCalledOnce();expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({companyId:company,environment:'test',rawPayload:raw,rulePackEvidence:expect.objectContaining({rulePackId:'pack'})}))
-  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness'},canonicalRulePackId:'pack'})}))
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',executionContext:expect.objectContaining({companyId:company,senderActorId:'supplier-profile',senderRole:'supplier',legalActorEdielId:'LOCAL',senderEdielId:'LOCAL',applicationReference:'23-DDQ-PRODAT'})},canonicalRulePackId:'pack'})}))
  })
  it('rejects blocking canonical diagnostics before minting original witness or writing a direct draft',async()=>{
   io.validation.mockResolvedValue({issues:[{severity:'error',code:'SYNTHETIC-REJECTION',description:'actual probe rejection'}],fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
@@ -227,7 +229,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   expect(io.actor).toHaveBeenCalledWith({companyId:company,actorUserId:actor,permissionAnyOf:['communication.write','ediel_testing.write']})
   expect(io.positivePrepare).toHaveBeenCalledWith({qualification:q,actorUserId:actor,rawPayload:raw})
   expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({sourceQualifiedPositiveFixtureWitnessId:'one-use-positive-token'}))
-  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedPositiveFixtureWitnessId:'one-use-positive-token'}})}))
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedPositiveFixtureWitnessId:'one-use-positive-token',executionContext:expect.objectContaining({companyId:company,senderActorId:'supplier-profile',senderRole:'supplier',legalActorEdielId:'LOCAL',senderEdielId:'LOCAL',applicationReference:'23-DDQ-PRODAT'})}})}))
   expect(io.positivePrepare.mock.invocationCallOrder[0]).toBeLessThan(io.witness.mock.invocationCallOrder[0])
  })
  it('consumes a qualified negative original token only alongside the same ordinary canonical owner seal',async()=>{
@@ -235,7 +237,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   io.negativeRead.mockReturnValue(q);io.negativeMatch.mockReturnValue(true);io.negativePrepare.mockResolvedValue({witnessId:'one-use-negative-token',qualification:q});io.validation.mockResolvedValue({issues:[{severity:'error',code:'SOURCE-DECLARED-NEGATIVE',description:'declared probe diagnostic'}],canonicalPolicy:{family:'PRODAT',code:'Z01',environment:'test',referenceDate:'2026-09-30'},fieldRuleSource:'registry',rulePackSnapshot:snapshot()})
   await createCanonicalOutboundMessage({actorUserId:actor,requestType:'customer_masterdata',baseInput:draft()})
   expect(io.witness).toHaveBeenCalledWith(expect.objectContaining({sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token',rulePackEvidence:expect.objectContaining({rulePackId:'pack'})}))
-  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token'}})}))
+  expect(io.legacyCreate).toHaveBeenCalledWith(expect.objectContaining({baseInput:expect.objectContaining({executionContextSnapshot:{outboundOwnerWitnessId:'opaque-server-witness',sourceQualifiedNegativeFixtureWitnessId:'one-use-negative-token',executionContext:expect.objectContaining({companyId:company,senderActorId:'supplier-profile',senderRole:'supplier',legalActorEdielId:'LOCAL',senderEdielId:'LOCAL',applicationReference:'23-DDQ-PRODAT'})}})}))
   expect(io.negativePrepare.mock.invocationCallOrder[0]).toBeLessThan(io.witness.mock.invocationCallOrder[0])
  })
  it('holds positive fixtures with canonical rejection or unavailable one-use original instead of writing',async()=>{
@@ -288,7 +290,7 @@ describe('canonical source-owner and technical gateway consumers',()=>{
   await expect(createCanonicalAckMessage({actorUserId:actor,sourceMessage:source,ackFamily:'APERAK',outcome:'negative',draft:commonDraft()})).rejects.toThrow('actual current AP27 route unavailable')
   expect(io.commonPrepare).not.toHaveBeenCalled();expect(io.create).not.toHaveBeenCalled()
  })
- const aiDraft=():CreateEdielMessageInput=>({...draft(),messageStandard:'ai_list',messageFamily:'AI_LIST',messageCode:'AI',intentId:'00000000-0000-4000-8000-000000000020',rawPayload:'MECHANICAL AI ORIGINAL PORT: actual format/source qualification is separate',routeProfileId:'actual-ai-profile',senderEdielId:'LOCAL',receiverEdielId:'REMOTE',receiverEmail:'remote@example.invalid',communicationRouteId:'actual-ai-route'})
+ const aiDraft=():CreateEdielMessageInput=>({...draft(),applicationReference:null,messageStandard:'ai_list',messageFamily:'AI_LIST',messageCode:'AI',intentId:'00000000-0000-4000-8000-000000000020',rawPayload:'MECHANICAL AI ORIGINAL PORT: actual format/source qualification is separate',routeProfileId:'actual-ai-profile',senderEdielId:'LOCAL',receiverEdielId:'REMOTE',receiverEmail:'remote@example.invalid',communicationRouteId:'actual-ai-route'})
  it('qualifies actual AI original through the same public direct creator without EDIFACT authority selection',async()=>{
   const d=aiDraft();await createCanonicalOutboundMessage({actorUserId:actor,requestType:'meter_values',baseInput:d})
   expect(io.aiOriginal).toHaveBeenCalledWith({actorUserId:actor,draft:expect.objectContaining({...d,actorUserId:actor})})

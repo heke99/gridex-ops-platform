@@ -1,5 +1,6 @@
 // lib/ediel/core/routeRegistry.ts
 
+import { processActorRole } from '@/lib/ediel/core/marketRole'
 import { findBestCommunicationRoute } from '@/lib/cis/db-routes'
 import type { CommunicationRouteRow } from '@/lib/cis/types'
 import type { GridOwnerRow } from '@/lib/masterdata/types'
@@ -138,7 +139,8 @@ export async function resolveCanonicalRouteContext(params: {
   const companyId = trimOrNull(params.companyId)
   if (!companyId) throw new Error('canonical_route_company_required')
 
-  const actor = await resolveCanonicalActorContext(environment, companyId)
+  // TEN-02/TEN-05: the process (application reference) selects the tenant's role profile.
+  const actor = await resolveCanonicalActorContext(environment, companyId, processActorRole(params.applicationReference))
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
     gridOwnerId: params.gridOwner?.id ?? (params.requestType === 'ediel_ack' ? await replyGridOwnerId(companyId, params.receiverEdielId) : null),

@@ -28,20 +28,23 @@ export type EdielExecutionContext = Readonly<{
   businessDate: string
   timeAnchors?: EdielMessageTimeAnchors | null
   senderActorId: string
+  /** Legal market actor; may differ from the transport sender when an ombud transports. */
+  legalActorEdielId: string
   senderEdielId: string
   senderRole: string
   senderSubAddress: string | null
-  receiverActorId: string
+  receiverActorId: string | null
   receiverEdielId: string
-  receiverRole: string
+  receiverRole: string | null
   receiverSubAddress: string | null
   gridAreaCode: string | null
   rulePackId: string
-  communicationRouteId: string
-  routeProfileId: string
+  /** Known once routed; a prepared draft (e.g. TGT) may precede routing. Send re-checks the route. */
+  communicationRouteId: string | null
+  routeProfileId: string | null
   certificateProfileId: string | null
   applicationReference: string
-  sourceOperationId: string
+  sourceOperationId: string | null
 }>
 
 export type EdielExecutionContextInput = {
@@ -87,16 +90,12 @@ const REQUIRED_TEXT_FIELDS = [
   'messageCode',
   'businessProcess',
   'senderActorId',
+  'legalActorEdielId',
   'senderEdielId',
   'senderRole',
-  'receiverActorId',
   'receiverEdielId',
-  'receiverRole',
   'rulePackId',
-  'communicationRouteId',
-  'routeProfileId',
   'applicationReference',
-  'sourceOperationId',
 ] as const satisfies readonly (keyof EdielExecutionContext)[]
 
 export function validateEdielExecutionContext(
@@ -177,20 +176,21 @@ export function createEdielExecutionContext(input: EdielExecutionContextInput): 
       measurementPeriods: Object.freeze(input.timeAnchors.measurementPeriods.map(period => Object.freeze({ ...period }))),
     }) } : {}),
     senderActorId: nonEmpty(input.senderActorId)!,
+    legalActorEdielId: nonEmpty(input.legalActorEdielId)!,
     senderEdielId: nonEmpty(input.senderEdielId)!,
     senderRole: nonEmpty(input.senderRole)!,
     senderSubAddress: nullableText(input.senderSubAddress),
-    receiverActorId: nonEmpty(input.receiverActorId)!,
+    receiverActorId: nullableText(input.receiverActorId),
     receiverEdielId: nonEmpty(input.receiverEdielId)!,
-    receiverRole: nonEmpty(input.receiverRole)!,
+    receiverRole: nullableText(input.receiverRole),
     receiverSubAddress: nullableText(input.receiverSubAddress),
     gridAreaCode: nullableText(input.gridAreaCode),
     rulePackId: nonEmpty(input.rulePackId)!,
-    communicationRouteId: nonEmpty(input.communicationRouteId)!,
-    routeProfileId: nonEmpty(input.routeProfileId)!,
+    communicationRouteId: nullableText(input.communicationRouteId),
+    routeProfileId: nullableText(input.routeProfileId),
     certificateProfileId: nullableText(input.certificateProfileId),
     applicationReference: nonEmpty(input.applicationReference)!,
-    sourceOperationId: nonEmpty(input.sourceOperationId)!,
+    sourceOperationId: nullableText(input.sourceOperationId),
   })
 }
 

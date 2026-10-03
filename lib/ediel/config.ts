@@ -1,3 +1,4 @@
+import type { EdielActorRole } from '@/lib/ediel/core/marketRole'
 // lib/ediel/config.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -235,17 +236,22 @@ export function evaluateProductionTransportSecurity(params: {
 
 export async function getActiveEdielActorSettings(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  /** Operational role of the process (TEN-02/TEN-05). A tenant may hold one
+   * active profile per role; without a role, several active profiles stay ambiguous. */
+  actorRole?: EdielActorRole | null,
 ): Promise<EdielActorSettingsRow | null> {
   const scopedCompanyId = sanitize(companyId)
 
   if (scopedCompanyId) {
-    const scoped = await supabaseService
+    let scopedQuery = supabaseService
       .from('ediel_actor_settings')
       .select('*')
       .eq('environment', environment)
       .eq('company_id', scopedCompanyId)
       .eq('is_active', true)
+    if (actorRole) scopedQuery = scopedQuery.eq('actor_role', actorRole)
+    const scoped = await scopedQuery
       .order('id', { ascending: true })
       .limit(2)
 

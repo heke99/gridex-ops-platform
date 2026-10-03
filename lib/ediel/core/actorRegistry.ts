@@ -6,9 +6,12 @@ import {
   resolveCanonicalTenantEdielIdentity,
   type CanonicalTenantEdielIdentity,
 } from '@/lib/ediel/tenant/tenantEdielIdentity'
+import { tenantMarketRoleFor, type EdielActorRole } from '@/lib/ediel/core/marketRole'
 
 export type CanonicalActorContext = {
   actor: EdielActorSettingsRow
+  /** Operational role of the selected profile; distinct from tenant, legal actor and transport identity. */
+  actorRole: string
   /** UNB transport sender. For a represented tenant this can be an Ediel ombud. */
   senderEdielId: string
   /** Legal market actor used in message-level NAD sender/receiver semantics. */
@@ -42,9 +45,13 @@ function trimOrNull(value?: string | null): string | null {
 
 export async function resolveCanonicalActorContext(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  actorRole?: EdielActorRole | null,
 ): Promise<CanonicalActorContext> {
-  const actor = await getActiveEdielActorSettings(environment, companyId)
+  // TEN-01: tenant, legal actor, operational role and transport identity are
+  // resolved together for one tenant; a tenant-less global profile is never used.
+  if (!trimOrNull(companyId)) throw new Error('canonical_actor_company_required')
+  const actor = await getActiveEdielActorSettings(environment, companyId, actorRole)
 
   if (!actor) {
     throw new Error(
@@ -57,14 +64,15 @@ export async function resolveCanonicalActorContext(
     throw new Error(`Aktiv ediel_actor_settings för ${environment} saknar ediel_id/actor_ediel_id.`)
   }
 
-  let tenantIdentity: CanonicalTenantEdielIdentity | null = null
-  if (companyId) {
-    tenantIdentity = await resolveCanonicalTenantEdielIdentity({ companyId, environment })
-    if (tenantIdentity.legalEdielId !== legacySenderEdielId) {
-      throw new Error(
-        `canonical_actor_legacy_identity_mismatch:${companyId}:${environment}:${legacySenderEdielId}:${tenantIdentity.legalEdielId}`,
-      )
-    }
+  const tenantIdentity: CanonicalTenantEdielIdentity = await resolveCanonicalTenantEdielIdentity({ companyId: companyId!, environment })
+  if (tenantIdentity.legalEdielId !== legacySenderEdielId) {
+    throw new Error(
+      `canonical_actor_legacy_identity_mismatch:${companyId}:${environment}:${legacySenderEdielId}:${tenantIdentity.legalEdielId}`,
+    )
+  }
+  // TEN-02: a role profile is only usable when the verified tenant identity holds that market role.
+  if (actorRole && !tenantIdentity.roleCodes.includes(tenantMarketRoleFor(actorRole))) {
+    throw new Error(`canonical_actor_market_role_missing:${actorRole}`)
   }
 
   const senderEdielId = tenantIdentity?.transportEdielId ?? legacySenderEdielId
@@ -77,6 +85,7 @@ export async function resolveCanonicalActorContext(
 
   return {
     actor,
+    actorRole: trimOrNull(actor.actor_role) ?? 'supplier',
     senderEdielId,
     legalActorEdielId,
     transportActorEdielId: senderEdielId,

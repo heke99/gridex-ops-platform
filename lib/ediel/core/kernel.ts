@@ -1,4 +1,5 @@
 import {supabaseService} from '@/lib/supabase/service'
+import { assertOutboundActorIdentity, buildOutboundExecutionContext } from '@/lib/ediel/core/outboundExecutionContext'
 import type { CreateEdielMessageInput, EdielMessageRow } from '@/lib/ediel/types'
 import { persistAtomicOutboundAck } from '@/lib/ediel/core/atomicAckPersistence'
 import { readProtectedOutboundAckReplay } from '@/lib/ediel/core/ackPolicy'
@@ -206,6 +207,7 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
   if(!draft.companyId || draft.direction!=='outbound' || !draft.rawPayload || !['test','production'].includes(draft.environment ?? '')) throw new Error('canonical_outbound_owner_scope_required')
   const negativeFixture=readSourceQualifiedNegativeFixtureDraft(draft),positiveFixture=readSourceQualifiedPositiveFixtureDraft(draft)
   await assertOutboundPreparationActor({companyId:draft.companyId,actorUserId,negativeFixture,positiveFixture})
+  const roleActor=await assertOutboundActorIdentity(draft)
   const duplicate=params.duplicateCheck ? await findOutboundEdielMessageDuplicate({
     ...params.duplicateCheck,requestType:params.requestType,companyId:draft.companyId,environment:draft.environment,
     sourceOperationId:sourceOperationIdFromDraft(draft),messageFamily:draft.messageFamily,messageCode:String(draft.messageCode),messageVersion:null,
@@ -231,10 +233,11 @@ export async function createCanonicalOutboundMessage(params: Parameters<typeof c
   const fixtureWitnesses=await prepareDraftFixtureWitnesses({actorUserId,rawPayload:draft.rawPayload,negativeFixture,positiveFixture})
   const sealed=requiresBilateralProdatOutboundOwner(draft)?{witnessId:undefined,evidence}:await prepareEdielOutboundOwnerWitness({companyId:draft.companyId,actorUserId,
     environment:draft.environment as 'test'|'production',rawPayload:draft.rawPayload,rulePackEvidence:evidence,...fixtureWitnesses})
+  const executionContext=roleActor?buildOutboundExecutionContext({draft:{...draft,sourceOperationId:sourceOperationIdFromDraft(draft)},actor:roleActor,rulePackId:sealed.evidence.rulePackId}):null
   return createLegacyCanonicalOutboundMessage({...params,actorUserId,duplicateCheck:params.duplicateCheck
     ? {...params.duplicateCheck,messageFamily:draft.messageFamily,messageCode:String(draft.messageCode),messageVersion:null}:undefined,
     baseInput:{...draft,canonicalRulePackId:sealed.evidence.rulePackId,
-    executionContextSnapshot:{outboundOwnerWitnessId:sealed.witnessId,...fixtureWitnesses},ruleProfileKey:sealed.evidence.profileKey,
+    executionContextSnapshot:{outboundOwnerWitnessId:sealed.witnessId,...fixtureWitnesses,...(executionContext?{executionContext}:{})},ruleProfileKey:sealed.evidence.profileKey,
     ruleProfileVersionId:sealed.evidence.messageProfileId,ruleProfileVersion:sealed.evidence.version,rulePackChecksum:sealed.evidence.sourceHash,
     rulePackSnapshot:{...snapshot,...sealed.evidence.snapshot}}})
 }

@@ -6,6 +6,8 @@ import { reportingId, reportingNow, reportingPrepared } from './fixtures/prodat-
 import {pinnedProdatReadBoundary,expectedTgtCounterVariants} from './fixtures/ediel-pinned-prodat-read-boundary';
 import {buildEdielTgtDraft} from '@/lib/ediel/testing/tgtEdifact.part-4';
 const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), send: vi.fn(), archive: vi.fn(), authorize: vi.fn(), operational: vi.fn(), company: vi.fn(),rpc:vi.fn() }));
+// The tenant's test actor profile for the process role, same identity as the TGT runtime fixture (TEN-01/TEN-02 gate).
+vi.mock('@/lib/ediel/core/actorRegistry',()=>({resolveCanonicalActorContext:async(_environment:string,_company:string,role:string)=>({actor:{id:'ACTORSETTING'},actorRole:role,senderEdielId:'12345',legalActorEdielId:'12345',transportActorEdielId:'12345',marketRoles:[role==='supplier'?'electricity_supplier':'energy_service_company']})}))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from,rpc:io.rpc } }));
 vi.mock('@/lib/admin/guards', () => ({ requirePlatformAdminActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }), requireCompanyScopedActionAccess: io.authorize, isPlatformAdminContext: () => true }));
 vi.mock('@/lib/ediel/actionAccess', () => ({ requireEdielWriteActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }) }));
