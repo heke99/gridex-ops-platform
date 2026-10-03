@@ -1,5 +1,13 @@
 import {writeFileSync} from 'node:fs'
-import {nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {execFileSync} from 'node:child_process'
+
+// Self-contained (no app/server-only imports): every browser pre-phase config can load it.
+const DB='postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+const literal=(value:string)=>"'"+value.replaceAll("'","''")+"'"
+function sql(query:string){
+ if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
+ execFileSync('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{input:query,encoding:'utf8',timeout:10000})
+}
 
 /** The admin UI resolves a tenant user's permissions from role assignments
  * (canonical_authenticated_tenant_context), while the native owners also read
