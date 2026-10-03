@@ -249,3 +249,9 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 
 ## 2026-10-03 — Blandade PRODAT Z04: design A med rättning
 Ägarbeslut: partitionsägaren (043234/043602) äger blandade Z04. Ett komplett BGM34-svar skapas av createReceivedProdatCommittedEffectAcks: egna kvalificerade negativa + ERC100 endast för objekt med committed effektkvitto. Facetten projicerar negativet med syskon held. Framåtmigration 20261003100100 låter require_before_prodat_scope_v1 delegera ERC100-omfång till domain_response_birth när källan är partitionsägd. Den äldre mixed-ägaren (prodat_mixed_*) används inte.
+
+## 2026-10-03 — Två regler i taget, granskning av #426
+Ägaren: granska allt i #426 i mindre batcher mot regelregistren (metod och status i
+`quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`). Framåt byggs två
+regler åt gången; båda ska vara korrekt byggda, ha märkta gröna beteendetester och
+vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras för nästa agent.

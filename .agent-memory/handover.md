@@ -1056,3 +1056,4 @@ Published `97342339` hit native 393/394 on an overbroad new test assertion: the 
 Older Current sections above are historical and SUPERSEDED.
 
 - 2026-10-03 #426: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067 godkända med märkta unit-tester (mappning från granskningssessionen). SC-044 återställd till NOT_EXECUTED: enda testet är native (`scripts/ediel-utilts-err-gateway-native.test.ts`), som `ediel:masterplan-v2:test-coverage` inte kan köra; tidigare acceptans finns kvar i `acceptance-sc044-20260930.md`.
+- 2026-10-03 Granskning av #426 regel för regel startad: plan/status i `quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`; batch 1 (TEN-01..14) körs. Framåt: två regler i taget, godkända innan nästa par.
