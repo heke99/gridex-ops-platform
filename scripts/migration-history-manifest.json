@@ -497,7 +497,7 @@
     "20261002230000_customer_merge_portal_lifecycle.sql": "836c083fad0f231a145cf4117527057a20bdc2f73d094c3fbaa53fbab525a4c9",
     "20261003100000_website_application_review_atomic.sql": "ccbc312b67b1d0bb442a40aec923c8be821f38098b2fbc3cab9fd0074b4dc215",
     "20261003110000_customer_info_request_atomic.sql": "aff8fed19f9684c04df5a19095cd36401a96b20d0bdffeaa5a87b813d7158a09",
-    "20261003130000_customer_portfolio_analytics_whitelabel.sql": "e8c67e084f1049aaee27dc135188bca887667ebaa682d28edb1d6b7b041d3801",
+    "20261003130000_customer_portfolio_analytics_whitelabel.sql": "c24cff0e1568008c31d27d896e75ace4c16b3989a8cf184d3caba38a171d0c9c",
     "20261003131000_customer_portfolio_phase2.sql": "a8699e2bf56d43c7dcb29be41c6c79dadba0e7728b41477fed0ee0eae8aa78c7",
     "Batch 1+2.sql": "98c3ce070c4ce180d6ef33dea4b1330d6cf9f469852b9974e6866f92e0c70cf9",
     "batch 3.sql": "3f3fedc11337f1b97653bdcfa46db016441a6da6e4f41ba5dfc68845cd5c2918",

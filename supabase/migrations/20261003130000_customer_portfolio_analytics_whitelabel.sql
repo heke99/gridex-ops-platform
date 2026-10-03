@@ -47,12 +47,15 @@ create index if not exists grid_owner_data_requests_company_requested_idx
 -- ---------------------------------------------------------------------------
 create or replace function public.gridex_user_can_read_whitelabel_platform(p_white_label_platform_id uuid)
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public, auth, pg_temp
 as $$
-  select p_white_label_platform_id is not null
+-- plpgsql (not sql) so the body is resolved at call time: the white-label tables
+-- are absent in the canonical clean replay (see 20260829194612).
+begin
+  return p_white_label_platform_id is not null
     and public.gridex_is_current_session_allowed()
     and (
       public.gridex_user_is_platform_admin()
@@ -66,6 +69,7 @@ as $$
           and p.status <> 'archived'
       )
     );
+end;
 $$;
 
 -- Read access to one company's portfolio: tenant read access, or read-only through
@@ -389,11 +393,13 @@ $$;
 -- Platforms the caller may read (white-label members; platform admins see all).
 create or replace function public.gridex_list_readable_whitelabel_platforms()
 returns table (id uuid, name text, slug text, status text, membership_role text)
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public, auth, pg_temp
 as $$
+begin
+  return query
   select p.id, p.name, p.slug, p.status,
          coalesce(m.membership_role, case when public.gridex_user_is_platform_admin() then 'platform_admin' end)
   from public.white_label_platforms p
@@ -401,6 +407,7 @@ as $$
     on m.white_label_platform_id = p.id and m.user_id = auth.uid() and m.status = 'active'
   where public.gridex_user_can_read_whitelabel_platform(p.id)
   order by p.name;
+end;
 $$;
 
 -- Read-only per-tenant overview for one white-label platform and month.
@@ -561,10 +568,22 @@ begin
 end;
 $$;
 
-drop trigger if exists gridex_guard_company_white_label_platform on public.companies;
-create trigger gridex_guard_company_white_label_platform
-  before update of white_label_platform_id on public.companies
-  for each row execute function public.gridex_guard_company_white_label_platform();
+do $migration$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'companies' and column_name = 'white_label_platform_id'
+  ) then
+    raise notice 'companies.white_label_platform_id is absent in canonical clean replay; skipping white-label guard trigger';
+    return;
+  end if;
+
+  execute 'drop trigger if exists gridex_guard_company_white_label_platform on public.companies';
+  execute 'create trigger gridex_guard_company_white_label_platform
+    before update of white_label_platform_id on public.companies
+    for each row execute function public.gridex_guard_company_white_label_platform()';
+end
+$migration$;
 
 create or replace function public.gridex_assign_company_to_whitelabel(
   p_company_id uuid,
