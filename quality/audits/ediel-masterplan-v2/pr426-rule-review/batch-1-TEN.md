@@ -30,7 +30,7 @@ saknade effekter eller saknade beteendetester.
 | F-TEN-01 | medel | `createEdielExecutionContext` saknar produktionsanropare (lib/ediel/core/executionContext.ts:160). | Anropa före utgående send/kundmutation; beteendetest för avvisning. |
 | F-TEN-02 | låg | `resolveCanonicalActorContext` utan companyId faller tillbaka på global aktör (actorRegistry.ts:55-71); nås från legacy-adminsidan. | Kräv companyId; hoppa över uppslag när scope saknas. |
 | F-TEN-03 | medel | Endast en aktiv `ediel_actor_settings`-rad per bolag/miljö (config.ts:240-256); `tenantHasMarketRole` oanvänd. | Forward-migration med marknadsroll i aktörsprofil + rollgrind för DDQ/DGI. |
-| F-TEN-04 | medel | `inboundTenantResolver.ts:152` tar NAD+MS/DDQ som juridisk mottagare → feltillskrivning via delat ombud. | Använd `extractMarketActorEdielIdFromRawPayload` (DO/MR), annars håll. |
+| F-TEN-04 ✅ rättad 2c78bede | medel | `inboundTenantResolver.ts:152` tar NAD+MS/DDQ som juridisk mottagare → feltillskrivning via delat ombud. | Använd `extractMarketActorEdielIdFromRawPayload` (DO/MR), annars håll. |
 
 ## Uppföljning (ej avgjort)
 - U-1 (TEN-04): `ediel_verify_registry_el_actor_v1` aktiverar representerad route utan dokumenterat mandat.
@@ -47,3 +47,9 @@ D14 ambiguous (fail-closed korrekt), D15 wire-unikhet (reservationstabell finns)
 1. F-TEN-04 + F-TEN-01 (TEN-06/TEN-01) — test först, sedan fix.
 2. F-TEN-03 + F-TEN-02 (TEN-02) + SC-002.
 3. Saknade beteendetester per regel enligt tabellen, därefter godkännande i coverage.json.
+
+## Status 2026-10-03
+- F-TEN-04 rättad i `2c78bede` med test först (`__tests__/ediel-inbound-mail-legal-receiver.test.ts`, märkt TEN-06; rött före, grönt efter).
+- F-TEN-01 och F-TEN-03 hänger ihop: en verifierad execution context kräver avsändarroll per process (DDQ/DGI),
+  vilket kräver rollbundna aktörsprofiler. Designbeslut begärt av ägaren innan implementation.
+- TEN-06 kvar för godkännande: SC-014 (teknisk CONTRL i karantänfallet) saknar beteendetest.
