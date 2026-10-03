@@ -1155,7 +1155,12 @@ export async function processInboundEdielMessage(params: {
             message:'Leveransutfallet och dess kvitto är fastställda; övriga projektioner inväntar granskning.',
             payload:{supplyAncillaryProjection:'held',reason:formatErrorMessage(error,'Operativ projektion kunde inte slutföras.')}})}
         }
-        const inboundCase=await createOrUpdateInboundProdatCase({actorUserId,message:runtimeMessage});
+        // A physical register structure the canonical decision already answered
+        // negatively has no reviewable own case; it must not fail the reception.
+        const inboundCase=await createOrUpdateInboundProdatCase({actorUserId,message:runtimeMessage}).catch((error:unknown)=>{
+          if(error instanceof Error&&error.message.startsWith('PRODAT_REGISTER_STRUCTURE_INVALID:')&&canonicalRuntime.decision.applicationDecision==='rejected')return null;
+          throw error;
+        });
         await createEdielMessageEvent({actorUserId,edielMessageId:runtimeMessage.id,eventType:'validated',eventStatus:reviewRequired?'warning':'success',
           message:reviewRequired?'Egna objekt har behandlats där källunderlaget räcker; övriga objekt inväntar granskning.':'Egna objekt och deras slutliga svar följer beständiga skrivkvitton.',
           payload:{inboundCaseId:inboundCase?.id??null,createdAckMessageIds:[...initialAckIds,...ownAckIds],reviewRequired,fullyApplied,
