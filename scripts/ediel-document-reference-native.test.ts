@@ -62,9 +62,23 @@ afterEach(async()=>{
  if(ownedActors.length)sql(`DELETE FROM public.user_permissions WHERE user_id IN (${ownedActors.splice(0).map(literal).join(',')})`)
  // Contract originals are retention-protected (20261001083000 storage guard):
  // a disposable stack keeps them; deleting them must be refused, not bypassed.
- if(ownedObjects.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(ownedObjects.splice(0));expect(result.error?.message??'').toMatch(/database error|P0001/)}
+ // Objects removed by an emulated external loss are gone; every remaining
+ // signed contract must still be protected from application deletion.
+ const remaining=ownedObjects.splice(0).filter(path=>sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM storage.objects WHERE bucket_id='customer-contract-documents' AND name=${literal(path)}))`))
+ if(remaining.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(remaining);expect(result.error?.message??'').toMatch(/database error|P0001/)}
  vi.restoreAllMocks()
 })
+/** External object-store loss outside the application. Application deletes and
+ * overwrites of a stored signed contract are refused by the retention guard
+ * (contract_pdf_native_class_purge_required), so the object row is removed in
+ * an isolated replica transaction; 'replace' then stores other bytes under the
+ * same path (a new object insert is allowed). */
+async function emulateExternalStorageLoss(path:string,loss:'delete'|'replace',bytes=Buffer.from('%PDF-replaced')){
+ sql(`BEGIN; SET LOCAL session_replication_role=replica;
+  DELETE FROM storage.objects WHERE bucket_id='customer-contract-documents' AND name=${literal(path)}; COMMIT;`)
+ if(loss==='delete')return {error:null}
+ return supabaseService.storage.from('customer-contract-documents').upload(path,bytes,{upsert:false,contentType:'application/pdf'})
+}
 async function seed(bytes=Buffer.from('%PDF-1.4\nsynthetic signed context\n%%EOF'),origin='gridex_signed_contract_document_v1'){
  const f=await sourceSeed();ownedActors.push(f.actorUserId)
  const customer=randomUUID(),site=randomUUID(),point=randomUUID(),grid=randomUUID(),contract=randomUUID(),supply=randomUUID()
@@ -90,11 +104,13 @@ const args=(f:Awaited<ReturnType<typeof seed>>)=>({companyId:f.companyId,sourceM
 const begin=(f:Awaited<ReturnType<typeof seed>>)=>supabaseService.rpc('gridex_begin_document_reference_v1',{p_company_id:f.companyId,p_environment:f.environment,p_source_message_id:f.sourceMessageId,p_document_id:f.documentId,p_actor_user_id:f.actorUserId})
 const saved=(f:Awaited<ReturnType<typeof seed>>,cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'))=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT public.gridex_read_document_reference_context_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)},${literal(cutoff)});`)
 
+// Other native files create synthetic per-test roles (keys carry a UUID);
+// no migration may grant these permissions to any named role.
 it('clean replay materializes document permission with no implicit role grants',()=>{
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='documents.read' AND is_active`)).toBe(1)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='documents.read')`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions rp LEFT JOIN public.roles r ON r.id=rp.role_id WHERE rp.permission_id IN (SELECT id FROM public.permissions WHERE key='documents.read') AND coalesce(rp.role_key,r.key,'') !~ '[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}'`)).toBe(0)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='customers.read' AND is_active`)).toBe(1)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='customers.read')`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions rp LEFT JOIN public.roles r ON r.id=rp.role_id WHERE rp.permission_id IN (SELECT id FROM public.permissions WHERE key='customers.read') AND coalesce(rp.role_key,r.key,'') !~ '[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}'`)).toBe(0)
 })
 it('customer registry forward repeats without rewriting metadata or assignments',async()=>{
  const f=await seed()
@@ -218,7 +234,7 @@ it('raw sealed candidate and durable incomplete epoch survive failure before ini
  expect(saved(f)).toMatchObject({sourceMessageId:f.sourceMessageId,sourceScope:{objectId:'735123456789012345'},coverage:'incomplete',attempts:[]})
 })
 it('missing bytes leave durable attempted/unavailable context',async()=>{
- const f=await seed();await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!])
+ const f=await seed();await emulateExternalStorageLoss(f.document.storage_path!,'delete')
  expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
  expect(saved(f)).toMatchObject({attempts:[{documentId:f.documentId,outcome:{observation:{status:'unavailable'}}}]})
 })
@@ -307,7 +323,7 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
  const lose=async()=>{
   trace.storage='started'
   try{
-   const result=loss==='delete'?await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!]):await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-replaced'),{upsert:true,contentType:'application/pdf'})
+   const result=await emulateExternalStorageLoss(f.document.storage_path!,loss as "delete"|"replace")
    trace.storage='completed';trace.storageError=result.error?.message
    expect(result.error).toBeNull()
   }catch(error){trace.storageError=error instanceof Error?error.message:String(error);throw error}
@@ -386,7 +402,7 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
  expect(fresh.revalidation).toMatchObject([{status:'recorded',observation:'unavailable'}]);expect(fresh.contentStatus).toBe('document_reference_unavailable');expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
 })
 it('byte replacement is unavailable despite immutable metadata',async()=>{
- const f=await seed();expect((await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-wrong'),{upsert:true,contentType:'application/pdf'})).error).toBeNull()
+ const f=await seed();expect((await emulateExternalStorageLoss(f.document.storage_path!,'replace',Buffer.from('%PDF-wrong'))).error).toBeNull()
  expect(await downloadAndVerifyCustomerContractDocumentBounded(f.document)).toMatchObject({status:'unavailable',reason:'hash_mismatch'})
 })
 it('direct table access and authenticated RPC are denied; witness requires another transaction',async()=>{
@@ -512,6 +528,9 @@ it('saved null-path identity and append visibility survive later row completion 
 // Actual installed SDK + Node fetch + loopback TCP. Only client selection is
 // redirected; no mock Response, stream, clock or network operation is used.
 it.each(['headers','body'])('native SDK aborts a %s stall and rejects a late local response',async phase=>{
+ // An actual available signed-contract identity passes the retention owner
+ // (requireCustomerRecordAvailable) before the transport; only bytes stall.
+ const f=await seed()
  const bytes=Buffer.from('%PDF-local-transport'),hash=createHash('sha256').update(bytes).digest('hex')
  let transportSignal:AbortSignal|undefined,requestCount=0,closedResolve!:()=>void
  const closed=new Promise<void>(resolve=>{closedResolve=resolve})
@@ -533,7 +552,7 @@ it.each(['headers','body'])('native SDK aborts a %s stall and rejects a late loc
  const storage=vi.spyOn(supabaseService.storage,'from').mockImplementation(bucket=>client.storage.from(bucket))
  try{
   const start=performance.now()
-  const result=await downloadAndVerifyCustomerContractDocumentBounded({id:randomUUID(),company_id:randomUUID(),customer_contract_id:randomUUID(),document_type:'signed_contract_pdf',storage_bucket:'customer-contract-documents',storage_path:'synthetic-stall.pdf',mime_type:'application/pdf',document_sha256:hash,generation_snapshot:{schema:'synthetic_transport'},generated_at:new Date().toISOString(),created_at:new Date().toISOString(),archived_at:null,verified_at:null})
+  const result=await downloadAndVerifyCustomerContractDocumentBounded({id:f.documentId,company_id:f.companyId,customer_contract_id:f.contract,document_type:'signed_contract_pdf',storage_bucket:'customer-contract-documents',storage_path:'synthetic-stall.pdf',mime_type:'application/pdf',document_sha256:hash,generation_snapshot:{schema:'synthetic_transport'},generated_at:new Date().toISOString(),created_at:new Date().toISOString(),archived_at:null,verified_at:null})
   expect(result).toMatchObject({status:'unavailable',reason:'timeout'});expect(performance.now()-start).toBeGreaterThanOrEqual(9900);expect(performance.now()-start).toBeLessThan(15000)
   expect(requestCount).toBe(1);expect(transportSignal?.aborted).toBe(true)
   let closeTimer:ReturnType<typeof setTimeout>|undefined
