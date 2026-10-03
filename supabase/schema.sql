@@ -11522,7 +11522,7 @@ DECLARE receipt gridex_ediel_ack_replay.creation_receipts%rowtype;a jsonb;s json
    tokens:=gridex_utilts_binding.wire_tokens_v1(ack.raw_payload);
    IF EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='STS' AND t#>>'{elements,1,0}'='E01' AND t#>>'{elements,2,0}'='41') THEN RAISE EXCEPTION 'ediel_historical_ack_sequence_basis_unavailable';END IF;
   ELSIF ack.message_family='APERAK' THEN
-   IF EXISTS(SELECT FROM jsonb_array_elements_text(coalesce(s->'ide','[]'))x WHERE NOT coalesce(a#>'{refs,ACW}','[]') ? x) THEN RAISE EXCEPTION 'ediel_historical_ack_sequence_basis_unavailable';END IF;
+   IF jsonb_array_length(coalesce(a#>'{refs,ACW}','[]'))>0 AND EXISTS(SELECT FROM jsonb_array_elements_text(coalesce(s->'ide','[]'))x WHERE NOT coalesce(a#>'{refs,ACW}','[]') ? x) THEN RAISE EXCEPTION 'ediel_historical_ack_sequence_basis_unavailable';END IF;
   END IF;
  END IF;
  RETURN true;
@@ -27262,7 +27262,8 @@ BEGIN
  SELECT * INTO origin FROM public.ediel_messages WHERE id=proof.original_message_id AND company_id=p_company_id AND environment=m.environment;
  SELECT * INTO c FROM public.customer_contracts WHERE id=proof.contract_id AND company_id=p_company_id FOR SHARE;
  IF origin.direction IS DISTINCT FROM 'outbound' OR gridex_received_sources.sent_source_is_current_v1(origin) IS NOT TRUE OR origin.immutable_payload_hash IS DISTINCT FROM proof.original_payload_hash OR origin.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(origin.raw_payload,'UTF8')),'hex')
-  OR c.id IS NULL OR c.customer_id IS DISTINCT FROM p.customer_id OR c.metering_point_id IS DISTINCT FROM p.metering_point_id OR (c.status IN('signed','active')) IS NOT TRUE OR gridex_received_sources.production_contract_hash_v1(c) IS DISTINCT FROM proof.protected_contract_hash
+  OR c.id IS NULL OR c.customer_id IS DISTINCT FROM p.customer_id OR c.metering_point_id IS DISTINCT FROM p.metering_point_id OR (c.status IN('signed','active') OR c.status='terminated' AND c.termination_reason='supply_end' AND p.end_date IS NOT NULL AND c.ended_at IS NOT NULL
+   AND ((c.ended_at AT TIME ZONE 'UTC')::date=p.end_date OR (c.ended_at AT TIME ZONE 'Europe/Stockholm')::date=p.end_date)) IS NOT TRUE OR gridex_received_sources.production_contract_hash_v1(c) IS DISTINCT FROM proof.protected_contract_hash
   OR legal->>'legalActorId' IS DISTINCT FROM proof.legal_context->>'legalActorId' OR legal->>'actorRole' IS DISTINCT FROM 'electricity_supplier'
   OR NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments v WHERE v.source_message_id=m.id AND v.company_id=p_company_id AND v.environment=m.environment AND v.source_payload_hash=tr.payload_hash AND v.facts_text::jsonb->>'syntaxDecision'='accepted' AND ((v.facts_text::jsonb->>'applicationDecision'='accepted' OR gridex_received_sources.supply_effect_assessment_owns_period_v1(p_company_id,v.source_message_id,p.id,v.id)) OR gridex_received_sources.mixed_period_canonical_v1(v.id,p_company_id,proof.period_id,proof.source_message_id)) AND v.facts_text::jsonb->>'functionalDecision'='accepted' AND NOT EXISTS(SELECT FROM gridex_received_sources.validation_assessments child WHERE child.previous_assessment_id=v.id)) THEN RETURN NULL;END IF;
  accepted_original:=gridex_ediel_transport.accepted_source_basis_v1(origin);
@@ -29418,7 +29419,7 @@ BEGIN
  FOR o IN SELECT v FROM jsonb_array_elements(wire->'objects') v LOOP
   IF o->>'reason' IS DISTINCT FROM (CASE b->>'mode' WHEN 'V' THEN 'S17' ELSE 'S18' END) OR o->>'li' IS DISTINCT FROM (SELECT transaction_reference FROM public.ediel_message_intents WHERE id=s.intent_id) OR nullif(o->>'li','') IS NULL THEN RAISE EXCEPTION 'ediel_permission_origin_wire_mode_mismatch'; END IF;
   IF s.message_code='Z13' THEN
-   IF nullif(o->>'point','') IS NOT NULL OR o->>'gridArea' IS DISTINCT FROM b#>>'{objects,0,gridArea}' OR o->>'purpose' IS DISTINCT FROM b->>'purposeCode' OR o->>'frequency' IS DISTINCT FROM b->>'frequency' OR o->>'product' IS DISTINCT FROM b#>>'{objects,0,product}' OR gridex_received_sources.permission_time_v1(o->>'reportStart') IS DISTINCT FROM (b#>>'{objects,0,reportStart}')::timestamptz OR gridex_received_sources.permission_time_v1(o->>'reportEnd') IS DISTINCT FROM (b#>>'{objects,0,reportEnd}')::timestamptz OR nullif(o->>'customerIdentity','') IS NULL OR o->>'customerIdentity' IS DISTINCT FROM coalesce(nullif(btrim(b#>>'{customer,org_number}'),''),nullif(btrim(b#>>'{customer,personal_number}'),'')) THEN RAISE EXCEPTION 'ediel_permission_origin_wire_request_mismatch'; END IF;
+   IF nullif(o->>'point','') IS NOT NULL OR nullif(o->>'gridArea','') IS NOT NULL OR nullif(b#>>'{objects,0,gridArea}','') IS NULL OR o->>'purpose' IS DISTINCT FROM b->>'purposeCode' OR o->>'frequency' IS DISTINCT FROM b->>'frequency' OR o->>'product' IS DISTINCT FROM b#>>'{objects,0,product}' OR gridex_received_sources.permission_time_v1(o->>'reportStart') IS DISTINCT FROM (b#>>'{objects,0,reportStart}')::timestamptz OR gridex_received_sources.permission_time_v1(o->>'reportEnd') IS DISTINCT FROM (b#>>'{objects,0,reportEnd}')::timestamptz OR nullif(o->>'customerIdentity','') IS NULL OR o->>'customerIdentity' IS DISTINCT FROM coalesce(nullif(btrim(b#>>'{customer,org_number}'),''),nullif(btrim(b#>>'{customer,personal_number}'),'')) THEN RAISE EXCEPTION 'ediel_permission_origin_wire_request_mismatch'; END IF;
   ELSE
    IF o->>'li' IS DISTINCT FROM b->>'li' OR o->>'endReason' IS DISTINCT FROM b->>'terminationReason' OR NOT EXISTS(SELECT FROM jsonb_array_elements(b->'objects') expected WHERE expected->>'point'=o->>'point' AND expected->>'permissionId'=o->>'permissionId' AND (expected->>'permissionEnd')::timestamptz=gridex_received_sources.permission_time_v1(o->>'permissionEnd')) THEN RAISE EXCEPTION 'ediel_permission_origin_wire_termination_mismatch'; END IF;
   END IF;
@@ -44794,13 +44795,13 @@ CREATE FUNCTION public.ediel_require_invoice_source_copies_available_v1(p_compan
 CREATE FUNCTION public.ediel_require_message_consumed_records_v1(p_company_id uuid, p_message_id uuid) RETURNS void
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$DECLARE contract uuid;source uuid;BEGIN
+    AS $_$DECLARE contract uuid;source uuid;BEGIN
  PERFORM id FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR SHARE;IF NOT FOUND THEN RAISE EXCEPTION 'retention_consumed_message_scope_required';END IF;
  FOR contract IN SELECT o.contract_id FROM gridex_received_sources.switch_originals o WHERE o.company_id=p_company_id AND o.message_id=p_message_id UNION SELECT e.contract_id FROM gridex_requested_changes.events e JOIN public.ediel_messages m ON m.company_id=e.company_id AND m.source_operation_id=e.id::text WHERE m.id=p_message_id AND e.company_id=p_company_id LOOP PERFORM public.ediel_require_contract_records_available_v1(p_company_id,contract);END LOOP;
  -- Immutable original-message links are native source selectors, never body
  -- metadata or an untrusted caller array. Byte retention has its own owner.
- SELECT original_message_id INTO source FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id;IF source IS NOT NULL THEN PERFORM public.ediel_require_source_bytes_available_v1(p_company_id,source);END IF;
-END$$;
+ SELECT CASE WHEN original_message_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN original_message_id::uuid END INTO source FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id;IF source IS NOT NULL THEN PERFORM public.ediel_require_source_bytes_available_v1(p_company_id,source);END IF;
+END$_$;
 
 --
 -- Name: ediel_require_metering_method_change_source_current_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -80742,6 +80743,21 @@ begin
 end $$;
 
 --
+-- Name: gridex_require_outbound_reply_basis_v1(public.ediel_messages); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_require_outbound_reply_basis_v1(m public.ediel_messages) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF m.message_family='CONTRL' THEN PERFORM gridex_ediel_technical_ack.require_contrl_v1(m);
+ ELSIF m.message_family='APERAK' AND m.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId' THEN PERFORM gridex_ediel_common_header.witness_v1(m);
+ ELSE RAISE EXCEPTION 'canonical_ediel_rule_pack_required' USING ERRCODE='23502';
+ END IF;
+END$$;
+
+--
 -- Name: gridex_require_signature_tenant_email_readiness_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -88055,13 +88071,7 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
     if nullif(btrim(coalesce(new.environment,'')),'') is null then raise exception 'canonical_ediel_environment_required' using errcode='23502'; end if;
     if new.direction='outbound' then
       if new.canonical_rule_pack_id is null then
-        if new.message_family='CONTRL' then
-          perform gridex_ediel_technical_ack.require_contrl_v1(new);
-        elsif new.message_family='APERAK' and new.execution_context_snapshot ? 'prodatCommonHeaderNegativeWitnessId' then
-          perform gridex_ediel_common_header.witness_v1(new);
-        else
-          raise exception 'canonical_ediel_rule_pack_required' using errcode='23502';
-        end if;
+        perform public.gridex_require_outbound_reply_basis_v1(new);
       end if;
       if new.communication_route_id is null then raise exception 'canonical_ediel_route_required' using errcode='23502'; end if;
       if new.route_profile_id is null and nullif(new.execution_context_snapshot->>'routeProfileId','') is null then raise exception 'canonical_ediel_route_profile_required' using errcode='23502'; end if;
@@ -127509,6 +127519,18 @@ CREATE INDEX ediel_message_semantics_lookup_idx ON public.ediel_message_semantic
 --
 
 CREATE UNIQUE INDEX ediel_message_semantics_uidx ON public.ediel_message_semantics USING btree (upper(message_family), upper(message_code), COALESCE(subtype, ''::text), direction, environment, rule_version);
+
+--
+-- Name: ediel_messages_company_direction_ref_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ediel_messages_company_direction_ref_idx ON public.ediel_messages USING btree (company_id, direction, sender_ediel_id, receiver_ediel_id, interchange_reference);
+
+--
+-- Name: ediel_messages_company_family_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ediel_messages_company_family_status_idx ON public.ediel_messages USING btree (company_id, message_family, status, created_at DESC);
 
 --
 -- Name: ediel_messages_company_id_id_uidx; Type: INDEX; Schema: public; Owner: -
@@ -181486,6 +181508,7 @@ REVOKE ALL ON FUNCTION gridex_service_permission.context_source_v1(c uuid, aid u
 --
 
 REVOKE ALL ON FUNCTION gridex_service_permission.context_v1(c uuid, aid uuid, actor uuid, expected_version bigint, code text, pid uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION gridex_service_permission.context_v1(c uuid, aid uuid, actor uuid, expected_version bigint, code text, pid uuid) TO service_role;
 
 --
 -- Name: FUNCTION current_request_timing_v1(c uuid, aid uuid, actor uuid, expected_version bigint, require_recorded boolean); Type: ACL; Schema: gridex_service_permission; Owner: -
@@ -188303,6 +188326,14 @@ GRANT ALL ON FUNCTION public.gridex_republish_active_public_contract_v2(p_public
 
 REVOKE ALL ON FUNCTION public.gridex_require_customer_contract_canonical_binding() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_require_customer_contract_canonical_binding() TO service_role;
+
+--
+-- Name: FUNCTION gridex_require_outbound_reply_basis_v1(m public.ediel_messages); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_require_outbound_reply_basis_v1(m public.ediel_messages) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_require_outbound_reply_basis_v1(m public.ediel_messages) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_require_outbound_reply_basis_v1(m public.ediel_messages) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_require_signature_tenant_email_readiness_v1(); Type: ACL; Schema: public; Owner: -
