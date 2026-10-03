@@ -41,6 +41,14 @@ const networkRegistries=new Map<string,{artifact:{artifactId:string;sourceHash:s
 export function normalSwitchNetworkRegistry(companyId:string){return networkRegistries.get(companyId)}
 /** A supply start that is still in the future when the suite runs: Swedish
  * calendar today plus `days`. Fixed literal dates go stale once passed. */
+/** The canonical tenant context lists a membership only with an active role
+ * assignment. A disposable non-system role grants no permission; the user's
+ * authority stays its explicit user_permissions. */
+export function nativeActorRoleSql(companyId:string,userId:string){
+ const role=randomUUID(),key=`native_actor_${role}`
+ return `INSERT INTO public.roles(id,key,name,scope) VALUES(${literal(role)},${literal(key)},'Disposable native actor role','company');
+  INSERT INTO public.user_roles(user_id,company_id,role_id,role,status,is_active) VALUES(${literal(userId)},${literal(companyId)},${literal(role)},${literal(key)},'active',true);`
+}
 export function futureNativeSupplyDate(days=14){
  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Stockholm',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
  const date=new Date(`${today}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+days);return date.toISOString().slice(0,10)
@@ -59,6 +67,7 @@ export async function seedNormalSwitchNativeFixture(input:NormalSwitchFixtureInp
  INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES('00000000-0000-0000-0000-000000000000','','','','',${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(actorUserId)},${literal(`${actorUserId}@example.invalid`)},'Synthetic normal switch actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(companyId)},${literal(actorUserId)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+  ${nativeActorRoleSql(companyId,actorUserId)}
  INSERT INTO public.admin_users(user_id,role,is_active) VALUES(${literal(actorUserId)},'platform_admin',true);
  UPDATE public.company_capabilities SET enabled=true,readiness_status='ready' WHERE company_id=${literal(companyId)} AND capability_code='ediel_test';`)
  const sender=sql<string>(`BEGIN; SELECT pg_advisory_xact_lock(hashtextextended('native_outbound_legal_actor_identifier',0));

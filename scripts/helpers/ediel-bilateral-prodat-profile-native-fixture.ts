@@ -1,13 +1,14 @@
 // Disposable native producer fixture. All issuer trust configuration is synthetic.
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
-import {seedNormalSwitchNativeFixture,type NormalSwitchStageNativeFixture,nativeSql as sql,literal} from './ediel-normal-switch-native-fixture'
+import {seedNormalSwitchNativeFixture,type NormalSwitchStageNativeFixture,nativeSql as sql,literal,nativeActorRoleSql} from './ediel-normal-switch-native-fixture'
 import {readBilateralProdatGroundScope,type BilateralProdatSubmission,type BilateralProdatSelector} from '@/lib/ediel/production/bilateralProdatProfileIntake'
 export async function createBilateralProdatGroundNativeFixture(sourceFixture?:NormalSwitchStageNativeFixture,kind:BilateralProdatSelector['kind']='normal_start_h'){
  const f=sourceFixture??await seedNormalSwitchNativeFixture({requestedStartDate:'2026-10-15'}),reviewer=randomUUID(),agreement=randomUUID(),keyId=randomUUID(),representationId=randomUUID(),key=Buffer.from('SYNTHETIC bilateral issuer verifier mechanism fixture only')
  sql(`INSERT INTO auth.users(instance_id,confirmation_token,recovery_token,email_change_token_new,email_change,id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous) VALUES('00000000-0000-0000-0000-000000000000','','','','',${literal(reviewer)},'authenticated','authenticated',${literal(`${reviewer}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(reviewer)},${literal(`${reviewer}@example.invalid`)},'Synthetic separate bilateral reviewer','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(${literal(f.companyId)},${literal(reviewer)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+ ${nativeActorRoleSql(f.companyId,reviewer)}
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT own.actor,${literal(f.companyId)},p.id,p.key,'allow',true,'active' FROM (VALUES(${literal(reviewer)}::uuid)) own(actor) CROSS JOIN public.permissions p WHERE p.key IN('communication.read','communication.write','contracts.read','metering.read','metering.write');
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key,effect,is_active,status) SELECT ${literal(reviewer)},${literal(f.companyId)},id,key,'allow',true,'active' FROM public.permissions WHERE key='ediel.bilateral_profile.review';`)
  const dso=sql<string>(`SELECT to_jsonb(actor_id) FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=${literal(f.receiver)} AND is_verified`)

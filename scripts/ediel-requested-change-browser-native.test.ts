@@ -2,6 +2,7 @@ import {createClient} from '@supabase/supabase-js'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {readFileSync,writeFileSync} from 'node:fs'
 import {afterEach,expect,it,vi} from 'vitest'
+vi.mock('server-only',()=>({}))
 const effects=vi.hoisted(()=>({smtp:vi.fn()}))
 // Only the external delivery/notification endpoints are bounded. Contract,
 // Storage, canonical source, business SQL, GoTrue, archive and review are real.

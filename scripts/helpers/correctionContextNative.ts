@@ -1,3 +1,4 @@
+import {nativeActorRoleSql} from './ediel-normal-switch-native-fixture'
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect} from 'vitest'
@@ -22,7 +23,8 @@ export async function seed(wire=raw()){
  VALUES(${literal(actorUserId)},'authenticated','authenticated',${literal(`${actorUserId}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(${literal(actorUserId)},${literal(`${actorUserId}@example.invalid`)},'Synthetic capture actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
- VALUES(${literal(companyId)},${literal(actorUserId)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');`)
+ VALUES(${literal(companyId)},${literal(actorUserId)},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+ ${nativeActorRoleSql(companyId,actorUserId)}`)
  return seedCorrectionSource({companyId,actorUserId,wire,sourceMessageId})
 }
 
