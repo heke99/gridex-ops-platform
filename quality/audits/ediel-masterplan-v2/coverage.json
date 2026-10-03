@@ -254,8 +254,16 @@
     {
       "id": "P-03",
       "acceptance_id": "AT-P-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-04",
@@ -274,8 +282,16 @@
     {
       "id": "P-05",
       "acceptance_id": "AT-P-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-06",
@@ -298,8 +314,18 @@
     {
       "id": "P-09",
       "acceptance_id": "AT-P-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-10",
@@ -346,8 +372,14 @@
     {
       "id": "P-17",
       "acceptance_id": "AT-P-17",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "ESCO-01",
@@ -512,8 +544,15 @@
     {
       "id": "U-05",
       "acceptance_id": "AT-U-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts/periodicReasonGuide.ts",
+        "lib/ediel/utilts/periodicReasonAuthority.ts",
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+        "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-4-U.md"
+      ]
     },
     {
       "id": "U-06",
@@ -1002,12 +1041,15 @@
       "id": "SC-030",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
         "lib/ediel/prodat/prodatParentApplicability.ts",
-        "lib/ediel/prodat/prodatEndUserAddress.ts",
-        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
         "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
-        "__tests__/ediel-prodat-death-status-builders.test.ts"
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
@@ -1019,23 +1061,26 @@
       "id": "SC-032",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
         "lib/ediel/prodat/prodatSubtypeRequirement.ts",
-        "lib/ediel/rulebook/prodatSubtypePolicy.ts",
-        "__tests__/ediel-prodat-dependent-subtype-source.test.ts"
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
       "id": "SC-033",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/prodat/render/registers.ts",
-        "lib/ediel/prodat/prodatRegisterReadings.ts",
-        "__tests__/ediel-prodat-registers.test.ts",
+        "lib/ediel/prodat/buildProdat.ts",
         "__tests__/ediel-prodat-register-builders.test.ts",
-        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
@@ -1448,8 +1493,16 @@
     },
     {
       "id": "AT-P-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-04",
@@ -1458,8 +1511,16 @@
     },
     {
       "id": "AT-P-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-06",
@@ -1478,8 +1539,18 @@
     },
     {
       "id": "AT-P-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-10",
@@ -1518,8 +1589,14 @@
     },
     {
       "id": "AT-P-17",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-ESCO-01",
@@ -1659,8 +1736,15 @@
     },
     {
       "id": "AT-U-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts/periodicReasonGuide.ts",
+        "lib/ediel/utilts/periodicReasonAuthority.ts",
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+        "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-4-U.md"
+      ]
     },
     {
       "id": "AT-U-06",

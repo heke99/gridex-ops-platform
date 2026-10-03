@@ -25,8 +25,8 @@ effekter är IMPLEMENTED.
 | 1 | TEN | 14 | klar: 14 PARTIAL, 4 bekräftade defekter (batch-1-TEN.md) |
 | 2 | ESCO | 11 | klar: 11 PARTIAL |
 | 3 | ACK | 10 | klar: ACK-08, ACK-10 COMPLETE och godkända; 8 PARTIAL |
-| 4 | U (UTILTS) | 19 | planerad |
-| 5 | P (PRODAT) | 17 | planerad |
+| 4 | U (UTILTS) | 19 | klar: U-05 godkänd; U-04, U-14 bekräftade defekter |
+| 5 | P (PRODAT) | 17 | klar: P-01,03,04,05,09,17 godkända |
 | 6 | TR, OPS | 16 | planerad |
 | 7 | ENV, GOV, DB, IMP, AI | 34 | planerad |
 

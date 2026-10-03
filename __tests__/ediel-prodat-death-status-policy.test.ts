@@ -1,3 +1,4 @@
+// masterplan: P-09, AT-P-09, SC-030
 import {it,expect} from 'vitest'
 import {copyDeathSelection,deathCondition} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'

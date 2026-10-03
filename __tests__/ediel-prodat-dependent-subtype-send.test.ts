@@ -1,3 +1,4 @@
+// masterplan: P-03, AT-P-03, SC-032
 import { describe, expect, it } from 'vitest'
 import { validateEdielMessageRowWithRulebook } from '@/lib/ediel/rulebook/validator'
 import { assertRulebookAllowsSend } from '@/lib/ediel/rulebook/sendGuards'

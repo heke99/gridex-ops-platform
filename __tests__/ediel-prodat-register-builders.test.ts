@@ -1,4 +1,4 @@
-// masterplan: SC-033
+// masterplan: SC-033, P-05, AT-P-05
 import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'
 import { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer'

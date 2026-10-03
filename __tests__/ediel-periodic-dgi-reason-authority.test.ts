@@ -1,3 +1,4 @@
+// masterplan: U-05, AT-U-05
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
