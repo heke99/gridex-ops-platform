@@ -22,7 +22,7 @@ effekter är IMPLEMENTED.
 ## Batcher (prioritet enligt leveranskontraktet)
 | Batch | Familj | Regler | Status |
 |---|---|---|---|
-| 1 | TEN | 14 | pågår |
+| 1 | TEN | 14 | klar: 14 PARTIAL, 4 bekräftade defekter (batch-1-TEN.md) |
 | 2 | ESCO | 11 | planerad |
 | 3 | ACK | 10 | planerad |
 | 4 | U (UTILTS) | 19 | planerad |

@@ -1,0 +1,77 @@
+{
+ "D1": {
+  "verdict": "TRUE_POSITIVE",
+  "severity": "medium",
+  "finding": "F-TEN-01"
+ },
+ "D2": {
+  "verdict": "TRUE_POSITIVE",
+  "severity": "low",
+  "finding": "F-TEN-02"
+ },
+ "D3": {
+  "verdict": "TRUE_POSITIVE",
+  "severity": "medium",
+  "finding": "F-TEN-03"
+ },
+ "D4": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D5": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D6": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": "U-1 follow-up"
+ },
+ "D7": {
+  "verdict": "TRUE_POSITIVE",
+  "severity": "medium",
+  "finding": "F-TEN-04"
+ },
+ "D8": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D9": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D10": {
+  "verdict": "INCONCLUSIVE",
+  "severity": "low",
+  "finding": "U-2"
+ },
+ "D11": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D12": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D13": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D14": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ },
+ "D15": {
+  "verdict": "FALSE_POSITIVE",
+  "severity": "n/a",
+  "finding": ""
+ }
+}
