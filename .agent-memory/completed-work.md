@@ -222,3 +222,6 @@ Reproduced missing and invalid BGM/4343 on complete Z04 through the actual inbou
 One read-only reviewer found field313 lowercase validator/ACK split in published `63244be9`. Actual consumer RED application accepted, scoped literal AB/NA comparison GREEN 20/20 direct and 48/48 five related tests; native third variant added but not run yet. No formal acceptance claim.
 ## 2026-09-28 — #417 bounded local step
 Invalid supplied PRODAT BGM/1225 field204 is now source-qualified for whole-message BGM27/ERC42, original ACW and pre-business stop. Positive omitted/9/5, forged/foreign error, tenant route, no effects, no route and stable retry have local 150/150 five-file consumer proof. Native persisted result and CI are pending; not an accepted whole contract or market capability. Published draft #417 head `09fba884` matches the locally tested tree.
+
+## 2026-10-03 — Customer portfolio (#474, VERIFIED)
+Kundportfölj RPCs and pages, white-label read-only overview, superadmin-only assignment with audit, supply-period customer definition everywhere, persisted forecasts. CI green on `d84c327`; production migrations applied and verified (objects, grants, RPC calls on real companies, advisors). Evidence: `quality/customer-portfolio/2026-10-03-verification.md`.

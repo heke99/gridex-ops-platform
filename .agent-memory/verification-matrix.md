@@ -541,3 +541,11 @@ Remote `09fba884` / tree `ac40f187`: five relevant Vitest files 150/150 PASS; `n
 | #425 vitest | 396 files / 6303 tests PASS | Mocked DB; native/live RLS not run |
 | #425 typecheck, lint, api:docs, api:compatibility, api:release:verify, security:rbac, build | PASS | |
 | #429 clean-migration-replay | 29 RED → 1 RED (F16 expectation) → fixed; final run pending | Native suite only runs in CI |
+
+## 2026-10-03 — Customer portfolio #474 and performance pass
+| Scope | Result | Limit |
+| --- | --- | --- |
+| #474 CI (clean-migration-replay, verify, smoke, pr-certificate, quality-release-gates) | PASS on `d84c327` | |
+| #474 production apply + read-only verification | PASS | Production has no supply periods yet (all counts 0) |
+| SQL behaviour tests (stub, PG16) | 8 + 4 + rollup checks PASS, no LEAK | Stub schema, not full replay |
+| Performance pass (5 000 customers, 8.76M hourly values) | see customer-portfolio-checkpoint.md | Local PG16, synthetic data |
