@@ -14,6 +14,7 @@ import {
   type ConsumptionEstimate,
 } from "@/lib/billing/consumptionEstimate";
 import { meteringResolutionForContract } from "@/lib/metering/contractMeteringResolution";
+import { ensureHistoricalMeteringRequest } from "@/lib/billing/historyRequest";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -986,9 +987,38 @@ export async function generateBillingUnderlaysForMonth(input: {
           });
           continue;
         }
-        const issues = readinessIssues([
+        const blockerMessages = [
           "missing_meter_values: Mätvärden saknas i fakturasegmentet.",
-        ]);
+        ];
+        // Nothing to estimate from (no history, no intake annual consumption):
+        // ask the grid owner for the customer's history so the next run can.
+        if (
+          estimationEnabled &&
+          !estimate &&
+          canonicalContractDirection === "consumption" &&
+          contract &&
+          customerId
+        ) {
+          try {
+            const outcome = await ensureHistoricalMeteringRequest({
+              companyId: input.companyId,
+              customerId,
+              siteId: text(period.customer_site_id) ?? text(period.site_id),
+              meteringPointId,
+              actorUserId: input.createdBy ?? null,
+            });
+            blockerMessages.push(
+              outcome === "draft_for_operator"
+                ? "history_request_pending: Historik saknas; historikbegäran till nätägaren väntar på att skickas."
+                : "history_requested: Historik saknas; historik har begärts från nätägaren.",
+            );
+          } catch (error) {
+            blockerMessages.push(
+              `history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`,
+            );
+          }
+        }
+        const issues = readinessIssues(blockerMessages);
         pendingStores.push({
           underlay: {
             customer_id: customerId,
@@ -1186,6 +1216,27 @@ export async function generateBillingUnderlaysForMonth(input: {
             windows: missingWindows(segmentRows, entry.start, entry.end),
             stepMs: estimateStepMs(contract, snapshotJson),
           });
+        }
+        if (
+          coverage.missing > 0 &&
+          !gapEstimate &&
+          estimationEnabled &&
+          energyDirection === "consumption" &&
+          contract &&
+          customerId
+        ) {
+          try {
+            await ensureHistoricalMeteringRequest({
+              companyId: input.companyId,
+              customerId,
+              siteId: text(period.customer_site_id) ?? text(period.site_id),
+              meteringPointId,
+              actorUserId: input.createdBy ?? null,
+            });
+            warnings.push("history_requested: Historik saknas för att uppskatta luckorna; historik har begärts från nätägaren.");
+          } catch (error) {
+            warnings.push(`history_request_failed: Historikbegäran kunde inte skapas (${error instanceof Error ? error.message : "okänt fel"}).`);
+          }
         }
         warnings.push(
           ...(gapEstimate
