@@ -537,6 +537,21 @@ export async function materializeCompanyGridOwnerRoute(params: {
     };
   }
 
+  // An unverified registry route is held before its current source is required.
+  if (route.status !== "active" || route.is_verified !== true || route.auto_send_allowed === false) {
+    return {
+      platformActorRouteId: route.id,
+      companyId: params.companyId,
+      gridOwnerId: params.gridOwnerId,
+      status: "blocked",
+      reasonCode: "platform_route_not_verified",
+      nextRequiredAction: "Verifiera aktörsregistrets route innan operativ materialisering.",
+      communicationRouteId: null,
+      edielRouteProfileId: null,
+      companyMarketPartyRouteId: null,
+    };
+  }
+
   const source = await requireElRegistryRouteSource(route.id);
   if (source.actorId !== route.actor_id || source.wire.family !== (messageFamily === "AI_LIST" ? "AI" : messageFamily) || source.wire.environment !== route.environment
     || messageFamily === "AI_LIST" && source.wire.applicationReference !== null) throw new Error("ediel_registry_materialization_scope_mismatch");
@@ -565,20 +580,6 @@ export async function materializeCompanyGridOwnerRoute(params: {
       status: "blocked",
       reasonCode: "grid_owner_actor_mismatch",
       nextRequiredAction: "Koppla nätägaren till samma verifierade marknadsaktör som routen innan materialisering.",
-      communicationRouteId: null,
-      edielRouteProfileId: null,
-      companyMarketPartyRouteId: null,
-    };
-  }
-
-  if (route.status !== "active" || route.is_verified !== true || route.auto_send_allowed === false) {
-    return {
-      platformActorRouteId: route.id,
-      companyId: params.companyId,
-      gridOwnerId: gridOwner.id,
-      status: "blocked",
-      reasonCode: "platform_route_not_verified",
-      nextRequiredAction: "Verifiera aktörsregistrets route innan operativ materialisering.",
       communicationRouteId: null,
       edielRouteProfileId: null,
       companyMarketPartyRouteId: null,
