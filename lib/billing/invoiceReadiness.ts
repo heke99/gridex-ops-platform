@@ -313,7 +313,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   for (let from = 0; ; from += pageSize) {
     const underlayResult = await supabaseService
       .from('billing_underlays')
-      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at')
+      .select('id,status,readiness_status,total_kwh,customer_id,contract_id,pricing_snapshot_id,contract_price_snapshot_id,price_area,calculated_total_sek_inc_vat,metering_point_id,missing_values_count,billing_period_start,billing_period_end,billing_configuration_snapshot,billing_configuration_snapshot_sha256,billing_configuration_snapshotted_at,payload')
       .eq('company_id', input.companyId)
       .eq('underlay_year', year)
       .eq('underlay_month', month)
@@ -684,7 +684,14 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
   // non-overlapping and (unless the tenant explicitly allows it) non-estimated
   // metering coverage for every billed metering point in the period.
   let meteringCompleteness: Awaited<ReturnType<typeof evaluateMeteringCompletenessForMonth>> | null = null
+  // Preliminary (estimated) periods and their reconciliations are billed on
+  // purpose without complete final values; only regular periods are gated.
+  const isEstimateFlow = (row: Record<string, unknown>) => {
+    const payload = row.payload && typeof row.payload === 'object' ? (row.payload as Record<string, unknown>) : {}
+    return Boolean(payload.estimate) || Boolean(payload.reconciliation_of)
+  }
   const meteringPoints = underlays
+    .filter((row) => !isEstimateFlow(row))
     .map((row) => ({
       meteringPointId: typeof row.metering_point_id === 'string' ? row.metering_point_id : '',
       expectedKwh: typeof row.total_kwh === 'number' ? row.total_kwh : typeof row.total_kwh === 'string' ? Number(row.total_kwh) : null,
@@ -715,6 +722,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     for (const issue of meteringCompleteness.issues) {
       if (issue.severity === 'blocked') {
         for (const underlay of underlays) {
+          if (isEstimateFlow(underlay)) continue
           const meteringPointId = typeof underlay.metering_point_id === 'string' ? underlay.metering_point_id : null
           if (!issue.meteringPointId || issue.meteringPointId === meteringPointId) {
             blockedUnderlayIds.add(String(underlay.id))
