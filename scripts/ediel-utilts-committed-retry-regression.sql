@@ -69,6 +69,9 @@ BEGIN
   VALUES('00000000-0000-0000-0000-000000000000','','','','',actor_user,'authenticated','authenticated',actor_user||'@example.invalid',now(),'{}','{}',now(),now(),false,false);
  INSERT INTO public.user_profiles(id,email,full_name,user_status) VALUES(actor_user,actor_user||'@example.invalid','UTILTS retry actor','active') ON CONFLICT(id) DO UPDATE SET user_status='active';
  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key) VALUES(company,actor_user,'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
+ -- The canonical catalog key, registered as the native fixtures do when absent.
+ INSERT INTO public.permissions(key,name,description,category) SELECT 'metering.write','metering.write','Native fixture catalog key','native_fixture'
+  WHERE NOT EXISTS(SELECT FROM public.permissions WHERE key='metering.write');
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key) SELECT actor_user,company,id,key FROM public.permissions WHERE key='metering.write';
  PERFORM set_config('gridex.utilts_retry_actor_user',actor_user::text,false);
  -- Prospective local identity/role configuration BEFORE the actual INSERT.
