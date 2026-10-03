@@ -11880,6 +11880,26 @@ CREATE FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) RETURNS
 $$;
 
 --
+-- Name: gridex_analytics_point_month_internal(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_analytics_point_month_internal(p_company_id uuid, p_month date) RETURNS TABLE(metering_point_id uuid, customer_id uuid, grid_owner_id uuid, bidding_zone_code text, kwh numeric, value_count integer)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+begin
+  return query
+  select mp.id, mp.customer_id, mp.grid_owner_id, upper(nullif(trim(mp.bidding_zone_code), '')),
+         coalesce(r.kwh, 0), coalesce(r.value_count, 0)
+  from public.metering_points mp
+  left join public.metering_point_monthly_consumption r
+    on r.company_id = p_company_id and r.metering_point_id = mp.id
+   and r.month = date_trunc('month', p_month)::date
+  where mp.company_id = p_company_id;
+end;
+$$;
+
+--
 -- Name: gridex_anonymize_customer_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -23719,34 +23739,41 @@ begin
     from public.customer_supply_periods sp
     where sp.company_id = p_company_id and sp.status <> 'cancelled'
   ),
-  firsts as (
+  members as (
     select p.customer_id, date_trunc('month', min(p.start_date))::date as cohort
-    from periods p group by p.customer_id
-  ),
-  cohort_members as (
-    select f.cohort, f.customer_id from firsts f where f.cohort >= v_from
+    from periods p
+    group by p.customer_id
+    having min(p.start_date) >= v_from
   ),
   checks as (
-    select cm.cohort, cm.customer_id, k.k,
-           (cm.cohort + make_interval(months => k.k + 1) - interval '1 day')::date as at_date
-    from cohort_members cm
+    select mb.cohort, mb.customer_id, k.k,
+           (mb.cohort + make_interval(months => k.k + 1) - interval '1 day')::date as at_date
+    from members mb
     cross join (values (1), (3), (6), (12)) as k(k)
   ),
   results as (
-    select c.cohort, c.k, c.at_date,
-           exists (select 1 from periods p where p.customer_id = c.customer_id
-                    and p.start_date <= c.at_date and (p.end_date is null or p.end_date > c.at_date)) as active
+    select c.cohort, c.customer_id, c.k, c.at_date, count(p.customer_id) > 0 as active
     from checks c
+    left join periods p on p.customer_id = c.customer_id
+      and p.start_date <= c.at_date and (p.end_date is null or p.end_date > c.at_date)
+    group by c.cohort, c.customer_id, c.k, c.at_date
+  ),
+  rates as (
+    select r.cohort, r.k,
+           case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end as rate
+    from results r
+    group by r.cohort, r.k
   )
-  select cm.cohort,
-         count(distinct cm.customer_id)::integer,
-         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 1),
-         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 3),
-         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 6),
-         (select case when max(r.at_date) < current_date then round(avg(case when r.active then 1 else 0 end), 4) end from results r where r.cohort = cm.cohort and r.k = 12)
-  from cohort_members cm
-  group by cm.cohort
-  order by cm.cohort;
+  select mb.cohort,
+         count(*)::integer,
+         max(ra.rate) filter (where ra.k = 1),
+         max(ra.rate) filter (where ra.k = 3),
+         max(ra.rate) filter (where ra.k = 6),
+         max(ra.rate) filter (where ra.k = 12)
+  from members mb
+  left join rates ra on ra.cohort = mb.cohort
+  group by mb.cohort
+  order by mb.cohort;
 end;
 $$;
 
@@ -23816,12 +23843,11 @@ begin
     where s.company_id = p_company_id and s.month_index = 1
   ),
   act as (
-    select date_trunc('month', mv.period_start)::date as m, sum(mv.value_kwh) as kwh
-    from public.metering_values mv
-    where mv.company_id = p_company_id
-      and mv.is_current and mv.reading_type = 'consumption' and mv.value_kwh is not null
-      and mv.period_start >= date_trunc('month', p_from)
-      and mv.period_start < date_trunc('month', p_to) + interval '1 month'
+    select r.month as m, sum(r.kwh) as kwh
+    from public.metering_point_monthly_consumption r
+    where r.company_id = p_company_id
+      and r.value_count > 0
+      and r.month between date_trunc('month', p_from)::date and date_trunc('month', p_to)::date
     group by 1
   )
   select mo.m, fc.forecast_kwh, round(act.kwh, 3),
@@ -23901,25 +23927,51 @@ CREATE FUNCTION public.gridex_customer_portfolio_monthly_internal(p_company_id u
     LANGUAGE plpgsql STABLE SECURITY DEFINER
     SET search_path TO 'public', 'pg_temp'
     AS $$
+declare
+  v_from date := date_trunc('month', p_from)::date;
+  v_to date := date_trunc('month', p_to)::date;
 begin
   return query
   with months as (
     select gs::date as m_start,
            (gs + interval '1 month' - interval '1 day')::date as m_end
-    from generate_series(date_trunc('month', p_from)::date, date_trunc('month', p_to)::date, interval '1 month') gs
+    from generate_series(v_from, v_to, interval '1 month') gs
   ),
   periods as (
     select sp.customer_id, sp.metering_point_id, sp.start_date, sp.end_date
     from public.customer_supply_periods sp
     where sp.company_id = p_company_id
       and sp.status <> 'cancelled'
+      and sp.start_date <= (v_to + interval '1 month' - interval '1 day')::date
+      and (sp.end_date is null or sp.end_date >= v_from - 1)
   ),
-  customer_span as (
-    select p.customer_id,
-           min(p.start_date) as first_start,
-           case when bool_or(p.end_date is null) then null else max(p.end_date) end as last_end
-    from periods p
-    group by p.customer_id
+  active as (
+    select m.m_start,
+           count(distinct p.customer_id) filter (
+             where p.start_date <= m.m_start - 1 and (p.end_date is null or p.end_date > m.m_start - 1)) as start_cnt,
+           count(distinct p.customer_id) filter (
+             where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end)) as end_cnt,
+           count(distinct p.metering_point_id) filter (
+             where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end)) as points_cnt
+    from months m
+    join periods p on p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_start - 1)
+    group by m.m_start
+  ),
+  spans as (
+    select sp.customer_id,
+           min(sp.start_date) as first_start,
+           case when bool_or(sp.end_date is null) then null else max(sp.end_date) end as last_end
+    from public.customer_supply_periods sp
+    where sp.company_id = p_company_id and sp.status <> 'cancelled'
+    group by sp.customer_id
+  ),
+  starts as (
+    select date_trunc('month', s.first_start)::date as m, count(*) as cnt
+    from spans s where s.first_start >= v_from group by 1
+  ),
+  ends as (
+    select date_trunc('month', s.last_end)::date as m, count(*) as cnt
+    from spans s where s.last_end >= v_from group by 1
   ),
   poa as (
     select x.created_at::date as created_on, x.signed_at::date as signed_on,
@@ -23927,40 +23979,59 @@ begin
     from public.powers_of_attorney x
     where x.company_id = p_company_id
   ),
+  poa_created as (
+    select date_trunc('month', x.created_on)::date as m, count(*) as cnt from poa x where x.created_on >= v_from group by 1
+  ),
+  poa_signed as (
+    select date_trunc('month', x.signed_on)::date as m, count(*) as cnt from poa x where x.signed_on >= v_from group by 1
+  ),
+  poa_valid as (
+    select m.m_start, count(*) as cnt
+    from months m
+    join poa x on x.status in ('signed', 'accepted', 'active', 'completed')
+      and coalesce(x.valid_from, x.signed_on, x.created_on) <= m.m_end
+      and (x.valid_to is null or x.valid_to >= m.m_end)
+    group by m.m_start
+  ),
   req as (
-    select x.requested_at::date as requested_on, x.status, x.request_scope,
-           x.requested_period_start
+    select date_trunc('month', x.requested_at)::date as m,
+           count(*) as total,
+           count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')
+             and x.requested_period_start is not null
+             and x.requested_period_start < date_trunc('month', x.requested_at)::date) as historical,
+           count(*) filter (where x.request_scope in ('meter_values', 'billing_underlay')
+             and (x.requested_period_start is null
+                  or x.requested_period_start >= date_trunc('month', x.requested_at)::date)) as ongoing,
+           count(*) filter (where x.status in ('failed', 'rejected', 'error')) as failed
     from public.grid_owner_data_requests x
     where x.company_id = p_company_id
+      and x.requested_at >= v_from
+      and x.requested_at < v_to + interval '1 month'
+    group by 1
   )
-  select
-    m.m_start,
-    (select count(distinct p.customer_id) from periods p
-       where p.start_date <= m.m_start - 1 and (p.end_date is null or p.end_date > m.m_start - 1))::integer,
-    (select count(distinct p.customer_id) from periods p
-       where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end))::integer,
-    (select count(*) from customer_span cs where cs.first_start between m.m_start and m.m_end)::integer,
-    (select count(*) from customer_span cs where cs.last_end between m.m_start and m.m_end)::integer,
-    null::integer,
-    null::numeric,
-    (select count(distinct p.metering_point_id) from periods p
-       where p.start_date <= m.m_end and (p.end_date is null or p.end_date > m.m_end))::integer,
-    (select count(*) from poa x where x.created_on between m.m_start and m.m_end)::integer,
-    (select count(*) from poa x where x.signed_on between m.m_start and m.m_end)::integer,
-    (select count(*) from poa x
-       where x.status in ('signed', 'accepted', 'active', 'completed')
-         and coalesce(x.valid_from, x.signed_on, x.created_on) <= m.m_end
-         and (x.valid_to is null or x.valid_to >= m.m_end))::integer,
-    (select count(*) from req r where r.requested_on between m.m_start and m.m_end)::integer,
-    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
-       and r.request_scope in ('meter_values', 'billing_underlay')
-       and r.requested_period_start is not null and r.requested_period_start < date_trunc('month', r.requested_on)::date)::integer,
-    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
-       and r.request_scope in ('meter_values', 'billing_underlay')
-       and (r.requested_period_start is null or r.requested_period_start >= date_trunc('month', r.requested_on)::date))::integer,
-    (select count(*) from req r where r.requested_on between m.m_start and m.m_end
-       and r.status in ('failed', 'rejected', 'error'))::integer
+  select m.m_start,
+         coalesce(a.start_cnt, 0)::integer,
+         coalesce(a.end_cnt, 0)::integer,
+         coalesce(st.cnt, 0)::integer,
+         coalesce(en.cnt, 0)::integer,
+         null::integer,
+         null::numeric,
+         coalesce(a.points_cnt, 0)::integer,
+         coalesce(pc.cnt, 0)::integer,
+         coalesce(ps.cnt, 0)::integer,
+         coalesce(pv.cnt, 0)::integer,
+         coalesce(r.total, 0)::integer,
+         coalesce(r.historical, 0)::integer,
+         coalesce(r.ongoing, 0)::integer,
+         coalesce(r.failed, 0)::integer
   from months m
+  left join active a on a.m_start = m.m_start
+  left join starts st on st.m = m.m_start
+  left join ends en on en.m = m.m_start
+  left join poa_created pc on pc.m = m.m_start
+  left join poa_signed ps on ps.m = m.m_start
+  left join poa_valid pv on pv.m_start = m.m_start
+  left join req r on r.m = m.m_start
   order by m.m_start;
 end;
 $$;
@@ -24004,18 +24075,13 @@ begin
     group by sp.metering_point_id
   ),
   history as (
-    select mv.metering_point_id,
-           extract(month from mv.period_start)::integer as month_number,
-           sum(mv.value_kwh) as kwh
-    from public.metering_values mv
-    join points pt on pt.metering_point_id = mv.metering_point_id
-    where mv.company_id = p_company_id
-      and mv.is_current
-      and mv.reading_type = 'consumption'
-      and mv.value_kwh is not null
-      and mv.period_start >= v_hist_from
-      and mv.period_start < v_start
-    group by 1, 2
+    select r.metering_point_id, extract(month from r.month)::integer as month_number, r.kwh
+    from public.metering_point_monthly_consumption r
+    join points pt on pt.metering_point_id = r.metering_point_id
+    where r.company_id = p_company_id
+      and r.value_count > 0
+      and r.month >= v_hist_from
+      and r.month < v_start
   ),
   point_avg as (
     select h.metering_point_id, avg(h.kwh) as avg_kwh from history h group by 1
@@ -41848,6 +41914,246 @@ end;
 $$;
 
 --
+-- Name: gridex_rebuild_company_analytics_month(uuid, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_rebuild_company_analytics_month(p_company_id uuid, p_month date) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_month date := date_trunc('month', p_month)::date;
+  v_next date := (date_trunc('month', p_month) + interval '1 month')::date;
+  v_run_id uuid;
+  v_customers integer;
+  v_zones integer;
+  v_owners integer;
+begin
+  if p_company_id is null or p_month is null then
+    raise exception 'company_id and month are required' using errcode = '22023';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('company_analytics:' || p_company_id::text || ':' || v_month::text, 0));
+  perform public.gridex_rebuild_metering_monthly_consumption(p_company_id, v_month, v_month);
+
+  -- Same rule as the analytics forecast page: latest consumption run covering the month.
+  select fr.id into v_run_id
+  from public.forecast_runs fr
+  where fr.company_id = p_company_id
+    and fr.forecast_type = 'consumption'
+    and fr.period_start <= v_month
+    and fr.period_end >= v_month
+  order by fr.created_at desc
+  limit 1;
+
+  -- Company totals (customer counts are owned by the portfolio snapshot below).
+  insert into public.company_monthly_metrics as cmm (
+    company_id, month, total_customers, total_sites, active_sites, total_metering_points,
+    active_metering_points, metering_values_received, metering_values_missing,
+    requested_metering_values, successful_metering_requests, failed_metering_requests,
+    forecast_kwh, actual_kwh, diff_kwh, diff_percent, updated_at
+  )
+  select p_company_id, v_month,
+         (select count(*) from public.customers c where c.company_id = p_company_id),
+         (select count(*) from public.customer_sites s where s.company_id = p_company_id),
+         (select count(*) from public.customer_sites s where s.company_id = p_company_id and s.status in ('active', 'live', 'ongoing')),
+         (select count(*) from public.metering_points mp where mp.company_id = p_company_id),
+         (select count(*) from public.metering_points mp where mp.company_id = p_company_id and mp.status in ('active', 'live', 'ongoing')),
+         (select coalesce(sum(a.value_count), 0) from public.gridex_analytics_point_month_internal(p_company_id, v_month) a),
+         (select count(*) from public.data_quality_issues q
+           where q.company_id = p_company_id and q.status = 'open' and q.issue_type = 'missing_metering_values'),
+         (select count(*) from public.grid_owner_data_requests g
+           where g.company_id = p_company_id and g.created_at >= v_month and g.created_at < v_next),
+         (select count(*) from public.grid_owner_data_requests g
+           where g.company_id = p_company_id and g.created_at >= v_month and g.created_at < v_next
+             and g.status in ('completed', 'received', 'success', 'succeeded', 'done')),
+         (select count(*) from public.grid_owner_data_requests g
+           where g.company_id = p_company_id and g.created_at >= v_month and g.created_at < v_next
+             and g.status in ('failed', 'error', 'rejected', 'blocked')),
+         f.forecast_kwh, a.actual_kwh,
+         a.actual_kwh - f.forecast_kwh,
+         case when f.forecast_kwh <> 0 then (a.actual_kwh - f.forecast_kwh) / f.forecast_kwh * 100 end,
+         now()
+  from (select coalesce(sum(i.forecast_kwh), 0) as forecast_kwh
+        from public.forecast_run_items i
+        where i.company_id = p_company_id and i.forecast_run_id = v_run_id
+          and i.period_start >= v_month and i.period_start < v_next) f,
+       (select coalesce(sum(x.kwh), 0) as actual_kwh from public.gridex_analytics_point_month_internal(p_company_id, v_month) x) a
+  on conflict (company_id, month) do update set
+    total_customers = excluded.total_customers,
+    total_sites = excluded.total_sites,
+    active_sites = excluded.active_sites,
+    total_metering_points = excluded.total_metering_points,
+    active_metering_points = excluded.active_metering_points,
+    metering_values_received = excluded.metering_values_received,
+    metering_values_missing = excluded.metering_values_missing,
+    requested_metering_values = excluded.requested_metering_values,
+    successful_metering_requests = excluded.successful_metering_requests,
+    failed_metering_requests = excluded.failed_metering_requests,
+    forecast_kwh = excluded.forecast_kwh,
+    actual_kwh = excluded.actual_kwh,
+    diff_kwh = excluded.diff_kwh,
+    diff_percent = excluded.diff_percent,
+    updated_at = excluded.updated_at;
+
+  -- Per customer (all customers, no cap).
+  with sites as (
+    select s.customer_id, count(*) as cnt from public.customer_sites s
+    where s.company_id = p_company_id group by 1
+  ),
+  points as (
+    select a.customer_id, count(*) as cnt, sum(a.kwh) as kwh from public.gridex_analytics_point_month_internal(p_company_id, v_month) a
+    where a.customer_id is not null group by 1
+  ),
+  fc as (
+    select i.customer_id, sum(i.forecast_kwh) as kwh from public.forecast_run_items i
+    where i.company_id = p_company_id and i.forecast_run_id = v_run_id
+      and i.period_start >= v_month and i.period_start < v_next and i.customer_id is not null
+    group by 1
+  ),
+  rows_upserted as (
+    insert into public.customer_monthly_metrics as m (
+      company_id, customer_id, month, sites_count, metering_points_count,
+      forecast_kwh, actual_kwh, diff_kwh, diff_percent, status, updated_at
+    )
+    select p_company_id, c.id, v_month, coalesce(s.cnt, 0), coalesce(p.cnt, 0),
+           coalesce(f.kwh, 0), coalesce(p.kwh, 0),
+           coalesce(p.kwh, 0) - coalesce(f.kwh, 0),
+           case when coalesce(f.kwh, 0) <> 0 then (coalesce(p.kwh, 0) - f.kwh) / f.kwh * 100 end,
+           c.status, now()
+    from public.customers c
+    left join sites s on s.customer_id = c.id
+    left join points p on p.customer_id = c.id
+    left join fc f on f.customer_id = c.id
+    where c.company_id = p_company_id
+    on conflict (company_id, customer_id, month) do update set
+      sites_count = excluded.sites_count,
+      metering_points_count = excluded.metering_points_count,
+      forecast_kwh = excluded.forecast_kwh,
+      actual_kwh = excluded.actual_kwh,
+      diff_kwh = excluded.diff_kwh,
+      diff_percent = excluded.diff_percent,
+      status = excluded.status,
+      updated_at = excluded.updated_at
+    returning 1
+  )
+  select count(*) into v_customers from rows_upserted;
+
+  -- Per bidding zone (SE1-SE4).
+  with zones as (select unnest(array['SE1', 'SE2', 'SE3', 'SE4']) as zone),
+  pts as (
+    select a.bidding_zone_code as zone, count(*) as cnt, count(distinct a.customer_id) as customers, sum(a.kwh) as kwh
+    from public.gridex_analytics_point_month_internal(p_company_id, v_month) a group by 1
+  ),
+  sites as (
+    select upper(nullif(trim(s.bidding_zone_code), '')) as zone, count(*) as cnt
+    from public.customer_sites s where s.company_id = p_company_id group by 1
+  ),
+  fc as (
+    select upper(nullif(trim(i.bidding_zone_code), '')) as zone, sum(i.forecast_kwh) as kwh
+    from public.forecast_run_items i
+    where i.company_id = p_company_id and i.forecast_run_id = v_run_id
+      and i.period_start >= v_month and i.period_start < v_next
+    group by 1
+  ),
+  rows_upserted as (
+    insert into public.bidding_zone_monthly_metrics as b (
+      company_id, bidding_zone_code, month, customers_count, sites_count, metering_points_count,
+      forecast_kwh, actual_kwh, diff_kwh, diff_percent, updated_at
+    )
+    select p_company_id, z.zone, v_month, coalesce(p.customers, 0), coalesce(s.cnt, 0), coalesce(p.cnt, 0),
+           coalesce(f.kwh, 0), coalesce(p.kwh, 0),
+           coalesce(p.kwh, 0) - coalesce(f.kwh, 0),
+           case when coalesce(f.kwh, 0) <> 0 then (coalesce(p.kwh, 0) - f.kwh) / f.kwh * 100 end,
+           now()
+    from zones z
+    left join pts p on p.zone = z.zone
+    left join sites s on s.zone = z.zone
+    left join fc f on f.zone = z.zone
+    on conflict (company_id, bidding_zone_code, month) do update set
+      customers_count = excluded.customers_count,
+      sites_count = excluded.sites_count,
+      metering_points_count = excluded.metering_points_count,
+      forecast_kwh = excluded.forecast_kwh,
+      actual_kwh = excluded.actual_kwh,
+      diff_kwh = excluded.diff_kwh,
+      diff_percent = excluded.diff_percent,
+      updated_at = excluded.updated_at
+    returning 1
+  )
+  select count(*) into v_zones from rows_upserted;
+
+  -- Per grid owner.
+  with owners as (select g.id from public.grid_owners g where g.company_id = p_company_id),
+  pts as (
+    select a.grid_owner_id, count(*) as cnt, count(distinct a.customer_id) as customers,
+           sum(a.kwh) as kwh, sum(a.value_count) as values_received
+    from public.gridex_analytics_point_month_internal(p_company_id, v_month) a where a.grid_owner_id is not null group by 1
+  ),
+  sites as (
+    select s.grid_owner_id, count(*) as cnt from public.customer_sites s
+    where s.company_id = p_company_id and s.grid_owner_id is not null group by 1
+  ),
+  reqs as (
+    select g.grid_owner_id, count(*) as requested,
+           count(*) filter (where g.status in ('failed', 'error', 'rejected', 'blocked')) as failed
+    from public.grid_owner_data_requests g
+    where g.company_id = p_company_id and g.grid_owner_id is not null
+      and g.created_at >= v_month and g.created_at < v_next
+    group by 1
+  ),
+  fc as (
+    select i.grid_owner_id, sum(i.forecast_kwh) as kwh from public.forecast_run_items i
+    where i.company_id = p_company_id and i.forecast_run_id = v_run_id
+      and i.period_start >= v_month and i.period_start < v_next and i.grid_owner_id is not null
+    group by 1
+  ),
+  missing as (
+    select count(*) as cnt from public.data_quality_issues q
+    where q.company_id = p_company_id and q.status = 'open' and q.issue_type = 'missing_metering_values'
+  ),
+  rows_upserted as (
+    insert into public.grid_owner_monthly_metrics as g (
+      company_id, grid_owner_id, month, customers_count, sites_count, metering_points_count,
+      metering_values_requested, metering_values_received, metering_values_missing,
+      failed_requests_count, forecast_kwh, actual_kwh, updated_at
+    )
+    select p_company_id, o.id, v_month, coalesce(p.customers, 0), coalesce(s.cnt, 0), coalesce(p.cnt, 0),
+           coalesce(r.requested, 0), coalesce(p.values_received, 0), (select cnt from missing),
+           coalesce(r.failed, 0), coalesce(f.kwh, 0), coalesce(p.kwh, 0), now()
+    from owners o
+    left join pts p on p.grid_owner_id = o.id
+    left join sites s on s.grid_owner_id = o.id
+    left join reqs r on r.grid_owner_id = o.id
+    left join fc f on f.grid_owner_id = o.id
+    on conflict (company_id, coalesce(grid_owner_id, '00000000-0000-0000-0000-000000000000'::uuid), month) do update set
+      customers_count = excluded.customers_count,
+      sites_count = excluded.sites_count,
+      metering_points_count = excluded.metering_points_count,
+      metering_values_requested = excluded.metering_values_requested,
+      metering_values_received = excluded.metering_values_received,
+      metering_values_missing = excluded.metering_values_missing,
+      failed_requests_count = excluded.failed_requests_count,
+      forecast_kwh = excluded.forecast_kwh,
+      actual_kwh = excluded.actual_kwh,
+      updated_at = excluded.updated_at
+    returning 1
+  )
+  select count(*) into v_owners from rows_upserted;
+
+  perform public.gridex_snapshot_customer_portfolio_month(p_company_id, v_month);
+
+  return jsonb_build_object(
+    'month', v_month,
+    'forecast_run_id', v_run_id,
+    'customers', v_customers,
+    'bidding_zones', v_zones,
+    'grid_owners', v_owners
+  );
+end;
+$$;
+
+--
 -- Name: gridex_rebuild_company_legal_profile(uuid, uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -41971,6 +42277,63 @@ begin
     'updated_at', v_profile.updated_at
   );
 end
+$$;
+
+--
+-- Name: gridex_rebuild_metering_monthly_consumption(uuid, date, date); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_rebuild_metering_monthly_consumption(p_company_id uuid, p_from_month date, p_to_month date) RETURNS integer
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+declare
+  v_from date := date_trunc('month', p_from_month)::date;
+  v_to date := date_trunc('month', p_to_month)::date;
+  v_rows integer;
+begin
+  if p_company_id is null or p_from_month is null or p_to_month is null or v_from > v_to or v_to - v_from > 800 then
+    raise exception 'Invalid company or month range' using errcode = '22023';
+  end if;
+
+  perform pg_advisory_xact_lock(hashtextextended('metering_monthly_consumption:' || p_company_id::text, 0));
+
+  with fresh as (
+    select mv.metering_point_id,
+           date_trunc('month', mv.period_start)::date as month,
+           sum(coalesce(mv.value_kwh, mv.quantity_kwh, mv.quantity)) as kwh,
+           count(*)::integer as value_count
+    from public.metering_values mv
+    where mv.company_id = p_company_id
+      and mv.metering_point_id is not null
+      and coalesce(mv.is_current, true)
+      and coalesce(mv.reading_type, 'consumption') = 'consumption'
+      and coalesce(mv.value_kwh, mv.quantity_kwh, mv.quantity) is not null
+      and mv.period_start >= v_from
+      and mv.period_start < v_to + interval '1 month'
+    group by 1, 2
+  ),
+  upserted as (
+    insert into public.metering_point_monthly_consumption as c (company_id, metering_point_id, month, kwh, value_count, computed_at)
+    select p_company_id, f.metering_point_id, f.month, f.kwh, f.value_count, now()
+    from fresh f
+    on conflict (company_id, metering_point_id, month) do update set
+      kwh = excluded.kwh,
+      value_count = excluded.value_count,
+      computed_at = excluded.computed_at
+    returning 1
+  )
+  select count(*) into v_rows from upserted;
+
+  update public.metering_point_monthly_consumption c
+     set kwh = 0, value_count = 0, computed_at = now()
+   where c.company_id = p_company_id
+     and c.month between v_from and v_to
+     and c.value_count > 0
+     and c.computed_at < now();
+
+  return v_rows;
+end;
 $$;
 
 --
@@ -71422,6 +71785,20 @@ CREATE TABLE public.metering_permission_sites (
 );
 
 --
+-- Name: metering_point_monthly_consumption; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.metering_point_monthly_consumption (
+    company_id uuid NOT NULL,
+    metering_point_id uuid NOT NULL,
+    month date NOT NULL,
+    kwh numeric DEFAULT 0 NOT NULL,
+    value_count integer DEFAULT 0 NOT NULL,
+    computed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT metering_point_monthly_consumption_month_start CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date))
+);
+
+--
 -- Name: metering_requirements; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -77993,6 +78370,13 @@ ALTER TABLE ONLY public.metering_permissions
     ADD CONSTRAINT metering_permissions_pkey PRIMARY KEY (id);
 
 --
+-- Name: metering_point_monthly_consumption metering_point_monthly_consumption_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metering_point_monthly_consumption
+    ADD CONSTRAINT metering_point_monthly_consumption_pkey PRIMARY KEY (company_id, metering_point_id, month);
+
+--
 -- Name: metering_points metering_points_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -81376,6 +81760,12 @@ CREATE INDEX customer_supply_periods_company_customer_period_idx ON public.custo
 --
 
 CREATE UNIQUE INDEX customer_supply_periods_company_id_id_uidx ON public.customer_supply_periods USING btree (company_id, id);
+
+--
+-- Name: customer_supply_periods_company_start_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_supply_periods_company_start_idx ON public.customer_supply_periods USING btree (company_id, start_date);
 
 --
 -- Name: customer_supply_periods_portfolio_idx; Type: INDEX; Schema: public; Owner: -
@@ -87940,6 +88330,12 @@ CREATE INDEX metering_permissions_customer_idx ON public.metering_permissions US
 --
 
 CREATE INDEX metering_permissions_permission_reference_idx ON public.metering_permissions USING btree (company_id, permission_reference);
+
+--
+-- Name: metering_point_monthly_consumption_company_month_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX metering_point_monthly_consumption_company_month_idx ON public.metering_point_monthly_consumption USING btree (company_id, month);
 
 --
 -- Name: metering_points_company_customer_number_idx; Type: INDEX; Schema: public; Owner: -
@@ -97356,6 +97752,13 @@ ALTER TABLE ONLY public.metering_permissions
 
 ALTER TABLE ONLY public.metering_permissions
     ADD CONSTRAINT metering_permissions_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: metering_point_monthly_consumption metering_point_monthly_consumption_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metering_point_monthly_consumption
+    ADD CONSTRAINT metering_point_monthly_consumption_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: metering_points metering_points_company_customer_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -109469,6 +109872,12 @@ CREATE POLICY metering_permission_sites_service_role_all ON public.metering_perm
 ALTER TABLE public.metering_permissions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: metering_point_monthly_consumption; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.metering_point_monthly_consumption ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: metering_points; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -118703,6 +119112,13 @@ GRANT ALL ON FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) T
 GRANT ALL ON FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_analytics_point_month_internal(p_company_id uuid, p_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_analytics_point_month_internal(p_company_id uuid, p_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_analytics_point_month_internal(p_company_id uuid, p_month date) TO service_role;
+
+--
 -- Name: FUNCTION gridex_anonymize_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -121565,11 +121981,25 @@ GRANT ALL ON FUNCTION public.gridex_read_webhook_signing_secret_v1(p_company_id 
 GRANT ALL ON FUNCTION public.gridex_reaggregate_customer_after_legacy_state_write() TO service_role;
 
 --
+-- Name: FUNCTION gridex_rebuild_company_analytics_month(p_company_id uuid, p_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_rebuild_company_analytics_month(p_company_id uuid, p_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_rebuild_company_analytics_month(p_company_id uuid, p_month date) TO service_role;
+
+--
 -- Name: FUNCTION gridex_rebuild_company_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_mark_reviewed boolean); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_rebuild_company_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_mark_reviewed boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_rebuild_company_legal_profile(p_company_id uuid, p_actor_user_id uuid, p_mark_reviewed boolean) TO service_role;
+
+--
+-- Name: FUNCTION gridex_rebuild_metering_monthly_consumption(p_company_id uuid, p_from_month date, p_to_month date); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_rebuild_metering_monthly_consumption(p_company_id uuid, p_from_month date, p_to_month date) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_rebuild_metering_monthly_consumption(p_company_id uuid, p_from_month date, p_to_month date) TO service_role;
 
 --
 -- Name: FUNCTION gridex_recalculate_actor_readiness(p_platform_market_actor_id uuid); Type: ACL; Schema: public; Owner: -
@@ -126067,6 +126497,12 @@ GRANT ALL ON TABLE public.meter_reading_values TO service_role;
 
 GRANT ALL ON TABLE public.metering_permission_sites TO authenticated;
 GRANT ALL ON TABLE public.metering_permission_sites TO service_role;
+
+--
+-- Name: TABLE metering_point_monthly_consumption; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.metering_point_monthly_consumption TO service_role;
 
 --
 -- Name: TABLE metering_requirements; Type: ACL; Schema: public; Owner: -

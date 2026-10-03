@@ -25,6 +25,12 @@ API + tenant OPS UI) keeps its single resumable checkpoint in
 Do not mix the two: an Ediel agent must not resume tenantservice items from the
 Ediel checkpoint, and the tenantservice agent must not edit the Ediel files.
 
+## Parallel side track: customer portfolio
+
+Customer portfolio / white-label analytics (user-approved 2026-10-03) keeps its
+checkpoint in `customer-portfolio-checkpoint.md` and its evidence in
+`quality/customer-portfolio/`. It does not edit the Ediel files either.
+
 ## Update rules
 
 - Maintain exactly one active work item and subtask.

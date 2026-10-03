@@ -59584,6 +59584,146 @@ export type Database = {
           },
         ]
       }
+      metering_point_monthly_consumption: {
+        Row: {
+          company_id: string
+          computed_at: string
+          kwh: number
+          metering_point_id: string
+          month: string
+          value_count: number
+        }
+        Insert: {
+          company_id: string
+          computed_at?: string
+          kwh?: number
+          metering_point_id: string
+          month: string
+          value_count?: number
+        }
+        Update: {
+          company_id?: string
+          computed_at?: string
+          kwh?: number
+          metering_point_id?: string
+          month?: string
+          value_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "metering_point_monthly_consumption_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       metering_points: {
         Row: {
           anlage_id: string | null
@@ -92276,6 +92416,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_analytics_point_month_internal: {
+        Args: { p_company_id: string; p_month: string }
+        Returns: {
+          bidding_zone_code: string
+          customer_id: string
+          grid_owner_id: string
+          kwh: number
+          metering_point_id: string
+          value_count: number
+        }[]
+      }
       gridex_anonymize_customer_v1: {
         Args: {
           p_actor_user_id: string
@@ -94876,6 +95027,10 @@ export type Database = {
         Args: { p_company_id: string; p_subscription_id: string }
         Returns: string
       }
+      gridex_rebuild_company_analytics_month: {
+        Args: { p_company_id: string; p_month: string }
+        Returns: Json
+      }
       gridex_rebuild_company_legal_profile: {
         Args: {
           p_actor_user_id?: string
@@ -94883,6 +95038,10 @@ export type Database = {
           p_mark_reviewed?: boolean
         }
         Returns: Json
+      }
+      gridex_rebuild_metering_monthly_consumption: {
+        Args: { p_company_id: string; p_from_month: string; p_to_month: string }
+        Returns: number
       }
       gridex_recalculate_actor_readiness: {
         Args: { p_platform_market_actor_id?: string }

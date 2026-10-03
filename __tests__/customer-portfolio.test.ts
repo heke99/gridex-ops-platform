@@ -90,7 +90,7 @@ describe('system-wide customer count consistency', () => {
       expect(source).not.toMatch(/'customers'[^\n]*'(created_at|ended_at)'/)
       expect(source).not.toMatch(/'customers', companyId, \[\s*\{ column: 'created_at'/)
     }
-    expect(builder).toContain('gridex_snapshot_customer_portfolio_month')
+    expect(builder).toContain('gridex_rebuild_company_analytics_month')
     expect(fallback).toContain('getPortfolioMonthForCompany')
     expect(companyPage).toContain('getPortfolioMonthForCompany')
   })
@@ -158,5 +158,40 @@ describe('customer portfolio phase 2', () => {
     expect(churnReasonLabel('move_out')).toBe('Flytt')
     expect(churnReasonLabel('unknown')).toBe('Okänd')
     expect(churnReasonLabel('Flyttade utomlands')).toBe('Flyttade utomlands')
+  })
+})
+
+describe('analytics performance rollups', () => {
+  const rollups = readFileSync('supabase/migrations/20261003150000_portfolio_analytics_rollups_performance.sql', 'utf8')
+  const builder = readFileSync('lib/analytics/monthlyMetricsBuilder.ts', 'utf8')
+  const daily = readFileSync('app/api/cron/analytics/daily/route.ts', 'utf8')
+  const monthly = readFileSync('app/api/cron/analytics/monthly/route.ts', 'utf8')
+
+  it('never sums metering values client-side (PostgREST row cap truncates totals)', () => {
+    expect(builder).not.toMatch(/from\('metering_values'\)/)
+    expect(builder).not.toContain('sumRows')
+    expect(builder).toContain("rpc('gridex_rebuild_company_analytics_month'")
+  })
+
+  it('reads monthly rollups instead of hourly values for forecast and accuracy', () => {
+    const forecast = rollups.slice(rollups.indexOf('function public.gridex_customer_portfolio_point_forecast_internal('))
+    expect(forecast.slice(0, forecast.indexOf('$$;'))).toContain('metering_point_monthly_consumption')
+    expect(forecast.slice(0, forecast.indexOf('$$;'))).not.toContain('public.metering_values')
+    const accuracy = rollups.slice(rollups.indexOf('function public.gridex_customer_portfolio_forecast_accuracy('))
+    expect(accuracy.slice(0, accuracy.indexOf('$$;'))).not.toContain('public.metering_values')
+  })
+
+  it('uses the latest consumption run covering the month, like the analytics page', () => {
+    expect(rollups).toMatch(/forecast_type = 'consumption'[\s\S]*order by fr\.created_at desc\s+limit 1/)
+  })
+
+  it('stays applicable through the hosted migration path (no destructive statements)', () => {
+    const code = rollups.split('\n').filter((line) => !line.trim().startsWith('--')).join('\n')
+    expect(code).not.toMatch(/\b(drop|delete|truncate)\b/i)
+  })
+
+  it('refreshes last month daily and the 12-month rollup monthly', () => {
+    expect(daily).toContain('buildCompanyMonthlyMetrics(companyId, addMonths(month, -1))')
+    expect(monthly).toContain('rebuildMeteringMonthlyConsumption(companyId, addMonths(month, -11), month)')
   })
 })
