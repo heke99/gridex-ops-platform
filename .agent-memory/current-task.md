@@ -1,3 +1,8 @@
+## Aktuell arbetsgren — 2026-10-03 03:00 (gäller före allt nedan)
+
+Pushat a3b01fe6: migration 20261002235200 (meddelandescopad U-APERAK utan ACW godtas i historisk matchare; header-avvisning SC-045 gick ej att skapa). err-gateway native 8/8 lokalt. Lärdom: källor mottagna 2026-10-01..14 får 25-A-3-fallback (graceperiod, messagePolicy) — native-fixturer som kräver 25-A-4-regler ska ha message_received_at efter 2026-10-14. Syntaxavvisad källa: affärsdispatchern kastar (utilts_initial_canonical_owner_context_mismatch, enhetstester kräver det); negativ CONTRL skapas av processInboundEdielMessage (mottagning). DB atomic ACK lagrar ackScope endast för 'transaction'.
+Grenmigrationer nu 20261002233000–20261002235200. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
+
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
 
 OBS 02:10: grenmigrationer nu 20261002233000–20261002234900 (20 st; 234800 original_message_id-form, 234900 definer-port för svars-auktoritet). CI-sanning för hela sviter (lokal DB växer och ger statement timeouts vid helsvitskörning; kör enskilda tester lokalt). CI 3bb576cd: 83 fel, correction-context 2 → åtgärdade i cc073ed7.
