@@ -1203,3 +1203,13 @@ Lokalt test: `T=3000 TT='<regex>' bash /tmp/claude-0/s02run.sh <fil>`; resultat 
 - Pushed: process-journal browser readset assertion (nested process/document/outbound), regulated fixture reviewer auth.users fix.
 - Open native: z06f (E66 register reading fixture), z04-ack/prodat-mixed/raw-scope (combined mixed reply design), outbound-ack-replay (listed PRODAT code + pinned profile), ai-network (registry route), doc-ref concurrent Z08, source-owner (SoD user decision).
 - Next: check CI on 3be22aa7; then prod dry run (BEGIN/ROLLBACK) of 20261002233000..latest, apply only when CI green; merge #426; steps 4–8.
+
+## 2026-10-03 checkpoint (after 1735c39c merge of main)
+Fixed & pushed: ai-network (20261002235700 text/uuid + queued return + registry-import fixture), outbound-ack-replay (tenant-bound 97A Z99 sources), z06f (E66 supplier reading), source-owner (no SoD, owner decision), process-journal browser, regulated reviewer.
+Merged origin/main (#467) into branch: wire resolution stays bound to qualified structure; requestedResolution carried.
+OPEN — mixed PRODAT Z04 cluster (z04-ack 6, prodat-mixed 3, raw-scope 2): ROOT CAUSE found.
+ - Composition 4b069c98 removed the mixed-owner wiring (processMixedProdatObjects/consumeMixedProdatReply) from inboundProcessing; partition owner (applySupplyMarketSource) now commits first, so normal_switch_confirm_mixed_v1 returns prodat_mixed_existing_other_source_transition.
+ - Response facet null for mixed: buildReceivedProdatResponseValidation renders the negative plan alone -> BGM34 APERAK_PRODAT_OBJECT_OUTCOME_MISSING.
+ - DB birth guard bound_prodat_response_v1/prodat_structural_response_v1 only accepts ERC100 backed by partition effect receipts (committed_supply_effects_v1), not prodat_mixed_object_receipts.
+ - Tests expect mixed reply tables (replyIntents/consumptions). DECISION NEEDED: (A) partition owner + combined final reply in createReceivedProdatCommittedEffectAcks (tests updated), or (B) restore mixed owner + extend committed_supply_effects to mixed receipts (forward migration).
+OPEN — document-reference concurrent Z08: dispatch requires a genuine Z08/Z25 rescission original (mandate chain) in the doc-ref company.
