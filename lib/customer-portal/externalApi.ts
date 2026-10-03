@@ -392,6 +392,12 @@ export function handleCustomerPortalRouteError(input: {
   const databaseMessage = databaseError?.message ?? ''
   const mappedDatabaseError = [
     {
+      pattern: /^customer_merged_write_conflict$/,
+      status: 409,
+      code: 'portal_identity_customer_conflict',
+      message: 'Kundkopplingen har ändrats. Hämta aktuella kunduppgifter och försök igen.',
+    },
+    {
       pattern: /LEGAL_BUNDLE_NOT_RESOLVED/i,
       status: 409,
       code: 'LEGAL_BUNDLE_NOT_READY',

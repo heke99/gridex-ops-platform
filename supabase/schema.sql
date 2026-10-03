@@ -23008,6 +23008,10 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
 
+  IF v_customer.merged_into_customer_id IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='customer_merged_write_conflict';
+  END IF;
+
   IF p_expected_updated_at IS NOT NULL AND v_customer.updated_at IS DISTINCT FROM p_expected_updated_at THEN
     RAISE EXCEPTION USING ERRCODE='40001', MESSAGE='contact_change_version_conflict';
   END IF;
@@ -30267,6 +30271,39 @@ begin
 end $$;
 
 --
+-- Name: gridex_guard_merged_portal_customer_write(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_merged_portal_customer_write() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_merged_into uuid;
+begin
+  if new.customer_id is null then return new; end if;
+  if tg_op = 'UPDATE' then
+    -- UPDATE already owns a child tuple. Do not wait in the inverse lock order
+    -- of a merge (customer first, then child): fail safely instead of deadlock.
+    select merged_into_customer_id into v_merged_into from public.customers
+    where id = new.customer_id and company_id = new.company_id for share nowait;
+  else
+    select merged_into_customer_id into v_merged_into from public.customers
+    where id = new.customer_id and company_id = new.company_id for share;
+  end if;
+  if not found then
+    raise exception using errcode = '23514', message = 'customer_portal_customer_not_found_for_tenant';
+  end if;
+  if v_merged_into is not null then
+    raise exception using errcode = '23514', message = 'customer_merged_write_conflict';
+  end if;
+  return new;
+exception when lock_not_available then
+  raise exception using errcode = '23514', message = 'customer_merged_write_conflict';
+end
+$$;
+
+--
 -- Name: gridex_guard_meter_reading_series_tenant(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -34370,9 +34407,15 @@ declare
     'customer_lifecycle_decisions', 'customer_lifecycle_events',
     'customer_duplicate_resolution_events', 'customer_readiness_snapshots',
     'document_ai_extractions', 'supplier_switch_requests', 'supplier_switch_events',
-    'grid_owner_data_requests', 'outbound_requests', 'outbound_dispatch_events',
+    'grid_owner_data_requests', 'grid_owner_information_requests', 'outbound_requests', 'outbound_dispatch_events',
     'billing_underlays', 'billing_export_run_items', 'partner_exports',
-    'tenant_email_outbox', 'ediel_messages', 'customer_import_rows'
+    'tenant_email_outbox', 'ediel_messages', 'customer_import_rows',
+    'customer_case_attachments', 'customer_portal_accounts',
+    'customer_portal_identities', 'tenant_portal_customer_links',
+    'customer_profiles', 'customer_portal_claims', 'customer_portal_events',
+    'customer_portal_requests', 'customer_portal_completions',
+    'customer_portal_api_access_logs', 'customer_portal_write_idempotency',
+    'customer_events'
   ];
   v_primary public.customers%rowtype;
   v_source public.customers%rowtype;
@@ -34410,6 +34453,48 @@ begin
     raise exception using errcode = '23514', message = 'customer_merge_primary_not_mergeable';
   end if;
 
+  -- Lock binding rows after the customer graph, in a consistent table/key order.
+  perform 1 from public.customer_portal_accounts where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+  perform 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+  perform 1 from public.tenant_portal_customer_links where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+
+  -- The public portal/auth IDs belong to one external subject; native account
+  -- user_id has a different namespace and is deliberately not compared with it.
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and auth_user_id is not null and customer_portal_user_id is not null
+    and auth_user_id <> customer_portal_user_id) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+  -- Header-based identity resolution cannot choose between different providers
+  -- presenting the same raw external subject. Never collapse those providers.
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and coalesce(customer_portal_user_id, auth_user_id) is not null
+    group by coalesce(customer_portal_user_id, auth_user_id) having count(*) > 1) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and nullif(btrim(external_account_id), '') is not null
+    group by external_account_id having count(*) > 1)
+    or exists(select 1 from public.customer_portal_accounts where company_id = p_company_id
+      and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+      and is_active and (nullif(lower(btrim(status)), '') is null or lower(btrim(status)) in ('active','confirmed','enabled'))
+      and nullif(btrim(external_account_id), '') is not null
+      group by external_account_id having count(*) > 1)
+    or exists(select 1 from public.tenant_portal_customer_links where company_id = p_company_id
+      and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+      and status = 'active' and external_customer_id is not null
+      group by external_customer_id having count(*) > 1) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+
+  set constraints customer_case_attachments_case_owner_fk, customer_case_events_case_owner_fk, customer_contracts_company_customer_customer_site_rel_fkey, customer_contracts_company_customer_site_rel_fkey, customer_info_requests_company_customer_site_rel_fkey, grid_owner_data_requests_company_customer_site_rel_fkey, grid_owner_information_requests_company_customer_site_rel_fkey, metering_points_company_customer_site_rel_fkey, outbound_requests_company_customer_customer_site_rel_fkey, outbound_requests_company_customer_site_rel_fkey, powers_of_attorney_company_customer_customer_site_rel_fkey, powers_of_attorney_company_customer_site_rel_fkey, supplier_switch_requests_company_customer_customer_site_rel_fke, supplier_switch_requests_company_customer_site_rel_fkey deferred;
+
   foreach v_source_id in array (select array_agg(distinct s) from unnest(p_source_customer_ids) s) loop
     select * into v_source from public.customers
     where id = v_source_id and company_id = p_company_id;
@@ -34424,14 +34509,14 @@ begin
     v_moved := '{}'::jsonb;
     foreach v_table in array v_tables loop
       if to_regclass('public.' || v_table) is null
-         or not exists (select 1 from pg_attribute where attrelid = ('public.' || v_table)::regclass
+         or not exists (select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
                         and attname = 'customer_id' and not attisdropped)
-         or not exists (select 1 from pg_attribute where attrelid = ('public.' || v_table)::regclass
+         or not exists (select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
                         and attname = 'company_id' and not attisdropped) then
         continue;
       end if;
       v_has_updated_by := v_table <> 'customer_import_rows' and exists (
-        select 1 from pg_attribute where attrelid = ('public.' || v_table)::regclass
+        select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
           and attname = 'updated_by' and not attisdropped);
       execute format(
         'update public.%I set customer_id = $1%s where customer_id = $2 and company_id = $3',
@@ -34479,6 +34564,8 @@ begin
 
     v_results := v_results || jsonb_build_array(jsonb_build_object('merged_customer_id', v_source_id, 'moved', v_moved));
   end loop;
+
+  set constraints customer_case_attachments_case_owner_fk, customer_case_events_case_owner_fk, customer_contracts_company_customer_customer_site_rel_fkey, customer_contracts_company_customer_site_rel_fkey, customer_info_requests_company_customer_site_rel_fkey, grid_owner_data_requests_company_customer_site_rel_fkey, grid_owner_information_requests_company_customer_site_rel_fkey, metering_points_company_customer_site_rel_fkey, outbound_requests_company_customer_customer_site_rel_fkey, outbound_requests_company_customer_site_rel_fkey, powers_of_attorney_company_customer_customer_site_rel_fkey, powers_of_attorney_company_customer_site_rel_fkey, supplier_switch_requests_company_customer_customer_site_rel_fke, supplier_switch_requests_company_customer_site_rel_fkey immediate;
 
   return jsonb_build_object('primary_customer_id', p_primary_customer_id, 'merged', v_results);
 end
@@ -89630,6 +89717,84 @@ CREATE TRIGGER gridex_user_roles_scope_consistent BEFORE INSERT OR UPDATE ON pub
 CREATE TRIGGER gridex_validate_website_application_portal_identity BEFORE INSERT OR UPDATE OF payload, portal_identity_required ON public.website_customer_applications FOR EACH ROW EXECUTE FUNCTION public.gridex_validate_website_application_portal_identity();
 
 --
+-- Name: customer_case_attachments guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_case_attachments FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_case_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_case_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_cases guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_cases FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_contacts guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_contacts FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_accounts guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_accounts FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_claims guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_claims FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_completions guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_completions FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_identities guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_requests guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_write_idempotency guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_write_idempotency FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: tenant_portal_customer_links guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.tenant_portal_customer_links FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
 -- Name: integration_api_clients integration_api_clients_primary_tenant_website_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -92030,7 +92195,7 @@ ALTER TABLE ONLY public.customer_blockers
 --
 
 ALTER TABLE ONLY public.customer_case_attachments
-    ADD CONSTRAINT customer_case_attachments_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+    ADD CONSTRAINT customer_case_attachments_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE DEFERRABLE;
 
 --
 -- Name: customer_case_attachments customer_case_attachments_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92051,7 +92216,7 @@ ALTER TABLE ONLY public.customer_case_attachments
 --
 
 ALTER TABLE ONLY public.customer_case_events
-    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE DEFERRABLE;
 
 --
 -- Name: customer_case_events customer_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92275,7 +92440,7 @@ ALTER TABLE ONLY public.customer_contract_signature_requests
 --
 
 ALTER TABLE ONLY public.customer_contracts
-    ADD CONSTRAINT customer_contracts_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_contracts_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_contracts customer_contracts_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92289,7 +92454,7 @@ ALTER TABLE ONLY public.customer_contracts
 --
 
 ALTER TABLE ONLY public.customer_contracts
-    ADD CONSTRAINT customer_contracts_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_contracts_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_contracts customer_contracts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92541,7 +92706,7 @@ ALTER TABLE ONLY public.customer_info_request_events
 --
 
 ALTER TABLE ONLY public.customer_info_requests
-    ADD CONSTRAINT customer_info_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_info_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_info_requests customer_info_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95278,7 +95443,7 @@ ALTER TABLE ONLY public.grid_owner_contact_routes
 --
 
 ALTER TABLE ONLY public.grid_owner_data_requests
-    ADD CONSTRAINT grid_owner_data_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT grid_owner_data_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: grid_owner_data_requests grid_owner_data_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95327,7 +95492,7 @@ ALTER TABLE ONLY public.grid_owner_information_requests
 --
 
 ALTER TABLE ONLY public.grid_owner_information_requests
-    ADD CONSTRAINT grid_owner_information_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT grid_owner_information_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: grid_owner_information_requests grid_owner_information_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -96076,7 +96241,7 @@ ALTER TABLE ONLY public.metering_points
 --
 
 ALTER TABLE ONLY public.metering_points
-    ADD CONSTRAINT metering_points_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT metering_points_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: metering_points metering_points_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -96307,14 +96472,14 @@ ALTER TABLE ONLY public.outbound_dispatch_events
 --
 
 ALTER TABLE ONLY public.outbound_requests
-    ADD CONSTRAINT outbound_requests_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT outbound_requests_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: outbound_requests outbound_requests_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.outbound_requests
-    ADD CONSTRAINT outbound_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT outbound_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: outbound_requests outbound_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -96797,14 +96962,14 @@ ALTER TABLE ONLY public.power_of_attorney_scopes
 --
 
 ALTER TABLE ONLY public.powers_of_attorney
-    ADD CONSTRAINT powers_of_attorney_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT powers_of_attorney_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: powers_of_attorney powers_of_attorney_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.powers_of_attorney
-    ADD CONSTRAINT powers_of_attorney_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT powers_of_attorney_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: powers_of_attorney powers_of_attorney_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -97231,14 +97396,14 @@ ALTER TABLE ONLY public.supplier_switch_requests
 --
 
 ALTER TABLE ONLY public.supplier_switch_requests
-    ADD CONSTRAINT supplier_switch_requests_company_customer_customer_site_rel_fke FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT supplier_switch_requests_company_customer_customer_site_rel_fke FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.supplier_switch_requests
-    ADD CONSTRAINT supplier_switch_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT supplier_switch_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -119023,6 +119188,13 @@ GRANT ALL ON FUNCTION public.gridex_guard_immutable_meter_reading_series() TO se
 --
 
 GRANT ALL ON FUNCTION public.gridex_guard_immutable_meter_reading_value() TO service_role;
+
+--
+-- Name: FUNCTION gridex_guard_merged_portal_customer_write(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_merged_portal_customer_write() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_guard_merged_portal_customer_write() TO service_role;
 
 --
 -- Name: FUNCTION gridex_guard_meter_reading_series_tenant(); Type: ACL; Schema: public; Owner: -

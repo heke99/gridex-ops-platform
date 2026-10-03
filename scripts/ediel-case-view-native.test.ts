@@ -231,12 +231,14 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
   expect(sql<boolean>(`SELECT to_jsonb(relrowsecurity) FROM pg_class WHERE oid='public.customer_case_events'::regclass`)).toBe(true)
 
   for (const owner of [
-    { company: companyB, customer: customerA },
-    { company: companyA, customer: customerB },
-    { company: companyB, customer: customerB },
+    // The merged-customer guard validates the customer/tenant pair before FK
+    // checks. A valid pair from B still reaches the case's composite owner FK.
+    { company: companyB, customer: customerA, error: { code: '23514', message: 'customer_portal_customer_not_found_for_tenant' } },
+    { company: companyA, customer: customerB, error: { code: '23514', message: 'customer_portal_customer_not_found_for_tenant' } },
+    { company: companyB, customer: customerB, error: { code: '23503' } },
   ]) {
     const result = await supabaseService.from('customer_case_events').insert({ company_id: owner.company, customer_id: owner.customer, customer_case_id: supportId, event_type: 'test', message: 'Disposable invalid owner' })
-    expect(result.error?.code).toBe('23503')
+    expect(result.error).toMatchObject(owner.error)
     expect(statusSnapshot(supportId)).toEqual(beforeSupport)
   }
 

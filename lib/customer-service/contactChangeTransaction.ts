@@ -43,6 +43,9 @@ export type ContactChangeResult = {
 
 function mapError(error: { code?: string; message?: string }): Error {
   const message = error.message ?? ''
+  if (message === 'customer_merged_write_conflict') {
+    return new ContactChangeTransactionError('version_conflict', 'Kundkopplingen har ändrats. Hämta profilen och försök igen.')
+  }
   if (error.code === '40001' || message.includes('contact_change_version_conflict')) {
     return new ContactChangeTransactionError('version_conflict', 'Kunden ändrades samtidigt. Hämta profilen och försök igen.')
   }
@@ -82,6 +85,9 @@ async function applySequentialContactChange(input: ContactChangeInput): Promise<
   if (existing.error) throw existing.error
   const before = existing.data as Record<string, unknown> | null
   if (!before) throw new ContactChangeTransactionError('not_found', 'Kunden hittades inte för aktuell tenant.')
+  if (before.merged_into_customer_id) {
+    throw new ContactChangeTransactionError('version_conflict', 'Kundkopplingen har ändrats. Hämta profilen och försök igen.')
+  }
   if (String(before.status ?? '').toLowerCase() === 'archived') {
     throw new ContactChangeTransactionError('customer_archived', 'Arkiverad kund kan inte ändras via vanlig profil.')
   }

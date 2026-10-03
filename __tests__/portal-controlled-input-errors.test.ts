@@ -70,4 +70,14 @@ describe('portal controlled input errors', () => {
     const body = await response.json()
     expect(body.error.code).toBe('customer_portal_internal_error')
   })
+
+  it('returns a controlled conflict for a write racing an authorized customer merge', async () => {
+    const response = handleCustomerPortalRouteError({
+      request: new NextRequest('https://example.test/api/v1/customer/support/cases', { method: 'POST' }),
+      client: null, startedAt: Date.now(),
+      error: { code: '23514', message: 'customer_merged_write_conflict' },
+    })
+    expect(response.status).toBe(409)
+    expect((await response.json()).error.code).toBe('portal_identity_customer_conflict')
+  })
 })
