@@ -10486,6 +10486,8 @@ export type Database = {
           active_metering_points: number | null
           active_sites: number | null
           actual_kwh: number | null
+          churn_rate: number | null
+          churned_customers: number
           company_id: string
           created_at: string | null
           diff_kwh: number | null
@@ -10494,10 +10496,20 @@ export type Database = {
           failed_metering_requests: number | null
           forecast_kwh: number | null
           id: string
+          metering_requests_failed: number
+          metering_requests_historical: number
+          metering_requests_ongoing: number
+          metering_requests_total: number
           metering_values_missing: number | null
           metering_values_received: number | null
           month: string
+          net_change: number
           new_customers: number | null
+          poa_active: number
+          poa_requested: number
+          poa_signed: number
+          portfolio_computed_at: string | null
+          portfolio_source_version: string | null
           requested_metering_values: number | null
           successful_metering_requests: number | null
           total_customers: number | null
@@ -10510,6 +10522,8 @@ export type Database = {
           active_metering_points?: number | null
           active_sites?: number | null
           actual_kwh?: number | null
+          churn_rate?: number | null
+          churned_customers?: number
           company_id: string
           created_at?: string | null
           diff_kwh?: number | null
@@ -10518,10 +10532,20 @@ export type Database = {
           failed_metering_requests?: number | null
           forecast_kwh?: number | null
           id?: string
+          metering_requests_failed?: number
+          metering_requests_historical?: number
+          metering_requests_ongoing?: number
+          metering_requests_total?: number
           metering_values_missing?: number | null
           metering_values_received?: number | null
           month: string
+          net_change?: number
           new_customers?: number | null
+          poa_active?: number
+          poa_requested?: number
+          poa_signed?: number
+          portfolio_computed_at?: string | null
+          portfolio_source_version?: string | null
           requested_metering_values?: number | null
           successful_metering_requests?: number | null
           total_customers?: number | null
@@ -10534,6 +10558,8 @@ export type Database = {
           active_metering_points?: number | null
           active_sites?: number | null
           actual_kwh?: number | null
+          churn_rate?: number | null
+          churned_customers?: number
           company_id?: string
           created_at?: string | null
           diff_kwh?: number | null
@@ -10542,10 +10568,20 @@ export type Database = {
           failed_metering_requests?: number | null
           forecast_kwh?: number | null
           id?: string
+          metering_requests_failed?: number
+          metering_requests_historical?: number
+          metering_requests_ongoing?: number
+          metering_requests_total?: number
           metering_values_missing?: number | null
           metering_values_received?: number | null
           month?: string
+          net_change?: number
           new_customers?: number | null
+          poa_active?: number
+          poa_requested?: number
+          poa_signed?: number
+          portfolio_computed_at?: string | null
+          portfolio_source_version?: string | null
           requested_metering_values?: number | null
           successful_metering_requests?: number | null
           total_customers?: number | null
@@ -27518,6 +27554,161 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      customer_portfolio_forecast_snapshots: {
+        Row: {
+          as_of_month: string
+          company_id: string
+          computed_at: string
+          forecast_kwh: number
+          high_kwh: number
+          id: string
+          low_kwh: number
+          metering_points: number
+          month: string
+          month_index: number
+          points_with_history: number
+        }
+        Insert: {
+          as_of_month: string
+          company_id: string
+          computed_at?: string
+          forecast_kwh?: number
+          high_kwh?: number
+          id?: string
+          low_kwh?: number
+          metering_points?: number
+          month: string
+          month_index: number
+          points_with_history?: number
+        }
+        Update: {
+          as_of_month?: string
+          company_id?: string
+          computed_at?: string
+          forecast_kwh?: number
+          high_kwh?: number
+          id?: string
+          low_kwh?: number
+          metering_points?: number
+          month?: string
+          month_index?: number
+          points_with_history?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "customer_portfolio_forecast_snapshots_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -92245,6 +92436,156 @@ export type Database = {
         Args: { p_source_message_id: string }
         Returns: undefined
       }
+      gridex_assign_company_to_whitelabel: {
+        Args: { p_company_id: string; p_white_label_platform_id: string }
+        Returns: {
+          actor_role: string | null
+          address_line_1: string | null
+          address_line_2: string | null
+          application_number_prefix: string | null
+          archived_at: string | null
+          archived_by: string | null
+          billing_address_line_1: string | null
+          billing_address_line_2: string | null
+          billing_automation_enabled: boolean
+          billing_city: string | null
+          billing_contact: Json
+          billing_contact_email: string | null
+          billing_contact_phone: string | null
+          billing_country_code: string | null
+          billing_postal_code: string | null
+          billing_provider_environment: string | null
+          billing_settings: Json
+          billing_terms_summary: string | null
+          branding: Json
+          brp_ediel_id: string | null
+          city: string | null
+          closed_at: string | null
+          closed_by: string | null
+          closure_reason: string | null
+          company_slug: string | null
+          complaints_address_line_1: string | null
+          complaints_address_line_2: string | null
+          complaints_city: string | null
+          complaints_contact_name: string | null
+          complaints_country_code: string | null
+          complaints_description: string | null
+          complaints_email: string | null
+          complaints_phone: string | null
+          complaints_postal_code: string | null
+          contact_person: Json
+          contract_number_prefix: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          customer_number_prefix: string | null
+          customer_portal_url: string | null
+          customer_service_hours: string | null
+          data_protection_address_line_1: string | null
+          data_protection_address_line_2: string | null
+          data_protection_city: string | null
+          data_protection_contact_name: string | null
+          data_protection_country_code: string | null
+          data_protection_email: string | null
+          data_protection_phone: string | null
+          data_protection_postal_code: string | null
+          default_environment: string
+          deletion_requested_at: string | null
+          deletion_requested_by: string | null
+          dispute_resolution_override: Json
+          ediel_customer_intake_edifact_mode: string
+          ediel_first_live_send_approved_at: string | null
+          ediel_first_live_send_approved_by: string | null
+          ediel_go_live_notes: string | null
+          ediel_id: string | null
+          ediel_mailbox: string | null
+          ediel_manual_receiver_locked: boolean
+          ediel_primary_actor_setting_id: string | null
+          ediel_primary_production_route_profile_id: string | null
+          ediel_primary_test_route_profile_id: string | null
+          ediel_production_enabled: boolean
+          ediel_production_enabled_at: string | null
+          ediel_production_enabled_by: string | null
+          ediel_production_pause_reason: string | null
+          ediel_production_paused_at: string | null
+          ediel_production_paused_by: string | null
+          ediel_production_shadow_enabled_at: string | null
+          ediel_production_shadow_enabled_by: string | null
+          ediel_production_shadow_mode: boolean
+          ediel_production_status: string
+          ediel_route_resolution_mode: string
+          ediel_shared_transport_mode: string
+          external_tenant_reference: string
+          id: string
+          industry: string
+          invoice_export_enabled: boolean
+          invoice_export_format: string
+          invoice_export_target_system: string | null
+          is_active: boolean
+          is_paused: boolean
+          legal_name: string | null
+          lifecycle_last_idempotency_key: string | null
+          lifecycle_last_transition_at: string | null
+          lifecycle_last_transition_by: string | null
+          lifecycle_state_version: number
+          lifecycle_status: string
+          live_approved_at: string | null
+          live_approved_by: string | null
+          live_blocked_reason: string | null
+          live_ediel_enabled: boolean
+          metadata: Json
+          name: string
+          normalized_org_number: string | null
+          operating_environment: string | null
+          operations_contact: Json
+          org_number: string | null
+          organization_number: string | null
+          outbound_freeze_reason: string | null
+          outbound_frozen: boolean
+          outbound_frozen_at: string | null
+          outbound_frozen_channels: string[]
+          pause_reason: string | null
+          paused_at: string | null
+          paused_by: string | null
+          phone: string | null
+          postal_code: string | null
+          primary_contact_email: string | null
+          primary_contact_name: string | null
+          production_application_reference: string | null
+          production_counterparty_ediel_id: string | null
+          production_ediel_id: string | null
+          production_mailbox: string | null
+          production_readiness_status: string | null
+          production_sender_sub_address: string | null
+          production_status: string | null
+          reactivated_at: string | null
+          reactivated_by: string | null
+          sender_sub_address: string | null
+          slug: string | null
+          status: string
+          status_reason: string | null
+          support_email: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          technical_contact: Json
+          test_application_reference: string | null
+          test_counterparty_ediel_id: string | null
+          test_ediel_id: string | null
+          test_mailbox: string | null
+          test_readiness_status: string | null
+          test_sender_sub_address: string | null
+          updated_at: string
+          updated_by: string | null
+          vat_number: string | null
+          website: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "companies"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {
           p_actor_user_id: string
@@ -93116,6 +93457,154 @@ export type Database = {
         Args: { p_attempts: number; p_max_attempts: number; p_status: string }
         Returns: string
       }
+      gridex_customer_portfolio_active_counts: {
+        Args: { p_at?: string; p_company_ids: string[] }
+        Returns: {
+          active_customers: number
+          active_metering_points: number
+          company_id: string
+        }[]
+      }
+      gridex_customer_portfolio_assert_read: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
+      gridex_customer_portfolio_bidding_zones: {
+        Args: { p_as_of?: string; p_company_id: string }
+        Returns: {
+          active_customers: number
+          bidding_zone_code: string
+          forecast_12m_kwh: number
+          metering_points: number
+        }[]
+      }
+      gridex_customer_portfolio_churn_reasons: {
+        Args: { p_company_id: string; p_from: string; p_to: string }
+        Returns: {
+          customers: number
+          month: string
+          reason: string
+        }[]
+      }
+      gridex_customer_portfolio_cohorts: {
+        Args: { p_company_id: string; p_months?: number }
+        Returns: {
+          cohort_month: string
+          customers: number
+          retained_12m: number
+          retained_1m: number
+          retained_3m: number
+          retained_6m: number
+        }[]
+      }
+      gridex_customer_portfolio_expiring_poa: {
+        Args: { p_company_id: string; p_days?: number }
+        Returns: {
+          customer_id: string
+          customer_name: string
+          days_left: number
+          power_of_attorney_id: string
+          scope: string
+          valid_to: string
+        }[]
+      }
+      gridex_customer_portfolio_forecast: {
+        Args: { p_as_of?: string; p_company_id: string }
+        Returns: {
+          forecast_kwh: number
+          high_kwh: number
+          low_kwh: number
+          metering_points: number
+          month: string
+          month_index: number
+          points_with_history: number
+        }[]
+      }
+      gridex_customer_portfolio_forecast_accuracy: {
+        Args: { p_company_id: string; p_from: string; p_to: string }
+        Returns: {
+          actual_kwh: number
+          diff_kwh: number
+          diff_percent: number
+          forecast_kwh: number
+          month: string
+        }[]
+      }
+      gridex_customer_portfolio_forecast_cached_internal: {
+        Args: { p_as_of?: string; p_company_id: string }
+        Returns: {
+          forecast_kwh: number
+          high_kwh: number
+          low_kwh: number
+          metering_points: number
+          month: string
+          month_index: number
+          points_with_history: number
+        }[]
+      }
+      gridex_customer_portfolio_forecast_internal: {
+        Args: { p_as_of?: string; p_company_id: string; p_months?: number }
+        Returns: {
+          forecast_kwh: number
+          high_kwh: number
+          low_kwh: number
+          metering_points: number
+          month: string
+          month_index: number
+          points_with_history: number
+        }[]
+      }
+      gridex_customer_portfolio_monthly_internal: {
+        Args: { p_company_id: string; p_from: string; p_to: string }
+        Returns: {
+          active_customers: number
+          active_customers_start: number
+          active_metering_points: number
+          churn_rate: number
+          churned_customers: number
+          metering_requests_failed: number
+          metering_requests_historical: number
+          metering_requests_ongoing: number
+          metering_requests_total: number
+          month: string
+          net_change: number
+          new_customers: number
+          poa_active: number
+          poa_requested: number
+          poa_signed: number
+        }[]
+      }
+      gridex_customer_portfolio_point_forecast_internal: {
+        Args: { p_as_of?: string; p_company_id: string; p_months?: number }
+        Returns: {
+          exact: boolean
+          has_history: boolean
+          kwh: number
+          metering_point_id: string
+          month: string
+          month_index: number
+        }[]
+      }
+      gridex_customer_portfolio_summary: {
+        Args: { p_company_id: string; p_from?: string; p_to?: string }
+        Returns: {
+          active_customers: number
+          active_customers_start: number
+          active_metering_points: number
+          churn_rate: number
+          churned_customers: number
+          metering_requests_failed: number
+          metering_requests_historical: number
+          metering_requests_ongoing: number
+          metering_requests_total: number
+          month: string
+          net_change: number
+          new_customers: number
+          poa_active: number
+          poa_requested: number
+          poa_signed: number
+        }[]
+      }
       gridex_customer_retention_until_v1: {
         Args: { p_customer_id: string }
         Returns: string
@@ -93778,6 +94267,16 @@ export type Database = {
         Args: { p_company_id: string; p_customer_type?: string }
         Returns: {
           data: Json
+        }[]
+      }
+      gridex_list_readable_whitelabel_platforms: {
+        Args: never
+        Returns: {
+          id: string
+          membership_role: string
+          name: string
+          slug: string
+          status: string
         }[]
       }
       gridex_lock_pricing_run: {
@@ -94879,6 +95378,51 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_snapshot_customer_portfolio_month: {
+        Args: { p_company_id: string; p_month: string }
+        Returns: {
+          active_customers: number | null
+          active_metering_points: number | null
+          active_sites: number | null
+          actual_kwh: number | null
+          churn_rate: number | null
+          churned_customers: number
+          company_id: string
+          created_at: string | null
+          diff_kwh: number | null
+          diff_percent: number | null
+          ended_customers: number | null
+          failed_metering_requests: number | null
+          forecast_kwh: number | null
+          id: string
+          metering_requests_failed: number
+          metering_requests_historical: number
+          metering_requests_ongoing: number
+          metering_requests_total: number
+          metering_values_missing: number | null
+          metering_values_received: number | null
+          month: string
+          net_change: number
+          new_customers: number | null
+          poa_active: number
+          poa_requested: number
+          poa_signed: number
+          portfolio_computed_at: string | null
+          portfolio_source_version: string | null
+          requested_metering_values: number | null
+          successful_metering_requests: number | null
+          total_customers: number | null
+          total_metering_points: number | null
+          total_sites: number | null
+          updated_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "company_monthly_metrics"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       gridex_snapshot_with_invoice_fee: {
         Args: {
           p_amount: number
@@ -95134,6 +95678,10 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: boolean
       }
+      gridex_user_can_read_whitelabel_platform: {
+        Args: { p_white_label_platform_id: string }
+        Returns: boolean
+      }
       gridex_user_company_ids: { Args: never; Returns: string[] }
       gridex_user_has_role_key: {
         Args: { p_role_key: string }
@@ -95178,6 +95726,26 @@ export type Database = {
         Returns: Json
       }
       gridex_verify_contract_schema_alignment: { Args: never; Returns: Json }
+      gridex_whitelabel_portfolio_overview: {
+        Args: { p_month?: string; p_white_label_platform_id: string }
+        Returns: {
+          active_customers: number
+          churned_customers: number
+          company_id: string
+          company_name: string
+          company_status: string
+          forecast_12m_kwh: number
+          forecast_3m_kwh: number
+          forecast_6m_kwh: number
+          forecast_month_kwh: number
+          metering_requests_historical: number
+          metering_requests_total: number
+          net_change: number
+          new_customers: number
+          poa_active: number
+          poa_requested: number
+        }[]
+      }
       gridex_witness_correction_concern_v1: {
         Args: {
           p_capture_id: string
