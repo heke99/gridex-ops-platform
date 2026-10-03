@@ -23,8 +23,8 @@ effekter är IMPLEMENTED.
 | Batch | Familj | Regler | Status |
 |---|---|---|---|
 | 1 | TEN | 14 | klar: 14 PARTIAL, 4 bekräftade defekter (batch-1-TEN.md) |
-| 2 | ESCO | 11 | planerad |
-| 3 | ACK | 10 | planerad |
+| 2 | ESCO | 11 | klar: 11 PARTIAL |
+| 3 | ACK | 10 | klar: ACK-08, ACK-10 COMPLETE och godkända; 8 PARTIAL |
 | 4 | U (UTILTS) | 19 | planerad |
 | 5 | P (PRODAT) | 17 | planerad |
 | 6 | TR, OPS | 16 | planerad |

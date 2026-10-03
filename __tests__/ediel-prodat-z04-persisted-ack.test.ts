@@ -1,3 +1,4 @@
+// masterplan: ACK-10, AT-ACK-10
 import {expectOwnReferencePair} from './helpers/p16bHold'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 import {qty} from './fixtures/prodat-register'

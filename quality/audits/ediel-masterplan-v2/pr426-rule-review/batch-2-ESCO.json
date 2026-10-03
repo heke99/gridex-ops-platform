@@ -1,0 +1,890 @@
+{
+ "batch": 2,
+ "family": "ESCO",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "ESCO-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql:245-256",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:118-150",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:186-233",
+      "lib/ediel/flows/prodatServicePermission.ts:39"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: assessment held with 5 missing evidence kinds (runs only original 20260930143025 body)",
+      "scripts/ediel-service-request-timing-sql-regression.mjs :: coordinator held outside 3y/network contract",
+      "__tests__/ediel-service-permission-origin.test.ts :: holds wrong tenant/legal route"
+     ],
+     "gap": "The DGI actor, end-user contract, DSO contract, purpose, product and period are all checked. The objects in scope are not: the Z13 basis hard-codes point:NULL, so a.object_ids never reaches the request. The latest assessment and context chain is only tested in parts."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:235-241",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql:102-131",
+      "lib/ediel/flows/prodatServicePermission.ts:17-68"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: permission_required then reuse_permission",
+      "__tests__/ediel-service-command-consumer.test.ts :: continues its genuinely unfinished first request through the existing canonical gateway",
+      "__tests__/ediel-service-permission-origin.test.ts :: uses canonical Z13 customer-bound body"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql:250-253"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: assessment held missing.length 5 / coordinator after evidence"
+     ],
+     "gap": "The test runs the old assessment, not the 20261001000926 native_review version."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:140-150"
+     ],
+     "tests": [
+      "scripts/ediel-service-request-timing-sql-regression.mjs :: period matrix"
+     ],
+     "gap": "The object scope gap above also applies here."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql:250-253"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: assessment held"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-002",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/flows/prodatServicePermission.ts:35-54",
+      "lib/ediel/fileEngineConstants.ts:13"
+     ],
+     "tests": [
+      "__tests__/ediel-service-permission-origin.test.ts :: uses canonical Z13 customer-bound body with exact source legal basis (NAD+FR own legal id)"
+     ],
+     "gap": "The application reference 23-DGI-PRODAT is not asserted directly."
+    },
+    {
+     "effect": "SC-018",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000926_ediel_service_evidence_archive_review.sql:250-253"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: assessment held without evidence"
+     ],
+     "gap": "No test drives the customer-card path."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The Z13 basis object always has point:NULL. The assignment's object_ids are not sent or bound, so the intended object scope is not part of the request.",
+     "evidence": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:149"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:186-205",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:147"
+     ],
+     "tests": [
+      "scripts/ediel-service-request-timing-sql-regression.mjs :: evaluate_request_period_v1 V/VH matrix (3y, network contract, VH end required)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:216,229-231 (mode in lock tuple and reuse match)",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:151 (Z18 only for V)"
+     ],
+     "tests": [],
+     "gap": "No test shows V and VH kept apart (separate permission, timer or reuse). The overdue timer is not mode-aware."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:194-200",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:147"
+     ],
+     "tests": [
+      "scripts/ediel-service-request-timing-sql-regression.mjs :: VH open/current rows held"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-027",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/services/reporting.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-service-permission-origin.test.ts :: DTM+91 for bounded V",
+      "__tests__/ediel-prodat-reporting-policy-boundaries.test.ts :: explicit indefinite nonprivate omission qualifies",
+      "__tests__/ediel-prodat-reporting-builders.test.ts :: generic identityless Z13 permits independently bounded S17"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ESCO-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/inboundStatusUpdater.ts:1028-1052"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-process-order.test.ts :: accepts a positive APERAK before CONTRL without creating permission (TS engine only)"
+     ],
+     "gap": "The live code only updates outbound_requests on APERAK. The test exercises the unused TS state machine."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/permissions/permissionEngine.ts:28-55",
+      "lib/inbound-mail/inboundOverdueMonitor.ts:151-178"
+     ],
+     "tests": [],
+     "gap": "No live path sets awaiting_customer_decision or waiting_for_customer_approval after a positive APERAK; the permission stays at z13_sent. The TS state machine (aperak_positive -> awaiting_customer_approval_21d) has no production caller. The Z14 overdue monitor exists but has no test."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/inboundStatusUpdater.ts:1028-1052,915-924 (Z14 only)"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-process-order.test.ts :: accepts a positive APERAK ... without creating permission"
+     ],
+     "gap": "The test covers the dead TS engine, not the live updater."
+    },
+    {
+     "effect": "SC-020",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:140-142"
+     ],
+     "tests": [],
+     "gap": "No integration test runs APERAK without Z14 and then checks that access is denied."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The TS permission engine and state machine are dead code in production; only tests call them. The awaiting state named in the rule does not exist in the live DB flow.",
+     "evidence": [
+      "lib/ediel/permissions/permissionEngine.ts:6",
+      "lib/ediel/permissions/permissionStateMachine.ts:38"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:85-103,110-124"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: mixed A74/rejected/FOREIGN customer -> manifest applied/rejected/held"
+     ],
+     "gap": "A74, LI, actor, customer and period are checked. Address is not verified anywhere. The actor-mismatch case has no test."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:125-151",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:140-143"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: sites only own.point, partially_approved",
+      "scripts/ediel-service-administration-sql-regression.mjs :: create_grant held then publish_grant active"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:131-136",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:141-142"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: facility_id == [own.point]"
+     ],
+     "gap": "No test covers a grant on an unapproved object being held (explicit_approved_object_product_period) or a grant for another tenant."
+    },
+    {
+     "effect": "SC-016",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:131-136"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: partially approved Z14 sites only point A"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The legacy updateMeteringPermissionFromZ14 sets the whole permission to z14_received, with no A74/object/actor checks and without the canonical executor, when outbound source_type is metering_permission or grid_owner_data_request. No current producer was found, so this is a latent bypass.",
+     "evidence": [
+      "lib/inbound-mail/inboundStatusUpdater.ts:674-736",
+      "lib/inbound-mail/inboundStatusUpdater.ts:920-928"
+     ]
+    },
+    {
+     "claim": "A Z13 with point:NULL lets any A74 point returned by the DSO for the same LI and customer pass the physical-scope check, with no cross-check against assignment object_ids.",
+     "evidence": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:102-103"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:115-118",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:130",
+      "lib/ediel/inbound/productionInboundDecisionEngine.ts:123-126"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82 Z14 Z96/A13 -> rejected_active, 0 sites",
+      "__tests__/ediel-prodat-permission-ack.test.ts :: qualified Z14/Z96/A13/null and Z14/Z96/A76/null (no 322 error, positive)"
+     ],
+     "gap": "Only the live SQL executor's A13 -> rejected_active is tested. Its A76 -> rejected_passive_timeout branch is not tested. The A13/A76 test in __tests__/ediel-permission-process-order.test.ts exercises the TS permissionEngine, which has no production caller."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:139-150",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:204-207",
+      "lib/onboarding/inboundEdielLinking.ts:364-373"
+     ],
+     "tests": [
+      "__tests__/ediel-permission-own-partition.test.ts :: treats source-qualified N denial as processed, without calling it approval",
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82"
+     ],
+     "gap": "Informing the responsible party is only a company-scoped ediel_message_event plus expectation status 'rejected'. No task or notification is created. Tenant isolation is never shown with a foreign-tenant fixture for the denial."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:133-136",
+      "lib/ediel/flows/inboundProcessing.ts:1143-1149"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82 (sites count 0)",
+      "__tests__/ediel-prodat-permission-ack.test.ts :: qualified Z14/Z96/A76/null (decideProdatAperak no 322 error)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:130"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82"
+     ],
+     "gap": "A76 is not tested on the live path."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:133-137"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82",
+      "__tests__/ediel-prodat-permission-ack-inbound.test.ts :: persisted positive Z14/Z96/null"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-021",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:130",
+      "lib/ediel/flows/inboundProcessing.ts:1148"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 82"
+     ],
+     "gap": "No live test runs both A13 and A76 and checks two distinct states plus the prescribed receipts."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Legacy mail path classifies Z14 as rejected_active if the raw text contains 'S18' (the VH mode code), so a positive Z14VH would be marked denied. It never produces rejected_passive_timeout for A76, and it writes metering_permissions directly, bypassing the source executor.",
+     "evidence": [
+      "lib/inbound-mail/inboundStatusUpdater.ts:86-92",
+      "lib/inbound-mail/inboundStatusUpdater.ts:683-697",
+      "lib/inbound-mail/inboundStatusUpdater.ts:919-927"
+     ]
+    },
+    {
+     "claim": "A parallel TS state machine (z14HandleResponse/permissionEngine) has no production caller, so tests of it are not evidence for the live behaviour.",
+     "evidence": [
+      "lib/ediel/permissions/z14HandleResponse.ts:4-17",
+      "__tests__/ediel-permission-process-order.test.ts:20-22"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:321",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:334-348",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql:105-128"
+     ],
+     "tests": [
+      "scripts/ediel-service-manual-sql-regression.mjs :: compatible second assignment waits on one source owner, no second request",
+      "scripts/ediel-service-grant-sql-regression.mjs :: second request_access -> reuse_permission"
+     ],
+     "gap": "Coordination is by tuple (env, provider, customer, DSO, mode). The Handbook new-object/repetition assessment is ABSENT: a non-superset scope or a different purpose simply creates a new draft."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:341-345",
+      "supabase/migrations/20261001020640_ediel_service_permission_manual_source_commands.sql:117-123"
+     ],
+     "tests": [
+      "scripts/ediel-service-manual-sql-regression.mjs :: prospective draft dates use actual fixed UTC+1 source instants across summer DST (different-purpose -> permission_required)"
+     ],
+     "gap": "A new request is allowed but has no traceable link to the pending earlier permission or Z13. It is linked only to its own assignment."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:321",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:337"
+     ],
+     "tests": [
+      "scripts/ediel-service-manual-sql-regression.mjs :: compatible second assignment waits on one source owner, no second request"
+     ],
+     "gap": "No 21-day ban exists, which is correct. beneficiary_company_id is not in the coordination key. No test uses a different beneficiary; the second assignment copies the same beneficiary."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:334-348"
+     ],
+     "tests": [
+      "scripts/ediel-service-manual-sql-regression.mjs :: compatible second assignment waits on one source owner, no second request"
+     ],
+     "gap": "The repetition case is not assessed and the new request has no link to the earlier request."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:321"
+     ],
+     "tests": [],
+     "gap": "No test shows that a new beneficiary or tenant id cannot bypass coordination."
+    },
+    {
+     "effect": "SC-015",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:337-340"
+     ],
+     "tests": [
+      "scripts/ediel-service-manual-sql-regression.mjs :: compatible second assignment waits on one source owner, no second request"
+     ],
+     "gap": "The 'K2 new objects' case is uncovered. Different scope or purpose creates a parallel Z13 with no coordination."
+    },
+    {
+     "effect": "SC-022",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql:147",
+      "lib/ediel/businessExpectations.ts:42",
+      "lib/ediel/operations/businessExpectationSweep.ts:27-55"
+     ],
+     "tests": [
+      "scripts/ediel-business-expectations-sql-regression.mjs :: expire -> Z13 manual_review, Z18 pending",
+      "__tests__/ediel-business-expectation-plan.test.ts :: Z13 expects Z14 V/N offset 21"
+     ],
+     "gap": "Timeout gives manual_review and a display-only next action. No durable overdue task or contact record. No fabricated Z14N, which is correct."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The compatibility key includes purpose and full-scope superset, so a second mission with a different purpose for the same P/customer/DSO/mode sends a new parallel Z13 while one is pending, without Handbook repetition assessment.",
+     "evidence": [
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:337-345"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:152-163"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: lines 76-78 (Z15 B77 with permissionEnd, Z24)"
+     ],
+     "gap": "Positive paths are tested. Rejections for mode mismatch, missing end reason or missing end time are not tested."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:189-197",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:85-90"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 76 Z15 manifest ['applied','rejected'], current true",
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 78 Z15 past end -> ended"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:105",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:160"
+     ],
+     "tests": [],
+     "gap": "V/VH separation relies on separate rows (LI plus Z13 mode). No test sends Z15VH with a coexisting V. DDQ delivery invariance: ABSENT (search 'DDQ' found no code or test)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:154-163"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 76"
+     ],
+     "gap": "Only the V (S17) fixture is tested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No behaviour test that Z15VH leaves V and DDQ unchanged."
+    },
+    {
+     "effect": "SC-023",
+     "verdict": "ABSENT",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:85-90"
+     ],
+     "tests": [],
+     "gap": "Structural support only. No test with V and VH for the same object."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Legacy mail path sets the whole metering_permission to 'ended' with today's date on any prodat_permission_terminated. It ignores object, mode (V/VH), endReason and permissionEnd. No current producer of source_type 'metering_permission' was found, so the risk is latent.",
+     "evidence": [
+      "lib/inbound-mail/inboundStatusUpdater.ts:929-939"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/flows/prodatServicePermission.ts:18",
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql:54-56",
+      "supabase/migrations/20261001062832_ediel_service_origin_recovery_execution_phase.sql:34-42"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+      "scripts/ediel-service-manual-sql-regression.mjs :: termination context requires explicit permission and same current source port"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/servicePermission.ts:69-71",
+      "lib/ediel/businessExpectations.ts:24-42",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:208-218",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:324-329"
+     ],
+     "tests": [
+      "__tests__/ediel-release-rendering-regression.test.ts :: production preserves permission creation693 and termination164 / renders permission reference Z09",
+      "__tests__/ediel-business-expectation-plan.test.ts :: expects applicable Z15 without inventing a numeric Z18 deadline",
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ... (grant revoked on end_assignment)"
+     ],
+     "gap": "Field 324 (CCI Z25/CAV end reason) is not asserted in any Z18 render test. Z15 fulfilment of the Z18 expectation is not tested."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql:55",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:328-329"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ... ending one keeps the other and originates no Z18"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/servicePermission.ts:69-71"
+     ],
+     "tests": [
+      "__tests__/ediel-release-rendering-regression.test.ts :: production renders permission reference Z09"
+     ],
+     "gap": "324 and Z15 watch closure are untested."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql:55"
+     ],
+     "tests": [
+      "scripts/ediel-service-evidence-native.test.ts :: literal SC005/006 ..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The sharing check counts only status='active' assignments within their validity window. A pending or held co-mission that still depends on the permission does not block Z18.",
+     "evidence": [
+      "supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql:55",
+      "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql:328"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-09",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:84-101",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:156-172"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: incoming(41,'Z15',reason Z24) applied=true (line 77)"
+     ],
+     "gap": "The reverse cases are never run: the z15c_status_unqualified, z15c_original_ending_not_bound, z15c_current_own_site_snapshot_unavailable and mixed_z15_modes paths have no test."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:174-186",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:248-254",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:168"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: Z24 restores permission_end_at=null, current()=true"
+     ],
+     "gap": "The market relation is restored from the previous_sites of the prior Z15. Grants are not touched and are checked again on every read (status, valid_to, evidence, assignment). No test runs a grant re-check after a real Z15C."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:168",
+      "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql:134",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:248-250"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-sql-regression.mjs :: revoked grant -> ediel_revoked_grant_requires_new_basis after permission ended->active (raw UPDATE, line 75-76)"
+     ],
+     "gap": "The test toggles the permission status with a direct UPDATE, not with Z15C, and it runs against the superseded v1 beneficiary page. No test covers an expired end_user_contract after Z15C."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:164-186"
+     ],
+     "tests": [
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: line 77"
+     ],
+     "gap": "Only the positive path is tested. The fault and boundary cases are missing."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:168"
+     ],
+     "tests": [],
+     "gap": "No test combines Z15C with grants."
+    },
+    {
+     "effect": "SC-011",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:174-186",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:168"
+     ],
+     "tests": [],
+     "gap": "No integration test covers Z15C followed by a beneficiary grant that stays blocked."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The legacy TS engine maps z15_c_continues unconditionally to active, with no origin or condition check. Only tests use it.",
+     "evidence": [
+      "lib/ediel/permissions/permissionEngine.ts:50-52",
+      "__tests__/prodat-26a-semantic-hardening.test.ts:194"
+     ]
+    },
+    {
+     "claim": "Z15C takes next_status from the latest Z14 transition and site values from prior.previous_sites. It does not re-check the customer agreement or the evidence when restoring.",
+     "evidence": [
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:178-182"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ESCO-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:5-50",
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:214-262",
+      "supabase/migrations/20261001051410_ediel_utilts_persist_reading_followup_owner.sql:14"
+     ],
+     "tests": [
+      "scripts/ediel-esco-pre-storage-sql-regression.mjs :: physical_scope_unqualified for foreign point/product/period/timezone",
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: multiHeld site end_at/evidence/grant revoked"
+     ],
+     "gap": "The pre-storage test loads the superseded 20261001003807 definition. A DSO-sender mismatch is not tested."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:151-180",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:231-283",
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:7-70"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: capture(raw2) receipts=2; beneficiaryPage uid(999) beneficiary_forbidden; grant2 cross-beneficiary no rows",
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: receiptCount"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:33",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:48"
+     ],
+     "tests": [
+      "scripts/ediel-esco-pre-storage-sql-regression.mjs :: storageCall with E66 raw without RFF permission id succeeds"
+     ],
+     "gap": "The code requires no permission field, but no test asserts that explicitly. No negative test covers a GSRN-only match (wrong DSO sender, ambiguous relation). SMTP is not used for matching."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:16-41"
+     ],
+     "tests": [
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: projection two beneficiaries"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:33,48"
+     ],
+     "tests": [],
+     "gap": "The GSRN-only and SMTP prohibition is not tested."
+    },
+    {
+     "effect": "SC-017",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:214-262"
+     ],
+     "tests": [
+      "scripts/ediel-esco-pre-storage-sql-regression.mjs :: storageCall() storageEffects=1 (23-DGI-E66-T, no permission id)"
+     ],
+     "gap": "This is a PGlite fixture, not native E2E."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ESCO-11",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:248-251",
+      "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql:212-215"
+     ],
+     "tests": [
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: pages 'unrelated' purpose -> outside_grant",
+      "scripts/ediel-service-grant-set-sql-regression.mjs :: evidence revoked -> captured_grant_not_current"
+     ],
+     "gap": "Process applicability beyond the purpose string and the evidence kinds is not checked separately."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:33-47",
+      "lib/ediel/services/projection.ts:17-46"
+     ],
+     "tests": [
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: provenance sourceRole DGI, sourceSenderEdielId, qualityOrigin, purpose",
+      "__tests__/ediel-beneficiary-projection-provenance.test.ts"
+     ],
+     "gap": "provenance.purpose is the grant's purpose, not the original E66 purpose."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:36",
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:122"
+     ],
+     "tests": [
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: applicationReference 23-DDQ-E66-T -> source_provenance_unavailable",
+      "scripts/ediel-billing-source-sql-regression.mjs :: 23-DGI-E66-T -> qualified=false (line 59)"
+     ],
+     "gap": "The TS billing-underlay sink has no DGI role guard (see defect)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:42-47"
+     ],
+     "tests": [
+      "scripts/ediel-beneficiary-projection-provenance-sql-regression.mjs :: quantityPage/qualityPage"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql:122"
+     ],
+     "tests": [
+      "scripts/ediel-billing-source-sql-regression.mjs :: DGI not qualified"
+     ],
+     "gap": "No test covers a DGI E66 through createBoundUtiltsBilling."
+    },
+    {
+     "effect": "SC-019",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/utilts/consumptionPreparation.ts:134",
+      "lib/ediel/utilts/consumptionSinks.ts:45-63"
+     ],
+     "tests": [],
+     "gap": "There is no purpose, legal-basis or pricing-model check for a DGI to retailer K billing basis, and no integration test."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "billingAllowed depends only on dataRequest.request_scope='billing_underlay' and the customer. It does not check the DGI/DDQ role or the purpose, so a DGI E66 could produce billing_underlays through createBoundUtiltsBilling. The DDQ-only gate is only in the separate billing source basis.",
+     "evidence": [
+      "lib/ediel/utilts/consumptionPreparation.ts:134-142",
+      "lib/ediel/utilts/consumptionSinks.ts:45-63",
+      "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:28"
+     ]
+    }
+   ]
+  }
+ ]
+}

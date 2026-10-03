@@ -1,3 +1,4 @@
+// masterplan: ACK-10, AT-ACK-10
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({rpc:vi.fn()}))
 // This is only the external source-reading boundary. National validation,

@@ -465,9 +465,14 @@
     {
       "id": "ACK-08",
       "acceptance_id": "AT-ACK-08",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+        "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
       ]
     },
     {
@@ -760,8 +765,16 @@
     {
       "id": "ACK-10",
       "acceptance_id": "AT-ACK-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "U-15",
@@ -1605,9 +1618,14 @@
     },
     {
       "id": "AT-ACK-08",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+        "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
       ]
     },
     {
@@ -1856,8 +1874,16 @@
     },
     {
       "id": "AT-ACK-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "AT-U-15",
