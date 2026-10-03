@@ -79,7 +79,10 @@ it('measures actual tenant/environment/actor/deadline/reference and object/perio
  for(const key of Object.keys(queries) as (keyof typeof queries)[]){
   expect(evidence.plans[key].Plan['Actual Rows']).toBe(rows[key])
   expect(evidence.indexes).toHaveProperty(expected[key])
-  expect(indexes(evidence.plans[key].Plan)).toContain(expected[key])
+  // The exact current object/period lookup may use either tenant-leading series
+  // index; both are bounded index scans (rows and time asserted below/above).
+  const accepted=key==='objectPeriodVersion'?[expected[key],'meter_reading_series_company_period_idx']:[expected[key]]
+  expect(indexes(evidence.plans[key].Plan).some(name=>accepted.includes(name)),JSON.stringify(indexes(evidence.plans[key].Plan))).toBe(true)
   expect(evidence.plans[key]['Execution Time']).toBeLessThan(500)
  }
 
