@@ -42,7 +42,7 @@ assert(prodatAppRefAuthority.includes('canonicalProdatApplicationReferenceForPro
 const appRefResolver = read('lib/ediel/core/applicationReferenceResolver.ts')
 assert(!appRefResolver.includes('PRODAT_DDQ_CODES'), 'applicationReferenceResolver must not own a DDQ code matrix')
 assert(!appRefResolver.includes('PRODAT_DGI_CODES'), 'applicationReferenceResolver must not own a DGI code matrix')
-assert(appRefResolver.includes('getCanonicalProdatProfile'), 'applicationReferenceResolver must delegate PRODAT to canonical profiles')
+assert(appRefResolver.includes('canonicalProdatProfileForMessage(code)') && /canonicalProdatProfileForMessage\([\s\S]*?return getCanonicalProdatProfile\(/.test(read('lib/ediel/rulebook/canonicalEdielFacade.ts')), 'applicationReferenceResolver must delegate PRODAT to canonical profiles')
 
 const prodatRulebook = read('lib/ediel/rulebook/prodatRulebook.ts')
 assert(!prodatRulebook.includes("applicationReference: '23-DDQ-PRODAT'"), 'PRODAT profiles must not repeat DDQ literals per message')
@@ -80,7 +80,7 @@ const routeMatrix = read('lib/ediel/routeMatrix.ts')
 for (const forbidden of ['23-DDQ-PRODAT', '23-DGI-PRODAT', '23-DDQ-UTILTS', '23-DDQ-UTILTS-UNDERLAG']) {
   assert(!routeMatrix.includes(forbidden), `routeMatrix must not own normative Application Reference literal ${forbidden}`)
 }
-assert(!/Unknown PRODAT code.*safe default/i.test(routeMatrix), 'unknown PRODAT route projection must fail closed')
+assert(!/Unknown PRODAT code.*safe default/i.test(routeMatrix.replace('fail closed instead of choosing a safe default', '')) && routeMatrix.includes('ediel_route_scope_prodat_profile_missing'), 'unknown PRODAT route projection must fail closed')
 assert(routeMatrix.includes('getCanonicalProdatProfile'), 'routeMatrix must project from canonical PRODAT profiles')
 
 const routeReadiness = read('lib/routes/routeReadiness.ts')
@@ -121,8 +121,9 @@ assert(!legacyRulebook.includes("if (processGroup === 'metering_access') return 
 
 const validator = read('lib/ediel/rulebook/validator.ts')
 assert(!validator.includes('PRODAT_TRANSACTION_TO_SUBTYPE'), 'validator must not own a transaction subtype map')
-assert(validator.includes('canonicalProdatSubtypeAlias'), 'validator must normalize subtype canonically')
-assert(validator.includes('getCanonicalProdatProfile'), 'validator must resolve the canonical PRODAT profile')
+const canonicalPolicySource = read('lib/ediel/rulebook/canonicalEdielPolicy.ts')
+assert(validator.includes('subtypeOrReasonCode: parsed.subtype') && canonicalPolicySource.includes('const subtype = resolveProdatSubtype({'), 'validator must normalize subtype canonically')
+assert(validator.includes('resolveCanonicalEdielPolicy({') && /const profile = getCanonicalProdatProfile\(code\)\s*if \(!profile\) throw/.test(canonicalPolicySource), 'validator must resolve the canonical PRODAT profile')
 
 const canonicalPack = read('lib/ediel/rulebook/canonicalRulePackRegistry.ts')
 assert(canonicalPack.includes('const source = resolveSourceCanonical(params)'), 'rule-pack resolver must resolve source semantics before DB evidence')
@@ -136,15 +137,16 @@ assert(codeRules.includes('PRODAT_SUBTYPE_RULES'), 'PRODAT subtype code lists mu
 assert(!codeRules.includes("values: ['Z01', 'Z02'"), 'codeRules must not own a PRODAT message-code matrix')
 
 const profileRenderer = read('lib/ediel/prodat/builders/profileRenderer.ts')
-assert(profileRenderer.includes('canonicalProdatTransactionReason'), 'profile renderer must resolve field-223 reason canonically')
+assert(profileRenderer.includes('const reasonForTransaction = policy.transactionReasonCode') && canonicalPolicySource.includes('transactionReasonCode: subtype.transactionReasonCode'), 'profile renderer must resolve field-223 reason canonically')
 assert(!profileRenderer.includes("normalized === 'LK'"), 'profile renderer must not maintain local subtype/reason aliases')
 assert(!profileRenderer.includes("normalized === 'F'"), 'profile renderer must not maintain local masterdata reason aliases')
 
 const stateMachine = read('lib/ediel/stateMachines/prodatLifecycle.ts')
 assert(!stateMachine.includes('const SUBTYPE_ALIASES'), 'lifecycle must not own Ediel subtype aliases')
-assert(stateMachine.includes('canonicalProdatSubtypeAlias'), 'lifecycle subtype parsing must delegate canonically')
-assert(stateMachine.includes('PRODAT_TRANSACTION_REASON_CODES'), 'lifecycle raw parsing must use canonical reason-code inventory')
-assert(/subtype === 'C'[\s\S]*createSupplyPeriod: false/.test(stateMachine), 'Z04C must never create a supply period')
+const edielFacade = read('lib/ediel/rulebook/canonicalEdielFacade.ts')
+assert(stateMachine.includes('canonicalProdatSubtypeForMessage(code, mapped)') && /canonicalProdatSubtypeForMessage\([\s\S]*?return canonicalProdatSubtypeAlias\(/.test(edielFacade), 'lifecycle subtype parsing must delegate canonically')
+assert(stateMachine.includes('canonicalProdatTransactionReasonCodes()') && /canonicalProdatTransactionReasonCodes\(\)[^{]*\{\s*return PRODAT_TRANSACTION_REASON_CODES/.test(edielFacade), 'lifecycle raw parsing must use canonical reason-code inventory')
+assert(read('__tests__/ediel-prodat-lifecycle.test.ts').includes('does not create a supply period for Z04C'), 'Z04C must never create a supply period (behaviour proven by the vitest case)')
 
 const messageCatalog = read('lib/ediel/profiles/messageProfileCatalog.ts')
 assert(messageCatalog.includes('canonicalProdat26AFieldRules'), 'message catalog fields must project from canonical 26.A field matrix')

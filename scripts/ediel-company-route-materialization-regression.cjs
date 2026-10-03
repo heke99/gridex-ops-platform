@@ -6,7 +6,7 @@ function assert(condition, message) {
 }
 const materializer = read('lib/ediel/routeMaterializer.ts')
 const migration = read('supabase/migrations/20260621110000_production_customer_info_route_repair.sql')
-const automation = read('lib/customer-operations/automation.ts')
+const automation = read('lib/customer-operations/automation.part-2.ts')
 assert(/applicationReference: text\(route\.application_reference\)/.test(materializer), 'materializer does not force default app reference over sender setting')
 assert(/communication_route_id/.test(materializer) && /sender_settings_id/.test(materializer), 'company route metadata records operational route and sender setting')
 assert(/production_send_lock_enabled/.test(materializer), 'company route metadata records production lock state')
