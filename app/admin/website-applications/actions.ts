@@ -1,5 +1,7 @@
 'use server'
 
+import { normalizeGridOwnerIdToOps } from '@/lib/grid-owners/platformGridOwnerResolver'
+
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireAdminAccess, requireCompanyScopedActionAccess, requirePlatformAdminActionAccess, isPlatformAdminContext } from '@/lib/admin/guards'
@@ -92,7 +94,6 @@ function safeReturnPath(formData: FormData, fallback: string): string {
 
 function revalidateWebsiteApplicationPaths(application: Pick<ApplicationRecord, 'id' | 'customer_id'>) {
   revalidatePath('/admin/website-applications')
-  revalidatePath('/admin/customer-applications')
   revalidatePath(websiteApplicationDetailPath(application.id))
   if (application.customer_id) revalidatePath(`/admin/customers/${application.customer_id}`)
 }
@@ -403,6 +404,15 @@ async function applyFacilityConflictStatus(application: ApplicationRecord, paylo
   return businessCode
 }
 
+function customerReviewStateValues(readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
+  return {
+    intake_status: customerIntakeStatusForReadiness(readiness),
+    intake_missing_fields: readiness.missingFields,
+    intake_quality_score: readiness.qualityScore,
+    intake_warnings: readiness.warnings,
+  }
+}
+
 async function updateCustomerReviewState(application: ApplicationRecord, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
   if (!application.customer_id) return
 
@@ -421,48 +431,33 @@ async function updateCustomerReviewState(application: ApplicationRecord, readine
   if (error && !missingSchema(error)) throw error
 }
 
-async function upsertApplicationSite(application: ApplicationRecord, payload: Record<string, unknown>) {
-  if (!application.customer_id) return application.customer_site_id
+type ReviewRowPlan = Record<string, unknown> | null
+type ReviewContractPlan =
+  | { mode: 'existing'; contract_id: string }
+  | { mode: 'draft'; payload: Record<string, unknown> }
+  | { mode: 'published'; payload: Record<string, unknown>; customer_number: string | null }
+  | null
+
+// The review only builds what to write; gridex_save_website_application_review_v1
+// writes site, metering point, contract, customer and application in one transaction.
+async function planApplicationSite(application: ApplicationRecord, payload: Record<string, unknown>): Promise<ReviewRowPlan> {
+  if (!application.customer_id) return null
   const site = isRecord(payload.site) ? payload.site : {}
   const facilityId = normalizeFacilityId(cleanReviewText(site.facility_id))
   const street = cleanReviewText(site.street)
   const city = cleanReviewText(site.city)
   const postalCode = cleanReviewText(site.postal_code)
   const gridOwnerInput = cleanReviewText(site.grid_owner_id) ?? cleanReviewText(payload.grid_owner_id)
-  const gridOwnerId = isUuid(gridOwnerInput) ? gridOwnerInput : null
+  // Same normalization as admin intake: platform grid-owner ids map to the
+  // tenant's OPS grid owner instead of being stored raw or dropped.
+  const gridOwnerId = isUuid(gridOwnerInput)
+    ? (await normalizeGridOwnerIdToOps({ gridOwnerId: gridOwnerInput, companyId: application.company_id })).opsGridOwnerId
+    : null
   const moveInDate = cleanReviewText(site.move_in_date) ?? cleanReviewText(payload.requested_start_date)
 
-  if (!facilityId && !street && !city) return application.customer_site_id
+  if (!facilityId && !street && !city) return null
 
-  if (application.customer_site_id) {
-    const { error } = await supabaseService
-      .from('customer_sites')
-      .update({
-        facility_id: facilityId,
-        street,
-        postal_code: postalCode,
-        city,
-        grid_owner_id: gridOwnerId,
-        grid_area_code: cleanReviewText(site.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
-        price_area_code: cleanReviewText(site.price_area_code) ?? cleanReviewText(payload.price_area_code),
-        resolution_status: cleanReviewText(payload.resolution_status),
-        facility_data_verified_at: asBooleanLike(payload.facility_data_verified) ? new Date().toISOString() : undefined,
-        move_in_date: moveInDate,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', application.company_id)
-      .eq('id', application.customer_site_id)
-
-    if (error && !missingSchema(error)) throw error
-    return application.customer_site_id
-  }
-
-  const insertPayload = {
-    company_id: application.company_id,
-    customer_id: application.customer_id,
-    site_name: facilityId ?? street ?? 'Anläggning',
-    site_type: 'consumption',
-    status: 'active',
+  const common: Record<string, unknown> = {
     facility_id: facilityId,
     street,
     postal_code: postalCode,
@@ -471,38 +466,22 @@ async function upsertApplicationSite(application: ApplicationRecord, payload: Re
     grid_area_code: cleanReviewText(site.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
     price_area_code: cleanReviewText(site.price_area_code) ?? cleanReviewText(payload.price_area_code),
     resolution_status: cleanReviewText(payload.resolution_status),
-    facility_data_verified_at: asBooleanLike(payload.facility_data_verified) ? new Date().toISOString() : null,
     move_in_date: moveInDate,
+  }
+  if (asBooleanLike(payload.facility_data_verified)) common.facility_data_verified_at = new Date().toISOString()
+  if (application.customer_site_id) return common
+  return {
+    ...common,
+    site_name: facilityId ?? street ?? 'Anläggning',
+    site_type: 'consumption',
+    status: 'active',
     country: 'SE',
     metadata: { source: 'website_application_review' },
   }
-
-  const { data, error } = await supabaseService
-    .from('customer_sites')
-    .insert(insertPayload)
-    .select('id')
-    .single()
-
-  if (error && !missingSchema(error)) throw error
-  if (data?.id) return String(data.id)
-
-  const fallback = await supabaseService
-    .from('customer_sites')
-    .insert({
-      company_id: application.company_id,
-      customer_id: application.customer_id,
-      site_name: facilityId ?? street ?? 'Anläggning',
-      status: 'active',
-      facility_id: facilityId,
-    })
-    .select('id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return String(fallback.data.id)
 }
 
-async function upsertApplicationMeteringPoint(application: ApplicationRecord, siteId: string | null, payload: Record<string, unknown>) {
-  if (!application.customer_id || !siteId) return application.metering_point_id
+function planApplicationMeteringPoint(application: ApplicationRecord, payload: Record<string, unknown>): ReviewRowPlan {
+  if (!application.customer_id) return null
   const metering = isRecord(payload.metering_point) ? payload.metering_point : {}
   const site = isRecord(payload.site) ? payload.site : {}
   const meteringPointId = cleanReviewText(metering.metering_point_id)
@@ -510,44 +489,24 @@ async function upsertApplicationMeteringPoint(application: ApplicationRecord, si
     ?? cleanReviewText(metering.ediel_metering_point_id)
     ?? cleanReviewText(metering.anlage_id)
     ?? null
-  if (!meteringPointId) return application.metering_point_id
+  if (!meteringPointId) return null
 
-  if (application.metering_point_id) {
-    const { error } = await supabaseService
-      .from('metering_points')
-      .update({
-        metering_point_id: meteringPointId,
-        meter_point_id: meteringPointId,
-        ediel_metering_point_id: meteringPointId,
-        anlage_id: cleanReviewText(metering.anlage_id) ?? cleanReviewText(site.facility_id) ?? meteringPointId,
-        site_facility_id: cleanReviewText(site.facility_id) ?? meteringPointId,
-        grid_area_code: cleanReviewText(metering.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
-        price_area_code: cleanReviewText(metering.price_area_code) ?? cleanReviewText(payload.price_area_code) ?? cleanReviewText(site.price_area_code),
-        facility_data_verified_at: asBooleanLike(payload.facility_data_verified) ? new Date().toISOString() : undefined,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', application.company_id)
-      .eq('id', application.metering_point_id)
-
-    if (error && !missingSchema(error)) throw error
-    return application.metering_point_id
-  }
-
-  const insertPayload = {
-    company_id: application.company_id,
-    customer_id: application.customer_id,
-    site_id: siteId,
-    customer_site_id: siteId,
+  const common: Record<string, unknown> = {
     metering_point_id: meteringPointId,
     meter_point_id: meteringPointId,
     ediel_metering_point_id: meteringPointId,
     anlage_id: cleanReviewText(metering.anlage_id) ?? cleanReviewText(site.facility_id) ?? meteringPointId,
     site_facility_id: cleanReviewText(site.facility_id) ?? meteringPointId,
-    measurement_type: cleanReviewText(metering.measurement_type) ?? 'consumption',
-    reading_frequency: cleanReviewText(metering.reading_frequency) ?? 'monthly',
-    price_area_code: cleanReviewText(metering.price_area_code) ?? cleanReviewText(payload.price_area_code) ?? cleanReviewText(site.price_area_code),
     grid_area_code: cleanReviewText(metering.grid_area_code) ?? cleanReviewText(payload.grid_area_code),
-    facility_data_verified_at: asBooleanLike(payload.facility_data_verified) ? new Date().toISOString() : null,
+    price_area_code: cleanReviewText(metering.price_area_code) ?? cleanReviewText(payload.price_area_code) ?? cleanReviewText(site.price_area_code),
+  }
+  if (asBooleanLike(payload.facility_data_verified)) common.facility_data_verified_at = new Date().toISOString()
+  if (application.metering_point_id) return common
+  return {
+    ...common,
+    measurement_type: cleanReviewText(metering.measurement_type) ?? 'consumption',
+    // Grid-owner fact; schema default (interval meter) until Z02/PRODAT reports otherwise.
+    reading_frequency: cleanReviewText(metering.reading_frequency) ?? 'hourly',
     start_date: cleanReviewText(metering.start_date) ?? cleanReviewText(payload.requested_start_date),
     status: 'active',
     verification_status: 'pending',
@@ -556,36 +515,11 @@ async function upsertApplicationMeteringPoint(application: ApplicationRecord, si
     is_settlement_relevant: true,
     metadata: { source: 'website_application_review' },
   }
-
-  const { data, error } = await supabaseService
-    .from('metering_points')
-    .insert(insertPayload)
-    .select('id')
-    .single()
-
-  if (error && !missingSchema(error)) throw error
-  if (data?.id) return String(data.id)
-
-  const fallback = await supabaseService
-    .from('metering_points')
-    .insert({
-      company_id: application.company_id,
-      customer_id: application.customer_id,
-      site_id: siteId,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      meter_point_id: meteringPointId,
-      status: 'active',
-    })
-    .select('id')
-    .single()
-  if (fallback.error) throw fallback.error
-  return String(fallback.data.id)
 }
 
-async function upsertApplicationContract(application: ApplicationRecord, siteId: string | null, meteringPointId: string | null, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>) {
-  if (!application.customer_id || !readiness.canCreateContract) return application.contract_id
-  if (application.contract_id) return application.contract_id
+async function planApplicationContract(application: ApplicationRecord, payload: Record<string, unknown>, readiness: ReturnType<typeof assessWebsiteApplicationReadiness>): Promise<ReviewContractPlan> {
+  if (!application.customer_id || !readiness.canCreateContract) return null
+  if (application.contract_id) return null
 
   const contract = isRecord(payload.contract) ? payload.contract : {}
   const publicOffer = isRecord(payload.public_offer) ? payload.public_offer : {}
@@ -594,33 +528,24 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
   const existingContract = await findExistingApplicationContract({
     companyId: application.company_id,
     customerId: application.customer_id,
-    siteId,
-    meteringPointId,
+    siteId: application.customer_site_id,
+    meteringPointId: application.metering_point_id,
     requestedStartDate,
     contractName,
   })
-  if (existingContract?.id) return String(existingContract.id)
+  if (existingContract?.id) return { mode: 'existing', contract_id: String(existingContract.id) }
+
+  // The contract type comes from the offer the customer accepted, never a default:
+  // it drives pricing and which metering resolution is requested.
+  const contractType = cleanReviewText(contract.contract_type) ?? cleanReviewText(publicOffer.contract_type) ?? cleanReviewText(payload.contract_type)
+  if (!contractType) return null
 
   const status = readiness.canStartSwitch ? WEBSITE_APPLICATION_READY_CONTRACT_STATUS : WEBSITE_APPLICATION_DRAFT_CONTRACT_STATUS
-  const now = new Date().toISOString()
-  const metadata = {
-    source: 'website_application_review',
-    source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
-    agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-    application_id: application.id,
-    missing_fields: readiness.missingFields,
-    blocking_reasons: readiness.blockingReasons,
-  }
-  const commonPayload = {
-    company_id: application.company_id,
-    customer_id: application.customer_id,
-    site_id: siteId,
-    customer_site_id: siteId,
-    metering_point_id: meteringPointId,
+  const commonPayload: Record<string, unknown> = {
     source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
     status,
     contract_name: contractName,
-    contract_type: cleanReviewText(contract.contract_type) ?? 'variable_monthly',
+    contract_type: contractType,
     starts_at: requestedStartDate,
     expected_start_at: requestedStartDate,
     requested_start_date: requestedStartDate,
@@ -632,22 +557,21 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
     confirmed_start_date: readiness.confirmedStartDate,
     actual_start_date: readiness.actualStartDate,
     agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
-    metadata,
-    updated_at: now,
+    metadata: {
+      source: 'website_application_review',
+      source_type: WEBSITE_APPLICATION_CONTRACT_SOURCE_TYPE,
+      agreement_channel: WEBSITE_APPLICATION_CONTRACT_CHANNEL,
+      application_id: application.id,
+      missing_fields: readiness.missingFields,
+      blocking_reasons: readiness.blockingReasons,
+    },
+    updated_at: new Date().toISOString(),
   }
 
   // A draft may exist before every publication field is known. Any contract
-  // that can proceed to signing/switching must be created atomically from the
-  // exact locked public offer and may never fall back to an unbound insert.
-  if (!readiness.canStartSwitch) {
-    const { data, error } = await supabaseService
-      .from('customer_contracts')
-      .insert(commonPayload)
-      .select('id')
-      .single()
-    if (error) throw error
-    return String(data.id)
-  }
+  // that can proceed to signing/switching must be created from the exact
+  // locked public offer and may never fall back to an unbound insert.
+  if (!readiness.canStartSwitch) return { mode: 'draft', payload: commonPayload }
 
   const publicContractOfferId =
     cleanReviewText(payload.public_contract_offer_id) ??
@@ -662,22 +586,16 @@ async function upsertApplicationContract(application: ApplicationRecord, siteId:
     throw new Error('Webbansökan saknar exakt public_contract_offer_id eller offer_reference. Reparera ansökan mot den låsta publiceringsversionen innan avtal skapas.')
   }
 
-  const { data, error } = await supabaseService.rpc('gridex_create_website_customer_contract', {
-    p_company_id: application.company_id,
-    p_contract_payload: {
+  return {
+    mode: 'published',
+    payload: {
       ...commonPayload,
       public_contract_offer_id: publicContractOfferId,
       offer_reference: offerReference,
       legal_versions_snapshot: Array.isArray(payload.legal_versions) ? payload.legal_versions : [],
     },
-    p_customer_number: cleanReviewText(payload.customer_number),
-  })
-  if (error) throw error
-  const result = isRecord(data) ? data : {}
-  const created = isRecord(result.contract) ? result.contract : {}
-  const contractId = cleanReviewText(created.id)
-  if (!contractId) throw new Error('Canonical kundavtals-RPC returnerade inget avtals-ID.')
-  return contractId
+    customer_number: cleanReviewText(payload.customer_number),
+  }
 }
 
 async function saveApplicationReview(input: { applicationId: string; formData: FormData; action: 'review.updated' | 'review.checked' }) {
@@ -687,9 +605,14 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
   const payload = mergePayload(application.payload, input.formData)
   const facilityConflictStatus = await applyFacilityConflictStatus(application, payload)
   const readiness = assessWebsiteApplicationReadiness(payload)
-  const siteId = facilityConflictStatus ? application.customer_site_id : await upsertApplicationSite(application, payload)
-  const meteringPointId = facilityConflictStatus ? application.metering_point_id : await upsertApplicationMeteringPoint(application, siteId, payload)
-  const contractId = facilityConflictStatus ? application.contract_id : await upsertApplicationContract(application, siteId, meteringPointId, payload, readiness)
+  // A facility conflict freezes the linked objects; the application row is still updated.
+  const [sitePlan, contractPlan] = facilityConflictStatus
+    ? [null, null]
+    : await Promise.all([
+        planApplicationSite(application, payload),
+        planApplicationContract(application, payload, readiness),
+      ])
+  const meteringPointPlan = facilityConflictStatus ? null : planApplicationMeteringPoint(application, payload)
   const note = text(input.formData, 'admin_note')
   const previousValues = {
     status: application.status,
@@ -697,14 +620,11 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
     metering_point_id: application.metering_point_id,
     contract_id: application.contract_id,
   }
-  const newValues = {
+  const plannedValues = {
     status: readiness.status,
     missing_fields: readiness.missingFields,
     blocking_reasons: readiness.blockingReasons,
     next_step: readiness.nextStep,
-    customer_site_id: siteId,
-    metering_point_id: meteringPointId,
-    contract_id: contractId,
     note,
   }
   const timeline = [
@@ -717,7 +637,7 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
   ]
   const auditLog = [
     ...asArray(application.audit_log),
-    auditEvent(input.action, admin.userId, previousValues, newValues),
+    auditEvent(input.action, admin.userId, previousValues, plannedValues),
   ]
 
   const responsePayload = isRecord(application.response_payload) ? { ...application.response_payload } : {}
@@ -725,9 +645,6 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
   responsePayload.missing_fields = readiness.missingFields
   responsePayload.blocking_reasons = readiness.blockingReasons
   responsePayload.next_step = readiness.nextStep
-  responsePayload.customer_site_id = siteId
-  responsePayload.metering_point_id = meteringPointId
-  responsePayload.contract_id = contractId
   responsePayload.requested_start_mode = readiness.requestedStartMode
   responsePayload.calculated_earliest_start_date = readiness.calculatedEarliestStartDate
   responsePayload.grid_area_code = readiness.gridAreaCode
@@ -739,15 +656,18 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
   responsePayload.can_send_agreement_confirmation = readiness.canSendAgreementConfirmation
   responsePayload.can_activate_customer = readiness.canActivateCustomer
 
-  const { error } = await supabaseService
-    .from('website_customer_applications')
-    .update({
+  // One transaction: site, metering point, contract, customer intake state and
+  // the application row (ids, response payload and audit entry) together.
+  const { data: saved, error } = await supabaseService.rpc('gridex_save_website_application_review_v1', {
+    p_company_id: application.company_id,
+    p_application_id: application.id,
+    p_site: sitePlan,
+    p_metering_point: meteringPointPlan,
+    p_contract: contractPlan,
+    p_application: {
       status: readiness.status,
       payload,
       response_payload: responsePayload,
-      customer_site_id: siteId,
-      metering_point_id: meteringPointId,
-      contract_id: contractId,
       missing_fields: readiness.missingFields,
       blocking_reasons: readiness.blockingReasons,
       next_step: readiness.nextStep,
@@ -765,32 +685,15 @@ async function saveApplicationReview(input: { applicationId: string; formData: F
       audit_log: auditLog,
       assigned_to: admin.userId,
       admin_note: note,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('company_id', application.company_id)
-    .eq('id', application.id)
-
-  if (error && !missingSchema(error)) throw error
-
-  if (error && missingSchema(error)) {
-    const fallback = await supabaseService
-      .from('website_customer_applications')
-      .update({
-        status: readiness.status,
-        payload,
-        response_payload: responsePayload,
-        customer_site_id: siteId,
-        metering_point_id: meteringPointId,
-        contract_id: contractId,
-        warnings: readiness.warnings,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('company_id', application.company_id)
-      .eq('id', application.id)
-    if (fallback.error) throw fallback.error
-  }
-
-  await updateCustomerReviewState(application, readiness)
+    },
+    p_customer: application.customer_id ? customerReviewStateValues(readiness) : null,
+  })
+  if (error) throw error
+  const result = (saved ?? {}) as { customer_site_id?: string | null; metering_point_id?: string | null; contract_id?: string | null }
+  const siteId = result.customer_site_id ?? null
+  const meteringPointId = result.metering_point_id ?? null
+  const contractId = result.contract_id ?? null
+  const newValues = { ...plannedValues, customer_site_id: siteId, metering_point_id: meteringPointId, contract_id: contractId }
 
   await logAdminActionAndUsage({
     companyId: application.company_id,

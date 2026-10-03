@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { readJsonObject } from '@/lib/api/strictRequest'
+import { customerPortalWriteError, readJsonObject } from '@/lib/api/strictRequest'
 import { canonicalApiError } from '@/lib/api/apiError'
 import { customerPortalJson } from '@/lib/customer-portal/externalApi'
 import {
@@ -77,11 +77,12 @@ export async function POST(request: NextRequest) {
     })
     return customerPortalJson({ data: responseData, request_id: requestId, correlation_id: requestId })
   } catch (error) {
-    const controlled = typeof (error as { status?: unknown })?.status === 'number' && typeof (error as { code?: unknown })?.code === 'string'
-    const status = controlled ? (error as { status: number }).status : 500
-    const code = controlled ? (error as { code: string }).code : 'customer_event_failed'
+    const writeError = customerPortalWriteError(error)
+    const controlled = typeof (writeError as { status?: unknown })?.status === 'number' && typeof (writeError as { code?: unknown })?.code === 'string'
+    const status = controlled ? (writeError as { status: number }).status : 500
+    const code = controlled ? (writeError as { code: string }).code : 'customer_event_failed'
     const message = controlled
-      ? String((error as { message?: unknown }).message ?? 'Kundeventet kunde inte behandlas.')
+      ? String((writeError as { message?: unknown }).message ?? 'Kundeventet kunde inte behandlas.')
       : 'Kundeventet kunde inte behandlas just nu.'
     console.error('[website-customer-events] failed', { requestId, error })
     await logIntegrationApiRequest({ client: auth.client, request, statusCode: status, startedAt, errorCode: code, metadata: { request_id: requestId } })

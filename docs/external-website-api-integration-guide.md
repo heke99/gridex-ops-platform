@@ -1,6 +1,6 @@
 # Gridex Website Integration API
 
-Current contract: **2026-10-02.2**
+Current contract: **2026-10-02.4**
 
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 
@@ -39,6 +39,8 @@ Persist the public offer, quote and application references returned by Gridex. D
 A website integration must not treat a postcode result, coordinate, candidate owner or other provisional geography as authority for an external grid-owner operation. Canonical grid-area and grid-owner determination after intake is handled internally by Gridex and can use additional verification without changing the public website contract.
 
 This separation keeps checkout fast while preventing a provisional website lookup from becoming an external-send routing decision.
+
+Invoicing never re-resolves the price area. Billing uses the locked `price_area` from the quote/contract price snapshot, and the database also rejects direct writes of a billing underlay whose price area is missing or differs from that snapshot (`billing_contract_price_area_missing`, `billing_underlay_price_area_mismatch`).
 
 ## Idempotency and retries
 
@@ -107,7 +109,7 @@ Before deploying an integration update, read:
 
 Verify that the release version, minimum supported integration version and SHA-256 digests match the OpenAPI documents you generated your client from. Immutable release URLs in the manifest can be retained for audit and reproducible builds.
 
-For contract **2026-10-02.2**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
+For contract **2026-10-02.4**, the production integration must use the current V1 OpenAPI contract rather than assumptions copied from older examples.
 
 ## Production checklist
 

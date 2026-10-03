@@ -2,6 +2,7 @@ import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { loadTenantIntegrityDashboard, type TenantIntegritySeverity } from '@/lib/tenant/integrity'
 import { runTenantIntegrityAuditAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -221,7 +222,7 @@ export default async function TenantIntegrityPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
                     <span>{formatDate(run.started_at)}</span>
-                    <span>Status: {run.status}</span>
+                    <span>Status: {formatStatusLabel(run.status)}</span>
                     <span>Fynd: {run.finding_count}</span>
                     <span>Kritiska: {run.critical_count}</span>
                     <span>Höga: {run.high_count}</span>

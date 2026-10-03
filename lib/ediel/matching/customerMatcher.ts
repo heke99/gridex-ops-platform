@@ -17,8 +17,12 @@ export async function matchCustomerForAutomation(input: EdielMatchInput): Promis
 
   if (values.length === 0) return []
 
+  // Personal and organisation numbers are not unique across tenants.
+  const companyId = input.companyId ?? input.message.company_id ?? null
+  if (!companyId) return []
+
   const data = await findCustomersByIdentifierValues({
-    companyId: input.companyId ?? input.message.company_id ?? null,
+    companyId,
     values,
     columns: ['id', 'customer_number', 'personal_number', 'org_number', 'email'],
     select: 'id, company_id, customer_number, personal_number, org_number, email, full_name, company_name, status',

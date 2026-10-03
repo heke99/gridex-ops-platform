@@ -6,6 +6,7 @@ import {
   loadCustomerTenantContext,
 } from '@/lib/tenant/entityGuards'
 import { sendContractSignatureLinkAction } from './actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -78,7 +79,7 @@ export default async function ContractSignatureAdminPage({
           <div><span className="text-slate-500">Kund:</span> {customerName}</div>
           <div><span className="text-slate-500">Kundnummer:</span> {customer.customer_number ?? '—'}</div>
           <div><span className="text-slate-500">Avtalsnummer:</span> {contract.contract_number ?? '—'}</div>
-          <div><span className="text-slate-500">Status:</span> {contract.status}</div>
+          <div><span className="text-slate-500">Status:</span> {formatStatusLabel(contract.status)}</div>
           <div><span className="text-slate-500">Planerad start:</span> {formatDateTime(contract.starts_at)}</div>
           <div><span className="text-slate-500">Signerat:</span> {formatDateTime(contract.signed_at)}</div>
         </div>

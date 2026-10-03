@@ -13,7 +13,6 @@ import {
 import { getTenantLegalProfile } from "@/lib/contracts/canonical";
 import { legalProfileMissingFieldDetail } from "@/lib/tenant/companyLegalProfile";
 import {
-  COMPANY_MEMBERSHIP_ROLE_OPTIONS,
   COMPANY_USER_ROLE_OPTIONS,
   getCompanyMembershipRoleLabel,
   getCompanyUserRoleLabel,
@@ -405,9 +404,9 @@ export default async function CompanySettingsPage() {
                     Ediel och driftmiljö
                   </h3>
                   <p className="mt-1 text-sm leading-6 text-slate-700">
-                    Bolagets egna aktörsuppgifter. Globala Ediel-versioner och
-                    runtime-regler hanteras av superadmin under
-                    plattformsinställningar.
+                    Bolagets aktörsuppgifter på elmarknaden. De registreras och
+                    ändras av Gridex vid driftsättning. Kontakta supporten om
+                    något behöver ändras.
                   </p>
                   <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                     <label className="grid gap-2 text-sm">
@@ -417,7 +416,8 @@ export default async function CompanySettingsPage() {
                       <input
                         name="ediel_id"
                         defaultValue={company.ediel_id ?? ""}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                        readOnly
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600"
                         placeholder="Bolagets Ediel-ID från Edielregistret"
                       />
                     </label>
@@ -428,18 +428,20 @@ export default async function CompanySettingsPage() {
                       <input
                         name="actor_role"
                         defaultValue={company.actor_role ?? ""}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                        readOnly
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600"
                         placeholder="Ex. DDQ / ESP / BRP"
                       />
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">
-                        Sender subaddress
+                        Avsändarens underadress
                       </span>
                       <input
                         name="sender_sub_address"
                         defaultValue={company.sender_sub_address ?? ""}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                        readOnly
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600"
                         placeholder="T.ex. PRODAT, eller tom om ej registrerad"
                       />
                     </label>
@@ -450,21 +452,15 @@ export default async function CompanySettingsPage() {
                       <input
                         name="ediel_mailbox"
                         defaultValue={company.ediel_mailbox ?? ""}
-                        className="rounded-2xl border border-slate-300 bg-white px-4 py-3"
+                        readOnly
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-600"
                       />
                     </label>
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">Miljö</span>
-                      <input
-                        type="hidden"
-                        name="operating_environment"
-                        value={
-                          isLiveApproved
-                            ? (company.operating_environment ?? "test")
-                            : "test"
-                        }
-                      />
+                      {isLiveApproved ? null : <input type="hidden" name="operating_environment" value="test" />}
                       <select
+                        name={isLiveApproved ? "operating_environment" : undefined}
                         disabled={!isLiveApproved}
                         defaultValue={
                           isLiveApproved
@@ -571,31 +567,6 @@ export default async function CompanySettingsPage() {
                           defaultValue={user.email ?? user.invitedEmail ?? ""}
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         />
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-slate-700">
-                          Telefon
-                        </span>
-                        <input
-                          name="phone"
-                          className="rounded-2xl border border-slate-300 px-4 py-3"
-                        />
-                      </label>
-                      <label className="grid gap-2 text-sm">
-                        <span className="font-medium text-slate-700">
-                          Bolagsroll
-                        </span>
-                        <select
-                          name="membership_role"
-                          defaultValue={user.membershipRole}
-                          className="rounded-2xl border border-slate-300 px-4 py-3"
-                        >
-                          {COMPANY_MEMBERSHIP_ROLE_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
                       </label>
                       <label className="grid gap-2 text-sm">
                         <span className="font-medium text-slate-700">

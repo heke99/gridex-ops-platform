@@ -1,3 +1,4 @@
+import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import { supabaseService } from '@/lib/supabase/service'
 import type { UtiltsConsumptionContractV1 } from '@/lib/ediel/utilts/consumptionContract'
 import type {
@@ -19,10 +20,8 @@ import {
   buildCustomerIdentityPayload,
   buildMeteringPointPayload,
   buildSitePayload,
-  findPostgresErrorCode,
   getCustomerExportContext,
   requireContextCompanyId,
-  getGridOwnerDataRequestByAutomationKey,
   matchesQuery,
   mergeJsonObjects,
   normalizeQuery,
@@ -232,7 +231,28 @@ export async function createGridOwnerDataRequest(input: {
   const companyId = requireContextCompanyId(context, 'Skapa nätägarbegäran')
   await requireCompanyOperationalForWrites(companyId)
 
-  const requestPayload = mergeJsonObjects(input.requestPayload ?? {}, {
+  // Metering values are requested at the resolution the customer's contract
+  // needs (month / hour / quarter-hour), capped by what the meter delivers.
+  let resolutionPayload: Record<string, unknown> = {}
+  if (input.requestScope === 'meter_values' && input.meteringPointId && !input.requestPayload?.requested_resolution) {
+    const requirement = (
+      await loadMeteringResolutionRequirements({
+        companyId,
+        meteringPointIds: [input.meteringPointId],
+        onDate: input.requestedPeriodStart?.slice(0, 10) ?? null,
+      })
+    ).get(input.meteringPointId)
+    if (requirement) {
+      resolutionPayload = {
+        requested_resolution: requirement.requestResolution,
+        requested_resolution_source: requirement.source,
+        contract_resolution: requirement.contractResolution,
+        meter_cannot_deliver_contract_resolution: requirement.meterCannotDeliver,
+      }
+    }
+  }
+
+  const requestPayload = mergeJsonObjects({ ...resolutionPayload, ...(input.requestPayload ?? {}) }, {
     company_id: companyId,
     request_scope: input.requestScope,
     requested_period_start: input.requestedPeriodStart ?? null,
@@ -246,44 +266,13 @@ export async function createGridOwnerDataRequest(input: {
     ...buildContractPayload(context.contract),
   })
 
-  if (input.operationId) {
-    let existingByOperationQuery = supabaseService
-      .from('grid_owner_data_requests')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('operation_id', input.operationId)
-      .eq('customer_id', input.customerId)
-      .eq('request_scope', input.requestScope)
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (input.siteId) existingByOperationQuery = existingByOperationQuery.eq('site_id', input.siteId)
-    else existingByOperationQuery = existingByOperationQuery.is('site_id', null)
-
-    if (input.meteringPointId) existingByOperationQuery = existingByOperationQuery.eq('metering_point_id', input.meteringPointId)
-    else existingByOperationQuery = existingByOperationQuery.is('metering_point_id', null)
-
-    if (input.gridOwnerId) existingByOperationQuery = existingByOperationQuery.eq('grid_owner_id', input.gridOwnerId)
-    else existingByOperationQuery = existingByOperationQuery.is('grid_owner_id', null)
-
-    const { data: existingByOperation, error: existingByOperationError } = await existingByOperationQuery.maybeSingle()
-
-    const existingByOperationCode = findPostgresErrorCode(existingByOperationError)
-    if (existingByOperationError && !['42703', 'PGRST204', 'PGRST205'].includes(existingByOperationCode ?? '')) {
-      throw existingByOperationError
-    }
-    if (existingByOperation) return existingByOperation as GridOwnerDataRequestRow
-  }
-
   const insertPayload = {
-    company_id: companyId,
     customer_id: input.customerId,
     site_id: input.siteId ?? null,
     metering_point_id: input.meteringPointId ?? null,
     grid_owner_id: input.gridOwnerId ?? null,
     authorization_document_id: input.authorizationDocumentId ?? null,
     request_scope: input.requestScope,
-    status: 'pending' as const,
     requested_period_start: input.requestedPeriodStart ?? null,
     requested_period_end: input.requestedPeriodEnd ?? null,
     external_reference: input.externalReference ?? null,
@@ -297,25 +286,15 @@ export async function createGridOwnerDataRequest(input: {
     updated_by: input.actorUserId,
   }
 
-  const { data, error } = await supabaseService
-    .from('grid_owner_data_requests')
-    .insert(insertPayload)
-    .select('*')
-    .single()
-
-  if (error) {
-    if (
-      findPostgresErrorCode(error) === '23505' &&
-      input.automationKey
-    ) {
-      const existing = await getGridOwnerDataRequestByAutomationKey(input.automationKey)
-      if (existing) return existing
-    }
-
-    throw error
-  }
-
-  return data as GridOwnerDataRequestRow
+  // Tenant, ownership and dedupe (automation key / operation scope) are enforced in one transaction.
+  const { data, error } = await supabaseService.rpc('gridex_create_grid_owner_data_request_v1', {
+    p_company_id: companyId,
+    p_request: insertPayload,
+  })
+  if (error) throw error
+  const request = (data as { request?: GridOwnerDataRequestRow } | null)?.request
+  if (!request) throw new Error('grid_owner_data_request_not_created')
+  return request
 }
 
 export async function createPartnerExport(input: {

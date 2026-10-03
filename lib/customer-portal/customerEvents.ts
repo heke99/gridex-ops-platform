@@ -217,10 +217,7 @@ export async function recordWebsiteCustomerEvent(input: {
               ? publicReference('event', input.client.company_id, event.id)
               : null,
             event_type: input.payload.event_type,
-            customer_reference:
-              identity.externalCustomerId ??
-              input.payload.customer.customer_number ??
-              publicReference('customer', input.client.company_id, customerId),
+            customer_reference: publicReference('customer', input.client.company_id, customerId),
             status: 'accepted',
             occurred_at: occurredAt,
           },

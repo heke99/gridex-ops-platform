@@ -37,7 +37,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
   return (
     <div className="min-h-screen">
       <AdminHeader
-        title="Analytics"
+        title="Analys"
         subtitle="En enkel operationsvy för kunder, mätpunkter, mätvärden, prognos och avvikelser."
         userEmail={admin.email}
         workspaceName={scope.companyName}
@@ -45,6 +45,7 @@ export default async function AnalyticsOverviewPage({ searchParams }: PageProps)
       <div className="space-y-6 p-4 sm:p-6 xl:p-8">
         <AnalyticsTabs active="overview" />
         <AnalyticsFilters
+          monthOnly
           month={month}
           biddingZones={filterOptions.biddingZones}
           gridOwners={filterOptions.gridOwners}
@@ -107,7 +108,7 @@ function buildOverviewCards(metric: Record<string, unknown>, previous: Record<st
 function EmptyAnalytics({ userEmail, message }: { userEmail: string | null; message: string }) {
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Analytics" subtitle="Bolag saknas." userEmail={userEmail} />
+      <AdminHeader title="Analys" subtitle="Bolag saknas." userEmail={userEmail} />
       <div className="p-8">
         <div className="rounded-3xl border border-amber-200 bg-amber-50 p-6 font-bold text-amber-900">{message}</div>
       </div>

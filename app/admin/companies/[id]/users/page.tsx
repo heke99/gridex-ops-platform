@@ -14,6 +14,7 @@ import {
   removeUserFromCompanyAction,
   setCompanyUserRoleAction,
 } from '../../actions'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -248,7 +249,7 @@ export default async function CompanyUsersPage({
                     <td className="px-5 py-3 text-slate-700">{user.membershipRole}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${membershipStatusTone(user.status)}`}>
-                        {user.status}
+                        {formatStatusLabel(user.status)}
                       </span>
                       {user.userStatus && user.userStatus !== 'active' ? (
                         <p className="mt-1 text-xs text-red-700">Global: {user.userStatus}</p>

@@ -5,11 +5,11 @@ import { revalidatePath } from "next/cache"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { requireAdminActionAccess } from "@/lib/admin/guards"
 import { assertBillingUnderlayTenant, assertContractTenant, assertCustomerSiteTenant, assertMeteringPointTenant, assertPowerOfAttorneyTenant, loadCustomerTenantContext } from "@/lib/tenant/entityGuards"
+import { assertUserCanOperateCompany } from "@/lib/tenant/scope"
 import { MASTERDATA_PERMISSIONS } from "@/lib/admin/masterdataPermissions"
 
 
 import { supabaseService } from "@/lib/supabase/service"
-import { addCustomerContractEvent } from "@/lib/customer-contracts/db"
 import { syncCustomerOperationsForCustomer } from "@/lib/operations/db"
 
 
@@ -81,6 +81,7 @@ export async function createPartnerExportAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "partner_export",
     entityId: saved.id,
     action: "partner_export_created",
@@ -121,7 +122,10 @@ export async function requireCustomerMutationContext(
   customer: { id: string; company_id: string; status: string | null };
   companyId: string;
 }> {
-  return loadCustomerTenantContext(customerId, guard);
+  const context = await loadCustomerTenantContext(customerId, guard);
+  // Reads of a paused company stay allowed; writes require an operational company.
+  await assertUserCanOperateCompany(guard.userId, context.companyId);
+  return context;
 }
 
 export async function insertLifecycleFollowUpTask(params: {
@@ -359,6 +363,7 @@ export async function savePowerOfAttorneyScopeAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "power_of_attorney_scope",
     entityId: data.id,
     action: "power_of_attorney_scope_created",
@@ -562,71 +567,21 @@ export async function registerCustomerLifecycleDecisionAction(
     actorUserId: actor.id,
   });
 
-  const now = new Date().toISOString();
-  if (scopeType === "customer") {
-    const { error } = await supabaseService
-      .from("customers")
-      .update({
-        status: "archived",
-        archived_at: now,
-        archived_by: actor.id,
-        archive_reason: reason,
-        lifecycle_status_reason: reason,
-        lifecycle_closed_at: now,
-      })
-      .eq("id", customerId)
-      .eq("company_id", companyId);
-    if (error) throw error;
-  } else if (scopeType === "contract" && scopeId) {
-    await addCustomerContractEvent({
-      companyId,
-      customerContractId: scopeId,
-      customerId,
-      eventType: "cancelled",
-      happenedAt: receivedAt,
-      note: reason,
-      metadata: {
-        reason_code:
-          decisionType === "withdrawal" ? "cancelled_by_customer" : decisionType,
-        withdrawal_requested_at:
-          decisionType === "withdrawal" ? receivedAt : null,
-        rejected_reason: decisionType === "rejected" ? reason : null,
-        termination_reason:
-          decisionType === "withdrawal"
-            ? "customer_withdrawal"
-            : decisionType === "cancelled"
-              ? "customer_request"
-              : "other",
-        ends_at: now.slice(0, 10),
-      },
-      actorUserId: actor.id,
-    });
-  } else if (scopeType === "site" && scopeId) {
-    const { error } = await supabaseService
-      .from("customer_sites")
-      .update({
-        status: "closed",
-        closed_at: now,
-        closed_reason: reason,
-        updated_by: actor.id,
-      })
-      .eq("id", scopeId)
-      .eq("customer_id", customerId)
-      .eq("company_id", companyId);
-    if (error && !isDatabaseShapeError(error)) throw error;
-  } else if (scopeType === "metering_point" && scopeId) {
-    const { error } = await supabaseService
-      .from("metering_points")
-      .update({
-        status: "closed",
-        closed_at: now,
-        closed_reason: reason,
-        updated_by: actor.id,
-      })
-      .eq("id", scopeId)
-      .eq("company_id", companyId);
-    if (error && !isDatabaseShapeError(error)) throw error;
-  }
+  // The decision's effect for the chosen scope is one transaction.
+  const { error: decisionError } = await supabaseService.rpc(
+    "gridex_register_customer_lifecycle_decision_v1",
+    {
+      p_company_id: companyId,
+      p_customer_id: customerId,
+      p_actor_user_id: actor.id,
+      p_decision_type: decisionType,
+      p_scope_type: scopeType,
+      p_scope_id: scopeType === "customer" ? null : scopeId,
+      p_received_at: receivedAt,
+      p_reason: reason,
+    },
+  );
+  if (decisionError) throw decisionError;
 
   const entityLabel =
     scopeType === "customer"
@@ -672,6 +627,7 @@ export async function registerCustomerLifecycleDecisionAction(
 
   await insertAuditLog({
     actorUserId: actor.id,
+    companyId,
     entityType: "customer_lifecycle_decision",
     entityId: customerCase.id,
     action:

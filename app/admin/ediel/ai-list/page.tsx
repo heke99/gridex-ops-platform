@@ -74,7 +74,7 @@ export default async function AdminEdielAiListPage() {
  const context = await requirePlatformAdminAccess()
  const isPlatformAdmin = isPlatformAdminContext(context)
  const companyScope = await getOperationalCompanyScope(context.userId)
- const companyId = isPlatformAdmin ? null : companyScope.companyId
+ const companyId = companyScope.companyId
 
  const supabase = await createSupabaseServerClient()
 

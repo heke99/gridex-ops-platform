@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatAdminDate } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +28,11 @@ export default async function PlatformEdielVersionsPage() {
 
   return (
     <div className="min-h-screen">
-      <AdminHeader title="Ediel-versioner" subtitle="Platform-only översikt över giltiga versioner och övergångar." userEmail={admin.email} />
+      <AdminHeader title="Ediel-versioner" subtitle="Giltiga meddelandeversioner och övergångar." userEmail={admin.email} />
       <div className="grid gap-4 p-4 sm:p-6 xl:grid-cols-2 xl:p-8">
+        {rows.length === 0 ? (
+          <p className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600">Inga versioner registrerade.</p>
+        ) : null}
         {rows.map((row) => (
           <article key={row.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-wrap items-center gap-2">
@@ -37,7 +41,7 @@ export default async function PlatformEdielVersionsPage() {
               <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">{row.is_active ? 'Aktiv' : 'Inaktiv'}</span>
             </div>
             <h2 className="mt-4 text-xl font-black text-slate-950">{row.version_code ?? 'Version saknas'}</h2>
-            <p className="mt-2 text-sm font-semibold text-slate-700">Gäller från {row.valid_from ?? '–'} till {row.valid_to ?? 'tills vidare'}.</p>
+            <p className="mt-2 text-sm font-semibold text-slate-700">Gäller från {formatAdminDate(row.valid_from, '–')} till {formatAdminDate(row.valid_to, 'tills vidare')}.</p>
           </article>
         ))}
       </div>

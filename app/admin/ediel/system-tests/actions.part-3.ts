@@ -1,3 +1,4 @@
+import { unstable_rethrow } from 'next/navigation'
 // Extracted from actions.ts; keep public imports on the facade module.
 
 
@@ -193,6 +194,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
           testRunId: attachResult.testRunId,
         });
       } catch (error) {
+        unstable_rethrow(error)
         throw new Error(
           `Autopilot kunde inte skapa nästa steg för run ${attachResult.testRunId}: ${errorMessage(error)}`,
         );
@@ -255,6 +257,7 @@ export async function pollAndSyncTgtSystemTestMailboxAction(
       },
     });
   } catch (error) {
+    unstable_rethrow(error)
     const pollError = `IMAP-poll misslyckades: ${errorMessage(error)}`;
     redirectParams.set("imapStatus", "error");
     redirectParams.set("errors", "1");

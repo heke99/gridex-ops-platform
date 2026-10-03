@@ -11024,6 +11024,18 @@ CREATE TABLE public.customers (
     process_summary jsonb DEFAULT '{}'::jsonb NOT NULL,
     invoice_email text,
     billing_profile_revision integer DEFAULT 0 NOT NULL,
+    moved_out_at date,
+    lifecycle_closed_at timestamp with time zone,
+    lifecycle_closed_by uuid,
+    lifecycle_status_reason text,
+    legal_hold boolean DEFAULT false NOT NULL,
+    legal_hold_reason text,
+    possible_duplicate boolean DEFAULT false,
+    duplicate_review_status text,
+    merge_status text,
+    merged_into_customer_id uuid,
+    merged_at timestamp with time zone,
+    merged_by uuid,
     CONSTRAINT customers_customer_type_check CHECK ((customer_type = ANY (ARRAY['private'::text, 'business'::text, 'association'::text]))),
     CONSTRAINT customers_intake_quality_score_check CHECK (((intake_quality_score IS NULL) OR ((intake_quality_score >= 0) AND (intake_quality_score <= 100)))),
     CONSTRAINT customers_intake_status_check CHECK (((intake_status IS NULL) OR (intake_status = ANY (ARRAY['draft'::text, 'incomplete'::text, 'needs_completion'::text, 'pending_information'::text, 'pending_power_of_attorney'::text, 'pending_duplicate_review'::text, 'blocked'::text, 'rejected'::text, 'ready_for_contract'::text, 'ready_for_operations'::text, 'application_received'::text, 'needs_contract_or_poa'::text, 'needs_grid_owner_resolution'::text, 'needs_facility_lookup'::text, 'facility_lookup_ready_to_send'::text, 'facility_lookup_waiting_response'::text, 'ready_for_supplier_switch'::text, 'supplier_switch_waiting_response'::text, 'active_supply'::text, 'needs_admin_review'::text])))),
@@ -11053,6 +11065,12 @@ COMMENT ON COLUMN public.customers.billing_city IS 'Canonical customer billing c
 --
 
 COMMENT ON COLUMN public.customers.billing_country IS 'Canonical ISO country code for the customer billing address.';
+
+--
+-- Name: COLUMN customers.legal_hold; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.customers.legal_hold IS 'Blocks anonymization while true (dispute, claim, authority request).';
 
 --
 -- Name: data_quality_issues; Type: TABLE; Schema: public; Owner: -
@@ -11167,7 +11185,7 @@ COMMENT ON TABLE public.external_contract_intakes IS 'Legacy/external intake sou
 
 CREATE TABLE public.grid_owner_data_requests (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    company_id uuid,
+    company_id uuid NOT NULL,
     customer_id uuid,
     site_id uuid,
     metering_point_id uuid,
@@ -11859,6 +11877,123 @@ CREATE FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) RETURNS
   select *
   from public.company_dashboard_summary_v
   where company_id = p_company_id
+$$;
+
+--
+-- Name: gridex_anonymize_customer_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_anonymize_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer public.customers%rowtype;
+  v_retention_until date;
+  v_label text := 'Anonymiserad kund';
+  p_today date := current_date;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_anonymize_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null then
+    raise exception using errcode = '22023', message = 'customer_anonymize_payload_invalid';
+  end if;
+
+  select * into v_customer
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  if v_customer.anonymized_at is not null then
+    return jsonb_build_object('already_anonymized', true, 'anonymized_at', v_customer.anonymized_at);
+  end if;
+  if v_customer.legal_hold then
+    raise exception using errcode = '23514', message = 'customer_anonymize_legal_hold',
+      detail = coalesce(v_customer.legal_hold_reason, '');
+  end if;
+  if v_customer.status not in ('archived', 'moved', 'inactive', 'terminated') then
+    raise exception using errcode = '23514', message = 'customer_anonymize_customer_still_active';
+  end if;
+  if exists (
+    select 1 from public.customer_supply_periods p
+    where p.customer_id = p_customer_id
+      and p.status in ('active', 'confirmed_by_grid_owner')
+      and (coalesce(p.actual_end_date, p.end_date) is null or coalesce(p.actual_end_date, p.end_date) >= p_today)
+  ) then
+    raise exception using errcode = '23514', message = 'customer_anonymize_supply_ongoing';
+  end if;
+  if exists (
+    select 1 from public.customer_invoices i
+    where i.customer_id = p_customer_id
+      and i.status in ('draft', 'issued', 'sent', 'overdue', 'failed')
+  ) then
+    raise exception using errcode = '23514', message = 'customer_anonymize_unsettled_invoices';
+  end if;
+
+  v_retention_until := public.gridex_customer_retention_until_v1(p_customer_id);
+  if v_retention_until is not null and p_today < v_retention_until then
+    raise exception using errcode = '23514', message = 'customer_anonymize_retention_period_active',
+      detail = v_retention_until::text;
+  end if;
+
+  update public.customers
+  set first_name = null,
+      last_name = null,
+      full_name = v_label,
+      name = v_label,
+      company_name = case when company_name is null then null else v_label end,
+      personal_number = null,
+      identity_number = null,
+      org_number = null,
+      organization_number = null,
+      email = null,
+      invoice_email = null,
+      phone = null,
+      apartment_number = null,
+      billing_street = null,
+      billing_postal_code = null,
+      billing_city = null,
+      anonymized_at = now(),
+      anonymized_by = p_actor_user_id,
+      data_retention_note = 'Personuppgifter anonymiserade efter utgången lagringstid (' || v_retention_until::text || ').',
+      updated_at = now()
+  where id = p_customer_id and company_id = p_company_id;
+
+  update public.customer_contacts
+  set name = null, email = null, phone = null, title = null,
+      updated_at = now()
+  where customer_id = p_customer_id and company_id = p_company_id;
+
+  update public.customer_addresses
+  set street_1 = null, street_2 = null, postal_code = null, city = null, is_active = false,
+      updated_at = now()
+  where customer_id = p_customer_id and company_id = p_company_id;
+
+  update public.customer_portal_accounts
+  set email = null, user_email = null, verified_identity_snapshot = null, is_active = false,
+      updated_at = now()
+  where customer_id = p_customer_id and company_id = p_company_id;
+
+  update public.customer_internal_notes
+  set body = '[Anteckning borttagen vid anonymisering]'
+  where customer_id = p_customer_id and company_id = p_company_id;
+
+  insert into public.audit_logs (actor_user_id, company_id, entity_type, entity_id, action, metadata)
+  values (
+    p_actor_user_id, p_company_id, 'customer', p_customer_id::text, 'customer.anonymized',
+    jsonb_build_object(
+      'label', 'Anonymiserade kund efter lagringstid',
+      'retention_until', v_retention_until,
+      'retained', 'Fakturor, avtal, signeringsbevis och Ediel-meddelanden behålls oförändrade.'
+    )
+  );
+
+  return jsonb_build_object('already_anonymized', false, 'retention_until', v_retention_until);
+end
 $$;
 
 --
@@ -12806,6 +12941,133 @@ end;
 $$;
 
 --
+-- Name: gridex_approve_invoice_test_item_v1(uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_now timestamptz := now();
+  v_item_id uuid;
+  v_invoice_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_test_approval_service_role_required';
+  end if;
+  if p_company_id is null or p_invoice_export_item_id is null or jsonb_typeof(p_approval) <> 'object' then
+    raise exception using errcode = '22023', message = 'invoice_test_approval_payload_invalid';
+  end if;
+
+  update public.invoice_export_items
+  set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('approval', p_approval),
+      updated_at = v_now
+  where company_id = p_company_id
+    and id = p_invoice_export_item_id
+    and environment = 'test'
+    and status = 'pending'
+  returning id into v_item_id;
+  if v_item_id is null then
+    raise exception using errcode = '23514', message = 'invoice_test_approval_item_not_pending';
+  end if;
+
+  update public.customer_invoices
+  set metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('approval', p_approval),
+      updated_at = v_now
+  where company_id = p_company_id
+    and invoice_export_item_id = p_invoice_export_item_id
+    and status = 'draft'
+  returning id into v_invoice_id;
+  if v_invoice_id is null then
+    raise exception using errcode = '23514', message = 'invoice_test_approval_invoice_not_draft';
+  end if;
+
+  return jsonb_build_object('invoice_export_item_id', v_item_id, 'invoice_id', v_invoice_id);
+end
+$$;
+
+--
+-- Name: gridex_approve_portal_claim_v1(uuid, uuid, uuid, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_now timestamptz := now();
+  v_account_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'portal_claim_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_user_id is null then
+    raise exception using errcode = '22023', message = 'portal_claim_payload_invalid';
+  end if;
+
+  perform 1 from public.customers
+  where id = p_customer_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  insert into public.customer_portal_accounts (
+    company_id, user_id, user_email, customer_id, role, is_active, activated_at, verified_at,
+    match_method, verified_identity_snapshot, updated_at
+  ) values (
+    p_company_id, p_user_id, p_account->>'user_email', p_customer_id, 'owner', true, v_now, v_now,
+    coalesce(p_account->>'match_method', 'self_claim_strict_identity'),
+    coalesce(p_account->'verified_identity_snapshot', '{}'::jsonb), v_now
+  )
+  on conflict (user_id, customer_id) where user_id is not null and customer_id is not null
+  do update set
+    company_id = excluded.company_id,
+    user_email = excluded.user_email,
+    role = excluded.role,
+    is_active = true,
+    activated_at = excluded.activated_at,
+    verified_at = excluded.verified_at,
+    match_method = excluded.match_method,
+    verified_identity_snapshot = excluded.verified_identity_snapshot,
+    updated_at = excluded.updated_at
+  where public.customer_portal_accounts.company_id is not distinct from excluded.company_id
+     or public.customer_portal_accounts.company_id is null
+  returning id into v_account_id;
+  if v_account_id is null then
+    -- An existing link for this user/customer belongs to another tenant.
+    raise exception using errcode = '42501', message = 'portal_claim_account_tenant_mismatch';
+  end if;
+
+  insert into public.customer_portal_claims (
+    user_id, company_id, user_email, customer_id, status, match_method, personal_number_last4,
+    email_matched, name_matched, personal_number_matched, installation_matched,
+    matched_site_id, matched_metering_point_id, input_snapshot, match_snapshot, reviewed_at
+  ) values (
+    p_user_id, p_company_id, p_account->>'user_email', p_customer_id, 'approved',
+    coalesce(p_claim->>'match_method', 'self_claim_strict_identity'),
+    p_claim->>'personal_number_last4',
+    true, true, true, true,
+    nullif(p_claim->>'matched_site_id', '')::uuid,
+    nullif(p_claim->>'matched_metering_point_id', '')::uuid,
+    coalesce(p_claim->'input_snapshot', '{}'::jsonb),
+    coalesce(p_claim->'match_snapshot', '{}'::jsonb),
+    v_now
+  );
+
+  insert into public.customer_portal_events (company_id, customer_id, user_id, event_type, message, metadata)
+  values (
+    p_company_id, p_customer_id, p_user_id,
+    coalesce(p_event->>'event_type', 'portal_account_verified'),
+    p_event->>'message',
+    coalesce(p_event->'metadata', '{}'::jsonb)
+  );
+
+  return jsonb_build_object('account_id', v_account_id);
+end
+$$;
+
+--
 -- Name: gridex_archive_contract_product(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -12946,6 +13208,137 @@ end $$;
 --
 
 COMMENT ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) IS 'Atomic idempotent contract archive RPC. Preserves history and qualifies every valid_to reference.';
+
+--
+-- Name: gridex_archive_customer_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer public.customers%rowtype;
+  v_after public.customers%rowtype;
+  v_reason text := coalesce(nullif(btrim(p_reason), ''), 'Arkiverad via kundkort.');
+  v_now timestamptz := now();
+  v_contract record;
+  v_sites integer := 0;
+  v_points integer := 0;
+  v_contracts integer := 0;
+  v_switch_ids uuid[] := '{}';
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_archive_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null then
+    raise exception using errcode = '22023', message = 'customer_archive_payload_invalid';
+  end if;
+
+  select * into v_customer
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  if v_customer.status = 'archived' then
+    return jsonb_build_object('customer', to_jsonb(v_customer), 'already_archived', true);
+  end if;
+
+  update public.customers
+  set status = 'archived',
+      archived_at = v_now,
+      archived_by = p_actor_user_id,
+      archive_reason = v_reason,
+      updated_at = v_now
+  where id = p_customer_id and company_id = p_company_id
+  returning * into v_after;
+
+  update public.customer_sites
+  set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_at = v_now
+  where company_id = p_company_id and customer_id = p_customer_id;
+  get diagnostics v_sites = row_count;
+
+  update public.metering_points mp
+  set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_at = v_now
+  where mp.company_id = p_company_id
+    and (mp.customer_id = p_customer_id
+      or mp.site_id in (
+        select s.id from public.customer_sites s
+        where s.company_id = p_company_id and s.customer_id = p_customer_id));
+  get diagnostics v_points = row_count;
+
+  for v_contract in
+    select c.id
+    from public.customer_contracts c
+    where c.company_id = p_company_id
+      and c.customer_id = p_customer_id
+      and c.status in ('draft', 'pending_signature', 'signature_failed', 'signed', 'active')
+    order by c.id
+  loop
+    perform public.gridex_record_customer_contract_event_v1(
+      p_company_id,
+      v_contract.id,
+      p_customer_id,
+      'cancelled',
+      v_now,
+      'Avtalet avslutades när kunden arkiverades.',
+      jsonb_build_object(
+        'ends_at', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD'),
+        'termination_notice_date', v_now,
+        'termination_reason', 'other',
+        'rejected_reason', v_reason
+      ),
+      p_actor_user_id,
+      null,
+      'customer-archive:' || p_customer_id::text || ':' || v_contract.id::text
+    );
+    v_contracts := v_contracts + 1;
+  end loop;
+
+  with failed as (
+    update public.supplier_switch_requests
+    set status = 'failed', failed_at = v_now, failure_reason = v_reason, updated_at = v_now
+    where company_id = p_company_id
+      and customer_id = p_customer_id
+      and status in ('draft', 'queued', 'submitted', 'accepted',
+        'cancellation_requested', 'cancellation_sent', 'manual_followup_required')
+    returning id
+  )
+  select coalesce(array_agg(id order by id), '{}') into v_switch_ids from failed;
+
+  insert into public.audit_logs (
+    actor_user_id, company_id, entity_type, entity_id, action,
+    old_values, new_values, metadata, previous_status, new_status
+  ) values (
+    p_actor_user_id, p_company_id, 'customer', p_customer_id::text, 'customer.archived',
+    to_jsonb(v_customer), to_jsonb(v_after),
+    jsonb_build_object(
+      'label', 'Arkiverade kund',
+      'reason', v_reason,
+      'retainedData', true,
+      'hardDelete', false,
+      'closedSites', v_sites,
+      'closedMeteringPoints', v_points,
+      'cancelledContracts', v_contracts,
+      'failedSwitchRequests', coalesce(array_length(v_switch_ids, 1), 0),
+      'source', 'gridex_archive_customer_v1'
+    ),
+    v_customer.status, 'archived'
+  );
+
+  return jsonb_build_object(
+    'customer', to_jsonb(v_after),
+    'already_archived', false,
+    'closed_sites', v_sites,
+    'closed_metering_points', v_points,
+    'cancelled_contracts', v_contracts,
+    'failed_switch_request_ids', to_jsonb(v_switch_ids)
+  );
+end
+$$;
 
 --
 -- Name: gridex_archive_draft_legal_template_version(uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -13160,6 +13553,32 @@ begin
 end $$;
 
 --
+-- Name: gridex_assert_customer_not_archived_for_insert(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_customer_not_archived_for_insert() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_status text;
+begin
+  if new.customer_id is null then
+    return new;
+  end if;
+
+  select status into v_status from public.customers where id = new.customer_id;
+
+  if v_status = 'archived' then
+    raise exception 'Customer % is archived, new % rows are blocked', new.customer_id, tg_table_name
+      using errcode = 'P0001';
+  end if;
+
+  return new;
+end
+$$;
+
+--
 -- Name: gridex_assert_no_public_offer_fk_references(uuid[]); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -13309,6 +13728,27 @@ begin
     'checked_at',clock_timestamp()
   );
 end $$;
+
+--
+-- Name: gridex_assert_switch_writer_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_switch_writer_v1(p_company_id uuid) RETURNS void
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'auth', 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+  if p_company_id is null then
+    raise exception using errcode = '22023', message = 'supplier_switch_company_required';
+  end if;
+  if auth.role() = 'service_role' then
+    return;
+  end if;
+  if not public.gridex_can_write_company(p_company_id) then
+    raise exception using errcode = '42501', message = 'supplier_switch_write_not_allowed';
+  end if;
+end
+$$;
 
 --
 -- Name: gridex_assert_tenant_reference(); Type: FUNCTION; Schema: public; Owner: -
@@ -16624,6 +17064,235 @@ end $$;
 --
 
 COMMENT ON FUNCTION public.gridex_close_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid, p_reason text) IS 'Terminal close for active/current versions only. Repeats close readiness under lock; historic superseded, expired and archived versions are preserved.';
+
+--
+-- Name: gridex_close_customer_lifecycle_v1(uuid, uuid, uuid, text, date, text, text, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_close_customer_lifecycle_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_mode text, p_move_out_date date, p_reason text, p_note text, p_create_follow_up_task boolean DEFAULT false) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_before public.customers%rowtype;
+  v_after public.customers%rowtype;
+  v_now timestamptz := now();
+  v_terminate boolean := p_mode = 'terminate';
+  v_close_reason text;
+  v_site_ids uuid[];
+  v_points integer := 0;
+  v_contract record;
+  v_event_type text;
+  v_contracts integer := 0;
+  v_switch_ids uuid[] := '{}';
+  v_metadata jsonb;
+  v_supply_ended integer := 0;
+  v_supply_cancelled integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_lifecycle_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null
+     or p_mode not in ('move_out', 'terminate') or p_move_out_date is null then
+    raise exception using errcode = '22023', message = 'customer_lifecycle_payload_invalid';
+  end if;
+
+  select * into v_before
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+  if v_before.status in ('archived', 'moved', 'terminated') then
+    raise exception using errcode = '23514', message = 'customer_lifecycle_already_closed';
+  end if;
+
+  v_close_reason := coalesce(nullif(btrim(p_reason), ''),
+    case when v_terminate then 'Kund avslutad.' else 'Kunden har flyttat.' end);
+  v_metadata := jsonb_build_object(
+    'mode', p_mode,
+    'moveOutDate', p_move_out_date,
+    'reason', p_reason,
+    'source', 'admin_customer_card',
+    'legalHandling', 'Soft close only. Customer records are retained for Ediel, metering, billing and audit traceability.'
+  );
+
+  update public.customers
+  set status = case when v_terminate then 'terminated' else 'moved' end,
+      moved_out_at = p_move_out_date,
+      lifecycle_closed_at = v_now,
+      lifecycle_closed_by = p_actor_user_id,
+      lifecycle_status_reason = p_reason,
+      updated_at = v_now
+  where id = p_customer_id and company_id = p_company_id
+  returning * into v_after;
+
+  with closed as (
+    update public.customer_sites
+    set status = 'closed', move_out_date = p_move_out_date, closed_at = v_now,
+        closed_reason = v_close_reason, updated_by = p_actor_user_id
+    where company_id = p_company_id and customer_id = p_customer_id
+    returning id
+  )
+  select coalesce(array_agg(id), '{}') into v_site_ids from closed;
+
+  update public.metering_points
+  set status = 'closed', end_date = p_move_out_date, closed_at = v_now,
+      closed_reason = v_close_reason, updated_by = p_actor_user_id
+  where company_id = p_company_id and site_id = any (v_site_ids);
+  get diagnostics v_points = row_count;
+
+  -- Billing follows customer_supply_periods. Supply ends on the move-out date
+  -- (inclusive) so the period up to the move is still invoiced and nothing
+  -- after it. A period that had not started yet is cancelled. The grid owner's
+  -- end-of-supply message later confirms the actual date.
+  update public.customer_supply_periods
+  set end_date = p_move_out_date,
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+        'planned_end_source', 'customer_lifecycle_close',
+        'planned_end_reason', p_mode,
+        'planned_end_recorded_at', v_now
+      ),
+      updated_at = v_now
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and start_date <= p_move_out_date
+    and (end_date is null or end_date > p_move_out_date);
+  get diagnostics v_supply_ended = row_count;
+
+  update public.customer_supply_periods
+  set status = 'cancelled',
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+        'cancelled_by', 'customer_lifecycle_close',
+        'cancelled_reason', p_mode,
+        'cancelled_at', v_now
+      ),
+      updated_at = v_now
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and start_date > p_move_out_date;
+  get diagnostics v_supply_cancelled = row_count;
+
+  for v_contract in
+    select c.id, c.status
+    from public.customer_contracts c
+    where c.company_id = p_company_id
+      and c.customer_id = p_customer_id
+      and c.status in ('draft', 'pending_signature', 'signature_failed', 'signed', 'active')
+    order by c.id
+  loop
+    v_event_type := case when v_contract.status in ('signed', 'active') then 'terminated' else 'cancelled' end;
+    perform public.gridex_record_customer_contract_event_v1(
+      p_company_id,
+      v_contract.id,
+      p_customer_id,
+      v_event_type,
+      v_now,
+      case
+        when v_terminate then
+          case when v_event_type = 'terminated' then 'Avtalet avslutades' else 'Avtalsprocessen avbröts' end
+          || ' via kundens livscykelåtgärd.'
+        else
+          case when v_event_type = 'terminated' then 'Avtalet avslutades' else 'Avtalsprocessen avbröts' end
+          || ' eftersom kunden registrerades som utflyttad.'
+      end,
+      v_metadata || jsonb_build_object(
+        'ends_at', p_move_out_date,
+        'termination_notice_date', v_now,
+        'termination_reason', 'move_out'
+      ),
+      p_actor_user_id,
+      null,
+      'customer-lifecycle-close:' || p_customer_id::text || ':' || v_contract.id::text
+    );
+    v_contracts := v_contracts + 1;
+  end loop;
+
+  with failed as (
+    update public.supplier_switch_requests
+    set status = 'failed',
+        failed_at = v_now,
+        failure_reason = case when v_terminate
+          then 'Kunden avslutades innan switchen slutfördes.'
+          else 'Kunden registrerades som utflyttad innan switchen slutfördes.' end,
+        updated_by = p_actor_user_id
+    where company_id = p_company_id
+      and customer_id = p_customer_id
+      and status in ('draft', 'queued', 'submitted', 'accepted')
+    returning id
+  )
+  select coalesce(array_agg(id order by id), '{}') into v_switch_ids from failed;
+
+  -- Open work for the customer is cancelled before the follow-up tasks are created.
+  update public.customer_operation_tasks
+  set status = 'cancelled', resolved_at = v_now, updated_by = p_actor_user_id
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('open', 'in_progress', 'blocked');
+
+  if cardinality(v_switch_ids) > 0 then
+    insert into public.customer_operation_tasks (
+      company_id, customer_id, site_id, metering_point_id, task_type, status, priority,
+      title, description, metadata, created_by, updated_by
+    ) values (
+      p_company_id, p_customer_id, v_site_ids[1], null, 'supplier_switch_stopped_followup', 'open', 'high',
+      case when v_terminate then 'Följ upp stoppat leverantörsbyte vid avslut'
+           else 'Följ upp stoppat leverantörsbyte vid flytt' end,
+      coalesce(p_reason, case when v_terminate
+        then 'Kunden avslutades innan leverantörsbytet slutfördes.'
+        else 'Kunden flyttade innan leverantörsbytet slutfördes.' end),
+      jsonb_build_object('lifecycleMetadata', v_metadata, 'activeSwitchIds', to_jsonb(v_switch_ids)),
+      p_actor_user_id, p_actor_user_id
+    );
+  end if;
+
+  if p_create_follow_up_task then
+    insert into public.customer_operation_tasks (
+      company_id, customer_id, site_id, metering_point_id, task_type, status, priority,
+      title, description, metadata, created_by, updated_by
+    ) values (
+      p_company_id, p_customer_id, v_site_ids[1], null, 'move_out_confirmation_pending', 'open', 'high',
+      'Följ upp utflytt och slutunderlag',
+      'Bekräfta att nätägaren har registrerat utflytt/avslut, invänta Z05LK vid relevant flöde och säkerställ slutliga mätvärden/faktureringsunderlag.',
+      v_metadata, p_actor_user_id, p_actor_user_id
+    );
+  end if;
+
+  insert into public.customer_internal_notes (company_id, customer_id, body, created_by, updated_by)
+  values (p_company_id, p_customer_id, p_note, p_actor_user_id, p_actor_user_id);
+
+  insert into public.customer_lifecycle_events (
+    company_id, customer_id, event_type, event_status, effective_date, reason, payload, created_by
+  ) values (
+    p_company_id, p_customer_id, p_mode, 'completed', p_move_out_date, p_reason,
+    v_metadata || jsonb_build_object(
+      'affectedSites', cardinality(v_site_ids),
+      'affectedMeteringPoints', v_points,
+      'supplyPeriodsEnded', v_supply_ended,
+      'supplyPeriodsCancelled', v_supply_cancelled,
+      'terminatedContracts', v_contracts,
+      'cancelledSwitchRequests', cardinality(v_switch_ids),
+      'followUpTaskCreated', p_create_follow_up_task
+    ),
+    p_actor_user_id
+  );
+
+  return jsonb_build_object(
+    'customer_before', to_jsonb(v_before),
+    'customer', to_jsonb(v_after),
+    'closed_sites', cardinality(v_site_ids),
+    'closed_metering_points', v_points,
+    'supply_periods_ended', v_supply_ended,
+    'supply_periods_cancelled', v_supply_cancelled,
+    'closed_contracts', v_contracts,
+    'failed_switch_request_ids', to_jsonb(v_switch_ids),
+    'lifecycle', v_metadata
+  );
+end
+$$;
 
 --
 -- Name: gridex_commit_customer_application_provisioning(uuid, uuid, uuid, uuid, uuid, uuid, uuid, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -20057,6 +20726,83 @@ end
 $$;
 
 --
+-- Name: gridex_create_customer_info_request_v1(uuid, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer_id uuid := nullif(p_request->>'customer_id', '')::uuid;
+  v_site_id uuid := nullif(p_request->>'site_id', '')::uuid;
+  v_metering_point_id uuid := nullif(p_request->>'metering_point_id', '')::uuid;
+  v_automation_key text := nullif(btrim(p_request->>'automation_key'), '');
+  v_categories jsonb := coalesce(p_request->'requested_data_categories', '[]'::jsonb);
+  v_row public.customer_info_requests%rowtype;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_info_request_service_role_required';
+  end if;
+  if p_company_id is null or v_customer_id is null
+     or nullif(p_request->>'request_type', '') is null
+     or nullif(p_request->>'target_party_type', '') is null
+     or jsonb_typeof(v_categories) <> 'array' or jsonb_array_length(v_categories) = 0 then
+    raise exception using errcode = '22023', message = 'customer_info_request_payload_invalid';
+  end if;
+  if not exists (select 1 from public.customers where id = v_customer_id and company_id = p_company_id) then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_company';
+  end if;
+  if v_site_id is not null and not exists (
+    select 1 from public.customer_sites where id = v_site_id and company_id = p_company_id and customer_id = v_customer_id
+  ) then
+    raise exception using errcode = 'P0002', message = 'site_not_found_for_customer';
+  end if;
+  if v_metering_point_id is not null and not exists (
+    select 1 from public.metering_points where id = v_metering_point_id and company_id = p_company_id and customer_id = v_customer_id
+  ) then
+    raise exception using errcode = 'P0002', message = 'metering_point_not_found_for_customer';
+  end if;
+
+  if v_automation_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(p_company_id::text || ':cir:' || v_automation_key, 0));
+    select * into v_row from public.customer_info_requests
+     where company_id = p_company_id and automation_key = v_automation_key;
+    if found then
+      return jsonb_build_object('created', false, 'request', to_jsonb(v_row));
+    end if;
+  end if;
+
+  insert into public.customer_info_requests (
+    company_id, customer_id, site_id, metering_point_id, grid_owner_id, operation_id,
+    request_type, target_party_type, target_party_name, current_supplier_name,
+    status, requested_data_categories, verified_payload, notes,
+    automation_origin, automation_key, created_by, updated_by
+  ) values (
+    p_company_id, v_customer_id, v_site_id, v_metering_point_id,
+    nullif(p_request->>'grid_owner_id', '')::uuid, nullif(p_request->>'operation_id', '')::uuid,
+    p_request->>'request_type', p_request->>'target_party_type', nullif(p_request->>'target_party_name', ''),
+    nullif(p_request->>'current_supplier_name', ''),
+    'draft', v_categories, coalesce(p_request->'verified_payload', '{}'::jsonb), nullif(p_request->>'notes', ''),
+    nullif(p_request->>'automation_origin', ''), v_automation_key, p_actor_user_id, p_actor_user_id
+  ) returning * into v_row;
+
+  insert into public.customer_info_request_events (
+    company_id, customer_info_request_id, customer_id, event_type, message, payload, created_by
+  ) values (
+    p_company_id, v_row.id, v_customer_id, 'created', 'Uppgiftsbegäran skapades.',
+    jsonb_build_object(
+      'requested_data_categories', v_categories,
+      'siteId', v_site_id, 'meteringPointId', v_metering_point_id,
+      'gridOwnerId', v_row.grid_owner_id, 'operationId', v_row.operation_id,
+      'automationOrigin', v_row.automation_origin),
+    p_actor_user_id);
+
+  return jsonb_build_object('created', true, 'request', to_jsonb(v_row));
+end;
+$$;
+
+--
 -- Name: gridex_create_customer_site_with_address(uuid, uuid, text, text, text, text, text, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -20218,6 +20964,109 @@ begin
 
   return v_site_id;
 end;
+$_$;
+
+--
+-- Name: gridex_create_grid_owner_data_request_v1(uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_customer_id uuid := nullif(p_request->>'customer_id', '')::uuid;
+  v_site_id uuid := nullif(p_request->>'site_id', '')::uuid;
+  v_point_id uuid := nullif(p_request->>'metering_point_id', '')::uuid;
+  v_grid_owner_id uuid := nullif(p_request->>'grid_owner_id', '')::uuid;
+  v_operation_id uuid := nullif(p_request->>'operation_id', '')::uuid;
+  v_scope text := coalesce(nullif(p_request->>'request_scope', ''), 'customer_masterdata');
+  v_key text := nullif(p_request->>'automation_key', '');
+  v_existing public.grid_owner_data_requests%rowtype;
+  v_row public.grid_owner_data_requests%rowtype;
+  v_payload jsonb;
+  v_columns text;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'grid_owner_data_request_service_role_required';
+  end if;
+  if p_company_id is null or v_customer_id is null then
+    raise exception using errcode = '22023', message = 'grid_owner_data_request_payload_invalid';
+  end if;
+
+  perform 1 from public.customers
+  where id = v_customer_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+  if v_site_id is not null then
+    perform 1 from public.customer_sites
+    where id = v_site_id and company_id = p_company_id and customer_id = v_customer_id;
+    if not found then
+      raise exception using errcode = 'P0002', message = 'site_not_found_for_customer';
+    end if;
+  end if;
+  if v_point_id is not null then
+    perform 1 from public.metering_points mp
+    where mp.id = v_point_id
+      and mp.company_id = p_company_id
+      and (mp.customer_id = v_customer_id or mp.site_id = v_site_id
+           or mp.site_id in (select s.id from public.customer_sites s
+                             where s.customer_id = v_customer_id and s.company_id = p_company_id));
+    if not found then
+      raise exception using errcode = 'P0002', message = 'metering_point_not_found_for_customer';
+    end if;
+  end if;
+
+  -- Serialise concurrent creates of the same logical request.
+  if v_key is not null or v_operation_id is not null then
+    perform pg_advisory_xact_lock(hashtextextended(
+      'grid_owner_data_request:' || p_company_id::text || ':' || coalesce(v_key, v_operation_id::text || ':' || v_scope), 0));
+  end if;
+
+  if v_key is not null then
+    select * into v_existing
+    from public.grid_owner_data_requests
+    where company_id = p_company_id and automation_key = v_key and status in ('pending', 'sent')
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('request', to_jsonb(v_existing), 'existing', true);
+    end if;
+  end if;
+
+  if v_operation_id is not null then
+    select * into v_existing
+    from public.grid_owner_data_requests
+    where company_id = p_company_id
+      and operation_id = v_operation_id
+      and customer_id = v_customer_id
+      and request_scope = v_scope
+      and site_id is not distinct from v_site_id
+      and metering_point_id is not distinct from v_point_id
+      and grid_owner_id is not distinct from v_grid_owner_id
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('request', to_jsonb(v_existing), 'existing', true);
+    end if;
+  end if;
+
+  v_payload := (p_request - array['id', 'company_id', 'status', 'created_at', 'updated_at'])
+    || jsonb_build_object('company_id', p_company_id, 'status', 'pending', 'request_scope', v_scope);
+  select string_agg(quote_ident(key), ', ' order by key) into v_columns
+  from jsonb_object_keys(v_payload) as key
+  where key in (
+    select attname from pg_attribute
+    where attrelid = 'public.grid_owner_data_requests'::regclass and attnum > 0 and not attisdropped
+  );
+  execute format(
+    'insert into public.grid_owner_data_requests (%1$s) select %1$s from jsonb_populate_record(null::public.grid_owner_data_requests, $1) returning *',
+    v_columns
+  ) into v_row using v_payload;
+
+  return jsonb_build_object('request', to_jsonb(v_row), 'existing', false);
+end
 $_$;
 
 --
@@ -20813,6 +21662,49 @@ begin
   return jsonb_build_object(
     'run_id',v_run_id,'existing',false,'item_count',v_count
   );
+end
+$$;
+
+--
+-- Name: gridex_create_invoice_review_draft_v1(uuid, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_result jsonb;
+  v_item_id uuid := nullif(p_enrichment->>'invoice_export_item_id', '')::uuid;
+  v_invoice_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_review_draft_service_role_required';
+  end if;
+  if p_company_id is null or v_item_id is null
+     or nullif(p_run->>'company_id', '')::uuid is distinct from p_company_id then
+    raise exception using errcode = '22023', message = 'invoice_review_draft_payload_invalid';
+  end if;
+
+  v_result := public.gridex_create_invoice_export_graph_v1(p_run, p_items, p_invoices);
+
+  update public.customer_invoices
+  set price_plan_version_id = nullif(p_enrichment->>'price_plan_version_id', '')::uuid,
+      price_area_code = nullif(p_enrichment->>'price_area_code', ''),
+      consumption_kwh = nullif(p_enrichment->>'consumption_kwh', '')::numeric,
+      vat_rate = nullif(p_enrichment->>'vat_rate', '')::numeric,
+      calculation_snapshot = p_enrichment->'calculation_snapshot',
+      calculation_snapshot_sha256 = nullif(p_enrichment->>'calculation_snapshot_sha256', ''),
+      metadata = coalesce(p_enrichment->'metadata', metadata),
+      updated_at = now()
+  where company_id = p_company_id
+    and invoice_export_item_id = v_item_id
+  returning id into v_invoice_id;
+  if v_invoice_id is null then
+    raise exception using errcode = 'P0002', message = 'invoice_review_draft_invoice_missing';
+  end if;
+
+  return v_result || jsonb_build_object('invoice_id', v_invoice_id);
 end
 $$;
 
@@ -21510,6 +22402,67 @@ begin
 end $$;
 
 --
+-- Name: gridex_create_supplier_switch_v1(uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_row public.supplier_switch_requests%rowtype;
+  v_existing public.supplier_switch_requests%rowtype;
+  v_key text := nullif(p_request->>'automation_key', '');
+  v_payload jsonb;
+  v_columns text;
+begin
+  perform public.gridex_assert_switch_writer_v1(p_company_id);
+
+  if v_key is not null then
+    select * into v_existing
+    from public.supplier_switch_requests
+    where company_id = p_company_id
+      and automation_key = v_key
+      and status in ('draft', 'queued', 'submitted', 'accepted', 'cancellation_requested',
+        'cancellation_sent', 'manual_followup_required', 'pending', 'ready', 'prepared',
+        'in_progress', 'sent', 'waiting_response', 'awaiting_confirmation', 'confirmed')
+    limit 1;
+    if found then
+      return jsonb_build_object('request', to_jsonb(v_existing), 'existing', true);
+    end if;
+  end if;
+
+  -- Insert only the columns the caller sent so table defaults still apply;
+  -- the tenant always comes from p_company_id.
+  v_payload := (p_request - 'company_id') || jsonb_build_object('company_id', p_company_id);
+  select string_agg(quote_ident(key), ', ' order by key) into v_columns
+  from jsonb_object_keys(v_payload) as key
+  where key in (
+    select attname from pg_attribute
+    where attrelid = 'public.supplier_switch_requests'::regclass and attnum > 0 and not attisdropped
+  );
+  execute format(
+    'insert into public.supplier_switch_requests (%1$s) select %1$s from jsonb_populate_record(null::public.supplier_switch_requests, $1) returning *',
+    v_columns
+  ) into v_row using v_payload;
+
+  insert into public.supplier_switch_events (
+    switch_request_id, event_type, event_status, message, payload, company_id, created_by
+  ) values (
+    v_row.id,
+    coalesce(p_event->>'event_type', 'created'),
+    coalesce(p_event->>'event_status', 'success'),
+    p_event->>'message',
+    coalesce(p_event->'payload', '{}'::jsonb),
+    p_company_id,
+    nullif(p_event->>'created_by', '')::uuid
+  );
+
+  return jsonb_build_object('request', to_jsonb(v_row), 'existing', false);
+end
+$_$;
+
+--
 -- Name: gridex_create_tenant_legal_override(uuid, text, text, text, text, text, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -22132,6 +23085,10 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
 
+  IF v_customer.merged_into_customer_id IS NOT NULL THEN
+    RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='customer_merged_write_conflict';
+  END IF;
+
   IF p_expected_updated_at IS NOT NULL AND v_customer.updated_at IS DISTINCT FROM p_expected_updated_at THEN
     RAISE EXCEPTION USING ERRCODE='40001', MESSAGE='contact_change_version_conflict';
   END IF;
@@ -22526,6 +23483,31 @@ CREATE FUNCTION public.gridex_customer_operation_outcome_class(p_status text, p_
     when p_status = 'failed' then 'STOP'
     else 'AUTO'
   end
+$$;
+
+--
+-- Name: gridex_customer_retention_until_v1(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_customer_retention_until_v1(p_customer_id uuid) RETURNS date
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+    AS $$
+  -- The last business event decides the retention year; records are kept to
+  -- the end of the seventh year after it, so anonymization is allowed from
+  -- 1 January of the eighth year.
+  select make_date(extract(year from last_event)::int + 8, 1, 1)
+  from (
+    select greatest(
+      (select max(coalesce(i.paid_at, i.issued_at, i.created_at)) from public.customer_invoices i where i.customer_id = c.id),
+      (select max(coalesce(p.actual_end_date, p.end_date)::timestamptz) from public.customer_supply_periods p where p.customer_id = c.id),
+      c.archived_at,
+      c.lifecycle_closed_at,
+      c.created_at
+    ) as last_event
+    from public.customers c
+    where c.id = p_customer_id
+  ) last_activity
 $$;
 
 --
@@ -23023,6 +24005,138 @@ begin
     delete from vault.secrets where id = v_secret_id;
   end if;
   return true;
+end
+$$;
+
+--
+-- Name: gridex_delete_test_customer_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_delete_test_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer public.customers%rowtype;
+  v_site_ids uuid[];
+  v_point_ids uuid[];
+  v_outbound_ids uuid[];
+  v_test_run_ids uuid[];
+  v_protected text[] := '{}';
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_delete_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null then
+    raise exception using errcode = '22023', message = 'customer_delete_payload_invalid';
+  end if;
+
+  select * into v_customer
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  if v_customer.is_test_data is not true
+     and coalesce(lower(v_customer.source), '') not like '%test%' then
+    raise exception using errcode = '23514', message = 'customer_delete_requires_test_data';
+  end if;
+
+  select coalesce(array_agg(id), '{}') into v_site_ids
+  from public.customer_sites where customer_id = p_customer_id;
+  select coalesce(array_agg(id), '{}') into v_point_ids
+  from public.metering_points
+  where customer_id = p_customer_id or site_id = any (v_site_ids);
+
+  -- Same protected-history rule as the customer card: real history is archived, never deleted.
+  if exists (select 1 from public.customer_contracts where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'customer_contracts'); end if;
+  if exists (select 1 from public.customer_invoices where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'customer_invoices'); end if;
+  if exists (select 1 from public.supplier_switch_requests where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'supplier_switch_requests'); end if;
+  if exists (select 1 from public.ediel_messages
+             where customer_id = p_customer_id
+                or site_id = any (v_site_ids)
+                or metering_point_id = any (v_point_ids)) then
+    v_protected := array_append(v_protected, 'ediel_messages'); end if;
+  if exists (select 1 from public.partner_exports where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'partner_exports'); end if;
+  if exists (select 1 from public.grid_owner_information_requests
+             where customer_id = p_customer_id or customer_site_id = any (v_site_ids)) then
+    v_protected := array_append(v_protected, 'grid_owner_information_requests'); end if;
+  if exists (select 1 from public.powers_of_attorney where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'powers_of_attorney'); end if;
+  if exists (select 1 from public.customer_documents where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'customer_documents'); end if;
+  if exists (select 1 from public.customer_operation_events where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'customer_operation_events'); end if;
+  if exists (select 1 from public.customer_blockers where customer_id = p_customer_id) then
+    v_protected := array_append(v_protected, 'customer_blockers'); end if;
+  if exists (select 1 from public.communication_logs
+             where customer_id = p_customer_id
+                or site_id = any (v_site_ids)
+                or metering_point_id = any (v_point_ids)) then
+    v_protected := array_append(v_protected, 'communication_logs'); end if;
+
+  if cardinality(v_protected) > 0 then
+    raise exception using
+      errcode = '23514',
+      message = 'customer_delete_protected_history',
+      detail = array_to_string(v_protected, ',');
+  end if;
+
+  -- Audit first; the row survives because audit_logs has no customer foreign key.
+  insert into public.audit_logs (
+    actor_user_id, company_id, entity_type, entity_id, action, old_values, metadata
+  ) values (
+    p_actor_user_id, p_company_id, 'customer', p_customer_id::text, 'customer.deleted_test',
+    to_jsonb(v_customer),
+    jsonb_build_object(
+      'label', 'Raderade testkund',
+      'sites', cardinality(v_site_ids),
+      'meteringPoints', cardinality(v_point_ids),
+      'source', 'gridex_delete_test_customer_v1'
+    )
+  );
+
+  select coalesce(array_agg(id), '{}') into v_test_run_ids
+  from public.ediel_test_runs
+  where customer_id = p_customer_id
+     or site_id = any (v_site_ids)
+     or metering_point_id = any (v_point_ids);
+  delete from public.ediel_test_run_messages where test_run_id = any (v_test_run_ids);
+  delete from public.ediel_test_runs where id = any (v_test_run_ids);
+
+  select coalesce(array_agg(id), '{}') into v_outbound_ids
+  from public.outbound_requests where customer_id = p_customer_id;
+  delete from public.outbound_dispatch_events where outbound_request_id = any (v_outbound_ids);
+  delete from public.outbound_requests where id = any (v_outbound_ids);
+
+  delete from public.customer_portal_events where customer_id = p_customer_id;
+  delete from public.metering_values where customer_id = p_customer_id;
+  delete from public.billing_underlays where customer_id = p_customer_id;
+  delete from public.grid_owner_data_requests where customer_id = p_customer_id;
+  delete from public.customer_authorization_documents where customer_id = p_customer_id;
+  delete from public.customer_operation_tasks where customer_id = p_customer_id;
+  delete from public.customer_internal_notes where customer_id = p_customer_id;
+  delete from public.customer_portal_claims where customer_id = p_customer_id;
+  delete from public.customer_portal_accounts where customer_id = p_customer_id;
+  delete from public.customer_addresses where customer_id = p_customer_id;
+  delete from public.customer_contacts where customer_id = p_customer_id;
+  delete from public.metering_points where id = any (v_point_ids);
+  delete from public.customer_sites where id = any (v_site_ids);
+  delete from public.customers where id = p_customer_id and company_id = p_company_id;
+
+  return jsonb_build_object(
+    'deleted', true,
+    'sites', cardinality(v_site_ids),
+    'metering_points', cardinality(v_point_ids),
+    'test_runs', cardinality(v_test_run_ids),
+    'outbound_requests', cardinality(v_outbound_ids)
+  );
 end
 $$;
 
@@ -23690,6 +24804,208 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_end_contract_channel(p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid) IS 'Canonical terminal channel command. Distinct from pause/unpublish and preserves immutable signed history.';
+
+--
+-- Name: gridex_end_customer_supply_v1(uuid, uuid, uuid, date, text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_end_customer_supply_v1(p_company_id uuid, p_customer_id uuid, p_metering_point_id uuid, p_end_date date, p_end_reason text, p_source_message_id uuid DEFAULT NULL::uuid, p_actor_user_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer public.customers%rowtype;
+  v_period public.customer_supply_periods%rowtype;
+  v_contract public.customer_contracts%rowtype;
+  v_contract_id uuid;
+  v_now timestamptz := now();
+  v_switch boolean := p_end_reason = 'supplier_switch';
+  v_binding_end date;
+  v_break_fee_review boolean := false;
+  v_contract_ended boolean := false;
+  v_remaining integer;
+  v_new_status text;
+  v_key text := coalesce(p_source_message_id::text, p_metering_point_id::text || ':' || p_end_date::text);
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'supply_end_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_metering_point_id is null
+     or p_end_date is null or p_end_reason not in ('supplier_switch', 'move_out') then
+    raise exception using errcode = '22023', message = 'supply_end_payload_invalid';
+  end if;
+
+  select * into v_customer
+  from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  -- The current period: open, or carrying only a planned end from a move-out registration.
+  select * into v_period
+  from public.customer_supply_periods
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and metering_point_id = p_metering_point_id
+    and (status in ('active', 'confirmed_by_grid_owner')
+         or (status = 'ended' and metadata->>'end_key' = v_key))
+    and start_date <= p_end_date
+  order by start_date desc
+  limit 1
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'active_supply_period_not_found';
+  end if;
+
+  -- Idempotent replay of the same end message.
+  if v_period.actual_end_date = p_end_date
+     and v_period.metadata->>'end_key' = v_key then
+    return jsonb_build_object('supply_period_id', v_period.id, 'already_applied', true);
+  end if;
+
+  -- 'ended' is the market-confirmed end the Ediel closure review requires;
+  -- billing still covers the period up to and including end_date.
+  update public.customer_supply_periods
+  set end_date = p_end_date,
+      actual_end_date = p_end_date,
+      status = 'ended',
+      source_message_id = coalesce(p_source_message_id, source_message_id),
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+        'end_reason', p_end_reason,
+        'end_key', v_key,
+        'ended_by_grid_owner_at', v_now
+      ),
+      updated_at = v_now
+  where id = v_period.id;
+
+  -- Supply that would have started after the end date can no longer start.
+  update public.customer_supply_periods
+  set status = 'cancelled',
+      metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object('cancelled_by', 'supply_end', 'end_key', v_key),
+      updated_at = v_now
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and metering_point_id = p_metering_point_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and start_date > p_end_date;
+
+  v_contract_id := coalesce(v_period.customer_contract_id, v_period.contract_id);
+  if v_contract_id is not null then
+    select * into v_contract
+    from public.customer_contracts
+    where id = v_contract_id and company_id = p_company_id and customer_id = p_customer_id;
+
+    -- End the contract only when no other metering point is still supplied under it.
+    if found
+       and v_contract.status in ('signed', 'active')
+       and not exists (
+         select 1 from public.customer_supply_periods other
+         where other.company_id = p_company_id
+           and coalesce(other.customer_contract_id, other.contract_id) = v_contract_id
+           and other.id <> v_period.id
+           and other.status in ('active', 'confirmed_by_grid_owner')
+           and (coalesce(other.actual_end_date, other.end_date) is null
+                or coalesce(other.actual_end_date, other.end_date) > p_end_date)
+       ) then
+      perform public.gridex_record_customer_contract_event_v1(
+        p_company_id,
+        v_contract_id,
+        p_customer_id,
+        'terminated',
+        v_now,
+        case when v_switch
+          then 'Avtalet upphörde eftersom kunden bytte elleverantör.'
+          else 'Avtalet upphörde eftersom kunden flyttade.' end,
+        jsonb_build_object(
+          'ends_at', p_end_date,
+          'termination_notice_date', v_now,
+          'termination_reason', p_end_reason,
+          'reason_code', p_end_reason,
+          'source_message_id', p_source_message_id
+        ),
+        p_actor_user_id,
+        null,
+        'supply-end:' || v_contract_id::text || ':' || v_key
+      );
+      v_contract_ended := true;
+
+      -- A switch away inside the binding period may carry a break fee. Moving
+      -- out does not. The fee must be reasonable and follow the contract terms,
+      -- so it is never charged automatically; a person reviews it.
+      if v_switch and coalesce(v_contract.binding_months, 0) > 0 and v_contract.starts_at is not null then
+        v_binding_end := (v_contract.starts_at + make_interval(months => v_contract.binding_months))::date;
+        if v_binding_end > p_end_date then
+          v_break_fee_review := true;
+          insert into public.customer_operation_tasks (
+            company_id, customer_id, metering_point_id, task_type, status, priority,
+            title, description, metadata
+          ) values (
+            p_company_id, p_customer_id, p_metering_point_id, 'break_fee_review', 'open', 'normal',
+            'Bedöm brytavgift vid leverantörsbyte',
+            'Kunden bytte elleverantör före bindningstidens slut. Bedöm om och vilken brytavgift avtalet medger.',
+            jsonb_build_object(
+              'contract_id', v_contract_id,
+              'binding_months', v_contract.binding_months,
+              'binding_ends_at', v_binding_end,
+              'supply_end_date', p_end_date,
+              'end_key', v_key
+            )
+          );
+        end if;
+      end if;
+    end if;
+  end if;
+
+  -- Final invoice for the period up to the end date.
+  if not exists (
+    select 1 from public.customer_operation_tasks
+    where company_id = p_company_id and customer_id = p_customer_id
+      and task_type = 'final_invoice_pending'
+      and metadata->>'end_key' = v_key
+  ) then
+    insert into public.customer_operation_tasks (
+      company_id, customer_id, metering_point_id, task_type, status, priority,
+      title, description, metadata
+    ) values (
+      p_company_id, p_customer_id, p_metering_point_id, 'final_invoice_pending', 'open', 'high',
+      'Slutfaktura',
+      'Leveransen upphörde ' || to_char(p_end_date, 'YYYY-MM-DD') || '. Invänta slutavläsningen och fakturera perioden till och med slutdatumet.',
+      jsonb_build_object('supply_end_date', p_end_date, 'end_reason', p_end_reason, 'end_key', v_key)
+    );
+  end if;
+
+  -- The customer stays as a historical record; only the status changes when nothing is supplied any more.
+  select count(*) into v_remaining
+  from public.customer_supply_periods
+  where company_id = p_company_id
+    and customer_id = p_customer_id
+    and status in ('active', 'confirmed_by_grid_owner')
+    and (coalesce(actual_end_date, end_date) is null or coalesce(actual_end_date, end_date) > p_end_date);
+
+  v_new_status := v_customer.status;
+  if v_remaining = 0 and v_customer.status in ('active', 'pending_verification') then
+    v_new_status := case when v_switch then 'inactive' else 'moved' end;
+    update public.customers
+    set status = v_new_status,
+        moved_out_at = case when v_switch then moved_out_at else p_end_date end,
+        lifecycle_status_reason = case when v_switch
+          then 'Kunden har bytt elleverantör.'
+          else 'Kunden har flyttat.' end,
+        updated_at = v_now
+    where id = p_customer_id and company_id = p_company_id;
+  end if;
+
+  return jsonb_build_object(
+    'supply_period_id', v_period.id,
+    'already_applied', false,
+    'contract_ended', v_contract_ended,
+    'break_fee_review', v_break_fee_review,
+    'customer_status', v_new_status
+  );
+end
+$$;
 
 --
 -- Name: gridex_enforce_billing_underlay_price_area(); Type: FUNCTION; Schema: public; Owner: -
@@ -25245,6 +26561,52 @@ $$;
 COMMENT ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit integer) IS 'Escalates/resolves only actionable outbound PRODAT Z01 SLA dimensions, preventing resolved history from starving newer cases; never resends Z01.';
 
 --
+-- Name: gridex_expire_overdue_powers_of_attorney_v1(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer DEFAULT 100) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_limit integer := least(greatest(coalesce(p_limit, 100), 1), 500);
+  v_expired integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'poa_expiry_service_role_required';
+  end if;
+
+  with due as (
+    select id
+    from public.powers_of_attorney
+    where status in ('signed', 'active', 'accepted', 'sent', 'draft')
+      and valid_to is not null
+      and valid_to < current_date
+    order by valid_to, id
+    limit v_limit
+    for update skip locked
+  ),
+  expired as (
+    update public.powers_of_attorney poa
+    set status = 'expired', updated_at = now()
+    from due
+    where poa.id = due.id
+    returning poa.id, poa.company_id, poa.valid_to
+  ),
+  events as (
+    insert into public.power_of_attorney_events (company_id, power_of_attorney_id, event_type, payload)
+    select company_id, id, 'expired',
+           jsonb_build_object('valid_to', valid_to, 'source', 'customer_operations_cron')
+    from expired
+    returning 1
+  )
+  select count(*) into v_expired from events;
+
+  return jsonb_build_object('expired', v_expired);
+end
+$$;
+
+--
 -- Name: gridex_fail_website_contract_signature(uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -26564,6 +27926,104 @@ begin
     'market_date', v_market_date
   );
 end;
+$$;
+
+--
+-- Name: gridex_finalize_supplier_switch_v1(uuid, uuid, uuid, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_request public.supplier_switch_requests%rowtype;
+  v_site_before public.customer_sites%rowtype;
+  v_site_after public.customer_sites%rowtype;
+  v_point_before public.metering_points%rowtype;
+  v_point_after public.metering_points%rowtype;
+begin
+  perform public.gridex_assert_switch_writer_v1(p_company_id);
+
+  select * into v_request
+  from public.supplier_switch_requests
+  where id = p_request_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'supplier_switch_not_found_for_tenant';
+  end if;
+  if v_request.status = 'completed' then
+    return jsonb_build_object('already_completed', true, 'request', to_jsonb(v_request));
+  end if;
+  if v_request.status <> 'accepted' or v_request.inbound_z04_message_id is null then
+    raise exception using errcode = '23514', message = 'supplier_switch_finalize_requires_accepted_z04';
+  end if;
+
+  select * into v_site_before
+  from public.customer_sites
+  where id = v_request.site_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'supplier_switch_site_not_found_for_tenant';
+  end if;
+
+  update public.customer_sites
+  set current_supplier_name = v_request.incoming_supplier_name,
+      current_supplier_org_number = v_request.incoming_supplier_org_number,
+      status = case when status = 'closed' then 'closed' else 'active' end,
+      grid_owner_id = coalesce(grid_owner_id, v_request.grid_owner_id),
+      price_area_code = coalesce(price_area_code, v_request.price_area_code),
+      updated_by = p_actor_user_id
+  where id = v_site_before.id
+  returning * into v_site_after;
+
+  if v_request.metering_point_id is not null then
+    select * into v_point_before
+    from public.metering_points
+    where id = v_request.metering_point_id and company_id = p_company_id
+    for update;
+    if found then
+      update public.metering_points
+      set status = case when status = 'closed' then 'closed' else 'active' end,
+          grid_owner_id = coalesce(grid_owner_id, v_request.grid_owner_id),
+          price_area_code = coalesce(price_area_code, v_request.price_area_code),
+          updated_by = p_actor_user_id
+      where id = v_point_before.id
+      returning * into v_point_after;
+    end if;
+  end if;
+
+  update public.supplier_switch_requests
+  set status = 'completed', completed_at = now(), updated_by = p_actor_user_id, updated_at = now()
+  where id = p_request_id
+  returning * into v_request;
+
+  insert into public.supplier_switch_events (
+    switch_request_id, event_type, event_status, message, payload, company_id, created_by
+  ) values (
+    p_request_id,
+    coalesce(p_event->>'event_type', 'execution_completed'),
+    coalesce(p_event->>'event_status', 'completed'),
+    p_event->>'message',
+    coalesce(p_event->'payload', '{}'::jsonb) || jsonb_build_object(
+      'siteStatusBefore', v_site_before.status,
+      'siteStatusAfter', v_site_after.status,
+      'meteringPointStatusBefore', v_point_before.status,
+      'meteringPointStatusAfter', v_point_after.status
+    ),
+    p_company_id,
+    p_actor_user_id
+  );
+
+  return jsonb_build_object(
+    'already_completed', false,
+    'request', to_jsonb(v_request),
+    'site_before', to_jsonb(v_site_before),
+    'site_after', to_jsonb(v_site_after),
+    'metering_point_before', case when v_point_before.id is null then null else to_jsonb(v_point_before) end,
+    'metering_point_after', case when v_point_after.id is null then null else to_jsonb(v_point_after) end
+  );
+end
 $$;
 
 --
@@ -28080,6 +29540,8 @@ CREATE TABLE public.customer_info_requests (
     route_resolution_status text,
     route_resolution_reason text,
     next_required_action text,
+    automation_origin text,
+    automation_key text,
     CONSTRAINT customer_info_requests_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'missing_authorization'::text, 'ready_to_send'::text, 'sent_to_grid_owner'::text, 'waiting_for_contrl'::text, 'waiting_for_aperak'::text, 'waiting_for_z02'::text, 'z02_received'::text, 'negative_aperak'::text, 'manual_review_required'::text, 'missing_binding_info'::text, 'missing_termination_info'::text, 'ready_for_switch'::text, 'cancelled'::text, 'rejected'::text, 'completed'::text, 'blocked'::text])))
 );
 
@@ -28888,6 +30350,39 @@ begin
 end $$;
 
 --
+-- Name: gridex_guard_merged_portal_customer_write(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_guard_merged_portal_customer_write() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_merged_into uuid;
+begin
+  if new.customer_id is null then return new; end if;
+  if tg_op = 'UPDATE' then
+    -- UPDATE already owns a child tuple. Do not wait in the inverse lock order
+    -- of a merge (customer first, then child): fail safely instead of deadlock.
+    select merged_into_customer_id into v_merged_into from public.customers
+    where id = new.customer_id and company_id = new.company_id for share nowait;
+  else
+    select merged_into_customer_id into v_merged_into from public.customers
+    where id = new.customer_id and company_id = new.company_id for share;
+  end if;
+  if not found then
+    raise exception using errcode = '23514', message = 'customer_portal_customer_not_found_for_tenant';
+  end if;
+  if v_merged_into is not null then
+    raise exception using errcode = '23514', message = 'customer_merged_write_conflict';
+  end if;
+  return new;
+exception when lock_not_available then
+  raise exception using errcode = '23514', message = 'customer_merged_write_conflict';
+end
+$$;
+
+--
 -- Name: gridex_guard_meter_reading_series_tenant(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -29333,6 +30828,137 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) IS 'F-2: use this in RLS policies. gridex_has_permission(uid, perm) carries no tenant binding.';
+
+--
+-- Name: gridex_import_billing_underlays_v1(uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_content_sha text := nullif(p_batch->>'content_sha256', '');
+  v_batch_id uuid;
+  v_existing record;
+  v_row jsonb;
+  v_underlay jsonb;
+  v_underlay_id uuid;
+  v_columns text;
+  v_status text;
+  v_issues jsonb;
+  v_imported integer := 0;
+  v_failed integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'billing_import_service_role_required';
+  end if;
+  if p_company_id is null or p_actor_user_id is null or jsonb_typeof(p_rows) <> 'array' then
+    raise exception using errcode = '22023', message = 'billing_import_payload_invalid';
+  end if;
+
+  if v_content_sha is not null then
+    perform pg_advisory_xact_lock(hashtextextended('billing_import:' || p_company_id::text || ':' || v_content_sha, 0));
+    select id, rows_imported, rows_failed into v_existing
+    from public.billing_import_batches
+    where company_id = p_company_id
+      and metadata->>'content_sha256' = v_content_sha
+      and status in ('imported', 'partially_imported')
+    order by created_at desc
+    limit 1;
+    if found then
+      return jsonb_build_object('batch_id', v_existing.id, 'duplicate', true,
+        'imported', v_existing.rows_imported, 'failed', v_existing.rows_failed);
+    end if;
+  end if;
+
+  insert into public.billing_import_batches (
+    company_id, file_name, source_type, status, rows_total, issues, metadata, created_by
+  ) values (
+    p_company_id,
+    nullif(p_batch->>'file_name', ''),
+    coalesce(nullif(p_batch->>'source_type', ''), 'manual_paste'),
+    'previewed',
+    jsonb_array_length(p_rows),
+    coalesce(p_batch->'issues', '[]'::jsonb),
+    coalesce(p_batch->'metadata', '{}'::jsonb) || jsonb_build_object('content_sha256', v_content_sha),
+    p_actor_user_id
+  )
+  returning id into v_batch_id;
+
+  for v_row in select value from jsonb_array_elements(p_rows) loop
+    v_underlay_id := null;
+    v_issues := coalesce(v_row->'issues', '[]'::jsonb);
+    v_status := case when coalesce((v_row->>'has_errors')::boolean, false) then 'failed' else 'imported' end;
+    v_underlay := v_row->'underlay';
+
+    if v_status = 'imported' and v_underlay is not null and jsonb_typeof(v_underlay) = 'object' then
+      v_underlay := (v_underlay - array['id', 'company_id', 'created_by', 'updated_by'])
+        || jsonb_build_object(
+          'company_id', p_company_id,
+          'created_by', p_actor_user_id,
+          'updated_by', p_actor_user_id,
+          'payload', coalesce(v_underlay->'payload', '{}'::jsonb) || jsonb_build_object('importBatchId', v_batch_id)
+        );
+      select string_agg(quote_ident(key), ', ' order by key) into v_columns
+      from jsonb_object_keys(v_underlay) as key
+      where key in (
+        select attname from pg_attribute
+        where attrelid = 'public.billing_underlays'::regclass and attnum > 0 and not attisdropped
+      );
+      begin
+        execute format(
+          'insert into public.billing_underlays (%1$s) select %1$s from jsonb_populate_record(null::public.billing_underlays, $1) returning id',
+          v_columns
+        ) into v_underlay_id using v_underlay;
+      exception when others then
+        v_status := 'failed';
+        v_issues := v_issues || jsonb_build_array(jsonb_build_object(
+          'code', 'db_insert_failed',
+          'severity', 'error',
+          'title', 'Raden kunde inte importeras',
+          'description', sqlerrm
+        ));
+      end;
+    elsif v_status = 'imported' then
+      -- Nothing to import (no customer): never count it as imported.
+      v_status := 'failed';
+      v_issues := v_issues || jsonb_build_array(jsonb_build_object(
+        'code', 'customer_missing',
+        'severity', 'error',
+        'title', 'Kund saknas',
+        'description', 'Raden saknar kund och importerades inte.'
+      ));
+    end if;
+
+    if v_status = 'imported' then v_imported := v_imported + 1; else v_failed := v_failed + 1; end if;
+
+    insert into public.billing_import_rows (
+      import_batch_id, company_id, row_number, status, billing_underlay_id, normalized_payload, issues
+    ) values (
+      v_batch_id,
+      p_company_id,
+      nullif(v_row->>'row_number', '')::integer,
+      v_status,
+      v_underlay_id,
+      coalesce(v_row->'normalized_payload', '{}'::jsonb),
+      v_issues
+    );
+  end loop;
+
+  update public.billing_import_batches
+  set status = case
+        when v_failed > 0 and v_imported > 0 then 'partially_imported'
+        when v_failed > 0 then 'failed'
+        else 'imported' end,
+      rows_imported = v_imported,
+      rows_failed = v_failed,
+      imported_at = now()
+  where id = v_batch_id and company_id = p_company_id;
+
+  return jsonb_build_object('batch_id', v_batch_id, 'duplicate', false, 'imported', v_imported, 'failed', v_failed);
+end
+$_$;
 
 --
 -- Name: gridex_import_grid_area_geojson_feature(text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
@@ -29803,6 +31429,47 @@ begin
   );
   execute v_sql into v_result using p_payload;
   return v_result;
+end;
+$_$;
+
+--
+-- Name: gridex_internal_write_tenant_row_v1(regclass, uuid, uuid, jsonb, text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_internal_write_tenant_row_v1(p_table regclass, p_company_id uuid, p_id uuid, p_values jsonb, p_allowed text[]) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_cols text;
+  v_id uuid;
+begin
+  select string_agg(format('%I', key), ',' order by key)
+    into v_cols
+    from jsonb_object_keys(coalesce(p_values, '{}'::jsonb)) as key
+   where key = any(p_allowed);
+
+  if p_id is null then
+    if v_cols is null then
+      raise exception using errcode = '22023', message = 'tenant_row_insert_without_columns';
+    end if;
+    execute format(
+      'insert into %s (company_id,%s) select $1,%s from jsonb_populate_record(null::%s, $2) returning id',
+      p_table, v_cols, v_cols, p_table)
+      into v_id using p_company_id, p_values;
+    return v_id;
+  end if;
+
+  if v_cols is not null then
+    execute format(
+      'update %s set (%s) = (select %s from jsonb_populate_record(null::%s, $3)) where id = $1 and company_id = $2 returning id',
+      p_table, v_cols, v_cols, p_table)
+      into v_id using p_id, p_company_id, p_values;
+    if v_id is null then
+      raise exception using errcode = 'P0002', message = 'tenant_row_not_found_for_company';
+    end if;
+  end if;
+  return p_id;
 end;
 $_$;
 
@@ -32839,6 +34506,190 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_merge_customers_v1(uuid, uuid, uuid[], uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  -- Customer-scoped tables whose rows follow the surviving customer. Tables
+  -- without customer_id/company_id in this database are skipped.
+  v_tables constant text[] := array[
+    'customer_sites', 'metering_points', 'customer_contacts', 'customer_addresses',
+    'customer_contracts', 'customer_contract_events', 'powers_of_attorney',
+    'power_of_attorney_scopes', 'authorization_scopes', 'customer_authorization_documents',
+    'customer_cases', 'customer_case_events', 'customer_info_requests',
+    'customer_info_request_events', 'customer_internal_notes', 'customer_operation_tasks',
+    'customer_lifecycle_decisions', 'customer_lifecycle_events',
+    'customer_duplicate_resolution_events', 'customer_readiness_snapshots',
+    'document_ai_extractions', 'supplier_switch_requests', 'supplier_switch_events',
+    'grid_owner_data_requests', 'grid_owner_information_requests', 'outbound_requests', 'outbound_dispatch_events',
+    'billing_underlays', 'billing_export_run_items', 'partner_exports',
+    'tenant_email_outbox', 'ediel_messages', 'customer_import_rows',
+    'customer_case_attachments', 'customer_portal_accounts',
+    'customer_portal_identities', 'tenant_portal_customer_links',
+    'customer_profiles', 'customer_portal_claims', 'customer_portal_events',
+    'customer_portal_requests', 'customer_portal_completions',
+    'customer_portal_api_access_logs', 'customer_portal_write_idempotency',
+    'customer_events'
+  ];
+  v_primary public.customers%rowtype;
+  v_source public.customers%rowtype;
+  v_source_id uuid;
+  v_table text;
+  v_has_updated_by boolean;
+  v_rows integer;
+  v_moved jsonb;
+  v_snapshot jsonb;
+  v_results jsonb := '[]'::jsonb;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_merge_service_role_required';
+  end if;
+  if p_company_id is null or p_primary_customer_id is null or p_actor_user_id is null
+     or coalesce(cardinality(p_source_customer_ids), 0) = 0
+     or p_primary_customer_id = any (p_source_customer_ids)
+     or nullif(btrim(p_reason), '') is null then
+    raise exception using errcode = '22023', message = 'customer_merge_payload_invalid';
+  end if;
+
+  -- Lock every customer in a stable order to avoid deadlocks between merges.
+  perform 1 from public.customers
+  where company_id = p_company_id
+    and (id = p_primary_customer_id or id = any (p_source_customer_ids))
+  order by id
+  for update;
+
+  select * into v_primary from public.customers
+  where id = p_primary_customer_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_merge_primary_not_found_for_tenant';
+  end if;
+  if v_primary.merged_into_customer_id is not null or v_primary.status = 'archived' then
+    raise exception using errcode = '23514', message = 'customer_merge_primary_not_mergeable';
+  end if;
+
+  -- Lock binding rows after the customer graph, in a consistent table/key order.
+  perform 1 from public.customer_portal_accounts where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+  perform 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+  perform 1 from public.tenant_portal_customer_links where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids)) order by id for update;
+
+  -- The public portal/auth IDs belong to one external subject; native account
+  -- user_id has a different namespace and is deliberately not compared with it.
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and auth_user_id is not null and customer_portal_user_id is not null
+    and auth_user_id <> customer_portal_user_id) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+  -- Header-based identity resolution cannot choose between different providers
+  -- presenting the same raw external subject. Never collapse those providers.
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and coalesce(customer_portal_user_id, auth_user_id) is not null
+    group by coalesce(customer_portal_user_id, auth_user_id) having count(*) > 1) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+  if exists(select 1 from public.customer_portal_identities where company_id = p_company_id
+    and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+    and status = 'active' and nullif(btrim(external_account_id), '') is not null
+    group by external_account_id having count(*) > 1)
+    or exists(select 1 from public.customer_portal_accounts where company_id = p_company_id
+      and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+      and is_active and (nullif(lower(btrim(status)), '') is null or lower(btrim(status)) in ('active','confirmed','enabled'))
+      and nullif(btrim(external_account_id), '') is not null
+      group by external_account_id having count(*) > 1)
+    or exists(select 1 from public.tenant_portal_customer_links where company_id = p_company_id
+      and (customer_id = p_primary_customer_id or customer_id = any(p_source_customer_ids))
+      and status = 'active' and external_customer_id is not null
+      group by external_customer_id having count(*) > 1) then
+    raise exception using errcode = '23514', message = 'customer_merge_ambiguous_portal_subject';
+  end if;
+
+  set constraints customer_case_attachments_case_owner_fk, customer_case_events_case_owner_fk, customer_contracts_company_customer_customer_site_rel_fkey, customer_contracts_company_customer_site_rel_fkey, customer_info_requests_company_customer_site_rel_fkey, grid_owner_data_requests_company_customer_site_rel_fkey, grid_owner_information_requests_company_customer_site_rel_fkey, metering_points_company_customer_site_rel_fkey, outbound_requests_company_customer_customer_site_rel_fkey, outbound_requests_company_customer_site_rel_fkey, powers_of_attorney_company_customer_customer_site_rel_fkey, powers_of_attorney_company_customer_site_rel_fkey, supplier_switch_requests_company_customer_customer_site_rel_fke, supplier_switch_requests_company_customer_site_rel_fkey deferred;
+
+  foreach v_source_id in array (select array_agg(distinct s) from unnest(p_source_customer_ids) s) loop
+    select * into v_source from public.customers
+    where id = v_source_id and company_id = p_company_id;
+    if not found then
+      -- Also the answer for another tenant's customer: never reveal or touch it.
+      raise exception using errcode = 'P0002', message = 'customer_merge_source_not_found_for_tenant', detail = v_source_id::text;
+    end if;
+    if v_source.merged_into_customer_id is not null then
+      raise exception using errcode = '23514', message = 'customer_merge_source_already_merged', detail = v_source_id::text;
+    end if;
+
+    v_moved := '{}'::jsonb;
+    foreach v_table in array v_tables loop
+      if to_regclass('public.' || v_table) is null
+         or not exists (select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
+                        and attname = 'customer_id' and not attisdropped)
+         or not exists (select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
+                        and attname = 'company_id' and not attisdropped) then
+        continue;
+      end if;
+      v_has_updated_by := v_table <> 'customer_import_rows' and exists (
+        select 1 from pg_attribute where attrelid = to_regclass('public.' || v_table)
+          and attname = 'updated_by' and not attisdropped);
+      execute format(
+        'update public.%I set customer_id = $1%s where customer_id = $2 and company_id = $3',
+        v_table, case when v_has_updated_by then ', updated_by = $4' else '' end
+      ) using p_primary_customer_id, v_source_id, p_company_id, p_actor_user_id;
+      get diagnostics v_rows = row_count;
+      v_moved := v_moved || jsonb_build_object(v_table, v_rows);
+    end loop;
+
+    v_snapshot := jsonb_build_object(
+      'id', v_source.id,
+      'customer_number', v_source.customer_number,
+      'full_name', v_source.full_name,
+      'company_name', v_source.company_name,
+      'email', v_source.email,
+      'status', v_source.status
+    );
+
+    update public.customers
+    set status = 'inactive',
+        merge_status = 'merged',
+        merged_into_customer_id = p_primary_customer_id,
+        merged_at = now(),
+        merged_by = p_actor_user_id,
+        duplicate_review_status = 'merged',
+        possible_duplicate = false,
+        updated_by = p_actor_user_id,
+        updated_at = now()
+    where id = v_source_id and company_id = p_company_id;
+
+    insert into public.customer_merge_events (
+      company_id, primary_customer_id, merged_customer_id, reason, moved_counts, source_snapshot, created_by
+    ) values (
+      p_company_id, p_primary_customer_id, v_source_id, p_reason, v_moved, v_snapshot, p_actor_user_id
+    );
+
+    insert into public.audit_logs (
+      actor_user_id, company_id, entity_type, entity_id, action, old_values, new_values, metadata
+    ) values (
+      p_actor_user_id, p_company_id, 'customer_merge', p_primary_customer_id::text, 'customers_merged',
+      jsonb_build_object('source', v_snapshot),
+      jsonb_build_object('primaryCustomerId', p_primary_customer_id, 'mergedCustomerId', v_source_id, 'moved', v_moved),
+      jsonb_build_object('reason', p_reason, 'crossTenantBlocked', false, 'source', 'gridex_merge_customers_v1')
+    );
+
+    v_results := v_results || jsonb_build_array(jsonb_build_object('merged_customer_id', v_source_id, 'moved', v_moved));
+  end loop;
+
+  set constraints customer_case_attachments_case_owner_fk, customer_case_events_case_owner_fk, customer_contracts_company_customer_customer_site_rel_fkey, customer_contracts_company_customer_site_rel_fkey, customer_info_requests_company_customer_site_rel_fkey, grid_owner_data_requests_company_customer_site_rel_fkey, grid_owner_information_requests_company_customer_site_rel_fkey, metering_points_company_customer_site_rel_fkey, outbound_requests_company_customer_customer_site_rel_fkey, outbound_requests_company_customer_site_rel_fkey, powers_of_attorney_company_customer_customer_site_rel_fkey, powers_of_attorney_company_customer_site_rel_fkey, supplier_switch_requests_company_customer_customer_site_rel_fke, supplier_switch_requests_company_customer_site_rel_fkey immediate;
+
+  return jsonb_build_object('primary_customer_id', p_primary_customer_id, 'merged', v_results);
+end
+$_$;
 
 --
 -- Name: gridex_new_offer_reference(text); Type: FUNCTION; Schema: public; Owner: -
@@ -40377,6 +42228,46 @@ begin
 end $$;
 
 --
+-- Name: gridex_record_invoice_purchase_request_v1(uuid, uuid, text, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_event_id uuid;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'invoice_purchase_service_role_required';
+  end if;
+  if p_company_id is null or p_invoice_export_item_id is null
+     or p_financing_mode not in ('factoring_without_recourse', 'factoring_with_recourse') then
+    raise exception using errcode = '22023', message = 'invoice_purchase_payload_invalid';
+  end if;
+
+  update public.invoice_export_items
+  set purchase_status = 'requested',
+      financing_mode = p_financing_mode,
+      updated_at = now()
+  where id = p_invoice_export_item_id and company_id = p_company_id;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'invoice_export_item_not_found_for_tenant';
+  end if;
+
+  insert into public.invoice_purchase_events (
+    company_id, invoice_export_item_id, event_type, purchase_status, finance_status, payload, created_by
+  ) values (
+    p_company_id, p_invoice_export_item_id, 'purchase_requested_manual', 'requested', p_financing_mode,
+    coalesce(p_payload, '{}'::jsonb), p_actor_user_id
+  )
+  returning id into v_event_id;
+
+  return jsonb_build_object('event_id', v_event_id);
+end
+$$;
+
+--
 -- Name: gridex_record_legacy_api_key_use_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -40682,6 +42573,107 @@ begin
   returning * into v_result;
   return v_result;
 end $_$;
+
+--
+-- Name: gridex_register_customer_lifecycle_decision_v1(uuid, uuid, uuid, text, text, uuid, timestamp with time zone, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_register_customer_lifecycle_decision_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_decision_type text, p_scope_type text, p_scope_id uuid, p_received_at timestamp with time zone, p_reason text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_now timestamptz := now();
+  v_received timestamptz := coalesce(p_received_at, now());
+  v_reason text := coalesce(nullif(btrim(p_reason), ''), 'Kundbeslut registrerat.');
+  v_result jsonb := '{}'::jsonb;
+  v_rows integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'lifecycle_decision_service_role_required';
+  end if;
+  if p_company_id is null or p_customer_id is null or p_actor_user_id is null
+     or p_decision_type not in ('withdrawal', 'cancelled', 'rejected')
+     or p_scope_type not in ('customer', 'contract', 'site', 'metering_point')
+     or (p_scope_type <> 'customer' and p_scope_id is null) then
+    raise exception using errcode = '22023', message = 'lifecycle_decision_payload_invalid';
+  end if;
+
+  perform 1 from public.customers
+  where id = p_customer_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_tenant';
+  end if;
+
+  if p_scope_type = 'customer' then
+    -- The whole customer relationship ends: the canonical archive closes the graph.
+    v_result := public.gridex_archive_customer_v1(p_company_id, p_customer_id, p_actor_user_id, v_reason);
+    update public.customers
+    set lifecycle_status_reason = v_reason,
+        lifecycle_closed_at = coalesce(lifecycle_closed_at, v_now)
+    where id = p_customer_id and company_id = p_company_id;
+
+  elsif p_scope_type = 'contract' then
+    perform 1 from public.customer_contracts
+    where id = p_scope_id and company_id = p_company_id and customer_id = p_customer_id;
+    if not found then
+      raise exception using errcode = 'P0002', message = 'contract_not_found_for_customer';
+    end if;
+    v_result := public.gridex_record_customer_contract_event_v1(
+      p_company_id,
+      p_scope_id,
+      p_customer_id,
+      'cancelled',
+      v_received,
+      v_reason,
+      jsonb_build_object(
+        'reason_code', case when p_decision_type = 'withdrawal' then 'cancelled_by_customer' else p_decision_type end,
+        'withdrawal_requested_at', case when p_decision_type = 'withdrawal' then v_received end,
+        'rejected_reason', case when p_decision_type = 'rejected' then v_reason end,
+        'termination_reason', case p_decision_type
+          when 'withdrawal' then 'customer_withdrawal'
+          when 'cancelled' then 'customer_request'
+          else 'other' end,
+        'termination_notice_date', v_received,
+        'ends_at', to_char(v_now at time zone 'UTC', 'YYYY-MM-DD')
+      ),
+      p_actor_user_id,
+      null,
+      'lifecycle-decision:' || p_scope_id::text || ':' || p_decision_type
+    );
+
+  elsif p_scope_type = 'site' then
+    update public.customer_sites
+    set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_by = p_actor_user_id
+    where id = p_scope_id and customer_id = p_customer_id and company_id = p_company_id;
+    get diagnostics v_rows = row_count;
+    if v_rows = 0 then
+      raise exception using errcode = 'P0002', message = 'site_not_found_for_customer';
+    end if;
+    update public.metering_points
+    set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_by = p_actor_user_id
+    where site_id = p_scope_id and company_id = p_company_id and status <> 'closed';
+    get diagnostics v_rows = row_count;
+    v_result := jsonb_build_object('closed_metering_points', v_rows);
+
+  else
+    update public.metering_points
+    set status = 'closed', closed_at = v_now, closed_reason = v_reason, updated_by = p_actor_user_id
+    where id = p_scope_id
+      and company_id = p_company_id
+      and (customer_id = p_customer_id
+        or site_id in (select s.id from public.customer_sites s
+                       where s.customer_id = p_customer_id and s.company_id = p_company_id));
+    get diagnostics v_rows = row_count;
+    if v_rows = 0 then
+      raise exception using errcode = 'P0002', message = 'metering_point_not_found_for_customer';
+    end if;
+  end if;
+
+  return jsonb_build_object('scope_type', p_scope_type, 'scope_id', p_scope_id, 'effect', v_result);
+end
+$$;
 
 --
 -- Name: gridex_register_late_metering_correction(uuid, uuid, uuid, uuid, text, text); Type: FUNCTION; Schema: public; Owner: -
@@ -43566,6 +45558,157 @@ begin
 end $$;
 
 --
+-- Name: gridex_save_website_application_review_v1(uuid, uuid, jsonb, jsonb, jsonb, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb DEFAULT NULL::jsonb, p_metering_point jsonb DEFAULT NULL::jsonb, p_contract jsonb DEFAULT NULL::jsonb, p_application jsonb DEFAULT '{}'::jsonb, p_customer jsonb DEFAULT NULL::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_app public.website_customer_applications%rowtype;
+  v_site_id uuid;
+  v_mp_id uuid;
+  v_contract_id uuid;
+  v_contract_created boolean := false;
+  v_values jsonb;
+  v_result jsonb;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'website_application_review_service_role_required';
+  end if;
+  if p_company_id is null or p_application_id is null then
+    raise exception using errcode = '22023', message = 'website_application_review_payload_invalid';
+  end if;
+
+  select * into v_app
+    from public.website_customer_applications
+   where id = p_application_id and company_id = p_company_id
+   for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'website_application_not_found_for_company';
+  end if;
+
+  v_site_id := v_app.customer_site_id;
+  v_mp_id := v_app.metering_point_id;
+  v_contract_id := v_app.contract_id;
+
+  if v_app.customer_id is not null then
+    -- Site: update the linked site, or create it for the application's customer.
+    if jsonb_typeof(p_site) = 'object' then
+      v_values := p_site || jsonb_build_object('customer_id', v_app.customer_id, 'updated_at', now());
+      v_site_id := public.gridex_internal_write_tenant_row_v1(
+        'public.customer_sites', p_company_id, v_site_id, v_values,
+        array['customer_id','site_name','site_type','status','facility_id','street','postal_code','city','country',
+              'grid_owner_id','grid_area_code','price_area_code','resolution_status','facility_data_verified_at',
+              'move_in_date','metadata','updated_at']);
+    end if;
+
+    -- Metering point: needs a site.
+    if jsonb_typeof(p_metering_point) = 'object' and v_site_id is not null then
+      v_values := p_metering_point || jsonb_build_object(
+        'customer_id', v_app.customer_id, 'site_id', v_site_id, 'customer_site_id', v_site_id, 'updated_at', now());
+      v_mp_id := public.gridex_internal_write_tenant_row_v1(
+        'public.metering_points', p_company_id, v_mp_id, v_values,
+        array['customer_id','site_id','customer_site_id','metering_point_id','meter_point_id','ediel_metering_point_id',
+              'anlage_id','site_facility_id','measurement_type','reading_frequency','price_area_code','grid_area_code',
+              'facility_data_verified_at','start_date','status','verification_status','onboarding_status',
+              'data_quality_status','is_settlement_relevant','metadata','updated_at']);
+    end if;
+
+    -- Contract: only when the application has none yet; reuse one already
+    -- created for this application (idempotent re-save).
+    if v_contract_id is null and jsonb_typeof(p_contract) = 'object' and p_contract->>'mode' = 'existing' then
+      -- A matching contract found by the application; it must be this customer's.
+      select id into v_contract_id
+        from public.customer_contracts
+       where id = nullif(p_contract->>'contract_id', '')::uuid
+         and company_id = p_company_id
+         and customer_id = v_app.customer_id;
+      if v_contract_id is null then
+        raise exception using errcode = 'P0002', message = 'website_application_contract_not_found_for_customer';
+      end if;
+    end if;
+
+    if v_contract_id is null and jsonb_typeof(p_contract) = 'object' then
+      select id into v_contract_id
+        from public.customer_contracts
+       where company_id = p_company_id
+         and customer_id = v_app.customer_id
+         and (website_application_id = v_app.id or metadata->>'application_id' = v_app.id::text)
+       order by created_at desc
+       limit 1;
+
+      if v_contract_id is null then
+        v_values := (p_contract->'payload') || jsonb_build_object(
+          'customer_id', v_app.customer_id,
+          'site_id', v_site_id, 'customer_site_id', v_site_id,
+          'metering_point_id', v_mp_id,
+          'website_application_id', v_app.id);
+        if p_contract->>'mode' = 'published' then
+          -- Bound to the locked public offer through the canonical contract RPC.
+          v_result := public.gridex_create_website_customer_contract(
+            p_company_id, v_values, nullif(p_contract->>'customer_number', ''));
+          v_contract_id := nullif(v_result->'contract'->>'id', '')::uuid;
+          if v_contract_id is null then
+            raise exception using errcode = 'P0001', message = 'website_contract_rpc_returned_no_id';
+          end if;
+        elsif p_contract->>'mode' = 'draft' then
+          v_contract_id := public.gridex_internal_write_tenant_row_v1(
+            'public.customer_contracts', p_company_id, null, v_values,
+            array['customer_id','site_id','customer_site_id','metering_point_id','source_type','status','contract_name',
+                  'contract_type','starts_at','expected_start_at','requested_start_date','requested_start_mode',
+                  'calculated_earliest_start_date','price_area_used','grid_area_code_used','resolution_status',
+                  'confirmed_start_date','actual_start_date','agreement_channel','metadata','website_application_id',
+                  'updated_at']);
+        else
+          raise exception using errcode = '22023', message = 'website_application_contract_mode_invalid';
+        end if;
+        v_contract_created := true;
+      end if;
+    end if;
+
+    if jsonb_typeof(p_customer) = 'object' then
+      perform public.gridex_internal_write_tenant_row_v1(
+        'public.customers', p_company_id, v_app.customer_id, p_customer || jsonb_build_object('updated_at', now()),
+        array['intake_status','intake_missing_fields','intake_quality_score','intake_warnings','updated_at']);
+    end if;
+  end if;
+
+  v_values := coalesce(p_application, '{}'::jsonb) || jsonb_build_object(
+    'customer_site_id', v_site_id, 'metering_point_id', v_mp_id, 'contract_id', v_contract_id, 'updated_at', now());
+  if jsonb_typeof(p_application->'audit_log') = 'array' and jsonb_array_length(p_application->'audit_log') > 0 then
+    -- The review's own audit entry (the last one) records the ids actually written.
+    v_values := v_values || jsonb_build_object('audit_log', jsonb_set(
+      p_application->'audit_log',
+      array[(jsonb_array_length(p_application->'audit_log') - 1)::text, 'new_values'],
+      coalesce(p_application->'audit_log'->-1->'new_values', '{}'::jsonb) || jsonb_build_object(
+        'customer_site_id', v_site_id, 'metering_point_id', v_mp_id, 'contract_id', v_contract_id)));
+  end if;
+  if jsonb_typeof(p_application->'response_payload') = 'object' then
+    -- The API status response carries the same ids the application row does.
+    v_values := v_values || jsonb_build_object('response_payload',
+      (p_application->'response_payload') || jsonb_build_object(
+        'customer_site_id', v_site_id, 'metering_point_id', v_mp_id, 'contract_id', v_contract_id));
+  end if;
+  perform public.gridex_internal_write_tenant_row_v1(
+    'public.website_customer_applications', p_company_id, v_app.id, v_values,
+    array['status','payload','response_payload','customer_site_id','metering_point_id','contract_id','missing_fields',
+          'blocking_reasons','next_step','requested_start_date','confirmed_start_date','actual_start_date',
+          'requested_start_mode','calculated_earliest_start_date','grid_area_code','price_area_code','resolution_status',
+          'facility_data_verified_at','warnings','timeline','audit_log','assigned_to','admin_note','updated_at']);
+
+  return jsonb_build_object(
+    'ok', true,
+    'application_id', v_app.id,
+    'customer_site_id', v_site_id,
+    'metering_point_id', v_mp_id,
+    'contract_id', v_contract_id,
+    'contract_created', v_contract_created);
+end;
+$$;
+
+--
 -- Name: gridex_scan_ediel_canonical_repairs(uuid, boolean, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44558,6 +46701,81 @@ BEGIN
   RETURN jsonb_build_object('provider', p_provider, 'environment', p_environment,
                             'connection_created', v_connection_id IS NOT NULL);
 END $$;
+
+--
+-- Name: gridex_set_billing_period_lock_v1(uuid, text, boolean, text, uuid, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb DEFAULT '{}'::jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_now timestamptz := now();
+  v_year integer;
+  v_month integer;
+  v_status text := case when p_locked then coalesce(nullif(p_status, ''), 'locked') else 'reopened' end;
+  v_lock public.billing_period_locks%rowtype;
+  v_unlocked_runs integer := 0;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'billing_period_lock_service_role_required';
+  end if;
+  if p_company_id is null or p_locked is null or p_billing_month !~ '^\d{4}-(0[1-9]|1[0-2])$'
+     or (p_locked and v_status not in ('locked', 'exported', 'closed')) then
+    raise exception using errcode = '22023', message = 'billing_period_lock_payload_invalid';
+  end if;
+  v_year := split_part(p_billing_month, '-', 1)::integer;
+  v_month := split_part(p_billing_month, '-', 2)::integer;
+
+  if p_locked then
+    insert into public.billing_period_locks (
+      company_id, billing_year, billing_month, status, locked_by, locked_at, unlocked_by, unlocked_at,
+      lock_reason, metadata, updated_at
+    ) values (
+      p_company_id, v_year, v_month, v_status, p_actor_user_id, v_now, null, null,
+      coalesce(p_reason, 'Fakturaperioden är låst.'), coalesce(p_metadata, '{}'::jsonb), v_now
+    )
+    on conflict (company_id, billing_year, billing_month) do update set
+      status = excluded.status, locked_by = excluded.locked_by, locked_at = excluded.locked_at,
+      unlocked_by = null, unlocked_at = null, lock_reason = excluded.lock_reason,
+      metadata = excluded.metadata, updated_at = excluded.updated_at
+    returning * into v_lock;
+
+    insert into public.price_period_locks (
+      company_id, billing_month, lock_scope, status, locked_by, locked_at, reason, metadata
+    ) values (
+      p_company_id, p_billing_month, 'billing_period', 'locked', p_actor_user_id, v_now,
+      coalesce(p_reason, 'Fakturaperioden är låst.'), coalesce(p_metadata, '{}'::jsonb)
+    )
+    on conflict (company_id, billing_month, lock_scope) do update set
+      status = 'locked', locked_by = excluded.locked_by, locked_at = excluded.locked_at,
+      reason = excluded.reason, metadata = excluded.metadata;
+  else
+    insert into public.billing_period_locks (
+      company_id, billing_year, billing_month, status, unlocked_by, unlocked_at, lock_reason, updated_at
+    ) values (
+      p_company_id, v_year, v_month, 'reopened', p_actor_user_id, v_now,
+      coalesce(p_reason, 'Fakturaperioden har låsts upp.'), v_now
+    )
+    on conflict (company_id, billing_year, billing_month) do update set
+      status = 'reopened', unlocked_by = excluded.unlocked_by, unlocked_at = excluded.unlocked_at,
+      lock_reason = excluded.lock_reason, updated_at = excluded.updated_at
+    returning * into v_lock;
+
+    update public.price_period_locks
+    set status = 'unlocked', reason = coalesce(p_reason, 'Fakturaperioden har låsts upp.')
+    where company_id = p_company_id
+      and billing_month = p_billing_month
+      and lock_scope in ('billing_period', 'invoice_export');
+
+    v_unlocked_runs := public.gridex_unlock_pricing_runs_for_month(
+      p_company_id, p_billing_month, p_actor_user_id, coalesce(p_reason, 'billing_period_unlocked'));
+  end if;
+
+  return jsonb_build_object('lock', to_jsonb(v_lock), 'unlocked_pricing_runs', coalesce(v_unlocked_runs, 0));
+end
+$_$;
 
 --
 -- Name: gridex_set_contract_channel_permission(uuid, uuid, text, boolean, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -46647,6 +48865,77 @@ begin
     where s.id = v_row.id
   );
 end $$;
+
+--
+-- Name: gridex_transition_supplier_switch_v1(uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_transition_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_patch jsonb, p_event jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $_$
+declare
+  v_before public.supplier_switch_requests%rowtype;
+  v_after public.supplier_switch_requests%rowtype;
+  v_patch jsonb := coalesce(p_patch, '{}'::jsonb) - 'updated_at';
+  v_key text;
+  v_set text;
+  v_allowed constant text[] := array[
+    'status', 'requested_start_date', 'confirmed_start_date', 'submitted_at', 'completed_at',
+    'failed_at', 'failure_reason', 'external_reference', 'validation_snapshot', 'metadata',
+    'lifecycle_blocked', 'lifecycle_block_source', 'lifecycle_block_id', 'pause_reason',
+    'paused_at', 'paused_by', 'inbound_z04_message_id', 'updated_by',
+    'authorization_document_id', 'power_of_attorney_id', 'operation_id'
+  ];
+begin
+  perform public.gridex_assert_switch_writer_v1(p_company_id);
+
+  select * into v_before
+  from public.supplier_switch_requests
+  where id = p_request_id and company_id = p_company_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'supplier_switch_not_found_for_tenant';
+  end if;
+
+  for v_key in select jsonb_object_keys(v_patch) loop
+    if not v_key = any (v_allowed) then
+      raise exception using errcode = '22023', message = 'supplier_switch_patch_column_not_allowed', detail = v_key;
+    end if;
+  end loop;
+
+  -- Only the keys the caller sent are written; identity and tenant columns never move.
+  select string_agg(format('%1$I = patch.%1$I', key), ', ')
+  into v_set
+  from jsonb_object_keys(v_patch) as key;
+  v_set := concat_ws(', ', v_set, 'updated_at = now()');
+
+  execute format(
+    'update public.supplier_switch_requests target set %s
+       from jsonb_populate_record(null::public.supplier_switch_requests, $3) as patch
+      where target.id = $1 and target.company_id = $2
+      returning target.*',
+    v_set
+  ) into v_after using p_request_id, p_company_id, v_patch;
+
+  if p_event is not null then
+    insert into public.supplier_switch_events (
+      switch_request_id, event_type, event_status, message, payload, company_id, created_by
+    ) values (
+      p_request_id,
+      coalesce(p_event->>'event_type', 'status_changed'),
+      coalesce(p_event->>'event_status', 'success'),
+      p_event->>'message',
+      coalesce(p_event->'payload', '{}'::jsonb)
+        || jsonb_build_object('previous_status', v_before.status, 'new_status', v_after.status),
+      p_company_id,
+      nullif(p_event->>'created_by', '')::uuid
+    );
+  end if;
+
+  return jsonb_build_object('before', to_jsonb(v_before), 'request', to_jsonb(v_after));
+end
+$_$;
 
 --
 -- Name: gridex_transition_tenant_lifecycle(uuid, text, uuid, text); Type: FUNCTION; Schema: public; Owner: -
@@ -57687,6 +59976,59 @@ CREATE TABLE public.customer_correction_requests (
 );
 
 --
+-- Name: customer_data_quality_open_issues; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.customer_data_quality_open_issues WITH (security_invoker='true') AS
+ SELECT c.company_id,
+    (c.id)::text AS entity_id,
+    c.id AS customer_id,
+    'customer'::text AS entity_type,
+    issue.issue_key,
+    issue.severity,
+    issue.message,
+    issue.evidence
+   FROM (public.customers c
+     CROSS JOIN LATERAL ( VALUES (
+                CASE
+                    WHEN ((c.personal_number IS NOT NULL) AND (regexp_replace(c.personal_number, '\D'::text, ''::text, 'g'::text) !~ '^\d{10}$|^\d{12}$'::text)) THEN 'invalid_personal_number'::text
+                    ELSE NULL::text
+                END,'critical'::text,'Personnummer har ogiltigt format.'::text,jsonb_build_object('personal_number', c.personal_number)), (
+                CASE
+                    WHEN ((c.org_number IS NOT NULL) AND (regexp_replace(c.org_number, '\D'::text, ''::text, 'g'::text) !~ '^\d{10}$|^\d{12}$'::text)) THEN 'invalid_org_number'::text
+                    ELSE NULL::text
+                END,'critical'::text,'Organisationsnummer har ogiltigt format.'::text,jsonb_build_object('org_number', c.org_number)), (
+                CASE
+                    WHEN ((c.email IS NOT NULL) AND (c.email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'::text)) THEN 'invalid_email'::text
+                    ELSE NULL::text
+                END,'warning'::text,'E-post har ogiltigt format.'::text,jsonb_build_object('email', c.email))) issue(issue_key, severity, message, evidence))
+  WHERE (issue.issue_key IS NOT NULL)
+UNION ALL
+ SELECT a.company_id,
+    (a.id)::text AS entity_id,
+    a.customer_id,
+    'customer_address'::text AS entity_type,
+    'invalid_postal_code'::text AS issue_key,
+    'warning'::text AS severity,
+    'Postnummer ska anges som 12345 eller 123 45.'::text AS message,
+    jsonb_build_object('postal_code', a.postal_code) AS evidence
+   FROM public.customer_addresses a
+  WHERE ((a.postal_code IS NOT NULL) AND (a.postal_code !~ '^\d{3}\s?\d{2}$'::text))
+UNION ALL
+ SELECT c.company_id,
+    (c.id)::text AS entity_id,
+    c.id AS customer_id,
+    'customer'::text AS entity_type,
+    'missing_signed_power_of_attorney'::text AS issue_key,
+    'warning'::text AS severity,
+    'Kunden saknar signerad fullmakt.'::text AS message,
+    '{}'::jsonb AS evidence
+   FROM public.customers c
+  WHERE (NOT (EXISTS ( SELECT 1
+           FROM public.powers_of_attorney p
+          WHERE ((p.customer_id = c.id) AND (p.company_id = c.company_id) AND (p.status = 'signed'::text)))));
+
+--
 -- Name: customer_data_tasks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -58006,6 +60348,25 @@ CREATE TABLE public.customer_lifecycle_decisions (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT customer_lifecycle_decisions_decision_type_check CHECK ((decision_type = ANY (ARRAY['withdrawal'::text, 'rejected'::text]))),
     CONSTRAINT customer_lifecycle_decisions_scope_type_check CHECK ((scope_type = ANY (ARRAY['customer'::text, 'contract'::text, 'site'::text, 'metering_point'::text])))
+);
+
+--
+-- Name: customer_lifecycle_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.customer_lifecycle_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid,
+    customer_id uuid NOT NULL,
+    event_type text NOT NULL,
+    event_status text DEFAULT 'completed'::text NOT NULL,
+    effective_date date,
+    reason text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT customer_lifecycle_events_status_check CHECK ((event_status = ANY (ARRAY['draft'::text, 'completed'::text, 'cancelled'::text]))),
+    CONSTRAINT customer_lifecycle_events_type_check CHECK ((event_type = ANY (ARRAY['move_out'::text, 'terminate'::text, 'restore'::text, 'note'::text])))
 );
 
 --
@@ -58612,7 +60973,21 @@ CREATE TABLE public.customer_portal_claims (
     expires_at timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_email text,
+    match_method text DEFAULT 'self_claim'::text NOT NULL,
+    personal_number_last4 text,
+    email_matched boolean DEFAULT false NOT NULL,
+    name_matched boolean DEFAULT false NOT NULL,
+    personal_number_matched boolean DEFAULT false NOT NULL,
+    installation_matched boolean DEFAULT false NOT NULL,
+    matched_site_id uuid,
+    matched_metering_point_id uuid,
+    failure_reason text,
+    input_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    match_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    reviewed_by uuid,
+    reviewed_at timestamp with time zone
 );
 
 --
@@ -58656,7 +61031,10 @@ CREATE TABLE public.customer_portal_events (
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb,
-    updated_at timestamp with time zone DEFAULT now()
+    updated_at timestamp with time zone DEFAULT now(),
+    actor_user_id uuid,
+    event_status text DEFAULT 'info'::text NOT NULL,
+    message text
 );
 
 --
@@ -62571,6 +64949,42 @@ CREATE TABLE public.grid_area_mappings (
     valid_to date,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
+);
+
+--
+-- Name: grid_owner_access_agreements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.grid_owner_access_agreements (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    grid_owner_id uuid,
+    agreement_type text DEFAULT 'metering_access'::text NOT NULL,
+    agreement_scope text DEFAULT 'metering_access'::text NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    agreement_reference text,
+    external_agreement_number text,
+    valid_from date,
+    valid_to date,
+    signed_at timestamp with time zone,
+    document_id uuid,
+    document_path text,
+    requires_customer_authorization boolean DEFAULT true NOT NULL,
+    requires_metering_point_id boolean DEFAULT true NOT NULL,
+    requires_facility_id boolean DEFAULT false NOT NULL,
+    requires_customer_personal_number boolean DEFAULT false NOT NULL,
+    requires_report_period boolean DEFAULT false NOT NULL,
+    preferred_application_reference text,
+    preferred_message_version text,
+    preferred_receiver_ediel_id text,
+    preferred_receiver_sub_address text,
+    preferred_route_id uuid,
+    reference_requirements jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 --
@@ -70736,6 +73150,31 @@ CREATE TABLE public.tenant_ediel_profiles (
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: tenant_email_domains; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_email_domains (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    domain text NOT NULL,
+    provider text DEFAULT 'smtp'::text NOT NULL,
+    provider_domain_id text,
+    status text DEFAULT 'pending_dns'::text NOT NULL,
+    spf_status text DEFAULT 'pending'::text NOT NULL,
+    dkim_status text DEFAULT 'pending'::text NOT NULL,
+    dmarc_status text DEFAULT 'pending'::text NOT NULL,
+    bounce_status text DEFAULT 'pending'::text NOT NULL,
+    last_checked_at timestamp with time zone,
+    failure_reason text,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_by uuid,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tenant_email_domains_status_check CHECK ((status = ANY (ARRAY['pending_dns'::text, 'verifying'::text, 'verified'::text, 'failed'::text, 'disabled'::text])))
+);
+
+--
 -- Name: tenant_email_outbox_runs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -72787,6 +75226,13 @@ ALTER TABLE ONLY public.customer_lifecycle_decisions
     ADD CONSTRAINT customer_lifecycle_decisions_pkey PRIMARY KEY (id);
 
 --
+-- Name: customer_lifecycle_events customer_lifecycle_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_lifecycle_events
+    ADD CONSTRAINT customer_lifecycle_events_pkey PRIMARY KEY (id);
+
+--
 -- Name: customer_match_review_cases customer_match_review_cases_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -74250,6 +76696,13 @@ ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_pkey PRIMARY KEY (id);
 
 --
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_pkey PRIMARY KEY (id);
+
+--
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -75648,6 +78101,20 @@ ALTER TABLE ONLY public.tenant_ediel_profiles
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_email_domains tenant_email_domains_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_email_domains tenant_email_domains_unique; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_unique UNIQUE (company_id, domain);
 
 --
 -- Name: tenant_email_outbox tenant_email_outbox_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -77250,6 +79717,12 @@ CREATE INDEX customer_info_request_events_request_idx ON public.customer_info_re
 CREATE INDEX customer_info_requests_blocker_code_idx ON public.customer_info_requests USING btree (company_id, blocker_code, updated_at DESC) WHERE (blocker_code IS NOT NULL);
 
 --
+-- Name: customer_info_requests_company_automation_key_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_info_requests_company_automation_key_uidx ON public.customer_info_requests USING btree (company_id, automation_key) WHERE (automation_key IS NOT NULL);
+
+--
 -- Name: customer_info_requests_company_customer_created_chain_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -77416,6 +79889,18 @@ CREATE INDEX customer_lifecycle_decisions_company_customer_idx ON public.custome
 --
 
 CREATE INDEX customer_lifecycle_decisions_company_scope_idx ON public.customer_lifecycle_decisions USING btree (company_id, scope_type, scope_id) WHERE (scope_id IS NOT NULL);
+
+--
+-- Name: customer_lifecycle_events_company_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_lifecycle_events_company_created_idx ON public.customer_lifecycle_events USING btree (company_id, created_at DESC);
+
+--
+-- Name: customer_lifecycle_events_customer_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customer_lifecycle_events_customer_created_idx ON public.customer_lifecycle_events USING btree (customer_id, created_at DESC);
 
 --
 -- Name: customer_match_review_cases_operation_uidx; Type: INDEX; Schema: public; Owner: -
@@ -78118,6 +80603,18 @@ CREATE UNIQUE INDEX customers_company_id_id_uidx ON public.customers USING btree
 --
 
 CREATE INDEX customers_company_intake_status_idx ON public.customers USING btree (company_id, intake_status, updated_at DESC) WHERE (intake_status IS NOT NULL);
+
+--
+-- Name: customers_company_lifecycle_closed_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customers_company_lifecycle_closed_idx ON public.customers USING btree (company_id, lifecycle_closed_at DESC) WHERE (lifecycle_closed_at IS NOT NULL);
+
+--
+-- Name: customers_company_moved_out_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customers_company_moved_out_idx ON public.customers USING btree (company_id, moved_out_at) WHERE (moved_out_at IS NOT NULL);
 
 --
 -- Name: customers_onboarding_company_status_idx; Type: INDEX; Schema: public; Owner: -
@@ -79330,6 +81827,12 @@ CREATE INDEX grid_owner_data_requests_company_site_status_facility_idx ON public
 --
 
 CREATE INDEX grid_owner_data_requests_company_status_created_perf_idx ON public.grid_owner_data_requests USING btree (company_id, status, created_at DESC);
+
+--
+-- Name: grid_owner_data_requests_open_automation_key_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX grid_owner_data_requests_open_automation_key_uidx ON public.grid_owner_data_requests USING btree (company_id, automation_key) WHERE ((automation_key IS NOT NULL) AND (status = ANY (ARRAY['pending'::text, 'sent'::text])));
 
 --
 -- Name: grid_owner_information_requests_actor_route_idx; Type: INDEX; Schema: public; Owner: -
@@ -83652,6 +86155,18 @@ CREATE INDEX idx_grid_area_mappings_grid_owner ON public.grid_area_mappings USIN
 CREATE INDEX idx_grid_area_mappings_postal_code ON public.grid_area_mappings USING btree (postal_code);
 
 --
+-- Name: idx_grid_owner_access_agreements_active_metering; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_active_metering ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_type, status, valid_from, valid_to);
+
+--
+-- Name: idx_grid_owner_access_agreements_company_scope; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_grid_owner_access_agreements_company_scope ON public.grid_owner_access_agreements USING btree (company_id, grid_owner_id, agreement_scope, status);
+
+--
 -- Name: idx_grid_owner_monthly_metrics_company_month; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -85530,6 +88045,12 @@ CREATE INDEX tenant_customer_sync_requests_company_status_idx ON public.tenant_c
 CREATE INDEX tenant_customer_sync_requests_customer_idx ON public.tenant_customer_sync_requests USING btree (company_id, matched_customer_id, created_at DESC) WHERE (matched_customer_id IS NOT NULL);
 
 --
+-- Name: tenant_email_domains_company_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tenant_email_domains_company_status_idx ON public.tenant_email_domains USING btree (company_id, status, created_at DESC);
+
+--
 -- Name: tenant_email_outbox_case_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -86883,6 +89404,12 @@ CREATE TRIGGER customer_contracts_bind_internal_publication BEFORE INSERT OR UPD
 CREATE TRIGGER customer_contracts_contract_availability BEFORE INSERT OR UPDATE OF status, contract_offer_id, contract_product_id, contract_product_version_id ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_enforce_contract_availability_and_capacity();
 
 --
+-- Name: customer_contracts customer_contracts_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_contracts_customer_archived_guard_trg BEFORE INSERT ON public.customer_contracts FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
+
+--
 -- Name: customer_contracts customer_contracts_lock_signed; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -86983,6 +89510,12 @@ CREATE TRIGGER customer_onboarding_legal_snapshots_immutable_tg BEFORE DELETE OR
 --
 
 CREATE TRIGGER customer_portal_identities_match_strength_normalize_tg BEFORE INSERT OR UPDATE OF match_strength ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_normalize_customer_portal_identity_match_strength();
+
+--
+-- Name: customer_sites customer_sites_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_sites_customer_archived_guard_trg BEFORE INSERT ON public.customer_sites FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
 
 --
 -- Name: customer_sites customer_sites_invalidate_operations_on_address_change; Type: TRIGGER; Schema: public; Owner: -
@@ -87461,6 +89994,84 @@ CREATE TRIGGER gridex_user_roles_scope_consistent BEFORE INSERT OR UPDATE ON pub
 CREATE TRIGGER gridex_validate_website_application_portal_identity BEFORE INSERT OR UPDATE OF payload, portal_identity_required ON public.website_customer_applications FOR EACH ROW EXECUTE FUNCTION public.gridex_validate_website_application_portal_identity();
 
 --
+-- Name: customer_case_attachments guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_case_attachments FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_case_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_case_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_cases guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_cases FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_contacts guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_contacts FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_accounts guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_accounts FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_claims guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_claims FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_completions guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_completions FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_events guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_events FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_identities guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_identities FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_requests guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: customer_portal_write_idempotency guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.customer_portal_write_idempotency FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
+-- Name: tenant_portal_customer_links guard_merged_portal_customer_write; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER guard_merged_portal_customer_write BEFORE INSERT OR UPDATE OF company_id, customer_id ON public.tenant_portal_customer_links FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_merged_portal_customer_write();
+
+--
 -- Name: integration_api_clients integration_api_clients_primary_tenant_website_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -87561,6 +90172,12 @@ CREATE TRIGGER meter_reading_values_immutable_guard BEFORE DELETE OR UPDATE ON p
 --
 
 CREATE TRIGGER meter_reading_values_tenant_guard BEFORE INSERT OR UPDATE ON public.meter_reading_values FOR EACH ROW EXECUTE FUNCTION public.gridex_guard_meter_reading_value_tenant();
+
+--
+-- Name: metering_points metering_points_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER metering_points_customer_archived_guard_trg BEFORE INSERT ON public.metering_points FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
 
 --
 -- Name: metering_value_sources metering_value_sources_tenant_guard_v1; Type: TRIGGER; Schema: public; Owner: -
@@ -87723,6 +90340,12 @@ CREATE TRIGGER spot_price_monthly_locked_immutable BEFORE DELETE OR UPDATE ON pu
 --
 
 CREATE TRIGGER spot_price_monthly_server_aggregate_v1 BEFORE INSERT OR UPDATE ON public.spot_price_monthly_summaries FOR EACH ROW WHEN ((pg_trigger_depth() = 0)) EXECUTE FUNCTION public.gridex_enforce_spot_price_month_server_aggregate_v1();
+
+--
+-- Name: supplier_switch_requests supplier_switch_requests_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER supplier_switch_requests_customer_archived_guard_trg BEFORE INSERT ON public.supplier_switch_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_assert_customer_not_archived_for_insert();
 
 --
 -- Name: tenant_counterparty_routes tenant_counterparty_routes_tenant_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -89187,6 +91810,13 @@ ALTER TABLE ONLY public.company_invitations
     ADD CONSTRAINT company_invitations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
 
 --
+-- Name: company_market_party_routes company_market_party_routes_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_market_party_routes
+    ADD CONSTRAINT company_market_party_routes_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: company_market_price_sources company_market_price_sources_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -89842,7 +92472,7 @@ ALTER TABLE ONLY public.customer_blockers
 --
 
 ALTER TABLE ONLY public.customer_case_attachments
-    ADD CONSTRAINT customer_case_attachments_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+    ADD CONSTRAINT customer_case_attachments_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE DEFERRABLE;
 
 --
 -- Name: customer_case_attachments customer_case_attachments_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -89863,7 +92493,7 @@ ALTER TABLE ONLY public.customer_case_attachments
 --
 
 ALTER TABLE ONLY public.customer_case_events
-    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE;
+    ADD CONSTRAINT customer_case_events_case_owner_fk FOREIGN KEY (customer_case_id, company_id, customer_id) REFERENCES public.customer_cases(id, company_id, customer_id) ON DELETE CASCADE DEFERRABLE;
 
 --
 -- Name: customer_case_events customer_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -89941,6 +92571,13 @@ ALTER TABLE ONLY public.customer_cases
 
 ALTER TABLE ONLY public.customer_cases
     ADD CONSTRAINT customer_cases_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_communication_templates customer_communication_templates_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_communication_templates
+    ADD CONSTRAINT customer_communication_templates_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: customer_communications customer_communications_customer_company_fk; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90080,7 +92717,7 @@ ALTER TABLE ONLY public.customer_contract_signature_requests
 --
 
 ALTER TABLE ONLY public.customer_contracts
-    ADD CONSTRAINT customer_contracts_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_contracts_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_contracts customer_contracts_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90094,7 +92731,7 @@ ALTER TABLE ONLY public.customer_contracts
 --
 
 ALTER TABLE ONLY public.customer_contracts
-    ADD CONSTRAINT customer_contracts_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_contracts_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_contracts customer_contracts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90346,7 +92983,7 @@ ALTER TABLE ONLY public.customer_info_request_events
 --
 
 ALTER TABLE ONLY public.customer_info_requests
-    ADD CONSTRAINT customer_info_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT customer_info_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: customer_info_requests customer_info_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -90606,6 +93243,27 @@ ALTER TABLE ONLY public.customer_legal_acceptances
 
 ALTER TABLE ONLY public.customer_lifecycle_decisions
     ADD CONSTRAINT customer_lifecycle_decisions_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+--
+-- Name: customer_lifecycle_events customer_lifecycle_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_lifecycle_events
+    ADD CONSTRAINT customer_lifecycle_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_lifecycle_events customer_lifecycle_events_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_lifecycle_events
+    ADD CONSTRAINT customer_lifecycle_events_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customer_lifecycle_events customer_lifecycle_events_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_lifecycle_events
+    ADD CONSTRAINT customer_lifecycle_events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(id) ON DELETE CASCADE;
 
 --
 -- Name: customer_match_review_cases customer_match_review_cases_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -91329,6 +93987,27 @@ ALTER TABLE ONLY public.customers
     ADD CONSTRAINT customers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
+-- Name: customers customers_lifecycle_closed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_lifecycle_closed_by_fkey FOREIGN KEY (lifecycle_closed_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customers customers_merged_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_merged_by_fkey FOREIGN KEY (merged_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: customers customers_merged_into_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_merged_into_customer_id_fkey FOREIGN KEY (merged_into_customer_id) REFERENCES public.customers(id) ON DELETE SET NULL;
+
+--
 -- Name: dashboard_alerts dashboard_alerts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -91376,6 +94055,13 @@ ALTER TABLE ONLY public.domain_events
 
 ALTER TABLE ONLY public.duplicate_group_members
     ADD CONSTRAINT duplicate_group_members_duplicate_group_id_fkey FOREIGN KEY (duplicate_group_id) REFERENCES public.duplicate_groups(id) ON DELETE RESTRICT;
+
+--
+-- Name: duplicate_groups duplicate_groups_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.duplicate_groups
+    ADD CONSTRAINT duplicate_groups_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: ediel_ack_chains ediel_ack_chains_ack_message_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -91714,6 +94400,13 @@ ALTER TABLE ONLY public.ediel_certificate_events
     ADD CONSTRAINT ediel_certificate_events_certificate_id_fkey FOREIGN KEY (certificate_id) REFERENCES public.ediel_certificates(id) ON DELETE CASCADE;
 
 --
+-- Name: ediel_certificates ediel_certificates_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_certificates
+    ADD CONSTRAINT ediel_certificates_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
 -- Name: ediel_certification_evidence ediel_certification_evidence_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -91889,6 +94582,13 @@ ALTER TABLE ONLY public.ediel_go_live_events
     ADD CONSTRAINT ediel_go_live_events_readiness_check_id_fkey FOREIGN KEY (readiness_check_id) REFERENCES public.ediel_production_readiness_checks(id) ON DELETE SET NULL;
 
 --
+-- Name: ediel_inbound_business_decisions ediel_inbound_business_decisions_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_inbound_business_decisions
+    ADD CONSTRAINT ediel_inbound_business_decisions_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
 -- Name: ediel_inbound_cases ediel_inbound_cases_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -91922,6 +94622,13 @@ ALTER TABLE ONLY public.ediel_inbound_quarantine
 
 ALTER TABLE ONLY public.ediel_inbound_request_decisions
     ADD CONSTRAINT ediel_inbound_request_decisions_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: ediel_it_system_profiles ediel_it_system_profiles_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_it_system_profiles
+    ADD CONSTRAINT ediel_it_system_profiles_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: ediel_mailboxes ediel_mailboxes_certificate_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -91987,6 +94694,13 @@ ALTER TABLE ONLY public.ediel_message_build_rules
     ADD CONSTRAINT ediel_message_build_rules_rule_version_id_fkey FOREIGN KEY (rule_version_id) REFERENCES public.ediel_rule_versions(id) ON DELETE CASCADE;
 
 --
+-- Name: ediel_message_correlations ediel_message_correlations_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_message_correlations
+    ADD CONSTRAINT ediel_message_correlations_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
 -- Name: ediel_message_events ediel_message_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -92029,6 +94743,13 @@ ALTER TABLE ONLY public.ediel_message_intents
     ADD CONSTRAINT ediel_message_intents_outbound_request_id_fkey FOREIGN KEY (outbound_request_id) REFERENCES public.outbound_requests(id) ON DELETE SET NULL;
 
 --
+-- Name: ediel_message_payloads ediel_message_payloads_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_message_payloads
+    ADD CONSTRAINT ediel_message_payloads_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
 -- Name: ediel_message_profiles ediel_message_profiles_rule_pack_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -92041,6 +94762,13 @@ ALTER TABLE ONLY public.ediel_message_profiles
 
 ALTER TABLE ONLY public.ediel_message_rules
     ADD CONSTRAINT ediel_message_rules_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: ediel_message_splits ediel_message_splits_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_message_splits
+    ADD CONSTRAINT ediel_message_splits_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: ediel_message_validation_issues ediel_message_validation_issues_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92125,6 +94853,13 @@ ALTER TABLE ONLY public.ediel_messages
 
 ALTER TABLE ONLY public.ediel_messages
     ADD CONSTRAINT ediel_messages_routing_decision_id_fkey FOREIGN KEY (routing_decision_id) REFERENCES public.ediel_routing_decisions(id) ON DELETE SET NULL;
+
+--
+-- Name: ediel_outbound_queue ediel_outbound_queue_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_outbound_queue
+    ADD CONSTRAINT ediel_outbound_queue_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: ediel_outbox ediel_outbox_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92244,6 +94979,13 @@ ALTER TABLE ONLY public.ediel_production_readiness_checks
 
 ALTER TABLE ONLY public.ediel_production_readiness_checks
     ADD CONSTRAINT ediel_production_readiness_configuration_snapshot_fk FOREIGN KEY (configuration_snapshot_id) REFERENCES public.ediel_configuration_snapshots(id) ON DELETE RESTRICT;
+
+--
+-- Name: ediel_production_send_approvals ediel_production_send_approvals_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ediel_production_send_approvals
+    ADD CONSTRAINT ediel_production_send_approvals_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: ediel_production_state ediel_production_state_approved_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -92953,6 +95695,13 @@ ALTER TABLE ONLY public.grid_area_mappings
     ADD CONSTRAINT grid_area_mappings_grid_owner_id_fkey FOREIGN KEY (grid_owner_id) REFERENCES public.grid_owners(id);
 
 --
+-- Name: grid_owner_access_agreements grid_owner_access_agreements_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.grid_owner_access_agreements
+    ADD CONSTRAINT grid_owner_access_agreements_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
 -- Name: grid_owner_contact_channels grid_owner_contact_channels_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -92971,7 +95720,7 @@ ALTER TABLE ONLY public.grid_owner_contact_routes
 --
 
 ALTER TABLE ONLY public.grid_owner_data_requests
-    ADD CONSTRAINT grid_owner_data_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT grid_owner_data_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: grid_owner_data_requests grid_owner_data_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -93020,7 +95769,7 @@ ALTER TABLE ONLY public.grid_owner_information_requests
 --
 
 ALTER TABLE ONLY public.grid_owner_information_requests
-    ADD CONSTRAINT grid_owner_information_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT grid_owner_information_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: grid_owner_information_requests grid_owner_information_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -93273,6 +96022,13 @@ ALTER TABLE ONLY public.integration_api_write_idempotency
 
 ALTER TABLE ONLY public.integration_api_write_idempotency
     ADD CONSTRAINT integration_api_write_idempotency_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: integration_provider_accounts integration_provider_accounts_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.integration_provider_accounts
+    ADD CONSTRAINT integration_provider_accounts_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: invoice_dead_letters invoice_dead_letters_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -93762,7 +96518,7 @@ ALTER TABLE ONLY public.metering_points
 --
 
 ALTER TABLE ONLY public.metering_points
-    ADD CONSTRAINT metering_points_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT metering_points_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: metering_points metering_points_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -93854,6 +96610,20 @@ ALTER TABLE ONLY public.metering_requirements
 
 ALTER TABLE ONLY public.metering_requirements
     ADD CONSTRAINT metering_requirements_source_ediel_message_id_fkey FOREIGN KEY (source_ediel_message_id) REFERENCES public.ediel_messages(id) ON DELETE SET NULL;
+
+--
+-- Name: metering_value_batches metering_value_batches_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metering_value_batches
+    ADD CONSTRAINT metering_value_batches_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: metering_value_errors metering_value_errors_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.metering_value_errors
+    ADD CONSTRAINT metering_value_errors_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: metering_value_sources metering_value_sources_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -93979,14 +96749,14 @@ ALTER TABLE ONLY public.outbound_dispatch_events
 --
 
 ALTER TABLE ONLY public.outbound_requests
-    ADD CONSTRAINT outbound_requests_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT outbound_requests_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: outbound_requests outbound_requests_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.outbound_requests
-    ADD CONSTRAINT outbound_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT outbound_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: outbound_requests outbound_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -94469,14 +97239,14 @@ ALTER TABLE ONLY public.power_of_attorney_scopes
 --
 
 ALTER TABLE ONLY public.powers_of_attorney
-    ADD CONSTRAINT powers_of_attorney_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT powers_of_attorney_company_customer_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: powers_of_attorney powers_of_attorney_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.powers_of_attorney
-    ADD CONSTRAINT powers_of_attorney_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT powers_of_attorney_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: powers_of_attorney powers_of_attorney_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -94903,14 +97673,14 @@ ALTER TABLE ONLY public.supplier_switch_requests
 --
 
 ALTER TABLE ONLY public.supplier_switch_requests
-    ADD CONSTRAINT supplier_switch_requests_company_customer_customer_site_rel_fke FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT supplier_switch_requests_company_customer_customer_site_rel_fke FOREIGN KEY (company_id, customer_id, customer_site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_company_customer_site_rel_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.supplier_switch_requests
-    ADD CONSTRAINT supplier_switch_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id);
+    ADD CONSTRAINT supplier_switch_requests_company_customer_site_rel_fkey FOREIGN KEY (company_id, customer_id, site_id) REFERENCES public.customer_sites(company_id, customer_id, id) DEFERRABLE;
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95088,11 +97858,39 @@ ALTER TABLE ONLY public.tenant_customer_identity_providers
     ADD CONSTRAINT tenant_customer_identity_providers_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
+-- Name: tenant_customer_sync_requests tenant_customer_sync_requests_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_customer_sync_requests
+    ADD CONSTRAINT tenant_customer_sync_requests_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_created_by_fkey FOREIGN KEY (created_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: tenant_email_domains tenant_email_domains_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_email_domains
+    ADD CONSTRAINT tenant_email_domains_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
 -- Name: tenant_email_outbox tenant_email_outbox_communication_log_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -95261,6 +98059,13 @@ ALTER TABLE ONLY public.tenant_website_installation_receipts
 
 ALTER TABLE ONLY public.user_permission_overrides
     ADD CONSTRAINT user_permission_overrides_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: user_permissions user_permissions_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_permissions
+    ADD CONSTRAINT user_permissions_company_id_tenant_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: user_profiles user_profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -97357,6 +100162,12 @@ CREATE POLICY customer_lifecycle_decisions_bl001_insert ON public.customer_lifec
 CREATE POLICY customer_lifecycle_decisions_bl001_update ON public.customer_lifecycle_decisions FOR UPDATE TO authenticated USING ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_write_company(company_id)))) WITH CHECK ((( SELECT public.gridex_user_is_platform_admin() AS gridex_user_is_platform_admin) OR ((company_id IS NOT NULL) AND public.gridex_can_write_company(company_id))));
 
 --
+-- Name: customer_lifecycle_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.customer_lifecycle_events ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: customer_match_review_cases; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -99203,6 +102014,12 @@ ALTER TABLE public.forecast_runs ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.grid_area_mappings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: grid_owner_access_agreements; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.grid_owner_access_agreements ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: grid_owner_contact_channels; Type: ROW SECURITY; Schema: public; Owner: -
@@ -106832,6 +109649,12 @@ CREATE POLICY tenant_customer_sync_requests_service_role_all ON public.tenant_cu
 --
 
 ALTER TABLE public.tenant_ediel_profiles ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: tenant_email_domains; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_email_domains ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: tenant_email_outbox; Type: ROW SECURITY; Schema: public; Owner: -
@@ -115016,6 +117839,13 @@ GRANT ALL ON FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) T
 GRANT ALL ON FUNCTION public.gridex_admin_dashboard_summary(p_company_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_anonymize_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_anonymize_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_anonymize_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_apply_actor_auto_send_readiness(p_existing_run_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115065,11 +117895,32 @@ REVOKE ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id 
 GRANT ALL ON FUNCTION public.gridex_approve_first_production_send(p_company_id uuid, p_actor_setting_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_approve_invoice_test_item_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_approval jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_approve_portal_claim_v1(p_company_id uuid, p_customer_id uuid, p_user_id uuid, p_account jsonb, p_claim jsonb, p_event jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_archive_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_archive_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_archive_draft_legal_template_version(p_version_id uuid); Type: ACL; Schema: public; Owner: -
@@ -115122,6 +117973,13 @@ REVOKE ALL ON FUNCTION public.gridex_assert_contract_permission(p_actor_user_id 
 GRANT ALL ON FUNCTION public.gridex_assert_contract_permission(p_actor_user_id uuid, p_permission text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_assert_customer_not_archived_for_insert(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_customer_not_archived_for_insert() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assert_customer_not_archived_for_insert() TO service_role;
+
+--
 -- Name: FUNCTION gridex_assert_no_public_offer_fk_references(p_public_offer_ids uuid[]); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115155,6 +118013,13 @@ GRANT ALL ON FUNCTION public.gridex_assert_role_scope_is_consistent() TO service
 
 REVOKE ALL ON FUNCTION public.gridex_assert_supplier_switch_ready(p_company_id uuid, p_contract_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_assert_supplier_switch_ready(p_company_id uuid, p_contract_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_assert_switch_writer_v1(p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_switch_writer_v1(p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assert_switch_writer_v1(p_company_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_assert_tenant_reference(); Type: ACL; Schema: public; Owner: -
@@ -115496,6 +118361,13 @@ REVOKE ALL ON FUNCTION public.gridex_close_contract_product(p_company_id uuid, p
 GRANT ALL ON FUNCTION public.gridex_close_contract_product(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid, p_reason text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_close_customer_lifecycle_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_mode text, p_move_out_date date, p_reason text, p_note text, p_create_follow_up_task boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_close_customer_lifecycle_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_mode text, p_move_out_date date, p_reason text, p_note text, p_create_follow_up_task boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_close_customer_lifecycle_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_mode text, p_move_out_date date, p_reason text, p_note text, p_create_follow_up_task boolean) TO service_role;
+
+--
 -- Name: FUNCTION gridex_commit_customer_application_provisioning(p_company_id uuid, p_customer_application_id uuid, p_customer_id uuid, p_customer_site_id uuid, p_metering_point_id uuid, p_contract_id uuid, p_power_of_attorney_id uuid, p_operation_id uuid, p_state text, p_snapshot jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -115797,11 +118669,25 @@ REVOKE ALL ON FUNCTION public.gridex_create_billing_export_run(p_run jsonb, p_it
 GRANT ALL ON FUNCTION public.gridex_create_billing_export_run(p_run jsonb, p_items jsonb) TO service_role;
 
 --
+-- Name: FUNCTION gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_grid_owner_data_request_v1(p_company_id uuid, p_request jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_internal_customer_contract_v1(p_company_id uuid, p_customer_id uuid, p_contract_offer_id uuid, p_site_id uuid, p_metering_point_id uuid, p_selection jsonb, p_contract jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -115829,6 +118715,13 @@ GRANT ALL ON FUNCTION public.gridex_create_invoice_export_graph_v1(p_run jsonb, 
 --
 
 REVOKE ALL ON FUNCTION public.gridex_create_invoice_export_graph_v1_core(p_run jsonb, p_items jsonb, p_invoices jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_invoice_review_draft_v1(p_company_id uuid, p_run jsonb, p_items jsonb, p_invoices jsonb, p_enrichment jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_legal_template_version(p_module_key text, p_version_label text, p_title text, p_body text, p_publish boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -115871,6 +118764,14 @@ GRANT ALL ON FUNCTION public.gridex_create_portfolio(p_actor_user_id uuid, p_com
 
 REVOKE ALL ON FUNCTION public.gridex_create_portfolio_settlement_correction(p_actor_user_id uuid, p_settlement_id uuid, p_reason text, p_idempotency_key text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_create_portfolio_settlement_correction(p_actor_user_id uuid, p_settlement_id uuid, p_reason text, p_idempotency_key text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_create_tenant_legal_override(p_company_id uuid, p_module_key text, p_legal_mode text, p_version_label text, p_title text, p_body text, p_publish boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -116010,6 +118911,13 @@ REVOKE ALL ON FUNCTION public.gridex_customer_operation_outcome_class(p_status t
 GRANT ALL ON FUNCTION public.gridex_customer_operation_outcome_class(p_status text, p_attempts integer, p_max_attempts integer) TO service_role;
 
 --
+-- Name: FUNCTION gridex_customer_retention_until_v1(p_customer_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_customer_retention_until_v1(p_customer_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_customer_retention_until_v1(p_customer_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_customer_status_counts_v1(p_company_id uuid, p_customer_type text, p_exclude_test_data boolean); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116087,6 +118995,13 @@ GRANT ALL ON FUNCTION public.gridex_default_document_prefix(p_company_id uuid, p
 
 REVOKE ALL ON FUNCTION public.gridex_delete_partner_webhook_subscription_v1(p_company_id uuid, p_api_client_id uuid, p_subscription_reference text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_delete_partner_webhook_subscription_v1(p_company_id uuid, p_api_client_id uuid, p_subscription_reference text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_delete_test_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_delete_test_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_delete_test_customer_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_delete_unused_contract(p_company_id uuid, p_offer_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
@@ -116170,6 +119085,13 @@ GRANT ALL ON FUNCTION public.gridex_edifact_rff_value(p_raw text, p_qualifier te
 
 REVOKE ALL ON FUNCTION public.gridex_end_contract_channel(p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_end_contract_channel(p_company_id uuid, p_offer_id uuid, p_channel text, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_end_customer_supply_v1(p_company_id uuid, p_customer_id uuid, p_metering_point_id uuid, p_end_date date, p_end_reason text, p_source_message_id uuid, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_end_customer_supply_v1(p_company_id uuid, p_customer_id uuid, p_metering_point_id uuid, p_end_date date, p_end_reason text, p_source_message_id uuid, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_end_customer_supply_v1(p_company_id uuid, p_customer_id uuid, p_metering_point_id uuid, p_end_date date, p_end_reason text, p_source_message_id uuid, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_enforce_billing_underlay_price_area(); Type: ACL; Schema: public; Owner: -
@@ -116279,6 +119201,13 @@ REVOKE ALL ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit inte
 GRANT ALL ON FUNCTION public.gridex_escalate_overdue_z01_responses(p_limit integer) TO service_role;
 
 --
+-- Name: FUNCTION gridex_expire_overdue_powers_of_attorney_v1(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_expire_overdue_powers_of_attorney_v1(p_limit integer) TO service_role;
+
+--
 -- Name: FUNCTION gridex_fail_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_error_code text, p_error_stage text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116332,6 +119261,14 @@ GRANT ALL ON FUNCTION public.gridex_finalize_customer_contract_signature_v1(p_to
 
 REVOKE ALL ON FUNCTION public.gridex_finalize_supplier_switch_activation(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_finalize_supplier_switch_activation(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_finalize_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_actor_user_id uuid, p_event jsonb) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_finalize_website_contract_signature(p_company_id uuid, p_contract_id uuid, p_application_id uuid, p_public_contract_offer_id uuid, p_offer_reference text, p_accepted_at timestamp with time zone, p_legal_versions jsonb, p_signature_snapshot jsonb, p_signature_snapshot_sha256 text, p_signed_ip_hash text, p_signed_user_agent text); Type: ACL; Schema: public; Owner: -
@@ -116537,6 +119474,13 @@ GRANT ALL ON FUNCTION public.gridex_guard_immutable_meter_reading_series() TO se
 GRANT ALL ON FUNCTION public.gridex_guard_immutable_meter_reading_value() TO service_role;
 
 --
+-- Name: FUNCTION gridex_guard_merged_portal_customer_write(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_guard_merged_portal_customer_write() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_guard_merged_portal_customer_write() TO service_role;
+
+--
 -- Name: FUNCTION gridex_guard_meter_reading_series_tenant(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116626,6 +119570,13 @@ GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid,
 GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) TO authenticated;
 
 --
+-- Name: FUNCTION gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_import_grid_area_geojson_feature(p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -116668,6 +119619,13 @@ GRANT ALL ON FUNCTION public.gridex_inherit_pricing_run_energy_flow() TO service
 
 REVOKE ALL ON FUNCTION public.gridex_insert_jsonb_row(p_table regclass, p_payload jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_insert_jsonb_row(p_table regclass, p_payload jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_internal_write_tenant_row_v1(p_table regclass, p_company_id uuid, p_id uuid, p_values jsonb, p_allowed text[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_internal_write_tenant_row_v1(p_table regclass, p_company_id uuid, p_id uuid, p_values jsonb, p_allowed text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_internal_write_tenant_row_v1(p_table regclass, p_company_id uuid, p_id uuid, p_values jsonb, p_allowed text[]) TO service_role;
 
 --
 -- Name: FUNCTION gridex_invalidate_site_operations_on_address_change(); Type: ACL; Schema: public; Owner: -
@@ -116961,6 +119919,13 @@ GRANT ALL ON FUNCTION public.gridex_materialize_signed_website_poa_snapshot() TO
 --
 
 GRANT ALL ON FUNCTION public.gridex_materialize_supplier_switch_process_variant() TO service_role;
+
+--
+-- Name: FUNCTION gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_merge_customers_v1(p_company_id uuid, p_primary_customer_id uuid, p_source_customer_ids uuid[], p_actor_user_id uuid, p_reason text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_new_offer_reference(p_seed text); Type: ACL; Schema: public; Owner: -
@@ -117676,6 +120641,13 @@ REVOKE ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id
 GRANT ALL ON FUNCTION public.gridex_record_invoice_fee_remediation(p_company_id uuid, p_source_table text, p_offer_id uuid, p_status text, p_blocker_code text, p_evidence jsonb, p_error text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_record_invoice_purchase_request_v1(p_company_id uuid, p_invoice_export_item_id uuid, p_financing_mode text, p_payload jsonb, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_record_legacy_api_key_use_v1(p_api_client_id uuid, p_route text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -117750,6 +120722,13 @@ GRANT ALL ON TABLE public.platform_runtime_readiness TO service_role;
 
 REVOKE ALL ON FUNCTION public.gridex_refresh_platform_runtime_readiness_v1(p_schema_version text, p_deployment_id text, p_migration_version text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_refresh_platform_runtime_readiness_v1(p_schema_version text, p_deployment_id text, p_migration_version text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_register_customer_lifecycle_decision_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_decision_type text, p_scope_type text, p_scope_id uuid, p_received_at timestamp with time zone, p_reason text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_register_customer_lifecycle_decision_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_decision_type text, p_scope_type text, p_scope_id uuid, p_received_at timestamp with time zone, p_reason text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_register_customer_lifecycle_decision_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_decision_type text, p_scope_type text, p_scope_id uuid, p_received_at timestamp with time zone, p_reason text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_register_late_metering_correction(p_company_id uuid, p_original_underlay_id uuid, p_corrected_underlay_id uuid, p_source_value_id uuid, p_reason text, p_currency text); Type: ACL; Schema: public; Owner: -
@@ -118078,6 +121057,13 @@ REVOKE ALL ON FUNCTION public.gridex_save_portfolio_settlement_draft(p_actor_use
 GRANT ALL ON FUNCTION public.gridex_save_portfolio_settlement_draft(p_actor_user_id uuid, p_company_id uuid, p_portfolio_id uuid, p_price_area_code text, p_delivery_month date, p_price_plan_version_id uuid, p_gross_energy_cost_sek numeric, p_hedging_result_sek numeric, p_balancing_cost_sek numeric, p_other_allowed_cost_sek numeric, p_energy_volume_kwh numeric, p_portfolio_price_ore_per_kwh numeric, p_management_fee_ore_per_kwh numeric, p_source text, p_idempotency_key text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb, p_metering_point jsonb, p_contract jsonb, p_application jsonb, p_customer jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb, p_metering_point jsonb, p_contract jsonb, p_application jsonb, p_customer jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_save_website_application_review_v1(p_company_id uuid, p_application_id uuid, p_site jsonb, p_metering_point jsonb, p_contract jsonb, p_application jsonb, p_customer jsonb) TO service_role;
+
+--
 -- Name: FUNCTION gridex_scan_ediel_canonical_repairs(p_company_id uuid, p_apply_safe_repairs boolean, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -118125,6 +121111,13 @@ GRANT ALL ON FUNCTION public.gridex_seed_publication_price_option_template_v2(p_
 
 REVOKE ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_select_invoice_provider_v1(p_company_id uuid, p_provider text, p_environment text, p_actor_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_set_billing_period_lock_v1(p_company_id uuid, p_billing_month text, p_locked boolean, p_status text, p_actor_user_id uuid, p_reason text, p_metadata jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_set_contract_channel_permission(p_company_id uuid, p_assignment_id uuid, p_channel text, p_allowed boolean, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
@@ -118380,6 +121373,14 @@ GRANT ALL ON FUNCTION public.gridex_transition_customer_application_workflow(p_c
 
 REVOKE ALL ON FUNCTION public.gridex_transition_portfolio_settlement(p_actor_user_id uuid, p_settlement_id uuid, p_action text, p_reason text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_transition_portfolio_settlement(p_actor_user_id uuid, p_settlement_id uuid, p_action text, p_reason text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_transition_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_patch jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_transition_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_patch jsonb, p_event jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_transition_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_patch jsonb, p_event jsonb) TO service_role;
+GRANT ALL ON FUNCTION public.gridex_transition_supplier_switch_v1(p_company_id uuid, p_request_id uuid, p_patch jsonb, p_event jsonb) TO authenticated;
 
 --
 -- Name: FUNCTION gridex_transition_tenant_lifecycle(p_company_id uuid, p_next_status text, p_actor_user_id uuid, p_reason text); Type: ACL; Schema: public; Owner: -
@@ -119942,6 +122943,12 @@ GRANT ALL ON TABLE public.customer_correction_requests TO authenticated;
 GRANT ALL ON TABLE public.customer_correction_requests TO service_role;
 
 --
+-- Name: TABLE customer_data_quality_open_issues; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_data_quality_open_issues TO service_role;
+
+--
 -- Name: TABLE customer_data_tasks; Type: ACL; Schema: public; Owner: -
 --
 
@@ -120016,6 +123023,12 @@ GRANT ALL ON TABLE public.customer_invoices TO service_role;
 
 GRANT ALL ON TABLE public.customer_lifecycle_decisions TO service_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE public.customer_lifecycle_decisions TO authenticated;
+
+--
+-- Name: TABLE customer_lifecycle_events; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.customer_lifecycle_events TO service_role;
 
 --
 -- Name: TABLE customer_match_review_cases; Type: ACL; Schema: public; Owner: -
@@ -121183,6 +124196,12 @@ GRANT ALL ON TABLE public.forecast_run_items TO service_role;
 
 GRANT ALL ON TABLE public.grid_area_mappings TO authenticated;
 GRANT ALL ON TABLE public.grid_area_mappings TO service_role;
+
+--
+-- Name: TABLE grid_owner_access_agreements; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.grid_owner_access_agreements TO service_role;
 
 --
 -- Name: TABLE grid_owner_contact_channels; Type: ACL; Schema: public; Owner: -
@@ -122560,6 +125579,12 @@ GRANT ALL ON TABLE public.tenant_customer_sync_requests TO service_role;
 --
 
 GRANT ALL ON TABLE public.tenant_ediel_profiles TO service_role;
+
+--
+-- Name: TABLE tenant_email_domains; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.tenant_email_domains TO service_role;
 
 --
 -- Name: TABLE tenant_email_outbox_runs; Type: ACL; Schema: public; Owner: -

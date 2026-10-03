@@ -28,6 +28,7 @@ import {
 import { TenantWebsiteGoLivePanel } from "@/components/admin/go-live/TenantWebsiteGoLivePanel";
 import { CertificationEvidencePanel } from "@/components/admin/go-live/CertificationEvidencePanel";
 import { approveCompanyProductionAction } from "@/app/admin/platform/go-live/approval-actions";
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = "force-dynamic";
 
@@ -195,7 +196,7 @@ export default async function PlatformGoLiveCompanyPage({
               </p>
               {readiness ? (
                 <p className="mt-3 text-xs font-bold text-slate-600">
-                  Nuvarande readiness: {readiness.status} · {readiness.score}% · {readiness.blockingIssues.length} blockerare.
+                  Nuvarande readiness: {formatStatusLabel(readiness.status)} · {readiness.score}% · {readiness.blockingIssues.length} blockerare.
                 </p>
               ) : null}
             </div>

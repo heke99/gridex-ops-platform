@@ -86,13 +86,13 @@ export default async function EdielAutomationPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 50 })
+  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 50 })
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader
         title="Ediel automation"
-        subtitle="Backendbeslut, outbox, SLA, portalfeedback och unresolved i en samlad driftvy. UI visar vad backend har beslutat – inte tvärtom."
+        subtitle="Automatiska beslut, utkorg, SLA och ärenden som väntar på manuell granskning."
         userEmail={context.email}
         workspaceName={isPlatformAdmin ? 'Gridex Platform' : companyScope.companyName}
         workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
@@ -115,24 +115,6 @@ export default async function EdielAutomationPage() {
           <Metric label="SLA kritisk" value={dashboard.metrics.slaCritical} severity={dashboard.metrics.slaCritical > 0 ? 'bad' : 'ok'} />
           <Metric label="Portaldiff" value={dashboard.metrics.portalMismatches} href="/admin/ediel/portal-feedback" severity={dashboard.metrics.portalMismatches > 0 ? 'warn' : 'ok'} />
           <Metric label="Unresolved" value={dashboard.metrics.unresolvedOpen} href="/admin/ediel/unresolved" severity={dashboard.metrics.unresolvedOpen > 0 ? 'warn' : 'ok'} />
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Link href="/admin/ediel/outbox" className="rounded-3xl border border-emerald-200 bg-white p-5 shadow-sm hover:bg-emerald-50">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-800">Outbox</p>
-            <h2 className="mt-2 text-xl font-black text-slate-950">Skicka säkra köade ACK</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-700">CONTRL, APERAK och UTILTS_ERR skickas via backend-controlled queue med dedupe och final-ACK-skydd.</p>
-          </Link>
-          <Link href="/admin/ediel/portal-feedback" className="rounded-3xl border border-amber-200 bg-white p-5 shadow-sm hover:bg-amber-50">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">Portal feedback</p>
-            <h2 className="mt-2 text-xl font-black text-slate-950">Importera expected/actual</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-700">Använd när Edielportalen säger godkänt men UI eller regression visar annan diff.</p>
-          </Link>
-          <Link href="/admin/ediel/unresolved" className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm hover:bg-slate-50">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-700">Manual review</p>
-            <h2 className="mt-2 text-xl font-black text-slate-950">Unresolved och stopp</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-slate-700">Osäker tenant, route, certifikat, kund eller mätpunkt ska hit och inte autoskickas.</p>
-          </Link>
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">

@@ -700,11 +700,17 @@ export async function createCustomerGraph(params: CreateCustomerGraphParams): Pr
   const offer = params.contractOfferId
     ? await getContractOfferById(params.contractOfferId, params.companyId)
     : null;
+  // A chosen offer that does not exist for this company must not silently
+  // fall back to a default contract.
+  if (params.contractOfferId && !offer) {
+    throw new Error("Det valda avtalet finns inte för bolaget. Välj avtal igen.");
+  }
   const hasContract = Boolean(params.contractOfferId || params.contractTypeOverride);
   const hasSignedAgreement = Boolean(params.signedAgreementFile);
-  const contractStatus = hasSignedAgreement && (!params.contractStatus || ["draft", "pending_signature"].includes(params.contractStatus))
-    ? "signed"
-    : (params.contractStatus ?? "pending_signature");
+  // Intake only creates draft or pending-signature contracts; "signed" requires
+  // the signed agreement file. Activation happens later in the contract flow.
+  const requestedStatus = params.contractStatus === "draft" ? "draft" : "pending_signature";
+  const contractStatus = hasSignedAgreement ? "signed" : requestedStatus;
   const contractType = params.contractTypeOverride ?? offer?.contract_type ?? "variable_hourly";
   const signedScopes = params.signedPowerOfAttorneyFile
     ? signedAuthorizationScopes({

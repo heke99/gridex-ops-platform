@@ -139,37 +139,39 @@ for (const token of [
   assert(profileActions.includes(token), `delete graph source covers ${token}`)
 }
 
-for (const token of [
-  'runBestEffortCustomerArchiveStep',
-  'getBestEffortArchiveIds',
-  'archive.customer_sites.close_failed',
-  'archive.metering_points.close_failed',
-  'archive.contracts.cancel_failed',
-  'archive.switch_requests.fail_failed',
-  'archive.audit_log_failed',
-]) {
-  assert(profileActions.includes(token), `archive action is resilient around ${token}`)
+const archiveSource = read('app/admin/customers/[id]/profile-actions.part-2.ts')
+const archiveFunctionStart = archiveSource.indexOf('async function archiveCustomerImpl')
+const archiveFunctionEnd = archiveSource.indexOf('const PROTECTED_DELETE_MESSAGE', archiveFunctionStart)
+const archiveFunction = archiveSource.slice(archiveFunctionStart, archiveFunctionEnd)
+assert(archiveFunctionStart >= 0 && archiveFunctionEnd > archiveFunctionStart, 'archiveCustomerImpl is found')
+const archiveMigration = read('supabase/migrations/20261002200000_atomic_customer_archive.sql')
+
+// The whole archive graph is one transaction; no best-effort cascade may remain.
+assert(archiveFunction.includes('.rpc("gridex_archive_customer_v1"'), 'archive action delegates the whole graph to gridex_archive_customer_v1')
+assert(archiveFunction.indexOf('assertUserCanOperateCompany') < archiveFunction.indexOf('gridex_archive_customer_v1'), 'archive action checks tenant access before the RPC')
+assert(archiveFunction.includes('if (error) throw error'), 'archive RPC failure fails the action')
+for (const token of ['runBestEffortCustomerArchiveStep', 'getBestEffortArchiveIds', '.from("customer_sites")', '.from("metering_points")', '.from("supplier_switch_requests")']) {
+  assert(!archiveFunction.includes(token), `archive action no longer writes ${token} outside the transaction`)
 }
-
-const archiveFunctionStart = profileActions.indexOf('async function archiveCustomerImpl')
-const archiveFunctionEnd = profileActions.indexOf('const PROTECTED_DELETE_MESSAGE', archiveFunctionStart)
-const archiveFunction = profileActions.slice(archiveFunctionStart, archiveFunctionEnd)
-assert(profileActions.includes('status: "archived"'), 'archive action updates the customer row to archived')
-const archiveHelperStart = profileActions.indexOf('async function updateCustomerArchiveRow')
-const archiveHelperEnd = profileActions.indexOf('export async function archiveCustomerAction', archiveHelperStart)
-const customerArchivePayload = profileActions.slice(archiveHelperStart, archiveHelperEnd)
-assert(!customerArchivePayload.includes('updated_by'), 'archive customer payload does not send missing customers.updated_by')
-assert(customerArchivePayload.includes('archived_by') && customerArchivePayload.includes('archived_at') && customerArchivePayload.includes('archive_reason'), 'archive customer payload keeps archive audit fields')
-
-assert(profileActions.includes('maybe.code === "PGRST204"'), 'archive schema guard treats PGRST204 as schema-shape mismatch')
-assert(profileActions.includes('async function updateCustomerArchiveRow'), 'archive customer row update has schema fallback helper')
-assert(profileActions.includes('archive.customers.full_payload_failed; retrying minimal customer archive payload'), 'archive customer retries minimal payload on schema mismatch')
-assert(profileActions.includes('const minimalPayload = { status: "archived" }'), 'archive fallback uses minimal status-only customer payload')
-assert(archiveFunction.includes('ends_at: nowIso.slice(0, 10)'), 'archive contract cancellation writes date-only ends_at')
-assert(archiveFunction.indexOf('if (updateError) throw updateError') < archiveFunction.indexOf('runBestEffortCustomerArchiveStep("archive.customer_sites.close_failed"'), 'customer archive write stays mandatory before best-effort cascade')
-assert(!archiveFunction.includes('if (sitesError) throw sitesError'), 'archive action no longer fails the whole action on customer_sites cascade error')
-assert(!archiveFunction.includes('if (pointsError) throw pointsError'), 'archive action no longer fails the whole action on metering_points cascade error')
-
+for (const token of [
+  "status = 'archived'",
+  'archived_by = p_actor_user_id',
+  'archive_reason = v_reason',
+  'update public.customer_sites',
+  'update public.metering_points',
+  "'cancelled'",
+  "'termination_notice_date', v_now",
+  'update public.supplier_switch_requests',
+  'insert into public.audit_logs',
+  "auth.role() <> 'service_role'",
+  'for update',
+  'before insert on public.customer_contracts',
+  'before insert on public.supplier_switch_requests',
+  'before insert on public.customer_sites',
+  'before insert on public.metering_points',
+]) {
+  assert(archiveMigration.includes(token), `archive migration covers ${token}`)
+}
 
 // Permanent archive + tenant isolation policy checks.
 const allMigrations = fs.readdirSync(path.join(root, 'supabase', 'migrations'))

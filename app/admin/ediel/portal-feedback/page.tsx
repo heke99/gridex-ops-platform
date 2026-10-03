@@ -44,7 +44,7 @@ export default async function EdielPortalFeedbackPage() {
   const context = await requirePlatformAdminAccess()
   const isPlatformAdmin = isPlatformAdminContext(context)
   const companyScope = await getOperationalCompanyScope(context.userId)
-  const dashboard = await getEdielAutomationDashboard({ companyId: isPlatformAdmin ? null : companyScope.companyId, limit: 100 })
+  const dashboard = await getEdielAutomationDashboard({ companyId: companyScope.companyId, limit: 100 })
 
   return (
     <div className="min-h-screen bg-slate-50">

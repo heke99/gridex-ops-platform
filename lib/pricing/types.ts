@@ -162,6 +162,10 @@ export type BillingPeriod = {
 
 export type BillingUnderlayInput = {
   companyId: string;
+  /** Preliminary period billed from estimated consumption. */
+  preliminary?: boolean;
+  /** Settles an earlier preliminary period (only energy-dependent components apply). */
+  reconciliationOf?: string | null;
   billingUnderlayId?: string | null;
   customerId: string | null;
   customerSiteId?: string | null;

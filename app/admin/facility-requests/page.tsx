@@ -1,3 +1,4 @@
+import { tenantReadCompanyId } from '@/lib/tenant/adminScope'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { isPlatformAdminContext, requireAdminPageKeyAccess } from '@/lib/admin/guards'
@@ -12,6 +13,7 @@ import {
   type FacilityWorkQueueRow,
   type FacilityWorkQueueStatus,
 } from '@/lib/facility/workQueue'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 type FacilityLookupRequestRow = {
   id: string
@@ -256,7 +258,7 @@ function FacilityRow({ item }: { item: FacilityWorkQueueRow }) {
         )}
       </td>
       <td className="px-6 py-4 align-top">
-        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{item.priority}</span>
+        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${priorityTone(item.priority)}`}>{formatStatusLabel(item.priority)}</span>
         <div className="mt-2 text-xs text-slate-500">Uppdaterad {formatDate(item.updatedAt ?? item.createdAt)}</div>
       </td>
       <td className="px-6 py-4 align-top">
@@ -272,7 +274,7 @@ export default async function FacilityRequestsPage() {
   const context = await requireAdminPageKeyAccess('operations.tasks')
   const companyScope = await getOperationalCompanyScope(context.userId)
   const isPlatformAdmin = isPlatformAdminContext(context)
-  const companyId = isPlatformAdmin ? null : companyScope.companyId
+  const companyId = tenantReadCompanyId(isPlatformAdmin, companyScope.companyId)
   const supabase = await createSupabaseServerClient()
   const queue = await listFacilityWorkQueue(supabase, companyId, { limit: 250 })
 

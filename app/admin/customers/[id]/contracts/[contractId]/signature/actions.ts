@@ -1,6 +1,6 @@
 'use server'
 
-import { redirect } from 'next/navigation'
+import { redirect, unstable_rethrow } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { requireAdminActionAccess } from '@/lib/admin/guards'
 import { sendOnlineContractSignatureRequest } from '@/lib/customer-contracts/onlineSigning'
@@ -67,6 +67,7 @@ export async function sendContractSignatureLinkAction(formData: FormData) {
     revalidatePath(`/admin/customers/${customerId}`)
     revalidatePath(`/admin/customers/${customerId}/contracts/${contractId}/signature`)
   } catch (error) {
+    unstable_rethrow(error)
     const message = error instanceof Error ? error.message : 'Signeringslänken kunde inte skickas.'
     redirect(
       `/admin/customers/${customerId}/contracts/${contractId}/signature?error=${encodeURIComponent(message)}`,

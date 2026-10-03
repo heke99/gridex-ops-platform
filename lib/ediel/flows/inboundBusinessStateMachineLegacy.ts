@@ -180,6 +180,8 @@ async function activateCustomerSupplyAtomically(input: {
   return row as Record<string, unknown>
 }
 
+// Z05:L = the customer switched to another supplier (possibly another tenant);
+// Z05:LK = the customer relationship at the site ended (move-out).
 async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> {
   const payload = readPayloadRecord(message)
   const companyId = message.company_id ?? text(payload.resolved_company_id)
@@ -191,25 +193,18 @@ async function endActiveSupplyPeriod(message: EdielMessageRow): Promise<string> 
   if (!meteringPointId) throw new Error('supply_period_metering_point_required')
   if (!endDate) throw new Error('supply_period_end_date_required')
 
-  const { data, error } = await supabaseService
-    .from('customer_supply_periods')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('customer_id', customerId)
-    .eq('metering_point_id', meteringPointId)
-    .is('end_date', null)
-    .order('start_date', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  const subtype = decideProdatLifecycle(message)?.subtype ?? null
+  const { data, error } = await supabaseService.rpc('gridex_end_customer_supply_v1', {
+    p_company_id: companyId,
+    p_customer_id: customerId,
+    p_metering_point_id: meteringPointId,
+    p_end_date: endDate,
+    p_end_reason: subtype === 'LK' ? 'move_out' : 'supplier_switch',
+    p_source_message_id: message.id,
+  })
   if (error) throw error
-  const id = text((data as { id?: string } | null)?.id)
+  const id = text((data as { supply_period_id?: string } | null)?.supply_period_id)
   if (!id) throw new Error('active_supply_period_not_found')
-  await strictUpdate('customer_supply_periods', {
-    status: 'ended',
-    end_date: endDate,
-    source_message_id: message.id,
-    updated_at: new Date().toISOString(),
-  }, { id, company_id: companyId })
   return id
 }
 
@@ -222,7 +217,7 @@ async function continueSupplyPeriodFromZ05C(message: EdielMessageRow): Promise<{
 
   const { data, error } = await supabaseService
     .from('customer_supply_periods')
-    .select('id,status,start_date,end_date')
+    .select('id,status,start_date,end_date,metadata')
     .eq('company_id', companyId)
     .eq('customer_id', customerId)
     .eq('metering_point_id', meteringPointId)
@@ -230,7 +225,7 @@ async function continueSupplyPeriodFromZ05C(message: EdielMessageRow): Promise<{
     .limit(3)
   if (error) throw error
 
-  const rows = (data ?? []) as Array<{ id: string; status?: string | null; start_date?: string | null; end_date?: string | null }>
+  const rows = (data ?? []) as Array<{ id: string; status?: string | null; start_date?: string | null; end_date?: string | null; metadata?: Record<string, unknown> | null }>
   const active = rows.find((row) => !row.end_date && row.status !== 'ended')
   if (active) return { id: active.id, changed: false, review: false }
 
@@ -248,10 +243,14 @@ async function continueSupplyPeriodFromZ05C(message: EdielMessageRow): Promise<{
   await strictUpdate('customer_supply_periods', {
     status: 'active',
     end_date: null,
+    actual_end_date: null,
     source_message_id: message.id,
     updated_at: new Date().toISOString(),
   }, { id: candidate.id, company_id: companyId })
-  return { id: candidate.id, changed: true, review: false }
+  // An end applied by gridex_end_customer_supply_v1 also ended the contract and
+  // opened final-invoice work; restoring those needs a person.
+  const endedContractAndTasks = typeof candidate.metadata?.end_key === 'string'
+  return { id: candidate.id, changed: true, review: endedContractAndTasks }
 }
 
 async function createReviewCase(input: {
@@ -443,7 +442,7 @@ export async function applyInboundBusinessStateMachine(input: {
 
   if (outcome === 'supply_terminated') {
     const supplyPeriodId = await endActiveSupplyPeriod(input.message)
-    if (supplyPeriodId) updated.push('customer_supply_periods')
+    if (supplyPeriodId) updated.push('customer_supply_periods', 'customer_contracts', 'customer_operation_tasks', 'customers')
     if (companyId) {
       const caseId = await createReviewCase({
         message: input.message,

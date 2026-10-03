@@ -1,6 +1,7 @@
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -200,7 +201,7 @@ export default async function ManualRequestDiagnosticsPage() {
                       <td className="px-4 py-3 text-xs text-slate-700">
                         {outbox.length === 0 ? '—' : outbox.map((o) => (
                           <div key={o.id} className="mb-2">
-                            <span className="font-semibold">{o.status}</span> · försök {o.attempts}
+                            <span className="font-semibold">{formatStatusLabel(o.status)}</span> · försök {o.attempts}
                             <div className="break-all text-slate-500">{o.provider_message_id ?? 'inget provider-ID'}{o.sent_at ? ` · ${formatDate(o.sent_at)}` : ''}</div>
                             {o.last_error ? <div className="text-red-700">{o.last_error}</div> : null}
                           </div>

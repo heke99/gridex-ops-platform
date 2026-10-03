@@ -1,3 +1,4 @@
+import CustomerName from '@/components/admin/CustomerName'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -11,6 +12,7 @@ import { listAllSupplierSwitchRequests } from '@/lib/operations/db'
 import { listOutboundRequests } from '@/lib/cis/db'
 import { getSwitchLifecycle } from '@/lib/operations/controlTower'
 import type { CustomerSiteRow } from '@/lib/masterdata/types'
+import { formatStatusLabel } from '@/lib/ui/format'
 
 export const dynamic = 'force-dynamic'
 
@@ -234,7 +236,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  request.status
  )}`}
  >
- {request.status}
+ {formatStatusLabel(request.status)}
  </span>
  <span
  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badgeTone(
@@ -260,7 +262,7 @@ export default async function ReadyToExecuteSwitchesPage() {
  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm ">
  <div className="text-slate-700 ">Kund</div>
  <div className="mt-1 font-medium text-slate-900 ">
- {request.customer_id}
+ <CustomerName id={request.customer_id} />
  </div>
  </div>
 

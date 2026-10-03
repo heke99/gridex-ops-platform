@@ -15,9 +15,20 @@ export async function resolveAdminTenantReadScope(
 
   return {
     isPlatformAdmin,
-    companyId: isPlatformAdmin ? null : operationalScope.companyId,
+    companyId: tenantReadCompanyId(isPlatformAdmin, operationalScope.companyId),
     companyName: operationalScope.companyName,
   }
+}
+
+/**
+ * Company filter for an admin read. Platform admins read across tenants (null);
+ * a tenant user without an operational company must never fall through to an
+ * unfiltered read, because callers treat null as "all companies".
+ */
+export function tenantReadCompanyId(isPlatformAdmin: boolean, companyId: string | null | undefined): string | null {
+  if (isPlatformAdmin) return null
+  if (!companyId) throw new Error('Kontot saknar ett aktivt bolag. Välj eller aktivera ett bolag för att se uppgifterna.')
+  return companyId
 }
 
 export function applyTenantFilter<T extends { eq: (column: string, value: string) => T }>(

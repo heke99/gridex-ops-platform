@@ -156,6 +156,19 @@ async function assertEntityCompanyAccess(params: {
 }
 
 
+// Bulk queue actions work on the selected company only. A platform admin with
+// no selected company keeps the cross-tenant view; anyone else must have one.
+async function resolveBulkCompanyScope(
+  access: Awaited<ReturnType<typeof requireAdminActionAccess>>
+): Promise<string | null> {
+  const scope = await getOperationalCompanyScope(access.userId)
+  if (!scope.companyId) {
+    if (isPlatformAdminContext(access)) return null
+    throw new Error('Aktiv bolagskoppling saknas.')
+  }
+  return assertUserCanOperateCompany(access.userId, scope.companyId)
+}
+
 async function syncCustomerOperationsAfterCisChange(
   customerId: string
 ): Promise<void> {
@@ -330,6 +343,13 @@ export async function queueOutboundRequestAction(
 
   if (!customerId) throw new Error('customer_id krävs')
 
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'customers',
+    id: customerId,
+    requiresOperationalWrite: true,
+  })
+
   const saved = await createOutboundRequest({
     actorUserId: actor.id,
     customerId,
@@ -413,6 +433,9 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
+  // The customer comes from the tenant-checked outbound request, never from the form.
+  const savedCustomerId = saved.customer_id ?? customerId
+
   const syncedSwitch = await syncSwitchRequestFromOutbound({
     outboundRequest: saved,
     actorUserId: actor.id,
@@ -430,7 +453,7 @@ export async function updateOutboundRequestStatusAction(
     action: 'outbound_request_status_updated',
     newValues: saved,
     metadata: {
-      customerId,
+      customerId: savedCustomerId,
       status: saved.status,
       syncedSwitchRequestId: syncedSwitch?.id ?? null,
       syncedSwitchStatus: syncedSwitch?.status ?? null,
@@ -439,13 +462,13 @@ export async function updateOutboundRequestStatusAction(
     },
   })
 
-  await syncCustomerOperationsAfterCisChange(customerId)
+  await syncCustomerOperationsAfterCisChange(savedCustomerId)
 
   revalidatePath('/admin/outbound')
   revalidatePath('/admin/outbound/missing-meter-values')
   revalidatePath('/admin/outbound/ready-switches')
   revalidatePath('/admin/outbound/unresolved')
-  revalidatePath(`/admin/customers/${customerId}`)
+  revalidatePath(`/admin/customers/${savedCustomerId}`)
   revalidatePath('/admin/operations')
   revalidatePath('/admin/operations/tasks')
   revalidatePath('/admin/operations/switches')
@@ -467,6 +490,13 @@ export async function updateGridOwnerDataRequestStatusAction(
   if (!requestId || !customerId) {
     throw new Error('request_id och customer_id krävs')
   }
+
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'grid_owner_data_requests',
+    id: requestId,
+    requiresOperationalWrite: true,
+  })
 
   const saved = await updateGridOwnerDataRequestStatus({
     actorUserId: actor.id,
@@ -729,6 +759,8 @@ export async function queueSupplierSwitchOutboundAction(
     throw new Error('Switch request hittades inte')
   }
 
+  await assertUserCanOperateCompany(actor.id, request.company_id)
+
   const message = await prepareAndQueueEdielZ03({
     actorUserId: actor.id,
     switchRequestId: request.id,
@@ -791,6 +823,13 @@ export async function prepareGridOwnerDataRequestEdielAction(
     throw new Error('request_id krävs')
   }
 
+  await assertEntityCompanyAccess({
+    actorUserId: actor.id,
+    table: 'grid_owner_data_requests',
+    id: requestId,
+    requiresOperationalWrite: true,
+  })
+
   const message = await ensureAndPrepareUtiltsFromDataRequest({
     actorUserId: actor.id,
     dataRequestId: requestId,
@@ -832,16 +871,19 @@ export async function bulkQueueMissingMeterValuesAction(
   periodStart: string | null
   periodEnd: string | null
 }> {
-  await requireAdminActionAccess(['metering.write'])
+  const access = await requireAdminActionAccess(['metering.write'])
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
+  const bulkCompanyId = await resolveBulkCompanyScope(access)
   const period = buildMonthPeriod(formValue(formData, 'period_month'))
 
-  const sitesQuery = await supabase
+  let sitesSelect = supabase
     .from('customer_sites')
     .select('*')
     .order('created_at', { ascending: false })
+  if (bulkCompanyId) sitesSelect = sitesSelect.eq('company_id', bulkCompanyId)
+  const sitesQuery = await sitesSelect
 
   if (sitesQuery.error) throw sitesQuery.error
   const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
@@ -911,20 +953,23 @@ export async function bulkQueueMissingBillingUnderlaysAction(
   year: number
   month: number
 }> {
-  await requireAdminActionAccess(['billing_underlay.write'])
+  const access = await requireAdminActionAccess(['billing_underlay.write'])
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
+  const bulkCompanyId = await resolveBulkCompanyScope(access)
   const period = buildMonthPeriod(formValue(formData, 'period_month'))
 
   if (!period) {
     throw new Error('Du måste välja månad för billing-underlag')
   }
 
-  const sitesQuery = await supabase
+  let sitesSelect = supabase
     .from('customer_sites')
     .select('*')
     .order('created_at', { ascending: false })
+  if (bulkCompanyId) sitesSelect = sitesSelect.eq('company_id', bulkCompanyId)
+  const sitesQuery = await sitesSelect
 
   if (sitesQuery.error) throw sitesQuery.error
   const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
@@ -995,15 +1040,18 @@ export async function bulkQueueReadySupplierSwitchesAction(): Promise<{
   createdCount: number
   skippedCount: number
 }> {
-  await requireAdminActionAccess(['switching.write'])
+  const access = await requireAdminActionAccess(['switching.write'])
 
   const actor = await getActor()
   const supabase = await createSupabaseServerClient()
+  const bulkCompanyId = await resolveBulkCompanyScope(access)
 
-  const sitesQuery = await supabase
+  let sitesSelect = supabase
     .from('customer_sites')
     .select('*')
     .order('created_at', { ascending: false })
+  if (bulkCompanyId) sitesSelect = sitesSelect.eq('company_id', bulkCompanyId)
+  const sitesQuery = await sitesSelect
 
   if (sitesQuery.error) throw sitesQuery.error
   const sites = (sitesQuery.data ?? []) as CustomerSiteRow[]
