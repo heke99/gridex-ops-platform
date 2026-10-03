@@ -10,7 +10,8 @@ Migration 20261002235300 (03:55): supply_period_source_basis_v1 godtar kontrakt 
 ÖPPET designbeslut: closure-granskningens reviewerUserId binds i DB bara till behörighet (communication.write/ediel_testing.write); testet förväntar att annan behörig tenantanvändare (källans aktör) avvisas = separation of duties saknar DB-förankring. Ej infört utan beslut.
 ÖPPNA även: outbound-ack-replay (okänd PRODAT-kod kan ej lagras: company krävs + regelprofil saknas; behöver listad radkod + pinnad profil som z04-ack), z04-ack 6 (flerobjekts-APERAK håller: APERAK_PRODAT_OBJECT_OUTCOME_MISSING för oägt objekt).
 transport-exception native 4/4 (PG16: skaparen har ADMIN-only medlemskap; transaktionslokal GRANT WITH SET TRUE).
-Grenmigrationer nu 20261002233000–20261002235300. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
+Pushat 5a7007a3 (04:20): migration 20261002235400 (prod-index saknade i ren replay; IF NOT EXISTS), profilpinning i fixturer, process-journal 2/2, decision-original 2/2. CI 40b3fac6: native 51/581 fel (var 83). Nästa: läs CI för 5a7007a3, ta schema/fingerprint från CI-artefakten (index ändrar schema), fortsätt service-evidence (9 i CI), prodat-mixed, prodat-ack-raw-scope, små; sedan prod-migrationer 233000–235400 (torrkör först) och merge.
+Grenmigrationer nu 20261002233000–20261002235400. Nästa: z06f (requestedStartDate 2026-10-03 inte längre framtid), z04-ack/prodat-mixed (QTY+31), source-owner, transport-exception, outbound-ack-replay, små, browser-native, document-reference Z08; sedan CI, prod-migrationer (torrkörning först), merge.
 
 ## Aktuell arbetsgren — 2026-10-02 kväll (gäller före allt nedan)
 
