@@ -13,6 +13,7 @@ import {emitCustomerOperationEvent} from '@/lib/customers/customerOperationEvent
 import {createSupplierSwitchEvent} from '@/lib/operations/db'
 import {literal,sql,raw,project,seed,seedCorrectionSource} from './helpers/correctionContextNative'
 import {nationalRescissionNativeChain} from './helpers/nationalRescissionNative'
+import {publishSyntheticRecipientTrust} from './helpers/syntheticCertificateTrust'
 import type {SupabaseClient} from '@supabase/supabase-js'
 const call=(f:Awaited<ReturnType<typeof seed>>)=>`public.gridex_capture_correction_concern_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)})`
 
@@ -410,6 +411,8 @@ async function outboundSeed(){
  // The chain's route served the Z03 start; this route is now the Z08 dispatch
  // route (the outbox worker requires the profile's own message code).
  sql(`UPDATE public.ediel_route_profiles SET business_code='Z08' WHERE company_id=${literal(n.companyId)} AND communication_route_id=${literal(n.routeId)}`)
+ // Fixture replies to the received H start are outside these dispatch tests.
+ sql(`UPDATE public.ediel_outbox SET status='superseded' WHERE company_id=${literal(n.companyId)} AND status='queued' AND ediel_message_id<>${literal(n.original.id)}`)
  // The producer queued exactly one outbox item for its original.
  const outboxId=sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(n.companyId)} AND ediel_message_id=${literal(n.original.id)} AND status='queued'`)
  expect(outboxId).toMatch(/^[0-9a-f-]{36}$/)
@@ -440,7 +443,9 @@ it.each(['accepted','partial','empty','malformed','all_rejected','connect_negati
   await directOutbound(f).catch(()=>null)
   expect(provider).toHaveBeenCalledTimes(1)
   expect(outboundFacts(f)).toEqual(expect.arrayContaining([expect.objectContaining({kind:'provider_call_entered',witnessed:true}),expect.objectContaining({kind:'provider_result',witnessed:true})]))
-  const want={accepted:'accepted',partial:'partial',empty:'uncertain',malformed:'uncertain',all_rejected:'all_rejected',connect_negative:'pre_connect_negative',data_ambiguous:'uncertain'}[outcome]
+  // A result naming an address other than the bound recipient is uncertain
+  // (20260930211852 binds the result to the actual prepared SMTP recipient).
+  const want={accepted:'accepted',partial:'uncertain',empty:'uncertain',malformed:'uncertain',all_rejected:'all_rejected',connect_negative:'pre_connect_negative',data_ambiguous:'uncertain'}[outcome]
   expect(outboundFacts(f).find(e=>e.kind==='provider_result')?.facts).toMatchObject({classification:want})
   if(outcome==='partial')expect(outboundFacts(f).find(e=>e.kind==='provider_result')?.facts).toMatchObject({provider:{accepted:['recipient@example.invalid'],rejected:['other@example.invalid'],messageId:'partial-id',response:'250 partial'}})
   sql(`UPDATE public.ediel_messages SET status='queued',message_sent_at=NULL WHERE id=${literal(f.messageId)};`)
@@ -489,7 +494,7 @@ function observeReservationContention(messageId:string){
  },restore(){clearTimeout(timer);arrivalsReady();decisionsReady();entryReady();spy.mockRestore()}}
 }
 it('outbound direct and actual worker claim race admits only one provider call',async()=>{
- const f=await outboundSeed(),outboxId=f.outboxId;smtpFixture()
+ const f=await outboundSeed();smtpFixture()
  const {processEdielOutbox}=await import('@/lib/ediel/outbox/processEdielOutbox')
  const contention=observeReservationContention(f.messageId)
  try{
@@ -625,8 +630,10 @@ it.each(['nodemailer-attachment','ediel-multipart-validation-base64','ediel-sing
   expect(binding.originalHash).toBe(createHash('sha256').update(f.wire,'utf8').digest('hex'))
   expect(binding.payloadHash).not.toBe(binding.originalHash)
   const options=provider.mock.calls[0][0]
-  if(mimeMode==='nodemailer-attachment'){expect(options.attachments[0].content.equals(bytes)).toBe(true);expect(binding).not.toHaveProperty('rawBase64')}
-  else expect(Buffer.from(String(binding.rawBase64),'base64').equals(options.raw)).toBe(true)
+  // Every mode compiles the MIME once, archives it and hands the provider
+  // exactly those raw bytes; attachment mode also binds its attachment content.
+  if(mimeMode==='nodemailer-attachment')expect(Buffer.from(String((binding.attachments as {contentBase64:string}[])[0].contentBase64),'base64').equals(bytes)).toBe(true)
+  expect(Buffer.from(String(binding.rawBase64),'base64').equals(options.raw)).toBe(true)
  }finally{vi.unstubAllEnvs()}
 })
 async function nativeTechnicalAck(){
@@ -650,10 +657,14 @@ async function nativeTechnicalAck(){
   VALUES(${literal(profile)},${literal(f.companyId)},${literal(route)},'Native technical response profile','test','edifact','edifact',
    ${literal(f.sender)},${literal(f.receiver)},'23-DDQ-PRODAT',true,true,'unencrypted','recipient@example.invalid','recipient@example.invalid','CONTRL','CONTRL',
    ${literal(smtp.from)},${literal(smtp.host)},${literal(smtp.port)});
+ -- Pin the enabled C registry profile like seed(): code/date inference sees
+ -- L, LK, C and H as Z05 candidates and cannot choose from parsed facts.
  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,
-  message_received_at,application_reference,sender_ediel_id,receiver_ediel_id)
-  VALUES(${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},'{}',clock_timestamp(),
-   '23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)});`)
+  message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+  SELECT ${literal(sourceId)},${literal(f.companyId)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},'{}',clock_timestamp(),
+   '23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+  WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
  const {getEdielMessageById}=await import('@/lib/ediel/db')
  const {resolveCanonicalRuntimeDecisionWithRegistry}=await import('@/lib/ediel/core/runtimeDecision')
  const {recordEdielTechnicalSyntaxDecision,captureEdielTechnicalSyntaxAckEvidence}=await import('@/lib/ediel/ack/technicalSyntaxAuthority')
@@ -728,8 +739,10 @@ it('outbound S/MIME archive is durable before provider entry and binds exact raw
  const {X509Certificate}=await import('node:crypto')
  const {getEdielMessageById}=await import('@/lib/ediel/db'),{sendEdielMessageViaSmtp}=await import('@/lib/ediel/transport')
  const before=await getEdielMessageById(f.messageId,{companyId:f.companyId});expect(before).not.toBeNull()
- const pem=execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout','/dev/null','-days','365','-set_serial','1234','-subj',`/CN=${before!.receiver_ediel_id}`],{encoding:'utf8',stdio:['ignore','pipe','ignore']})
- const cert=new X509Certificate(pem)
+ // A synthetic CA-issued recipient leaf with a fresh CRL, published by the
+ // external certificate-authority owner (S/MIME requires trust and revocation).
+ const trust=publishSyntheticRecipientTrust({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',receiverEdielId:before!.receiver_ediel_id!})
+ const pem=trust.leafPem,cert=new X509Certificate(pem)
  sql(`INSERT INTO public.ediel_certificates(id,company_id,certificate_fingerprint,secret_reference,status,environment,subject,issuer,serial_number,fingerprint_sha256,public_certificate_pem,valid_from,valid_to,owner_ediel_id,message_family,message_type,purpose,usage)
  VALUES(${literal(certificateId)},${literal(f.companyId)},${literal(cert.fingerprint256)},'public://synthetic','active','test',${literal(cert.subject)},${literal(cert.issuer)},${literal(cert.serialNumber)},${literal(cert.fingerprint256)},${literal(pem)},${literal(new Date(cert.validFrom).toISOString())},${literal(new Date(cert.validTo).toISOString())},${literal(before!.receiver_ediel_id)},'PRODAT','PRODAT','encryption','outbound_recipient');
  UPDATE public.ediel_route_profiles SET encryption_mode='smime',transport_security_mode='required_encrypted',receiver_certificate_id=${literal(certificateId)} WHERE communication_route_id=${literal(f.routeId)};`)
@@ -1586,7 +1599,9 @@ it('customer, site, point, contract and supply graph writes retain process links
  // parent mutation must leave its own OLD-side identity after the row is gone.
  // Contracts are retention-classed: only the native retention purge removes
  // them (customer_record_native_class_retention_required), never a raw DELETE.
- sql(`DELETE FROM public.customer_contract_events WHERE id IN (${literal(contractEventId)},${literal(routedEventId)});
+ // The retained contract is detached so its point and sites can be removed.
+ sql(`UPDATE public.customer_contracts SET site_id=NULL,customer_site_id=NULL,metering_point_id=NULL WHERE id=${literal(contractId)};
+  DELETE FROM public.customer_contract_events WHERE id IN (${literal(contractEventId)},${literal(routedEventId)});
   DELETE FROM public.customer_cases WHERE id=${literal(caseId)};
   DELETE FROM public.customer_operation_events WHERE id=${literal(operationEventId)};
   DELETE FROM public.customer_operation_jobs WHERE id=${literal(jobId)};
