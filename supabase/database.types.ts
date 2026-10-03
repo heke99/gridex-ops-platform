@@ -21181,6 +21181,8 @@ export type Database = {
       customer_info_requests: {
         Row: {
           authorization_document_id: string | null
+          automation_key: string | null
+          automation_origin: string | null
           blocker_code: string | null
           blocker_details: Json
           blocker_reason: string | null
@@ -21220,6 +21222,8 @@ export type Database = {
         }
         Insert: {
           authorization_document_id?: string | null
+          automation_key?: string | null
+          automation_origin?: string | null
           blocker_code?: string | null
           blocker_details?: Json
           blocker_reason?: string | null
@@ -21259,6 +21263,8 @@ export type Database = {
         }
         Update: {
           authorization_document_id?: string | null
+          automation_key?: string | null
+          automation_origin?: string | null
           blocker_code?: string | null
           blocker_details?: Json
           blocker_reason?: string | null
@@ -92870,6 +92876,14 @@ export type Database = {
       }
       gridex_create_billing_export_run: {
         Args: { p_items?: Json; p_run: Json }
+        Returns: Json
+      }
+      gridex_create_customer_info_request_v1: {
+        Args: {
+          p_actor_user_id?: string
+          p_company_id: string
+          p_request: Json
+        }
         Returns: Json
       }
       gridex_create_customer_site_with_address: {

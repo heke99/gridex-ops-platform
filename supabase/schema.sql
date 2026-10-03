@@ -20726,6 +20726,83 @@ end
 $$;
 
 --
+-- Name: gridex_create_customer_info_request_v1(uuid, jsonb, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid DEFAULT NULL::uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_customer_id uuid := nullif(p_request->>'customer_id', '')::uuid;
+  v_site_id uuid := nullif(p_request->>'site_id', '')::uuid;
+  v_metering_point_id uuid := nullif(p_request->>'metering_point_id', '')::uuid;
+  v_automation_key text := nullif(btrim(p_request->>'automation_key'), '');
+  v_categories jsonb := coalesce(p_request->'requested_data_categories', '[]'::jsonb);
+  v_row public.customer_info_requests%rowtype;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception using errcode = '42501', message = 'customer_info_request_service_role_required';
+  end if;
+  if p_company_id is null or v_customer_id is null
+     or nullif(p_request->>'request_type', '') is null
+     or nullif(p_request->>'target_party_type', '') is null
+     or jsonb_typeof(v_categories) <> 'array' or jsonb_array_length(v_categories) = 0 then
+    raise exception using errcode = '22023', message = 'customer_info_request_payload_invalid';
+  end if;
+  if not exists (select 1 from public.customers where id = v_customer_id and company_id = p_company_id) then
+    raise exception using errcode = 'P0002', message = 'customer_not_found_for_company';
+  end if;
+  if v_site_id is not null and not exists (
+    select 1 from public.customer_sites where id = v_site_id and company_id = p_company_id and customer_id = v_customer_id
+  ) then
+    raise exception using errcode = 'P0002', message = 'site_not_found_for_customer';
+  end if;
+  if v_metering_point_id is not null and not exists (
+    select 1 from public.metering_points where id = v_metering_point_id and company_id = p_company_id and customer_id = v_customer_id
+  ) then
+    raise exception using errcode = 'P0002', message = 'metering_point_not_found_for_customer';
+  end if;
+
+  if v_automation_key is not null then
+    perform pg_advisory_xact_lock(hashtextextended(p_company_id::text || ':cir:' || v_automation_key, 0));
+    select * into v_row from public.customer_info_requests
+     where company_id = p_company_id and automation_key = v_automation_key;
+    if found then
+      return jsonb_build_object('created', false, 'request', to_jsonb(v_row));
+    end if;
+  end if;
+
+  insert into public.customer_info_requests (
+    company_id, customer_id, site_id, metering_point_id, grid_owner_id, operation_id,
+    request_type, target_party_type, target_party_name, current_supplier_name,
+    status, requested_data_categories, verified_payload, notes,
+    automation_origin, automation_key, created_by, updated_by
+  ) values (
+    p_company_id, v_customer_id, v_site_id, v_metering_point_id,
+    nullif(p_request->>'grid_owner_id', '')::uuid, nullif(p_request->>'operation_id', '')::uuid,
+    p_request->>'request_type', p_request->>'target_party_type', nullif(p_request->>'target_party_name', ''),
+    nullif(p_request->>'current_supplier_name', ''),
+    'draft', v_categories, coalesce(p_request->'verified_payload', '{}'::jsonb), nullif(p_request->>'notes', ''),
+    nullif(p_request->>'automation_origin', ''), v_automation_key, p_actor_user_id, p_actor_user_id
+  ) returning * into v_row;
+
+  insert into public.customer_info_request_events (
+    company_id, customer_info_request_id, customer_id, event_type, message, payload, created_by
+  ) values (
+    p_company_id, v_row.id, v_customer_id, 'created', 'Uppgiftsbegäran skapades.',
+    jsonb_build_object(
+      'requested_data_categories', v_categories,
+      'siteId', v_site_id, 'meteringPointId', v_metering_point_id,
+      'gridOwnerId', v_row.grid_owner_id, 'operationId', v_row.operation_id,
+      'automationOrigin', v_row.automation_origin),
+    p_actor_user_id);
+
+  return jsonb_build_object('created', true, 'request', to_jsonb(v_row));
+end;
+$$;
+
+--
 -- Name: gridex_create_customer_site_with_address(uuid, uuid, text, text, text, text, text, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -29463,6 +29540,8 @@ CREATE TABLE public.customer_info_requests (
     route_resolution_status text,
     route_resolution_reason text,
     next_required_action text,
+    automation_origin text,
+    automation_key text,
     CONSTRAINT customer_info_requests_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'missing_authorization'::text, 'ready_to_send'::text, 'sent_to_grid_owner'::text, 'waiting_for_contrl'::text, 'waiting_for_aperak'::text, 'waiting_for_z02'::text, 'z02_received'::text, 'negative_aperak'::text, 'manual_review_required'::text, 'missing_binding_info'::text, 'missing_termination_info'::text, 'ready_for_switch'::text, 'cancelled'::text, 'rejected'::text, 'completed'::text, 'blocked'::text])))
 );
 
@@ -79638,6 +79717,12 @@ CREATE INDEX customer_info_request_events_request_idx ON public.customer_info_re
 CREATE INDEX customer_info_requests_blocker_code_idx ON public.customer_info_requests USING btree (company_id, blocker_code, updated_at DESC) WHERE (blocker_code IS NOT NULL);
 
 --
+-- Name: customer_info_requests_company_automation_key_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_info_requests_company_automation_key_uidx ON public.customer_info_requests USING btree (company_id, automation_key) WHERE (automation_key IS NOT NULL);
+
+--
 -- Name: customer_info_requests_company_customer_created_chain_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -118582,6 +118667,13 @@ GRANT ALL ON FUNCTION public.gridex_create_actor_registry_conflict(p_company_id 
 
 REVOKE ALL ON FUNCTION public.gridex_create_billing_export_run(p_run jsonb, p_items jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_create_billing_export_run(p_run jsonb, p_items jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_customer_info_request_v1(p_company_id uuid, p_request jsonb, p_actor_user_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_customer_site_with_address(p_company_id uuid, p_customer_id uuid, p_site_name text, p_facility_id text, p_street text, p_postal_code text, p_city text, p_country text, p_address_normalized text, p_address_hash text, p_source text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
