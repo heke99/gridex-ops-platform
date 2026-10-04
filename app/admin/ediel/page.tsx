@@ -76,6 +76,10 @@ const MORE_TOOLS: Array<{ href: string; label: string }> = [
  { href: '/admin/ediel/certification', label: 'Certifiering' },
  { href: '/admin/ediel/portal-feedback', label: 'Portalfeedback' },
  { href: '/admin/ediel/test-center', label: 'Testcenter' },
+ { href: '/admin/ediel/contract-originals', label: 'Signerade avtalsoriginal' },
+ { href: '/admin/ediel/signed-brp-declarations', label: 'Signerade BRP-deklarationer' },
+ { href: '/admin/ediel/prodat-recovery', label: 'PRODAT-rättelse' },
+ { href: '/admin/ediel/supply-rescission-sources', label: 'Återgång (Z08H)' },
 ]
 
 export default async function EdielPage() {

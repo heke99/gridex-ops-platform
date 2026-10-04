@@ -86,6 +86,12 @@ textarea {
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
+/* Long Swedish compounds, hashes and e-mail addresses must wrap instead of
+   widening the page at mobile width and 200 % zoom (WCAG 1.4.10 reflow). */
+.admin-saas-content :where(h1, h2, h3, p, dd, dt, label, li) {
+  overflow-wrap: anywhere;
+}
+
 .admin-saas-content > :where(div) {
   animation: adminFadeIn 160ms ease-out;
 }
@@ -232,4 +238,20 @@ textarea {
 
 .admin-saas-content :where(input::placeholder, textarea::placeholder) {
   color: #64748b !important;
+}
+
+/* Standalone retention workspace: long Swedish labels and IDs wrap at 375px and 200% zoom. */
+.retention-workspace,
+.retention-workspace :where(main, section, form, div) {
+  min-width: 0;
+}
+.retention-workspace :where(h1, h2, h3, p, dd, dt, label, li, a, button, legend) {
+  overflow-wrap: anywhere;
+}
+.retention-workspace :where(select, input, textarea) {
+  max-width: 100%;
+  min-width: 0;
+}
+.retention-workspace :where(.grid) {
+  grid-template-columns: minmax(0, 1fr);
 }

@@ -504,7 +504,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
       <form className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm" action="/admin/ediel/auto-readiness">
         <div className="grid gap-3 md:grid-cols-5">
           <label className="text-xs font-bold text-slate-700">Roll
-            <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Roll" name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="all">Alla roller</option>
               <option value="grid_owner">Nätägare</option>
               <option value="electricity_supplier">Elleverantörer</option>
@@ -515,7 +515,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Route-scope
-            <select name="family" defaultValue={familyFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Route-scope" name="family" defaultValue={familyFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="electricity">Elhandel: PRODAT/UTILTS utan GAS</option>
               <option value="PRODAT">PRODAT</option>
               <option value="UTILTS">UTILTS</option>
@@ -524,7 +524,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Readiness
-            <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
+            <select aria-label="Readiness" name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs">
               <option value="all">Alla statusar</option>
               <option value="ready">Klar</option>
               <option value="partial">Delvis klar</option>
@@ -534,7 +534,7 @@ export default async function EdielAutoReadinessPage({ searchParams }: PageProps
             </select>
           </label>
           <label className="text-xs font-bold text-slate-700">Sök
-            <input name="q" defaultValue={params.q ?? ''} placeholder="Aktör, Ediel-ID, SMTP..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs" />
+            <input aria-label="Sök" name="q" defaultValue={params.q ?? ''} placeholder="Aktör, Ediel-ID, SMTP..." className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-xs" />
           </label>
           <div className="flex items-end gap-2">
             <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>

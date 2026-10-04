@@ -250,7 +250,7 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
                           <div className="grid gap-3 md:grid-cols-3">
                             <label className="grid gap-1 text-xs font-semibold text-slate-700">
                               Status
-                              <select name="status" defaultValue={result?.status ?? 'manual_verified'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
+                              <select aria-label="Status" name="status" defaultValue={result?.status ?? 'manual_verified'} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                                 <option value="manual_verified">Manuellt verifierad</option>
                                 <option value="failed">Nekad</option>
                                 <option value="blocked">Blockerad</option>
@@ -259,16 +259,16 @@ export function ActorTestPackageCards({ summary, readonly = false }: { summary: 
                             </label>
                             <label className="grid gap-1 text-xs font-semibold text-slate-700 md:col-span-2">
                               Portalstatus / kommentar
-                              <input name="portal_status" defaultValue={result?.portal_status ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ex. Godkänt i Edielportalen" />
+                              <input aria-label="Portalstatus / kommentar" name="portal_status" defaultValue={result?.portal_status ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ex. Godkänt i Edielportalen" />
                             </label>
                           </div>
                           <label className="grid gap-1 text-xs font-semibold text-slate-700">
                             Felorsak vid nekad/blockerad
-                            <input name="failure_reason" defaultValue={result?.failure_reason ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ange felorsak om testet inte är godkänt" />
+                            <input aria-label="Felorsak vid nekad/blockerad" name="failure_reason" defaultValue={result?.failure_reason ?? ''} className="rounded-xl border border-slate-300 px-3 py-2 text-sm" placeholder="Ange felorsak om testet inte är godkänt" />
                           </label>
                           <label className="grid gap-1 text-xs font-semibold text-slate-700">
                             Rå payload / bevisnotering
-                            <textarea name="raw_payload" defaultValue={result?.raw_payload ?? ''} className="min-h-24 rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" placeholder="Klistra in payload eller portalnotering vid behov" />
+                            <textarea aria-label="Rå payload / bevisnotering" name="raw_payload" defaultValue={result?.raw_payload ?? ''} className="min-h-24 rounded-xl border border-slate-300 px-3 py-2 font-mono text-xs" placeholder="Klistra in payload eller portalnotering vid behov" />
                           </label>
                           <button className="w-fit rounded-xl bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">Spara testresultat</button>
                         </form>
@@ -483,7 +483,7 @@ export function GoLiveChecklist({
             <p className="mt-2 text-sm leading-6 text-emerald-800">Du är på väg att aktivera riktiga marknadsmeddelanden för {summary.company.name}. Kontrollera Ediel-id, BRP Ediel-id, routes, actor_test_results och produktionsmailbox.</p>
             <label className="mt-4 grid gap-1 text-xs font-semibold text-emerald-900">
               Bekräftelse: skriv “ACTIVATE PRODUCTION”
-              <input name="confirmation" className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm text-slate-900" />
+              <input aria-label="Bekräftelse: skriv “ACTIVATE PRODUCTION”" name="confirmation" className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm text-slate-900" />
             </label>
             <button disabled={summary.goLiveBlockers.length > 0} className="mt-4 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">{summary.goLiveBlockers.length > 0 ? 'Live blockerat – åtgärda spärrar först' : 'Aktivera live Ediel'}</button>
           </form>

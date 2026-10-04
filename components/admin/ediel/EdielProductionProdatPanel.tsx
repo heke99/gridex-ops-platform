@@ -1112,7 +1112,7 @@ function ProductionCandidateCard({
             <div className="mt-3 grid gap-2 md:grid-cols-4">
               <label className="block text-xs font-semibold text-slate-700">
                 Mätmetod / fält 217
-                <select
+                <select aria-label="Mätmetod / fält 217"
                   name="meteringMethod"
                   defaultValue={candidate.portalMeteringMethod ?? ""}
                   className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950"
@@ -1126,7 +1126,7 @@ function ProductionCandidateCard({
               </label>
               <label className="block text-xs font-semibold text-slate-700">
                 Transaktionstyp / fält 223
-                <select
+                <select aria-label="Transaktionstyp / fält 223"
                   name="reasonForTransaction"
                   defaultValue={candidate.portalReasonForTransaction ?? ""}
                   className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-950"
@@ -1140,7 +1140,7 @@ function ProductionCandidateCard({
               </label>
               <label className="block text-xs font-semibold text-slate-700">
                 Kund-id typ / DE 1131
-                <select
+                <select aria-label="Kund-id typ / DE 1131"
                   name="customerIdCodeListQualifier"
                   defaultValue={
                     candidate.portalCustomerIdCodeListQualifier ?? ""

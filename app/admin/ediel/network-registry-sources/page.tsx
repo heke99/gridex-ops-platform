@@ -1,0 +1,17 @@
+import {requireAdminPageAccess} from '@/lib/admin/guards'
+import {createSupabaseServerClient} from '@/lib/supabase/server'
+// tenant_ediel_profiles is service-only (no authenticated grant); read it for
+// the guarded company only, after the page's server permission check.
+import {supabaseService} from '@/lib/supabase/service'
+import NetworkRegistryWorkspace from './workspace'
+export const dynamic='force-dynamic'
+export default async function NetworkRegistrySourcesPage({searchParams}:{searchParams:Promise<{artifactId?:string}>}){
+ const access=await requireAdminPageAccess({allOf:['communication.read','customers.read','contracts.read']})
+ if(!access.companyId||!['communication.read','customers.read','contracts.read'].every(p=>access.permissions.includes(p)))return <main className="p-6"><h1 className="text-2xl font-semibold">Nätregisterunderlag</h1><p>Välj ett bolag med behörighet att läsa kommunikation, kunder och avtal.</p></main>
+ const db=await createSupabaseServerClient(),[profiles,owners]=await Promise.all([supabaseService.from('tenant_ediel_profiles').select('environment').eq('company_id',access.companyId).eq('market','electricity').eq('is_enabled',true),db.from('grid_owners').select('id,name,ediel_id').eq('company_id',access.companyId).eq('is_active',true)])
+ const ids=[...new Set((owners.data??[]).map(o=>o.ediel_id).filter((v):v is string=>Boolean(v)))],identifiers=ids.length?await db.from('platform_actor_identifiers').select('actor_id,identifier_value').eq('identifier_type','EdielId').eq('is_verified',true).in('identifier_value',ids):{data:[],error:null}
+ const actors=[...new Set((identifiers.data??[]).map(i=>i.actor_id))],networks=actors.length?await db.from('platform_market_actors').select('id,name').eq('status','active').in('id',actors):{data:[],error:null}
+ if(profiles.error||owners.error||identifiers.error||networks.error)return <main className="p-6"><h1 className="text-2xl font-semibold">Nätregisterunderlag</h1><p role="alert">Bolagets aktuella nät- och Ediel-underlag kunde inte läsas.</p></main>
+ const environments=[...new Set((profiles.data??[]).map(p=>p.environment).filter((e):e is 'test'|'production'=>e==='test'||e==='production'))],choices=(networks.data??[]).map(n=>({id:n.id,label:`${n.name} · ${identifiers.data?.find(i=>i.actor_id===n.id)?.identifier_value??''}`})),params=await searchParams
+ return <main className="mx-auto max-w-4xl p-4 sm:p-6"><h1 className="mb-2 text-2xl font-semibold">Nätregisterunderlag</h1><p className="mb-6">Arkivera det daterade nätregisteroriginalet. En annan behörig granskare måste pröva utfärdarens kompetens, nätföretagets identitet och aktuell representation. Underlaget måste vara styrkt innan AI/BI:s nätuppgifter får användas.</p><NetworkRegistryWorkspace environments={environments} choices={choices} initialArtifactId={params.artifactId??''} canArchive={['communication.write','customers.write','contracts.write'].every(p=>access.permissions.includes(p))} canReview={['communication.write','customers.write','contracts.write','ediel.network_registry.review'].every(p=>access.permissions.includes(p))}/></main>
+}

@@ -40,7 +40,7 @@ export default function ActorRegistryImportPanel({ importRuns }: { importRuns: I
             Kör om även om samma filhash redan importerats
           </label>
           <button type="submit" className="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">
-            Importera och verifiera
+            Importera register
           </button>
         </form>
       </div>
