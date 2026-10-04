@@ -1020,8 +1020,17 @@
     },
     {
       "id": "SC-007",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "lib/ediel/services/projection.ts",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-008",

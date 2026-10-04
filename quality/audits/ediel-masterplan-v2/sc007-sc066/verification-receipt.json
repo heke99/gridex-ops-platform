@@ -1,5 +1,5 @@
 {
-  "purpose": "SC-007 and SC-066 complete frozen expected/prohibited behavior evidence; independent approval pending",
+  "purpose": "Complete frozen SC-007 independently approved; SC-066 current-consumer correction ready for independent full-scenario review",
   "stacked_base_sha": "fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c",
   "main_source_baseline": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
   "owner_claim_url": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985559317",
@@ -7,7 +7,7 @@
     "SC-007",
     "SC-066"
   ],
-  "coverage_mutated": false,
+  "coverage_mutated": true,
   "production_migrations_authority_mutated": false,
   "native_reuse": {
     "workflow_run_id": 37219122360,
@@ -144,13 +144,19 @@
     "lib/ediel/aiBiReconciliation.ts": "4894c754372b7f728381fd57fc2eaebb6bbf443025fd85e70490fde8a03366f0",
     "lib/ediel/aiBiInboundReconciliation.ts": "fdded6364d9e00e3204191749d126994d20fcfb752b40ad85c3e8f091d362abe",
     "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql": "cc6c7535ef61c214563898b96e4f796b7024b79c173ea66552900ac11b2e23af",
-    "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql": "4af40a247a5429805ead539ea146f9a53a5ad6457f8623e3c211094ef1d4965a"
+    "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql": "4af40a247a5429805ead539ea146f9a53a5ad6457f8623e3c211094ef1d4965a",
+    "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql": "8a9563252dcc17e32d163314b533dd0949f8b740d8b025e5715e15739d457e77",
+    "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql": "3c650bde5c0e44612e4fb931b5f5438b4ce43f8d6fbada8f08db85bb44db07bb",
+    "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql": "816fb18d4ee528229c96382bcfb3ea83272b495854920a355adf7b5d9c07c607",
+    "supabase/migrations/20261001020550_ediel_ai_purpose_source_owner.sql": "6eb0aa5ed1e377b60e2b0328922cc41a55f70113f089b6be944835d9e53d25c0",
+    "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql": "4fc20e9ef58d215903bef7de5e3b5d67d8c6a8eb8f53e281a2900d5444c1a2ca",
+    "supabase/schema.sql": "7f5b50a6d944dc32e176defddcff49f221d378a10565beba8eebb817ece51f51"
   },
   "packet_input_sha256": {
     "__tests__/ediel-beneficiary-projection-api.test.ts": "1856e0f68b8d282ffbe978baa951860b7b0aea63fbf8ecd58898f6e06b445748",
     "__tests__/ediel-ai-list-history.test.ts": "c43c35ea829eaacb80ef20b0b301df5e1b91f160e777d03da0912ad3f93a2c1d",
     "__tests__/ediel-ai-bi-processing-decision.test.ts": "16eaeef971375890c4a0fed678bf16452573290436bd8ee46016001a0c7e5a02",
-    "scripts/ediel-ai-reconciliation-embedded-check.mjs": "acf7e6ab731e025d659f5f2afc8bbd97c621cf4b90b7972a13e6ec97e0de3e63",
+    "scripts/ediel-ai-reconciliation-embedded-check.mjs": "fe868fc03d45ee03b661e177b8605db9ed5930f2c3be40946a4b29fde8320249",
     "scripts/ediel-esco-10-11-projection-native.test.ts": "ceb2837004e815dcd5ac7e6cfa7d5eda06757614a7414e8599ca8ae803c9c5ab",
     "scripts/test-ediel-ten-07-scoped-projection.cjs": "4ccee798b40110066cd65c80546c16084938436531163e90674034fb092b7ac5",
     "scripts/test-ediel-ai-history-and-reconciliation.cjs": "a43b5a77b7762af913f62c1094c4f59bb4ed1f2723c81c270e25dc31a3a91233"
@@ -158,30 +164,128 @@
   "executed_verification": {
     "vitest": "66/66 PASS in6 suites with CI unit loopback preload; no skips/errors",
     "vitest_log_sha256": "3e4c7d4902aafaede4fbef0b373b69f651bf0c5ebd305ce9049b6b0ddb65a2b0",
-    "node_wrappers": "3/3 PASS initially: scoped17 plus separatecopies14 and actualAI consumer; AI wrapper rechecked after final assertions1/1 PASS",
-    "ai_sql_final_log_sha256": "17edaa4379dabfe639a69d942d82fd50263dd9c15db5e9427030bde840dc90f7",
-    "tests_typecheck": "PASS final after all assertions",
+    "node_wrappers": "Prior unchanged scoped17/separatecopies14 PASS reused with independent dc3 source equality; obsolete AI probe PASS is superseded for SC066. Fresh corrected current AI wrapper1/1 PASS0FAIL0ERROR0SKIP.",
+    "tests_typecheck": "Fresh PASS: node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json; exit0; no diagnostics",
     "changed_TS_eslint": "PASS zero diagnostics",
-    "node_syntax": "PASS new wrapper and changed actualSQL script",
-    "spec_integrity": "PASS33 original files/121 rules/231 acceptance contracts",
-    "diff_check": "PASS"
+    "node_syntax": "Fresh PASS current probe and supported unchanged wrapper",
+    "spec_integrity": "Fresh verify_spec.py PASS29 checks; frozen register121 rules/231 acceptance contracts; restore only own generated integrity result",
+    "diff_check": "PASS",
+    "current_ai_wrapper_log_path": "quality/audits/ediel-masterplan-v2/sc007-sc066/current-consumer-wrapper.txt",
+    "current_ai_wrapper_log_sha256": "6a9f62bdd6a7443d886f00a752f1819ef070d496b98da15b1b09dbcbe4907f7c",
+    "current_ai_wrapper_command": "node --test scripts/test-ediel-ai-history-and-reconciliation.cjs",
+    "current_ai_wrapper_node_version": "v24.19.0",
+    "tests_typecheck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scoped_eslint": "Fresh PASS zero diagnostics for changed current SQL probe and unchanged SC007 API test; CJS wrapper uses Node syntax check (ESLint ignores CJS scripts)",
+    "scoped_eslint_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "spec_integrity_log_sha256": "0a65612f87a0de698e7fa73719c580f2f2e27ff22652d7ae3ce05417a95f42a3",
+    "historical_obsolete_ai_sql_log_sha256": "17edaa4379dabfe639a69d942d82fd50263dd9c15db5e9427030bde840dc90f7",
+    "supported_tag_discovery": "PASS actual ordinary tag-discovery patterns: SC007 API test + scoped17/separatecopy14 wrapper; SC066 history/decision tests + corrected current consumer wrapper; all existing IDs resolve. Full tag runner not repeated.",
+    "source_and_row_invariants": "PASS7 input/16 production hashes; six other technical inputs unchanged dc3;14 qualified native bodies unchanged; independent review byte-exact; onlySC007changed,351 rows unchanged; lib/app/supabase/shared-memory diff empty"
   },
   "substitution_boundaries": [
     "Existing simplified structural source/readset business declarations remain finite chronology dependencies, not private owner receipts",
-    "Current origin-read port returns actual projected current history to the actual intent/export entry; actual loader/private source authority is not claimed executed by that case",
-    "Actual header reader consumes declared source-qualified RPC input through its normal binding object; no new authority helper or private owner seed",
-    "API auth/projection ports are substituted while actual GET/request/error boundary executes",
-    "Existing SQL legal/network decision stubs and disabled before-storage trigger are declared finite upstream ports; actual committed reconciliation owner executes unchanged",
-    "Reduced protected schemas with own/foreign sentinels prove full-row preservation for those schemas, not deployed schema completeness",
-    "Native external issuer/legal/SMTP inputs are synthetic; no fresh native custody or real market acceptance claimed"
+    "Current origin-read port returns actual projected current history to actual intent/export entry; actual loader/private source authority not executed by this case",
+    "Actual header reader consumes declared source-qualified RPC input through its normal binding object; no new authority helper/private owner seed",
+    "API auth/projection ports substituted while actual GET/request/error boundary executes",
+    "Exact final SQL reconciliation/header/import gate/current decision bridge bodies execute with named finite actor/purpose/network read ports; no obsolete consumer authorized stub remains",
+    "Synthetic unqualified decision row supplies existing import/receipt FK identity only; no purpose artifact/review/origin or private JSON authority fabricated",
+    "Bootstrap165219 pre-storage gate tested held then disabled only for isolated sealed fixture insertion; final personal-source reception/storage owner is not executed or claimed",
+    "Reduced protected schemas with own/foreign sentinels prove every full row unchanged in those schemas, not deployed-schema completeness",
+    "Native external issuer/legal/SMTP inputs synthetic; no fresh native custody/real market acceptance claimed"
   ],
-  "approval": "PENDING separate independent entire SC007/SC066 review; no selfapproval or coverage promotion",
-  "next_action": "Root assigns independent full-scenario reviewer to the published technical freeze; no coverage promotion before separate approval",
+  "approval": {
+    "SC-007": {
+      "verdict": "APPROVE complete frozen code-behavior criterion",
+      "reviewed_head": "dc3b733562ec36d0d94458247f3546b3ca5bdc94",
+      "reviewer": "/root/sc007_sc066_review",
+      "record": "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
+      "record_sha256": "16fedae2c9bf6ded68e4cc68847e45cbb6de8af3c30636f513d33151cfe78144",
+      "public_review": "https://github.com/heke99/gridex-ops-platform/pull/547#issuecomment-5985697401",
+      "asserting_inputs_unchanged_from_approved_head": true,
+      "coverage_status": "PASSED"
+    },
+    "SC-066": {
+      "verdict": "PENDING independent review of current-consumer correction",
+      "prior_review": "REQUEST CHANGES only stale SQL-consumer evidence, not established product defect",
+      "coverage_status": "NOT_EXECUTED"
+    },
+    "other_coverage_rows_unchanged": 351
+  },
+  "next_action": "Independent reviewer checks exact newly published current-function source/input hashes, reruns only changed AI wrapper and decides complete SC066; root retains mandatory CI/composition/merge",
   "publication": {
     "pull_request_url": "https://github.com/heke99/gridex-ops-platform/pull/547",
     "base_pull_request": 541,
     "technical_freeze_sha": "c7121808bc2dbcbe3b63eff6ee68d4118b0b834e",
     "technical_freeze_tree": "7c9a220f2edd797b04069cd1ca175a217369b6b9",
-    "status": "PUBLISHED STACKED DRAFT; independent complete-scenario review pending"
-  }
+    "status": "Immutable current-consumer correction packet; SC007 independently approved and promoted alone; SC066 remains pending new freeze review",
+    "independently_reviewed_predecessor_sha": "dc3b733562ec36d0d94458247f3546b3ca5bdc94"
+  },
+  "current_sql_consumer_definitions": [
+    {
+      "function": "gridex_ai_processing.guard_import_v1",
+      "migration": "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql",
+      "trimmed_body_sha256": "bb1540e3250b760289997c406948b42d82c08b3c2b5299f32c6008389f14c7f7",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.current_decision_v1",
+      "migration": "supabase/migrations/20260930201813_ediel_ai_outbound_source_authority.sql",
+      "trimmed_body_sha256": "5240b267c0c0a517b98d7749cb379ef24fc5cfd8abfed8eaedf925406d0be277",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.current_purpose_decision_v1",
+      "migration": "supabase/migrations/20260930220942_ediel_ai_prospective_original_authority.sql",
+      "trimmed_body_sha256": "47c16e778a733eb07a6ed5876d3158cbe80f22f0dd19819a1e87139850635715",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.authorize_purpose_phase_v1",
+      "migration": "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "trimmed_body_sha256": "83dbce896518560043ead79a55e01eac2f2b05e66d9b03877dd1e872ae5fae35",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.current_purpose_decision_for_phase_v1",
+      "migration": "supabase/migrations/20260930224737_ediel_ai_environment_qualified_origination_permissions.sql",
+      "trimmed_body_sha256": "01498b3afa5be72dcb99266c313a4145495406c93dfc4e20332c22f8a1ee8768",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.purpose_decision_after_actor_v1",
+      "migration": "supabase/migrations/20261001020550_ediel_ai_purpose_source_owner.sql",
+      "trimmed_body_sha256": "ab6d802498a98f52f8351a0c8f2cf288ab8f76dec03a9869ef38394de0b32825",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.header_company_basis_v1",
+      "migration": "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+      "trimmed_body_sha256": "820748b4460a6a7b673eaf847791426c418e1718d687f97cf4cc73e5a0a64340",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    },
+    {
+      "function": "gridex_ai_processing.reconcile_source_v1",
+      "migration": "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+      "trimmed_body_sha256": "bef7a445874b7a7d8870b45a54e435ae954e26528c488c8e61ca2f72ef33f0d1",
+      "installed_pg_proc_equal_asserted": true,
+      "final_committed_schema_equal_asserted": true
+    }
+  ],
+  "current_sql_ports": {
+    "gridex_requested_changes.actor_v1": "Declared finite company/actor read/method_contract boolean; actual final reconciliation invokes before import AND retained replay",
+    "gridex_ai_purpose_sources.consumer_v1": "Declared finite current origination/test authority port; denial runs actual final reconciliation before writes",
+    "gridex_ai_purpose_sources.current_for_scope_v1": "Declared finite AI/ediel_list_reconciliation/test current purpose facts; real current import trigger re-reads via exact decision bridge with NULL environment",
+    "gridex_network_registry_sources.network_for_company_v1": "Declared finite current company/network54321/test status; exact final header consumes it",
+    "public.gridex_actor_has_company_permission": "Existing declared finite permission port; actual membership/profile/auth bridge bodies execute"
+  },
+  "coverage_changes": [
+    "SC-007"
+  ]
 }
