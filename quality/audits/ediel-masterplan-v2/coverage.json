@@ -453,8 +453,16 @@
     {
       "id": "P-11",
       "acceptance_id": "AT-P-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql",
+        "lib/operations/supplierSwitchActivation.ts",
+        "scripts/ediel-normal-switch-source-sql-regression.mjs",
+        "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+        "scripts/test-ediel-p-11-z04-order.cjs",
+        "__tests__/supplier-switch-activation-sweep.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "P-12",
@@ -1940,8 +1948,12 @@
     },
     {
       "id": "AT-P-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-p-11-z04-order.cjs",
+        "__tests__/supplier-switch-activation-sweep.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "AT-P-12",

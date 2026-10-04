@@ -1111,3 +1111,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: P-16 (+AT) godkänd (ny test: motpartsscope för annat bolag/avtal/miljö avvisas).
 - 2026-10-04 #491: P-14 (+AT) godkänd via taggade tester (bundet original, ingen Z13C/Z14C, sen start efter kancellering återaccepteras inte).
 - 2026-10-04 #491: P-02 (+AT) godkänd; P-06 PARTIAL (ny test field 249 ej i Z13; luckor: skyddad identitet, ZZZ).
+- 2026-10-04 #491: P-11 (+AT) godkänd (ny scripts/test-ediel-p-11-z04-order.cjs: Z04 före positiv APERAK, sen negativ ACK backar inte).
