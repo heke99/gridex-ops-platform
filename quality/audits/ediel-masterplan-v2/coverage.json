@@ -869,9 +869,12 @@
     {
       "id": "U-08",
       "acceptance_id": "AT-U-08",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "__tests__/ediel-utilts-structural-comparison.test.ts"
+        "__tests__/ediel-utilts-structural-comparison.test.ts",
+        "lib/ediel/utilts/structuralComparison.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "__tests__/ediel-u-08-esco-partial-structure.test.ts"
       ]
     },
     {
@@ -2323,8 +2326,11 @@
     },
     {
       "id": "AT-U-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-08-esco-partial-structure.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ]
     },
     {
       "id": "AT-U-09",
