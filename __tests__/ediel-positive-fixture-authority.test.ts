@@ -1,3 +1,4 @@
+// masterplan: GOV-08, AT-GOV-08
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
 import {encodeEdifactLatin1} from '@/lib/ediel/core/edifactEncoding'
@@ -13,6 +14,9 @@ beforeEach(()=>{io.rpc.mockReset();io.actor.mockReset();io.actor.mockResolvedVal
 describe('positive original test provenance, synthetic source port only',()=>{
  it('binds only unchanged original bytes and holds an absent original',async()=>{
   const qualification=await resolveSourceQualifiedPositiveFixtureDraft(input()),d=draft()
+  expect(qualification).toMatchObject({companyId:'company',runId:'run',roleCode:'supplier',caseCode:'case',suite:'PRODAT',revision:'revision',stepNo:1,sourceReference:'synthetic://unit-original',ownerDecisionReference:'synthetic://unit-owner',expectedOutcome:'positive',expectedDiagnosticCodes:[]})
+  expect(qualification?.originalFileSha256).toBe(createHash('sha256').update(Buffer.from(raw,'latin1')).digest('hex'))
+  expect(qualification?.wireSha256).toBe(qualification?.originalFileSha256)
   bindSourceQualifiedPositiveFixtureDraft(d,qualification!)
   expect(readSourceQualifiedPositiveFixtureDraft(d)).toBe(qualification)
   expect(readSourceQualifiedPositiveFixtureDraft({...d})).toBeNull()

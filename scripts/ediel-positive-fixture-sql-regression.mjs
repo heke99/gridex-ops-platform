@@ -1,8 +1,10 @@
+// masterplan: GOV-08, AT-GOV-08
 // Synthetic originals and explicit canonical-owner boundary fixture only.
 // Exercises actual protected positive-origin migration, never authentic TGT evidence.
 import {readFileSync} from 'node:fs'
 import {pathToFileURL} from 'node:url'
 import assert from 'node:assert/strict'
+import {createHash} from 'node:crypto'
 if(!process.env.EDIEL_PGLITE_MODULE)throw Error('EDIEL_PGLITE_MODULE required')
 const {PGlite}=await import(pathToFileURL(process.env.EDIEL_PGLITE_MODULE).href),db=new PGlite()
 const uid=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`,company=uid(1),actor=uid(2),run=uid(3),message=uid(4),literal=v=>`'${String(v).replaceAll("'","''")}'`,json=v=>`${literal(JSON.stringify(v))}::jsonb`
@@ -33,6 +35,10 @@ try{
  assert.equal((await as('gridex_ediel_fixture_authority_owner',publish())).id,registration);checks++
  const qualified=(await as('service_role',read())).result
  assert.equal(qualified.registrationId,registration);assert.equal(qualified.expectedOutcome,'positive');assert.deepEqual(qualified.expectedDiagnosticCodes,[]);assert.equal(qualified.authorizesBusinessEffect,false);checks++
+ for(const key of ['companyId','runId','roleCode','caseCode','suite','revision','stepNo','sourceReference','ownerDecisionReference'])assert.equal(qualified[key],scope[key]);assert.equal(qualified.originalFileSha256,createHash('sha256').update(Buffer.from(raw,'latin1')).digest('hex'));assert.equal(qualified.wireSha256,qualified.originalFileSha256);checks++
+ assert.equal((await db.query('select original_wire from gridex_negative_fixtures.positive_originals where id=$1',[registration])).rows[0].original_wire,raw);checks++
+ await rejects('gridex_ediel_fixture_authority_owner',publish({...scope,sourceReference:'synthetic://conflicting-source'}),/original_conflict/)
+ await assert.rejects(db.exec(`update gridex_negative_fixtures.positive_originals set original_wire=original_wire||' ';`),/original_immutable/);checks++
  assert.equal((await as('service_role',read({rawPayload:raw+' '}))).result,null);checks++
  assert.equal((await as('service_role',read({stepNo:2}))).result,null);checks++
  await rejects('service_role',read({actorUserId:uid(99)}),/actor_not_authorized/)

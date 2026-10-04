@@ -1,0 +1,9 @@
+# GOV-08 / AT-GOV-08
+
+- Owner: root, isolated `codex/ediel-gov08-original-fixture-authority-20261004` from actual main `643ea134788e96fe9c6782b43730d6e0671fd98f`; integrated actual OPS02 main `56192d16d1eac7fb0e716a3e2770bac8e58be115` before review freeze, no source/test overlap.
+- Public inventory claim #4915984631292; evidence-only scope #4915984659874. No competing original-registration owner found; other source/TEN/P/U/ACK owners retained.
+- Skill routing: existing executing-plans/worktrees/spec-compliance/fp-check/verification/review workflow and Supabase boundary apply to this finite contract; relevant public changelog inspected. No schema, hosted operation, UI, performance redesign or repository-wide documentation/quality-playbook bootstrap is involved.
+- No demonstrated production gap. Reuse three existing actual TS authority/send-boundary suites and two existing PostgreSQL regression scripts; add tags and assertions for complete declared source/run/role/case/revision/outcome/hash, retained original bytes, conflicting source and original-write denial. No reference, renderer, production code/function/schema or gate change.
+- Before edits: 24/24 TS behavior cases PASS; actual committed-function PGlite negative15/15 and positive42/42 PASS. After edits: 24/24 TS, negative20/20 and positive46/46 actual SQL mechanics PASS; test types and scoped lint clean, integrity33/121/231 and tagged gate72approved/80green/0fail PASS on base643. Independent whole-card review and main561 tag qualification pending. Coverage unchanged until review.
+- Synthetic originals and finite upstream ports establish implementation mechanics only. They do not supply authentic TGT/original market provenance, full native replay, counterparty acceptance or business activation. Existing original conflict and expected-negative diagnostics remain errors.
+- Mandatory actual-head GitHub CI follows final ready PR. Shared coverage/common-memory main merges respect #491 window.
