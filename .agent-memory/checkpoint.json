@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04",
+  "updated_at": "2026-10-04T12:00:00Z",
   "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
   "paused": true,
-  "branch": "claude/zealous-rubin-6axb91",
-  "active_pr": 426,
+  "branch": "claude/cool-tesla-2pmyua",
+  "active_pr": 491,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "TEN-01+TEN-02 godkända (gren claude/cool-tesla-2pmyua); nästa par TEN-05+TEN-06",
+  "active_item": "#491: TEN-01/02/05/06 godkända; driv CI grönt",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Continue native clusters: z04-ack CONTRL technical reception, service-evidence held authorization, z06f unconfirmed, document-reference storage, object-batch psql, err-gateway technical reception; then remaining consumption; regenerate supabase/schema.sql at freeze.",
+  "next_action": "Läs #491 CI (upgrade replay bas 2bc65ea, parity-only); sedan U-04+U-14; prod-dry-run kräver PROD_DB_READONLY_URL (pooler) som env i ny session",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,

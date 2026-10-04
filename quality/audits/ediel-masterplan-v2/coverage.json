@@ -109,14 +109,27 @@
     {
       "id": "TEN-05",
       "acceptance_id": "AT-TEN-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/marketRole.ts",
+        "lib/ediel/rulebook/prodatApplicationReference.ts",
+        "lib/ediel/rulebook/prodatRulebook.ts",
+        "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+      ]
     },
     {
       "id": "TEN-06",
       "acceptance_id": "AT-TEN-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "lib/inbound-mail/inboundTenantResolver.ts",
+        "lib/ediel/core/tenantResolver.ts",
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts",
+        "__tests__/ediel-inbound-mail-legal-receiver.test.ts"
+      ]
     },
     {
       "id": "TEN-07",
@@ -1465,13 +1478,17 @@
     },
     {
       "id": "AT-TEN-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-07",
