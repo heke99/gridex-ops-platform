@@ -399,14 +399,27 @@
     {
       "id": "P-07",
       "acceptance_id": "AT-P-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-energy-product-scope.test.ts",
+        "__tests__/ediel-permission-identityless-register-scope.test.ts"
+      ]
     },
     {
       "id": "P-08",
       "acceptance_id": "AT-P-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-date-events.test.ts",
+        "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ]
     },
     {
       "id": "P-09",
@@ -1860,13 +1873,26 @@
     },
     {
       "id": "AT-P-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-prodat-energy-product.test.ts",
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-energy-product-scope.test.ts",
+        "__tests__/ediel-permission-identityless-register-scope.test.ts"
+      ]
     },
     {
       "id": "AT-P-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-prodat-date-boundaries.test.ts",
+        "__tests__/ediel-prodat-field-identity.test.ts",
+        "__tests__/ediel-prodat-date-events.test.ts",
+        "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
+        "__tests__/ediel-prodat-date-fields.test.ts"
+      ]
     },
     {
       "id": "AT-P-09",
