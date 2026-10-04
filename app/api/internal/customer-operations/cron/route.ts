@@ -1,3 +1,5 @@
+import { advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
+import { advancePermissionMarketDeadlines } from '@/lib/ediel/permissions/permissionMarketTransition'
 import { randomUUID, timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { processCustomerOperationJobs } from '@/lib/customer-operations/automation'
@@ -10,6 +12,8 @@ import { processReadySupplierSwitchActivations } from '@/lib/operations/supplier
 import { reconcileCustomerApplicationContinuationJobs } from '@/lib/website/customerApplicationReconciliation'
 import { reconcileLegacyFacilityRequestLinks } from '@/lib/website/legacyFacilityRequestReconciliation'
 import { processPendingExactAddressResolutions } from '@/lib/energy/pendingExactAddressResolution'
+import { checkAckDeadlines } from '@/lib/ediel/sla/checkAckDeadlines'
+import { sweepEdielBusinessExpectations } from '@/lib/ediel/operations/businessExpectationSweep'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,6 +92,18 @@ async function run(request: NextRequest) {
     const z01ResponseSla = await runZ01ResponseSlaWatchdog({
       limit: Math.min(requestedLimit * 2, 100),
     })
+    const inboundAckSla = automationUserConfig.ok && automationUserConfig.userId
+      ? await checkAckDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      : { warning: 0, critical: 0, expired: 0, updated: 0, configurationBlocked: true }
+    const permissionMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
+      ? await advancePermissionMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      : { updated: 0, configurationBlocked: true }
+    const supplyMarketDeadlines = automationUserConfig.ok && automationUserConfig.userId
+      ? await advanceSupplyMarketDeadlines({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit, 100) })
+      : { updated: 0, configurationBlocked: true }
+    const businessExpectations = automationUserConfig.ok && automationUserConfig.userId
+      ? await sweepEdielBusinessExpectations({ actorUserId: automationUserConfig.userId, limit: Math.min(requestedLimit * 2, 100) })
+      : { scopes: 0, observed: 0, configurationBlocked: true }
     const facilityLookupDispatch = await processReadyFacilityLookupEdifactDispatches({
       limit: Math.min(requestedLimit, 25),
     })
@@ -129,6 +145,10 @@ async function run(request: NextRequest) {
         customerApplicationReconciliation,
         customerOperations,
         z01ResponseSla,
+        inboundAckSla,
+        permissionMarketDeadlines,
+        supplyMarketDeadlines,
+        businessExpectations,
         facilityLookupDispatch,
         resumedIntents,
         poaExpiry,

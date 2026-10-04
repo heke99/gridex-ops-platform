@@ -1,5 +1,8 @@
 import { inboundRouteMessageCodeMatches } from '@/lib/ediel/tenant/inboundRouteSemantics'
 import { supabaseService } from '@/lib/supabase/service'
+import { resolveCanonicalTenantEdielIdentityWithEvidence } from '@/lib/ediel/tenant/tenantEdielIdentity'
+import { canonicalBusinessSemanticsProjection, canonicalProdatProfileForMessage } from '@/lib/ediel/rulebook/canonicalEdielFacade'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 
 export type InboundTenantResolutionStatus = 'resolved' | 'ambiguous' | 'unresolved'
 
@@ -10,6 +13,7 @@ export type InboundTenantResolutionSource =
   | 'transport_route'
   | 'ediel_business_references'
   | 'manual'
+  | 'verified_legal_identity'
 
 export type InboundTenantEvidence = {
   companyId: string
@@ -98,21 +102,16 @@ function subaddressMatches(params: {
   return configured === observed
 }
 
-function firstParty(rawPayload: string | null | undefined, qualifier: string): string | null {
-  const raw = String(rawPayload ?? '')
-  const escaped = qualifier.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const regex = new RegExp(`(?:^|')NAD\\+${escaped}\\+([^:+']+)`, 'i')
-  return clean(raw.match(regex)?.[1] ?? null)
-}
-
 export function extractMarketActorEdielIdFromRawPayload(rawPayload: string | null | undefined): string | null {
-  return (
-    firstParty(rawPayload, 'DO') ??
-    firstParty(rawPayload, 'DDQ') ??
-    firstParty(rawPayload, 'MR') ??
-    firstParty(rawPayload, 'MS') ??
-    null
-  )
+  if (!rawPayload) return null
+  const source = tokenizeEdifact(rawPayload)
+  const family = segmentComposite(source.segments.find(segment => segment.tag === 'UNH'), 2, source.una)[0]
+  const receiverQualifier = family === 'PRODAT' ? 'DO' : family === 'UTILTS' ? 'MR' : null
+  if (!receiverQualifier) return null
+  const identities = unique(source.segments.filter(segment => segment.tag === 'NAD' && segmentComposite(segment, 1, source.una)[0] === receiverQualifier)
+    .map(segment => clean(segmentComposite(segment, 2, source.una)[0])))
+  // A sender MS, customer UD or first ambiguous NAD is never the legal receiver.
+  return identities.length === 1 ? identities[0] : null
 }
 
 function normalizeInput(input: ResolveInboundTenantInput) {
@@ -426,32 +425,6 @@ function resolutionFromEvidence(params: {
 export async function resolveInboundTenantFromIdentifiers(input: ResolveInboundTenantInput): Promise<InboundTenantResolution> {
   const normalized = normalizeInput(input)
 
-  if (normalized.existingCompanyId) {
-    return {
-      status: 'resolved',
-      companyId: normalized.existingCompanyId,
-      transportEdielId: normalized.transportEdielId,
-      marketActorEdielId: normalized.marketActorEdielId,
-      receiverEdielId: normalized.receiverEdielId,
-      receiverSubaddress: normalized.receiverSubaddress,
-      source: 'existing_message_company_id',
-      confidence: 300,
-      evidence: [{
-        companyId: normalized.existingCompanyId,
-        source: 'existing_message_company_id',
-        score: 300,
-        details: {
-          messageCompanyId: normalized.existingCompanyId,
-          transportEdielId: normalized.transportEdielId,
-          marketActorEdielId: normalized.marketActorEdielId,
-        },
-      }],
-      reasons: ['Meddelandet hade redan company_id och runtime använder den persistade tenant-kopplingen.'],
-      candidateCompanyIds: [normalized.existingCompanyId],
-      warnings: [],
-    }
-  }
-
   if (!normalized.environment) {
     return {
       status: 'unresolved',
@@ -469,13 +442,51 @@ export async function resolveInboundTenantFromIdentifiers(input: ResolveInboundT
     }
   }
 
-  const evidence = [
+  const routingEvidence = [
     ...(await evidenceFromCommunicationRoute(normalized)),
     ...(await evidenceFromActorSettings(normalized)),
     ...(await evidenceFromRouteProfiles(normalized)),
   ]
-
-  return resolutionFromEvidence({ input: normalized, evidence })
+  const held = resolutionFromEvidence({ input: normalized, evidence: [] })
+  held.evidence = routingEvidence
+  if (!['test', 'production'].includes(normalized.environment) || !normalized.marketActorEdielId || !normalized.receiverEdielId) return held
+  const identifiers = await supabaseService.from('tenant_actor_identifiers')
+    .select('company_id,identifier_value,valid_from,valid_to', { count: 'exact' })
+    .eq('environment', normalized.environment).eq('identifier_type', 'EdielId').eq('identifier_value', normalized.marketActorEdielId)
+    .limit(8193).abortSignal(AbortSignal.timeout(2000))
+  if (identifiers.error) throw identifiers.error
+  if (identifiers.count == null || !Array.isArray(identifiers.data) || identifiers.count !== identifiers.data.length || identifiers.count > 8192) {
+    held.reasons = ['Fullständig juridisk identitetsmängd saknas; lokal attribution hålls utan protokollfel.']; return held
+  }
+  const at = new Date().toISOString()
+  const now = Date.parse(at)
+  const candidates = unique(identifiers.data.filter(row => Date.parse(row.valid_from) <= now && (!row.valid_to || Date.parse(row.valid_to) > now)).map(row => row.company_id))
+  const expectedRoles: readonly string[] = normalized.messageFamily === 'PRODAT'
+    ? [canonicalProdatProfileForMessage(normalized.messageCode)?.receiverRole].filter(role => role !== undefined)
+    : canonicalBusinessSemanticsProjection({ family: normalized.messageFamily ?? '', code: normalized.messageCode ?? '' })?.receiverRoles ?? []
+  const roleName = (role: string) => role === 'electricity_supplier' ? 'supplier' : role === 'energy_service_company' ? 'esco' : role
+  const verified: InboundTenantEvidence[] = []
+  for (const companyId of candidates) {
+    try {
+      const { identity, evidence } = await resolveCanonicalTenantEdielIdentityWithEvidence({ companyId, environment: normalized.environment as 'test' | 'production', asOf: at, requireExactCounts: true })
+      if (identity.legalEdielId !== normalized.marketActorEdielId || identity.transportEdielId !== normalized.receiverEdielId ||
+          (expectedRoles.length > 0 && !identity.roleCodes.some(role => expectedRoles.includes(roleName(role))))) continue
+      verified.push({ companyId, source: 'verified_legal_identity', score: 400, details: { legalActorId: identity.legalActorId,
+        legalEdielId: identity.legalEdielId, transportActorId: identity.transportActorId, transportEdielId: identity.transportEdielId,
+        representedByTransportAgent: identity.representedByTransportAgent, transportRelationId: identity.transportRelationId,
+        roleCodes: identity.roleCodes, identityEvidence: evidence } })
+    } catch { /* Missing/ambiguous local identity is held, never a sender error. */ }
+  }
+  const companies = unique(verified.map(row => row.companyId))
+  const conflictingHint = [normalized.existingCompanyId, normalized.mailboxCompanyId].some(id => id && !companies.includes(id))
+  if (companies.length !== 1 || conflictingHint) {
+    return { ...held, status: companies.length > 1 || conflictingHint ? 'ambiguous' : 'unresolved',
+      candidateCompanyIds: unique([...companies, normalized.existingCompanyId]), evidence: [...verified, ...routingEvidence],
+      reasons: ['Juridisk mottagare, teknisk transportidentitet och tenantkontext är inte entydigt verifierade; inga lokala objektfel skapas.'] }
+  }
+  const result = resolutionFromEvidence({ input: normalized, evidence: verified })
+  result.evidence = [...verified, ...routingEvidence]
+  return result
 }
 
 export function tenantResolutionForStorage(resolution: InboundTenantResolution): Record<string, unknown> {

@@ -37,18 +37,18 @@ export function normalizeEmail(value: unknown): string | null {
 
 export function normalizeSubaddress(value: unknown): string | null {
   const clean = cleanString(value)
-  return clean ? clean.toUpperCase() : null
+  return clean
 }
 
 export function normalizeRole(value: unknown): ActorRegistryRole {
   const normalized = cleanString(value)?.toLowerCase().replace(/[åä]/g, 'a').replace(/ö/g, 'o').replace(/[\s-]+/g, '_')
   if (!normalized) return 'other'
   if (['grid_owner', 'network_owner', 'netowner', 'dso', 'distribution_system_operator', 'natagare', 'elnatsforetag'].includes(normalized)) return 'grid_owner'
-  if (['electricity_supplier', 'power_supplier', 'supplier', 'elhandelsbolag', 'elleverantor'].includes(normalized)) return 'electricity_supplier'
-  if (['balance_responsible', 'balansansvarig', 'brp'].includes(normalized)) return 'balance_responsible'
+  if (['electricity_supplier', 'power_supplier', 'powersupplier', 'supplier', 'elhandelsbolag', 'elleverantor'].includes(normalized)) return 'electricity_supplier'
+  if (['balance_responsible', 'balanceresponsible', 'balansansvarig', 'brp'].includes(normalized)) return 'balance_responsible'
   if (['energy_service_company', 'esco', 'energitjansteforetag'].includes(normalized)) return 'energy_service_company'
-  if (['system_supplier', 'systemleverantor'].includes(normalized)) return 'system_supplier'
-  if (['edi_operator', 'edi_operatör', 'edi_operatoren', 'ombud'].includes(normalized)) return 'edi_operator'
+  if (['system_supplier', 'systemsupplier', 'systemleverantor'].includes(normalized)) return 'system_supplier'
+  if (['edi_operator', 'esp', 'edi_operatör', 'edi_operatoren', 'ombud'].includes(normalized)) return 'edi_operator'
   return 'other'
 }
 
