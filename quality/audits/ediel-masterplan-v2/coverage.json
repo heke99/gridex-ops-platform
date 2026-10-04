@@ -476,8 +476,15 @@
     {
       "id": "P-16",
       "acceptance_id": "AT-P-16",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "scripts/ediel-bilateral-prodat-profile-native.test.ts",
+        "__tests__/ediel-bilateral-prodat-profile-intake.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "__tests__/ediel-prodat-bilateral-source-capability.test.ts"
+      ]
     },
     {
       "id": "P-17",
@@ -1941,8 +1948,13 @@
     },
     {
       "id": "AT-P-16",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-bilateral-prodat-profile-intake.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "__tests__/ediel-prodat-bilateral-source-capability.test.ts"
+      ]
     },
     {
       "id": "AT-P-17",

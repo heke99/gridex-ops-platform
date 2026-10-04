@@ -16,4 +16,4 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | P-13 | open | supply-end-followup, bilateral-prodat-closure-operation, bilateral-prodat-supply-consumer | GAP: end versioned with history preserved; customer/other facilities/ESCO grants not deleted |
 | P-14 | open | switch-cancellation-sql-regression, switch-cancellation-source, prodat-prior-flow, prodat-subtypes (no Z13C/Z14C) | GAP: cancellation arriving before the original without double effect |
 | P-15 | open | received-structure-reader(-boundaries), prodat-registers | GAP: future supplier structure before start; history not overwritten in one global row |
-| P-16 | open | prodat-subtypes (explicit capability), bilateral-prodat-profile-native/intake, bilateral-prodat-supply-consumer, prodat-bilateral-source-capability | GAP: test approval for another actor is not enough |
+| P-16 | VERIFIED | prodat-subtypes (explicit capability), bilateral-prodat-profile-native/intake, bilateral-prodat-supply-consumer, prodat-bilateral-source-capability , bilateral-prodat-profile-intake (other company/agreement/environment scope rejected) | — |
