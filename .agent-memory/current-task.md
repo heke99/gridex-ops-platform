@@ -1,3 +1,7 @@
+## OPS-02 — 2026-10-04 (claude/ops-02-process-next-action)
+
+- F-OPS-02 rättad: kundkortet styrs av processbeslutet; OPS-02/AT-OPS-02 PARTIAL. Kvar för full godkänning: arbetskö, automationens waiting_response, CustomerDataRequestsCard-badge. GOV-03 ligger i #505.
+
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 
 - #426 (`claude/zealous-rubin-6axb91`) **helt grön** på `f32e40b5` (alla 10 CI-jobb). Senare commits är bara agent-memory.
