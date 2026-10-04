@@ -15,6 +15,7 @@ import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import type {ParsedEdifactEnvelope} from '@/lib/inbound-mail/edielEmailParser'
+import {readFileSync} from 'node:fs'
 
 const prodat=EdifactEnvelopeCodec.encode({sender:'7300000000002',receiver:'7300000000001',senderQualifier:'14',receiverQualifier:'14',interchangeReference:'ORIG-I',environment:'test',
  acknowledgementRequest:true,applicationReference:'23-DDQ-PRODAT',messages:[{messageReference:'M',messageTypeToken:'PRODAT:D:97A:UN:E2SE6A',businessSegments:['BGM+Z01+DOC-1+9']}]})
@@ -69,5 +70,14 @@ describe('ACK-01 CONTRL on the right correlation level, no national APERAK conte
   const invalid=await update({parsed:parsedContrl('9')})
   expect(invalid).toMatchObject({status:'manual_review',matchStatus:'invalid_ack'})
   expect(io.tasks[0]).toMatchObject({priority:'urgent',taskType:'ediel_invalid_ack'})
+ })
+ it('every ACK status column written on ediel_messages exists in the committed schema (no retired syntax_status/application_status)',async()=>{
+  const schema=readFileSync('supabase/schema.sql','utf8'),table=schema.slice(schema.indexOf('CREATE TABLE public.ediel_messages ('))
+  const columns=new Set([...table.slice(0,table.indexOf('\n);')).matchAll(/^    ([a-z_0-9]+) /gm)].map(m=>m[1]))
+  for(const action of ['4','1']){io.writes=[];await update({parsed:parsedContrl(action)})
+   for(const w of io.writes.filter(w=>w.table==='ediel_messages'&&w.row))for(const key of Object.keys(w.row!))expect(columns.has(key),key).toBe(true)}
+  const aperak={...parsedContrl('4'),messageFamily:'APERAK',messageCode:'APERAK',references:{},applicationReference:'23-DDQ-PRODAT',messageTypeVersion:{type:'APERAK',version:'D',release:'96A',controllingAgency:'UN',associationAssignedCode:'E2SE6A'},messageFunctionCode:'27',errorCodes:['40'],rawPayload:"UNH+1+APERAK:D:96A:UN:E2SE6A'BGM+312+A+27'ERC+40::260'"} as unknown as ParsedEdifactEnvelope
+  io.writes=[];await update({parsed:aperak})
+  for(const w of io.writes.filter(w=>w.table==='ediel_messages'&&w.row))for(const key of Object.keys(w.row!))expect(columns.has(key),key).toBe(true)
  })
 })
