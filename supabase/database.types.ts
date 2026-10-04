@@ -95213,6 +95213,14 @@ export type Database = {
         }
         Returns: Json
       }
+      ediel_read_relay_trace_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
       ediel_read_requested_change_artifact_before_scope_fence_v1: {
         Args: {
           p_actor_user_id: string
@@ -95389,6 +95397,16 @@ export type Database = {
           p_parse_result_id: string
         }
         Returns: Json
+      }
+      ediel_record_relay_trace_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_original: string
+          p_verdict: Json
+        }
+        Returns: string
       }
       ediel_record_scoped_capability_evidence_v1: {
         Args: {

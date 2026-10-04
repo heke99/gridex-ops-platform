@@ -3,9 +3,9 @@
   "generated_types": "supabase/database.types.ts",
   "generated_at": "2026-10-04T17:22:30.389365+00:00",
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37219877261",
-  "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261004165620_staff_user_role_id_nullability.sql",
-  "latest_migration_schema_effect": "Authentic current-prefix PostgreSQL 17 clean capture includes guarded legacy role_id nullability normalization. Clean schema already has nullable UUID, so the three generated artifacts remain byte-identical. Native SQL/browser tests and upgrade parity are separate mandatory final-head CI gates.",
+  "sha256": "962179e6d4efe6fac3a4cb8f333bd5f3f4245cb6897ff90bcb5b2571bc3d8627",
+  "latest_migration": "20261004190000_ediel_tr08_relay_trace_evidence.sql",
+  "latest_migration_schema_effect": "TR-08 forward: new private schema gridex_relay_trace (immutable observations, service-role record/read RPCs, approvals relay-trace binding trigger). Types, schema.sql and fingerprint imported byte-for-byte from the authentic clean-replay capture of 592c558d.",
   "composition_capture_pending": false,
   "capture": {
     "workflow_run": 37219877261,
@@ -417,6 +417,17 @@
           }
         }
       }
+    }
+  },
+  "capture_for_latest": {
+    "workflow_run": 37243596151,
+    "actual_checkout_commit": "592c558d9699cfb6a35f55d47e72d779c6630494",
+    "actual_checkout_tree": "ad2a80c9fa72d87011116ed6a5b120c53909a410",
+    "receipt": "quality/audits/ediel-masterplan-v2/captures/tr-08-relay-trace-capture-receipt-20261004.json",
+    "artifact_sha256": {
+      "database.types.ts": "962179e6d4efe6fac3a4cb8f333bd5f3f4245cb6897ff90bcb5b2571bc3d8627",
+      "schema.sql": "caafbaf7934f718cebabaa1dc69b1adb1c5fc8b5234a7e0fe426c163d779011a",
+      "schema.fingerprint.json": "a2ef74fff06d5cd27f59a9c86df7fdabf16c2696009b9bbc7785a5150eb96c1e"
     }
   }
 }

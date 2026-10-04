@@ -275,6 +275,12 @@ CREATE SCHEMA gridex_registry_import;
 CREATE SCHEMA gridex_regulated_supply;
 
 --
+-- Name: gridex_relay_trace; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA gridex_relay_trace;
+
+--
 -- Name: gridex_requested_changes; Type: SCHEMA; Schema: -; Owner: -
 --
 
@@ -28638,6 +28644,88 @@ BEGIN
 END$$;
 
 --
+-- Name: consistent_v1(bytea, text, jsonb); Type: FUNCTION; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE FUNCTION gridex_relay_trace.consistent_v1(o bytea, probe text, v jsonb) RETURNS boolean
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+SELECT v->>'verified'='true'
+ AND jsonb_array_length(v->'hops')=cardinality(gridex_relay_trace.received_v1(o))
+ AND NOT EXISTS(SELECT FROM jsonb_array_elements(v->'hops') h
+  WHERE (h->>'index')::int<>ALL(SELECT generate_series(0,cardinality(gridex_relay_trace.received_v1(o))-1))
+   OR (h->>'role'='own_submission' AND NOT EXISTS(SELECT FROM jsonb_array_elements_text(v->'ownHosts') own
+     WHERE lower(substring((gridex_relay_trace.received_v1(o))[(h->>'index')::int+1] from '(?i)\mby\s+([^\s;()]+)')) ~ ('(^|\.)'||regexp_replace(own,'([.\\+*?^$()\[\]{}|-])','\\\1','g')||'\.?$')))
+   OR (h->>'role'='relay' AND ((gridex_relay_trace.received_v1(o))[(h->>'index')::int+1] !~* '(\mwith\s+(ESMTPS|ESMTPSA|UTF8SMTPS|UTF8SMTPSA|LMTPS|LMTPSA)\M|TLS\s*v?\s*1[._][23]|version=TLS1_[23])'
+     OR (gridex_relay_trace.received_v1(o))[(h->>'index')::int+1] ~* '(SSLv[23]|TLS\s*v?\s*1[._][01]|version=TLS1_[01]|TLSv1([^._0-9]|$))')))
+ AND position(lower('x-gridex-relay-probe: '||probe) IN lower(convert_from(o,'UTF8')))>0
+ AND jsonb_typeof(v->'hops')='array' AND jsonb_typeof(v->'reasons')='array' AND jsonb_array_length(v->'reasons')=0
+ AND v->>'spf'='pass' AND v->>'allRelayHopsTls'='true'
+ AND (SELECT count(*) FROM jsonb_array_elements(v->'hops') h WHERE h->>'role'='own_submission')=1
+ AND (SELECT count(*) FROM jsonb_array_elements(v->'hops') h WHERE h->>'role'='relay')>=1
+ AND NOT EXISTS(SELECT FROM jsonb_array_elements(v->'hops') h WHERE h->>'role'='relay' AND (h->>'tls' IS DISTINCT FROM 'true' OR h->>'weakTls' IS DISTINCT FROM 'false'))
+ AND (v->>'relayHopCount')::int=(SELECT count(*) FROM jsonb_array_elements(v->'hops') h WHERE h->>'role'='relay')$_$;
+
+--
+-- Name: immutable_v1(); Type: FUNCTION; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE FUNCTION gridex_relay_trace.immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN RAISE EXCEPTION 'relay_trace_evidence_immutable';END$$;
+
+--
+-- Name: received_v1(bytea); Type: FUNCTION; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE FUNCTION gridex_relay_trace.received_v1(o bytea) RETURNS text[]
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $_$
+WITH b AS (SELECT split_part(regexp_replace(replace(convert_from(o,'UTF8'),E'\r\n',E'\n'),E'\n[ \t]+',' ','g'),E'\n\n',1) block),
+ r AS (SELECT m[1] v,row_number() OVER () n FROM b,regexp_matches(b.block,'^received:[ \t]*(.*)$','gin') m)
+SELECT coalesce(array_agg(v ORDER BY n DESC),'{}') FROM r$_$;
+
+--
+-- Name: record_v1(uuid, text, uuid, bytea, jsonb); Type: FUNCTION; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE FUNCTION gridex_relay_trace.record_v1(c uuid, env text, actor uuid, o bytea, v jsonb) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE id uuid;
+BEGIN
+ PERFORM gridex_transport_exception.actor_v1(c,actor,'communication.write');
+ IF v->>'verified'='true' AND gridex_relay_trace.consistent_v1(o,v->>'probeId',v) IS NOT TRUE THEN
+  RAISE EXCEPTION 'relay_trace_verdict_inconsistent';END IF;
+ INSERT INTO gridex_relay_trace.observations(company_id,environment,probe_id,original,original_sha256,verdict,verified,recorded_by)
+ VALUES(c,env,v->>'probeId',o,encode(sha256(o),'hex'),v,v->>'verified'='true',actor) RETURNING observations.id INTO id;
+ RETURN id;
+END$$;
+
+--
+-- Name: require_for_approval_v1(); Type: FUNCTION; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE FUNCTION gridex_relay_trace.require_for_approval_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE tls jsonb:=NEW.source_facts->'tls';
+BEGIN
+ IF tls->>'allRelayHopsVerified'='true' AND NOT EXISTS(SELECT FROM gridex_relay_trace.observations o
+   WHERE o.company_id=NEW.company_id AND o.environment=NEW.environment AND o.verified
+    AND o.original_sha256=tls->>'relayTraceSha256'
+    AND o.recorded_at<=clock_timestamp() AND o.recorded_at>clock_timestamp()-interval '30 days')
+ THEN RAISE EXCEPTION 'transport_relay_trace_evidence_required';END IF;
+ RETURN NEW;
+END$$;
+
+--
 -- Name: actor_v1(uuid, uuid, text, text); Type: FUNCTION; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -44393,6 +44481,23 @@ BEGIN
 END$$;
 
 --
+-- Name: ediel_read_relay_trace_v1(uuid, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_read_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE r gridex_relay_trace.observations%rowtype;
+BEGIN
+ PERFORM gridex_transport_exception.actor_v1(p_company_id,p_actor_user_id,'communication.write');
+ SELECT * INTO r FROM gridex_relay_trace.observations WHERE company_id=p_company_id AND environment=p_environment ORDER BY recorded_at DESC LIMIT 1;
+ IF NOT FOUND THEN RETURN NULL;END IF;
+ RETURN jsonb_build_object('id',r.id,'rawHeaders',convert_from(r.original,'UTF8'),'originalSha256',r.original_sha256,'probeId',r.probe_id,
+  'ownHosts',r.verdict->'ownHosts','recordedAt',r.recorded_at,'verified',r.verified);
+END$$;
+
+--
 -- Name: ediel_read_requested_change_artifact_before_scope_fence_v1(uuid, uuid, uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -44734,6 +44839,16 @@ BEGIN
  END IF;
  RETURN gridex_ediel_inbound_receptions.result_v1(r,false);
 END $$;
+
+--
+-- Name: ediel_record_relay_trace_v1(uuid, text, uuid, bytea, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.ediel_record_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_original bytea, p_verdict jsonb) RETURNS uuid
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+SELECT gridex_relay_trace.record_v1(p_company_id,p_environment,p_actor_user_id,p_original,p_verdict)$$;
 
 --
 -- Name: ediel_record_scoped_capability_evidence_v1(uuid, uuid, uuid, text, text, text, text, uuid, text, text, text, uuid[], timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
@@ -97994,6 +98109,35 @@ CREATE TABLE gridex_regulated_supply.reviews (
 ALTER TABLE ONLY gridex_regulated_supply.reviews FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: observations; Type: TABLE; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE TABLE gridex_relay_trace.observations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    probe_id text NOT NULL,
+    original bytea NOT NULL,
+    original_sha256 text NOT NULL,
+    verdict jsonb NOT NULL,
+    verified boolean NOT NULL,
+    recorded_by uuid NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT observations_check CHECK ((original_sha256 = encode(sha256(original), 'hex'::text))),
+    CONSTRAINT observations_check1 CHECK ((NOT ((verdict ->> 'rawHeadersSha256'::text) IS DISTINCT FROM original_sha256))),
+    CONSTRAINT observations_check2 CHECK ((NOT ((verdict ->> 'probeId'::text) IS DISTINCT FROM probe_id))),
+    CONSTRAINT observations_check3 CHECK ((verified = (NOT ((verdict ->> 'verified'::text) IS DISTINCT FROM 'true'::text)))),
+    CONSTRAINT observations_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT observations_original_check CHECK (((octet_length(original) >= 1) AND (octet_length(original) <= 262144))),
+    CONSTRAINT observations_original_sha256_check CHECK ((original_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT observations_probe_id_check CHECK (((length(probe_id) >= 8) AND (length(probe_id) <= 200))),
+    CONSTRAINT observations_verdict_check CHECK ((jsonb_typeof(verdict) = 'object'::text)),
+    CONSTRAINT observations_verdict_check1 CHECK ((NOT ((verdict ->> 'schema'::text) IS DISTINCT FROM 'gridex_relay_trace_v1'::text)))
+);
+
+ALTER TABLE ONLY gridex_relay_trace.observations FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: confirmed_customer_versions; Type: TABLE; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -121915,6 +122059,20 @@ ALTER TABLE ONLY gridex_regulated_supply.reviews
     ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
 
 --
+-- Name: observations observations_company_id_environment_original_sha256_key; Type: CONSTRAINT; Schema: gridex_relay_trace; Owner: -
+--
+
+ALTER TABLE ONLY gridex_relay_trace.observations
+    ADD CONSTRAINT observations_company_id_environment_original_sha256_key UNIQUE (company_id, environment, original_sha256);
+
+--
+-- Name: observations observations_pkey; Type: CONSTRAINT; Schema: gridex_relay_trace; Owner: -
+--
+
+ALTER TABLE ONLY gridex_relay_trace.observations
+    ADD CONSTRAINT observations_pkey PRIMARY KEY (id);
+
+--
 -- Name: artifacts artifacts_company_id_environment_source_hash_claims_hash_key; Type: CONSTRAINT; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -141418,6 +141576,18 @@ CREATE TRIGGER reviews_immutable BEFORE DELETE OR UPDATE ON gridex_regulated_sup
 CREATE TRIGGER reviews_no_truncate BEFORE TRUNCATE ON gridex_regulated_supply.reviews FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: observations immutable; Type: TRIGGER; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_relay_trace.observations FOR EACH ROW EXECUTE FUNCTION gridex_relay_trace.immutable_v1();
+
+--
+-- Name: observations immutable_truncate; Type: TRIGGER; Schema: gridex_relay_trace; Owner: -
+--
+
+CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_relay_trace.observations FOR EACH STATEMENT EXECUTE FUNCTION gridex_relay_trace.immutable_v1();
+
+--
 -- Name: artifacts artifact_insert_length; Type: TRIGGER; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -141902,6 +142072,12 @@ CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.o
 --
 
 CREATE TRIGGER immutable BEFORE DELETE OR UPDATE ON gridex_transport_exception.revocations FOR EACH ROW EXECUTE FUNCTION gridex_transport_exception.immutable_v1();
+
+--
+-- Name: approvals relay_trace_required; Type: TRIGGER; Schema: gridex_transport_exception; Owner: -
+--
+
+CREATE TRIGGER relay_trace_required BEFORE INSERT ON gridex_transport_exception.approvals FOR EACH ROW EXECUTE FUNCTION gridex_relay_trace.require_for_approval_v1();
 
 --
 -- Name: contracts utilts_contract_immutable; Type: TRIGGER; Schema: gridex_utilts_binding; Owner: -
@@ -148959,6 +149135,20 @@ ALTER TABLE ONLY gridex_regulated_supply.reviews
 
 ALTER TABLE ONLY gridex_regulated_supply.reviews
     ADD CONSTRAINT reviews_reviewer_user_id_fkey FOREIGN KEY (reviewer_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: observations observations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_relay_trace; Owner: -
+--
+
+ALTER TABLE ONLY gridex_relay_trace.observations
+    ADD CONSTRAINT observations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: observations observations_recorded_by_fkey; Type: FK CONSTRAINT; Schema: gridex_relay_trace; Owner: -
+--
+
+ALTER TABLE ONLY gridex_relay_trace.observations
+    ADD CONSTRAINT observations_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES auth.users(id);
 
 --
 -- Name: artifacts artifacts_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_requested_changes; Owner: -
@@ -159415,6 +159605,12 @@ ALTER TABLE gridex_regulated_supply.origins ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_regulated_supply.reviews ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: observations; Type: ROW SECURITY; Schema: gridex_relay_trace; Owner: -
+--
+
+ALTER TABLE gridex_relay_trace.observations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: artifacts; Type: ROW SECURITY; Schema: gridex_requested_changes; Owner: -
@@ -183737,6 +183933,30 @@ REVOKE ALL ON FUNCTION gridex_regulated_supply.scope_v1(c uuid, selector jsonb) 
 REVOKE ALL ON FUNCTION gridex_regulated_supply.source_capability_v1(m public.ediel_messages) FROM PUBLIC;
 
 --
+-- Name: FUNCTION consistent_v1(o bytea, probe text, v jsonb); Type: ACL; Schema: gridex_relay_trace; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_relay_trace.consistent_v1(o bytea, probe text, v jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION received_v1(o bytea); Type: ACL; Schema: gridex_relay_trace; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_relay_trace.received_v1(o bytea) FROM PUBLIC;
+
+--
+-- Name: FUNCTION record_v1(c uuid, env text, actor uuid, o bytea, v jsonb); Type: ACL; Schema: gridex_relay_trace; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_relay_trace.record_v1(c uuid, env text, actor uuid, o bytea, v jsonb) FROM PUBLIC;
+
+--
+-- Name: FUNCTION require_for_approval_v1(); Type: ACL; Schema: gridex_relay_trace; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_relay_trace.require_for_approval_v1() FROM PUBLIC;
+
+--
 -- Name: FUNCTION actor_v1(c uuid, actor uuid, mode text, kind text); Type: ACL; Schema: gridex_requested_changes; Owner: -
 --
 
@@ -186302,6 +186522,13 @@ REVOKE ALL ON FUNCTION public.ediel_read_regulated_supply_ground_v1(p_company_id
 GRANT ALL ON FUNCTION public.ediel_read_regulated_supply_ground_v1(p_company_id uuid, p_actor_user_id uuid, p_artifact_id uuid, p_include_bytes boolean) TO service_role;
 
 --
+-- Name: FUNCTION ediel_read_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_read_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_read_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION ediel_read_requested_change_artifact_before_scope_fence_v1(p_company_id uuid, p_artifact_id uuid, p_actor_user_id uuid, p_include_bytes boolean); Type: ACL; Schema: public; Owner: -
 --
 
@@ -186438,6 +186665,13 @@ GRANT ALL ON FUNCTION public.ediel_record_dsn_source_observation_v1(p_input json
 
 REVOKE ALL ON FUNCTION public.ediel_record_inbound_reception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.ediel_record_inbound_reception_v1(p_company_id uuid, p_message_id uuid, p_actor_user_id uuid, p_inbound_email_message_id uuid, p_parse_result_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION ediel_record_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_original bytea, p_verdict jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.ediel_record_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_original bytea, p_verdict jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.ediel_record_relay_trace_v1(p_company_id uuid, p_environment text, p_actor_user_id uuid, p_original bytea, p_verdict jsonb) TO service_role;
 
 --
 -- Name: FUNCTION ediel_record_scoped_capability_evidence_v1(p_company_id uuid, p_message_id uuid, p_legal_actor_id uuid, p_actor_role text, p_family text, p_code text, p_subtype text, p_assignment_id uuid, p_release_sha text, p_rulepack_hash text, p_expected_dependency_hash text, p_certification_evidence_ids uuid[], p_expires_at timestamp with time zone); Type: ACL; Schema: public; Owner: -
