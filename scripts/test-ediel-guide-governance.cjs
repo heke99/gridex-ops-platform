@@ -5,8 +5,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 
 async function runtime() {
@@ -17,16 +19,21 @@ async function runtime() {
     export { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy';
   `, { identifier: path.join(root, 'lib/ediel/governance-test.ts') })
   await entry.link((specifier, parent) => {
+    const boundary = sourceRuntimeBoundary(specifier, modules, parent)
+    if (boundary) return boundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency: ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Only local source modules are loaded')
-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
+    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()
   return entry.namespace
 }
+after(() => assertNoSourceBoundaryAttempts())
 const guide = { family: 'UTILTS', referenceDate: '2026-09-30', associationAssignedCode: 'E5SE5A' }
 const policy = { ...guide, messageCode: 'S02', direction: 'inbound', applicationReference: '23-DDQ-S02-S' }
 const invalidDates = ['2026-02-29', '2026-02-30', '2026-04-31', '2026-09-31', '2026-11-31', '2028-02-30', '2100-02-29', '0000-01-01', '2026-00-01', '2026-13-01', '2026-09-00', '2026-09-32', '', 'not-a-date']

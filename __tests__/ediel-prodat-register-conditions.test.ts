@@ -1,4 +1,4 @@
-// masterplan: P-01
+// masterplan: P-01, P-05, AT-P-05, SC-033, GOV-02, AT-GOV-02
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator'
@@ -8,9 +8,9 @@ import { line, qty, characteristic, raw, input, type Parts } from './fixtures/pr
 
 const values = (field: string, value = '1') => field === '213' ? [qty(value)] : characteristic(({ '214':'Z02','218':'Z05','259':'Z16' } as Record<string,string>)[field],value,3)
 const reason = (variant: string) => characteristic('Z13',({L:'Z22',E:'E34',G:'E32',F:'E64',M:'Z70'} as Record<string,string>)[variant])
-function check(code: string, variant: string, body: Parts[], facts: ProdatDependentConditionFacts, fields: string[]) {
+function check(code: string, variant: string, body: Parts[], facts: ProdatDependentConditionFacts, fields: string[], direction: 'inbound' | 'outbound' = 'inbound') {
   const payload = raw(body,code)
-  const resolved = resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:code,subtypeOrReasonCode:variant,direction:'inbound',referenceDate:'2026-09-17',
+  const resolved = resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:code,subtypeOrReasonCode:variant,direction,referenceDate:'2026-09-17',
     applicationReference:'23-DDQ-PRODAT',bilateralCapabilityVerified:true,prodatDependentFacts:facts,mode:'parse'})
   const policy = {...resolved,fieldRules:resolved.fieldRules.filter(r => fields.includes(String(('fieldNumber' in r ? r.fieldNumber : null))))}
   return validateCanonicalPolicyFields({policy,rawSegments:input(payload,code).rawSegments,una:input(payload,code).una})
@@ -28,9 +28,10 @@ describe('P annex2 conditional register overlays composed with the canonical pol
       it(`${code}${variant}/${field}: supplied field does not establish the unknown condition`, () => {
         expect(check(code,variant,[line('1','A','1'),...reason(variant),...values(field),line('2','A','2'),...values(field,'2')],facts(),[field]).some(i => i.code === 'PRODAT_DEPENDENT_CONDITION_UNDETERMINED')).toBe(true)
       })
-      it(`${code}${variant}/${field}: optional constants/digits remain distinct from forbidden electricity time frames`, () => {
+      it(`${code}${variant}/${field}: false electricity time-frame data is ignored inbound and forbidden outbound`, () => {
         const body = [line('1','A','1'),...reason(variant),...values(field),line('2','A','2'),...values(field,'2')]
-        expect(check(code,variant,body,facts(false),[field]).some(i => i.blocking)).toBe(field === '259')
+        expect(check(code,variant,body,facts(false),[field]).some(i => i.blocking)).toBe(false)
+        if (field === '259') expect(check(code,variant,body,facts(false),[field], 'outbound').some(i => i.blocking)).toBe(true)
       })
     }
   }

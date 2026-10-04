@@ -1,18 +1,27 @@
+import type {SourceQualifiedOutboundAck} from '@/lib/ediel/core/ackSourceRulePackEvidence'
 import { buildEdielInterchangeReference } from '@/lib/ediel/references'
 import { preflightEdielPayload, type EdielPayloadPreflightResult } from '@/lib/ediel/core/messageBuilder'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import type {SourceQualifiedCustomerMasterdataProjection} from '@/lib/ediel/production/customerMasterdataSource'
+import {bindCustomerMasterdataRenderingSource} from '@/lib/ediel/prodat/customerMasterdataAuthority'
 
 type BuildEdifactEnvelopeInput = {
   senderEdielId: string
+  senderQualifier?: string | null
   senderSubAddress?: string | null
   receiverEdielId: string
+  receiverQualifier?: string | null
   receiverSubAddress?: string | null
   applicationReference?: string | null
   acknowledgementRequest: boolean
   testFlag?: 0 | 1 | number | null
+  interchangeReference?: string
+  messageReference?: string
   messageTypeToken: string
   segments: string[]
   companyId?: string | null
+  ackSourceQualification?: SourceQualifiedOutboundAck
+  customerMasterdataProjection?: SourceQualifiedCustomerMasterdataProjection
   parsedPayload?: Record<string, unknown> | null
 }
 
@@ -25,15 +34,17 @@ type BuiltEdifactEnvelope = {
 }
 
 export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdifactEnvelope {
-  const interchangeReference = buildEdielInterchangeReference({
+  const interchangeReference = input.interchangeReference ?? buildEdielInterchangeReference({
     senderEdielId: input.senderEdielId,
     receiverEdielId: input.receiverEdielId,
   })
-  const messageReference = '1'
+  const messageReference = input.messageReference ?? '1'
   const raw = EdifactEnvelopeCodec.encode({
     sender: input.senderEdielId,
+    senderQualifier: input.senderQualifier,
     senderSubAddress: input.senderSubAddress,
     receiver: input.receiverEdielId,
+    receiverQualifier: input.receiverQualifier,
     receiverSubAddress: input.receiverSubAddress,
     applicationReference: input.applicationReference,
     acknowledgementRequest: input.acknowledgementRequest,
@@ -51,6 +62,11 @@ export function buildEdifactEnvelope(input: BuildEdifactEnvelopeInput): BuiltEdi
     messageStandard: 'edifact',
     mode: 'send',
     companyId: input.companyId,
+    ackSourceQualification: input.ackSourceQualification,
+    validationPurpose:'render',
+    ...(input.customerMasterdataProjection?{customerMasterdataRenderingSource:bindCustomerMasterdataRenderingSource({
+      projection:input.customerMasterdataProjection,companyId:input.companyId??'',rawPayload:raw,
+      environment:EdifactEnvelopeCodec.environmentFromLegacyTestFlag(input.testFlag)})}:{}),
     parsedPayload: input.parsedPayload,
   })
   if (preflight.blocking) {

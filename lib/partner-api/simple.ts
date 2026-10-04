@@ -952,7 +952,7 @@ async function getInvoicePdf(request: NextRequest, invoiceReference: string) {
     const invoice = await resolveInvoice(context.client.company_id, invoiceReference)
     const document = await supabaseService
       .from('customer_invoice_documents')
-      .select('file_path,metadata')
+      .select('id,file_path,metadata')
       .eq('company_id', context.client.company_id)
       .eq('invoice_id', invoice.id)
       .eq('document_type', 'invoice_pdf')
@@ -961,6 +961,8 @@ async function getInvoicePdf(request: NextRequest, invoiceReference: string) {
       .maybeSingle()
     if (document.error) throw document.error
     if (!document.data) throw new SimplePartnerApiError('Invoice PDF is not available.', 'invoice_pdf_not_available', 404)
+    const { requireInvoiceFileCopyAvailable } = await import('@/lib/ediel/retention/invoiceFileRetention')
+    await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.data.id})
     const file = await resolveInvoicePdf(document.data)
     await successLog({ request, client: context.client, startedAt: context.startedAt, status: 200, operation: 'invoice.pdf', id: context.id })
     return simpleJson({

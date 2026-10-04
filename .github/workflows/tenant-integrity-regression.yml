@@ -58,6 +58,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Verify tenant integrity contracts
         run: node scripts/gridex-tenant-integrity-regression.cjs
       - name: Verify tenant shutdown contracts

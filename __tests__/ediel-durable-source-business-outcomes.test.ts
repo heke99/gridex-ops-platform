@@ -1,3 +1,4 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
@@ -7,7 +8,10 @@ import { observationHandoffMessage, energyHandoffMessage } from './helpers/utilt
 import { COMPANY, OTHER, row, snapshot } from './helpers/receivedSourceInventoryFixtures'
 
 const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), rpc: vi.fn(), matches: vi.fn(), ingest: vi.fn(), allMatched: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -74,7 +78,7 @@ function ledgerRpc(name: string, args: Record<string, unknown>) {
 beforeEach(() => {
   vi.clearAllMocks(); incoming = observationHandoffMessage('2026-09-30', COMPANY); scenario = 'unavailable'; timelineScenario = 'unavailable'; signals = []
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
-  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(linkedQuery); io.rpc.mockImplementation(ledgerRpc)
+  io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(linkedQuery); io.rpc.mockImplementation(((canonical) => (name: string, args: Record<string, unknown>) => canonical(name, args) ?? ledgerRpc(name, args))(createUtiltsFinalValidationIo()))
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, meteringPointId: `meter-${COMPANY}`,
     externalGridAreaId: 'TES', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
   io.allMatched.mockReturnValue(false); io.ingest.mockResolvedValue([{ id: 'value-1' }])
@@ -82,9 +86,10 @@ beforeEach(() => {
 it('actual inbound E66 holds LOC+175 despite a stale metering-point match and emits no business value',async()=>{
  incoming=energyHandoffMessage('2026-10-01',COMPANY)
  incoming.raw_payload=incoming.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')
+ qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  expect(io.persist).toHaveBeenCalledOnce()
  expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'internal_review',responseType:'none',
@@ -96,9 +101,10 @@ it('actual inbound E66 holds LOC+175 despite a stale metering-point match and em
 it('actual inbound E66 sends a field-533 guide rejection before any regulating-object business effect',async()=>{
  incoming=energyHandoffMessage('2026-10-01',COMPANY)
  incoming.raw_payload=incoming.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::260')
+ qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  expect(io.persist.mock.calls[0][0].transactions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
  expect(io.ack.mock.calls[0][0].transactionDispositions).toMatchObject([{disposition:'guide_rejected',responseType:'negative_aperak'}])
@@ -110,9 +116,10 @@ it('actual inbound E66 sends a field-533 guide rejection before any regulating-o
 it('actual inbound E66 rejects a wrong GS1 check digit without storing business quantity',async()=>{
  incoming=energyHandoffMessage('2026-10-01',COMPANY)
  incoming.raw_payload=incoming.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000006::9')
+ qualifyUtiltsFixtureSource(incoming)
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:'2026-10-01',
   applicationReference:incoming.application_reference,mode:'parse'})
- const result=await processInboundUtiltsMessage({actorUserId:'operator',edielMessageId:incoming.id,canonicalPolicy:policy})
+ const result=await processInboundUtiltsMessage({actorUserId:UTILTS_FIXTURE_ACTOR,edielMessageId:incoming.id,canonicalPolicy:policy})
  expect(result).toMatchObject({ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null})
  // Rejected source quantities are retained for audit; the SQL consumption
  // boundary makes them not applicable and no meter/billing sink consumes them.
@@ -133,20 +140,26 @@ function withoutDurableDiagnostic(value: unknown, parent = ''): unknown {
     .filter(([key]) => !(key === 'durableReceivedSourceInventory' && ['normalizedMeteringPayload', 'normalizedPayload'].includes(parent)))
     .map(([key, item]) => [key, withoutDurableDiagnostic(item, key)]))
 }
+function diagnosticCalls() {
+  return io.rpc.mock.calls.filter(([name]) => ['gridex_received_source_snapshot_v1', 'gridex_record_source_discovery_v1', 'gridex_source_object_snapshot_v1'].includes(name))
+}
 async function capture(accepted: boolean) {
+  qualifyUtiltsFixtureSource(incoming)
   for (const mock of [io.update, io.event, io.ack, io.persist, io.ingest, io.from, io.rpc]) mock.mockClear()
   signals = []
   const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at,
     applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  const result = await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  const result = await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id, canonicalPolicy: policy })
   expect(result).toMatchObject({ ackIds: ['ack-1'], outboundRequestId: null, ingestedMeterValueId: accepted ? 'value-1' : null,
     ingestedMeterValueIds: accepted ? ['value-1'] : [], billingUnderlayId: null })
   expect(io.persist).toHaveBeenCalledOnce()
   expect(io.update.mock.calls.map(([call]) => call.status)).toEqual(['parsed', 'validated'])
   expect(io.ack.mock.calls[0][0].ackPlan.utiltsErrCodes.includes('E19')).toBe(!accepted)
   expect(io.ingest).toHaveBeenCalledTimes(accepted ? 1 : 0)
-  expect(io.rpc.mock.calls[0]).toEqual(['gridex_received_source_snapshot_v1', { p_company_id: COMPANY, p_environment: 'test', p_cutoff: incoming.message_received_at }])
-  expect(io.rpc.mock.calls.filter(([name])=>name==='gridex_source_object_snapshot_v1')).toEqual([['gridex_source_object_snapshot_v1',{p_company_id:COMPANY,p_environment:'test',p_cutoff:incoming.message_received_at}]])
+  expect(diagnosticCalls()[0]).toEqual(['gridex_received_source_snapshot_v1', { p_company_id: COMPANY, p_environment: 'test', p_cutoff: incoming.message_received_at }])
+  expect(diagnosticCalls().filter(([name])=>name==='gridex_source_object_snapshot_v1')).toEqual([['gridex_source_object_snapshot_v1',{p_company_id:COMPANY,p_environment:'test',p_cutoff:incoming.message_received_at}]])
+  expect(io.rpc.mock.calls.filter(([name]) => name === 'gridex_record_utilts_source_validation_v4')).toHaveLength(1)
+  expect(io.rpc.mock.calls.find(([name]) => name === 'gridex_record_utilts_source_validation_v4')?.[1]).toMatchObject({p_company_id: COMPANY, p_source_message_id: incoming.id, p_source_payload_hash: createHash('sha256').update(incoming.raw_payload!).digest('hex')})
   expect(signals.length).toBeGreaterThan(0); expect(signals.every(signal => signal instanceof AbortSignal)).toBe(true)
   return structuredClone(withoutDurableDiagnostic({ result, statuses: io.update.mock.calls, events: io.event.mock.calls,
     ack: io.ack.mock.calls, persistence: io.persist.mock.calls, ingestion: io.ingest.mock.calls }))
@@ -161,11 +174,11 @@ for (const accepted of [false, true]) for (const state of ['complete', 'unknown-
     expect(inventory).toMatchObject({ authorityStatus: 'not_established', selection: 'not_performed', historyCoverage: 'before_ledger_unknown' })
     if (state === 'foreign-scope') {
       expect(inventory).toMatchObject({ status: 'read_failed', sources: [], persistence: { status: 'unconfirmed' } })
-      expect(io.rpc).toHaveBeenCalledTimes(2); expect(io.rpc.mock.calls[1][0]).toBe('gridex_source_object_snapshot_v1'); expect(JSON.stringify(inventory)).not.toContain(SNAPSHOT)
+      expect(diagnosticCalls()).toHaveLength(2); expect(diagnosticCalls()[1][0]).toBe('gridex_source_object_snapshot_v1'); expect(JSON.stringify(inventory)).not.toContain(SNAPSHOT)
     } else {
-      expect(io.rpc).toHaveBeenCalledTimes(3); expect(io.rpc.mock.calls[2][0]).toBe('gridex_source_object_snapshot_v1')
-      expect(io.rpc.mock.calls[1][0]).toBe('gridex_record_source_discovery_v1')
-      expect(io.rpc.mock.calls[1][1]).toMatchObject({ p_company_id: COMPANY, p_environment: 'test', p_snapshot_id: SNAPSHOT, p_snapshot_hash: HASH,
+      expect(diagnosticCalls()).toHaveLength(3); expect(diagnosticCalls()[2][0]).toBe('gridex_source_object_snapshot_v1')
+      expect(diagnosticCalls()[1][0]).toBe('gridex_record_source_discovery_v1')
+      expect(diagnosticCalls()[1][1]).toMatchObject({ p_company_id: COMPANY, p_environment: 'test', p_snapshot_id: SNAPSHOT, p_snapshot_hash: HASH,
         p_engine_version: 'physical-lin-inventory-v1' })
       if (state === 'bad-write-receipt' || state === 'write-throws') {
         expect(inventory).toMatchObject({ status: 'incomplete', persistence: { status: 'unconfirmed' } })
@@ -190,7 +203,7 @@ for(const accepted of [false,true])for(const state of ['complete','late-witness'
     expect(await capture(accepted)).toEqual(baseline)
     const timeline=io.update.mock.calls[0][0].parsedPayload.normalizedMeteringPayload.durableReceivedSourceInventory.decisionTimeline
     expect(timeline).toMatchObject({authorityStatus:'not_established',selection:'not_performed',marketSupersession:'not_performed',historyCoverage:'before_ledger_unknown'})
-    expect(io.rpc).toHaveBeenCalledTimes(2)
+    expect(diagnosticCalls()).toHaveLength(2)
     expect(timeline.status).toBe(state==='overflow'?'incomplete':state==='throws'||state==='corrupt'?'read_failed':'inspected')
     if(state==='late-witness')expect(timeline.sources[0]).toMatchObject({asOf:null,visibility:'incomplete'})
     if(state==='complete')expect(timeline.sources[0].asOf).toMatchObject({recordedDisposition:'unavailable'})

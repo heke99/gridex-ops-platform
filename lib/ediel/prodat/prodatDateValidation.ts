@@ -24,7 +24,7 @@ export function validateProdatDateFields(code: string, segments: readonly (strin
     rawSegments = rawSegments.filter((_, index) => !ignored.has(index))
   }
   const rules = canonicalProdat26AFieldRules(code).filter(rule => prodatDateField(rule.fieldNumber ?? rule.fieldKey))
-  const issues = validateFieldMatrixPayload({ family: 'PRODAT', code, rawSegments, una, mode: 'parse' }, rules)
+  const issues = validateFieldMatrixPayload({ family: 'PRODAT', code, rawSegments, una, mode: 'parse', direction }, rules)
   for (const failure of prodatDateSyntaxIssues(rawSegments, una)) {
     const field = prodatDateField(failure.fieldNumber)
     if (issues.some(issue => issue.fieldPath === field?.segmentPath)) continue

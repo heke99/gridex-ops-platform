@@ -4,6 +4,7 @@ import { prodatDocumentSegment, prodatDocumentValue } from '@/lib/ediel/prodat/p
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 // Extracted from index.ts; keep public imports on the facade module.
 import forge from 'node-forge'
+import { parseCmsRecipientCertificates } from './cmsRecipientSet'
 import { execFile } from 'child_process'
 import { createHash } from 'crypto'
 import { promisify } from 'util'
@@ -28,6 +29,7 @@ import { isAgtPortalProdatAddress, resolveRouteTransportSecurityMode } from '@/l
 
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
+import { encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
 
 export const execFileAsync = promisify(execFile)
 
@@ -205,6 +207,12 @@ export function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
   return chunks.join('\r\n')
 }
 
+function encodeMimePayload(value: string, encoding: BufferEncoding): Buffer {
+  return encoding === 'latin1' || encoding === 'binary'
+    ? encodeEdifactLatin1(value)
+    : Buffer.from(value, encoding)
+}
+
 export function sanitizeMimeToken(value: string | null | undefined, fallback = 'edifact'): string {
   const cleaned = sanitizeMimeHeader(value, fallback).replace(/[^A-Za-z0-9._-]/g, '_')
   return cleaned.length > 0 ? cleaned : fallback
@@ -215,7 +223,7 @@ export function buildInnerEdifactMimeForSmime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding)
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     'Content-Type: application/EDIFACT',
@@ -236,7 +244,7 @@ export function buildSinglePartEdielBase64Mime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = Buffer.from(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding)
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
@@ -268,7 +276,7 @@ export function buildMultipartValidationBase64Mime(params: {
   encoding: BufferEncoding
 }): Buffer {
   const boundary = `gridex_ediel_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-  const payloadBase64 = encodeBase64Mime(Buffer.from(params.decodedPayload, params.encoding))
+  const payloadBase64 = encodeBase64Mime(encodeMimePayload(params.decodedPayload, params.encoding))
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
@@ -328,27 +336,18 @@ export async function encryptSmimeEnvelopedData(params: {
   innerMime: Buffer
   recipientCertPath?: string | null
   recipientCertificatePem?: string | null
+  recipientCertificatePems?: readonly string[]
 }): Promise<Buffer> {
   const tempDir = await mkdtemp(join(tmpdir(), 'gridex-ediel-smime-'))
   const inputPath = join(tempDir, 'inner.mime')
   const outputPath = join(tempDir, 'smime.der')
-  const certPath = params.recipientCertPath ?? join(tempDir, 'recipient.pem')
-  let recipientCertificatePem = params.recipientCertificatePem ?? null
-
   try {
+    if (params.recipientCertificatePems && (params.recipientCertPath || params.recipientCertificatePem)) throw new Error('ediel_cms_recipient_inputs_ambiguous')
+    const pems = params.recipientCertificatePems ?? [params.recipientCertificatePem ?? (params.recipientCertPath ? await readFile(params.recipientCertPath, 'utf8') : '')]
+    parseCmsRecipientCertificates(pems)
+    const certPaths = pems.map((_, index) => join(tempDir, `recipient-${index}.pem`))
     await writeFile(inputPath, params.innerMime)
-    if (!params.recipientCertPath) {
-      if (!recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
-        throw new Error('S/MIME recipient certificate saknas.')
-      }
-      await writeFile(certPath, recipientCertificatePem, 'utf8')
-    } else if (!recipientCertificatePem) {
-      try {
-        recipientCertificatePem = await readFile(params.recipientCertPath, 'utf8')
-      } catch {
-        recipientCertificatePem = null
-      }
-    }
+    await Promise.all(pems.map((pem, index) => writeFile(certPaths[index], pem, 'utf8')))
 
     try {
       await execFileAsync('openssl', [
@@ -362,17 +361,10 @@ export async function encryptSmimeEnvelopedData(params: {
         inputPath,
         '-out',
         outputPath,
-        certPath,
+        ...certPaths,
       ])
-    } catch (error) {
-      if (recipientCertificatePem?.includes('BEGIN CERTIFICATE')) {
-        return encryptSmimeEnvelopedDataWithForge({
-          innerMime: params.innerMime,
-          recipientCertificatePem,
-        })
-      }
-      const detail = error instanceof Error ? error.message : String(error)
-      throw new Error(`S/MIME-kryptering misslyckades via OpenSSL och ingen användbar PEM-fallback fanns. Kontrollera certifikat i route/databas eller EDIEL_SMIME_RECIPIENT_CERT_PATH. ${detail}`)
+    } catch {
+      return encryptSmimeEnvelopedDataWithForge({ innerMime: params.innerMime, recipientCertificatePems: pems })
     }
 
     return await readFile(outputPath)
@@ -383,12 +375,14 @@ export async function encryptSmimeEnvelopedData(params: {
 
 export function encryptSmimeEnvelopedDataWithForge(params: {
   innerMime: Buffer
-  recipientCertificatePem: string
+  recipientCertificatePem?: string
+  recipientCertificatePems?: readonly string[]
 }): Buffer {
   try {
-    const certificate = forge.pki.certificateFromPem(params.recipientCertificatePem)
+    if (params.recipientCertificatePems && params.recipientCertificatePem) throw new Error('ediel_cms_recipient_inputs_ambiguous')
+    const certificates = parseCmsRecipientCertificates(params.recipientCertificatePems ?? [params.recipientCertificatePem ?? ''])
     const envelope = forge.pkcs7.createEnvelopedData()
-    envelope.addRecipient(certificate)
+    certificates.forEach(certificate => envelope.addRecipient(certificate))
     const content = forge.util.createBuffer()
     content.putBytes(params.innerMime.toString('binary'))
     envelope.content = content
@@ -444,25 +438,6 @@ export function serialMatchesExpected(serial: string | null | undefined, expecte
   return serialHex === expectedHex || normalizedSerial === normalizedExpected
 }
 
-export function findExpectedSerialAsDerInteger(encryptedDer: Buffer, expectedSerialNumber?: string | null): boolean {
-  const expected = normalizeCmsSerial(expectedSerialNumber)
-  if (!expected) return false
-  const evenHex = expected.length % 2 === 0 ? expected : `0${expected}`
-  const serialBytes = Buffer.from(evenHex, 'hex')
-  if (serialBytes.length === 0 || serialBytes.length > 127) return false
-
-  const derInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length]), serialBytes])
-  if (encryptedDer.includes(derInteger)) return true
-
-  // DER INTEGER values with the high bit set are prefixed by 00 to keep them positive.
-  if ((serialBytes[0] ?? 0) >= 0x80) {
-    const positiveDerInteger = Buffer.concat([Buffer.from([0x02, serialBytes.length + 1, 0x00]), serialBytes])
-    return encryptedDer.includes(positiveDerInteger)
-  }
-
-  return false
-}
-
 export function inspectCmsRecipientInfoWithForge(params: {
   encryptedDer: Buffer
   expectedSerialNumber?: string | null
@@ -495,11 +470,10 @@ export function inspectCmsRecipientInfoWithForge(params: {
     const forgeDetail = error instanceof Error ? error.message : String(error)
     diagnostics.push(`node-forge parse failed: ${forgeDetail}`)
 
-    const expectedReceiverPresent = findExpectedSerialAsDerInteger(params.encryptedDer, params.expectedSerialNumber)
     return {
-      raw: `${diagnostics.join(' | ')} | DER serial fallback=${expectedReceiverPresent ? 'matched' : 'not_matched'}`,
-      serialNumbers: expectedReceiverPresent && params.expectedSerialNumber ? [normalizeCmsSerial(params.expectedSerialNumber) ?? params.expectedSerialNumber] : [],
-      expectedReceiverPresent,
+      raw: diagnostics.join(' | '),
+      serialNumbers: [],
+      expectedReceiverPresent: false,
     }
   }
 }
@@ -792,7 +766,7 @@ export function buildSinglePartEdielMime(params: {
     headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
   }
 
-  return Buffer.from(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`, params.encoding)
+  return encodeMimePayload(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`, params.encoding)
 }
 
 export function safePreview(value: string, maxLength = 600): string {

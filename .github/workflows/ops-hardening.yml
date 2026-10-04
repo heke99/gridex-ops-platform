@@ -11,12 +11,16 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run db:migrations:check
+      - run: python3 scripts/gridex-ediel-upgrade-inputs-selftest.py
+      - run: python3 scripts/gridex-redact-native-evidence-selftest.py
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
       # queries use tenantDb(companyId) from lib/supabase/tenantDb.
@@ -28,13 +32,13 @@ jobs:
       - run: npm run gridex:api-billing-tenant-hardening-regression
       - run: npm run typecheck
       - name: Canonical quote runtime regression matrix
-        run: npx vitest run __tests__/canonical-contract-runtime-adapter.test.ts __tests__/contract-commercial-selection.test.ts __tests__/website-quote-persistence-invariant.test.ts __tests__/public-website-quote.test.ts
+        run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/canonical-contract-runtime-adapter.test.ts __tests__/contract-commercial-selection.test.ts __tests__/website-quote-persistence-invariant.test.ts __tests__/public-website-quote.test.ts
       - run: node scripts/gridex-quote-idempotency-multitenant-regression.cjs
       - run: node scripts/gridex-partner-api-business-contract-regression.cjs
       - run: node scripts/gridex-papilite-centroid-regression.cjs
-      - run: npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts
-      - run: npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
-      - run: npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/papilite-postal-centroid-hardening.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/usage-event-and-integration-idempotency.test.ts __tests__/logging-redaction.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/runtime-contract-resilience.test.ts __tests__/platform-schema-readiness.test.ts __tests__/dependency-circuit.test.ts
       - run: npm run ops:hardening-regression
       - run: npm run ops:hardening-behavior-regression
       - name: Integrated remaining-masterpoints golden path
@@ -42,7 +46,7 @@ jobs:
       - run: npm run gridex:canonical-architecture-57-regression
       - run: npm run gridex:post-108-health-residuals-regression
       - run: npm run gridex:post-332-field-511-health-residuals-regression
-      - run: npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-utilts-transaction-disposition.test.ts __tests__/ediel-utilts-transaction-persistence.test.ts
       - run: npm run ops:final-contract-regression
       - run: npm run api:error-boundaries
       - run: npm run security:audit-production
@@ -51,10 +55,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      NODE_OPTIONS: --max-old-space-size=4096
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -65,8 +70,8 @@ jobs:
       - run: npm run typecheck:scripts
       - run: npm run typecheck:tests
       - run: bash quality/mechanical/verify.sh
-      - run: npx vitest run --config quality/vitest.config.ts
-      - run: npm test
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run --config quality/vitest.config.ts
+      - run: NODE_OPTIONS="$NODE_OPTIONS --require=./scripts/lib/unit-loopback-network-boundary.cjs" npm test
       - run: npm run api:docs
       - run: npm run api:compatibility
       - run: npm run api:release:verify
@@ -74,13 +79,18 @@ jobs:
       - run: npm run quality:large-file-budget
       - run: npm run quality:performance
       - run: npm run build
+        if: ${{ !cancelled() }}
       - run: npm run quality:bundle-budget
 
   clean-migration-replay:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -122,34 +132,101 @@ jobs:
           # Preserve authentic post-migration schema evidence even when a later
           # native fixture fails. The stack remains alive in this sourced step.
           SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$SHADOW_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]] || exit 1
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
+          # Materialize authentic artifacts before any fixture/browser can
+          # fail. These comparators remain blocking and use the replay DB.
+          supabase gen types typescript --local > rem002-database.types.ts
+          # Typegen emits non-null Returns for nullable SQL columns on the
+          # field-511 resolver; apply the same durable override used on tip.
+          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
+          GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
+          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
+          echo "generated_types_sha256=$GENERATED_HASH"
+          TYPE_COMPARISON_FAILED=0
+          NATIVE_SUITE_FAILED=0
+          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
+            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
+            { TYPE_COMPARISON_FAILED=1; echo "::error::TYPE_COMPARISON_FAILED set at step line $LINENO"; }
+          fi
+          if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
+            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
+            { TYPE_COMPARISON_FAILED=1; echo "::error::TYPE_COMPARISON_FAILED set at step line $LINENO"; }
+          fi
+
+          if ! python3 scripts/ediel-received-context-upgrade-regression.py; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
           # Originals stay in HOLD until the sourced replay's EXIT trap. Keep
           # the verified original input available to both native case passes.
           export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
           [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenantservice-identity-billing-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-archive-atomic-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenant-fk-and-test-customer-delete-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-close-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-switch-away-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-legal-anonymization-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supplier-switch-atomic-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-decision-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/grid-owner-data-request-atomic-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/power-of-attorney-expiry-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/billing-import-atomic-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-atomic-regression.sql
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-portal-lifecycle-regression.sql
-          node scripts/customer-merge-portal-concurrency-regression.mjs "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/gridex-canonical-provision-request-hash-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/pr164-review-remediation-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenantservice-identity-billing-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-archive-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenant-fk-and-test-customer-delete-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-close-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-switch-away-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-legal-anonymization-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supplier-switch-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-lifecycle-decision-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/grid-owner-data-request-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/power-of-attorney-expiry-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/billing-import-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/supply-end-source-followup-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/portal-claim-atomic-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-portal-lifecycle-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! node scripts/customer-merge-portal-concurrency-regression.mjs "postgresql://postgres:postgres@127.0.0.1:54322/postgres"; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
-          GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts
+          if ! GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
@@ -159,30 +236,155 @@ jobs:
           unset GRIDEX_E2E_BROWSER_BASE_URL
           export GRIDEX_EDIEL_CASE_LOCAL_E2E=1
           export GRIDEX_EDIEL_CASE_FIXTURE_PATH="$RUNNER_TEMP/ediel-case-browser-fixture.json"
+          export GRIDEX_BILATERAL_FIXTURE_PATH="$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json"
+          export GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH="$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json"
+          export GRIDEX_AI_PURPOSE_FIXTURE_PATH="$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json"
+          export GRIDEX_RECORD_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-record-retention-browser-fixture.json"
+          export GRIDEX_BLOB_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-blob-retention-browser-fixture.json"
+          export GRIDEX_PROCESS_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-process-retention-browser-fixture.json"
+          export GRIDEX_FINANCE_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-finance-retention-browser-fixture.json"
+          export GRIDEX_DECISION_RETENTION_FIXTURE_PATH="$RUNNER_TEMP/ediel-decision-retention-browser-fixture.json"
+          export GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH="$RUNNER_TEMP/ediel-business-incident-browser-fixture.json"
+          export GRIDEX_REGULATED_FIXTURE_PATH="$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json"
+          export GRIDEX_RCS_FIXTURE_PATH="$RUNNER_TEMP/ediel-requested-change-browser-fixture.json"
           export GRIDEX_EDIEL_CASE_TEST_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(24).toString("base64url"))')"
-          npx vitest run --config scripts/ediel-case-view-native.config.ts
-          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || exit 1
+          # Only generated disposable credentials enter this unuploaded file.
+          node -e 'const fs=require("node:fs");const s=JSON.parse(fs.readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8"));fs.writeFileSync(process.env.RUNNER_TEMP+"/e035-native-sensitive.json",JSON.stringify({...s,password:process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD}),{mode:0o600})'
+          if ! npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-bilateral-customer-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-customer-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_BILATERAL_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-bilateral-prodat-profile-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-prodat-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-customer-record-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-record-retention-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_PROCESS_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-finance-copy-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-finance-copy-retention-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_FINANCE_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run --config scripts/ediel-decision-original-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-decision-original-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_DECISION_RETENTION_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          if ! npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-native-junit.xml; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          # Missing prerequisites still fail this gate. Other independently
+          # produced native/browser receipts remain collectible on the same head.
+          [[ -s "$GRIDEX_EDIEL_CASE_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_CASE_FIXTURE_PATH
+          [[ -s "$GRIDEX_RCS_FIXTURE_PATH" ]] || unset GRIDEX_RCS_FIXTURE_PATH
+          [[ -s "$GRIDEX_REGULATED_FIXTURE_PATH" ]] || unset GRIDEX_REGULATED_FIXTURE_PATH
+          [[ -s "$GRIDEX_BILATERAL_FIXTURE_PATH" ]] || unset GRIDEX_BILATERAL_FIXTURE_PATH
+          [[ -s "$GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH" ]] || unset GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH
+          [[ -s "$GRIDEX_AI_PURPOSE_FIXTURE_PATH" ]] || unset GRIDEX_AI_PURPOSE_FIXTURE_PATH
+          [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_RECORD_RETENTION_FIXTURE_PATH
+          [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH
+          [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_BLOB_RETENTION_FIXTURE_PATH
           npx playwright install --with-deps chromium
-          npx playwright test e2e/browser/ediel-case-local.spec.mjs --config=playwright.config.mjs --project=chromium
-          GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts
-          rm -f "$GRIDEX_EDIEL_CASE_FIXTURE_PATH"
+          if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs e2e/browser/ediel-customer-record-retention-local.spec.mjs e2e/browser/ediel-business-incident-local.spec.mjs e2e/browser/ediel-message-content-retention-local.spec.mjs e2e/browser/ediel-process-journal-retention-local.spec.mjs e2e/browser/ediel-finance-copy-retention-local.spec.mjs e2e/browser/ediel-decision-evidence-retention-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if [[ -s "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_RCS_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_RCS_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-requested-change-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-requested-change-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          rm -f "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}"
+          if [[ -s "${GRIDEX_REGULATED_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_REGULATED_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-regulated-supply-ground-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-regulated-supply-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_BILATERAL_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_BILATERAL_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-bilateral-customer-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-customer-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_BILATERAL_PROFILE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-bilateral-prodat-profile-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-bilateral-prodat-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_AI_PURPOSE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-ai-purpose-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-ai-purpose-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_RECORD_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_RECORD_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-customer-record-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-record-retention-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_BLOB_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-blob-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-blob-retention-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_PROCESS_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_PROCESS_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-process-journal-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-process-journal-retention-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_FINANCE_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_FINANCE_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-finance-copy-retention-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-finance-copy-retention-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_DECISION_RETENTION_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_DECISION_RETENTION_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-decision-original-browser-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-decision-original-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          if [[ -s "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" ]]; then
+            if ! GRIDEX_EDIEL_INCIDENT_VERIFY_AFTER_BROWSER=1 npx vitest run scripts/ediel-fresh-business-incident-native.test.ts --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-business-incident-after-browser-junit.xml; then
+              { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+            fi
+          fi
+          rm -f "${GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH:-}" "${GRIDEX_BLOB_RETENTION_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_PROCESS_RETENTION_FIXTURE_PATH:-}" "${GRIDEX_FINANCE_RETENTION_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_DECISION_RETENTION_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_RECORD_RETENTION_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_AI_PURPOSE_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_BILATERAL_PROFILE_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_BILATERAL_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_REGULATED_FIXTURE_PATH:-}"
+          rm -f "${GRIDEX_RCS_FIXTURE_PATH:-}"
           unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
-          supabase gen types typescript --local > rem002-database.types.ts
-          # Typegen emits non-null Returns for nullable SQL columns on the
-          # field-511 resolver; apply the same durable override used on tip.
-          node scripts/apply-supabase-types-nullability-overrides.cjs rem002-database.types.ts
-          GENERATED_HASH="$(sha256sum rem002-database.types.ts | awk '{print $1}')"
-          MANIFEST_HASH="$(node -p "require('./scripts/supabase-types-manifest.json').sha256")"
-          echo "generated_types_sha256=$GENERATED_HASH"
-          if [[ "$GENERATED_HASH" != "$MANIFEST_HASH" ]]; then
-            echo "Generated Supabase types hash differs from manifest: $GENERATED_HASH != $MANIFEST_HASH" >&2
-            exit 1
-          fi
-          if ! cmp -s rem002-database.types.ts supabase/database.types.ts; then
-            echo "Generated Supabase types differ from committed supabase/database.types.ts" >&2
-            exit 1
-          fi
 
           # Everything below runs in THIS step on purpose. The replay script is
           # sourced, so its EXIT trap stops the local Supabase stack when this
@@ -197,6 +399,9 @@ jobs:
           # read as proven parity, so it is checked against injected drift.
           npm run db:parity:selftest -- "$SHADOW_URL"
 
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$SHADOW_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]] || exit 1
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
           npm run db:schema:snapshot -- --url "$SHADOW_URL" --out-dir rem002-schema-snapshot
 
           # Activates by itself once a canonical baseline captured from this
@@ -207,6 +412,29 @@ jobs:
           else
             echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
           fi
+          # Independent receipts are retained, but every comparator stays blocking.
+          [[ "$TYPE_COMPARISON_FAILED" == 0 && "$NATIVE_SUITE_FAILED" == 0 ]] || exit 1
+      - name: Redact disposable credentials from native and browser evidence
+        if: always()
+        shell: bash
+        run: |
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$RUNNER_TEMP/e035-native-sensitive.json" \
+            --root e2e-artifacts --root rem002-clean-replay.log \
+            --root rem002-native-junit.xml --root rem002-case-native-junit.xml \
+            --root rem002-case-after-browser-junit.xml \
+            --root rem002-requested-change-native-junit.xml --root rem002-requested-change-after-browser-junit.xml \
+            --root rem002-regulated-supply-native-junit.xml --root rem002-regulated-supply-after-browser-junit.xml \
+            --root rem002-bilateral-customer-native-junit.xml --root rem002-bilateral-customer-after-browser-junit.xml \
+            --root rem002-bilateral-prodat-native-junit.xml --root rem002-bilateral-prodat-after-browser-junit.xml \
+            --root rem002-ai-purpose-native-junit.xml --root rem002-ai-purpose-after-browser-junit.xml \
+            --root rem002-record-retention-native-junit.xml --root rem002-record-retention-after-browser-junit.xml \
+            --root rem002-business-incident-native-junit.xml --root rem002-business-incident-after-browser-junit.xml \
+            --root rem002-blob-retention-native-junit.xml --root rem002-blob-retention-after-browser-junit.xml \
+            --root rem002-process-journal-retention-native-junit.xml --root rem002-process-journal-retention-after-browser-junit.xml \
+            --root rem002-finance-copy-retention-native-junit.xml --root rem002-finance-copy-retention-after-browser-junit.xml \
+            --root rem002-decision-original-native-junit.xml --root rem002-decision-original-after-browser-junit.xml
+          rm -f "$RUNNER_TEMP/e035-native-sensitive.json" "$RUNNER_TEMP/e035-native-status.json" "$RUNNER_TEMP/ediel-case-browser-fixture.json" "$RUNNER_TEMP/ediel-requested-change-browser-fixture.json" "$RUNNER_TEMP/ediel-regulated-supply-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-customer-browser-fixture.json" "$RUNNER_TEMP/ediel-bilateral-prodat-browser-fixture.json" "$RUNNER_TEMP/ediel-ai-purpose-browser-fixture.json" "$RUNNER_TEMP/ediel-record-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-business-incident-browser-fixture.json" "$RUNNER_TEMP/ediel-blob-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-process-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-finance-retention-browser-fixture.json" "$RUNNER_TEMP/ediel-decision-retention-browser-fixture.json"
       - name: Upload clean-replay evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -216,4 +444,85 @@ jobs:
             rem002-clean-replay.log
             rem002-database.types.ts
             rem002-schema-snapshot/
+            rem002-native-junit.xml
+            rem002-case-native-junit.xml
+            rem002-case-after-browser-junit.xml
+            rem002-requested-change-native-junit.xml
+            rem002-requested-change-after-browser-junit.xml
+            rem002-regulated-supply-native-junit.xml
+            rem002-regulated-supply-after-browser-junit.xml
+            rem002-bilateral-customer-native-junit.xml
+            rem002-bilateral-customer-after-browser-junit.xml
+            rem002-bilateral-prodat-native-junit.xml
+            rem002-bilateral-prodat-after-browser-junit.xml
+            rem002-ai-purpose-native-junit.xml
+            rem002-ai-purpose-after-browser-junit.xml
+            rem002-record-retention-native-junit.xml
+            rem002-record-retention-after-browser-junit.xml
+            rem002-business-incident-native-junit.xml
+            rem002-business-incident-after-browser-junit.xml
+            rem002-blob-retention-native-junit.xml
+            rem002-blob-retention-after-browser-junit.xml
+            rem002-process-journal-retention-native-junit.xml
+            rem002-process-journal-retention-after-browser-junit.xml
+            rem002-finance-copy-retention-native-junit.xml
+            rem002-finance-copy-retention-after-browser-junit.xml
+            rem002-decision-original-native-junit.xml
+            rem002-decision-original-after-browser-junit.xml
+            e2e-artifacts/
+          if-no-files-found: error
+
+  upgrade-migration-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install a PostgreSQL client matching the replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          # supabase/config.toml pins major_version 17, and pg_dump refuses to
+          # dump a server newer than itself. The runner ships an older client,
+          # so the schema snapshot aborts on a version mismatch.
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          echo "replay server major version: $server_major"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          # Name the matching binary explicitly. pg_wrapper does not reliably
+          # resolve to the newest installed major, so relying on PATH here can
+          # still pick an older pg_dump and abort on a version mismatch.
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          psql --version
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Genuine ancestor upgrade and independent clean parity
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -o pipefail
+          bash scripts/gridex-ediel-upgrade-replay.sh 2>&1 | tee rem002-upgrade-replay.log
+      - name: Upload authentic upgrade evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gridex-rem-002-upgrade-replay
+          path: |
+            rem002-upgrade-replay.log
+            rem002-upgrade/
           if-no-files-found: error

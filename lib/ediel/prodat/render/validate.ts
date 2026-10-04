@@ -1,3 +1,4 @@
+import {resolveCanonicalProdatRuntimeProfile} from '@/lib/ediel/rulebook/prodatRuntimeProfileRegistry'
 import { resolveProdatDateInputs } from '@/lib/ediel/prodat/render/dateSegments'
 import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'
 // lib/ediel/prodat/render/validate.ts
@@ -23,7 +24,8 @@ export function validateProdatContext(context: ProdatEngineProductionContext): P
       description: 'PRODAT engine kräver receiverEdielId innan EDIFACT kan renderas.',
     })
   }
-  if (!sanitizeProdatText(context.meterPointId)) {
+  const profile = resolveCanonicalProdatRuntimeProfile({code:context.code,subtypeOrReasonCode:context.reasonForTransaction ?? context.contractClosureReason,version:'26A'})
+  if (profile?.requiresMeterPoint !== false && !sanitizeProdatText(context.meterPointId)) {
     issues.push({
       severity: 'error',
       code: 'prodat_engine_metering_point_missing',

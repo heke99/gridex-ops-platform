@@ -1,12 +1,15 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic } from './fixtures/prodat-register'
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn(), ingest: vi.fn() }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -20,6 +23,7 @@ vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
   stringOrNull: (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : null,
   ensureJson: (v: unknown) => v && typeof v === 'object' ? v : {},
 }))
+const COMPANY = '11111111-1111-4111-8111-111111111111'
 const point = '735999260731000007'
 type Result = { data: Record<string, unknown>[]; count: number; error: null }
 let incoming: ReturnType<typeof observationHandoffMessage>
@@ -38,14 +42,14 @@ function query() {
   return q
 }
 beforeEach(() => {
-  vi.clearAllMocks(); predicates.length = 0; incoming = observationHandoffMessage(); response = Promise.resolve({ data: [], count: 0, error: null })
+  vi.clearAllMocks(); io.rpc.mockImplementation(createUtiltsFinalValidationIo()); predicates.length = 0; incoming = observationHandoffMessage('2026-09-30', COMPANY); response = Promise.resolve({ data: [], count: 0, error: null })
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null); io.ack.mockResolvedValue(['ack-1']); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.from.mockImplementation(query)
   io.matches.mockResolvedValue([{ transactionReference: 'GRIDEX2607E66001', externalMeteringPointId: point, externalGridAreaId: 'TES', meteringPointId: 'meter-tenant-a', matchStatus: 'matched', customerId: null, siteId: null, gridOwnerId: null }])
 })
 afterEach(() => vi.useRealTimers())
 function execute() {
-  const canonicalPolicy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: incoming.created_at, applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  return processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy })
+  qualifyUtiltsFixtureSource(incoming)
+  return processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id })
 }
 function calls() { return structuredClone([io.update.mock.calls, io.event.mock.calls, io.persist.mock.calls, io.ack.mock.calls, io.ingest.mock.calls]) }
 it.each(['2026-09-30T20:00:00.000001Z', '2026-09-30T22:00:00.000001+02:00'])('preserves literal microsecond database cutoff %s', async timestamp => {
@@ -69,7 +73,7 @@ it('discards a valid delayed query response without any late diagnostic or busin
     ['NAD', 'FR', ['91100', '160', 'SVK']], ['NAD', 'DO', ['21660', '160', 'SVK']],
     line('1', point, undefined, '9'), ['DTM', ['92', '202607010000', '203']], ['RFF', ['MG', 'M']], ...characteristic('Z16', '201', 3),
   ])
-  finish({ data: [{ id: 'late-source', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04', metering_point_id: 'meter-tenant-a', message_received_at: '2026-06-20T09:00:00Z', raw_payload: source, immutable_payload_hash: createHash('sha256').update(source, 'utf8').digest('hex') }], count: 1, error: null })
+  finish({ data: [{ id: 'late-source', company_id: COMPANY, environment: 'test', direction: 'inbound', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z04', metering_point_id: 'meter-tenant-a', message_received_at: '2026-06-20T09:00:00Z', raw_payload: source, immutable_payload_hash: createHash('sha256').update(source, 'utf8').digest('hex') }], count: 1, error: null })
   await vi.runAllTimersAsync()
   await Promise.resolve()
   expect(calls()).toEqual(before)

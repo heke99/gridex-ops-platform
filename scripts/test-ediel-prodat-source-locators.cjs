@@ -4,8 +4,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule } = require('node:vm')
 const { test } = require('node:test')
+const {sourceRuntimeBoundary,assertNoSourceBoundaryAttempts}=require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 
 async function runtime() {
@@ -17,11 +19,15 @@ async function runtime() {
     export { buildProfiledProdatSegments } from '@/lib/ediel/prodat/builders/profileRenderer';
   `, { identifier: path.join(root, 'lib/ediel/source-locator-test.ts') })
   await entry.link((specifier, parent) => {
+    const sourceBoundary=sourceRuntimeBoundary(specifier,modules,parent)
+    if(sourceBoundary)return sourceBoundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
+    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()
@@ -128,3 +134,5 @@ test('Z14N suppresses reporting dates even with populated portal data', async()=
   const result=a.buildProfiledProdatSegments({context:{...context,code:'Z14'},variant:'N',mode:'test',portalSnapshot:{reportStartDateTime:'202609010015',reportEndDateTime:'202609300030'},generatedAt:new Date('2026-09-16T12:00:00Z')})
   assert(!result.segments.some(s=>s.startsWith('DTM+90:')||s.startsWith('DTM+91:')))
 })
+
+test('source-only runtime attempted no external operation',async()=>{await api;assertNoSourceBoundaryAttempts()})

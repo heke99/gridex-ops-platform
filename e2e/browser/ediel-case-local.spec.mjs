@@ -74,7 +74,7 @@ test('real writer case follows the actual Control Tower link; older exact ID byp
   await expect(page.locator('body')).not.toContainText(fixture.foreign.sourceMessageId)
 })
 
-test('tenant writer changes only case status; read-only and no-case-read actors cannot triage', async ({ browser }) => {
+test('tenant writer changes only case status; read-only and no-case-read actors cannot triage', async ({ browser }, testInfo) => {
   const summaryOnly = await browser.newPage()
   await login(summaryOnly, fixture.noCaseReadEmail)
   await summaryOnly.goto('/admin/controltower')
@@ -89,10 +89,19 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await login(writer, fixture.writerEmail)
   await writer.goto(detail(fixture.recent.id))
   const writerDetails = await caseDetails(writer)
-  await writerDetails.getByLabel('Ärendestatus').selectOption('resolved')
-  await writerDetails.getByRole('button', { name: 'Spara status' }).click()
+  const status = writerDetails.getByLabel('Ärendestatus')
+  await status.selectOption('resolved')
+  await status.focus()
+  await writer.keyboard.press('Tab')
+  const save = writerDetails.getByRole('button', { name: 'Spara status' })
+  await expect(save).toBeFocused()
+  await writer.keyboard.press('Enter')
   await expect(writerDetails).toContainText('Löst')
   await expect(writerDetails).toContainText('Ediel-ärendestatus uppdaterad till resolved')
+  await writer.reload()
+  await expect(await caseDetails(writer)).toContainText('Löst')
+  await expect(writer.getByText('Ediel-ärendestatus uppdaterad till resolved.', { exact: true })).toHaveCount(1)
+  await testInfo.attach('case-status-after-reload', {body: await writer.screenshot({fullPage: true}), contentType: 'image/png'})
   await writer.close()
 
   const reader = await browser.newPage()
@@ -102,4 +111,28 @@ test('tenant writer changes only case status; read-only and no-case-read actors 
   await expect(readerDetails.getByRole('heading', { name: fixture.old.title })).toBeVisible()
   await expect(reader.getByLabel('Ärendestatus')).toHaveCount(0)
   await reader.close()
+})
+
+test('own case remains readable on mobile and at 200 percent layout zoom', async ({ page }, testInfo) => {
+  await login(page, fixture.readOnlyEmail)
+  for (const view of [{name: 'mobile', width: 375, height: 812, zoom: '1'},
+    {name: 'zoom-200', width: 1280, height: 900, zoom: '2'}]) {
+    await page.setViewportSize({width: view.width, height: view.height})
+    await page.goto(detail(fixture.old.id))
+    // CSS layout zoom exercises reflow; no provider/send operation is invoked.
+    await page.evaluate(zoom => {document.documentElement.style.zoom = zoom}, view.zoom)
+    const details = await caseDetails(page)
+    await details.scrollIntoViewIfNeeded()
+    await expect(details.getByRole('heading', {name: fixture.old.title})).toBeVisible()
+    await expect(details).toContainText(fixture.old.next_action)
+    await expect(page.getByLabel('Ärendestatus')).toHaveCount(0)
+    await expect(page.getByRole('button', {name: 'Spara status', exact: true})).toHaveCount(0)
+    const customer = details.getByRole('link', {name: 'Visa kund', exact: true})
+    await customer.focus()
+    await expect(customer).toBeFocused()
+    await expect(customer).toHaveAttribute('href', `/admin/customers/${fixture.customerA}`)
+    await testInfo.attach(`case-${view.name}`, {body: await page.screenshot({fullPage: true}), contentType: 'image/png'})
+    await page.reload()
+    await expect(await caseDetails(page)).toContainText(fixture.old.next_action)
+  }
 })

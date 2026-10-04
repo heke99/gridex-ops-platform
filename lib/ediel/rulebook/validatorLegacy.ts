@@ -2,7 +2,8 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { fieldRulesForMessage, validateFieldMatrixPayload, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { RegistryFieldRuleResult, RegistryRulePackSnapshot } from '@/lib/ediel/rulebook/fieldRuleRegistry'
 import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
-import { parseRulebookListPayload, parseRulebookMessage, type ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import type { ParsedRulebookMessage } from '@/lib/ediel/rulebook/messageParser'
+import { parseRulebookWirePayload } from './messageFormatParser'
 import {
   getRulebookRule,
   normalizeRulebookToken,
@@ -133,7 +134,7 @@ function businessDateForRulePack(input: RulebookValidationInput, parsed: ParsedR
 }
 
 export function validateRulebookMessage(input: RulebookValidationInput): RulebookValidationResult {
-  const parsed = input.parsed ?? (input.rawPayload ? (input.rawPayload.includes("'") ? parseRulebookMessage(input.rawPayload) : parseRulebookListPayload(input.rawPayload)) : null)
+  const parsed = input.rawPayload ? parseRulebookWirePayload({rawPayload:input.rawPayload,family:input.family}) : input.parsed ?? null
   const family = normalizeRulebookToken(input.family ?? parsed?.family ?? null) || null
   const code = normalizeRulebookToken(input.code ?? parsed?.code ?? null) || null
   const canonicalProdat = family === 'PRODAT' ? getCanonicalProdatProfile(code) : null
@@ -218,7 +219,7 @@ export function validateRulebookMessage(input: RulebookValidationInput): Ruleboo
 }
 
 export async function validateRulebookMessageWithRegistry(input: RulebookValidationInput): Promise<RulebookValidationResult> {
-  const parsed = input.parsed ?? (input.rawPayload ? (input.rawPayload.includes("'") ? parseRulebookMessage(input.rawPayload) : parseRulebookListPayload(input.rawPayload)) : null)
+  const parsed = input.rawPayload ? parseRulebookWirePayload({rawPayload:input.rawPayload,family:input.family}) : input.parsed ?? null
   const family = normalizeRulebookToken(input.family ?? parsed?.family ?? null) || null
   const code = normalizeRulebookToken(input.code ?? parsed?.code ?? null) || null
   const processGroup = normalizeProcessGroupInput(input.processGroup ?? input.routeScope ?? parsed?.processGroup, family, code)

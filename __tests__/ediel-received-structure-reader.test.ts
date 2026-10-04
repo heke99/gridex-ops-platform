@@ -1,14 +1,17 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, alphabets, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -22,6 +25,7 @@ vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
   stringOrNull: (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : null,
   ensureJson: (v: unknown) => v && typeof v === 'object' ? v : {},
 }))
+const COMPANY = '11111111-1111-4111-8111-111111111111'
 const point = '735999260731000007'
 const hash = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex')
 const parties: Parts[] = [['NAD', 'FR', ['91100', '160', 'SVK'], '', '', '', '', '', '', 'SE'], ['NAD', 'DO', ['21660', '160', 'SVK'], '', '', '', '', '', '', 'SE']]
@@ -32,7 +36,7 @@ function wire(code = 'Z04', date = '202607010000', body?: Parts[], alphabet: rea
 }
 function source(code = 'Z04', date = '202607010000', body?: Parts[], alphabet?: readonly string[]) {
   const value = wire(code, date, body, alphabet)
-  return { id: 'source-1', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact',
+  return { id: 'source-1', company_id: COMPANY, environment: 'test', direction: 'inbound', message_standard: 'edifact',
     message_family: 'PRODAT', message_code: code, metering_point_id: 'meter-tenant-a', raw_payload: value,
     immutable_payload_hash: hash(value), message_received_at: '2026-06-20T09:00:00.000Z',
     parsed_payload: { meterNumber: 'CACHED-WRONG', authority: true }, status: 'validated' }
@@ -61,15 +65,15 @@ function match(overrides: Row = {}) {
     meteringPointId: 'meter-tenant-a', customerId: null, siteId: null, gridOwnerId: null, matchStatus: 'matched', ...overrides }
 }
 beforeEach(() => {
-  vi.clearAllMocks(); queryCalls.length = 0
-  incoming = observationHandoffMessage(); rows = [source()]; count = 1; dbError = null
+  vi.clearAllMocks(); io.rpc.mockImplementation(createUtiltsFinalValidationIo()); queryCalls.length = 0
+  incoming = observationHandoffMessage('2026-09-30', COMPANY); rows = [source()]; count = 1; dbError = null
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue([]); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
 })
 type Evidence = { version: number; status: string; authorityStatus: string; selection: string; sources: Array<Record<string, unknown>>; issues: Array<{ code: string; sourceMessageId?: string }> }
 async function run(): Promise<Evidence> {
-  const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: '2026-09-30', applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  qualifyUtiltsFixtureSource(incoming)
+  await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id })
   const reports = io.update.mock.calls.map(([call]) => call.parsedPayload.normalizedMeteringPayload.receivedStructuralSources)
   expect(reports[0], 'actual inbound processing must forward fresh dated received-source evidence').toBeDefined()
   for (const report of reports) expect(report).toEqual(reports[0])
@@ -90,7 +94,7 @@ it('loads independent sealed Z04 bytes through the real processor, not incoming 
   const serialized = JSON.stringify(report)
   for (const privateValue of ['CACHED-WRONG', 'PRIVATE', 'UNB', 'M-GRIDEX-2607-01']) expect(serialized).not.toContain(privateValue)
   expect(io.from).toHaveBeenCalledExactlyOnceWith('ediel_messages')
-  expect(queryCalls).toContainEqual(['eq', 'company_id', 'tenant-a'])
+  expect(queryCalls).toContainEqual(['eq', 'company_id', COMPANY])
   expect(queryCalls).toContainEqual(['eq', 'environment', 'test'])
   expect(queryCalls).toContainEqual(['eq', 'direction', 'inbound'])
   expect(queryCalls).toContainEqual(['eq', 'message_standard', 'edifact'])
@@ -98,6 +102,54 @@ it('loads independent sealed Z04 bytes through the real processor, not incoming 
   expect(queryCalls).toContainEqual(['in', 'metering_point_id', ['meter-tenant-a']])
   expect(queryCalls).toContainEqual(['lte', 'message_received_at', incoming.message_received_at])
   expect(queryCalls.find(([name]) => name === 'select')?.[2]).toEqual({ count: 'exact' })
+})
+it.each(['point first', 'object first'])('does not link a point source to a mixed LOC+172/LOC+175 IDE (%s)', async order => {
+  const pointLocation = `LOC+172+${point}::9'`
+  const objectLocation = "LOC+175+735999260731000007::9'"
+  incoming.raw_payload = incoming.raw_payload!.replace(
+    pointLocation,
+    order === 'point first' ? `${pointLocation}\n${objectLocation}` : `${objectLocation}\n${pointLocation}`,
+  )
+  // The match is deliberately plausible. Its existence cannot select the
+  // accounting-point namespace for an IDE that also names a regulating object.
+  const report = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...match(), matchStatus: 'matched' }] })
+  expect(report).toMatchObject({ status: 'not_requested', authorityStatus: 'not_established', sources: [] })
+  expect(io.from).not.toHaveBeenCalled()
+  expect(JSON.stringify(report)).not.toContain('source-1')
+})
+it('still inspects an independent clean point sibling when another IDE mixes object domains', async () => {
+  const secondPoint = '735999260731000014'
+  incoming.raw_payload = incoming.raw_payload!
+    .replace(`LOC+172+${point}::9'`, `LOC+172+${point}::9'\nLOC+175+735999260731000007::9'`)
+    .replace("UNT+35+1'", `IDE+24+TX-2'\nLOC+172+${secondPoint}::9'\nUNT+38+1'`)
+  const secondSource = source('Z04', '202607010000', [
+    line('1', secondPoint, undefined, '9'), ['DTM', ['92', '202607010000', '203']],
+    ['RFF', ['MG', 'SOURCE-METER']], ...characteristic('Z16', '201', 3),
+  ])
+  rows = [{ ...secondSource, id: 'source-2', metering_point_id: 'meter-2' }]
+  const report = await readReceivedStructuralSources({
+    message: incoming,
+    transactionMatches: [
+      { ...match(), matchStatus: 'matched' },
+      { ...match({ transactionReference: 'TX-2', externalMeteringPointId: secondPoint, meteringPointId: 'meter-2' }), matchStatus: 'matched' },
+    ],
+  })
+  expect(report).toMatchObject({ status: 'inspected', authorityStatus: 'not_established' })
+  expect(report.sources.map(item => item.sourceMessageId)).toEqual(['source-2'])
+  expect(queryCalls).toContainEqual(['in', 'metering_point_id', ['meter-2']])
+})
+it('does not link an agency 89 source through an unqualified point-text match in the inbound processor', async () => {
+  incoming.raw_payload = incoming.raw_payload!.replace(`LOC+172+${point}::9'`, `LOC+172+${point}::89'`)
+  rows = [source('Z04', '202607010000', [
+    line('1', point, undefined, '89'), ['DTM', ['92', '202607010000', '203']],
+    ['RFF', ['MG', 'SOURCE-METER']], ...characteristic('Z16', '201', 3),
+  ])]
+  // The legacy matcher supplies the same tenant point and identical text.
+  // It does not identify the distributor that assigned this local namespace.
+  const report = await run()
+  expect(report).toMatchObject({ status: 'not_requested', authorityStatus: 'not_established', sources: [] })
+  expect(io.from).not.toHaveBeenCalled()
+  expect(JSON.stringify(report)).not.toContain('source-1')
 })
 it.each(['Z06', 'Z10'])('uses %s change validity, never later contract start or receipt date', async code => {
   rows = [source(code, '', [line('1', point, undefined, '9'), ['DTM', ['157', '202606080835', '203']], ['DTM', ['92', '202607010000', '203']],
@@ -201,7 +253,10 @@ it.each(['unmatched', 'wrong-wire-id', 'ambiguous'])('does not query from a %s m
 })
 it('does not query when the original receipt timestamp is absent', async () => {
   incoming.message_received_at = null
-  const report = await run(); expect(report.status).toBe('not_requested'); expect(io.from).not.toHaveBeenCalled()
+  const report = await readReceivedStructuralSources({ message: incoming, transactionMatches: [{ ...match(), matchStatus: 'matched' }] })
+  expect(report).toMatchObject({ status: 'not_requested', sources: [], authorityStatus: 'not_established', selection: 'not_performed' })
+  await expect(run()).rejects.toThrow('utilts_final_canonical_transaction_evidence_unconfirmed')
+  for (const mock of [io.from, io.persist, io.update, io.event, io.ack]) expect(mock).not.toHaveBeenCalled()
 })
 it('does not query without a trusted company even when cached point links exist', async () => {
   incoming.company_id = null

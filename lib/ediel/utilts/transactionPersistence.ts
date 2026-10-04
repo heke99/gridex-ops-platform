@@ -1,3 +1,7 @@
+import { canonicalUtiltsDecimal } from './exactDecimal'
+import { utiltsE30StandardEnergyUnit, utiltsPhysicalQuantityUnit } from './quantityUnitScope'
+import { canonicalUtiltsTransactions } from './canonicalObservationScope'
+import { tokenizeEdifact, segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { supabaseService } from '@/lib/supabase/service'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 import type {
@@ -7,7 +11,7 @@ import type {
 import type { EdielEnvironment } from '@/lib/ediel/types'
 import { createHash } from 'node:crypto'
 import { localEdifactDateTimeToUtc, parseEdifactTimezoneOffsetFromSegments } from './timezone'
-import { consumptionConflict, consumptionEqual, validateUtiltsConsumptionContract, type UtiltsConsumptionContractV1 } from './consumptionContract'
+import { consumptionConflict, consumptionEqual, legacyUtiltsRetryComparison, validateUtiltsConsumptionContract, type UtiltsConsumptionContract } from './consumptionContract'
 
 export { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
 
@@ -27,6 +31,7 @@ export type UtiltsTransactionPersistenceItem = {
   meteringPointId: string | null
   externalMeteringPointId: string | null
   gridAreaId: string | null
+  productId?: string | null
   periodStart: string | null
   periodEnd: string | null
   registrationDate: string | null
@@ -50,7 +55,7 @@ export type UtiltsTransactionPersistenceResult = {
   seriesId?: string
   idempotentReplay?: boolean
   issueCodes?: string[]
-  consumptionContract?: UtiltsConsumptionContractV1
+  consumptionContract?: UtiltsConsumptionContract
   contractHash?: string
   contractVersion?: number
   sourceBinding?: { sourceMessageId: string; rawHash: string; boundAt: string }
@@ -62,14 +67,14 @@ export type UtiltsBoundPersistenceInput = {
   sourceMessageId: string
   messageCode: string
   rawPayload: string
-  contracts: readonly UtiltsConsumptionContractV1[]
+  contracts: readonly UtiltsConsumptionContract[]
   transactions: readonly UtiltsTransactionPersistenceItem[]
 }
 // Only the trusted persistence adapter registers write authority. JSON loaded
 // from parsed_payload (or a caller's status/hash marker) cannot enter this map.
-const returnedAuthority = new WeakMap<UtiltsTransactionPersistenceResult, { sourceMessageId: string; contract: UtiltsConsumptionContractV1 }>()
+const returnedAuthority = new WeakMap<UtiltsTransactionPersistenceResult, { sourceMessageId: string; contract: UtiltsConsumptionContract }>()
 
-export function storedUtiltsConsumption(result: UtiltsTransactionPersistenceResult, sourceMessageId: string): UtiltsConsumptionContractV1 | null {
+export function storedUtiltsConsumption(result: UtiltsTransactionPersistenceResult, sourceMessageId: string): UtiltsConsumptionContract | null {
   const authority = returnedAuthority.get(result)
   if (!authority || authority.sourceMessageId !== sourceMessageId) return null
   return structuredClone(authority.contract)
@@ -100,7 +105,10 @@ export function validateUtiltsPersistenceResults(input: UtiltsBoundPersistenceIn
       continue
     }
     const contract = validateUtiltsConsumptionContract(row.consumptionContract)
-    if (!row.seriesId || row.contractVersion !== 1 || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, input.contracts[index]) ||
+    const prepared = input.contracts[index]
+    const comparison = contract.version === 1 && prepared.version === 2 && row.idempotentReplay === true
+      ? legacyUtiltsRetryComparison(prepared,input.rawPayload) : prepared
+    if (contract.version===3 || !row.seriesId || row.contractVersion !== contract.version || !/^[a-f0-9]{64}$/.test(row.contractHash ?? '') || !consumptionEqual(contract, comparison) ||
       contract.companyId !== input.companyId || contract.environment !== input.environment || contract.messageCode !== input.messageCode || contract.transactionId !== item.transactionId) consumptionConflict('returned_contract')
     returnedAuthority.set(row, { sourceMessageId: input.sourceMessageId, contract: structuredClone(contract) })
   }
@@ -140,6 +148,8 @@ export function buildUtiltsTransactionPersistencePayload(input: {
 }): UtiltsTransactionPersistenceItem[] {
   const seriesKind = utiltsSeriesKind(input.messageCode)
   const timezone = parseEdifactTimezoneOffsetFromSegments(input.rawSegments)
+  const wire = input.rawSegments?.length ? tokenizeEdifact(input.rawSegments.map(segment => segment.endsWith("'") ? segment : segment + "'").join('\n')) : null
+  const physical = wire ? canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment => segment.tag === 'UNH')), wire.una, 0) : []
   // The source fields are local wall-clock times. Without the wire's DTM+735,
   // do not invent a UTC instant for durable series evidence.
   const instant = (value: string | null | undefined) => timezone ? localEdifactDateTimeToUtc(value, timezone) : null
@@ -153,9 +163,14 @@ export function buildUtiltsTransactionPersistencePayload(input: {
     const match =
       byTransactionReference(input.matches, disposition.transactionId) ??
       byTransactionReference(input.matches, transactionId)
+    const own = physical.find(value => value.transactionId === disposition.transactionId || value.transactionId === transactionId)
+    const firstSequence = own?.segments.find(segment => segment.tag === 'SEQ')?.index ?? Infinity
+    const products = own?.segments.filter(segment => segment.tag === 'LIN' && segment.index < firstSequence) ?? []
+    const product = wire && products.length === 1 ? segmentComposite(products[0], 3, wire.una) : []
+    const productId = product.length === 4 && product[1] === '' && product[2] === '' && product[3] === '9' ? product[0] || null : null
     // LOC+175 names a regulating object, never a metering point. A grid-area
     // or stale transaction match must not turn that IDE into a point identity.
-    const regulatingObject = input.messageCode === 'E66' && Boolean(transaction?.regulatingObjectId)
+    const regulatingObject = Boolean(transaction?.regulatingObjectPresent || transaction?.regulatingObjectId)
 
     return {
       transactionId,
@@ -166,8 +181,9 @@ export function buildUtiltsTransactionPersistencePayload(input: {
       meteringPointId: regulatingObject ? null : match?.meteringPointId ?? null,
       externalMeteringPointId: regulatingObject ? null : match?.externalMeteringPointId ?? transaction?.meterPointId ?? null,
       gridAreaId: match?.externalGridAreaId ?? transaction?.gridAreaId ?? null,
-      periodStart: transaction?.deliveryPeriodStart ?? null,
-      periodEnd: transaction?.deliveryPeriodEnd ?? null,
+      productId,
+      periodStart: instant(transaction?.deliveryPeriodStart),
+      periodEnd: instant(transaction?.deliveryPeriodEnd),
       registrationDate: instant(transaction?.registrationTime),
       latestUpdateDate: instant(transaction?.latestUpdateTime),
       resolution: transaction?.resolution ?? null,
@@ -183,21 +199,45 @@ export function buildUtiltsTransactionPersistencePayload(input: {
   })
 }
 
-export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput): Promise<UtiltsTransactionPersistenceResult[]> {
+export async function persistUtiltsTransactionResults(input: UtiltsBoundPersistenceInput & {actorUserId:string}): Promise<UtiltsTransactionPersistenceResult[]> {
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.actorUserId)) consumptionConflict('execution_actor_required')
   if (!input.rawPayload || input.contracts.length !== input.transactions.length) consumptionConflict('prepared_contract_missing')
   input.contracts.forEach(validateUtiltsConsumptionContract)
+  input.contracts.forEach((contract,index)=>{
+    const item=input.transactions[index]
+    if(contract.version===3 && (item.disposition!=='guide_rejected' || item.responseType!=='negative_aperak' || !item.issueCodes.includes('UTILTS_TRANSACTION_ID_INVALID'))) consumptionConflict('rejected_diagnostic_outcome')
+  })
   // Narrow server-only boundary until the exact native-generated public types
   // arrive. No generated file is hand-edited or global client type weakened.
   const rpc = supabaseService.rpc.bind(supabaseService) as unknown as (name: 'gridex_persist_utilts_consumption_v1', args: {
-    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown
+    p_company_id: string; p_environment: string; p_source_message_id: string; p_message_code: string; p_raw_payload: string; p_transactions: unknown; p_actor_user_id:string
   }) => PromiseLike<{ data: unknown; error: { message: string } | null }>
+  const wire = tokenizeEdifact(input.rawPayload)
+  const physical = canonicalUtiltsTransactions(wire.segments.slice(wire.segments.findIndex(segment=>segment.tag==='UNH')),wire.una,0)
   const { data, error } = await rpc('gridex_persist_utilts_consumption_v1', {
     p_company_id: input.companyId,
     p_environment: input.environment,
     p_source_message_id: input.sourceMessageId,
     p_message_code: input.messageCode,
     p_raw_payload: input.rawPayload,
-    p_transactions: input.transactions.map((item, index) => ({ ...item, consumptionContract: input.contracts[index] })),
+    p_actor_user_id: input.actorUserId,
+    p_transactions: input.transactions.map((item, index) => ({ ...item,
+      quantities: input.contracts[index].version !== 1 ? item.quantities.map((quantity,quantityIndex) => {
+        if (quantity.value === null) return quantity
+        const transaction=physical[index]
+        const source=transaction?.observations.flatMap(observation=>observation.quantities)[quantityIndex]
+        if(!transaction || !source || source.value===null || source.raw!==quantity.raw || source.qualifier!==quantity.qualifier) consumptionConflict('physical_quantity_membership')
+        const observation=transaction.observations.find(observation=>observation.quantities.includes(source)) ?? null
+        const unit=utiltsPhysicalQuantityUnit(transaction,observation,source,wire.una)
+        const consumed = input.contracts[index].observations.some(observation=>observation.sourceOrdinal===quantityIndex)
+        const consumerUnit=input.messageCode==='E30' ? utiltsE30StandardEnergyUnit(transaction,source,wire.una) : unit
+        if(item.disposition === 'accepted' && (unit!==item.unit || (consumed && !consumerUnit))) consumptionConflict('physical_quantity_unit')
+        // The contract's own observation interval positions the stored value
+        // (series windows are [start,end)); a quantity no observation consumes
+        // keeps no invented time.
+        const readingAt=input.contracts[index].observations.find(observation=>observation.sourceOrdinal===quantityIndex)?.periodStart ?? null
+        return {...quantity,value:canonicalUtiltsDecimal(source.value,wire.una.decimalMark),...(readingAt?{readingAt}:{})}
+      }) : item.quantities, consumptionContract: input.contracts[index] })),
   })
 
   if (error) throw new Error(`utilts_transaction_persistence_failed:${error.message}`)

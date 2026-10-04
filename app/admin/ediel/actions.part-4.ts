@@ -1,3 +1,4 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
 import { revalidatePath } from "next/cache"
@@ -9,7 +10,7 @@ import { createAckDraftForMessage, createNegativeUtiltsResponse, prepareAndQueue
 import type { AckFamily, EdielAperakApplicationError } from "@/lib/ediel/ack"
 
 import { registerInboundCanonicalMessage } from "@/lib/ediel/core/kernel"
-import { createEdielMessageEvent, createEdielTestRun, listAckMessagesForSource, updateEdielMessageStatus } from "@/lib/ediel/db"
+import { createEdielMessageEvent, createEdielTestRun, updateEdielMessageStatus } from "@/lib/ediel/db"
 import { runEdielSelfTest } from "@/lib/ediel/testing/selftest"
 import { buildInboundUtiltsMessageInput } from "@/lib/ediel/utilts"
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
@@ -47,6 +48,7 @@ import { createEdielPortalTestCustomerGraph } from "@/lib/ediel/portalTestCustom
 
 
 import { approveSafeMasterdataChanges, rejectSafeMasterdataChanges } from "@/lib/ediel/safeApplyReview"
+import {createReceivedProdatStructuralAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
 import type { EdielEnvironment } from "@/lib/ediel/types"
 import { formNumber, formString, getProdatDraftBuilder, parseEdielTestRoleCode, parseEdielTestSuite, requireScopedEdielMessageForAction, revalidateEdiel, revalidateRelatedMessage } from './actions.part-1'
 import { REPLACEABLE_TGT_ACK_STATUSES } from './actions.part-3'
@@ -58,10 +60,8 @@ export async function removeReplaceableAckMessagesForSource(params: {
   preset: string;
   companyId?: string | null;
 }) {
-  const existingAcks = await listAckMessagesForSource({
-    sourceMessageId: params.sourceMessageId,
-    ackFamily: params.ackFamily,
-    companyId: params.companyId ?? null,
+  const existingAcks = await listBusinessAckMessagesForSource({
+    sourceMessageId: params.sourceMessageId, ackFamily: params.ackFamily, companyId: params.companyId ?? null, actorUserId: params.actorUserId,
   });
 
   const nonReplaceable = existingAcks.find(
@@ -959,8 +959,11 @@ export async function prepareAiListAction(formData: FormData) {
   if (!receiverEdielId) throw new Error("receiverEdielId saknas");
   if (!fromDate || !toDate) throw new Error("fromDate/toDate saknas");
 
+  if (!context.companyId) throw new Error("AI export kräver verifierat valt företag");
+
   const message = await prepareAndQueueAiList({
     actorUserId: context.userId,
+    companyId: context.companyId,
     listType,
     customerId,
     siteId,
@@ -1087,10 +1090,21 @@ export async function approveEdielSafeApplyAction(formData: FormData) {
   const edielMessageId = formString(formData.get("edielMessageId"));
   if (!edielMessageId) throw new Error("edielMessageId saknas");
 
+  const source=await requireScopedEdielMessageForAction(edielMessageId,context);
+  if(!source.company_id)throw new Error('structural_apply_source_required');
+  const selected=formData.getAll('objectLineIndex');
+  const objectLineIndices=formData.get('objectSelection')==='1'?selected.map(value=>{
+    if(typeof value!=='string'||!/^\d+$/.test(value)||!Number.isSafeInteger(Number(value)))throw new Error('structural_apply_requested_scope_invalid');
+    return Number(value);
+  }):undefined;
+  if(objectLineIndices&&(!objectLineIndices.length||new Set(objectLineIndices).size!==objectLineIndices.length))throw new Error('structural_apply_requested_scope_invalid');
+
   await approveSafeMasterdataChanges({
     actorUserId: context.userId,
     edielMessageId,
+    objectLineIndices,
   });
+  await createReceivedProdatStructuralAcks({actorUserId:context.userId,companyId:source.company_id,sourceMessageId:source.id,objectLineIndices});
 
   await revalidateRelatedMessage(edielMessageId);
 }

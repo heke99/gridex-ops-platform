@@ -1,3 +1,4 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 import {beforeEach,it,expect,vi} from 'vitest'
@@ -14,13 +15,14 @@ import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermiss
 import {resolveAndStoreProdatAperakErrors} from '@/lib/ediel/testing/aperakErrorRuleRegistry'
 import {selectRuleProfile,compareEngineDecisionWithExpected} from '@/lib/ediel/rulebook/ruleProfileSelector'
 import {buildAckDraftForSource} from '@/lib/ediel/ack'
-import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {prodatIssuesToAperakErrors,decideProdatAperakOutcome} from '@/lib/ediel/prodat/prodatAperak'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 const state=vi.hoisted(()=>({writes:[] as {table:string;body:Record<string,unknown>}[],reads:[] as string[],events:[] as Record<string,unknown>[],drafts:[] as string[],effects:[] as string[],unavailable:false}))
 vi.mock('@/lib/supabase/service',async()=>{const {registryDatabase}=await import('./fixtures/prodat-ack-registry-db');return {supabaseService:{from:(table:string)=>{state.reads.push(table);return registryDatabase(state.writes,[{id:'hostile',message_family:'PRODAT',message_code:'*',direction:'both',rule_key:'report_end_invalid',application_error:'41',free_text_code:'999',free_text:'HOSTILE',is_active:true,priority:0,environment:'all'}])(table)}}}})
 function extract(path:string,names:string[],deps:Record<string,unknown>){const f=ts.createSourceFile(path,readFileSync(path,'utf8'),ts.ScriptTarget.Latest,true),code=f.statements.filter(s=>ts.isFunctionDeclaration(s)&&names.includes(s.name?.text??'')).map(s=>s.getText(f).replace(/^export /,'')).join('\n');return new Function(...Object.keys(deps),ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText+';return '+names[0])(...Object.values(deps))}
+const isPostgresUniqueViolation=extract('app/admin/ediel/actions.part-1.ts',['isPostgresUniqueViolation'],{})
 const backend=extract('app/admin/ediel/actions.part-3.ts',['resolveBackendAperakDecision'],{assertIncomingProdatEnergyProductReview,validateProdatPermissionMessage,assertPriorPermissionContext,resolveAndStoreProdatAperakErrors,resolveTgtTestDataForAckAction:async()=>({testData:null,selectedRow:null}),resolveProdatPermissionContextForAck:async(m:EdielMessageRow)=>{state.effects.push('context');return state.unavailable?null:syntheticPriorContext(m)},createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e)})
 const system=extract('app/admin/ediel/system-tests/actions.part-2.ts',['resolveSystemTestAckDecision','prodatPermissionLooksApplicationValid','buildApplicationErrorSummary','firstErrorTransactionReference'],{selectRuleProfile,compareEngineDecisionWithExpected,resolveAndStoreProdatAperakErrors,expectedSystemTestAckOutcome:()=>null,isAgtSystemTestCase:()=>false})
 const reporting=(field='323',value='BAD',a:readonly string[]=alphabets[0])=>{const m=permissionAckMessage('Z14','S18','A74',null,a);m.raw_payload=m.raw_payload!.replace(field==='321'?'202611010000':'B72',[...value].map(c=>a.includes(c)?a[2]+c:c).join(''));return m}
@@ -33,22 +35,29 @@ const fixtures=()=>[
  ['320',source(payload('Z06','E32',[...characteristic('Z02','1',3),...characteristic('Z05','6',3)],'gas').replace('LIN+1++A:::89','LIN+1++735123456789012345:::89'),'Z06')],
 ] as [string,EdielMessageRow][]
 beforeEach(()=>{state.writes=[];state.reads=[];state.events=[];state.drafts=[];state.effects=[];state.unavailable=false})
-function assertDraft(m:EdielMessageRow,d:{outcome:string;applicationErrors:Parameters<typeof buildAckDraftForSource>[0]['applicationErrors']},field:string){
- expect(d.outcome).toBe('negative');const draft=buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors}),t=tokenizeEdifact(draft.rawPayload)
- expect(t.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,3,t.una)[0])).toContain(field)
- expect(draft.rawPayload).not.toContain('HOSTILE');expect(draft.rawPayload).not.toContain('ERC+100')
- return draft.rawPayload
+// These manual-selection probes prove bounded own-field diagnosis. They do
+// not qualify a received original or the final 96A ACK: its physical reference
+// cardinality is checked by the real builder and currently holds these wires.
+function assertHeldDraft(m:EdielMessageRow,d:{outcome:string;applicationErrors:Parameters<typeof buildAckDraftForSource>[0]['applicationErrors']},field:string){
+ expect(d.outcome).toBe('negative')
+ expect(d.applicationErrors).toContainEqual(expect.objectContaining({fieldCode:field,
+  prodatFieldDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field})}))
+ expect(d.applicationErrors?.some(e=>e.text==='HOSTILE'||e.ercCode==='100')).toBe(false)
+ // P16B resolved: Z14's own ERC carries Z07+LI (E2SE6A) and renders; other
+ // sources still lack unambiguous legal parties.
+ if(m.message_code==='Z14')expectOwnReferencePair([String(buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors}).rawPayload)])
+ else expect(()=>buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:'negative',applicationErrors:d.applicationErrors})).toThrow('Kvittensen kräver entydiga juridiska parter')
 }
-for(const [field,m] of fixtures())it(`actual manual and system own ${m.message_code}/${field} final P-APERAK`,async()=>{
- const manual=await backend({sourceMessage:m,actorUserId:'actor',roleCode:'supplier',fallbackOutcome:'positive'});assertDraft(m,manual,field)
- const sys=await system({sourceMessage:m,ackFamily:'APERAK',requestedOutcome:'positive',messageText:null,testCaseCode:null});assertDraft(m,sys,field)
+for(const [field,m] of fixtures())it(`bounded manual and system own ${m.message_code}/${field} diagnosis with final grammar HOLD`,async()=>{
+ const manual=await backend({sourceMessage:m,actorUserId:'actor',roleCode:'supplier',fallbackOutcome:'positive'});assertHeldDraft(m,manual,field)
+ const sys=await system({sourceMessage:m,ackFamily:'APERAK',requestedOutcome:'positive',messageText:null,testCaseCode:null});assertHeldDraft(m,sys,field)
  expect(manual.applicationErrors).toContainEqual(expect.objectContaining({fieldCode:field,prodatFieldDiagnostic:expect.objectContaining({kind:'field',fieldNumber:field})}))
  expect(state.writes.filter(w=>w.body.free_text_code===field).every(w=>w.body.source_message_id===m.id)).toBe(true)
 })
-for(const a of alphabets)it(`escaped323 rendered complete text and own refs ${a.join('')}`,async()=>{
+for(const a of alphabets)it(`escaped323 retains complete own text and refs before final grammar HOLD ${a.join('')}`,async()=>{
  const m=reporting('323',"bad:+?'",a),d=await resolveAndStoreProdatAperakErrors({message:m});const selected=d.errors.filter(e=>e.fieldCode==='323');expect(selected).toHaveLength(1)
- const t=tokenizeEdifact(assertDraft(m,{outcome:'negative',applicationErrors:d.errors},'323'))
- expect(t.segments.filter(s=>s.tag==='FTX').map(s=>segmentComposite(s,4,t.una))).toContainEqual(["Felaktigt Tillståndets syfte bad:+?'"])
+ assertHeldDraft(m,{outcome:'negative',applicationErrors:d.errors},'323')
+ expect(selected[0].text).toBe("Felaktigt Tillståndets syfte bad:+?'")
  expect(selected[0]).toMatchObject({lineItemReference:'CASE:A+B?C',referenceNumber:'735123456789012345'})
 })
 for(const a of alphabets)it(`repeated reporting physical refs retain two keys ${a.join('')}`,async()=>{
@@ -95,12 +104,12 @@ it('unavailable prior context retains known323 and prevents persistence or event
  expect(state.writes).toEqual([]);expect(state.events).toEqual([])
 })
 function action(entry:string,m:EdielMessageRow){return extract('app/admin/ediel/actions.part-3.ts',[entry],{
- requireEdielWriteActionAccess:async()=>({userId:'actor',isPlatformAdmin:true}),requireEdielSendActionAccess:async()=>({userId:'actor',isPlatformAdmin:true}),formString:(v:unknown)=>v?String(v):null,collectAperakApplicationErrors:()=>[],parseEdielTestSuite:()=> 'PRODAT',parseEdielTestRoleCode:()=> 'energy_service_company',requireScopedEdielMessageForAction:async()=>m,resolveBackendAperakDecision:backend,validateProdatPermissionMessage,
- listAckMessagesForSource:async()=>{state.effects.push('ack-read');return []},resolveTgtTestDataForAckAction:async()=>{state.effects.push('tgt-read');return {testData:null}},resolveRecommendedAckForInboundMessage:()=>({action:{ackFamily:'APERAK',outcome:'positive'},title:'synthetic'}),shouldUseTransactionScopedPositiveAperak:()=>false,removeReplaceableAckMessagesForSource:async()=>{},createAckDraftForMessage:async(p:Record<string,unknown>)=>{const draft=buildAckDraftForSource({...p,sourceMessage:m} as Parameters<typeof buildAckDraftForSource>[0]);state.drafts.push(draft.rawPayload!);return {id:'ack',raw_payload:draft.rawPayload}},attachAperakErrorDetailsToMessage:async()=>{},validateAckPreflight:()=>({ok:true,summary:'synthetic',issues:[]}),createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e),revalidateEdiel:()=>{},revalidateRelatedMessage:async()=>{},sendEdielMessage:()=>{throw Error('UNEXPECTED_SEND')},
+ isPostgresUniqueViolation,requireEdielWriteActionAccess:async()=>({userId:'actor',isPlatformAdmin:true}),requireEdielSendActionAccess:async()=>({userId:'actor',isPlatformAdmin:true}),formString:(v:unknown)=>v?String(v):null,collectAperakApplicationErrors:()=>[],parseEdielTestSuite:()=> 'PRODAT',parseEdielTestRoleCode:()=> 'energy_service_company',requireScopedEdielMessageForAction:async()=>m,resolveBackendAperakDecision:backend,validateProdatPermissionMessage,
+ listAckMessagesForSource:async()=>{state.effects.push('ack-read');return []},listBusinessAckMessagesForSource:async()=>{state.effects.push('ack-read');return []},resolveTgtTestDataForAckAction:async()=>{state.effects.push('tgt-read');return {testData:null}},resolveRecommendedAckForInboundMessage:()=>({action:{ackFamily:'APERAK',outcome:'positive'},title:'synthetic'}),shouldUseTransactionScopedPositiveAperak:()=>false,removeReplaceableAckMessagesForSource:async()=>{},createAckDraftForMessage:async(p:Record<string,unknown>)=>{const draft=buildAckDraftForSource({...p,sourceMessage:m} as Parameters<typeof buildAckDraftForSource>[0]);state.drafts.push(draft.rawPayload!);return {id:'ack',raw_payload:draft.rawPayload}},attachAperakErrorDetailsToMessage:async()=>{},validateAckPreflight:()=>({ok:true,summary:'synthetic',issues:[]}),createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e),revalidateEdiel:()=>{},revalidateRelatedMessage:async()=>{},sendEdielMessage:()=>{throw Error('UNEXPECTED_SEND')},
 })}
-for(const entry of ['createAckDraftAction','createAndSendAckAction','createAndSendRecommendedAckAction'])for(const ready of [true,false])it(`actual ${entry} ready=${ready} reaches final draft or zero effects`,async()=>{
+for(const entry of ['createAckDraftAction','createAndSendAckAction','createAndSendRecommendedAckAction'])for(const ready of [true,false])it(`actual ${entry} bounded readiness=${ready} still requires full final grammar`,async()=>{
  const m=reporting('323',ready?'BAD':'X'.repeat(80)),f=new FormData();f.set('sourceMessageId',m.id);f.set('ackType','APERAK');f.set('outcome','positive')
- if(ready){await action(entry,m)(f);expect(state.drafts).toHaveLength(1);expect(state.drafts[0]).toContain('FTX+AAO++323::260');expect(state.drafts[0]).not.toContain('ERC+100')}
+ if(ready){await action(entry,m)(f);expectOwnReferencePair(state.drafts.map(String));expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
  else {await expect(action(entry,m)(f)).rejects.toThrow('PRODAT_SELECTED_ACK_REVIEW_REQUIRED');expect(state.drafts).toEqual([]);expect(state.events).toEqual([]);expect(state.writes).toEqual([]);expect(state.effects).toEqual([])}
 })
 for(const ready of [true,false])it(`actual system-test manual draft readiness=${ready}`,async()=>{
@@ -108,10 +117,10 @@ for(const ready of [true,false])it(`actual system-test manual draft readiness=${
  const run=extract('app/admin/ediel/system-tests/actions.part-2.ts',['createAndSendSystemTestAckAction'],{
  requirePlatformAdminActionAccess:async()=>({userId:'actor'}),formString:(v:unknown)=>v?String(v):null,formNumber:()=>null,normalizeAckFamily:()=> 'APERAK',normalizeAckOutcome:()=> 'positive',getEdielMessageById:async()=>m,
  findBestActiveRunForMessage:async()=>{state.effects.push('run-read');return null},resolveSystemTestAckDecision:system,validateProdatPermissionMessage,
- listAckMessagesForSource:async()=>[],createAckDraftForMessage:async(p:Record<string,unknown>)=>{const d=buildAckDraftForSource({...p,sourceMessage:m} as Parameters<typeof buildAckDraftForSource>[0]);state.drafts.push(d.rawPayload!);return {id:'ack',status:'draft',raw_payload:d.rawPayload}},auditSystemTestMaintenance:async()=>{},updateEdielMessageStatus:async()=>({id:'ack',status:'draft'}),revalidateSystemTests:()=>{},redirectToSystemTestAckResult:()=>{},createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e),
+ listAckMessagesForSource:async()=>[],listBusinessAckMessagesForSource:async()=>[],createAckDraftForMessage:async(p:Record<string,unknown>)=>{const d=buildAckDraftForSource({...p,sourceMessage:m} as Parameters<typeof buildAckDraftForSource>[0]);state.drafts.push(d.rawPayload!);return {id:'ack',status:'draft',raw_payload:d.rawPayload}},auditSystemTestMaintenance:async()=>{},updateEdielMessageStatus:async()=>({id:'ack',status:'draft'}),revalidateSystemTests:()=>{},redirectToSystemTestAckResult:()=>{},createEdielMessageEvent:async(e:Record<string,unknown>)=>state.events.push(e),
  })
  const f=new FormData();f.set('sourceMessageId',m.id);f.set('ackFamily','APERAK');f.set('outcome','positive');f.set('sendNow','false')
- if(ready){await run(f);expect(state.drafts).toHaveLength(1);expect(state.drafts[0]).toContain('FTX+AAO++323::260')}
+ if(ready){await run(f);expectOwnReferencePair(state.drafts.map(String));expect(state.writes.some(w=>w.body.free_text_code==='323')).toBe(true)}
  else{await expect(run(f)).rejects.toThrow('PRODAT_SELECTED_ACK_REVIEW_REQUIRED');expect(state.writes).toEqual([]);expect(state.events).toEqual([]);expect(state.drafts).toEqual([]);expect(state.effects).toEqual([])}
 })
 it('ambiguous own LI carries known323 plus internal disposition before all reads',async()=>{

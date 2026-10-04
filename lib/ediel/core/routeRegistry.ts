@@ -1,5 +1,6 @@
 // lib/ediel/core/routeRegistry.ts
 
+import { processActorRole } from '@/lib/ediel/core/marketRole'
 import { findBestCommunicationRoute } from '@/lib/cis/db-routes'
 import type { CommunicationRouteRow } from '@/lib/cis/types'
 import type { GridOwnerRow } from '@/lib/masterdata/types'
@@ -14,6 +15,7 @@ import {
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
 import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
 
 export type CanonicalRouteRequestType =
   | 'supplier_switch'
@@ -111,6 +113,18 @@ async function resolveCommunicationRoute(params: {
   }
 }
 
+/** An ACK replies to the source's sender. When that sender is exactly one
+ * active grid owner of this tenant, its own ACK route is tried before the
+ * tenant's generic ACK route (findBestCommunicationRoute falls back). */
+async function replyGridOwnerId(companyId: string, receiverEdielId?: string | null): Promise<string | null> {
+  const ediel = trimOrNull(receiverEdielId)
+  if (!ediel) return null
+  const { supabaseService } = await import('@/lib/supabase/service')
+  const { data, error } = await supabaseService.from('grid_owners').select('id').eq('company_id', companyId).eq('ediel_id', ediel).eq('is_active', true).limit(2)
+  if (error) throw error
+  return data?.length === 1 ? (data[0] as { id: string }).id : null
+}
+
 export async function resolveCanonicalRouteContext(params: {
   requestType: CanonicalRouteRequestType
   gridOwner?: GridOwnerRow | null
@@ -125,10 +139,11 @@ export async function resolveCanonicalRouteContext(params: {
   const companyId = trimOrNull(params.companyId)
   if (!companyId) throw new Error('canonical_route_company_required')
 
-  const actor = await resolveCanonicalActorContext(environment, companyId)
+  // TEN-02/TEN-05: the process (application reference) selects the tenant's role profile.
+  const actor = await resolveCanonicalActorContext(environment, companyId, processActorRole(params.applicationReference))
   const resolvedRoute = await resolveCommunicationRoute({
     requestType: params.requestType,
-    gridOwnerId: params.gridOwner?.id ?? null,
+    gridOwnerId: params.gridOwner?.id ?? (params.requestType === 'ediel_ack' ? await replyGridOwnerId(companyId, params.receiverEdielId) : null),
     preferredRouteId: params.preferredRouteId ?? null,
     companyId,
     environment,
@@ -183,7 +198,16 @@ export async function resolveCanonicalRouteContext(params: {
   }
 
   const mailbox = trimOrNull(routeRuntime?.mailbox) ?? actor.mailbox
-  const applicationReference =
+  const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
+  const isAiList = messageStandard === 'ai_list'
+  if (isAiList && (routeRuntime?.message_standard !== 'ai_list' || routeRuntime?.message_family !== 'AI_LIST' || routeRuntime?.is_enabled !== true)) {
+    throw new Error('ai_list_actual_route_profile_required')
+  }
+  if (isAiList && (!validateApplicationReferencePolicy({messageFamily:'AI_LIST',applicationReference:params.applicationReference}).ok
+    || !validateApplicationReferencePolicy({messageFamily:'AI_LIST',applicationReference:routeRuntime?.application_reference}).ok)) {
+    throw new Error('ai_list_application_reference_forbidden')
+  }
+  const applicationReference = isAiList ? null :
     trimOrNull(params.applicationReference) ??
     trimOrNull(routeRuntime?.application_reference) ??
     actor.defaultApplicationReference
@@ -193,7 +217,7 @@ export async function resolveCanonicalRouteContext(params: {
   }
 
   if (environment === 'production') {
-    if (!applicationReference) {
+    if (!isAiList && !applicationReference) {
       throw new Error(`production_application_reference_required:${route.id}`)
     }
     const normalizedApplicationReference = String(applicationReference).toUpperCase()
@@ -214,7 +238,6 @@ export async function resolveCanonicalRouteContext(params: {
 
   const defaultMessageVersion = trimOrNull(routeRuntime?.default_message_version)
   const ackMode = routeRuntime?.ack_mode ?? 'default'
-  const messageStandard = params.messageStandard ?? routeRuntime?.message_standard ?? 'edifact'
 
   const routeKey = [
     params.requestType,
@@ -257,4 +280,16 @@ export async function resolveCanonicalRouteContext(params: {
     routeDecisionReason,
     routeSelectionSource: resolvedRoute.source,
   }
+}
+
+/** Call only after the actual protected original/operation replay branch.
+ * Fresh mapped business routes use the same private source/dispatch authority;
+ * technical/common ACK routes are qualified by their separate opaque owners. */
+export async function assertFreshBusinessRegistryRouteSource(context:CanonicalRouteContext,messageFamily:string):Promise<void>{
+  if(!['PRODAT','UTILTS','AI','AI_LIST'].includes(messageFamily))return
+  const {readRegistryDispatchSource}=await import('@/lib/actor-registry/registryMarketSource')
+  const profileId=context.routeRuntime?.route_profile_id
+  if(!context.companyId||!profileId)throw new Error('ediel_registry_owned_route_profile_required')
+  const source=await readRegistryDispatchSource({companyId:context.companyId,communicationRouteId:context.route.id,routeProfileId:profileId,environment:context.environment,messageFamily,applicationReference:context.applicationReference})
+  if(source&&(source.wire.interchangePartyId!==context.receiverEdielId||source.wire.address!==context.receiverEmail||source.wire.subaddress!==context.receiverSubAddress))throw new Error('ediel_registry_dispatch_context_mismatch')
 }

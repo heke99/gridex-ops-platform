@@ -30,7 +30,7 @@ export type UtiltsProcessabilityPolicy = {
   }
 }
 
-const activeCodes = ['E30', 'E31', 'E66', 'E72', 'E73', 'E74', 'S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07', 'ERR'] as const
+const activeCodes = ['E30', 'E31', 'E66', 'E72', 'E73', 'E74', 'S01', 'S02', 'S03', 'S04', 'S05', 'S07', 'ERR'] as const
 const S08_LAST_LIVE_USE_DATE = '2026-04-14'
 
 export const UTILTS_25_A_3_POLICY: UtiltsProcessabilityPolicy = {
@@ -124,6 +124,12 @@ export function assertUtiltsMessageUseAllowed(input: {
   const date = isoDate(input.referenceDate)
   const policy = resolveUtiltsProcessabilityPolicy(date)
   const code = String(input.messageCode ?? '').trim().toUpperCase()
+
+  // U §3.1 lists S06 for historical/diagnostic recognition but explicitly
+  // states that it is not in use. Syntax/profile coverage grants no sender use.
+  if (code === 'S06' && input.mode === 'outbound') {
+    throw new Error(`utilts_s06_outbound_not_in_use:${date}`)
+  }
 
   if (code === 'S08') {
     if (input.mode === 'historical_replay') return

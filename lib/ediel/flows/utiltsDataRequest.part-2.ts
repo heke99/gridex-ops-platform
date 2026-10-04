@@ -1,10 +1,14 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
+import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 // Extracted from utiltsDataRequest.ts; keep public imports on the facade module.
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
-import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
+import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import { readReceivedStructuralSources } from '@/lib/ediel/utilts/receivedStructuralSources'
 import { readAndRecordDurableReceivedSources } from '@/lib/ediel/utilts/receivedSourceLedger'
@@ -27,7 +31,6 @@ import { prepareUtiltsConsumptionContracts } from '@/lib/ediel/utilts/consumptio
 
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
 import { allUtiltsTransactionMeteringPointsMatched, createUtiltsRuntimeAcks, ensureJson, linkInboundUtiltsMessageCanonically, markDataRequestOutboundAcknowledged, matchUtiltsTransactionsForTenant, maybeCreateBillingUnderlay, maybeIngestMeteringValue, resolveUtiltsRuntimeTestCaseCode, stringOrNull } from './utiltsDataRequest.part-1'
-import { normalizeMeteringResolution, utiltsResolutionCode } from '@/lib/metering/contractMeteringResolution'
 
 export async function prepareAndQueueUtiltsE73(params: {
   actorUserId: string
@@ -80,6 +83,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -116,6 +121,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -126,7 +133,11 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: 'Begäran om saknade validerade mätvärden',
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      resolution:sourceStructure.resolution,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
     },
   })
 
@@ -245,6 +256,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     },
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:params.periodStart??dataRequest.requested_period_start,periodEnd:params.periodEnd??dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -281,6 +294,8 @@ export async function prepareAndQueueUtiltsE66(params: {
     receiverEmail: routeContext.receiverEmail,
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -289,15 +304,11 @@ export async function prepareAndQueueUtiltsE66(params: {
       registrationTime: params.registrationTime ?? new Date().toISOString(),
       quantity: params.quantity ?? 0,
       unit: 'KWH',
-      // Contract resolution from the data request first; otherwise what the meter
-      // delivers. Hourly meters were previously sent as quarter-hour (15).
-      resolution: utiltsResolutionCode(
-        normalizeMeteringResolution(
-          (dataRequest.request_payload as Record<string, unknown> | null)?.requested_resolution,
-        ) ??
-          normalizeMeteringResolution(meteringPoint?.reading_frequency) ??
-          'quarter_hour',
-      ),
+      resolution:sourceStructure.resolution,
+      readingFrequency:sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
       siteType: site?.site_type ?? 'consumption',
     },
   })
@@ -352,6 +363,7 @@ export async function processInboundUtiltsMessage(params: {
   edielMessageId: string
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision?: CanonicalRuntimeDecision | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
@@ -360,6 +372,10 @@ export async function processInboundUtiltsMessage(params: {
   if (message.message_family !== 'UTILTS') {
     throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
   }
+
+  if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
+
 
   const runtimeTestCaseCode = await resolveUtiltsRuntimeTestCaseCode({
     sourceMessage: message,
@@ -370,11 +386,17 @@ export async function processInboundUtiltsMessage(params: {
   // normalized UTILTS facts. The final ACK decision is run again after canonical
   // business matching, because live/test must use the same production rule: object
   // identity/processability is validated before period/observation-count checks.
-  const canonicalPolicy = params.canonicalPolicy ?? resolveCanonicalMessagePolicy(message)
+  const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  if (await holdCanonicalEvidenceGateBlocked({actorUserId,message,initialDecision})) {
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
+  const canonicalPolicy = initialDecision.policy
   if (!canonicalPolicy || canonicalPolicy.family !== 'UTILTS' || canonicalPolicy.code !== message.message_code || canonicalPolicy.direction !== 'inbound') {
     throw new Error(`utilts_inbound_policy_context_mismatch:${message.id}`)
   }
-  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy })
+  const periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:initialDecision,message})??undefined
+  const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:initialDecision,message})??undefined
+  const provisionalRuntime = runUtiltsRuntimeForMessage(message, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority })
   const transactionMatches = await matchUtiltsTransactionsForTenant({
     message,
     facts: provisionalRuntime.facts,
@@ -422,10 +444,21 @@ export async function processInboundUtiltsMessage(params: {
   }
 
   const structuralQualification = await qualifyReceivedUtiltsStructure({
-    message: runtimeSourceMessage, canonicalPolicy,
-    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy }),
+    message: runtimeSourceMessage, canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority,
+    runtime: runUtiltsRuntimeForMessage(runtimeSourceMessage, { canonicalPolicy,issuerIdentityAuthority,periodicReasonAuthority }),
   })
   const runtime = structuralQualification.runtime
+  try { await recordFinalCanonicalUtiltsDecision({original:message,validated:runtimeSourceMessage,initialDecision,runtime}) }
+  catch (error) {
+    // The legal receiver (NAD+MR, field 208) could not be resolved when the
+    // source was received: no own identity can sign a reply and no rule basis
+    // can be captured. Hold it for manual review: no ACK, consumption or effect.
+    if (!legalReceiverUnresolved(error)) throw error
+    await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'warning',
+      message:'Mottagarens juridiska identitet (fält 208) kunde inte fastställas. Meddelandet hålls för manuell granskning utan kvittens eller affärseffekt.',
+      payload:{reason:'ediel_inbound_legal_context_required',manualReviewRequired:true}})
+    return {message,matchedDataRequest:canonicalLinks.matchedDataRequest,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
   const structuralDecisionRequired = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
   const ackPlan = structuralDecisionRequired ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({
     runtime, testCaseCode: runtimeTestCaseCode,
@@ -454,6 +487,7 @@ export async function processInboundUtiltsMessage(params: {
     const contracts = await prepareUtiltsConsumptionContracts({ message: runtimeSourceMessage, runtime, policy: canonicalPolicy,
       matches: transactionMatches, dataRequest, fallback, allowConsumption: true })
     transactionPersistenceResults = await persistUtiltsTransactionResults({
+      actorUserId,
       companyId,
       environment: runtimeSourceMessage.environment,
       sourceMessageId: runtimeSourceMessage.id,
@@ -463,7 +497,7 @@ export async function processInboundUtiltsMessage(params: {
       transactions: buildUtiltsTransactionPersistencePayload({
         messageCode,
         transactions: runtime.facts.transactions,
-        rawSegments: runtime.facts.rawSegments,
+        rawSegments: utiltsRuntimeSegments(runtime.facts),
         dispositions: transactionDispositions,
         matches: transactionMatches,
       }),
@@ -963,4 +997,10 @@ export async function processInboundUtiltsMessage(params: {
     ingestedMeterValueIds,
     billingUnderlayId: billingUnderlay?.id ?? null,
   }
+}
+
+function legalReceiverUnresolved(error: unknown): boolean {
+  if (!(error instanceof Error) || error.message !== 'ediel_source_rule_pack_basis_required') return false
+  const cause = (error as { cause?: unknown }).cause as { message?: unknown } | undefined
+  return typeof cause?.message === 'string' && cause.message.includes('ediel_inbound_legal_context_required')
 }

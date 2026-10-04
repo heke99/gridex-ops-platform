@@ -1,3 +1,4 @@
+import {transportJournalFixture} from './fixtures/ediel-transport-journal';
 import { beforeEach, it, expect, vi } from 'vitest';
 import { tgtDateRun, tgtDateData, tgtDateRuntime } from './fixtures/tgt-date-events';
 import { resolveTgtDateEventRoute, resolveTgtDateEventBuildContext } from '@/lib/ediel/testing/tgtDateEventContext';
@@ -6,36 +7,48 @@ import { buildEdielTgtDraft } from '@/lib/ediel/testing/tgtEdifact.part-4';
 import { dateEventDraftRow } from '@/lib/ediel/testing/tgtDateEventSource';
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport';
 import type { EdielMessageRow } from '@/lib/ediel/types';
-const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), imported: vi.fn(), send: vi.fn(), archive: vi.fn(), event: vi.fn(), status: vi.fn() }));
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }));
+import { createHash } from 'node:crypto';
+let currentRow: EdielMessageRow | null = null;
+const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), imported: vi.fn(), send: vi.fn(), archive: vi.fn(), event: vi.fn(), status: vi.fn(), rpc: vi.fn() }));
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: io.rpc } }));
+vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',async importOriginal=>({...await importOriginal<Record<string,unknown>>(),resolveCanonicalRulePack:async()=>(await import('./helpers/prodatInboundSourceFixture')).prodatFixtureRegistryResolution}));
 vi.mock('@/lib/ediel/systemTestSettings', () => ({ requireEdielSystemTestRuntimeContext: io.runtime }));
 vi.mock('@/lib/ediel/testing/tgtTestDataStore', () => ({ getEdielTgtDynamicTestDataForCase: io.imported }));
 vi.mock('@/lib/ediel/db', () => ({ getEdielRouteProfileByCommunicationRouteId: vi.fn().mockResolvedValue(null), createEdielMessageEvent: io.event, updateEdielMessageStatus: io.status }));
 vi.mock('@/lib/ediel/mailReadiness', () => ({ assertEdielSmtpReadiness: () => ({ from: 'sender@example.invalid', provider: 'synthetic' }) }));
 vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: io.send }));
 vi.mock('@/lib/ediel/transport/index.part-1', async (original) => ({ ...await original<typeof import('@/lib/ediel/transport/index.part-1')>(), storeTransportPayloadSnapshot: io.archive }));
-let records: Record<string, unknown>;
-beforeEach(() => { vi.clearAllMocks(); records = {}; io.event.mockResolvedValue(undefined); io.status.mockResolvedValue(undefined); io.archive.mockResolvedValue(undefined); io.send.mockResolvedValue({ accepted: ['recipient@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' }); io.from.mockImplementation((table: string) => { const q = { select: () => q, eq: () => q, update: () => q, maybeSingle: async () => ({ data: records[table], error: null }), limit: async () => ({ data: records[table], error: null }), then: (resolve: (value: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve) }; return q; }); });
+let records: Record<string, unknown>;let journal:ReturnType<typeof transportJournalFixture>;
+const uid=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;const ACTOR=uid(1),COMPANY=uid(2),RUN=uid(3),MSG=uid(4);
+beforeEach(() => { vi.clearAllMocks(); records = {};journal=transportJournalFixture();io.rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+  // Declared native method-change send basis: this date-event Z09 has neither a
+  // certification nor an agreement origin, bound to the actual reloaded row.
+  if (name === 'ediel_metering_method_change_send_basis_v1') { const row = currentRow; if (!row || args.p_company_id !== row.company_id || args.p_message_id !== row.id || !args.p_actor_user_id) throw Error('fixture_method_send_scope_required')
+    return { data: { version: 1, kind: 'not_applicable', companyId: row.company_id, environment: row.environment, messageId: row.id, sourcePayloadHash: createHash('sha256').update(row.raw_payload ?? '', 'utf8').digest('hex'), intentId: row.intent_id }, error: null } }
+  return journal.rpc(name, args) }); io.event.mockResolvedValue(undefined); io.status.mockResolvedValue(undefined); io.archive.mockResolvedValue(undefined); io.send.mockImplementation(async(input,entry)=>{await journal.beforeProvider(input,entry);return{ accepted: ['recipient@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' };}); io.from.mockImplementation((table: string) => { const q = { select: () => q, eq: () => q, update: () => q, maybeSingle: async () => ({ data: records[table], error: null }), limit: async () => ({ data: records[table], error: null }), then: (resolve: (value: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve) }; return q; }); });
 async function prepared() {
     const run = tgtDateRun(), runtime = tgtDateRuntime(), testData = tgtDateData();
-    run.route_profile_id = null;
+    run.id=RUN;run.company_id=COMPANY;runtime.companyId=COMPANY;runtime.settings!.companyId=COMPANY;run.route_profile_id = null;
     runtime.settings!.routeProfileId = null;
     runtime.testPortalEmail = 'recipient@example.invalid';
     const route = await resolveTgtDateEventRoute(run, 'Z09', runtime);
-    run.notes = buildTgtRegisterFactNotes({ run, stepNo: 1, code: 'Z09', testData, dateEventRoute: route, actorId: 'ACTOR', sourceNote: 'Independent signing', facts: { market: 'electricity', dateEventObjects: [{ meteringPointId: 'A', identityAgency: '9', kind: 'production_contract', direction: 'production', contract: { reference: 'contract', revision: '1' }, event: { kind: 'signed', reference: 'event', revision: '1' }, supplyBoundaryAt: '202610010000' }] } });
+    run.notes = buildTgtRegisterFactNotes({ run, stepNo: 1, code: 'Z09', testData, dateEventRoute: route, actorId: ACTOR, sourceNote: 'Independent signing', facts: { market: 'electricity', dateEventObjects: [{ meteringPointId: 'A', identityAgency: '9', kind: 'production_contract', direction: 'production', contract: { reference: 'contract', revision: '1' }, event: { kind: 'signed', reference: 'event', revision: '1' }, supplyBoundaryAt: '202610010000' }] } });
     const build = await resolveTgtDateEventBuildContext({ run, stepNo: 1, code: 'Z09', runtime, testData });
-    const draft = buildEdielTgtDraft({ actorUserId: 'ACTOR', testRunId: run.id, testSuite: run.test_suite, roleCode: run.role_code, testCaseCode: run.test_case_code, stepNo: 1, systemTestContext: runtime, importedTestData: testData, registerFacts: build.facts, dateEventContext: build.context });
+    const draft = buildEdielTgtDraft({ actorUserId: ACTOR, testRunId: run.id, testSuite: run.test_suite, roleCode: run.role_code, testCaseCode: run.test_case_code, stepNo: 1, systemTestContext: runtime, importedTestData: testData, registerFacts: build.facts, dateEventContext: build.context });
     records.ediel_test_runs = run;
-    records.ediel_test_run_messages = [{ test_run_id: 'RUN', step_no: 1, expected_family: 'PRODAT', expected_code: 'Z09', expected_direction: 'outbound' }];
+    records.ediel_test_run_messages = [{ test_run_id: RUN, step_no: 1, expected_family: 'PRODAT', expected_code: 'Z09', expected_direction: 'outbound' }];
     io.runtime.mockResolvedValue(runtime);
     io.imported.mockResolvedValue(testData);
-    const row: Partial<EdielMessageRow> = { ...dateEventDraftRow(draft.messageInput), id: 'MSG', message_family: 'PRODAT', message_version: '26A', message_standard: 'edifact', mime_type: 'application/EDIFACT', raw_payload: draft.rawPayload, file_name: 'synthetic.edi', parsed_payload: { ...draft.messageInput.parsedPayload, rulebookAllowInvalidSend: true } };
+    const row: Partial<EdielMessageRow> = { ...dateEventDraftRow(draft.messageInput), id: MSG, message_family: 'PRODAT', message_version: '26A', message_standard: 'edifact', mime_type: 'application/EDIFACT', raw_payload: draft.rawPayload, file_name: 'synthetic.edi', parsed_payload: { ...draft.messageInput.parsedPayload, rulebookAllowInvalidSend: true } };
     return row as EdielMessageRow;
 }
-it('actual SMTP reloads independent test context and reaches mocked provider once', async () => { const row = await prepared(); await expect(sendEdielMessageViaSmtp(row, { actorUserId: 'ACTOR', smtpMimeMode: 'nodemailer-attachment' })).resolves.toMatchObject({ messageId: 'synthetic-provider-id' }); expect(io.send).toHaveBeenCalledTimes(1); });
+it('actual SMTP reloads independent test context and reaches mocked provider once', async () => { const row = await prepared(); currentRow = row;
+  // Predeclared persistence-only original bound to the declared registry pack.
+  const pack = (await import('./helpers/prodatInboundSourceFixture')).prodatFixtureRegistryResolution
+  journal = transportJournalFixture({ original: { companyId: String(row.company_id), actorUserId: ACTOR, messageId: row.id, rawPayload: String(row.raw_payload), rulePackSnapshot: { profileKey: pack.profileKey, profileVersionId: pack.messageProfileId, version: pack.version, checksum: pack.sourceHash } } }); await expect(sendEdielMessageViaSmtp(row, { actorUserId: ACTOR, smtpMimeMode: 'nodemailer-attachment' })).resolves.toMatchObject({ messageId: 'synthetic-provider-id' }); expect(io.send).toHaveBeenCalledTimes(1); });
 for (const change of ['source', 'route', 'environment', 'missingLink'])
     it(`SMTP rejects ${change} before archive or provider`, async () => { const row = await prepared(); if (change === 'source')
         records.ediel_test_runs = { ...(records.ediel_test_runs as object), notes: null }; if (change === 'route')
         row.receiver_ediel_id = 'OTHER'; if (change === 'environment')
         row.environment = 'production'; if (change === 'missingLink')
-        records.ediel_test_run_messages = []; await expect(sendEdielMessageViaSmtp(row, { actorUserId: 'ACTOR' })).rejects.toThrow(); expect(io.send).not.toHaveBeenCalled(); expect(io.archive).not.toHaveBeenCalled(); });
+        records.ediel_test_run_messages = []; await expect(sendEdielMessageViaSmtp(row, { actorUserId: ACTOR })).rejects.toThrow(); expect(io.send).not.toHaveBeenCalled(); expect(io.archive).not.toHaveBeenCalled(); });

@@ -11,16 +11,17 @@ import {
 import { resolveUtiltsTransactionId as resolveFromIdentity } from '@/lib/ediel/utilts/transactionIdentity'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 
 describe('UTILTS transaction persistence payload', () => {
   it('keeps SG5 field 512 and field 532 as separate UTC instants in their respective series', () => {
     const e66 = energyHandoffMessage('2026-10-01', 'tenant-timestamps')
     const s01 = { ...e66, message_code: 'S01', application_reference: '23-DDK-S01-S',
-      raw_payload: e66.raw_payload!
+      raw_payload: recountEdifactUnt(e66.raw_payload!
         .replace('BGM+E66::260', 'BGM+S01:SVK:260')
         .replace('23-DDQ-E66-T', '23-DDK-S01-S')
         .replace('DTM+597:202607010020:203', 'DTM+368:202607010020:203')
-        .split('\n').filter(segment => !segment.startsWith('DTM+597:')).join('\n'),
+        .split('\n').filter(segment => !segment.startsWith('DTM+597:')).join('\n')),
     }
 
     for (const [message, expected] of [
@@ -63,7 +64,7 @@ describe('UTILTS transaction persistence payload', () => {
     expect(payload[0]?.transactionId).toBe('transaction-1')
   })
 
-  it('fallback ACK targets keep null IDE+24 groups via transaction-N synthesis', () => {
+  it('does not turn a missing physical IDE+24 into an ACK target', () => {
     const message = {
       message_family: 'UTILTS',
       raw_payload:
@@ -72,13 +73,7 @@ describe('UTILTS transaction persistence payload', () => {
         "LOC+172+735999000000000001'QTY+220:1.5'UNT+5+1'UNZ+1+REF1'",
     } as EdielMessageRow
 
-    expect(getUtiltsAckTransactionTargets(message)).toEqual([
-      expect.objectContaining({
-        reference: 'transaction-1',
-        transactionId: null,
-        meterPointId: '735999000000000001',
-      }),
-    ])
+    expect(getUtiltsAckTransactionTargets(message)).toEqual([])
   })
 
   it('tenant match builder synthesizes the same null-id fallback used by persistence/ACK', () => {

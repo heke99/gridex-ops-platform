@@ -99,7 +99,9 @@ BEGIN
 END $fixture$;
 COMMIT;
 """)
-    pack = json.loads(checked("""SELECT jsonb_build_object('profileKey',p.profile_key,'messageProfileId',p.id,'rulePackId',r.id,'sourceHash',r.source_hash)
+    pack = json.loads(checked("""SELECT jsonb_build_object('profileKey',p.profile_key,'messageProfileId',p.id,'rulePackId',r.id,'sourceHash',r.source_hash,
+ 'version',r.guide_version||':r'||r.guide_revision,'snapshot',jsonb_build_object('rulePack',to_jsonb(r),'messageProfile',to_jsonb(p),
+ 'guideSources',(SELECT coalesce(jsonb_agg(to_jsonb(rs) ORDER BY rs.id),'[]'::jsonb) FROM public.ediel_rule_pack_sources rs WHERE rs.rule_pack_id=r.id)))
 FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id
 WHERE p.profile_key='PRODAT:Z04:L:26.A:r3' AND p.is_enabled;"""))
     facts = dict(version=1, owner='canonical-runtime-with-registry-v1', sourceDisposition='not_established',

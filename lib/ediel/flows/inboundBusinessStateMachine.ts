@@ -1,3 +1,4 @@
+import type { SupplyMarketResult } from './supplyMarketTransition'
 import type {SourceSwitchCommitObserver} from './sourceSwitchCommit'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -24,9 +25,12 @@ export type InboundBusinessStateInput = {
   message: EdielMessageRow
   matchedSwitchRequestId?: string | null
   customerInfoRequestId?: string | null
+  permissionSourceResult?: { applied: boolean; targetId: string | null; reason?: string | null }
   source?: string
   onSourceSwitchCommitted?: SourceSwitchCommitObserver
   utiltsInternalReviewRequired?: boolean
+  /** The native supply apply already committed earlier in this reception. */
+  committedSupplyResult?: SupplyMarketResult
 }
 
 function referenceDate(message: EdielMessageRow): string {

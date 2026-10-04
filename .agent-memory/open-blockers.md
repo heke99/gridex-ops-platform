@@ -1,3 +1,217 @@
+## Sparad överlämning — 2026-10-01 (aktuell)
+
+Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.
+
+Fullständig konkret överlämning: `quality/audits/ediel-masterplan-v2/chat-handoff-20261001/remaining-work.md`, `checkpoint.json` och `checkpoint-branches.json`. Tre separata WIP-commits är bevarade: ACK1346006376e27e, contract terminal9dca678f (5RED, produktion142500 ej skriven), original-intake native7cc1b343. Merga inte overifierad WIP blint. Börja med terminalguard-forward, sedan ACKlegacy actual actors/callers och native registration; kodfas med riktade kontroller. Frys först därefter och gör full aktuell autentisk slutverifiering. Återanvänd tidigare bevis enbart på deras verkliga SHA/omfattning.
+
+352-ID-matrisens gamla kodluckor:274code-ready-not-verified/24verification-only/52externalt/2remaining(ACK09); nya contract/BRP terminalbehörighetsfynd är dessutom kvar och dokumenterade i WIP. Ingen formalacceptans eller procent. Senaste root H117 SQL-mekanik/14API-unit, OPS77 SQL-mekanik/79unit, P15 11+44unit, ACK79 SQL-mekanik, union15selftests PASS; 945/848checksums och33/121/231integrityPASS. Mekanik är inte autentisk native.
+
+Publiceringskvitto för dokumentets egen HEAD kontrolleras via actual remote refs och bootstrap history-publication manifest/Actionsrun; dokumentet är skrivet före det publiceringssteget. Äldre avsnitt nedan behåller enbart sin historiska version/omfattning.
+
+## Active coherent rule composition — 2026-10-01
+
+Isolated `codex/ediel-composed-rules-20261001` preserves published c8f666d9, later local536cdc16 and source-owner3c7342c6 histories. Existing owners and all previous PR refs remain untouched. Full121/231 original criteria unchanged. Six isolated package owners are composing real caller chains, with focused regression/type/lint and immediate auth/transaction tests. Heavy replay/native/browser/build/fullCI is deferred to a frozen candidate. Final qualification is NOT_RUN. Earlier sections below are historical; source code and fresh receipts take precedence. Both inherited memory editions remain available in these exact immutable Git commits, and no inherited green result qualifies composed code.
+
+## Active restored integration — 2026-10-01
+
+Continue the user-authorized whole F0–F7 and all352 original IDs on isolated draft #424. Public source snapshot0373d6d05dfad1e3eefd5121171dc5a22d58821c remains the authentic CI baseline; clean/upgrade/independent-clean generated types, full public/gridex_ schemas and fingerprints byte-match, but three mandatory workflows fail and no final whole-ID approval is inferred. Actual receipts and the disjoint352 reference index are in quality/audits/ediel-masterplan-v2/integration-20261001/.
+
+The execution backend reconnected after its409 environment_offline outage. Unpublished local integration/owner objects and files were absent after reconnection. Root cloned public0373 into gridex-integration and recreated six isolated owner worktrees. Old unpublished hashes or test receipts are not current proof. New coherent recreations integrated: private source alias catalog paths006938d2, customer owner bridges97ea47d2 and F/G process watches09b5d921. Mixed-Z04 entry routing, strict UTILTS source-ledger oracles, full97A SC072 controls, current finite gas-source boundaries and independent native failure collectors are root-owned corrections awaiting new publication/native qualification.
+
+Never reapply ed3f5159: all15 portable parts and the bundle were hash-verified and imported only into a read-only ref for source comparison. Frozen specification bytes remain unchanged; the fresh29-check integrity result is additive. All remaining source-owned producer/retention/ACK packets continue in parallel; exact final head native/HTTP/browser/build/generated artifacts and all five mandatory CI workflows remain pending. Preserve #421/#423, separate tenantservice#418/#422 and paused#310. No force-push, main merge, production migration, real customer communication or Ediel/counterparty/TGT/AGT traffic.
+
+Earlier current sections below are historical and superseded for the next action.
+
+## Active integration owner — 2026-10-01
+
+User-authorized whole F0–F7/352-ID implementation continues on isolated draft #424. Root alone owns this integration ref/index, common kernel/schema/workflows and final artifact publication. Preserve #421/#423, separate #418/#422 and paused #310; no main merge, force-push, production migration, real communication or Ediel/counterparty/TGT/AGT traffic.
+
+Published candidate 35016282e182cc713726702a1970c7f78ff451bb, tree eaf4d9ef7ece3f0287f7ff547d059dfb5385e35b, has two successful mandatory workflows (browser and tenant), three failed (Ediel, full E2E, OPS). Actual clean/ancestor-upgrade apply all candidate migrations; upgrade and independent clean byte-match schema, fingerprint and generated types, with retained originals byte-identical. Committed type artifacts remain stale. Clean native stopped at the source-ledger fixture's outdated error-code expectation, before new native/browser qualification. The precise installed-retention-guard oracle is corrected here; no final-head acceptance claim.
+
+Current staged semantic reconciliation imports committed #421-owner a8e489d17695151f35b70405810211aab7d2269f using actual owner 66a66666aa1b8b28315ca7840ab07424da360a81 as semantic base: its tree equals the already integrated public #421 tree ce0a89e92b355d8ee06ad26779aed67d6fbe47df. Forty-four later conflicts were resolved by named sole file owners. The owner's eighteen dirty files were preserved byte-for-byte outside the candidate before reconciliation. Owner has since committed and advanced cleanly to 7fb2a5f8337e48d1f9b81a4aa30b62be5df25715 (tree1b6c096a6b6cc5483dd4952fe77d108f5903fb84); that fresh 72-file delta must be reviewed/integrated next, preserving all four PRODAT object/application/response/source-function facets in one new atomic port. Never reapply ed3f5159 or already integrated recovery packages.
+
+All36 referenced frozen specification hashes match; 121 rule and231 acceptance IDs are distinct and complete. Additive independent literal reviews, implementation packets and final exact-head receipts remain necessary. Earlier instructions below are historical; do not publish to #421/#423 or treat old native/SC-044 receipts as current-candidate approval.
+
+## Active — 2026-09-30 full Ediel masterplan v2 code phase (in progress)
+
+Root is sole integrator/publisher for draft #421, with six isolated package owners. Integrated local checkpoint `bd40962b9201bc4438e1e21362fd704bf8fbb72f`; last published remote `0b8c1c37c0806f99e18c36d8ccd576bbda117442` has the exact tree of local `0c39065f`. Later commits and current WIP are preserved and still incomplete. Baseline `885137de838481be6cda58f9af45df6c1655edfe` and all earlier commits remain intact. #418/#422 are read-only coordination contracts; #310 is untouched.
+
+Continue through protected object/transaction ACK consumers, fresh native technical timers, atomic accepted-source projections, source-qualified P09 life events, F/G metering method changes and TM-METHOD40, P15 exact point structure and mandatory committed retry fixtures. Independent bounded reviews have found real consumer gaps; packet-ready is not whole-plan completion. Preserve frozen 33 originals, 121 rules and 231 literal acceptance contracts. Working matrix/receipts: `quality/audits/ediel-masterplan-v2/codephase-20260930/`.
+
+Quick checks actually run: exact inbound scope regression 6 PASS and bounded independent review clear; targeted technical/business/inherited-guide tests 20 PASS across four files; actual gateway and source tests 47 PASS across five files. Serial application typecheck last failed with process facade/request payload types; scoped process corrections are integrated, rerun pending. Migration integrity last passed 743 files/647 timestamp groups; newer migrations still need exact-hash registration. Embedded SQL packet checks are explicitly synthetic mechanics, not native PostgreSQL or authentic original evidence.
+
+Mandatory CI on the older published `0b8c1c37` was inspected once: full unit and committed retry fixture have actual failures; guide probe needs Node22 TypeScript transform; final schema/type parity is stale after forward migrations. Scoped fixes and fixture corrections continue. No current or final-candidate all-green claim. Full final-candidate unit/native clean+upgrade replay/schema-type parity/security/browser/manual phase remains separate and NOT_RUN. No formal acceptance status promotion; retain historical SC-044 only at its proved original SHA/scope.
+
+External source originals, legal/privacy/retention decisions, archive/deletion continuity, positive object registry/mandate and versioned owner registers remain held where missing. New support never manufactures that evidence or activates traffic. No force push, main merge, production change, real Ediel/TGT/counterparty send or market activation.
+
+All checkpoint sections below are historical and superseded for the active next action. Their verification retains the original exact SHA and scope.
+
+## Current — 2026-09-30 #421 coherent syntax/header code package; final-head CI pending
+
+Supersedes earlier not-executed/probe-only next-action text. Test-only head e0bd3641f617edb92e508bd62c2767730e20fca1 actually ran OPS36702357516/replay109844514929: 439/442, three confirmed mismatches (UNT999 accepted series+contract; OTHER positive CONTRL but no accepted storage; SC045 two APERAKs). Last all-green d30/native439 retained.
+
+One coupled product package now fixes canonical raw syntax before guide/function, negative CONTRL including ERR/certification, one physically qualified message header APERAK/noACW, shared original header rule owner, all affected decision/draft projection paths and immutable tenant-filtered rejected-IDE finalization. Semantic fixture changes are count-only; native/frozen rules unchanged. Full local Node22 tests6296/6296, quality45/45, app/tests/scriptsTypeScript, lint/noerrors, mechanical/integrity/migration/service-role/large-file checks PASS. Independent corrected-scope review APPROVE (68/68 targeted); no remaining Critical/Important. Two extra scripts fail identically on e0 and current (Z14N ack expectation; stale UTILTS environment-facade textcheck), openly recorded rather than fixed outside scope.
+
+Report: quality/audits/ediel-masterplan-v2/utilts-syntax-header-remediation-20260930.md. Publish exact-tree nonforce fast-forward to the same draft #421 after head/comment recheck; PR comment owns eventual commit/tree/run receipt. Then require new-head five workflows/native442 plus case/browser/types/schema before SC045 or wider U03/ACK03 acceptance. No unchanged-green rerun, blanket121/231 approval or external evidence invention. External issuer/archive/retention/positiveLOC175/fullE035 records remain blocked. Root sole writer; #418/#422/#310, main/production/transport remain untouched and HELD.
+
+
+## Current — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
+
+Last fully verified exact head `d30fa0203f0499a8e15faeddda7676af81296c86`; main/base `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Five mandatory workflows SUCCESS: Ediel36695341379, browser36695341358, FullE2E36695341472, tenant36695341489, OPS36695341457. OPS verify109821852569/quality109821852531/replay109821852700 SUCCESS. Native439/439 includes all27 S02 and exactSC0443IDE; case/browser/tenant/parity/types/schema PASS. Authentic artifact11087503506 ZIPsha4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6; types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d; schema8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93. All earlier d30/S02/SC044 pending text is superseded by these actual results.
+
+SC-044 PASSED after independent full-criterion source/facit/callgraph/oracle/native review. Exact one own acceptedseries/QTY136500/contract/positive312, own guide-negative313/42/209, own functionalE87 ERR, three finalreservations/ACKs and immutable fullretry. Receipt quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md. Wider U02/U03/U14/ACK03/08 remain PARTIAL; internal contract acceptance does not approve merge/traffic/billing.
+
+Current full121+231 inventory quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json/.md has352exactIDs,354committedreferencehashes atd30, literalcriteria/ownformal-gap/technicalcomponentresponsibility/approvalgate for eachID;28rows changed references since0b6ea32a. Fivepriorityrules andSC044freshsemanticreview; other20260927codefindings explicitlyinherited/notfreshlycertified. Rules110NOT_VERIFIED/11PARTIAL; contracts219NOT_EXECUTED/11PARTIAL/1PASSED. Frozen33originalfiles remainimmutable. No whole-system percentage.
+
+One active work item: U-03/ACK-03 direct syntax and header-scope test-first native package. Three new test-only probes (442planned): valid paired control then onlyUNT999; onlyUNH/UNTrefOTHER; SC045 onlyremoveheadDTM735+correctUNT with lower ownE87. Actualsourcecapture/policy/tenant/matching/SQL/ACKwriter/finalizer/retry; no productchange. Native not executed yet. Independent reviewersapprovefacit; existing identity guard refutes acceptedstorage risk of refOTHER, leaving only candidate syntaxACKlevel there. Read actualCI before productfix. Next: publish coherent acceptance/reconciliation/nativeprobe evidence fast-forward fromd30, inspect first realnativefail, make minimumsource-backed fix only ifconfirmed, then exactnewheadfullgates. Do not rerun green unchangedheads.
+
+External requests are concrete in external-evidence-requests-20260930.md, not sent: marketissuer/representation; archivecontinuousoriginal/deletioncoverage; legalretention/tombstones; positiveLOC175registry/mandate/separatedurableconsumer/ACKretryowner; E035pre/postepochproducer/erasurecutoff. Namedexternalowners and authenticnewrecords notestablished. Historical203/505, positive175, fullE035 BLOCKED; olderStoragecause UNKNOWN. Root sole writer, independentread-only reviewers. #421draftunmerged, #310untouched, trafficHELD; no staging/TGT/AGT/counterparty/real send.
+
+## 2026-09-30 — Exact follow-up S02/SC-044 gates pending
+
+Bd78 native437/438 confirms corrected physical controls; only agency89 all-ACKs-empty oracle failed on technicalCONTRL, with retry not reached. Oracle narrowed/strengthened; authentic schema copied. OPS high Nodemailer finding minimally fixed, localauditPASS. Dedicated full SC0443IDE proof is now authored, native439 and finalgates pending. U03 directsyntax/header scope, ACK03 physical/header/DM and U14 manualstorage authority require test-first native proof; broadU02 otherprofile fallback is a candidate, not a newconfirmed durable defect. Externalrecords/LOC175/fullE035 and unknownStorage unchanged.
+
+## 2026-09-30 — Confirmed S02 durable defect; correction awaiting exact-head native
+
+Probe e1b4f897 native414/426 confirmed six consumer positives and six atomic-refusal bypasses; all previous411/three clean controls passed. Canonical guide/hold and forward SQL correction locally54/54, types/lint/migrations PASS; corrected native438, authentic snapshot and all five final workflows remain pending. This supersedes the native-unproved section below. Wider formal IDs remain unclosed. External issuer/history/retention, positiveLOC175/fullE035 and unknown Storage cause unchanged; no traffic/merge.
+
+## 2026-09-30 — S02 native confirmation pending
+
+ERR exactdc1c9bae native411/five gates VERIFIED. S02 mandatory own LOC172/QTY135 ordinary6RED/2cleanPASS; actual native forecasts/ACK/SQL atomicity UNPROVED. Test-only15-case native probe precedes product changes. Whole U-02/U-03/U-14/ACK-03/08 and AT contracts remain unclosed, as does concurrent ERR same-IDE deduplication. External issuer/history/retention, positiveLOC175/fullE035 and unknown older Storage cause remain open. No traffic or merge.
+
+## 2026-09-29 — ERR final-head delivery pending
+
+D8eccdd6 native411/411 is verified. Canonical policy facade remediation is local109/109 green after actual authority guard failure; final follow-up head native/five gates still required. Whole ACK-08/SC-044/CALL acceptance and concurrent same-IDE deduplication are not established. Historical issuer/history/retention, positiveLOC175/fullE035 and unknown older Storage cause remain open; no traffic activation.
+
+
+## 2026-09-29 ACK-08 native RED and bounded correction
+
+Actual test-only a671a663 native407/411 confirms ERR wrong process and code-only distinct-IDE ACK collision; previous407 passed. The minimal canonical/full-IDE correction has ordinary108/108 and independent bounded approval. Corrected exact-new-head native and five gates remain pending. Sequential interruption/retry and 23505 identity recovery do not establish concurrent same-IDE deduplication. Historical203/505, LOC175, fullE035 and unknown older Storage cause remain unchanged. No market activation. E72/E73 older pending prose below is superseded by fully green0b6ea32a.
+
+## Current — 2026-09-29 #421 E72 test-first durable probe
+
+
+## E72 native407/407 and authentic replay snapshot — 2026-09-29
+
+Corrected remote/local `00045ba50715b209df76591c706a73a23420f77e`: Ediel36626528795, browser36626528784, Full E2E36626528709, tenant36626528863 and OPS verify/quality36626528727 passed. Clean replay native **407/407** proves two direct atomic E72 agency89 refusals with zero receipt/ACK/series/contract, actual consumer hold and immutable receipt/reservation retry, clean agency9 positive request/final ACK/stable retry, and missing/invalid-GS1/invalid-agency guide-negative ACKs with zero request meter/billing/completion effects. Existing E73, separate LOC175 owner refusal and Storage controls pass unchanged; older Storage causes remain unknown. Case native/browser, tenant invariants, parity selftest and byte-identical public types SHA25636e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d passed.
+
+The first remaining replay failure is solely the canonical function-body snapshot:633beb02 committed versus c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924 actual. Exact-head artifact **11061282485**, ZIP SHA256 `c5487784b90b04c4dfcfee11ef149f8a6b73cd57185ba6afcd76a98b731bc738`, supplies the copied schema.sql/fingerprint. Mechanical comparison proves only the E72 predicate and corresponding629-functions hash changed; public types are byte-identical. This substantive snapshot/evidence commit still requires new exact-head clean replay and all five workflows. No unchanged-head rerun.
+
+Bounded implementation/local/native proof is complete for UF-request-209-63 and UG-123-10/11/12 at this diagnostic owner boundary; U-02/U-03/U-14, ACK-03/08, DB-03 and AT counterparts remain partial/unclosed as whole requirements. Formal121/231 statuses remain unchanged. Historical203/505 issuer/original/deletion/retention, positiveLOC175 registry/mandate/separate sink/ACK owner and fullE035 history remain blocked. Draft/unmerged, #310 untouched, traffic held; no staging/TGT/AGT/counterparty/live send.
+
+Older checkpoint text below is historical and SUPERSEDED for current status.
+
+## Authoritative E72 forward-correction checkpoint — 2026-09-29
+
+Supersedes older pending status below. Test-only remote `ab8e12c6` OPS 36624954925 native **406/407** confirmed accepted/persisted positive APERAK and series for empty E72 agency89 despite null private point selector. Three guide-negative E72 controls passed; later hold/positive assertions did not run. Forward migration 20260929202207 and actual canonical consumer now include mandatory E72 point authority; ordinary consumer **51/51** locally. Corrected native and final exact-head five workflows/schema/types are pending. E73 final `d8fea097` remains fully verified (403/403, five green). See `quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md`. No whole requirement closure, market activation or merge; external history/retention/LOC175 mandates still blocked. Old Storage cause unknown. #310 untouched.
+
+
+The inherited pending snapshot text is SUPERSEDED: exact `d8fea0975a8e8812c130e765afcc3e5e1086e580` passed all five mandatory workflows (Ediel 36606642504, browser/quality 36606642640, Full E2E 36606642591, tenant 36606642793, OPS 36606642637), OPS verify/quality/clean replay, native **403/403**, type/schema parity. E73 is already corrected and verified; do not redo it. Base main remains `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Takeover rechecked remote/main/local HEAD at d8fea097/53bf989b. The inherited staged E72 native tests/helper/evidence and unstaged ordinary RED test were preserved; no other agent is active in this session. The ordinary RED test remains local until the corrective code commit so the published native probe can isolate the durable failure.
+
+Next candidate E72: U request **UF-request-209-63** requires LOC+172; **UG-123-10/11/12** permits agency 9/89 wire syntax. The actual ordinary consumer test on inherited product code passes guide validation but fails the expected internal hold (`internalReviewRequired:false`). The service SQL bypass for empty observations is still **not native-confirmed**. A substantive test-only commit adds direct two-attempt atomic-refusal, actual consumer hold/retry, agency-9 positive/retry and three genuine guide-negative native controls. No product code or migration is changed in this step. Local failing consumer test is retained for the later fix; read the first native result before any SQL change. Details: `quality/audits/ediel-masterplan-v2/e72-empty-request-point-identity-20260929.md`.
+
+Historical 203/505 issuer/originals/retention, positive LOC+175 owner/mandate/sink/ACK and full E035 history remain blocked. Older Storage delete/before_witness cause remains unknown. Draft #421, #310 untouched, traffic held; no staging, TGT/AGT, counterparty trial or real send.
+
+Next: publish test/helper and this evidence fast-forward from `d8fea0975a8e8812c130e765afcc3e5e1086e580`, inspect exact native RED and its stage before a minimal forward fix; then positive/negative/atomic/retry, generated types/schema and five exact-head workflows. Older Current sections below are historical and SUPERSEDED for next action.
+
+## Current — 2026-09-29 #421 E035 revalidation native 400/401 diagnosis
+
+Remote/local clean head `26b0ac143648fe5449896ae5b01523ff402f6d0a` has Ediel `36539826694`, browser `36539826698`, Full E2E `36539826778`, tenant `36539826690`, OPS verify/quality `36539826693` green. OPS native **400/401** failed Storage replace/before_witness in the E035 document reference case before generated type/schema parity. The first attempt/outcome/witness was committed, replacement readback had expected `hash_mismatch` (13 bytes), but fresh revalidation returned `unconfirmed`: durable 2 attempts/1 outcome/1 witness. Do not label the cause flakiness. Prior E035 Storage failures remain unproved. A new native test first probes a JavaScript millisecond start within the microsecond interval of a committed DB attempt, and failure-only trace logs the fresh begin/observe/witness error/timing. This is test/diagnostic only, not a product fix; local scripts TypeScript, lint and 14 document unit tests pass, local DB unavailable. S01 negative/positive native cases passed on `26b0ac14`, but whole replay did not. Last fully green PR head still `fbcf1eeb`. Historical 203/505 issuer/originals/retention, positive LOC+175 registry/mandate/sink/ACK owner and full E035 history remain blocked. PR #421 draft/unmerged, #310 untouched, market traffic held.
+
+Next: fast-forward publish the test-only candidate from exact remote `26b0ac14`, inspect its first native failure and fresh RPC/timing trace before any production SQL/application correction, require full exact-head replay/schema/type and five workflows. No staging or market send.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-29 #421 native 401/401; authentic schema snapshot repair
+
+On published head `b77b3125382290518e32ed08c17393e7a4785766`, Ediel `36500690949`, browser `36500690890`, Full E2E `36500691111`, tenant `36500690898`, OPS verify and quality-release-gates `36500691010` passed. OPS native **401/401** proved two direct agency-89 S01 refusals without receipt/ACK/series/contract, actual nonbilling consumer hold and clean agency-9 positive; LOC+175 object-owner refusal and mixed retry controls passed. Typegen matches SHA256 `36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d`. Final schema check failed only because committed function-body snapshot was stale: replay artifact `11005462235` on exact `b77b3125` contains the new S01 guard, fingerprint `3c33545b9eb65f11cacc5f2fcbd947cd173ba44af79106fbf56bd33270efeaaa`; diff is one function body. That artifact supplies the committed schema.sql and fingerprint now. The next exact head must pass replay and all five workflows before PR verification. Last fully green head remains `fbcf1eeb` until then. Current artifact/evidence edits are local until committed. Older E035 Storage causes remain unknown. Historical 203/505 legal sender, continuous originals/deletions and lawful retention; positive LOC+175 registry/mandate/sink/ACK owner; and full E035 history remain external blockers. #421 draft/unmerged, #310 untouched, traffic blocked.
+
+Next: verify generated snapshot provenance and local gates, commit the authentic schema/evidence, fast-forward publish from `b77b3125`, inspect exact-head CI/native/replay/type/schema, then update PR checkpoint and review full diff/threads. No external testing or market activation.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 S01 guard precedence and nonbilling fixture correction
+
+The first product-code head `0c1825c59cfd9c8faebdda165fde5e668851140e` passed Ediel, browser, Full E2E, tenant and OPS verify/quality. OPS `36499614678` native **399/401** found that the new S01 prewrite point guard changed the established LOC+175 internal refusal from object-owner-unavailable to point-identity-unsupported. The new test's direct agency-89 refusal and zero-write assertions passed, but its actual nonbilling consumer then rejected synthetic E66-style individual customer/site/request links before the hold assertion. Forward migration `20260928235411` preserves the prior LOC+175 object-owner path while retaining the non-object S01 point guard; the native fixture clears individual links before the actual S01 processor. Migrations/types, scripts TypeScript/lint, 4 targeted ordinary controls, diff and 121/231 integrity pass locally. New native 401/401, replay/type/schema parity and five workflows remain pending. Last fully verified head is `fbcf1eeb` (native 400/400). Older E035 Storage causes remain unknown. Historical 203/505 issuer/corpus/retention, positive LOC+175 registry/mandate/sink/ACK owner and full E035 history remain blocked. Draft #421 unmerged, #310 untouched, traffic blocked.
+
+Next: publish this second forward migration and fixture correction by fast-forward from `0c1825c5`; read first native result, require exact-head replay/type/schema and five workflows, then review full diff/threads and update PR checkpoint. No external test or market activation.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 confirmed S01 empty-contract SQL authority gap
+
+Test-only remote `fdc555a4d1f062ffa1d3063859caf94531384d3b` passed Ediel, browser, Full E2E, tenant and OPS verify/quality. OPS `36498319836` clean replay native **400/401** failed the new test at its first direct service-RPC refusal: it returned accepted/positive_aperak with a durable series for a physical agency-89 S01 point and an empty-observation contract, although the private point selector returned null. This confirms the defect; later test assertions and generated parity on that head did not execute. The prior fully green head is `fbcf1eeb` (five workflows, native 400/400). Forward SQL candidate `20260928234022` adds S01 to the existing prewrite physical-point condition without changing grants/signatures. Local migrations/type manifest, scripts TypeScript, 4 targeted ordinary tests, diff and 121/231 integrity pass. Native 401/401, replay, type/schema parity and five workflows require a new exact head. Older E035 Storage causes remain unknown. Historical 203/505 issuer/corpus/retention, positive LOC+175 registry/mandate/sink/ACK owner and full E035 history remain blocked. Draft #421 stays unmerged, #310 untouched, traffic blocked.
+
+Next: publish the forward SQL, manifests and bounded evidence by fast-forward from `fdc555a4`; inspect first native failure or exact-head green, review full diff/threads and update the PR checkpoint. No external test or market activation.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 S01 empty-contract native RED probe
+
+Last fully verified draft head `fbcf1eeb0359dc8b3958c6ecfe2012673413f471`: five workflows green, OPS native 400/400, replay and type/schema parity. A test-first native candidate checks whether the service-only SQL owner can persist an accepted S01 aggregate for an agency-89 physical point when its contract has zero observations. The test demands two atomic refusals, actual-consumer hold and a clean agency-9 positive control. Scripts TypeScript, scoped lint, frozen 121/231 integrity and diff checks pass locally; PostgreSQL/Docker are unavailable, so the defect is not yet native-confirmed. No production code change. The older Storage failure causes remain unknown. Historical 203/505 sender mapping/corpus/retention, positive LOC+175 object/mandate/sink/ACK owner and full E035 history remain blocked. Draft #421 open/unmerged, #310 untouched, market traffic blocked.
+
+Next: fast-forward publish the test-only candidate from `fbcf1eeb`; inspect the first actual native failure before a forward SQL correction. Require exact-head positive/negative native, replay, type/schema parity and five workflows for any final code.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 first ACK-injection native diagnosis
+
+Published `e561d50b`: Ediel, browser, Full E2E, tenant and OPS verify/quality passed. OPS `36495674403` clean replay native **398/400** failed both new mixed S01 tests at the first APERAK-call assertion; the unconditional mock exception had hit technical CONTRL first. Held and accepted/unfinalized rows plus one receipt, contract and series already matched. This is a test injection error, not a demonstrated product ACK defect. The local correction interrupts only the first APERAK and filters the scoped point ACK on retry; scripts TypeScript, lint and diff pass. New-head native/replay/types/schema pending. Earlier E035 Storage failures remain unexplained. Legal sender mapping, continuous authentic/deleted originals, lawful retention, positive LOC+175 object/mandate/sink/ACK owner and full E035 history remain absent. #421 draft, #310 untouched, market traffic blocked.
+
+Next: publish from exact remote `e561d50b` by fast-forward, read first native result, require all five workflows and review full diff/threads.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 external and native gates
+
+Draft #421 last verified `d24ccc85` passed five workflows and OPS native 398/398, clean replay and type/schema parity. This bounded step adds two native mixed S01 ACK-interruption cases: held LOC+175 plus allowed LOC+172, durable receipt/series/contract before ACK failure, only the point ACK on retry, unchanged held row and no meter/billing/completion. Scripts/test TypeScript, scoped lint, diff and frozen 121/231 integrity pass locally; PostgreSQL/Docker are unavailable locally and exact-head native is pending. No product rule changes. Historical 203/505 issuer mapping, continuous authentic/deleted originals and lawful retention, positive LOC+175 registry/mandate/sink/ACK owner, and complete E035 history/deletion remain external blockers. Earlier Storage failures have unknown cause; #421 draft, #310 untouched, market traffic blocked.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 corrected mixed S01 native gate
+
+First exact candidate `8f3f7a15` native 396/398 stopped in two new mixed S01 tests on a false zero-source-receipt expectation. After test-only correction, zero contract/series/market ACK/effects and unchanged receipt/retry still await native clean replay and generated parity on a new head; do not claim PR verification. Historical 203/505 trusted legal sender/agent, authentic continuous/deleted original corpus and lawful retention, positive LOC+175 object registry/mandate/separate sink/ACK owner, and E035 pre-epoch/deletion/retention remain external blockers. Older Storage failures unexplained; no merge, traffic or #310 edit.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 late second LOC+172 native gate
+
+New candidate has local RED/GREEN and static gates, but its private database refusal and four new native cases require exact-head clean replay; no local PostgreSQL/Docker. Historical 203/505 require a trusted physical NAD+MS issuer-to-tenant and UNB representative record with intervals, authentic pre-ledger/deleted originals and attested continuous period, plus a legal raw/minimal-identity retention/erasure decision. Positive LOC+175 requires versioned object registry, actor/mandate, distinct durable sink and final ACK/retry owner. E035 pre-epoch/deleted transition coverage and lawful retention remain absent; old Storage failures have unknown cause. Draft unmerged, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 #421 held retry correction awaits native
+
+`b99e5f` OPS native 386/387 found identical held S01/175 ACK reservation timestamp mutation; clean replay and generated parity did not complete. Private forward `20260928181500` is local pending publication and exact-head native proof. Historical 203/505 still need trusted physical NAD+MS legal sender-to-tenant/representative attribution, authentic pre-ledger and deleted originals, and lawful retention. Positive LOC+175 needs versioned object registry, legal actor/mandate, distinct sink and retry/final ACK owner. E035 historical/deletion coverage and retention are unproved; old Storage delete/before_witness root remains unknown. Draft unmerged, market traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 S01/175 native gate pending
+
+The candidate only fences unowned positive S01/E73/S06 LOC+175. Native SQL direct accepted/refused/retry and actual persisted hold have not run; do not claim PR verification. Positive 175 still needs a versioned object registry, legal actor/mandate, own sink, final ACK and retry owner. Historical UTILTS 203/505 require trusted physical NAD+MS-to-tenant/UNB representation, authentic pre-ledger/deleted corpus and lawful retention. E035 history/deletion and prior Storage `delete/before_witness` cause remain unknown. Main/traffic/#310 boundaries unchanged.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 package decision blockers
+
+Mixed LOC point-sink fence is native PR-verified on `59d9419e`, but the audit correction has not yet been pushed/checked on a final head. Receiver tenant proof does not authenticate physical incoming NAD+MS; authentic pre-ledger/deleted originals and lawful retention are missing for temporal BGM203 and separate IDE505. Positive LOC175 lacks versioned object, actor/mandate and sink. E035 old Storage delete/before-witness root remains unknown, as do historical coverage/retention. No staging/TGT/AGT/counterparty/live send or market activation; #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 native and historical owner gates
+
+Mixed LOC+172/LOC+175 SQL fix awaits draft #421 exact-head native, replay and parity; no local Docker/psql. Receiver tenant identity cannot prove incoming NAD+MS legal sender; authentic pre-ledger/deleted originals and lawful retention remain absent for temporal BGM203 and distinct IDE505. Positive LOC175 requires versioned regulating-object owner, actor/mandate and sink. E035 prior delete/before-witness failure remains causally unknown. Keep draft, traffic blocked and #310 excluded.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 draft #421 original-source comparison
+
+Selected clauses are no longer missing: prior English U25-A-3 p73/127 and p79/128, current Swedish U25-A-4 p72/122 and p77/123 establish separate sender-wide UTILTS 203 and IDE505 temporal uniqueness/ERC42. Both identify NAD+MS/207 as the legal Ediel sender; UNB may name its representative. The corresponding prior Swedish edition and full G01 comparison remain open. First implementation blocker is trusted physical-sender-to-tenant/legal-actor attribution plus authentic pre-ledger/deleted original corpus and lawful retention before atomic cross-original reservations and national ERC42. Existing SQL checks physical IDE duplicate *within one source*; #421 `67243e4f` native 383/383 confirms this negative case and stable retry but cannot substitute for history. Positive LOC175 lacks versioned object registry, legal actor/mandate and a distinct sink/retry. E035 historical completeness/retention and old Storage delete-before-witness root remain unresolved despite #421 native diagnostics/pass. Draft stays open, traffic blocked, #310 untouched.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Current — 2026-09-28 after #420
+
+Genuine PRODAT missing/Z99 outbound 41/42/202 has no durable diagnostic profile, legal actor/mandate, route or retry owner. Historical 203 and IDE505 require separate issuer scopes and authentic pre-ledger/deletion coverage before atomic duplicate reservation. Positive LOC+175 lacks legal actor/mandate, versioned object registry and distinct sink. E035 retention/deletion and pre-ledger coverage are unknown; prior Storage `delete/before_witness` failure stage/root is unproved despite #420 native pass. Full UNSM grammar and G01–G07 external gates remain open. No staging, market traffic or #310 action.
+
+Older Current sections below are historical and SUPERSEDED.
+
 ## Current — 2026-09-28 PR #420 normative import correction
 
 First outgoing 41/42/202 blocker remains real diagnostic source ownership: PRODAT_UNKNOWN/Z99 cannot bind a code-specific canonical profile. On 470625da Full E2E normative guard failed for direct matrix import; locally corrected through canonical field projection, unpublished. OPS native pending; older 203/IDE505, LOC+175, E035, grammar and market gates remain open.
@@ -634,3 +848,28 @@ The local environment has no `psql` or Supabase CLI; newly added native stored A
 `63244be9` is superseded for merge by the locally verified lowercase-313 correction. Three added native variants require new-head OPS clean replay and schema/type parity; no local DB CLI. Formal 121/231 acceptance and all market gates remain open. PR #310 paused.
 ## Current — 2026-09-28 #417 remaining gates
 Optional P header204's invalid supplied value is implemented and locally verified on draft #417, but stored native ACK/outbox/retry, clean replay, generated schema/type parity and all exact-head CI are pending. ACK-02/ACK-10 remain partial; historical field203/IDE505 legal-actor uniqueness, positive LOC+175 mandate/object/sink, E035 pre-ledger coverage and retention/deletion, full grammar and external first-capability activation gates remain open. No staging, TGT/AGT, counterparty or live traffic. #310 paused.
+## Current — 2026-09-28 #421 owner/retention gates after diagnostic fix
+
+The mixed E035 point-history lookup is corrected locally but awaits publication and exact-head CI; it is diagnostic only. First historical 203/505 blocker: no authenticated physical NAD+MS-to-tenant/UNB-representative record, authentic pre-ledger/deleted UTILTS original corpus, or approved lawful retention/erasure decision. Positive LOC+175 needs a versioned object registry, actor/mandate and separate persistent sink/retry. E035 history/deletion coverage and prior Storage `delete/before_witness` root are still unknown. The source clauses do not grant these owners. #421 stays draft; #310 and market traffic stay untouched/blocked.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 issuer/history/retention owner gate
+
+`issuer-history-owner-gate-20260928.md` names the missing records and responsible roles. Tenant identity code proves incoming UNB **receiver**, not physical UTILTS NAD+MS legal issuer or representative. Prospective `gridex_received_sources` captures PRODAT, and UTILTS consumption receipts key source UUID; neither covers authentic pre-ledger/deleted originals. Category-level 1095-day EDIFACT archive is not a signed lawful identity-retention and erasure decision or actual continuous archive coverage. Positive LOC+175 lacks a versioned registry, legal actor/mandate, independent sink and ACK/retry owner. E035 history/deletion remains `before_epoch_unknown`; prior Storage delete/before_witness root unlocated. Historical BGM203 and independent IDE505 ERC42, positive LOC+175, E035 completeness and all real traffic stay blocked. #421 draft, #310 untouched. Last PR-verified bounded fences: `1c556278`, native 387/387.
+
+Older Current sections below are historical and SUPERSEDED.
+
+## Additional exact-head gate — 2026-09-28
+Draft #421 evidence head `11be9ea8` has OPS clean replay native 386/387. A baseline E035 capture committed one attempt without outcome/witness; the cause is unknown until an instrumented boundary reveals its rejected operation or validation. Type/schema parity was not reached. The earlier Storage delete/before_witness cause is separately unknown. The source/owner blockers above remain unchanged; no package merge or market activation.
+## Current — 2026-09-28 #421 exact mixed sibling native proof pending
+
+The prior `3002c277` head passed all five workflows, native 387/387 and replay/types/schema. The new mixed S01 object-held plus point-accepted sibling/retry test has only local mocked consumer proof; exact native result is pending. External blockers: attested time-bound physical NAD+MS issuer to tenant/UNB representative, authentic continuous pre-ledger/deleted UTILTS originals and purge manifest, lawful raw/203/505 tombstone retention; positive LOC+175 object version/mandate/independent sink/final ACK owner; E035 earlier history/deletion and both unexplained native capture failures. #421 draft, #310 excluded, no real traffic or external tests.
+
+Older Current sections below are historical and SUPERSEDED.
+## Current — 2026-09-28 #421 owner gates and native candidate
+
+The late-LOC+175 physical IDE correction has only local RED/GREEN and static verification; native PostgreSQL, clean replay, generated parity and exact-head workflow results are pending publication. No trusted time-bound NAD+MS legal sender-to-tenant/UNB representative binding, continuously attested pre-ledger/deleted UTILTS originals or lawful raw/tombstone retention period exists in the inspected repo. Positive LOC+175 still lacks versioned registry, actor/mandate, separate sink and ACK/retry owner. E035 pre-epoch/deletion coverage and earlier Storage failure causes remain unknown. The responsible functions and exact requested records are in the issuer-history-owner-gate audit. No market activation, merge or #310 edit.
+
+On published `97342339` native 393/394, first failure is test-only forbidden positive technical CONTRL assertion; service SQL refusals and held row passed. Corrected test awaits new-head CI to establish no business effects and stable retry, plus replay/types/schema. External records above remain absent.
+
+Older Current sections above are historical and SUPERSEDED.

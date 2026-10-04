@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { parseBillingMonth } from '@/lib/time/stockholm'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
+import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal'
 import { loadMeteringResolutionRequirements } from '@/lib/metering/contractMeteringResolution'
 import {
   companyAllowsEstimatedMeteringValues,
@@ -301,6 +302,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
 }) {
   const { billingMonth, year, month } = monthParts(input.billingMonth)
   const issues: InvoiceReadinessIssue[] = []
+  const blockedUnderlayIds = new Set<string>()
 
   const periodLock = await getBillingPeriodLock({ companyId: input.companyId, billingMonth })
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
@@ -325,11 +327,27 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     if (page.length < pageSize) break
   }
 
+  for (let offset = 0; offset < underlays.length; offset += pageSize) {
+    const page = underlays.slice(offset, offset + pageSize)
+    const { data, error } = await supabaseService.rpc('gridex_read_billing_underlay_source_basis_v1', { p_company_id: input.companyId, p_underlay_ids: page.map(row => String(row.id)) })
+    if (error) throw error
+    if (!Array.isArray(data) || data.length !== page.length) throw new Error('invoice_underlay_source_basis_missing')
+    const bases = new Map((data as JsonRecord[]).map(basis => [String(basis.id), basis]))
+    for (const row of page) {
+      const basis = bases.get(String(row.id))
+      if (!basis || (basis.totalKwh !== null && !isCanonicalUtiltsDecimal(basis.totalKwh))) throw new Error('invoice_underlay_source_basis_invalid')
+      row.total_kwh = basis.totalKwh
+      if (basis.qualified !== true || basis.correctionRequired === true) {
+        blockedUnderlayIds.add(String(row.id))
+        issues.push({ code: basis.correctionRequired === true ? 'billing_source_correction_required' : 'billing_source_basis_unavailable', message: `Underlag ${String(row.id)} saknar aktuellt låst källunderlag eller kräver rättelseprövning.`, severity: 'blocked' })
+      }
+    }
+  }
+
   if (underlays.length === 0) {
     issues.push({ code: 'no_underlays', message: 'Inga faktureringsunderlag finns för perioden.', severity: 'blocked' })
   }
 
-  const blockedUnderlayIds = new Set<string>()
   if (periodLock && isBlockingPeriodStatus(periodLock.status)) {
     for (const row of underlays) blockedUnderlayIds.add(String(row.id))
   }
@@ -737,11 +755,7 @@ export async function evaluateBillingMonthInvoiceReadiness(input: {
     }
   }
 
-  const totalKwh = underlays.reduce((sum, row) => {
-    const raw = row.total_kwh
-    const value = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : 0
-    return sum + (Number.isFinite(value) ? value : 0)
-  }, 0)
+  const totalKwh = sumUtiltsDecimals(underlays.flatMap(row => isCanonicalUtiltsDecimal(row.total_kwh) ? [row.total_kwh] : []))
 
   const readyUnderlayIds = underlays
     .filter((row) => row.status === 'validated' && row.readiness_status === 'ready' && !blockedUnderlayIds.has(String(row.id)))

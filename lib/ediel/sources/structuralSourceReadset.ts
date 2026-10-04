@@ -1,6 +1,6 @@
 import {isDeepStrictEqual} from 'node:util'
 import {inspectReceivedSourceDecisionTimeline, type SourceDecisionTimeline, type RecordedSourceAssessment} from './receivedSourceDecisionTimeline'
-import {readStructuralSourceWire} from './structuralSourceWire'
+import {readStructuralSourceWire,readStructuralMeasurementProjection} from './structuralSourceWire'
 import {isReviewedStructuralBusiness, type ReviewedStructuralBusiness} from './reviewedStructuralSource'
 import {projectProdatRegisterValidation} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
@@ -36,6 +36,11 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
     for(const source of body.sources){
       const recorded=timeline.sources.find(item=>item.sourceMessageId===source.sourceMessageId)!
       if(!source.rawPayload||!source.payloadHash){result.unresolvedSources=true;continue}
+      // Received UTILTS shares the source ledger (20260930183539) but carries
+      // no PRODAT structure. Only a well-formed UTILTS message of exactly its
+      // recorded code is outside this universe; other bytes stay a global hold.
+      const utilts=singleMessage(source.rawPayload,'UTILTS')
+      if(utilts&&utilts.messages[0].messageCode===source.messageCode)continue
       const ast=singleMessage(source.rawPayload,'PRODAT')
       if(!ast||ast.messages[0].messageCode!==source.messageCode){result.unresolvedSources=true;continue}
       segments+=ast.segments.length
@@ -74,9 +79,10 @@ export function inspectStructuralReadset(scope:ReceivedSourceScope,receipt:unkno
         if(!wire){if(entry?.disposition!=='rejected')result.unresolvedSources=true;continue}
         const business=entry?.business
         const reviewed=isReviewedStructuralBusiness(business,source.rawPayload,object)?business:null
+        const measurements=readStructuralMeasurementProjection(source.rawPayload,object)
         result.versions.push({sourceMessageId:source.sourceMessageId,payloadHash:source.payloadHash,assessmentId:asOf?.assessmentId??null,
           factsHash:asOf?.factsHash??null,availableAt:asOf?.availableAt??null,wire,disposition:entry?.disposition??'unavailable',
-          coverage:reviewed?.coverageWindow??null,replaces:reviewed?.replaces??null})
+          coverage:reviewed?.coverageWindow??null,replaces:reviewed?.replaces??null,...(measurements?{measurements}:{})})
       }
     }
     return result

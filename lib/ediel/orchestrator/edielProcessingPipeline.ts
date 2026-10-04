@@ -175,7 +175,7 @@ export async function analyzeEdielProcessingPipeline(params: {
   let sla: EdielAckTimerPlan | null = null
   if (params.createSlaTimers !== false) {
     sla = await createAckTimersForMessage({ actorUserId: params.actorUserId, message: params.message })
-    steps.push({ key: 'sla_timers', status: 'completed', details: sla })
+    steps.push({ key: 'sla_timers', status: sla ? 'completed' : 'skipped', details: sla ?? undefined })
   }
 
   const tenantResolved = Boolean(params.message.company_id)

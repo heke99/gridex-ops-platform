@@ -136,7 +136,7 @@ if (!simple.includes(".from('canonical_public_contract_diagnostics_v')")) {
 if (!simple.includes("key === 'company_id' || key === 'tenant_id' || key === 'tenant_reference'")) {
   failures.push('Simple Partner API must reject tenant selectors recursively')
 }
-if (!simple.includes(".select('file_path,metadata')") || simple.includes(".select('public_url')")) {
+if (!simple.includes(".select('id,file_path,metadata')") || simple.includes(".select('public_url')")) {
   failures.push('Simple Partner invoice PDF must use private storage file paths, not public URL descriptors')
 }
 if (!partnerCore.includes('assertPublicResponsePayload(envelope)')) {

@@ -103,7 +103,7 @@ describe('Partner API v1 simple public surface', () => {
   })
 
   it('reads invoice PDFs from allowlisted private storage instead of fetching arbitrary URLs', () => {
-    expect(simple).toContain(".select('file_path,metadata')")
+    expect(simple).toContain(".select('id,file_path,metadata')")
     expect(simple).toContain("'customer-documents', 'customer-contract-documents', 'contract-pdfs', 'billing-exports'")
     expect(simple).toContain('MAX_INVOICE_PDF_BYTES = 15 * 1024 * 1024')
     expect(simple).not.toContain(".select('public_url')")

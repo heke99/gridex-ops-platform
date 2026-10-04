@@ -1,4 +1,5 @@
 // masterplan: P-01, SC-029
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {describe,it,expect,vi} from 'vitest'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
@@ -15,25 +16,37 @@ for(const [n,alphabet] of alphabets.entries())describe(`source-owned errors alph
  it('reports missing second LI as41/226 with only its own object and no cached LI',async()=>{
  const msg=source(raw([...head(),...own('1','735123456789012345','CASE-A'),...own('2','735123456789012352',null)],'Z01',alphabet)),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!
  expect(p.applicationErrors).toMatchObject([{ercCode:'41',fieldCode:'226',referenceNumber:'735123456789012352',lineItemReference:null}])
- const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})
- expect(draft.rawPayload).toContain('FTX+AAO++226::260');expect(draft.rawPayload).toContain('RFF+Z07:735123456789012352');expect(draft.rawPayload).not.toContain('RFF+LI:');expect(draft.rawPayload).not.toContain('RFF+Z07:735123456789012345');expect(draft.rawPayload).not.toContain('CACHED-UNRELATED')
+ // This error cannot invent the untouched sibling's processed outcome. The
+ // complete original remains the rendering basis; never trim it to one LIN.
+ expect(() => buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).toThrow('APERAK_PRODAT_OBJECT_OUTCOME_MISSING')
+ expect(p.applicationErrors?.[0].lineItemReference).toBeNull()
+ expect(p.applicationErrors?.[0].referenceNumber).toBe('735123456789012352')
+ expect(msg.raw_payload).toContain('CASE-A');expect(msg.raw_payload).not.toContain('CACHED-UNRELATED')
  })
  it('reports header207 without C082 extraction or borrowed object references',async()=>{
  const msg=source(raw([...head(true),...own('1','735123456789012345','CASE-A')],'Z01',alphabet)),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!
- expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'207'}]);const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})
- expect(draft.rawPayload).toContain('FTX+AAO++207::260');expect(draft.rawPayload).not.toContain('RFF+Z07:');expect(draft.rawPayload).not.toContain('RFF+LI:')
+ expect(p.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'207',referenceNumber:null,lineItemReference:null}])
+ // The invalid own country cannot become a legal ACK party. Hold rendering
+ // rather than borrowing an object NAD or repairing the original identity.
+ expect(() => buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors}))
+  .toThrow(expect.objectContaining({disposition:expect.objectContaining({code:'EDIEL_ACK_ORIGINAL_LEGAL_PARTIES_UNQUALIFIED'})}))
  })
- it('preserves exact decoded escaped LI through the actual draft',()=>{
- const msg=source(raw([...head(),...own('1','735123456789012345','CASE:A+B?C')],'Z01',alphabet))
- const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:[{ercCode:'42',fieldCode:'260',text:'invalid',referenceQualifier:'Z07',referenceNumber:'735123456789012345',lineItemReference:'CASE:A+B?C'}]})
- expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C');expect(draft.validationReport?.applicationErrors).toMatchObject([{lineItemReference:'CASE:A+B?C'}])
+ it('preserves exact decoded escaped LI through the actual draft',async()=>{
+ const body=[...head(),...own('1','735123456789012345','CASE:A+B?C').filter(parts=>parts[0]!=='DTM')]
+ const msg=source(raw(body,'Z01',alphabet)),decision=await resolveCanonicalRuntimeDecisionWithRegistry(msg)
+ const applicationErrors=decision.responsePlan.find(plan=>plan.family==='APERAK')!.applicationErrors!
+ expect(applicationErrors,JSON.stringify(applicationErrors)).toMatchObject([{ercCode:'41',fieldCode:'210',lineItemReference:'CASE:A+B?C'}])
+ // Own Z07 and LI share one ERC; D.96A SG4 is C1 while the national guide
+ // requires both (P16B_APERAK96A_OWN_Z07_LI_CARDINALITY, external clarification).
+ // The decoded LI is retained in the plan; the wire is held fail-closed.
+ expectOwnReferencePair([String((buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors})).rawPayload)])
  })
 })
 it('keeps receiver-local readings U as diagnostics with prescribed positive Z10 ACK',async()=>{
  const msg=source(raw(z10(),'Z10'),'Z10'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg)
  expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision).toBe('accepted');expect(d.functionalDecision).toBe('accepted')
  expect(d.issues.map(x=>x.code)).toEqual(Array(3).fill('PRODAT_DEPENDENT_CONDITION_UNDETERMINED'));expect(d.issues.every(x=>x.severity==='warning')).toBe(true)
- const p=d.responsePlan.find(x=>x.family==='APERAK')!;expect(p.outcome).toBe('positive');expect(buildAperakDraft({sourceMessage:msg,outcome:'positive',applicationErrors:p.applicationErrors}).rawPayload).toContain('ERC+100::260')
+ const p=d.responsePlan.find(x=>x.family==='APERAK')!;expect(p.outcome).toBe('positive');expectOwnReferencePair([String((buildAperakDraft({sourceMessage:msg,outcome:'positive',applicationErrors:p.applicationErrors})).rawPayload)]) // P16B Z07+LI conflict, held
 })
 it('retains the concrete missing LI negative when readings knowledge is unknown',async()=>{
  const msg=source(raw(z10(false),'Z10'),'Z10'),d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(x=>x.family==='APERAK')!
@@ -42,7 +55,8 @@ it('retains the concrete missing LI negative when readings knowledge is unknown'
 })
 
 it('checks supplied invalid254 independently of unknown readings and meter-change requiredness',async()=>{
- const body=z10();body.splice(3,0,...characteristic('Z15','INVALID'))
+ // Directory position (after the object's DTM, before its CCI); CAV 7111 is an..3.
+ const body=z10();body.splice(5,0,...characteristic('Z15','X99'))
  const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(raw(body,'Z10'),'Z10'))
  expect(d.applicationDecision).toBe('rejected');expect(d.functionalDecision).toBe('accepted')
  const errors=d.responsePlan.find(x=>x.family==='APERAK')!.applicationErrors!

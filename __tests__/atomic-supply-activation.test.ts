@@ -14,6 +14,8 @@ const stateMachineImplementation = readFileSync(
   `${root}/lib/ediel/flows/inboundBusinessStateMachineLegacy.ts`,
   'utf8',
 )
+const supplyConsumer = readFileSync(`${root}/lib/ediel/flows/supplyMarketTransition.ts`, 'utf8')
+const normalSourceOwner = readFileSync(`${root}/supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql`, 'utf8')
 
 describe('atomic customer supply activation', () => {
   it('moves every committed lifecycle write into one idempotent RPC', () => {
@@ -29,10 +31,14 @@ describe('atomic customer supply activation', () => {
     expect(migration).toContain('on conflict')
   })
 
-  it('keeps the policy facade while delegating committed activation to the atomic RPC implementation', () => {
+  it('keeps the policy facade and confirms through the source owner before a separate due activation', () => {
     expect(stateMachineFacade).toContain('resolveCanonicalEdielPolicy')
     expect(stateMachineFacade).toContain('applyLegacyInboundBusinessStateMachine')
-    expect(stateMachineImplementation).toContain("supabaseService.rpc('activate_customer_supply_v1'")
+    expect(stateMachineImplementation).toContain('await applySupplyMarketSource(')
+    expect(stateMachineImplementation).not.toContain("supabaseService.rpc('activate_customer_supply_v1'")
+    expect(supplyConsumer).toContain("rpc()('ediel_apply_supply_source_v1'")
+    expect(normalSourceOwner).toContain('normal_supply_activation_not_due')
+    expect(normalSourceOwner).toContain('normal_switch_coverage_is_current_v1')
     const completionBranch = stateMachineImplementation.slice(
       stateMachineImplementation.indexOf("if (outcome === 'supplier_switch_completed'"),
       stateMachineImplementation.indexOf("if (outcome === 'supplier_switch_review_required'"),

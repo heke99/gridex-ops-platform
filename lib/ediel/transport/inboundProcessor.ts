@@ -5,13 +5,17 @@ import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
 import { recordEdielExchangeLog } from '@/lib/ediel/operations/exchangeLog'
 import { createEdielDeadLetterItem } from '@/lib/ediel/transport/deadLetter'
 import { formatErrorMessage } from '@/lib/errors'
+import { classifyEdielFailure } from '@/lib/ediel/core/failureDisposition'
 
 export async function processInboundEdifactMessage(params: {
   actorUserId: string
   message: EdielMessageRow
 }) {
+  let syntaxOk: boolean | null = null
+  try {
   const canonicalPayload = canonicalizeEdifact(params.message.raw_payload)
   const syntax = validateEdifactEnvelope(canonicalPayload)
+  syntaxOk = syntax.syntaxOk
 
   await recordEdielExchangeLog({
     companyId: params.message.company_id ?? null,
@@ -33,33 +37,31 @@ export async function processInboundEdifactMessage(params: {
     actorUserId: params.actorUserId,
   }).catch(() => null)
 
-  try {
-    if (!syntax.syntaxOk) {
-      return processInboundEdielMessage({
-        actorUserId: params.actorUserId,
-        edielMessageId: params.message.id,
-      })
-    }
-
-    return processInboundEdielMessage({
+    return await processInboundEdielMessage({
       actorUserId: params.actorUserId,
       edielMessageId: params.message.id,
     })
   } catch (error) {
+    const disposition = classifyEdielFailure(error)
+    try {
     await createEdielDeadLetterItem({
       companyId: params.message.company_id ?? null,
       environmentType: params.message.environment === 'production' ? 'production' : 'agt_test',
       source: 'inbound_mail',
       edielMessageId: params.message.id,
-      errorCode: 'inbound_processing_failed',
+      errorCode: disposition.kind === 'protocol_rejection' ? disposition.sourceRule : disposition.code,
       errorMessage: formatErrorMessage(error, 'Inbound processing misslyckades.'),
-      retryable: true,
-      replayRequiresApproval: params.message.environment === 'production',
+      retryable: disposition.kind === 'internal_failure',
+      replayRequiresApproval: params.message.environment === 'production' || disposition.kind !== 'internal_failure',
       metadata: {
-        syntaxOk: syntax.syntaxOk,
+        syntaxOk,
+        failureDisposition: disposition,
       },
       actorUserId: params.actorUserId,
-    }).catch(() => null)
+    })
+    } catch (persistenceError) {
+      throw new AggregateError([error, persistenceError], 'ediel_processing_failure_journal_unavailable')
+    }
     throw error
   }
 }

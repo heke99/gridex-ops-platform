@@ -33,15 +33,17 @@ it('malformed or saved local input cannot establish false or require U absence',
  const malformed={source:{kind:'caller_selection'},objects:[]} as unknown as ReturnType<typeof deathSelection>
  expect(decideProdatAperak({rawPayload:deathRaw(),deathStatus:malformed,testKind:'production'})).toMatchObject({kind:'ack',outcome:'positive'})
 })
-it('wrapper and manual/TGT resolver consume the selected policy before positive shortcuts or DB writes',async()=>{
- expect(decideProdatAperakOutcome(deathRaw('Z09'),{testKind:'production'})).toMatchObject({outcome:'negative',applicationErrors:[expect.objectContaining({fieldCode:'310',ercCode:'41'})]})
- const message={message_family:'PRODAT',message_code:'Z09',raw_payload:deathRaw('Z09'),direction:'inbound',environment:'test',parsed_payload:{}} as EdielMessageRow
+it('unknown Z09E does not invent a missing310 national negative; invalid explicit310 retains own attribution',async()=>{
+ expect(decideProdatAperakOutcome(deathRaw('Z09'),{testKind:'production'})).toMatchObject({outcome:'positive',applicationErrors:[]})
+ const invalid=deathRaw('Z09',deathBody('E34',characteristic('Z17','BAD')))
+ expect(decideProdatAperakOutcome(invalid,{testKind:'production'})).toMatchObject({outcome:'negative',applicationErrors:[expect.objectContaining({fieldCode:'310',ercCode:'42'})]})
+ const message={message_family:'PRODAT',message_code:'Z09',raw_payload:invalid,direction:'inbound',environment:'test',parsed_payload:{}} as EdielMessageRow
  const writes:{table:string;body:Record<string,unknown>}[]=[];io.from.mockImplementation(registryDatabase(writes))
  const result=await resolveAndStoreProdatAperakErrors({message})
- expect(result.errors).toContainEqual(expect.objectContaining({ercCode:'41',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}))
- expect(writes.filter(w=>w.table==='ediel_aperak_error_details').map(w=>w.body)).toContainEqual(expect.objectContaining({source_message_id:message.id,application_error:'41',free_text_code:'310',metering_point_id:'A',transaction_reference:'LI-A'}))
+ expect(result.errors).toContainEqual(expect.objectContaining({ercCode:'42',fieldCode:'310',referenceNumber:'A',lineItemReference:'LI-A'}))
+ expect(writes.filter(w=>w.table==='ediel_aperak_error_details').map(w=>w.body)).toContainEqual(expect.objectContaining({source_message_id:message.id,application_error:'42',free_text_code:'310',metering_point_id:'A',transaction_reference:'LI-A'}))
 })
 import {prodatIssuesToAperakErrors} from '@/lib/ediel/prodat/prodatAperak'
 it('legacy error wrapper preserves own310 attribution',()=>{
- expect(prodatIssuesToAperakErrors(deathRaw('Z09'))).toContainEqual(expect.objectContaining({fieldCode:'310',ercCode:'41',referenceNumber:'A',lineItemReference:'LI-A'}))
+ expect(prodatIssuesToAperakErrors(deathRaw('Z09',deathBody('E34',characteristic('Z17','BAD'))))).toContainEqual(expect.objectContaining({fieldCode:'310',ercCode:'42',referenceNumber:'A',lineItemReference:'LI-A'}))
 })

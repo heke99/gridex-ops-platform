@@ -34,6 +34,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Record exact source under test
         shell: bash
         env:
@@ -73,41 +75,41 @@ jobs:
       - name: Verify PRODAT characteristic-field components and real preflight consumers
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-characteristic-fields.cjs
-          npx vitest run __tests__/ediel-prodat-characteristic-preflight.test.ts
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-characteristic-preflight.test.ts
       - name: Verify PRODAT reference identity and affected consumers
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-reference-fields.cjs
-          npx vitest run __tests__/ediel-prodat-reference-consumers.test.ts
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-reference-consumers.test.ts
       - name: Verify all four PRODAT BGM fields and their consumers
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-document-fields.cjs
-          npx vitest run __tests__/ediel-prodat-document-consumers.test.ts
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-document-consumers.test.ts
       - name: Verify all twenty PRODAT NAD fields and real party consumers
         run: |
           node --experimental-vm-modules --test scripts/test-ediel-prodat-party-fields.cjs
-          npx vitest run __tests__/ediel-prodat-party-consumers.test.ts __tests__/ediel-prodat-party-review-regression.test.ts
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-party-consumers.test.ts __tests__/ediel-prodat-party-review-regression.test.ts
       - name: Verify twelve PRODAT DTM fields and real consumer boundaries in three timezones
         shell: bash
         run: |
           set -euo pipefail
           for zone in UTC Europe/Stockholm Pacific/Apia; do
-            TZ="$zone" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
+            TZ="$zone" NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-date-fields.test.ts __tests__/ediel-prodat-date-consumers.test.ts __tests__/ediel-prodat-date-boundaries.test.ts
           done
       - name: Verify PRODAT object and register preservation
-        run: npx vitest run __tests__/ediel-prodat-register*.test.ts
+        run: NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-register*.test.ts
       - name: Verify source-derived Z04 consumption-point reference boundaries
         run: node --experimental-vm-modules --test scripts/test-ediel-prodat-d-z04-reference.cjs
       - name: Verify source-derived PRODAT subtype D conditions and non-bypassable send gates
-        run: npx vitest run __tests__/ediel-prodat-dependent-subtype*.test.ts __tests__/ediel-prodat-dependent-z06-product.test.ts
+        run: NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-prodat-dependent-subtype*.test.ts __tests__/ediel-prodat-dependent-z06-product.test.ts
       - name: Verify release-aware EDIFACT component parsing
         run: node --experimental-vm-modules --test scripts/test-ediel-component-escaping.cjs
       - name: Verify APERAK source-family guide binding
         run: >-
           node scripts/gridex-aperak-canonical-evidence-regression.cjs &&
-          npx vitest run __tests__/ediel-aperak-source-profile-regression.test.ts
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run __tests__/ediel-aperak-source-profile-regression.test.ts
       - name: Verify protocol, retained UTILTS decisions and delivery-report isolation
         run: >-
-          npx vitest run
+          NODE_OPTIONS="${NODE_OPTIONS:-} --require=./scripts/lib/unit-loopback-network-boundary.cjs" npx vitest run
           __tests__/ediel-masterplan-protocol-regression.test.ts
           __tests__/ediel-utilts-decision-reuse.test.ts
           __tests__/ediel-utilts-processor-decision-reuse.test.ts

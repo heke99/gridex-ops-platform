@@ -13,7 +13,7 @@ import type { EdielMessageRow } from '@/lib/ediel/types'
 import { alphabets, characteristic, raw, type Parts } from './fixtures/prodat-register'
 const target=(i:{scope?:string;description:string;code:string})=>(i.scope==='prodat_dependent'||i.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_'))&&i.description.includes('Z14:')
 function row(body:Parts[],environment:'test'|'production',alphabet:readonly string[]):EdielMessageRow {
-  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment,message_standard:'edifact',company_id:'synthetic',
+  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment,message_standard:'edifact',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic',
     raw_payload:raw(body,'Z14',alphabet),application_reference:'23-DDQ-PRODAT',mime_type:'application/EDIFACT',
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{dependentConditionStatuses:[]}}} as unknown as EdielMessageRow
@@ -30,13 +30,18 @@ for (const alphabet of alphabets) for (const environment of ['test','production'
       expect(()=>assertRulebookAllowsSend(message)).toThrow(/Z14:/)
     }
   })
-  it('minimal valid N passes this bounded gate and preserves production readiness',()=>{
+  it('inactive N parents pass their bounded rule while a wrong full-message application remains held',()=>{
     const message=row([['LIN','1'],...characteristic('Z13','Z96')],environment,alphabet)
     expect(validateEdielMessageRowWithRulebook(message,'send').issues.filter(target)).toEqual([])
     expect(preflightEdielMessageRow(message,'send').issues.filter(target)).toEqual([])
-    expect(()=>assertRulebookAllowsSend(message)).not.toThrow()
+    // A bounded N parent example is not an authentic complete send source.
+    expect(()=>assertRulebookAllowsSend(message)).toThrow('canonical_ediel_application_reference_not_allowed:Z14:23-DDQ-PRODAT')
+    // This separate component enforces D/register plus production readiness.
+    // Its bounded success cannot override the full canonical hold above.
     if(environment==='test')expect(()=>assertEdielSendLock(message)).not.toThrow()
     else expect(()=>assertEdielSendLock(message)).toThrow(/Produktionsmeddelande saknar/)
+    // A genuine complete DGI/N sender and source chain belongs to native tests;
+    // this partial LIN fixture cannot certify it by passing the parent gate.
   })
   it('inbound parse does not turn local unknown into this outbound rejection',()=>{
     const message={...row([['LIN','1']],environment,alphabet),direction:'inbound' as const}

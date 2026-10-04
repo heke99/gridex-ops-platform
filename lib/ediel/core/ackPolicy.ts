@@ -1,8 +1,10 @@
 // lib/ediel/core/ackPolicy.ts
 
+import {createHash} from 'node:crypto'
 import type { EdielAckStatus, EdielMessageRow } from '@/lib/ediel/types'
 import { getEdielRouteRuntimeByCommunicationRouteId } from '@/lib/ediel/config'
-import { listAckMessagesForSource } from '@/lib/ediel/db'
+import {readOutboundAckOriginals} from './outboundAckOriginals'
+import type {ProdatAckObjectScope} from '@/lib/ediel/ack/sourceCorrelation'
 import { EDIEL_ACK_DEADLINE_MINUTES } from '@/lib/ediel/specRegistry'
 import {
   canonicalAckRequirementsForFamilyCode,
@@ -11,9 +13,65 @@ import {
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { supabaseService } from '@/lib/supabase/service'
+import {readSourceQualifiedProdatBilateralCapability,sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 
 export type AckOutcome = 'positive' | 'negative'
 export type AckFamily = 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
+
+/** Read-only private authority: current authorization and namespace plus the
+ * actual immutable original/response are checked together under native locks.
+ * Never qualify an ACK using the global compatibility duplicate selectors. */
+export async function readProtectedOutboundAckReplay(input:{
+ companyId:string;environment:string;actorUserId:string;sourceMessage:EdielMessageRow;ackFamily:AckFamily;
+ sequenceField:'relatedTransactionReference'|'utiltsErrSequenceToken'|null;sequenceValue:string|null;requestedRawPayload?:string|null
+}):Promise<EdielMessageRow|null> {
+ const rawScope=input.sourceMessage.message_family==='PRODAT'&&input.ackFamily==='APERAK'
+ if(rawScope&&!input.requestedRawPayload)throw new Error('canonical_ack_physical_scope_required')
+ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
+ const {data,error}=await rpc(rawScope?'ediel_read_outbound_ack_scope_replay_v2':'ediel_read_outbound_ack_replay_v1',rawScope?{
+  p_company_id:input.companyId,p_environment:input.environment,p_source_message_id:input.sourceMessage.id,
+  p_source_payload_hash:createHash('sha256').update(input.sourceMessage.raw_payload??'','utf8').digest('hex'),
+  p_actor_user_id:input.actorUserId,p_ack_family:input.ackFamily,p_ack_raw_payload:input.requestedRawPayload
+ }:{p_company_id:input.companyId,p_environment:input.environment,p_source_message_id:input.sourceMessage.id,
+  p_actor_user_id:input.actorUserId,p_ack_family:input.ackFamily,p_sequence_field:input.sequenceField,p_sequence_value:input.sequenceValue})
+ if(error)throw error
+ if(data===null)return null
+ const result=record(data),source=record(result?.sourceMessage),ack=record(result?.ackMessage)
+ if(result?.version!==(rawScope?2:1)||!source||source.id!==input.sourceMessage.id||source.environment!==input.environment||source.direction!=='inbound'
+  ||source.message_standard!=='edifact'||source.company_id!==input.sourceMessage.company_id
+  ||source.company_id!==null&&source.company_id!==input.companyId||!source.raw_payload
+  ||source.raw_payload!==input.sourceMessage.raw_payload||source.message_family!==input.sourceMessage.message_family
+  ||source.message_code!==input.sourceMessage.message_code)throw new Error('canonical_ack_actual_original_mismatch')
+ if(!ack||typeof ack.id!=='string'||!ack.id||ack.company_id!==input.companyId||ack.environment!==input.environment
+  ||ack.direction!=='outbound'||ack.message_standard!=='edifact'||ack.message_family!==input.ackFamily
+  ||ack.related_message_id!==source.id||typeof ack.raw_payload!=='string'||!ack.raw_payload
+  ||!rawScope&&input.sequenceField&&record(ack.parsed_payload)?.[input.sequenceField]!==input.sequenceValue)throw new Error('canonical_ack_duplicate_scope_mismatch')
+ if(rawScope)assertProtectedProdatScopeReceipt(result,input.requestedRawPayload!)
+ return ack as unknown as EdielMessageRow
+}
+
+/** Receipt shape is bound to the requested physical bytes; parsed object/IDE
+ * aliases and caller hashes never choose an immutable response. Native SQL
+ * derives these source-qualified scopes and independently checks every owner. */
+export function assertProtectedProdatScopeReceipt(result:Record<string,unknown>,requestedRaw:string):void {
+ if(result.requestedPayloadHash!==createHash('sha256').update(requestedRaw,'utf8').digest('hex'))throw Error('canonical_ack_physical_scope_receipt_mismatch')
+ const scopes=(value:unknown)=>{
+  if(!Array.isArray(value)||!value.length)throw Error('canonical_ack_physical_scope_receipt_mismatch')
+  return value.map(value=>{const scope=record(value)
+   if(!scope||!['message','object'].includes(String(scope.scope))||typeof scope.reference!=='string'||!scope.reference
+    ||!record(scope.physicalReference)||!['positive','negative'].includes(String(scope.outcome)))throw Error('canonical_ack_physical_scope_receipt_mismatch')
+   const physical=record(scope.physicalReference)!
+   if(scope.scope==='message'&&(physical.documentId!==scope.reference||typeof physical.documentId!=='string')
+    ||scope.scope==='object'&&(typeof physical.lineIndex!=='number'||!Number.isInteger(physical.lineIndex)||physical.lineIndex<0||String(physical.lineIndex)!==scope.reference
+     ||physical.id!==null&&typeof physical.id!=='string'||physical.li!==null&&typeof physical.li!=='string'))throw Error('canonical_ack_physical_scope_receipt_mismatch')
+   return scope
+  })
+ }
+ const wanted=scopes(result.requestedScopes),own=scopes(result.ackScopes)
+ if(!wanted.every(want=>own.some(held=>(held.scope==='message'||held.scope===want.scope&&held.reference===want.reference)
+  &&held.outcome===want.outcome&&(held.scope==='message'||['lineIndex','id','li'].every(key=>record(held.physicalReference)?.[key]===record(want.physicalReference)?.[key])))))throw Error('canonical_ack_physical_scope_receipt_mismatch')
+}
 
 export type EdielCanonicalAckState =
   | 'awaiting_contrl'
@@ -144,7 +202,7 @@ function businessContextFact(sourceMessage: EdielMessageRow): ProdatBusinessCont
  * become protocol authority. Route ack_mode remains transport configuration and
  * can only add an optional positive APERAK, never suppress canonical responses.
  */
-function resolveCanonicalAckRuleForSource(sourceMessage: EdielMessageRow): CanonicalAckMatrixRule {
+function resolveCanonicalAckRuleForSource(sourceMessage: EdielMessageRow,qualification?:SourceQualifiedProdatBilateralCapability|null): CanonicalAckMatrixRule {
   const persisted = policyAckRuleFromPersistedRuntime(sourceMessage)
   if (persisted) return persisted
 
@@ -159,14 +217,14 @@ function resolveCanonicalAckRuleForSource(sourceMessage: EdielMessageRow): Canon
     associationAssignedCode: canonical.version ?? sourceMessage.message_version,
     applicationReference: canonical.applicationReference ?? sourceMessage.application_reference,
     businessContext: businessContextFact(sourceMessage),
-    bilateralCapabilityVerified: booleanPayloadFact(sourceMessage, 'bilateralCapabilityVerified'),
+    bilateralCapabilityVerified: canonical.family==='PRODAT' ? Boolean(sourceQualifiedProdatBilateralCapability(sourceMessage,qualification)) : booleanPayloadFact(sourceMessage, 'bilateralCapabilityVerified'),
     mode: 'parse',
   })
   return policy.ackRule
 }
 
-function resolveRuleDefaults(sourceMessage: EdielMessageRow) {
-  const rule = resolveCanonicalAckRuleForSource(sourceMessage)
+function resolveRuleDefaults(sourceMessage: EdielMessageRow,qualification?:SourceQualifiedProdatBilateralCapability|null) {
+  const rule = resolveCanonicalAckRuleForSource(sourceMessage,qualification)
   return {
     requiresContrl: rule.technicalAck === 'CONTRL',
     requiresAperak: rule.applicationAck === 'APERAK' || rule.applicationAck === 'transactional',
@@ -180,7 +238,9 @@ export async function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): Pro
   ensureInboundEdifactSource(sourceMessage)
 
   const routeAckMode = await resolveRouteAckMode(sourceMessage)
-  const ruleDefaults = resolveRuleDefaults(sourceMessage)
+  const canonical=parseCanonicalMessageRow(sourceMessage)
+  const qualification=canonical.family==='PRODAT'&&['A','D','H'].includes(canonical.subtype??'')?await readSourceQualifiedProdatBilateralCapability(sourceMessage):null
+  const ruleDefaults = resolveRuleDefaults(sourceMessage,qualification)
 
   const shouldSendContrl =
     sourceMessage.message_family !== 'CONTRL' &&
@@ -203,36 +263,50 @@ export async function getAutomaticAckPolicy(sourceMessage: EdielMessageRow): Pro
   }
 }
 
-function inferAckOutcomeFromRow(row: EdielMessageRow): AckOutcome | null {
-  if (row.ack_outcome === 'positive' || row.ack_outcome === 'negative') return row.ack_outcome
-  const payload = row.parsed_payload ?? {}
-  const payloadOutcome = payload.ackOutcome === 'positive' || payload.ackOutcome === 'negative' ? payload.ackOutcome : null
-  if (payloadOutcome) return payloadOutcome
-
-  if (row.message_family === 'CONTRL') {
-    if (row.syntax_check_status === 'ok' || row.syntax_check_status === 'warning') return 'positive'
-    if (row.syntax_check_status === 'failed') return 'negative'
-    return null
-  }
-  if (row.message_family === 'APERAK' || row.message_family === 'UTILTS_ERR') {
-    if (row.functional_check_status === 'ok' || row.functional_check_status === 'warning') return 'positive'
-    if (row.functional_check_status === 'failed') return 'negative'
-  }
-  return null
-}
-
 export async function findExistingAckForSource(params: {
+  actorUserId: string
+  phase: 'prepare'|'read'|'send'
   sourceMessageId: string
   ackFamily: AckFamily
   outcome?: AckOutcome
+  ackScope?: 'interchange'|'message'|'transaction'|'object'
+  transactionReference?: string
+  acknowledgedReferences?: readonly string[]
+  acknowledgedProdatObjects?:readonly ProdatAckObjectScope[]
+  expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
-  const rows = await listAckMessagesForSource({ sourceMessageId: params.sourceMessageId, ackFamily: params.ackFamily })
-  return rows.find((row: EdielMessageRow) => {
-    const status = String(row.status ?? '').trim().toLowerCase()
-    if (status === 'cancelled' || status === 'failed') return false
-    if (params.outcome === undefined) return true
-    return inferAckOutcomeFromRow(row) === params.outcome
-  }) ?? null
+  const originals=await readOutboundAckOriginals(params.sourceMessageId,params.ackFamily,params.expectedSource,params.expectedTechnicalCompanyId,{actorUserId:params.actorUserId,phase:params.phase})
+  const references=[...new Set([...(params.acknowledgedReferences??[]),...(params.transactionReference?[params.transactionReference]:[])])]
+  const objects=params.acknowledgedProdatObjects??[]
+  if(objects.length&&(!params.expectedSource||params.ackFamily!=='APERAK'||params.ackScope!=='object'))throw new Error('ediel_existing_ack_original_object_scope_unavailable')
+  if(params.ackScope==='object'&&!references.length&&!objects.length)throw new Error('ediel_existing_ack_original_object_scope_unavailable')
+  for(const original of originals){
+    const {correlation}=original
+    const wholeCoverage=correlation.wholeSourceOutcome!==undefined && ['message','interchange'].includes(correlation.scope)
+    if(params.ackScope && correlation.scope!==params.ackScope && !wholeCoverage)continue
+    if(references.length && ['transaction','object'].includes(correlation.scope)
+      && !references.every(reference=>correlation.acknowledgedReferences.includes(reference)))continue
+    if(references.length && !['transaction','object'].includes(correlation.scope) && !wholeCoverage)continue
+    const matchesObject=(own:ProdatAckObjectScope)=>correlation.prodatObjectOutcomes?.find(result=>result.objectId===own.objectId&&result.identityAgency===own.identityAgency
+      &&result.firstLineIndex===own.firstLineIndex&&result.lineItemReference===own.lineItemReference)
+    if(objects.length&&!wholeCoverage&&(correlation.scope!=='object'||!objects.every(own=>matchesObject(own))))continue
+    if(original.status==='held')throw new Error('ediel_existing_ack_original_basis_unavailable')
+    const outcomes=objects.length&&!wholeCoverage?objects.map(own=>matchesObject(own)?.outcome):references.length && correlation.scope==='object'
+      ? references.map(reference=>correlation.scopedOutcomes?.find(result=>result.reference===reference)?.outcome)
+      : [wholeCoverage?correlation.wholeSourceOutcome:correlation.classification.outcome]
+    if(outcomes.some(outcome=>outcome!=='positive'&&outcome!=='negative'))throw new Error('ediel_existing_ack_original_outcome_unavailable')
+    if(params.outcome!==undefined && !outcomes.every(outcome=>outcome===params.outcome))continue
+    // This is only an aggregate of the requested own groups. The caller keeps
+    // their separate physical scoped results when checking immutable conflicts.
+    const outcome=outcomes.some(value=>value==='negative')?'negative':'positive'
+    if(outcome!=='positive'&&outcome!=='negative')throw new Error('ediel_existing_ack_original_outcome_unavailable')
+    if(params.outcome!==undefined&&outcome!==params.outcome)continue
+    // A read projection only. The returned actual original keeps status/raw/ID;
+    // mutable public outcome/cache fields cannot reinterpret its response.
+    return {...original.message,ack_outcome:outcome,parsed_payload:{...original.message.parsed_payload,ackOutcome:outcome}}
+  }
+  return null
 }
 
 function isPending(status: EdielAckStatus | null | undefined): boolean {

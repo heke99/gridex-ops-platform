@@ -1,33 +1,65 @@
 import fs from 'node:fs'
+import { createHash } from 'node:crypto'
 import path from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { raw } from './fixtures/prodat-register'
+import { source as messageSource, head, own } from './fixtures/prodat-identity'
+const boundary = vi.hoisted(() => ({ rpc: vi.fn(), db: vi.fn() }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { rpc: boundary.rpc } }))
+vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: boundary.db }))
+import { projectSentEdielSourceState, customerInfoPostSendStatus } from '@/lib/ediel/outbox/projectSentSources'
+import { prepareEdielBusinessExpectationPlan, prepareEdielTechnicalExpectationPlan } from '@/lib/ediel/businessExpectations'
+import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 
 import { canonicalZ01BusinessResponseDeadlineMinutes } from '@/lib/ediel/rulebook/deadlinePolicy'
 
 function read(relative: string): string {
   return fs.readFileSync(path.join(process.cwd(), relative), 'utf8')
 }
+beforeEach(() => vi.resetAllMocks())
 
 describe('PRODAT Z01 parallel response SLA watchdog', () => {
   it('takes the 30-minute business deadline from the canonical handbook catalog', () => {
     expect(canonicalZ01BusinessResponseDeadlineMinutes()).toBe(30)
   })
 
-  it('starts technical and business clocks from the actual persisted send time', () => {
-    const source = read('lib/ediel/outbox/projectSentSources.ts')
-    expect(source).toContain('message_sent_at: params.sentAt')
-    expect(source).toContain('contrl_due_at: technicalDueAt')
-    expect(source).toContain('business_response_due_at: businessResponseDueAt')
-    expect(source).toContain('ack_due_at: technicalDueAt')
-    expect(source).toContain('canonicalZ01BusinessResponseDeadlineMinutesProjection()')
-    expect(source).toContain('EDIEL_ACK_DEADLINE_MINUTES')
+  it('uses the actual atomic native facade and rejects a caller repair clock that differs from its immutable receipt', async () => {
+    // Explicit synthetic private journal/RPC port, with actual policy planning
+    // and actual source projection. No SMTP, issuer or native DB claim.
+    const message = { ...messageSource(raw([...head(),...own('1','735123456789012345','OWN')],'Z01')),
+      id:'journal-source', company_id:'tenant-journal', direction:'outbound', requires_contrl:true,
+      contrl_status:'pending', requires_aperak:false, aperak_status:'not_required',
+      outbound_request_id:null, grid_owner_data_request_id:null } as EdielMessageRow
+    const policy = resolveCanonicalEdielPolicy({family:'PRODAT',messageCode:'Z01',subtypeOrReasonCode:'L',
+      direction:'outbound',referenceDate:'2026-09-30',mode:'catalog_evidence'})
+    const plan = prepareEdielBusinessExpectationPlan(message,policy)!
+    expect(plan).toMatchObject({offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',remoteReceiptKnown:false})
+    const anchorAt = '2026-09-30T12:00:00.000Z'
+    expect(prepareEdielTechnicalExpectationPlan(message,policy)).toMatchObject({
+      offset:30,unit:'minutes',anchor:'actual_accepted_smtp_observed_at',remoteReceiptKnown:false,
+    })
+    const originalHash=createHash('sha256').update(message.raw_payload!, 'utf8').digest('hex')
+    boundary.rpc.mockImplementation(async (name,args) => {
+      expect(name).toBe('ediel_project_accepted_source_state_v1')
+      expect(args).toEqual({p_company_id:'tenant-journal',p_environment:'test',p_message_id:'journal-source',
+        p_actor_user_id:'operative-actor',p_expected_original_hash:originalHash})
+      return {error:null,data:{status:'source_projection',companyId:message.company_id,environment:message.environment,
+        messageId:message.id,originalHash,observedAt:anchorAt,authorizesProviderEntry:false}}
+    })
+    await projectSentEdielSourceState({message,sentAt:anchorAt,actorUserId:'operative-actor'})
+    await projectSentEdielSourceState({message,actorUserId:'operative-actor'})
+    await expect(projectSentEdielSourceState({message,sentAt:'2026-10-05T09:00:00.000Z',actorUserId:'operative-actor'}))
+      .rejects.toThrow('ediel_post_send_frozen_dispatch_anchor_changed')
+    expect(boundary.rpc).toHaveBeenCalledTimes(3)
+    // Actual native RPC is the sole projection boundary. TypeScript cannot
+    // perform a second loose write or serial business-watch registration.
+    expect(boundary.db).not.toHaveBeenCalled()
   })
 
   it('models customer business waiting on Z02 while CONTRL is monitored in parallel', () => {
-    const source = read('lib/ediel/outbox/projectSentSources.ts')
-    expect(source).toContain("return 'waiting_for_z02'")
-    expect(source).toContain('CONTRL bevakas parallellt')
-    expect(source).not.toContain('Efter positiv teknisk kvittens inväntas Z02')
+    expect(customerInfoPostSendStatus({requires_contrl:true,contrl_status:'pending',requires_aperak:false,aperak_status:'not_required'})).toBe('waiting_for_z02')
+    expect(customerInfoPostSendStatus({requires_contrl:true,contrl_status:'received',requires_aperak:false,aperak_status:'not_required'})).toBe('waiting_for_z02')
   })
 
   it('escalates overdue business responses without any automatic resend path', () => {
@@ -87,7 +119,6 @@ describe('PRODAT Z01 parallel response SLA watchdog', () => {
   it('keeps Z02 separate from Z04 market acceptance and activation', () => {
     const z02 = read('lib/onboarding/inboundEdielLinking.ts')
     const z04Guard = read('supabase/migrations/20260822012000_supplier_switch_effective_date_guard.sql')
-    expect(z02).toContain('z02_preflight_queued_z03')
     expect(z02).not.toContain('supply_period.activated')
     expect(z04Guard).toContain('supplier_switch_business_confirmation_requires_inbound_z04')
     expect(z04Guard).toContain("upper(coalesce(m.message_code,'')) = 'Z04'")

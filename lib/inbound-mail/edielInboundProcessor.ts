@@ -1,5 +1,10 @@
+import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
+import { InboundReceptionHeldError } from '@/lib/ediel/inbound/receptions'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { isDeliveryStatusNotification } from './dsnClassifier'
+import { parseDeliveryStatusReport } from './dsnDisposition'
+import { projectDsnTransportCandidates } from './dsnTransportCandidates'
+import {recordDsnSourceObservation,type DsnSourceField} from './dsnSourceObservations'
 import { resolveTenantForInboundEdiel } from '@/lib/inbound-mail/inboundTenantResolver'
 import { matchMeteringPointForInbound, matchOutboundRequestForInbound } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
@@ -16,11 +21,17 @@ import {
   updateInboundEmailProcessingStatus,
 } from '@/lib/inbound-mail/inboundStatusUpdater'
 import { supabaseService } from '@/lib/supabase/service'
+import { parseAiBiTechnicalFile } from '@/lib/ediel/aiListFormat'
+import { registerInboundCanonicalMessage } from '@/lib/ediel/core/kernel'
 
 type TestCenterTenantBinding = {
   companyId: string
   customerId: string
 }
+
+// Fetch one extra row so a mailbox source is never treated as complete after
+// silently processing only a prefix of its physical attachments.
+const MAX_PHYSICAL_ATTACHMENTS = 128
 
 function text(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -74,38 +85,91 @@ export async function processInboundEmailMessage(input: {
   const row = data as Record<string, unknown> | null
   if (!row) throw new Error('Inbound email hittades inte.')
 
-  const quarantineDsn = async () => {
+  const quarantineDsn = async (raw: string,sourceField:DsnSourceField,attachmentId?:string|null) => {
     // The returned original cannot establish the report's tenant or authorize
     // business processing. Preserve mailbox attribution until attempt matching
     // and recipient verification can be performed by a transport handler.
     const companyId = text(row.company_id)
+    const deliveryStatusReport = parseDeliveryStatusReport(raw)
+    const transportCandidates = await projectDsnTransportCandidates(row, deliveryStatusReport)
+    let sourceObservation:Awaited<ReturnType<typeof recordDsnSourceObservation>>|null=null
+    let observationStatus='not_qualified'
+    if(companyId&&input.actorUserId&&transportCandidates.status==='candidate_found'){
+      try{
+        sourceObservation=await recordDsnSourceObservation({companyId,actorUserId:input.actorUserId,
+          inboundEmailMessageId:input.inboundEmailMessageId,sourceField,attachmentId,rawSource:raw})
+        observationStatus=sourceObservation?'source_matched_unverified':'not_qualified'
+      }catch{observationStatus='source_observation_held'}
+    }
     await updateInboundEmailProcessingStatus({
       inboundEmailMessageId: input.inboundEmailMessageId,
       companyId,
       status: 'manual_review',
       matchStatus: 'dsn_transport_review',
-      matchPayload: { classification: 'delivery_status_notification', transportCorrelation: 'unverified' },
+      matchPayload: { classification: 'delivery_status_notification', transportCorrelation: 'unverified',
+        deliveryStatusReport, transportCandidates, sourceObservation, observationStatus },
       errorMessage: 'Leveransrapport kräver verifierad korrelation till transportförsök och mottagare.',
     })
     return { status: 'manual_review', companyId, parseResultId: null }
   }
-  if (isDeliveryStatusNotification(text(row.raw_email)) || isDeliveryStatusNotification(text(row.body_text))) {
-    return quarantineDsn()
+  for (const sourceField of ['raw_email','body_text'] as const) {
+    const raw=row[sourceField]
+    if (typeof raw==='string' && isDeliveryStatusNotification(raw)) return quarantineDsn(raw,sourceField)
   }
 
   const attachmentResult = await supabaseService
     .from('inbound_email_attachments')
-    .select('raw_text,is_edifact_candidate,filename')
+    .select('id,raw_text,is_edifact_candidate,filename')
     .eq('inbound_email_message_id', input.inboundEmailMessageId)
     .order('is_edifact_candidate', { ascending: false })
-    .limit(10)
+    .limit(MAX_PHYSICAL_ATTACHMENTS + 1)
 
   if (attachmentResult.error) throw attachmentResult.error
-  if (((attachmentResult.data ?? []) as Array<Record<string, unknown>>)
-    .some((attachment) => isDeliveryStatusNotification(text(attachment.raw_text)))) return quarantineDsn()
+  const attachments = (attachmentResult.data ?? []) as Array<Record<string, unknown>>
+  if (attachments.length > MAX_PHYSICAL_ATTACHMENTS) {
+    const companyId = text(row.company_id)
+    await updateInboundEmailProcessingStatus({ inboundEmailMessageId: input.inboundEmailMessageId, companyId,
+      status: 'manual_review', matchStatus: 'physical_attachment_limit_exceeded',
+      errorMessage: 'Mail innehåller fler fysiska bilagor än den kompletta mottagningsgränsen.' })
+    return { status: 'manual_review', companyId, parseResultId: null }
+  }
+  for (const attachment of attachments) {
+    const raw=attachment.raw_text
+    if (typeof raw==='string' && isDeliveryStatusNotification(raw)) return quarantineDsn(raw,'attachment',text(attachment.id))
+  }
+  // Technical lists have their own positional format, legal storage decision
+  // and source-bound reconciliation. They never enter the EDIFACT/ACK engine.
+  const aiCandidates = [...new Map([
+    { raw: row.body_text, filename: null },
+    { raw: row.raw_edifact_payload, filename: null },
+    ...attachments.map(a => ({ raw: a.raw_text, filename: a.filename })),
+  ].filter((candidate): candidate is { raw: string; filename: unknown } => typeof candidate.raw === 'string' && /^\uFEFF?(AI|BI);/.test(candidate.raw))
+    .map(candidate => [candidate.raw, candidate] as const)).values()]
+  if (aiCandidates.length) {
+    if (aiCandidates.length !== 1) throw new Error('ai_bi_reconciliation_physical_source_ambiguous')
+    const companyId = text(row.company_id), actorUserId = text(input.actorUserId)
+    if (!companyId || !actorUserId) throw new Error('ai_bi_reconciliation_verified_execution_context_required')
+    const source = aiCandidates[0], technical = parseAiBiTechnicalFile(source.raw)
+    if (row.environment !== 'test' && row.environment !== 'production') throw new Error('ai_bi_reconciliation_environment_required')
+    const message = await registerInboundCanonicalMessage({ actorUserId, input: {
+      actorUserId, companyId, direction: 'inbound', messageStandard: 'ai_list', messageFamily: 'AI_LIST',
+      messageCode: technical.header.listType, messageVersion: technical.header.version, environment: row.environment,
+      testFlag: row.environment === 'test' ? 1 : 0, status: 'received', transportType: 'imap',
+      mailbox: text(row.mailbox_id), mailboxMessageId: input.inboundEmailMessageId,
+      senderEdielId: technical.header.networkEdielId, receiverEdielId: technical.header.supplierEdielId,
+      senderName: technical.header.networkName, receiverName: technical.header.supplierName,
+      senderEmail: text(row.from_address), receiverEmail: text(row.to_address),
+      rawPayload: source.raw, fileName: text(source.filename), mimeType: 'text/csv',
+      parsedPayload: { importedVia: 'imap', inboundEmailMessageId: input.inboundEmailMessageId },
+      requiresContrl: false, requiresAperak: false, contrlStatus: 'not_required', aperakStatus: 'not_required', utiltsErrStatus: 'not_required',
+    } })
+    await updateInboundEmailProcessingStatus({ inboundEmailMessageId: input.inboundEmailMessageId, companyId,
+      status: 'processed', matchStatus: 'ai_bi_reconciled', matchPayload: { classification: 'ai_bi_reconciliation', sourceMessageId: message.id } })
+    return { status: 'processed', companyId, parseResultId: null }
+  }
   const attachmentText = [
     typeof row.raw_edifact_payload === 'string' ? row.raw_edifact_payload : null,
-    ...((attachmentResult.data ?? []) as Array<Record<string, unknown>>)
+    ...attachments
       .map((attachment) => typeof attachment.raw_text === 'string' ? attachment.raw_text : null),
   ].filter((value): value is string => Boolean(value)).join('\n\n')
 
@@ -252,37 +316,68 @@ export async function processInboundEmailMessage(input: {
   const safeMatch = outboundMatch.status === 'matched'
   const matchStatus = safeMatch ? 'matched' : outboundMatch.status
 
-  if (safeMatch) {
-    await applySafeInboundStatusUpdate({
-      companyId: tenant.companyId,
-      environment,
-      parsed,
-      outboundMatch,
-      meteringPointMatch,
-      inboundEmailMessageId: input.inboundEmailMessageId,
-      parseResultId,
-      actorUserId: input.actorUserId ?? null,
-      tenantResolution: tenant.shared,
-    })
-  } else {
-    await createInboundEdielMessage({
-      companyId: tenant.companyId,
-      environment,
-      inboundEmailMessageId: input.inboundEmailMessageId,
-      parseResultId,
-      parsed,
-      outboundMatch,
-      meteringPointMatch,
-      tenantResolution: tenant.shared,
-    })
+  try {
+    if (safeMatch) {
+      await applySafeInboundStatusUpdate({
+        companyId: tenant.companyId,
+        environment,
+        parsed,
+        outboundMatch,
+        meteringPointMatch,
+        inboundEmailMessageId: input.inboundEmailMessageId,
+        parseResultId,
+        actorUserId: input.actorUserId ?? null,
+        tenantResolution: tenant.shared,
+      })
+    } else {
+      await createInboundEdielMessage({
+        actorUserId: input.actorUserId,
+        companyId: tenant.companyId,
+        environment,
+        inboundEmailMessageId: input.inboundEmailMessageId,
+        parseResultId,
+        parsed,
+        outboundMatch,
+        meteringPointMatch,
+        tenantResolution: tenant.shared,
+      })
 
+      await createInboundMailTask({
+        companyId: tenant.companyId,
+        title: 'Inkommande Ediel-mail kräver manuell matchning',
+        description: outboundMatch.reasons.join('\n'),
+        metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+        actorUserId: input.actorUserId ?? null,
+      })
+    }
+  } catch (error) {
+    if (!(error instanceof InboundReceptionHeldError)) throw error
+    const receipt = error.reception
+    let protocolResponseFailureCode: string | null = input.actorUserId ? null : 'current_actor_required'
+    if (input.actorUserId && receipt.classification === 'protocol_duplicate') {
+      try {
+        await prepareDuplicate103Response({ companyId: tenant.companyId, sourceMessageId: receipt.sourceMessageId, inboundEmailMessageId: input.inboundEmailMessageId, actorUserId: input.actorUserId })
+        return { status: 'protocol_response_prepared', companyId: tenant.companyId, parseResultId }
+      } catch (preparationError) {
+        const message = preparationError instanceof Error ? preparationError.message : ''
+        protocolResponseFailureCode = message.match(/^[A-Za-z][A-Za-z0-9_]+(?=:|\s|$)/)?.[0] ?? 'duplicate_response_preparation_failed'
+        // Current authority, native source or strict wire hold preserves the
+        // existing held-task path. No draft/intention is committed on failure.
+      }
+    }
+    // The native receipt/request and NEW mail hold already committed. The old
+    // canonical original, first validation and ACK are deliberately untouched.
+    const matchedCustomer = outboundMatch.candidates?.[0]?.customer_id ?? meteringPointMatch.candidates?.[0]?.customer_id
     await createInboundMailTask({
       companyId: tenant.companyId,
-      title: 'Inkommande Ediel-mail kräver manuell matchning',
-      description: outboundMatch.reasons.join('\n'),
-      metadata: { inboundEmailMessageId: input.inboundEmailMessageId, parseResultId, outboundMatch, meteringPointMatch, parsed },
+      customerId: typeof matchedCustomer === 'string' ? matchedCustomer : null,
+      title: 'Ny Ediel-mottagning väntar på källbelagt dubblettsvar',
+      description: receipt.reason,
+      taskType: 'ediel_duplicate_response_held',
+      metadata: { sourceId: receipt.responseRequestId, reception: receipt, protocolResponseFailureCode, inboundEmailMessageId: input.inboundEmailMessageId, parseResultId },
       actorUserId: input.actorUserId ?? null,
     })
+    return { status: 'manual_review', companyId: tenant.companyId, parseResultId }
   }
 
   await updateInboundEmailProcessingStatus({

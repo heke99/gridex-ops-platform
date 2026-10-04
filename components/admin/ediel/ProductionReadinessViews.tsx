@@ -372,9 +372,19 @@ export function ProductionReadinessPanel({
               Kör production dry run
             </h4>
             <p className="mt-2 text-sm leading-6 text-emerald-800">
-              Simulerar production-send utan att skicka Ediel och kontrollerar
-              dynamisk mottagarlogik.
+              Kontrollerar ett sparat produktionsmeddelandes juridiska aktör,
+              roll, kapabilitet och aktuella bevis. Inget meddelande skickas.
             </p>
+            <label className="mt-3 block text-sm font-semibold text-emerald-950">
+              Sparat produktionsmeddelande
+              <input aria-label="Sparat produktionsmeddelande"
+                name="message_id"
+                required
+                placeholder="Meddelandets UUID"
+                autoComplete="off"
+                className="mt-1 w-full rounded-lg border border-emerald-300 bg-white px-3 py-2 font-normal text-slate-950"
+              />
+            </label>
             <button
               disabled={!canManageProduction}
               className="mt-4 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-semibold text-white disabled:bg-slate-400"

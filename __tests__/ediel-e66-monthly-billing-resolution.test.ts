@@ -6,6 +6,7 @@ import { parseE66, parseE66Observations } from '@/lib/ediel/utilts/e66'
 import { flattenUtiltsTransactionSeries } from '@/lib/ediel/flows/utiltsDataRequest.part-1'
 import { materializeTestCenterScenario } from '@/lib/ediel/testing/testCenterScenarios'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { recountEdifactUnt } from './helpers/recountEdifactUnt'
 
 export const MONTHLY_E66_BILLING_PAYLOAD = [
   "UNA:+.? '",
@@ -136,9 +137,9 @@ describe('UTILTS E66 monthly billing resolution', () => {
   })
 
   it('does not report a functional rejection for a guide-invalid transaction with a reading mismatch', () => {
-    const invalid = MONTHLY_E66_BILLING_PAYLOAD
-      .replace("LOC+239+TES:SVK:260'", '')
-      .replace("QTY+220:11000'", "QTY+220:11001'")
+    const invalid = recountEdifactUnt(MONTHLY_E66_BILLING_PAYLOAD
+      .replace("MEA+AAZ++KWH'", '')
+      .replace("QTY+220:11000'", "QTY+220:11001'"))
     const result = runUtiltsRuntimeForMessage(runtimeMessage(invalid), { referenceDate: '2026-08-31' })
 
     expect(result.validation.issues.some((issue) => issue.kind === 'application' && issue.severity === 'error')).toBe(true)

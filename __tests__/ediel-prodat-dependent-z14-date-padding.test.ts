@@ -23,7 +23,7 @@ const positive = (): Parts[] => [line('1','A'), ...dates.map(([,q,value,format])
 const target = (issue:{scope?:string;description:string;code:string}) =>
   (issue.scope==='prodat_dependent'||issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_')) && /Z14:(302|508|326)\b/.test(issue.description)
 function row(body:Parts[],alphabet:readonly string[]):EdielMessageRow {
-  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment:'test',message_standard:'edifact',company_id:'synthetic',
+  return {message_family:'PRODAT',message_code:'Z14',direction:'outbound',environment:'test',message_standard:'edifact',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic',
     raw_payload:raw(body,'Z14',alphabet),application_reference:'23-DDQ-PRODAT',mime_type:'application/EDIFACT',
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{dependentConditionStatuses:[]}}} as unknown as EdielMessageRow

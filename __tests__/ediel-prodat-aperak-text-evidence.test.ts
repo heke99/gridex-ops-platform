@@ -1,4 +1,5 @@
 // masterplan: SC-029
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect} from 'vitest'
 import {raw,alphabets,line,characteristic,input,rule,type Parts} from './fixtures/prodat-register'
 import {head,own,source} from './fixtures/prodat-identity'
@@ -12,6 +13,7 @@ import {evaluateIncomingProdatEnergyProduct,assertIncomingProdatEnergyProductRev
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {renderProdatAperakDiagnosticRaw} from './helpers/prodatAperakDiagnosticRenderFixture'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
 const body=(id='OWN',li:string|null='CASE'):Parts[]=>own('1','735123456789012345',li).map(p=>p[0]==='NAD'?['NAD','UD',[id,'','89'],'','Synthetic','Street','City','','12345','SE']:p)
 const projected=(parts:Parts[],fields:string[],code='Z01',a:readonly string[]=alphabets[0])=>projectProdatDiagnostics(validateFieldMatrixPayload(input(raw([...head(),...parts],code,a),code),fields.map(f=>rule(f,code))))
@@ -21,7 +23,7 @@ it('every admitted numeric descriptor has a source name; invalid findings requir
  expect(Object.keys(PRODAT_APERAK_FIELD_NAMES).sort()).toEqual(fields.map(f=>f.fieldNumber).sort())
  for(const field of fields){
   const wire=input(raw([...head(),...body()]));const diagnostic=prodatFieldDiagnostic(field.fieldNumber,'missing',wire,wire.rawSegments,'P94',0)
-  expect(composeProdatAperakText(diagnostic)).toMatchObject({kind:'ready',text:`${PRODAT_APERAK_FIELD_NAMES[field.fieldNumber]} saknas`})
+  expect(composeProdatAperakText(diagnostic), field.fieldNumber).toMatchObject({kind:'ready',text:`${field.fieldNumber === '216' ? 'Giltighetsdatum - giltig from' : PRODAT_APERAK_FIELD_NAMES[field.fieldNumber]} saknas`})
   if(diagnostic.kind==='field')expect(composeProdatAperakText({...diagnostic,errorKind:'invalid',failureEvidence:undefined})).toEqual({kind:'unready',reason:'failure_evidence_unavailable'})
  }
 })
@@ -44,9 +46,11 @@ for(const a of alphabets){
   const value="ÅÄÖ:+?'",message={...permissionMessage('Z14','S17',value),raw_payload:permissionWire('Z14','S17',value,a)}
   const d=resolveCanonicalRuntimeDecision(message),errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
   expect(errors).toHaveLength(1);expect(errors[0].text).toBe(`Felaktigt Produkt id (Energiprodukt) ${value}`)
-  const draft=buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:errors})
-  expect(texts(draft.rawPayload!)).toEqual([[errors[0].text]])
-  expect(tokenizeEdifact(draft.rawPayload!).segments.filter(t=>t.tag==='ERC')).toHaveLength(1)
+  const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors}
+  expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
+  const rawDiagnostic=renderProdatAperakDiagnosticRaw(params)
+  expect(texts(rawDiagnostic)).toEqual([[errors[0].text]])
+  expect(tokenizeEdifact(rawDiagnostic).segments.filter(t=>t.tag==='ERC')).toHaveLength(1)
  })
 }
 it('base41 has no suffix with both references present; optional absent and conflicting227 add no hold',()=>{
@@ -91,7 +95,7 @@ it('energy single qualifier failure uses bad qualifier; conflicts keep all submi
 for(const size of [69,70,71])it(`decoded ${size} typed characters; no truncation despite escape expansion`,()=>{
  const value=':'.repeat(size-'Felaktigt Produkt id (Energiprodukt) '.length),message=permissionMessage('Z14','S17',value),d=resolveCanonicalRuntimeDecision(message)
  const errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
- if(size<=70){expect(errors[0]?.text).toHaveLength(size);const wire=buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:errors}).rawPayload!;expect(texts(wire)).toEqual([[errors[0].text]])}
+ if(size<=70){expect(errors[0]?.text).toHaveLength(size);const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors};expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)]);const wire=renderProdatAperakDiagnosticRaw(params);expect(texts(wire)).toEqual([[errors[0].text]])}
  else {expect(errors).toEqual([]);expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}})}
 })
 it('stale/incomplete ready data is ineligible after persistence',()=>{
@@ -106,10 +110,12 @@ it('direct and manual shared506 expose unready before any positive fallback',()=
  expect(()=>decideProdatAperak({message})).toThrow('PRODAT_APERAK_TEXT_REVIEW_REQUIRED')
  expect(()=>assertIncomingProdatEnergyProductReview(message.raw_payload)).toThrow('PRODAT_ENERGY_PRODUCT_ACK_REVIEW_REQUIRED')
 })
-for(const a of alphabets)it(`actual ownLI ending in apostrophe survives full draft ${a.join('')}`,()=>{
+for(const a of alphabets)it(`actual ownLI ending in apostrophe survives read-only renderer while full draft is held ${a.join('')}`,()=>{
  const wire=raw([...head(),...body('OWN',"CASE'").filter(t=>t[0]!=='RFF'||(t[1] as string[])[0]!=='Z05')],'Z01',a)
  const message=source(wire),d=resolveCanonicalRuntimeDecision(message),errors=d.responsePlan.flatMap(p=>p.applicationErrors??[])
- const draft=buildAperakDraft({sourceMessage:message,outcome:'negative',applicationErrors:errors}),tokens=tokenizeEdifact(draft.rawPayload!)
+ const params={sourceMessage:message,outcome:'negative' as const,applicationErrors:errors}
+ expectOwnReferencePair([String(buildAperakDraft(params).rawPayload)])
+ const tokens=tokenizeEdifact(renderProdatAperakDiagnosticRaw(params))
  expect(tokens.segments.filter(t=>t.tag==='RFF').map(t=>segmentComposite(t,1,tokens.una))).toContainEqual(['LI',"CASE'"])
  expect(tokens.segments.filter(t=>t.tag==='UNT')).toHaveLength(1);expect(tokens.segments.filter(t=>t.tag==='UNZ')).toHaveLength(1)
  const start=tokens.segments.findIndex(t=>t.tag==='UNH'),end=tokens.segments.findIndex(t=>t.tag==='UNT')

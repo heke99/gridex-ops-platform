@@ -1,10 +1,11 @@
+// masterplan: P-09, AT-P-09, SC-030
 import {it,expect} from 'vitest'
 import {copyDeathSelection,deathCondition} from '@/lib/ediel/prodat/prodatDeathStatus'
 import {validateProdatDeathStatus} from '@/lib/ediel/rulebook/prodatDeathStatusPolicy'
 import {resolveProdatRegisterConditionFacts,createProdatRegisterEvidence,readProdatRegisterEvidence} from '@/lib/ediel/prodat/prodatRegisterEvidence'
 import {deathSelection,deathBody,deathRaw} from './fixtures/prodat-death-status'
 import {alphabets,input,characteristic,type Parts} from './fixtures/prodat-register'
-const check=(code:string,body:Parts[],value:'death'|'not_death'|null,direction:'inbound'|'outbound',alphabet?:readonly string[])=>validateProdatDeathStatus({...input(deathRaw(code,body,alphabet),code),direction,facts:{deathStatus:value?deathSelection(value,code==='Z05'?'Z05':'Z06'):null}})
+const check=(code:string,body:Parts[],value:'death'|'not_death'|null,direction:'inbound'|'outbound',alphabet?:readonly string[])=>validateProdatDeathStatus({...input(deathRaw(code,body,alphabet),code),direction,facts:{deathStatus:value?deathSelection(value,code==='Z05'?'Z05':code==='Z09'?'Z09':'Z06'):null}})
 it('strict owner deepcopies provenance, rejects extra/missing nested keys, duplicates and mismatched event revision',()=>{
  const source=deathSelection(),copy=copyDeathSelection(source);source.objects[0].customer.id='changed';expect(copy.objects[0].customer.id).toBe('CUSTOMER-A')
  const changes:[string[],unknown][]=[
@@ -41,8 +42,10 @@ for(const alphabet of alphabets){
   expect(validateProdatDeathStatus({...wire,facts:{deathStatus:deathSelection()},direction:'outbound'}).some(i=>i.code.endsWith('_UNDETERMINED'))).toBe(true)
  })
 }
-it('Z09E has no independent event prerequisite and excluded valid subtypes are false',()=>{
- expect(deathCondition('Z09','E')).toBe(true)
+it('PC310 requires an independent death assessment also for Z09E',()=>{
+ expect(deathCondition('Z09','E')).toBeNull()
+ expect(deathCondition('Z09','E',deathSelection('death','Z09').objects[0].assessment)).toBe(true)
+ expect(deathCondition('Z09','E',deathSelection('not_death','Z09').objects[0].assessment)).toBe(false)
  for(const [code,sub] of [['Z05','L'],['Z06','F'],['Z06','G'],['Z09','B'],['Z09','D'],['Z09','F'],['Z09','G']])expect(deathCondition(code,sub)).toBe(false)
  expect(deathCondition('Z05','V')).toBeNull()
 })
@@ -60,7 +63,8 @@ for(const alphabet of alphabets)it(`own occurrence scope cannot borrow adjacent 
  selected.objects[0].lineItemReference='different';expect(validateProdatDeathStatus({...wire,facts:{deathStatus:selected},direction:'inbound'}).map(i=>i.code)).toContain('PRODAT_DEATH_STATUS_VALUE_INVALID')
  const second=deathRaw('Z09',deathBody('E34',[],'B'),alphabet),firstMessage=deathRaw('Z09',deathBody('E34',characteristic('Z17','Z41')),alphabet)
  const two=firstMessage.slice(0,firstMessage.indexOf(`UNZ${alphabet[1]}`))+second.slice(second.indexOf(`UNH${alphabet[1]}`)).replace(`UNZ${alphabet[1]}1`, `UNZ${alphabet[1]}2`)
- expect(validateProdatDeathStatus({...input(two,'Z09'),direction:'inbound'}).filter(i=>i.code.endsWith('_REQUIRED'))).toEqual([expect.objectContaining({meteringPointId:'B',lineItemReference:'LI-B'})])
+ expect(validateProdatDeathStatus({...input(two,'Z09'),direction:'inbound'}).filter(i=>i.code.endsWith('_REQUIRED'))).toEqual([])
+ // Unknown does not borrow a death from the first message into its sibling.
  const first=deathBody();first[0]=['LIN','1','',['A','','','89'],['1','1']]
  const later=[['LIN','2','',['A','','','89'],['1','2']],...characteristic('Z17','Z41')]
  expect(validateProdatDeathStatus({...input(deathRaw('Z06',[...first,...later],alphabet),'Z06'),facts:{deathStatus:deathSelection()},direction:'inbound'}).filter(i=>i.code.endsWith('_REQUIRED'))).toHaveLength(1)
