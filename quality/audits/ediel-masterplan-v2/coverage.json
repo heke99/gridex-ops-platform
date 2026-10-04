@@ -535,12 +535,16 @@
     {
       "id": "P-15",
       "acceptance_id": "AT-P-15",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-received-structure-reader.test.ts",
         "__tests__/ediel-received-structure-reader-boundaries.test.ts",
         "__tests__/ediel-prodat-registers.test.ts",
-        "__tests__/ediel-structural-safe-apply-source.test.ts"
+        "__tests__/ediel-structural-safe-apply-source.test.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/qualifiedCustomerStructure.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
       ]
     },
     {
@@ -2167,8 +2171,12 @@
     },
     {
       "id": "AT-P-15",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-received-structure-reader.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ]
     },
     {
       "id": "AT-P-16",

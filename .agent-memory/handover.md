@@ -1129,3 +1129,5 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: U-06 (+AT) godkänd; mandatgrinden = requireDataRequestStructure (tidigare 'saknas'-fynd var fel).
 - 2026-10-04 #491: U-12 (+AT) godkänd.
 - 2026-10-04 Samordning: Claude-session_01JdTfHD (claude/dazzling-dijkstra-vyyw0g) har GOV-03+ENV-01; ny Codex-session claimade också ENV-01 -> flaggat på #491 (förslag: Codex tar ENV-02).
+- 2026-10-04 ÄGARBESLUT P-08: giltig mottagning = nätägarens positiva APERAK på vår bundna Z09D -> bekräfta egen produktionsavtalshändelse. Migration 20261004190000 (wip/p08-p15, pushas efter #491-merge).
+- 2026-10-04 (wip/p08-p15): P-15 (+AT) godkänd; U-09 (+AT) godkänd; P-08 implementerad (PARTIAL tills native).
