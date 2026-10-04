@@ -13,7 +13,7 @@ export function reportingPortalObject(params: TestDataLookupParams, column: TgtP
     if (selection == null)
         return null;
     const checked = copyReportingSelection(selection), block = column.group.block;
-    const objects = checked.objects.filter(o => o.code === 'Z13' && o.selector.workbook === block.sourceWorkbook && o.selector.sheet === block.sourceSheet && o.selector.entityLabel === block.entityLabel && o.selector.columnName === column.column.name && o.selector.columnIndex === column.column.index);
+    const objects = checked.objects.filter(o => o.code === 'Z13' && o.selector !== null && o.selector.workbook === block.sourceWorkbook && o.selector.sheet === block.sourceSheet && o.selector.entityLabel === block.entityLabel && o.selector.columnName === column.column.name && o.selector.columnIndex === column.column.index);
     if (objects.length !== 1)
         throw new ProdatReportingAuthorityError('PRODAT_REPORTING_SOURCE_OBJECT_MISSING');
     return objects[0];
