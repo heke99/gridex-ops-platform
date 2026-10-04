@@ -7,6 +7,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { listCompanyWorkQueue } from '@/lib/performance/companySummaries'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { formatStatusLabel } from '@/lib/ui/format'
+import { readEdielProcessNextActions, type EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
+import { infoRequestProcessQueueState } from '@/lib/customer-operations/infoRequestProcessQueue'
 
 export const dynamic = 'force-dynamic'
 
@@ -56,6 +58,8 @@ const INFO_REQUEST_OPEN_STATUSES = [
 const ACTION_REQUIRED_STATUSES = new Set([
   ...ACTIVE_TASK_STATUSES,
   'draft', 'ready_to_send', 'negative_aperak', 'missing_binding_info', 'missing_termination_info', 'ready_for_switch',
+  // OPS-02 process-decision states (infoRequestProcessQueueState).
+  'process_decision_missing', 'process_response_received',
 ])
 
 function formatDate(value: string | null | undefined) {
@@ -394,7 +398,7 @@ export default async function AdminWorkQueuePage() {
       supabase,
       'customer_info_requests',
       companyId,
-      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, created_at',
+      'id, customer_id, operation_id, request_type, target_party_type, target_party_name, status, blocker_reason, notes, ediel_message_id, created_at',
       [{ column: 'status', op: 'in', value: INFO_REQUEST_OPEN_STATUSES }],
       customerIds,
       80,
@@ -462,20 +466,39 @@ export default async function AdminWorkQueuePage() {
     })
   }
 
+  // OPS-02: waiting rows follow the native process decision of their Ediel
+  // source message. An unreadable decision leaves the map empty (rows held).
+  const processDecisions = new Map<string, EdielProcessNextAction>()
+  const processSourceIds = infoRequests.flatMap((row) => textValue(row.ediel_message_id) ? [String(row.ediel_message_id)] : [])
+  if (companyId && context.permissions.includes('communication.read') && processSourceIds.length) {
+    try {
+      for (let offset = 0; offset < processSourceIds.length; offset += 100) {
+        for (const environment of ['test', 'production'] as const) {
+          const decisions = await readEdielProcessNextActions({ companyId, actorUserId: context.userId, environment, messageIds: processSourceIds.slice(offset, offset + 100),
+            evaluatedAt: new Date().toISOString(), access: { canRead: true, canReview: context.permissions.includes('cases.write'), canPrepare: false } })
+          for (const [sourceId, decision] of decisions) processDecisions.set(sourceId, decision)
+        }
+      }
+    } catch {
+      processDecisions.clear()
+    }
+  }
+
   for (const row of infoRequests) {
     const customer = customersById.get(String(row.customer_id ?? ''))
     if (!customer) continue
     const target = row.target_party_type === 'current_supplier' ? 'nuvarande leverantör' : row.target_party_type === 'grid_owner' ? 'nätägare' : 'kund'
+    const processState = infoRequestProcessQueueState({ status: textValue(row.status), edielMessageId: textValue(row.ediel_message_id), processDecisions })
     items.push({
       id: String(row.id),
       operationId: textValue(row.operation_id),
       source: 'Uppgiftsbegäran',
       customerId: customer.id,
       customerLabel: customerLabel(customer),
-      title: `Väntar på ${target}`,
-      description: textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
-      status: String(row.status ?? 'pending'),
-      priority: ['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal',
+      title: processState?.title ?? `Väntar på ${target}`,
+      description: processState?.description ?? textValue(row.blocker_reason) ?? textValue(row.notes) ?? taskTypeLabel(row.request_type),
+      status: processState?.status ?? String(row.status ?? 'pending'),
+      priority: processState?.priority ?? (['missing_authorization', 'blocked', 'negative_aperak', 'route_missing'].includes(String(row.status)) ? 'high' : 'normal'),
       createdAt: dateValue(row.created_at),
       href: `/admin/customers/${customer.id}?tab=data-requests`,
       actionLabel: 'Öppna uppgiftsbegäran',
