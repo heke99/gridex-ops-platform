@@ -1608,8 +1608,12 @@
     },
     {
       "id": "SC-046",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+        "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
+      ]
     },
     {
       "id": "SC-047",
@@ -1657,8 +1661,12 @@
     },
     {
       "id": "SC-054",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+        "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql"
+      ]
     },
     {
       "id": "SC-055",
