@@ -443,14 +443,25 @@
     {
       "id": "ESCO-01",
       "acceptance_id": "AT-ESCO-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "ESCO-02",
       "acceptance_id": "AT-ESCO-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "scripts/ediel-service-request-timing-sql-regression.mjs",
+        "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "ESCO-03",
@@ -1806,13 +1817,17 @@
     },
     {
       "id": "AT-ESCO-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-03",
