@@ -1,0 +1,56 @@
+{
+  "purpose": "S1-02-final-ACL-generated-artifact-import",
+  "imported_at": "2026-10-04T10:14:40.111015+00:00",
+  "workflow_run": 37194391667,
+  "artifact_id": 11300263512,
+  "artifact_zip_sha256": "a97d1fee0a853149154b61aba56fb60ef447d4a31815b86cb552f1b21f5d8ea8",
+  "original_capture_receipt": "quality/staff-api/S1-02-final-acl-capture-receipt-20261004.json",
+  "original_capture_receipt_sha256": "2c560fabd49cb1400329741169d305c06a87f822787de0a5c5d7c97d86f2cec2",
+  "preserved_prior_receipts": [
+    "quality/staff-api/S1-capture-receipt-20261004.json",
+    "quality/staff-api/S1-capture-import-20261004.json"
+  ],
+  "captured_checkout_commit": "28ccc3ed89ede82649814c07456dff536f17d538",
+  "captured_checkout_tree": "2194d569540cd297da25b88850e4cc3641eade94",
+  "import_source_commit": "97be76608c127c3954a63e65f57fb2e8f07b7570",
+  "import_source_tree": "2194d569540cd297da25b88850e4cc3641eade94",
+  "validation": {
+    "zip_digest_and_all_four_member_bytes": "PASS",
+    "all_eight_captured_input_hashes_against_clean_root": "PASS",
+    "complete_checkout_tree_equality": "PASS",
+    "all_three_generated_artifact_hashes": "PASS",
+    "latest_replay_migration_and_hash": "PASS",
+    "schema_names_and_canonical_section_fingerprint": "PASS",
+    "destination_generated_files_byte_identical": "PASS",
+    "replay_table_direct_grants_select_insert_delete_only": "PASS",
+    "replay_table_rls_enabled_and_no_public_policy": "PASS",
+    "db_migrations_check": "PASS",
+    "independent_artifact_acl_and_provenance_review": "PASS"
+  },
+  "artifact_sha256": {
+    "database.types.ts": "673d8b96fc83f26bf4497a0c6a8d39be326c6d43b7fffc2042e6f64070b8ec2a",
+    "schema.sql": "f209605e97e47ef81fbde2f1c542a67e74cadfbf2c59f77723ed2c3d7742e68c",
+    "schema.fingerprint.json": "ba172e0d298fc686a7f1ca71af5bfd068a8a796db1868af2856890a470ade1e3"
+  },
+  "latest_replay_migration": {
+    "name": "20261004100320_staff_assertion_replay_least_privilege.sql",
+    "sha256": "f01b39a54b4939ae82fe13faaf313538da8ab15d553d3f1fe73779fc6877f670"
+  },
+  "schema_fingerprint": "e181a08a75749837913289708a8a891d12617988b8c43047c6e4e11e765fa4d8",
+  "replay_table_direct_acl": [
+    "GRANT SELECT,INSERT,DELETE ON TABLE public.tenant_staff_assertion_replays TO service_role;"
+  ],
+  "qualification": "Authentic final S1 ACL-prefix clean replay capture only. ZIP/member hashes, all eight replay-input hashes, latest migration and full checkout tree match the frozen import source. Generated artifacts are byte-copied and the section fingerprint is independently recomputed. Actual PostgreSQL schema dump verifies tenant_staff_assertion_replays direct grants are exactly SELECT/INSERT/DELETE for service_role, RLS enabled, no table policies or public grants; inherited default ALL privileges on this existing table have been cleared. This is not a global default privilege redesign or role-inheritance proof. Native/browser tests, type-schema comparison and upgrade parity were NOT_RUN in this capture. Mandatory fresh exact-head full CI/OPS clean and upgrade replay/parity remain required; this import is not full CI acceptance.",
+  "db_migrations_check": {
+    "exit_code": 0,
+    "migration_files": 1045,
+    "version_groups": 948,
+    "checks": [
+      "migration integrity/checksums",
+      "public-contract legal migration",
+      "database contract hardening",
+      "generated types hash/nullability/latest migration"
+    ],
+    "log_sha256": "e9e1537fbefbccd38977632c08ec8f3487e7a19d24924b9b1c3e1d459ebae113"
+  }
+}
