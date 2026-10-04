@@ -4,9 +4,9 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37195216027",
   "generated_types": "supabase/database.types.ts",
   "sha256": "b74fd09bd36566263ab27e872255b84261ed66de193cca1fee0e4b351dad4ae4",
-  "latest_migration": "20261004100918_staff_user_lock_order.sql",
-  "latest_migration_schema_effect": "S1 foundation/final replay-table least privilege plus S2 staff account commands and current same-company client/actor guards. Final 20261004100918 changes only the three pinned company serialization locks to NO KEY UPDATE while preserving function identities and ACL; staff governance audit and authorization remain transactional. Types, full schema.sql and fingerprint are byte-for-byte authentic PostgreSQL 17 disposable clean-replay capture output. S3/S4 SQL inputs are absent from this S2 prefix.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261004132630_staff_invitation_domain_columns.sql",
+  "latest_migration_schema_effect": "Additive staff invitation domain schema closure: nine missing source-proven columns are added nullable without defaults/backfills or credential generation; Auth SET NULL foreign keys apply only to the two newly added actor/user columns. Existing production metadata, table rows, grants/RLS/status/company FK, canonical function bodies and staff scope/authority remain unchanged. Prior authentic S2 generated types/schema/fingerprint and numbered capture receipts are retained byte-for-byte; fresh own-prefix native capture and exact-head clean/upgrade/full CI remain required.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "workflow_run": 37195216027,

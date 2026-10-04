@@ -9,6 +9,7 @@ DECLARE
   actor uuid := gen_random_uuid();
   colleague uuid := gen_random_uuid();
   foreign_user uuid := gen_random_uuid();
+  invitee uuid := gen_random_uuid();
   client uuid := gen_random_uuid();
   role_admin uuid;
   role_support uuid;
@@ -16,11 +17,16 @@ DECLARE
   result jsonb;
   repeated jsonb;
   audit_count bigint;
+  invitation_command jsonb;
+  invitation_result jsonb;
+  linked_invitation_id uuid;
+  acceptance_command jsonb;
+  acceptance_result jsonb;
 BEGIN
   INSERT INTO auth.users(id,email,email_confirmed_at) VALUES
-    (actor,'staff-actor@example.invalid',now()),(colleague,'staff-colleague@example.invalid',now()),(foreign_user,'staff-foreign@example.invalid',now());
+    (actor,'staff-actor@example.invalid',now()),(colleague,'staff-colleague@example.invalid',now()),(foreign_user,'staff-foreign@example.invalid',now()),(invitee,'staff-invitee@example.invalid',now());
   INSERT INTO public.user_profiles(id,email,user_status) VALUES
-    (actor,'staff-actor@example.invalid','active'),(colleague,'staff-colleague@example.invalid','active'),(foreign_user,'staff-foreign@example.invalid','active')
+    (actor,'staff-actor@example.invalid','active'),(colleague,'staff-colleague@example.invalid','active'),(foreign_user,'staff-foreign@example.invalid','active'),(invitee,'staff-invitee@example.invalid','active')
   ON CONFLICT(id) DO UPDATE SET user_status='active';
   INSERT INTO public.companies(id,name,status) VALUES(company_a,'Synthetic staff A','active'),(company_b,'Synthetic staff B','active');
   SELECT id INTO role_admin FROM public.roles WHERE coalesce(key,name)='company_admin' ORDER BY created_at,id LIMIT 1;
@@ -59,18 +65,57 @@ BEGIN
     RAISE EXCEPTION 'self disable accepted';
   EXCEPTION WHEN check_violation THEN IF SQLERRM<>'staff_self_disable_forbidden' THEN RAISE; END IF; END;
 
+  -- Actual durable intent and worker link close the invitation schema used by
+  -- disable. No delivery is performed; its queued job is rolled back below.
+  invitation_command := jsonb_build_object('company_id',company_a,'actor_user_id',actor,
+    'staff_operation','invite','role_key','operations_agent','membership_role','operations',
+    'channel','staff_api','api_client_id',client,'idempotency_key','staff-native-linked-invitation',
+    'email','staff-colleague@example.invalid','full_name','Synthetic linked staff');
+  invitation_result := public.canonical_create_tenant_invitation(invitation_command);
+  linked_invitation_id := (invitation_result->>'invitation_id')::uuid;
+  IF public.canonical_create_tenant_invitation(invitation_command) IS DISTINCT FROM invitation_result
+    OR NOT EXISTS(SELECT FROM public.company_invitations WHERE id=linked_invitation_id
+      AND token=(invitation_result->>'token')::uuid AND full_name='Synthetic linked staff'
+      AND membership_role='operations' AND role_key='operations_agent' AND invited_by=actor
+      AND accept_token_hash=encode(extensions.digest(token::text,'sha256'),'hex'))
+    OR (SELECT count(*) FROM public.company_provisioning_jobs WHERE company_id=company_a
+      AND job_key='auth_invite' AND idempotency_key='staff-native-linked-invitation')<>1
+  THEN RAISE EXCEPTION 'staff durable invitation schema or replay incomplete'; END IF;
+  UPDATE public.company_invitations SET invited_user_id=colleague WHERE id=linked_invitation_id AND company_id=company_a;
+
   command := command||jsonb_build_object('staff_operation','disable','action','disable','idempotency_key','staff-native-disable');
   result := public.canonical_change_tenant_user_access(command);
   IF result->>'status'<>'disabled' THEN RAISE EXCEPTION 'staff disable did not disable membership'; END IF;
   repeated := public.canonical_change_tenant_user_access(command);
   IF repeated IS DISTINCT FROM result THEN RAISE EXCEPTION 'staff disable replay changed result'; END IF;
   IF EXISTS(SELECT FROM public.user_roles WHERE company_id=company_a AND user_id=colleague AND status='active' AND is_active) THEN RAISE EXCEPTION 'staff disable left role active'; END IF;
+  IF NOT EXISTS(SELECT FROM public.company_invitations WHERE id=linked_invitation_id AND company_id=company_a
+    AND invited_user_id=colleague AND status='invitation_revoked' AND revoked_at IS NOT NULL)
+  THEN RAISE EXCEPTION 'staff disable did not revoke its linked pending invitation'; END IF;
 
   command := (command-'role_key'-'membership_role')||jsonb_build_object('staff_operation','enable','action','upsert','idempotency_key','staff-native-enable');
   result := public.canonical_change_tenant_user_access(command);
   IF result->>'status'<>'active' OR result->>'role_key'<>'operations_agent' THEN RAISE EXCEPTION 'staff enable did not restore same role'; END IF;
   repeated := public.canonical_change_tenant_user_access(command);
   IF repeated IS DISTINCT FROM result THEN RAISE EXCEPTION 'staff enable replay changed result'; END IF;
+
+  -- The same real domain intent is accepted by the verified synthetic Auth
+  -- user, preserving the producer's role/membership and exact replay.
+  invitation_command := invitation_command||jsonb_build_object('role_key','customer_service_agent',
+    'membership_role','support','idempotency_key','staff-native-accepted-invitation','email','staff-invitee@example.invalid');
+  invitation_result := public.canonical_create_tenant_invitation(invitation_command);
+  UPDATE public.company_invitations SET invited_user_id=invitee
+    WHERE id=(invitation_result->>'invitation_id')::uuid AND company_id=company_a;
+  acceptance_command := jsonb_build_object('actor_user_id',invitee,'user_id',invitee,
+    'invitation_id',invitation_result->>'invitation_id','idempotency_key','staff-native-accept-invitation');
+  acceptance_result := public.canonical_accept_tenant_invitation(acceptance_command);
+  IF acceptance_result->>'role_key'<>'customer_service_agent' OR acceptance_result->>'membership_role'<>'support'
+    OR public.canonical_accept_tenant_invitation(acceptance_command) IS DISTINCT FROM acceptance_result
+    OR NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=company_a AND user_id=invitee
+      AND role_key='customer_service_agent' AND membership_role='support' AND status='active' AND is_active AND accepted_at IS NOT NULL)
+    OR NOT EXISTS(SELECT FROM public.company_invitations WHERE id=(invitation_result->>'invitation_id')::uuid
+      AND status='accepted' AND invited_user_id=invitee AND accepted_at IS NOT NULL)
+  THEN RAISE EXCEPTION 'staff verified invitation acceptance schema incomplete'; END IF;
 
   INSERT INTO public.user_permissions(company_id,user_id,permission_key,effect,status,is_active)
   VALUES(company_a,colleague,'users.write','allow','active',true);
