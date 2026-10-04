@@ -1,9 +1,12 @@
-import { buildAckDraftForSource } from '@/lib/ediel/ack'
+import { prepareDuplicate103Response } from '@/lib/ediel/inbound/duplicateResponses'
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
+import { readInboundReceptionRequest } from '@/lib/ediel/inbound/receptions'
 import type { AckFamily, AckOutcome } from '@/lib/ediel/core/ackPolicy'
 import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
 import type { EdielEngineDecision } from '@/lib/ediel/decisionEngine'
 import { ensureExpectedAckSent } from '@/lib/ediel/decisionEngine'
-import { createEdielMessageEvent, listAckMessagesForSource } from '@/lib/ediel/db'
+import { createEdielMessageEvent } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
 import { supersedeWrongDraftsForDecision } from '@/lib/ediel/outbox/supersedeWrongDrafts'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -19,15 +22,38 @@ function normalizeOutcome(value: unknown): AckOutcome | null {
 export async function runAutoAckOrchestratorForInboundMessage(params: {
   actorUserId: string
   sourceMessage: EdielMessageRow
+  inboundEmailMessageId?: string | null
   decision: EdielEngineDecision
   autoSend?: boolean
   outbox?: boolean
 }): Promise<{
-  status: 'created' | 'queued' | 'already_sent_success' | 'blocked' | 'manual_review' | 'no_ack'
+  status: 'created' | 'queued' | 'retained' | 'already_sent_success' | 'blocked' | 'manual_review' | 'no_ack'
   ackMessageId: string | null
   lifecycleStatus: string | null
   reason: string
 }> {
+  if(params.inboundEmailMessageId){
+    if(!params.sourceMessage.company_id)throw new Error('ediel_exact_reception_tenant_required')
+    const receipt=await readInboundReceptionRequest({companyId:params.sourceMessage.company_id,messageId:params.sourceMessage.id,actorUserId:params.actorUserId,inboundEmailMessageId:params.inboundEmailMessageId})
+    if(!receipt)throw new Error('ediel_exact_reception_original_required')
+    if(receipt.status==='held'||receipt.classification!=='first_reception'){
+      if(receipt.classification==='protocol_duplicate'&&params.sourceMessage.message_family==='PRODAT'){
+        try{
+          const response=await prepareDuplicate103Response({companyId:params.sourceMessage.company_id,sourceMessageId:params.sourceMessage.id,
+            inboundEmailMessageId:params.inboundEmailMessageId,actorUserId:params.actorUserId})
+          // This NEW reception has its own protocol receipt. Do not run the
+          // ordinary business-outcome, superseding, queue or send path here.
+          return{status:response.replayed?'retained':'created',ackMessageId:response.ackMessage.id,
+            lifecycleStatus:'duplicate_protocol_response_prepared',reason:'Den nya mottagningens dubblettsvar har ett eget beständigt kvitto.'}
+        }catch(error){
+          const message=error instanceof Error?error.message:''
+          const code=message.match(/^[A-Za-z][A-Za-z0-9_]+(?=:|\s|$)/)?.[0]??'duplicate_response_preparation_failed'
+          return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:code}
+        }
+      }
+      return{status:'manual_review',ackMessageId:null,lifecycleStatus:'duplicate_response_held',reason:receipt.reason??'authentic_duplicate_transport_response_policy_required'}
+    }
+  }
   if (params.decision.kind === 'manual_review') {
     await createEdielMessageEvent({
       actorUserId: params.actorUserId,
@@ -50,7 +76,17 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
 
   const desiredFamily = params.decision.ackFamily
   const desiredOutcome = normalizeOutcome(params.decision.outcome)
-  const existingAcks = await listAckMessagesForSource({ sourceMessageId: params.sourceMessage.id })
+  const utiltsSource=['UTILTS','UTILTS_ERR'].includes(params.sourceMessage.message_family)
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage:params.sourceMessage,ackFamily:desiredFamily,
+    outcome:desiredOutcome??undefined,messageText:params.decision.messageText,applicationErrors:params.decision.applicationErrors,utiltsHeaderRejected:params.decision.utiltsHeaderRejected})
+  if(prepared.kind==='existing'){
+    // The original proves fixed response bytes/outcome, not SMTP acceptance.
+    // Prepared-only insertion repairs a missing outbox without requeueing an
+    // existing failed/sending/sent row or constructing another provider attempt.
+    if(params.outbox!==false)await createOutboxItem({actorUserId:params.actorUserId,message:prepared.message,sourceMessageId:params.sourceMessage.id,status:'prepared'})
+    return {status:'retained',ackMessageId:prepared.message.id,lifecycleStatus:'existing_response_retained',reason:'Originalets fastställda ACK återanvänds; transportutfallet avgörs av dess beständiga transportjournal.'}
+  }
+  const existingAcks = utiltsSource?[]:await listBusinessAckMessagesForSource({ sourceMessageId: params.sourceMessage.id, companyId: params.sourceMessage.company_id, environment: params.sourceMessage.environment, actorUserId: params.actorUserId, ackFamily: desiredFamily })
   const lifecycle = ensureExpectedAckSent({
     desiredFamily,
     desiredOutcome,
@@ -81,7 +117,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     return { status: 'blocked', ackMessageId: lifecycle.existingAckId, lifecycleStatus: lifecycle.status, reason: lifecycle.message }
   }
 
-  const supersedeResult = await supersedeWrongDraftsForDecision({
+  const supersedeResult = utiltsSource?{blockedFinalAckId:null,supersededIds:[]}:await supersedeWrongDraftsForDecision({
     actorUserId: params.actorUserId,
     sourceMessage: params.sourceMessage,
     desiredFamily,
@@ -92,14 +128,7 @@ export async function runAutoAckOrchestratorForInboundMessage(params: {
     return { status: 'blocked', ackMessageId: supersedeResult.blockedFinalAckId, lifecycleStatus: 'blocked_final_ack_exists', reason: 'Opposite final ACK exists.' }
   }
 
-  const draft = buildAckDraftForSource({
-    actorUserId: params.actorUserId,
-    sourceMessage: params.sourceMessage,
-    ackFamily: desiredFamily,
-    outcome: desiredOutcome ?? undefined,
-    messageText: params.decision.messageText,
-    applicationErrors: params.decision.applicationErrors,
-  })
+  const draft=prepared.draft
 
   const ack = await createCanonicalAckMessage({
     actorUserId: params.actorUserId,
