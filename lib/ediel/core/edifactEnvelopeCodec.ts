@@ -1,5 +1,8 @@
-import { tokenizeEdifact, segmentComposite, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
-import { DEFAULT_UNA, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
+import { edifactMessageReferenceMaximum } from '@/lib/ediel/core/edifactReferenceConstraints'
+import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
+import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
+import { prodatInterchangeBatchIssues } from '@/lib/ediel/prodat/prodatInterchangeBatch'
 
 export type EdifactEnvironment = 'test' | 'production'
 
@@ -72,21 +75,19 @@ function trimOrNull(value: unknown): string | null {
 }
 
 function sanitizeSegment(value: string): string {
-  let segment = String(value ?? '').replace(/\r?\n/g, '').trim()
-  // Business input uses the canonical alphabet. An odd release run protects
-  // the final apostrophe as data; strip only actual supplied terminators.
-  while (segment.endsWith("'")) {
-    let releases = 0
-    for (let index = segment.length - 2; index >= 0 && segment[index] === '?'; index--) releases++
-    if (releases % 2 === 1) break
-    segment = segment.slice(0, -1)
-  }
+  const segment = String(value ?? '').replace(/\r?\n/g, '').trimStart()
   if (!segment) throw new Error('edifact_empty_business_segment')
   const tag = segment.split('+', 1)[0]?.toUpperCase()
   if (tag && ENVELOPE_TAGS.has(tag)) {
     throw new Error(`edifact_business_segment_contains_envelope_tag:${tag}`)
   }
-  return segment
+  const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
+  if (parsed.length === 0) throw new Error('edifact_empty_business_segment')
+  if (parsed.length !== 1) throw new Error('edifact_business_segment_contains_multiple_segments')
+  // The tokenizer strips actual terminators, while its retained token text
+  // preserves final data spaces and a released apostrophe. A blanket trim
+  // would change an original RFF/TN or FTX logical value.
+  return segmentUntrimmedRaw(parsed[0])
 }
 
 function localDateTimeParts(date: Date, timeZone: string): { date: string; time: string } {
@@ -112,8 +113,8 @@ function partyComposite(id: string, qualifier: string, subAddress?: string | nul
   const cleanQualifier = trimOrNull(qualifier) ?? 'ZZ'
   const cleanSubAddress = trimOrNull(subAddress)
   return cleanSubAddress
-    ? `${cleanId}:${cleanQualifier}:${cleanSubAddress}`
-    : `${cleanId}:${cleanQualifier}`
+    ? `${escapeEdifactData(cleanId)}:${escapeEdifactData(cleanQualifier)}:${escapeEdifactData(cleanSubAddress)}`
+    : `${escapeEdifactData(cleanId)}:${escapeEdifactData(cleanQualifier)}`
 }
 
 function serializeUnb(input: EdifactEnvelopeEncodeInput): string {
@@ -124,8 +125,8 @@ function serializeUnb(input: EdifactEnvelopeEncodeInput): string {
   elements[UNB.SENDER] = partyComposite(input.sender, input.senderQualifier ?? 'ZZ', input.senderSubAddress)
   elements[UNB.RECEIVER] = partyComposite(input.receiver, input.receiverQualifier ?? 'ZZ', input.receiverSubAddress)
   elements[UNB.DATETIME] = `${local.date}:${local.time}`
-  elements[UNB.INTERCHANGE_REFERENCE] = trimOrNull(input.interchangeReference) ?? ''
-  elements[UNB.APPLICATION_REFERENCE] = trimOrNull(input.applicationReference) ?? ''
+  elements[UNB.INTERCHANGE_REFERENCE] = escapeEdifactData(trimOrNull(input.interchangeReference))
+  elements[UNB.APPLICATION_REFERENCE] = escapeEdifactData(trimOrNull(input.applicationReference))
   elements[UNB.ACK_REQUEST] = input.acknowledgementRequest ? '1' : ''
   // ISO 9735 / Ediel: production omits 0035. Test uses 1.
   elements[UNB.TEST_INDICATOR] = input.environment === 'test' ? '1' : ''
@@ -149,12 +150,26 @@ function encodeMessage(message: EdifactEnvelopeMessageInput): string[] {
   const messageTypeToken = trimOrNull(message.messageTypeToken)
   if (!messageReference) throw new Error('edifact_message_reference_required')
   if (!messageTypeToken) throw new Error('edifact_message_type_token_required')
+  const type = tokenizeEdifact(`UNH+1+${messageTypeToken}'`)
+  const maximum = edifactMessageReferenceMaximum(segmentComposite(type.segments[0], 2, type.una))
+  if (maximum !== null && message.messageReference.length > maximum) throw new Error('edifact_message_reference_length_invalid')
   const businessSegments = message.businessSegments.map(sanitizeSegment)
   return [
-    `UNH+${messageReference}+${messageTypeToken}`,
+    `UNH+${escapeEdifactData(messageReference)}+${messageTypeToken}`,
     ...businessSegments,
-    `UNT+${countMessageSegments({ ...message, businessSegments })}+${messageReference}`,
+    `UNT+${countMessageSegments({ ...message, businessSegments })}+${escapeEdifactData(messageReference)}`,
   ]
+}
+
+/** Builders supply canonical +/:/? segments. Translate structure only after
+ * release-aware decoding so literal separators and empty slots survive. */
+function encodeCanonicalSegment(segment: string, una: EdifactServiceStringAdvice): string {
+  const parsed = tokenizeEdifact(`${segment}${DEFAULT_UNA.segmentTerminator}`).segments
+  if (parsed.length !== 1) throw new Error('edifact_segment_contains_multiple_segments')
+  const token = {...parsed[0],raw:segmentUntrimmedRaw(parsed[0])}
+  return token.elements.map((_, index) => segmentComposite(token, index, DEFAULT_UNA)
+    .map(component => escapeEdifactData(component, una)).join(una.componentDataElementSeparator))
+    .join(una.dataElementSeparator)
 }
 
 function parseParty(parts: string[]): {
@@ -175,14 +190,27 @@ export class EdifactEnvelopeCodec {
     if (typeof input.acknowledgementRequest !== 'boolean') {
       throw new Error('edifact_acknowledgement_request_required')
     }
+    const interchangeReference = trimOrNull(input.interchangeReference)
+    if (!interchangeReference) throw new Error('edifact_interchange_reference_required')
+    const references = new Set<string>()
+    for (const message of input.messages) {
+      const reference = trimOrNull(message.messageReference)
+      if (!reference) throw new Error('edifact_message_reference_required')
+      if (references.has(reference)) throw new Error('edifact_message_reference_duplicate')
+      references.add(reference)
+    }
     const una = { ...DEFAULT_UNA, ...(input.una ?? {}) }
     const messageSegments = input.messages.flatMap(encodeMessage)
+    const batchFailure = prodatInterchangeBatchIssues(tokenizeEdifact(messageSegments.map(segment => `${segment}'`).join('')))[0]
+    if (batchFailure) throw new Error(`${batchFailure.code}:${batchFailure.description}`)
     const segments = [
       serializeUnb(input),
       ...messageSegments,
-      `UNZ+${input.messages.length}+${trimOrNull(input.interchangeReference) ?? ''}`,
+      `UNZ+${input.messages.length}+${escapeEdifactData(interchangeReference)}`,
     ]
-    return `${serializeUna(una)}${segments.map((segment) => `${segment}${una.segmentTerminator}`).join('')}`
+    const payload = `${serializeUna(una)}${segments.map(segment => `${encodeCanonicalSegment(segment, una)}${una.segmentTerminator}`).join('')}`
+    assertEdifactLatin1Representable(payload)
+    return payload
   }
 
   static decode(rawPayload: string | null | undefined): ParsedEdifactEnvelope {

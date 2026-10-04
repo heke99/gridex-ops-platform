@@ -1,3 +1,4 @@
+// masterplan: TR-04, AT-TR-04, SC-062
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { splitMimeParts } from '@/lib/inbound-mail/edielMailboxPoller.part-1'

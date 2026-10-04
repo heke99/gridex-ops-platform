@@ -8,6 +8,7 @@
 // owns the approval workflow + audit; it never auto-overwrites masterdata.
 
 import { supabaseService } from '@/lib/supabase/service'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 
 // Masterdata tables the AI/BI import path must never write to automatically.
 export const AI_BI_PROTECTED_MASTERDATA_TABLES = [
@@ -34,15 +35,6 @@ export function assertAiBiNeverOverwritesMasterdata(table: string): void {
   }
 }
 
-// Default retention policy for imported raw payloads (GDPR). Conservative default;
-// overridable per import/company policy.
-export const AI_BI_DEFAULT_RETENTION_DAYS = 365
-
-export function defaultRetentionUntil(now: Date = new Date()): string {
-  const until = new Date(now.getTime() + AI_BI_DEFAULT_RETENTION_DAYS * 24 * 60 * 60 * 1000)
-  return until.toISOString().slice(0, 10)
-}
-
 function isMissingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
   const message = String((error as { message?: unknown } | null)?.message ?? '')
@@ -61,6 +53,7 @@ export async function approveAiBiDiscrepancy(input: {
   actorUserId: string
   note?: string | null
 }): Promise<{ ok: boolean; discrepancyId: string; decision: AiBiDiscrepancyDecision; reason?: string }> {
+  await assertEdielTenantActor({companyId:input.companyId,actorUserId:input.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']})
   const nowIso = new Date().toISOString()
   const status = input.decision === 'rejected' ? 'rejected' : 'resolved'
   const { error } = await supabaseService

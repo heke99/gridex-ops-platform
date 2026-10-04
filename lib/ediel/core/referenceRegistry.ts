@@ -1,6 +1,7 @@
 // lib/ediel/core/referenceRegistry.ts
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
+import { randomBytes, randomUUID } from 'node:crypto'
 
 export type BuildReferenceInput = {
   family: string
@@ -24,15 +25,6 @@ function compactToken(value: string): string {
     .toUpperCase()
     .replace(/[^A-Z0-9]+/g, '')
     .slice(0, 12)
-}
-
-function randomToken(length = 8): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let result = ''
-  for (let i = 0; i < length; i += 1) {
-    result += chars[Math.floor(Math.random() * chars.length)]
-  }
-  return result
 }
 
 function shortContextId(input: BuildReferenceInput): string | null {
@@ -71,8 +63,9 @@ export function normalizeEdielReference(value?: string | null): string | null {
 }
 
 export function normalizeInterchangeReference(value?: string | null): string | null {
-  const normalized = trimOrNull(value)
-  return normalized ? normalized.slice(0, 35) : null
+  // Original physical identities must remain lossless. Admission validates the
+  // source profile's length; normalization may not silently invent a new ID.
+  return trimOrNull(value)
 }
 
 export function buildEdielExternalReference(input: BuildReferenceInput): string {
@@ -80,37 +73,30 @@ export function buildEdielExternalReference(input: BuildReferenceInput): string 
   const code = compactToken(input.code)
   const contextId = shortContextId(input)
   const timestamp = utcTimestampToken().slice(2)
-  const suffix = randomToken(4)
+  const suffix = randomUUID().replace(/-/g, '').toUpperCase()
 
   if (contextId) {
-    return `${family}-${code}-${contextId}-${timestamp}-${suffix}`.slice(0, 70)
+    return `${family.slice(0, 6)}-${code.slice(0, 6)}-${contextId}-${timestamp}-${suffix}`
   }
 
-  return `${family}-${code}-${timestamp}-${suffix}`.slice(0, 70)
+  return `${family.slice(0, 6)}-${code.slice(0, 6)}-${timestamp}-${suffix}`
 }
 
 export function buildEdielTransactionReference(input: BuildReferenceInput): string {
-  const family = compactToken(input.family)
-  const code = compactToken(input.code)
-  const contextId = shortContextId(input)
-  const timestamp = utcTimestampToken()
-  const suffix = randomToken(6)
-
-  if (contextId) {
-    return `${family}${code}${contextId}${timestamp}${suffix}`.slice(0, 35)
-  }
-
-  return `${family}${code}${timestamp}${suffix}`.slice(0, 35)
+  // Context stays in its UUID columns. Keep all UUID entropy on wire rather
+  // than truncating the random suffix after a long family/context prefix.
+  const prefix = compactToken(input.code || input.family).slice(0, 3)
+  return `${prefix}${randomUUID().replace(/-/g, '').toUpperCase()}`
 }
 
 export function buildEdielInterchangeReference(_params?: {
   senderEdielId?: string | null
   receiverEdielId?: string | null
 }) {
-  // Ediel PRODAT validation flags UNB/0020 and UNZ/0020 when the reference is too long.
-  // Keep it compact like the official examples. YYMMDDHHMMSS + two safe random chars = 14.
-  const timestamp = utcTimestampToken().slice(2)
-  return `${timestamp}${randomToken(2)}`.slice(0, 14)
+  void _params
+  // UNB/0020 is bounded to 14. Durable namespace reservation remains the
+  // collision authority; cryptographic allocation avoids tenant counters.
+  return randomBytes(7).toString('hex').toUpperCase()
 }
 
 
@@ -161,6 +147,17 @@ export function buildCanonicalOutboundReferences(params: {
   }
 }
 
+
+/** Format only newly allocated own ACK group identities. The caller supplies
+ * its canonical field-owner limit; no original/correlated identity is cut. */
+export function buildEdielAckGroupReference(input:{parentReference:string;groupIndex:number;groupCount:number;maxLength:number}):string {
+ const {parentReference,groupIndex,groupCount,maxLength}=input
+ if(!/^[A-Za-z0-9_.\/-]{1,35}$/.test(parentReference)||!Number.isSafeInteger(groupCount)||groupCount<1||!Number.isSafeInteger(groupIndex)||groupIndex<0||groupIndex>=groupCount||!Number.isSafeInteger(maxLength)||maxLength<1)throw new Error('ediel_own_ack_group_reference_invalid')
+ const reference=groupCount===1?parentReference:`${parentReference}-${groupIndex+1}`
+ if(reference.length>maxLength)throw new Error('ediel_own_ack_group_reference_invalid')
+ return reference
+}
+
 export function buildCanonicalAckReferences(params: {
   sourceMessage: EdielMessageRow
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
@@ -168,7 +165,7 @@ export function buildCanonicalAckReferences(params: {
   const ackFamily = params.ackFamily === 'UTILTS_ERR' ? 'UTILTS_ERR' : params.ackFamily
 
   return {
-    externalReference: buildEdielExternalReference({
+    externalReference: buildEdielTransactionReference({
       family: ackFamily,
       code: params.ackFamily,
       relatedMessageId: params.sourceMessage.id,

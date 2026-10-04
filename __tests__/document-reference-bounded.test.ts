@@ -1,12 +1,22 @@
 import {createHash,randomUUID} from 'node:crypto'
 import {afterEach,beforeEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
-const storage=vi.hoisted(()=>({download:vi.fn()}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{storage:{from:()=>storage}}}))
+const storage=vi.hoisted(()=>({download:vi.fn(),rpc:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:storage.rpc,storage:{from:()=>storage}}}))
 import * as documents from '@/lib/customer-contracts/documents'
 const row=(bytes:Uint8Array)=>({id:randomUUID(),company_id:randomUUID(),customer_contract_id:randomUUID(),document_type:'signed_contract_pdf',storage_bucket:'customer-contract-documents',storage_path:'synthetic.pdf',mime_type:'application/pdf',document_sha256:createHash('sha256').update(bytes).digest('hex'),generation_snapshot:{schema:'synthetic'},generated_at:'2026-01-01',archived_at:null,verified_at:null,created_at:'2026-01-01'})
 const read=(document:documents.CustomerContractDocumentRow)=>documents.downloadAndVerifyCustomerContractDocumentBounded(document)
-beforeEach(()=>vi.resetAllMocks());afterEach(()=>vi.useRealTimers())
+beforeEach(()=>{
+ vi.resetAllMocks()
+ // Explicit synthetic native class-read boundary; actual runtime validates
+ // these exact scope IDs. This does not qualify legal/native source facts.
+ storage.rpc.mockImplementation(async(name,args)=>{
+  expect(name).toBe('ediel_require_customer_record_available_v1')
+  expect(args.p_retention_class).toBe('contract_signed_pdf_bytes')
+  expect(args.p_company_id).toMatch(/^[0-9a-f-]{36}$/);expect(args.p_target_id).toMatch(/^[0-9a-f-]{36}$/)
+  return {error:null,data:{status:'not_tombstoned',companyId:args.p_company_id,targetId:args.p_target_id,customerId:'00000000-0000-4000-8000-000000000006',retentionClass:args.p_retention_class,authorizesProviderEntry:false}}
+ })
+});afterEach(()=>vi.useRealTimers())
 function serve(bytes:Uint8Array,chunk=65536){
  let offset=0
  storage.download.mockImplementation((_path,_options,fetchOptions)=>({asStream:async()=>({error:null,data:new ReadableStream<Uint8Array>({pull(controller){if(fetchOptions.signal.aborted){controller.error(Error('aborted'));return}if(offset===bytes.length){controller.close();return}controller.enqueue(bytes.subarray(offset,offset+=Math.min(chunk,bytes.length-offset)))}})})}))
@@ -42,4 +52,15 @@ it('discards a response arriving after the deadline and cancels its body',async(
 it('large first chunk is rejected before hashing, recording the observed overshoot',async()=>{
  const bytes=Buffer.alloc(10485760);serve(bytes,bytes.length)
  expect(await read(row(bytes))).toMatchObject({status:'unavailable',reason:'oversize',byteCount:10485760})
+})
+it('a fresh native tombstone denial holds before Storage starts',async()=>{
+ storage.rpc.mockResolvedValue({error:Error('customer_record_retention_tombstoned'),data:null});serve(Buffer.from('pdf'))
+ expect(await read(row(Buffer.from('pdf')))).toMatchObject({status:'unavailable',reason:'storage_error',byteCount:0})
+ expect(storage.download).not.toHaveBeenCalled()
+})
+it('a tombstone committed while bytes stream cannot reuse the earlier native read',async()=>{
+ serve(Buffer.from('pdf'));const original=storage.rpc.getMockImplementation()!
+ storage.rpc.mockImplementationOnce(original).mockResolvedValue({error:Error('customer_record_retention_tombstoned'),data:null})
+ expect(await read(row(Buffer.from('pdf')))).toMatchObject({status:'unavailable',reason:'storage_error',byteCount:3})
+ expect(storage.rpc).toHaveBeenCalledTimes(2)
 })

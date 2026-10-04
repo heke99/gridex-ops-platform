@@ -1,3 +1,35 @@
+## Current — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
+
+Last fully verified exact head `d30fa0203f0499a8e15faeddda7676af81296c86`; main/base `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Five mandatory workflows SUCCESS: Ediel36695341379, browser36695341358, FullE2E36695341472, tenant36695341489, OPS36695341457. OPS verify109821852569/quality109821852531/replay109821852700 SUCCESS. Native439/439 includes all27 S02 and exactSC0443IDE; case/browser/tenant/parity/types/schema PASS. Authentic artifact11087503506 ZIPsha4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6; types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d; schema8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93. All earlier d30/S02/SC044 pending text is superseded by these actual results.
+
+SC-044 PASSED after independent full-criterion source/facit/callgraph/oracle/native review. Exact one own acceptedseries/QTY136500/contract/positive312, own guide-negative313/42/209, own functionalE87 ERR, three finalreservations/ACKs and immutable fullretry. Receipt quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md. Wider U02/U03/U14/ACK03/08 remain PARTIAL; internal contract acceptance does not approve merge/traffic/billing.
+
+Current full121+231 inventory quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json/.md has352exactIDs,354committedreferencehashes atd30, literalcriteria/ownformal-gap/technicalcomponentresponsibility/approvalgate for eachID;28rows changed references since0b6ea32a. Fivepriorityrules andSC044freshsemanticreview; other20260927codefindings explicitlyinherited/notfreshlycertified. Rules110NOT_VERIFIED/11PARTIAL; contracts219NOT_EXECUTED/11PARTIAL/1PASSED. Frozen33originalfiles remainimmutable. No whole-system percentage.
+
+One active work item: U-03/ACK-03 direct syntax and header-scope test-first native package. Three new test-only probes (442planned): valid paired control then onlyUNT999; onlyUNH/UNTrefOTHER; SC045 onlyremoveheadDTM735+correctUNT with lower ownE87. Actualsourcecapture/policy/tenant/matching/SQL/ACKwriter/finalizer/retry; no productchange. Native not executed yet. Independent reviewersapprovefacit; existing identity guard refutes acceptedstorage risk of refOTHER, leaving only candidate syntaxACKlevel there. Read actualCI before productfix. Next: publish coherent acceptance/reconciliation/nativeprobe evidence fast-forward fromd30, inspect first realnativefail, make minimumsource-backed fix only ifconfirmed, then exactnewheadfullgates. Do not rerun green unchangedheads.
+
+External requests are concrete in external-evidence-requests-20260930.md, not sent: marketissuer/representation; archivecontinuousoriginal/deletioncoverage; legalretention/tombstones; positiveLOC175registry/mandate/separatedurableconsumer/ACKretryowner; E035pre/postepochproducer/erasurecutoff. Namedexternalowners and authenticnewrecords notestablished. Historical203/505, positive175, fullE035 BLOCKED; olderStoragecause UNKNOWN. Root sole writer, independentread-only reviewers. #421draftunmerged, #310untouched, trafficHELD; no staging/TGT/AGT/counterparty/real send.
+
+## 2026-09-30 — bd78 actual gate failures
+
+Replay437/438 agency89 failed because testexpectedallACKsempty, while legitimate technicalCONTRL persisted. No businessauthority/forecastgiven; laterretryassertionsnotreached. Follow-uprequiresexacttechnicalscopeandzeroapplication/businesseffects. Verifyfailed unchangedhighaudit onNodemailer9.1.1; exact10.0.13pin passeslocally. Older Storage delete/before_witness rootcause remainsUNKNOWN; neither newfailure is classifiedasenvironmentflak.
+
+## 2026-09-30 — Native-confirmed S02 missing own physical fields
+
+OPS36644820963/e1b4f897 replay109665237704 native414/426: six real consumers created own positive APERAK; six raw service RPC cases accepted both malformed attempts and committed1receipt/2accepted reservations/2forecasts/2contracts with own null point or empty quantities. All previous411 and all3 clean controls passed. Cause: global profile fallbacks, absent S02 own guide/hold, empty observations excluding S02 SQL point check and permissive forecast quantity persistence. Minimal local correction is ordinary45/45 green; native correction/final gates pending. Not a fixture or Storage failure. Earlier native-unproved text is historical; older Storage cause remains unknown.
+
+## 2026-09-30 — S02 ordinary RED; native unproved
+
+Unchangeddc1c9bae ordinary2/8PASS,6FAIL: missing own LOC172/QTY135/both still accepted/positive_aperak with clean sibling in either order. Qualifier does not hold S02; own persistence payload retains null/empty. Native15 cases pending; no product correction before native stage proof. Prepublication review corrected FTX+AAO field oracle (not RFF+AGO) and calls raw service RPC instead of an application adapter. ERR authority failure below is RESOLVED on finaldc1c9bae five green/native411; older Storage cause remains unknown.
+
+## 2026-09-29 — Actual ERR delivery authority failure
+
+Exactd8eccdd6 native411/411 clean replay succeeded. FullE2E36639377447 smoke/coverage and OPS quality109647751055 failed only the introduced direct utiltsRulebook import inack.ts (ordinary6255/6256). Local canonicalEdielPolicy replacement retains guard/allowlist and is109/109 green; new-head gates pending. This is an introduced architecture error, not Storage/environment flakiness. Older Storage cause remains unknown.
+
+## 2026-09-29 — Confirmed ERR native RED and inherited static oracle
+
+Test-only a671a663 native407/411: three consumer/interruption tests fail earlier at CANONICAL_PROCESS_GROUP_MISMATCH, and the canonically qualified direct gateway returns first IDE ACK for second same-code IDE. All previous407 native tests pass. Fix is scoped to canonical process/full-IDE identity; new exact-head results pending. Optional uninvoked gridex-utilts-aperak-profile-regression.cjs also fails on unchanged verified0b6ea32a: stale source-string check for params.sourceMessage.message_family, while implementation uses usesUtiltsAperakProfile. This baseline oracle is not silently changed or claimed green. Older Storage delete/before_witness cause remains unknown.
+
 ## 2026-09-24 — Resolved document native prerequisites and supply aliases
 
 Task2b initial native228/261 failed33 seeds because customers.read existed in catalog/legacy eight-digit INSERT files but not canonical fourteen-digit clean replay. Resolved by published forward20260924021718 materializing only the established key, ON CONFLICT DO NOTHING, no assignments; repeat/metadata/assignment preservation qualified. Do not infer DB registry presence from catalog or role arrays.

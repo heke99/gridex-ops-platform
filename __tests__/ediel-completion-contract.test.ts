@@ -68,7 +68,7 @@ describe('canonical UTILTS profile contract', () => {
     const profile = getCanonicalUtiltsProfile(code)
     expect(profile?.scope).toBe(scope)
     expect(profile?.requiresMeteringPoint).toBe(false)
-    expect(profile?.requiresGridArea).toBe(true)
+    expect(profile?.requiresGridArea).toBe(['S03', 'S04'].includes(code))
   })
 
   it.each(['E72', 'E73', 'E74', 'S06'] as const)(
@@ -91,11 +91,11 @@ describe('canonical UTILTS profile contract', () => {
     })
     expect(getCanonicalUtiltsProfile('E74')).toMatchObject({
       requiresMeteringPoint: false,
-      requiresGridArea: true,
+      requiresGridArea: false,
     })
     expect(getCanonicalUtiltsProfile('S06')).toMatchObject({
       requiresMeteringPoint: false,
-      requiresGridArea: true,
+      requiresGridArea: false,
     })
   })
 
@@ -124,21 +124,21 @@ describe('inbound UTILTS identity requirements', () => {
   it('does not force a metering-point lookup for aggregate facts', () => {
     expect(resolveInboundIdentityRequirements({ family: 'UTILTS', code: 'E31' })).toEqual({
       requiresMeteringPoint: false,
-      requiresGridArea: true,
+      requiresGridArea: false,
     })
   })
 
   it('keeps object transactions scoped to a metering point', () => {
     expect(resolveInboundIdentityRequirements({ family: 'UTILTS', code: 'E66' })).toEqual({
       requiresMeteringPoint: true,
-      requiresGridArea: true,
+      requiresGridArea: false,
     })
   })
 
   it('does not force a metering point on aggregate requests', () => {
     expect(resolveInboundIdentityRequirements({ family: 'UTILTS', code: 'E74' })).toEqual({
       requiresMeteringPoint: false,
-      requiresGridArea: true,
+      requiresGridArea: false,
     })
   })
 })

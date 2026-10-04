@@ -1,5 +1,6 @@
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
+import {recordUtiltsTechnicalReception,registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 import {afterEach,beforeAll,expect,it,vi} from 'vitest'
 import {closureFixture as originalClosureFixture} from '../__tests__/helpers/closureWireFixtures'
 import {reviewReceivedClosureSource} from '@/lib/ediel/sources/reviewReceivedClosureSource'
@@ -32,7 +33,8 @@ const utiltsStructureWire=viaOriginalCalendar(originalUtiltsStructureWire,CALEND
 
 // No database/client, parser, canonical registry or ownership decision is
 // mocked. Only unrelated notification/event sinks are withheld on this runner.
-const utiltsEffects=vi.hoisted(()=>({ack:vi.fn(),meter:vi.fn(),interruptParsed:false}))
+const utiltsEffects=vi.hoisted(()=>({ack:vi.fn(),meter:vi.fn(),provider:vi.fn(),interruptParsed:false}))
+vi.mock('nodemailer',()=>({default:{createTransport:()=>({sendMail:utiltsEffects.provider})}}))
 vi.mock('@/lib/ediel/db',async original=>{
  const actual=await original<typeof import('@/lib/ediel/db')>()
  return {...actual,createEdielMessageEvent:async()=>null,updateEdielMessageStatus:async(input:Parameters<typeof actual.updateEdielMessageStatus>[0])=>{
@@ -51,10 +53,13 @@ import {supabaseService} from '@/lib/supabase/service'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {captureFreshEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
 import {createReceivedSourceOwnerSession} from '@/lib/ediel/sources/receivedSourceOwnerSession'
 import {applyInboundBusinessStateMachine} from '@/lib/ediel/flows/inboundBusinessStateMachine'
 import {resolveCanonicalMessagePolicy} from '@/lib/ediel/core/messagePolicy'
 import {finalizeSupplierSwitchExecution} from '@/lib/operations/db'
+import {seedNormalSwitchNativeFixture} from './helpers/ediel-normal-switch-native-fixture'
+import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
 
 import {inspectReceivedSourceDecisionTimeline} from '@/lib/ediel/sources/receivedSourceDecisionTimeline'
 
@@ -71,74 +76,115 @@ function fixtureGsrn(sequence:number):string {
   const weighted=[...first17].reduce((sum,digit,index)=>sum+Number(digit)*(index%2===0?3:1),0)
   return `${first17}${(10-weighted%10)%10}`
 }
-/** Only draft business rows are seeded. The actual business owner must perform
- * the UPDATE and supply INSERT through the real Supabase HTTP API. */
+type NativeWireScope={external:string;sender:string;receiver:string;caseReference:string;gridArea:string;brpEdielId:string;
+ customerIdentity:{id:string;qualifier:string;agency:string}}
+/** The synthetic native rows use test_flag=1. Stamp physical UNB 0035 while
+ * constructing their wire, before the actual insertion-scoped source seal. */
+function nativeTestWire(wire:string):string {
+ const {una,segments}=tokenizeEdifact(wire),headers=segments.filter(segment=>segment.tag==='UNB')
+ expect(headers).toHaveLength(1)
+ const header=headers[0],span=segmentSourceSpan(header)
+ expect(span).not.toBeNull()
+ const fields:string[]=[];let field='',released=false
+ for(const char of header.raw){
+  if(released){field+=char;released=false;continue}
+  if(char===una.releaseCharacter){field+=char;released=true;continue}
+  if(char===una.dataElementSeparator){fields.push(field);field='';continue}
+  field+=char
+ }
+ fields.push(field)
+ while(fields.length<12)fields.push('')
+ // Preserve the existing technical acknowledgement request separately.
+ fields[9]='1'
+ fields[11]='1'
+ const stamped=wire.slice(0,span!.startOffset)+fields.join(una.dataElementSeparator)+wire.slice(span!.endOffset)
+ expect(tokenizeEdifact(stamped).segments.find(segment=>segment.tag==='UNB')?.elements[11]).toBe('1')
+ expect(tokenizeEdifact(stamped).segments.find(segment=>segment.tag==='UNB')?.elements[9]).toBe('1')
+ return stamped
+}
+/** Substitute declared placeholder addresses only, keeping physical reference
+ * and customer namespaces tied to this fixture's actual rendered Z03. */
+function scopedWire(scope:NativeWireScope,wire:string):string {
+ return nativeTestWire(wire.replaceAll('735123456789012345',scope.external)
+  .replaceAll('NAD+Z02+54321:160:SVK',`NAD+Z02+${scope.brpEdielId}:160:SVK`)
+  .replaceAll('12345:14',`${scope.receiver}:14`).replaceAll('54321:14',`${scope.sender}:14`)
+  .replaceAll('12345:ZZ',`${scope.receiver}:ZZ`).replaceAll('54321:ZZ',`${scope.sender}:ZZ`)
+  .replaceAll('12345:160:SVK',`${scope.receiver}:160:SVK`).replaceAll('54321:160:SVK',`${scope.sender}:160:SVK`)
+  .replaceAll('RFF+LI:CASE-1',`RFF+LI:${scope.caseReference}`)
+  .replaceAll('RFF+Z05:NET-1',`RFF+Z05:${scope.gridArea}`)
+  .replaceAll('RFF+Z05:NET\'',`RFF+Z05:${scope.gridArea}'`)
+  .replaceAll('NAD+Z02+11111:160:SVK',`NAD+Z02+${scope.brpEdielId}:160:SVK`)
+  .replaceAll('NAD+UD+CUSTOMER-1::89',`NAD+UD+${scope.customerIdentity.id}:${scope.customerIdentity.qualifier}:${scope.customerIdentity.agency}`))
+}
+/** Synthetic entities use the actual signed contract, original and accepted
+ * provider owners. The supply INSERT still belongs to the native business RPC. */
 async function seed(delegated=false, structural=false) {
-  const caseNo=++serial
-  const id=(n:number)=>`10000000-0000-4000-8000-${String(caseNo*100+n).padStart(12,'0')}`
-  const ids={source:id(1),company:id(2),customer:id(3),point:id(4),site:id(5),grid:id(6),switch:id(7),actor:id(9),transport:id(10),outbound:id(11),reviewer:id(12),route:id(13),routeProfile:id(14)}
-  // E66 positive paths reuse this seeded point; keep its GS1 digit valid.
-  const external=fixtureGsrn(caseNo)
-  const transportEdiel=String(88000+caseNo)
-  const input=structural?structuralOwnerSource():ownerSource(), wire=String(input.raw_payload).replaceAll('735123456789012345',external).replace('+54321:14+',delegated?`+${transportEdiel}:14+`:'+54321:14+')
+  const caseNo=++serial,sourceId=randomUUID(),reviewer=randomUUID(),transport=randomUUID()
+  // The source clock may be mature for activation probes. Structural coverage
+  // keeps its declared October boundary; neither lane edits accepted receipts.
+  const requestedStartDate=structural?S('2026-10-01'):S('2026-09-24')
+  vi.stubEnv('EDIEL_SHARED_MAILBOX_ADDRESS','synthetic@example.invalid')
+  vi.stubEnv('EDIEL_APP_DKIM_ENABLED','false');vi.stubEnv('EMAIL_PROVIDER','resend')
+  vi.stubEnv('EDIEL_SMTP_FROM','synthetic@example.invalid');vi.stubEnv('EDIEL_SMTP_USER','synthetic@example.invalid')
+  vi.stubEnv('EDIEL_SMTP_PASS','synthetic-only');vi.stubEnv('EDIEL_EMAIL_PROVIDER','strato')
+  const providerCalls=utiltsEffects.provider.mock.calls.length
+  const native=await seedNormalSwitchNativeFixture({requestedStartDate,external:fixtureGsrn(caseNo),provider:email=>{
+    utiltsEffects.provider.mockResolvedValue({accepted:[email],rejected:[],messageId:`native-original-${sourceId}`,response:'250 synthetic accepted'})
+  }})
+  expect(utiltsEffects.provider).toHaveBeenCalledTimes(providerCalls+1)
+  const ids={source:sourceId,company:native.companyId,customer:native.customerId,point:native.pointId,site:native.siteId,
+    grid:native.gridId,switch:native.switchId,actor:native.actorUserId,transport,outbound:native.originalZ03.id,reviewer,
+    route:native.routeId,routeProfile:native.routeProfileId,contract:native.contractId}
   const p=(key:keyof typeof ids)=>literal(ids[key])
-  sql(`
-  DO $$ BEGIN IF EXISTS(SELECT FROM public.companies WHERE id=${p('company')}) THEN RAISE EXCEPTION 'native_fixture_collision';END IF;END $$;
-  INSERT INTO public.companies(id,name,status) VALUES(${p('company')},'E035 native runtime synthetic ${caseNo}','active');
-  INSERT INTO public.customers(id,company_id,customer_number,name,customer_type) VALUES(${p('customer')},${p('company')},'E035-NATIVE-${caseNo}','Synthetic native customer','private');
-  INSERT INTO public.grid_owners(id,company_id,name,ediel_id,environment,is_active,lifecycle_status) VALUES(${p('grid')},${p('company')},'Synthetic native grid ${caseNo}','12345','test',true,'active');
-  INSERT INTO public.customer_sites(id,company_id,customer_id,site_name,site_type,status,country,facility_id,grid_owner_id) VALUES(${p('site')},${p('company')},${p('customer')},'Synthetic native site','consumption','active','SE',${literal(external)},${p('grid')});
-  INSERT INTO public.metering_points(id,company_id,customer_id,site_id,customer_site_id,metering_point_id,meter_point_id,reading_frequency,measurement_type,is_settlement_relevant,grid_owner_id) VALUES(${p('point')},${p('company')},${p('customer')},${p('site')},${p('site')},${literal(external)},${literal(external)},'hourly','consumption',true,${p('grid')});
-  INSERT INTO public.tenant_ediel_profiles(company_id,environment,market,is_enabled,valid_from) VALUES(${p('company')},'test','electricity',true,clock_timestamp()-interval '1 day');
-  INSERT INTO public.tenant_actor_identifiers(company_id,environment,actor_id,identifier_type,identifier_value,valid_from) VALUES(${p('company')},'test',${p('actor')},'EdielId','54321',clock_timestamp()-interval '1 day');
-  INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from) VALUES(${p('company')},'test',${p('actor')},'electricity_supplier',clock_timestamp()-interval '1 day');
-  ${delegated?`
-  INSERT INTO public.platform_market_actors(id,name) VALUES(${p('transport')},'Synthetic native transport ${caseNo}');
-  INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to) VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'${S('2026-01-01')}','${S('2099-01-01')}');
-  INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from) VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 day');`:''}
-
-  INSERT INTO public.supplier_switch_requests(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,request_type,status,requested_start_date,rff_li_reference) VALUES(${p('switch')},${p('company')},${p('customer')},${p('site')},${p('point')},${p('grid')},'switch','draft','${S('2026-10-01')}','CASE-1');
-  ${structural?`
-  INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
-  VALUES(${p('reviewer')},'authenticated','authenticated','e035-native-${caseNo}@example.invalid',now(),'{}','{}',now(),now(),false,false);
-  INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
-  VALUES(${p('reviewer')},'e035-native-${caseNo}@example.invalid','Synthetic E035 reviewer','active',now(),now()) ON CONFLICT(id) DO UPDATE SET user_status='active';
-  INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
-  VALUES(${p('company')},${p('reviewer')},'company_admin','active',now(),'{}','company_admin',true,now(),'company_admin');
-  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
-  SELECT ${p('reviewer')},id,'company_admin',${p('company')},'active',true FROM public.roles WHERE key='company_admin'
-  ON CONFLICT DO NOTHING;
-  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
-  SELECT ${p('reviewer')},${p('company')},id,'ediel_testing.write' FROM public.permissions WHERE key='ediel_testing.write';
-  INSERT INTO public.communication_routes(id,company_id,route_name,grid_owner_id,environment_type,is_active)
-  VALUES(${p('route')},${p('company')},'Isolated synthetic native route',${p('grid')},'bilateral_test',true);
-  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-  VALUES(${p('routeProfile')},${p('company')},${p('route')},'Isolated synthetic native profile','test','edifact','54321','12345','23-DDQ-PRODAT',true);
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_sent_at,application_reference,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('outbound')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','outbound','edifact','PRODAT','Z03','sent',${literal(wire.replace('BGM+Z04','BGM+Z03'))},'{}',clock_timestamp(),'23-DDQ-PRODAT',${p('route')},${p('routeProfile')},${p('switch')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z03:L:26.A:r3' AND profile.is_enabled;
-  UPDATE public.supplier_switch_requests SET outbound_z03_message_id=${p('outbound')} WHERE id=${p('switch')};
-  `:''}
-  INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',${literal(wire)},${literal(input.parsed_payload)}::jsonb,${structural?"clock_timestamp()":"clock_timestamp()-interval '2 minutes'"},'{}','23-DDQ-PRODAT','12345',${literal(delegated?transportEdiel:'54321')},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;
-
-  `)
+  const scope={external:native.external,sender:native.sender,receiver:native.receiver,caseReference:native.caseReference,
+    customerIdentity:native.customerIdentity,requestedStartDate,gridArea:native.gridAreaCode,brpEdielId:native.brpEdielId}
+  const input=structural?structuralOwnerSource():ownerSource()
+  let wire=scopedWire(scope,String(input.raw_payload))
+  if(!structural)wire=wire.replaceAll(`DTM+92:${S('2026-10-01').replaceAll('-','')}0000:203`,`DTM+92:${requestedStartDate.replaceAll('-','')}0000:203`)
+  const transportEdiel=sql<string>(`SELECT to_jsonb(min(n)::text) FROM generate_series(90000,99999) n
+    WHERE NOT EXISTS(SELECT FROM public.platform_actor_identifiers WHERE identifier_type='EdielId' AND identifier_value=n::text)`)
+  if(delegated)wire=wire.replace(`+${native.sender}:14+`,`+${transportEdiel}:14+`)
+  sql(`INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
+    VALUES(${p('reviewer')},'authenticated','authenticated',${literal(`e035-native-reviewer-${reviewer}@example.invalid`)},now(),'{}','{}',now(),now(),false,false);
+    INSERT INTO public.user_profiles(id,email,full_name,user_status,created_at,updated_at)
+    VALUES(${p('reviewer')},${literal(`e035-native-reviewer-${reviewer}@example.invalid`)},'Synthetic E035 scoped reviewer','active',now(),now())
+    ON CONFLICT(id) DO UPDATE SET user_status='active';
+    INSERT INTO public.company_memberships(company_id,user_id,membership_role,status,accepted_at,metadata,role,is_active,joined_at,role_key)
+    VALUES(${p('company')},${p('reviewer')},'member','active',now(),'{}','member',true,now(),'member');
+    INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
+    SELECT ${p('reviewer')},${p('company')},permission.id,permission.key FROM public.permissions permission
+    WHERE permission.key IN('communication.read','communication.write','communication.send','metering.read','metering.write','ediel_testing.write');
+    ${delegated?`INSERT INTO public.platform_market_actors(id,name) VALUES(${p('transport')},'Synthetic native transport ${caseNo}');
+      INSERT INTO public.platform_actor_identifiers(actor_id,identifier_type,identifier_value,is_verified,valid_from,valid_to)
+      VALUES(${p('transport')},'EdielId',${literal(transportEdiel)},true,'${S('2026-01-01')}','${S('2099-01-01')}');
+      INSERT INTO public.tenant_counterparty_relations(company_id,environment,counterparty_actor_id,relation_type,is_enabled,valid_from)
+      VALUES(${p('company')},'test',${p('transport')},'ediel_transport_agent',true,clock_timestamp()-interval '1 second');`:''}
+    INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,
+      raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
+      canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
+    SELECT ${p('source')},${p('company')},${p('customer')},${p('site')},${p('point')},'test','inbound','edifact','PRODAT','Z04','received',
+      ${literal(wire)},${literal(input.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',${literal(native.receiver)},
+      ${literal(delegated?transportEdiel:native.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+    FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
+    WHERE profile.profile_key='PRODAT:Z04:L:26.A:r3' AND profile.is_enabled;`)
   const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',ids.source).single()
   expect(error).toBeNull();expect(data).not.toBeNull()
-  if(structural){
-    const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
-      p_actor_user_id:ids.reviewer,p_company_id:ids.company,p_permission:'ediel_testing.write',
+  for(const permission of ['ediel_testing.write','metering.read','communication.read']){
+    const authorized=await supabaseService.rpc('gridex_actor_has_company_permission',{
+      p_actor_user_id:ids.reviewer,p_company_id:ids.company,p_permission:permission,
     })
-    expect(permission.error).toBeNull();expect(permission.data).toBe(true)
+    expect(authorized.error).toBeNull();expect(authorized.data).toBe(true)
   }
-  return {ids,original:data as unknown as EdielMessageRow}
+  return {ids,original:data as unknown as EdielMessageRow,...scope}
 }
 async function prepare(f:Awaited<ReturnType<typeof seed>>) {
   const decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
   const canonical=await recordReceivedSourceValidation({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision})
   expect(canonical, JSON.stringify({rulePackEvidence:decision.validationReport.rulePackEvidence,sourceReceivedAt:f.original.message_received_at,context:f.original.execution_context_snapshot})).toMatchObject({status:'recorded'})
+  // Production order (lib/ediel/flows/inboundProcessing.ts): an accepted
+  // PRODAT source's own rule-pack receipt is captured right after its record.
+  await captureFreshEdielSourceRulePackEvidence(f.ids.company,f.original.id)
   const session=createReceivedSourceOwnerSession(canonical)
   expect(session).not.toBeNull()
   return {canonical,session:session!}
@@ -146,7 +192,7 @@ async function prepare(f:Awaited<ReturnType<typeof seed>>) {
 async function complete(f:Awaited<ReturnType<typeof seed>>,given?:Awaited<ReturnType<typeof prepare>>) {
   const prepared=given ?? await prepare(f)
   const result=await applyInboundBusinessStateMachine({message:f.original,actorUserId:f.ids.actor,matchedSwitchRequestId:f.ids.switch,onSourceSwitchCommitted:prepared.session.onSwitchCommitted})
-  expect(result.outcome).toBe('supplier_switch_accepted')
+  expect(result.outcome, JSON.stringify(result)).toBe('supplier_switch_accepted')
   return prepared.session.finish()
 }
 function stored(source:string) {
@@ -163,7 +209,33 @@ beforeAll(async()=>{
   }
   throw Error('native_schema_cache_not_ready')
 })
-afterEach(()=>{utiltsEffects.interruptParsed=false;vi.restoreAllMocks()})
+afterEach(()=>{utiltsEffects.interruptParsed=false;vi.restoreAllMocks();vi.unstubAllEnvs();utiltsEffects.provider.mockReset()})
+
+it('the actual saved normal Z03 requests both ACKs and persists their pending deadline under a scoped actor',async()=>{
+  const startedAt=Date.now(),f=await seed(),finishedAt=Date.now()
+  const {data:original,error}=await supabaseService.from('ediel_messages').select('*')
+    .eq('id',f.ids.outbound).eq('company_id',f.ids.company).eq('environment','test').single()
+  expect(error).toBeNull();expect(original).not.toBeNull()
+  expect(original).toMatchObject({direction:'outbound',message_family:'PRODAT',message_code:'Z03',
+    requires_contrl:true,requires_aperak:true,contrl_status:'pending',aperak_status:'pending',status:'sent'})
+  // Check the rendered envelope and persisted policy independently of the
+  // builder/defaults used to originate it. The configured deadline is 30 minutes.
+  const unb=tokenizeEdifact(original!.raw_payload!).segments.filter(segment=>segment.tag==='UNB')
+  expect(unb).toHaveLength(1);expect(unb[0].elements[9]).toBe('1')
+  const deadline=Date.parse(original!.ack_due_at!)
+  expect(Number.isFinite(deadline)).toBe(true)
+  expect(deadline).toBeGreaterThanOrEqual(startedAt+30*60*1000)
+  expect(deadline).toBeLessThanOrEqual(finishedAt+30*60*1000)
+  expect(sql(`SELECT jsonb_build_object('admin',EXISTS(SELECT FROM public.admin_users WHERE user_id=${literal(f.ids.actor)}),
+    'member',EXISTS(SELECT FROM public.company_memberships WHERE user_id=${literal(f.ids.actor)}
+      AND company_id=${literal(f.ids.company)} AND status='active' AND is_active AND accepted_at IS NOT NULL),
+    'providerAccepted',EXISTS(SELECT FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.ids.outbound)}
+      AND company_id=${literal(f.ids.company)} AND environment='test' AND classification='accepted'
+      AND entered_at IS NOT NULL AND observed_at IS NOT NULL),
+    'current',gridex_received_sources.sent_source_is_current_v1(m))
+    FROM public.ediel_messages m WHERE id=${literal(f.ids.outbound)} AND company_id=${literal(f.ids.company)}`))
+    .toEqual({admin:false,member:true,providerAccepted:true,current:true})
+})
 
 it('the semantic runtime key cannot impersonate the actual activation-row key in SQL',async()=>{
   const f=await seed(),decision=await resolveCanonicalRuntimeDecisionWithRegistry(f.original)
@@ -172,9 +244,17 @@ it('the semantic runtime key cannot impersonate the actual activation-row key in
   expect(evidence.profileKey).not.toBe(evidence.databaseProfileKey)
   const wrongNamespace=structuredClone(decision)
   delete (wrongNamespace.validationReport.rulePackEvidence as Record<string,unknown>).databaseProfileKey
-  const wrong=buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision:wrongNamespace})
-  expect(wrong).not.toBeNull()
-  const {error}=await supabaseService.rpc('gridex_record_source_validation_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:wrong!.sourcePayloadHash,p_facts_text:wrong!.factsText})
+  // The TypeScript adapter already refuses to build such evidence.
+  expect(buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision:wrongNamespace})).toBeNull()
+  // SQL must refuse it independently: genuine evidence carries the activation
+  // row key; substitute the semantic runtime key in the appended facts.
+  const genuine=buildReceivedSourceValidationEvidence({original:f.original,validated:f.original,resolvedCompanyId:f.ids.company,decision})
+  expect(genuine).not.toBeNull()
+  const facts=JSON.parse(genuine!.factsText) as {rulePackEvidence:Record<string,unknown>}
+  expect(facts.rulePackEvidence.profileKey).toBe('PRODAT:Z04:L:26.A:r3')
+  facts.rulePackEvidence.profileKey=evidence.profileKey
+  const wrong={sourcePayloadHash:genuine!.sourcePayloadHash,factsText:JSON.stringify(facts)}
+  const {error}=await supabaseService.rpc('gridex_record_source_validation_v1',{p_company_id:f.ids.company,p_environment:'test',p_source_message_id:f.ids.source,p_source_payload_hash:wrong.sourcePayloadHash,p_facts_text:wrong.factsText})
   expect(error?.code).toBe('23514');expect(error?.message).toBe('received_validation_rule_evidence_unavailable')
   await prepare(f)
 })
@@ -191,9 +271,8 @@ it.each([false,true])('real HTTP/database owners commit and persist source appro
 it('actual activation writes a switch event bound to the source request tenant',async()=>{
   const f=await seed(true)
   expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
-  // Mature the synthetic effective date after the real correlated Z04 write.
-  sql(`UPDATE public.supplier_switch_requests SET confirmed_start_date='${S('2026-09-24')}'
-    WHERE id=${literal(f.ids.switch)};`)
+  // The mature date belongs to the original rendered Z03 and immutable native
+  // confirmation. Mutable date edits cannot manufacture activation authority.
   const result=await finalizeSupplierSwitchExecution(supabaseService,{
     requestId:f.ids.switch,actorUserId:f.ids.actor,executionSource:'manual_admin',
   })
@@ -222,7 +301,7 @@ it('a real owner-row change between HTTP reads and append is rejected by SQL',as
   expect(await complete(f,prepared)).toMatchObject({status:'unconfirmed',sourceDisposition:'not_established'})
   expect(stored(f.ids.source)).toEqual([])
 })
-it('a real second-write failure never grants source approval and preserves the first committed write',async()=>{
+it('a real second-effect failure rolls back the normal switch transaction and grants no source approval',async()=>{
   const f=await seed(),{session}=await prepare(f)
   sql(`ALTER TABLE public.customer_supply_periods ADD CONSTRAINT e035_native_supply_failure CHECK(company_id<>${literal(f.ids.company)}::uuid)`)
   try {
@@ -230,7 +309,8 @@ it('a real second-write failure never grants source approval and preserves the f
   } finally {sql('ALTER TABLE public.customer_supply_periods DROP CONSTRAINT e035_native_supply_failure')}
   expect(await session.finish()).toMatchObject({sourceDisposition:'not_established'})
   expect(stored(f.ids.source)[0].facts).toMatchObject({objects:[{disposition:'unavailable'}]})
-  expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.ids.switch)}`)).toBe('accepted')
+  expect(sql(`SELECT to_jsonb(status) FROM public.supplier_switch_requests WHERE id=${literal(f.ids.switch)}`)).toBe('prepared')
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.supply_source_transitions WHERE source_message_id=${literal(f.ids.source)}`)).toBe(0)
 })
 it('native ACL/scope checks reject a different tenant using otherwise genuine assessment data',async()=>{
   const f=await seed();expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});const a=stored(f.ids.source)[0]
@@ -304,7 +384,7 @@ it('actual unwitnessed successor prevents an accepted predecessor being revived'
 // Market-structure integration: real canonical registry, actual committed Z04
 // owner, full original review, immutable snapshots and comparison. No authority
 // or decision is mocked. Fixtures are isolated localhost synthetic entities.
-async function reviewed(f:Awaited<ReturnType<typeof seed>>,source=f.ids.source,replaces:string|null=null){
+async function reviewed(f:Awaited<ReturnType<typeof seed>>,source:string=f.ids.source,replaces:string|null=null){
  const result=await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,
   reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:replaces})
  expect(result,JSON.stringify(stored(source).map(row=>row.facts))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
@@ -318,42 +398,50 @@ async function structuralSnapshot(f:Awaited<ReturnType<typeof seed>>,cutoffAt=sq
  return result
 }
 async function insertPriorUtilts(f:Awaited<ReturnType<typeof seed>>,raw:string,code:'E66'|'E30'|'S07'='E66'){
- const original=utiltsNativeSourceFixture(raw,randomUUID())
+ const original=utiltsNativeSourceFixture(scopedWire(f,raw),randomUUID())
  const {id,parsed}=original
+ // The grid-owner issuer named in NAD+MS holds an approved issuer/mandate version.
+ const issuer=/NAD\+MS\+([0-9]+):/.exec(original.raw)?.[1]
+ expect(issuer).toBeDefined();registerUtiltsIssuer(sql,literal,issuer!,f.ids.actor)
  sql(`INSERT INTO public.ediel_messages(id,company_id,customer_id,site_id,metering_point_id,grid_owner_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,execution_context_snapshot,application_reference,sender_ediel_id,receiver_ediel_id,interchange_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
- SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?S('2026-09-30T20:00:00Z'):S('2026-10-01T20:00:00Z'))},'{}',${literal(parsed.applicationReference)},'12345','54321',${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
+ SELECT ${literal(id)},${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},${literal(f.ids.grid)},'test','inbound','edifact','UTILTS',${literal(code)},'received',${literal(original.raw)},'{}',${literal(code==='E66'?S('2026-09-30T20:00:00Z'):S('2026-10-01T20:00:00Z'))},'{}',${literal(parsed.applicationReference)},${literal(f.receiver)},${literal(f.sender)},${literal(parsed.interchangeReference)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
  WHERE profile.message_code=${literal(code)} AND profile.direction IN ('inbound','both') AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
  expect(error).toBeNull();expect(data).not.toBeNull()
+ // Production reception records the interchange's technical syntax decision
+ // before any business processing or reply read.
+ await recordUtiltsTechnicalReception(data as unknown as EdielMessageRow,f.ids.actor)
+ seedUtiltsIssuerHistoryGround(sql,literal,id,f.ids.actor)
  return data as unknown as EdielMessageRow
 }
 /** Active qualification binds its combined read to a genuine inbound message.
  * Persist each synthetic wire before invoking it; no outbound Z03 surrogate. */
 function persistUtiltsSubject(f:Awaited<ReturnType<typeof seed>>,message:EdielMessageRow){
- const id=randomUUID()
+ const id=randomUUID(),wire=scopedWire(f,message.raw_payload!)
  sql(`INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,message_code,
   status,raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
   canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(id)},${literal(f.ids.company)},'test','inbound','edifact','UTILTS',${literal(message.message_code)},
-  'received',${literal(message.raw_payload)},'{}',clock_timestamp(),${literal(message.application_reference)},
-  '12345','54321',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,
+  'received',${literal(wire)},'{}',clock_timestamp(),${literal(message.application_reference)},
+  ${literal(f.receiver)},${literal(f.sender)},pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,
   pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
  WHERE profile.message_code=${literal(message.message_code)} AND profile.direction IN ('inbound','both')
   AND profile.is_enabled ORDER BY profile.profile_key LIMIT 1;`)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(id)}
   AND company_id=${literal(f.ids.company)} AND direction='inbound' AND message_family='UTILTS'`)).toBe(1)
- return {...message,id}
+ return {...message,id,raw_payload:wire,sender_ediel_id:f.receiver,receiver_ediel_id:f.sender}
 }
 function priorNativeWire(f:Awaited<ReturnType<typeof seed>>,point:string){
- return observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
-  .replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
-  .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202610150000'))
-  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500')
+ return nativeTestWire(observationHandoffMessage(S('2026-09-30'),f.ids.company).raw_payload!
+  .replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
+  // DTM+354:1:802 is a whole-month E66 resolution: keep a whole market month.
+  .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202611010000'))
+  .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1').replace('QTY+220:11000','QTY+220:10500'))
 }
 async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point:string){
- const sourceMessageId=randomUUID(),wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ const sourceMessageId=randomUUID(),wire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point))
  sql(`INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
   SELECT ${literal(f.ids.reviewer)},${literal(f.ids.company)},id,key FROM public.permissions WHERE key='communication.send'
   ON CONFLICT DO NOTHING;
@@ -361,7 +449,7 @@ async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point
    raw_payload,parsed_payload,message_received_at,application_reference,sender_ediel_id,receiver_ediel_id,
    canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(sourceMessageId)},${literal(f.ids.company)},'test','inbound','edifact','PRODAT','Z05','received',
-   ${literal(wire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT','12345','54321',
+   ${literal(wire)},'{"subtype":"C"}',clock_timestamp(),'23-DDQ-PRODAT',${literal(f.receiver)},${literal(f.sender)},
    pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
   WHERE profile.profile_key='PRODAT:Z05:C:26.A:r3' AND profile.is_enabled;`)
@@ -372,7 +460,7 @@ async function captureNativeCorrectionC(f:Awaited<ReturnType<typeof seed>>,point
 async function insertStructuralChange(f:Awaited<ReturnType<typeof seed>>,code:'Z06'|'Z10',reason:string,document:string,replacement=false){
  const message=structuralOwnerSource(code,reason,document,replacement)
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- const body=message.raw_payload!.replaceAll('735123456789012345',external)
+ const body=scopedWire(f,message.raw_payload!.replaceAll('735123456789012345',external))
  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
   SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT',${literal(code)},'received',${literal(body)},${literal(message.parsed_payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
   FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:${code}:${(message.parsed_payload as Record<string,unknown>).subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
@@ -386,7 +474,7 @@ it('native full-original Z04 review proves post-ledger coverage without replayin
  expect(result.versions).toHaveLength(1);expect(result.versions[0]).toMatchObject({disposition:'accepted',coverage:{kind:'post_ledger_supply'}})
  expect(stored(f.ids.source)).toHaveLength(2)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.customer_supply_periods WHERE source_message_id=${literal(f.ids.source)}`)).toBe(1)
- const wire=utiltsStructureWire({period:S('202610010000202610150000'),meter:'METER-1',ids:['101'],sender:'12345',receiver:'54321'}).replaceAll(STRUCTURE_POINT,result.versions[0].wire.object.objectId!)
+ const wire=utiltsStructureWire({period:S('202610010000202610150000'),meter:'METER-1',ids:['101'],sender:f.receiver,receiver:f.sender}).replaceAll(STRUCTURE_POINT,result.versions[0].wire.object.objectId!)
  expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:result.timeline.cutoffAt??'',ledgerStartedAt:result.timeline.ledgerStartedAt??'',
   readComplete:true,unresolvedSources:result.unresolvedSources,versions:result.versions})).toMatchObject({status:'matched',codes:[]})
 })
@@ -410,9 +498,9 @@ it('real UTILTS qualification saves and consumes a witnessed C hold without pers
  await reviewed(f)
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const utilts=observationHandoffMessage(S('2026-10-01'),f.ids.company)
- utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
- utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345')
-  .replaceAll('21660','54321').replaceAll(S('202607010000'),S('202610010000'))
+ utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
+ utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100',f.receiver)
+  .replaceAll('21660',f.sender).replaceAll(S('202607010000'),S('202610010000'))
   .replaceAll(S('202608010000'),S('202610150000')).replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:S('2026-10-01'),
   applicationReference:utilts.application_reference,mode:'parse'})
@@ -468,9 +556,9 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const utilts=observationHandoffMessage(S('2026-10-01'),f.ids.company)
  utilts.message_code=code;utilts.application_reference=code==='E30'?'23-MDR-E30-T':'23-DDQ-S07-T'
- utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+ utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
  utilts.raw_payload=code==='E30'
-  ?priorE30PointWire('E24','METER-1',point).replaceAll('91100','12345').replaceAll('21660','54321')
+  ?priorE30PointWire('E24','METER-1',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
   :priorNativeWire(f,point).replace('BGM+E66::260','BGM+S07:SVK:260').replaceAll('23-DDQ-E66-S','23-DDQ-S07-T')
  const policy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:code,direction:'inbound',referenceDate:S('2026-10-01'),
   applicationReference:utilts.application_reference,mode:'parse'})
@@ -494,6 +582,11 @@ it.each(['E30','S07'] as const)('native witnessed C holds a previously matched %
  expect(sql(`SELECT to_jsonb(readset_hash=${literal(before.evidence.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.evidence.snapshotId)}`)).toBe(true)
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
+ // E30 (collected metering) is addressed to the grid-owner role in the
+ // catalog edition; the receiving tenant also holds that role.
+ if(code==='E30')sql(`INSERT INTO public.tenant_actor_roles(company_id,environment,actor_id,role_code,valid_from)
+  SELECT company_id,environment,actor_id,'grid_owner',clock_timestamp()-interval '1 day' FROM public.tenant_actor_roles
+  WHERE company_id=${literal(f.ids.company)} AND role_code='electricity_supplier' AND valid_to IS NULL`)
  const inbound=await insertPriorUtilts(f,utilts.raw_payload!,code)
  utiltsEffects.ack.mockReset().mockImplementation(async({sourceMessage}:{sourceMessage:EdielMessageRow})=>({id:sourceMessage.id}))
  utiltsEffects.meter.mockReset().mockResolvedValue({status:'stored',meteringValue:{id:randomUUID()}})
@@ -515,9 +608,9 @@ it.each([S('2026-09-30'),S('2026-10-01')])('native reviewed Z04 qualifies prior/
  const f=await seed(false,true)
  expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const original=observationHandoffMessage(referenceDate,f.ids.company)
- original.sender_ediel_id='12345';original.receiver_ediel_id='54321'
+ original.sender_ediel_id=f.receiver;original.receiver_ediel_id=f.sender
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100','12345').replaceAll('21660','54321')
+ original.raw_payload=original.raw_payload!.replaceAll('735999260731000007',point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
   .replaceAll(S('202607010000'),S('202610010000')).replaceAll(S('202608010000'),S('202610150000'))
   .replace('?+0200','?+0100').replaceAll('M-GRIDEX-2607-01','METER-1')
   .replace('QTY+220:11000','QTY+220:10500')
@@ -582,7 +675,7 @@ it('native latest witnessed unavailable review holds prior policy despite an old
  const current=await structuralSnapshot(f)
  expect(current.versions.find(version=>version.sourceMessageId===f.ids.source)?.disposition).not.toBe('accepted')
  expect((await structuralSnapshot(f,accepted.timeline.cutoffAt!)).versions[0]).toMatchObject({disposition:'accepted'})
- const wire=utiltsStructureWire({period:S('202610010000202610150000'),meter:'WRONG',ids:['901'],sender:'12345',receiver:'54321',point:accepted.versions[0].wire.object.objectId!})
+ const wire=utiltsStructureWire({period:S('202610010000202610150000'),meter:'WRONG',ids:['901'],sender:f.receiver,receiver:f.sender,point:accepted.versions[0].wire.object.objectId!})
  expect(compareUtiltsStructure({raw:wire,transactionIndex:0,cutoffAt:current.timeline.cutoffAt!,ledgerStartedAt:current.timeline.ledgerStartedAt!,
   readComplete:current.timeline.boundedReadComplete,unresolvedSources:current.unresolvedSources,versions:current.versions})).toMatchObject({status:'unavailable',codes:[]})
 })
@@ -611,7 +704,7 @@ it.each(['missing','matched','E61','E62'] as const)('native prior %s traverses r
   expect(utiltsEffects.ack.mock.calls.every(([call])=>call.ackFamily==='CONTRL')).toBe(true)
   expect(utiltsEffects.meter).not.toHaveBeenCalled()
  }else if(outcome==='matched'){
-  expect(rows[0]).toMatchObject({disposition:'accepted',plan:'positive_aperak'})
+  expect(rows[0],JSON.stringify({rows,result:{internal:result.internalReviewRequired,issues:(result as {validationIssues?:unknown}).validationIssues}})).toMatchObject({disposition:'accepted',plan:'positive_aperak'})
   expect(rows[0].series).not.toBeNull()
   expect(utiltsEffects.ack.mock.calls.some(([call])=>call.ackFamily==='APERAK')).toBe(true)
  }else{
@@ -705,7 +798,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
   ${literal(f.ids.company)},old_fact,new_fact,captured_at,
   ARRAY[${literal(f.ids.customer)}]::uuid[],ARRAY[${literal(point)}]::text[]))
   FROM gridex_correction_process.facts WHERE table_name='supplier_switch_events'
-   AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+   AND company_id=${literal(f.ids.company)} AND new_fact->>'event_type'='native_unrelated' LIMIT 1`)
  const unrelatedArchive=sql<{requestId:string;eventAt:string;requestFacts:{operation:string;customer:string|null;company:string|null;capturedAt:string}[]}>(`SELECT
   jsonb_build_object('requestId',e.new_fact->>'switch_request_id','eventAt',e.captured_at,
    'requestFacts',(SELECT coalesce(jsonb_agg(jsonb_build_object('operation',r.operation,
@@ -715,7 +808,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
     WHERE r.table_name='supplier_switch_requests'
      AND r.row_id=(e.new_fact->>'switch_request_id')::uuid))
   FROM gridex_correction_process.facts e WHERE e.table_name='supplier_switch_events'
-   AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
+   AND e.company_id=${literal(f.ids.company)} AND e.new_fact->>'event_type'='native_unrelated' LIMIT 1`)
  expect(priorEventScope).toBe(true)
  expect(unrelatedEventScope).toBe(false)
  expect(sql<boolean>(`SELECT to_jsonb(gridex_correction_process.switch_event_subject_v1(
@@ -734,7 +827,7 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
    .toEqual(['INSERT','UPDATE','DELETE'])
  }
  const unrelatedPoint='735999260731000008'
- const unrelatedWire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ const unrelatedWire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint))
  // Direct synthetic rows establish volume only. The separate producer tests
  // exercise source and concern capture; this test calls the real UTILTS owner.
  sql(`WITH sources AS (
@@ -750,8 +843,8 @@ it('unrelated process volume does not exhaust a linked UTILTS subject budget',as
    s.source_received_at,s.captured_at,body.facts,encode(sha256(convert_to(body.facts::text,'UTF8')),'hex')
   FROM sources s CROSS JOIN LATERAL (SELECT jsonb_build_object('scope',
    jsonb_build_object('objectId',${literal(unrelatedPoint)})) facts) body;`)
- const z06=structuralOwnerSource('Z06','E64','UNRELATED-Z06').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
- const z10=structuralOwnerSource('Z10','E58','UNRELATED-Z10').raw_payload!.replaceAll('735123456789012345',unrelatedPoint)
+ const z06=scopedWire(f,structuralOwnerSource('Z06','E64','UNRELATED-Z06').raw_payload!.replaceAll('735123456789012345',unrelatedPoint))
+ const z10=scopedWire(f,structuralOwnerSource('Z10','E58','UNRELATED-Z10').raw_payload!.replaceAll('735123456789012345',unrelatedPoint))
  sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
    message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
   SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert',
@@ -809,7 +902,7 @@ it('duplicate, misplaced and incomplete envelopes remain unknown source wildcard
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
  const unrelatedPoint='735999260731000008',sourceIds=[randomUUID(),randomUUID(),randomUUID()]
- const valid=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ const valid=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint))
  expect(sql<string>(`SELECT to_jsonb(gridex_received_sources.source_wire_point_v1(${literal(valid)}))`)).toBe(unrelatedPoint)
  const header=valid.match(/UNH\+[^']+'/)?.[0]
  expect(header).toBeTruthy()
@@ -846,7 +939,7 @@ it('unrelated document volume does not exhaust a linked UTILTS subject budget',a
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const otherCustomer=randomUUID(),contract=randomUUID(),document=randomUUID(),otherSource=randomUUID()
  const unrelatedPoint='735999260731000008'
- const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint)
+ const wire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',unrelatedPoint))
  const facts=JSON.stringify({scope:{objectId:unrelatedPoint}})
  sql(`INSERT INTO public.customers(id,company_id,customer_number,name,customer_type)
   VALUES(${literal(otherCustomer)},${literal(f.ids.company)},${literal(`E035-DOC-${otherCustomer}`)},'Unrelated document customer','private');
@@ -893,7 +986,7 @@ it('relevant source overflow holds the actual inbound processor without business
  const {processInboundUtiltsMessage}=await import('@/lib/ediel/flows/utiltsDataRequest.part-2')
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const point=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- const wire=closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point)
+ const wire=scopedWire(f,closureFixture({reason:'Z24'}).wire.replaceAll('735123456789012345',point))
  sql(`INSERT INTO gridex_received_sources.sources(source_message_id,company_id,environment,origin,
   message_code,source_received_at,captured_at,raw_payload,payload_hash,received_context)
   SELECT gen_random_uuid(),${literal(f.ids.company)},'test','database_insert','Z05',
@@ -1024,8 +1117,8 @@ it('native witnessed Z10 transition selects prior E30 ending/current sides and h
  const qualify=async(reason:'E20'|'E77'|'E24'|'E25'|'E67'|'E64',meter:string)=>{
   const message=observationHandoffMessage(S('2026-09-30'),f.ids.company)
   message.message_code='E30';message.application_reference='23-MDR-E30-T'
-  message.sender_ediel_id='12345';message.receiver_ediel_id='54321'
-  message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100','12345').replaceAll('21660','54321')
+  message.sender_ediel_id=f.receiver;message.receiver_ediel_id=f.sender
+  message.raw_payload=priorE30PointWire(reason,meter,point).replaceAll('91100',f.receiver).replaceAll('21660',f.sender)
   const persisted=persistUtiltsSubject(f,message)
   const runtime=runUtiltsRuntimeForMessage(persisted,{canonicalPolicy:policy})
   expect(runtime.transactionDispositions,JSON.stringify(runtime.validation.issues)).toMatchObject([{disposition:'accepted'}])
@@ -1068,11 +1161,14 @@ it('native BGM5 correction pins an approved predecessor; a later receipt alone i
 })
 it('native user without company permission cannot create even a canonical-ledger assessment during review',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'})
- sql(`DELETE FROM public.user_permissions WHERE user_id=${literal(f.ids.reviewer)} AND permission_key='ediel_testing.write';`)
- const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
-  p_actor_user_id:f.ids.reviewer,p_company_id:f.ids.company,p_permission:'ediel_testing.write',
- })
- expect(permission.error).toBeNull();expect(permission.data).toBe(false)
+ // Review accepts either reviewer permission; remove both.
+ sql(`DELETE FROM public.user_permissions WHERE user_id=${literal(f.ids.reviewer)} AND permission_key IN('ediel_testing.write','communication.write');`)
+ for(const key of ['ediel_testing.write','communication.write']){
+  const permission=await supabaseService.rpc('gridex_actor_has_company_permission',{
+   p_actor_user_id:f.ids.reviewer,p_company_id:f.ids.company,p_permission:key,
+  })
+  expect(permission.error).toBeNull();expect(permission.data).toBe(false)
+ }
  const before=sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)
  expect(await reviewReceivedStructuralSource({companyId:f.ids.company,environment:'test',sourceMessageId:f.ids.source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true,replacesSourceMessageId:null})).toEqual({status:'unconfirmed',sourceDisposition:'not_established'})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.validation_assessments WHERE source_message_id=${literal(f.ids.source)}`)).toBe(before)
@@ -1082,14 +1178,22 @@ it('native user without company permission cannot create even a canonical-ledger
 // real legacy end owner. No hand-built accepted marker is an authority oracle.
 async function insertClosure(f:Awaited<ReturnType<typeof seed>>,reason='Z22',minute=S('202610150000')){
  const external=sql<string>(`SELECT to_jsonb(meter_point_id) FROM public.metering_points WHERE id=${literal(f.ids.point)}`)
- const wire=closureFixture({reason,minute}).wire.replaceAll('735123456789012345',external)
+ const wire=scopedWire(f,closureFixture({reason,minute}).wire.replaceAll('735123456789012345',external))
  const payload={subtype:reason==='Z23'?'LK':'L',end_date:S('2026-10-15'),prodatDependentFacts:{market:'electricity',meterReadingsSentInUtilts:true}}
  const id=sql<string>(`INSERT INTO public.ediel_messages(company_id,customer_id,site_id,metering_point_id,environment,direction,message_standard,message_family,message_code,status,raw_payload,parsed_payload,message_received_at,application_reference,canonical_rule_pack_id,rule_profile_key,rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
  SELECT ${literal(f.ids.company)},${literal(f.ids.customer)},${literal(f.ids.site)},${literal(f.ids.point)},'test','inbound','edifact','PRODAT','Z05','received',${literal(wire)},${literal(payload)}::jsonb,clock_timestamp(),'23-DDQ-PRODAT',pack.id,profile.profile_key,profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id WHERE profile.profile_key=${literal(`PRODAT:Z05:${payload.subtype}:26.A:r3`)} AND profile.is_enabled RETURNING to_jsonb(id);`)
  expect(id).toMatch(/^[a-f0-9-]{36}$/)
+ // Production reception captures the source's own rule-pack receipt before
+ // the business state machine (lib/ediel/flows/inboundProcessing.ts).
  const {data,error}=await supabaseService.from('ediel_messages').select('*').eq('id',id).single()
- expect(error).toBeNull();return data as unknown as EdielMessageRow
+ expect(error).toBeNull()
+ const message=data as unknown as EdielMessageRow,decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+ if(decision.syntaxDecision==='accepted'&&decision.policy){
+  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
+  await captureFreshEdielSourceRulePackEvidence(f.ids.company,id)
+ }
+ return message
 }
 async function closureReview(f:Awaited<ReturnType<typeof seed>>,source:string){
  return reviewReceivedClosureSource({companyId:f.ids.company,environment:'test',sourceMessageId:source,reviewerUserId:f.ids.reviewer,confirmedOriginal:true})
@@ -1170,11 +1274,21 @@ async function approvedClosureWithDiagnostics(f:Awaited<ReturnType<typeof seed>>
  try{result=await closureReview(f,source)}finally{observe.mockRestore()}
  const attempt=attempts.at(-1)
  const diagnostics=result.status==='recorded'&&result.sourceDisposition==='accepted'?null:
-  {rpcErrors:errors,attemptedObjects:attempt?JSON.parse(attempt.p_facts_text).objects.map((item:{disposition:string})=>item.disposition):[],sql:attempt?closureSqlDiagnostics(attempt):null}
+  {rpcErrors:errors,attemptedObjects:attempt?JSON.parse(attempt.p_facts_text).objects.map((item:Record<string,unknown>)=>({disposition:item.disposition,reason:item.reason,codes:item.reasonCodes??item.codes,business:item.business===null?null:'present',party:item.party===null?null:'present'})):[],sql:attempt?(()=>{try{return closureSqlDiagnostics(attempt)}catch(error){return {diagnosticsFailed:String(error instanceof Error?error.message:error).slice(0,600)}}})():null}
  expect(result,JSON.stringify(diagnostics)).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
  return result
 }
-it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
+// Z23 is a requested bilateral LK closure: since 20261001085523 it can only
+// end our own period as the answer to an actually sent Z08. Without one it is
+// refused before any period mutation.
+it('native Z23 closure without our sent Z08 is refused and the period keeps its end',async()=>{
+ const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
+ const before=sql(`SELECT coalesce(jsonb_agg(end_date ORDER BY id),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)
+ const message=await insertClosure(f,'Z23')
+ await expect(applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).rejects.toMatchObject({message:expect.stringContaining('bilateral_closure_exact_sent_original_required')})
+ expect(sql(`SELECT coalesce(jsonb_agg(end_date ORDER BY id),'[]') FROM public.customer_supply_periods WHERE company_id=${literal(f.ids.company)}`)).toEqual(before)
+})
+it.each(['Z22'])('native %s closure retains immutable Z04 coverage after the real legacy end mutation',async reason=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const baseline=stored(f.ids.source).at(-1)!,message=await insertClosure(f,reason)
  const ended=await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})
@@ -1189,18 +1303,18 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   'type',case_type,'reason',reason_category,'status',status,'title',title,'next',next_action,'source',source,'intent',metadata->>'review_intent')),'[]')
   FROM public.customer_cases WHERE company_id=${literal(f.ids.company)} AND metadata->>'source_ediel_message_id'=${literal(message.id)}`)).toEqual([{
    company:f.ids.company,customer:f.ids.customer,site:f.ids.site,point:f.ids.point,type:'other',reason:'final_metering_and_billing',status:'open',
-   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap för leveransens slutdatum.',
+   title:'Leveransen upphör – slutför mätvärden och fakturering',next:'Kontrollera slutmätvärden och faktureringsberedskap vid angiven giltig sluttid.',
    source:'ediel_inbound_state_machine',intent:'final_metering_and_billing'}])
+ // insertClosure already recorded and captured this source in production order.
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision]).toEqual(['accepted','accepted','accepted'])
- expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})).toMatchObject({status:'recorded'})
  const unreviewed=await structuralSnapshot(f)
  expect(unreviewed.closureBlockers).toHaveLength(1)
  const compare=(snapshot:Awaited<ReturnType<typeof structuralSnapshot>>,period:string,meter='METER-1',ids=['101'])=>compareUtiltsStructure({
-  raw:utiltsStructureWire({period,meter,ids,point:snapshot.versions[0].wire.object.objectId!}),transactionIndex:0,
+  raw:utiltsStructureWire({period,meter,ids,sender:f.receiver,receiver:f.sender,point:snapshot.versions[0].wire.object.objectId!}),transactionIndex:0,
   cutoffAt:snapshot.timeline.cutoffAt!,ledgerStartedAt:snapshot.timeline.ledgerStartedAt!,readComplete:true,
   unresolvedSources:snapshot.unresolvedSources,versions:snapshot.versions,closures:snapshot.closures,closureBlockers:snapshot.closureBlockers})
- expect(compare(unreviewed,S('202610010000202610142359'))).toMatchObject({status:'matched',codes:[]})
+ expect(compare(unreviewed,S('202610010000202610142359')),JSON.stringify(unreviewed.closureBlockers)).toMatchObject({status:'matched',codes:[]})
  expect(compare(unreviewed,S('202610010000202610150000'))).toMatchObject({status:'unavailable',codes:[]})
  const pending=await approvedClosureWithDiagnostics(f,message.id)
  expect(pending,JSON.stringify(stored(message.id))).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
@@ -1235,9 +1349,9 @@ it.each(['Z22','Z23'])('native %s closure retains immutable Z04 coverage after t
   const {qualifyReceivedUtiltsStructure}=await import('@/lib/ediel/utilts/qualifyReceivedStructure')
   const {buildUtiltsTransactionPersistencePayload}=await import('@/lib/ediel/utilts/transactionPersistence')
   const utilts=observationHandoffMessage(S('2026-10-16'),f.ids.company)
-  utilts.sender_ediel_id='12345';utilts.receiver_ediel_id='54321'
+  utilts.sender_ediel_id=f.receiver;utilts.receiver_ediel_id=f.sender
   utilts.raw_payload=utilts.raw_payload!.replaceAll('735999260731000007',snapshot.versions[0].wire.object.objectId!)
-   .replaceAll('91100','12345').replaceAll('21660','54321').replaceAll(S('202607010000'),S('202610010000'))
+   .replaceAll('91100',f.receiver).replaceAll('21660',f.sender).replaceAll(S('202607010000'),S('202610010000'))
    .replaceAll(S('202608010000'),S('202610150000')).replace('?+0200','?+0100').replace('M-GRIDEX-2607-01','METER-1')
   const canonicalPolicy=resolveCanonicalEdielPolicy({family:'UTILTS',messageCode:'E66',direction:'inbound',referenceDate:utilts.message_received_at!,applicationReference:utilts.application_reference,mode:'parse'})
   const persisted=persistUtiltsSubject(f,utilts)
@@ -1286,7 +1400,9 @@ it('native append independently binds sealed raw values and midnight support; is
  // midnight support guards; it does not claim to isolate binding alone.
  // Minute+UTC agree and the legacy calendar DATE remains unchanged.
  expect(probe(minute,true)).toBe(false) // Midnight guard independently holds.
- expect(probe(minute,true,true)).toBe(true) // BOTH guards removed: old design gap.
+ // BOTH guards removed: the reviewed coverage end (validTo) is still bound to
+ // the exact closure instant, so the forged minute is held by that third guard.
+ expect(probe(minute,true,true)).toBe(false)
  expect(probe(li,true)).toBe(true) // Binding-only isolated red control.
  expect(probe(minute)).toBe(false);expect(probe(li)).toBe(false)
  const mutations:((facts:Facts)=>void)[]=[
@@ -1303,7 +1419,9 @@ it('native append independently binds sealed raw values and midnight support; is
   facts=>{facts.objects[0].business.sourcePayloadHash='f'.repeat(64)},
   facts=>{facts.objects[0].business.sourceMessageId=f.ids.source},
   facts=>{facts.objects[0].business.supplyPeriodId=f.ids.switch},
-  facts=>{facts.objects[0].business.reviewerUserId=f.ids.actor},
+  // Owner decision 2026-10-03: no separation of duties; another authorized
+  // tenant user may review. An unauthorized reviewer is still refused.
+  facts=>{facts.objects[0].business.reviewerUserId='00000000-0000-4000-8000-0000000000ff'},
   facts=>{facts.objects[0].business.baselineCoverageAssessment.factsHash='f'.repeat(64)},
   facts=>{facts.objects[0].business.coverageWindow.outboundSourceMessageId=message.id},
   facts=>{Object.assign(facts.objects[0].business.reviewSnapshot,{approved:true})},
@@ -1314,7 +1432,7 @@ it('native append independently binds sealed raw values and midnight support; is
  expect(stored(message.id)[0].assessmentId).toBe(a.assessmentId)
  expect(stored(message.id)[0].witnessXid).toBe(a.witnessXid)
 })
-it('native closure append rechecks stale party, switch and outbound rows after the fresh reads',async()=>{
+it('native closure append rechecks stale party, switch and outbound projection after the fresh reads',async()=>{
  const f=await seed(false,true);expect(await complete(f)).toMatchObject({sourceDisposition:'accepted'});await reviewed(f)
  const message=await insertClosure(f)
  expect((await applyInboundBusinessStateMachine({message,actorUserId:f.ids.actor})).outcome).toBe('supply_terminated')
@@ -1325,7 +1443,7 @@ it('native closure append rechecks stale party, switch and outbound rows after t
  })
  expect(await closureReview(f,message.id)).toMatchObject({status:'unconfirmed'})
  expect(stored(message.id)).toEqual([]);mutate.mockRestore()
- sql(`UPDATE public.supplier_switch_requests SET rff_li_reference='CASE-1' WHERE id=${literal(f.ids.switch)}`)
+ sql(`UPDATE public.supplier_switch_requests SET rff_li_reference=${literal(f.caseReference)} WHERE id=${literal(f.ids.switch)}`)
  const staleParty=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
   if(name==='gridex_record_source_object_decisions_v1')sql(`UPDATE public.tenant_actor_roles SET role_code='grid_owner' WHERE company_id=${literal(f.ids.company)}`)
   return originalRpc(name,args,options)
@@ -1334,6 +1452,8 @@ it('native closure append rechecks stale party, switch and outbound rows after t
  expect(stored(message.id)).toEqual([]);staleParty.mockRestore()
  sql(`UPDATE public.tenant_actor_roles SET role_code='electricity_supplier' WHERE company_id=${literal(f.ids.company)}`)
  vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+  // Current sent-source authority requires the public dispatch projection in
+  // addition to the immutable accepted journal. Neither can replace the other.
   if(name==='gridex_record_source_object_decisions_v1')sql(`UPDATE public.ediel_messages SET message_sent_at=NULL WHERE id=${literal(f.ids.outbound)}`)
   return originalRpc(name,args,options)
  })
@@ -1359,6 +1479,7 @@ it('a genuine non-midnight original is held by producer and direct append, even 
  const {evidenceHash}=await import('@/lib/ediel/utilts/durableSourceDiscovery')
  const decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
  const receipt=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.ids.company,decision})
+ await captureFreshEdielSourceRulePackEvidence(f.ids.company,message.id)
  const ownerSeed=takeReceivedSourceOwnerSeed(receipt)!
  expect(ownerSeed).not.toBeNull()
  const canonical=JSON.parse(ownerSeed.evidence.factsText)
@@ -1368,7 +1489,7 @@ it('a genuine non-midnight original is held by producer and direct append, even 
  const point=await findStructuralReviewPoint(f.ids.company,object.objectId!),assessedAt=new Date().toISOString()
  const receiver=await resolveCanonicalTenantEdielIdentityWithEvidence({companyId:f.ids.company,environment:'test',asOf:assessedAt,requireExactCounts:true})
  const facility=await readSelectedFacilityEvidence({companyId:f.ids.company,environment:'test',meteringPointId:f.ids.point,siteId:f.ids.site,objectId:object.objectId!,signal:AbortSignal.timeout(5000)})
- const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(ownerSeed,wire,snapshot,point)
+ const {source,coverage,legacyEndDateProjection}=await resolveClosureCoverage(ownerSeed,wire,snapshot,point,f.ids.reviewer)
  const business={version:1,owner:'reviewed-received-closure-v1',coverage:'reviewed_post_ledger_closure',sourceDisposition:'not_established',businessDisposition:'reviewed',graphNamespace:'legacy_unqualified',
   sourceMessageId:message.id,sourcePayloadHash:ownerSeed.evidence.sourcePayloadHash,sourceReceivedAt:message.message_received_at,companyId:f.ids.company,environment:'test',object,assessedAt,wire,reviewerUserId:f.ids.reviewer,
   reviewStatement:'original_supply_closure',customerId:f.ids.customer,meteringPointId:f.ids.point,siteId:f.ids.site,switchRequestId:coverage.switchRequestId,supplyPeriodId:coverage.supplyPeriodId,coverageWindow:coverage,

@@ -1,7 +1,14 @@
 import { test } from 'vitest'
+import {originalRuleWitnessFixture} from './helpers/originalRuleWitnessFixture'
 import assert from 'node:assert/strict'
 import { buildReceivedSourceValidationEvidence as build } from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import { COMPANY, OTHER, row } from '@/__tests__/helpers/receivedSourceInventoryFixtures'
+import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
+import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
+import {buildReceivedUtiltsFunctionalValidation} from '@/lib/ediel/core/receivedUtiltsFunctionalValidation'
+import {buildReceivedUtiltsHeaderValidation} from '@/lib/ediel/core/receivedUtiltsHeaderValidation'
+import {buildReceivedUtiltsTransactionValidation} from '@/lib/ediel/core/receivedUtiltsTransactionValidation'
 
 type Input = Parameters<typeof build>[0]
 function fixture(): Input {
@@ -18,7 +25,7 @@ test('fresh canonical rejection is source-bound facet evidence, not source appro
 })
 test('accepted canonical fields require bound real rule/version identifiers and remain not source approval',()=>{
  const input=fixture();input.decision.syntaxDecision='accepted';input.decision.applicationDecision='accepted';input.decision.functionalDecision='accepted';input.decision.issues=[]
- input.decision.validationReport.rulePackEvidence={profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ input.decision.validationReport.rulePackEvidence=originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})
  const result=build(input);assert.ok(result);const facts=JSON.parse(result.factsText)
  assert.equal(facts.applicationDecision,'accepted');assert.equal(facts.sourceDisposition,'not_established');assert.equal(facts.rulePackEvidence.sourceHash,'a'.repeat(64))
 })
@@ -51,7 +58,7 @@ test('evidence preparation does not mutate either source or canonical decisions'
 
 test('keeps the runtime semantic profile separate from its actual database activation key',()=>{
  const input=fixture();input.decision.applicationDecision='accepted'
- input.decision.validationReport.rulePackEvidence={profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
+ input.decision.validationReport.rulePackEvidence={...originalRuleWitnessFixture({profileKey:'PRODAT:Z04:L:26.A:r3',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}),profileKey:'prodat_z04_supplier_switch_confirmation',databaseProfileKey:'PRODAT:Z04:L:26.A:r3'}
  const result=build(input);assert.ok(result)
  assert.equal(JSON.parse(result.factsText).rulePackEvidence.profileKey,'PRODAT:Z04:L:26.A:r3')
  assert.equal((input.decision.validationReport.rulePackEvidence as {profileKey:string}).profileKey,'prodat_z04_supplier_switch_confirmation')
@@ -60,4 +67,59 @@ for(const databaseProfileKey of ['',null,42]) test(`never substitutes the semant
  const input=fixture();input.decision.applicationDecision='accepted'
  input.decision.validationReport.rulePackEvidence={profileKey:'PRODAT:Z04:L:26.A:r3',databaseProfileKey,messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)}
  assert.equal(build(input),null)
+})
+
+for(const family of ['CONTRL','APERAK','UTILTS_ERR']) test(`records the actual fresh ${family} canonical facet under its own prospective insert context`,()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family=family;input.validated.message_family=family
+ input.original.execution_context_snapshot={receivedAckContext:structuredClone(snapshot.receivedProdatContext)}
+ input.validated.execution_context_snapshot=structuredClone(input.original.execution_context_snapshot)
+ const evidence=build(input);assert.ok(evidence)
+ assert.equal(JSON.parse(evidence.factsText).sourceDisposition,'not_established')
+ input.original.execution_context_snapshot={receivedProdatContext:snapshot.receivedProdatContext}
+ assert.equal(build(input),null,'PRODAT insertion provenance cannot stand in for ACK capture')
+})
+test('ordinary UTILTS shares the original canonical ledger before any storage or business approval',()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family='UTILTS';input.validated.message_family='UTILTS'
+ input.original.execution_context_snapshot={receivedUtiltsContext:structuredClone(snapshot.receivedProdatContext)}
+ input.validated.execution_context_snapshot=structuredClone(input.original.execution_context_snapshot)
+ const evidence=build(input);assert.ok(evidence)
+ const facts=JSON.parse(evidence.factsText)
+ assert.equal(facts.sourceDisposition,'not_established');assert.equal(facts.objectDisposition,'not_checked')
+ assert.equal(facts.applicationDecision,'not_applicable');assert.equal(facts.rulePackEvidence,null)
+ Object.assign(input.decision,{prodatRegisterValidation:{}})
+ assert.equal(build(input),null,'UTILTS cannot acquire a PRODAT register handoff')
+})
+test('UTILTS cannot substitute editable or PRODAT provenance for its prospective insertion context',()=>{
+ const input=fixture();input.original.message_family='UTILTS';input.validated.message_family='UTILTS'
+ assert.equal(build(input),null)
+})
+test('an ACK facet never grants a PRODAT structural register handoff',()=>{
+ const input=fixture(),snapshot=input.original.execution_context_snapshot as {receivedProdatContext:Record<string,unknown>}
+ input.original.message_family='APERAK';input.validated.message_family='APERAK';input.original.execution_context_snapshot={receivedAckContext:snapshot.receivedProdatContext}
+ Object.assign(input.decision,{prodatRegisterValidation:{}})
+ assert.equal(build(input),null)
+})
+test('the additive actual header facet remains outside frozen canonical facts and requires negative complete own IDE scope',()=>{
+ const message=energyHandoffMessage('2026-10-01',COMPANY);message.raw_payload=message.raw_payload!.replace('BGM+E66::260','BGM+E66::BAD')
+ const runtime=runUtiltsRuntimeForMessage(message),input=fixture(),context={version:1,contextOrigin:'database_insert',sourceMessageId:OTHER,companyId:COMPANY,environment:'test',messageCode:'E66',payloadHash:evidenceHash(message.raw_payload),sourceReceivedAt:message.message_received_at,capturedAt:'2026-10-01T20:00:00Z'}
+ input.original={...message,id:OTHER,execution_context_snapshot:{receivedUtiltsContext:context}};input.validated=structuredClone(input.original)
+ Object.assign(input.decision,{syntaxDecision:'accepted',applicationDecision:'rejected',functionalDecision:'accepted',utiltsTransactionValidation:buildReceivedUtiltsTransactionValidation({source:message,transactions:runtime.transactionDispositions}),utiltsHeaderValidation:buildReceivedUtiltsHeaderValidation({source:message,headerRejection:runtime.ackPlan.utiltsHeaderRejection})})
+ const evidence=build(input);assert.ok(evidence);assert.deepEqual(evidence.utiltsHeaderValidation?.applicationErrors,[{ercCode:'42',fieldCode:'202',text:'INCORRECT DATA BAD'}]);assert.equal(Object.hasOwn(JSON.parse(evidence.factsText),'utiltsHeaderValidation'),false)
+ input.decision.applicationDecision='accepted';assert.equal(build(input),null)
+ input.decision.applicationDecision='rejected';input.decision.syntaxDecision='rejected';assert.equal(build(input),null)
+ input.decision.syntaxDecision='accepted';(input.decision.utiltsHeaderValidation as {sourcePayloadHash:string}).sourcePayloadHash='0'.repeat(64);assert.equal(build(input),null)
+})
+
+test('the actual own functional ERR subset is additive, source bound, and cannot borrow an accepted response',()=>{
+ const message=energyHandoffMessage('2026-10-01',COMPANY);message.raw_payload=message.raw_payload!.replace('QTY+136:500','QTY+136:500.0000')
+ const runtime=runUtiltsRuntimeForMessage(message),input=fixture(),context={version:1,contextOrigin:'database_insert',sourceMessageId:OTHER,companyId:COMPANY,environment:'test',messageCode:'E66',payloadHash:evidenceHash(message.raw_payload),sourceReceivedAt:message.message_received_at,capturedAt:'2026-10-01T20:00:00Z'}
+ input.original={...message,id:OTHER,execution_context_snapshot:{receivedUtiltsContext:context}};input.validated=structuredClone(input.original)
+ Object.assign(input.decision,{syntaxDecision:'accepted',applicationDecision:'accepted',functionalDecision:'rejected',utiltsTransactionValidation:buildReceivedUtiltsTransactionValidation({source:message,transactions:runtime.transactionDispositions}),utiltsFunctionalValidation:buildReceivedUtiltsFunctionalValidation({source:message,runtime})})
+ input.decision.validationReport.rulePackEvidence=originalRuleWitnessFixture({profileKey:'UTILTS:E66:E5SE5A:4',messageProfileId:OTHER,rulePackId:COMPANY,sourceHash:'a'.repeat(64)})
+ const evidence=build(input);assert.ok(evidence);assert.deepEqual(evidence.utiltsFunctionalValidation?.transactions[0].errors,[{code:'E51',referenceQualifier:'TN',referenceNumber:'GRIDEX2607E66001'}]);assert.equal(Object.hasOwn(JSON.parse(evidence.factsText),'utiltsFunctionalValidation'),false)
+ input.decision.functionalDecision='accepted';assert.equal(build(input),null)
+ input.decision.functionalDecision='rejected';input.decision.syntaxDecision='rejected';assert.equal(build(input),null)
+ input.decision.syntaxDecision='accepted';(input.decision.utiltsFunctionalValidation as {sourcePayloadHash:string}).sourcePayloadHash='0'.repeat(64);assert.equal(build(input),null)
 })

@@ -1,3 +1,5 @@
+import {bindCustomerMasterdataDraftContext} from '@/lib/ediel/prodat/customerMasterdataDraft'
+import type {CustomerMasterdataValidationContext} from '@/lib/ediel/production/customerMasterdataSource'
 // lib/ediel/flows/shared.ts
 
 import type { CreateEdielMessageInput, EdielEnvironment } from '@/lib/ediel/types'
@@ -20,6 +22,7 @@ import type { GridOwnerDataRequestRow } from '@/lib/cis/types'
 import { supabaseService } from '@/lib/supabase/service'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { createOutboxItem } from '@/lib/ediel/outbox/createOutboxItem'
+import type { ExpectedContext } from '@/lib/ediel/prodat/prodatReportingPermissionTypes'
 
 type ActiveReleaseFamily =
   | 'PRODAT'
@@ -117,7 +120,15 @@ export async function findOrCreateSwitchOutbound(params: {
       requestType: 'supplier_switch',
     })
 
-    if (existing) return existing
+    if (existing) {
+      const existingPayload: Record<string, unknown> = existing.payload && typeof existing.payload === 'object' && !Array.isArray(existing.payload) ? existing.payload : {}
+      if (!normalizeEdielEnvironment(params.environment) || existingPayload.environment !== params.environment
+        || existing.operation_id !== params.switchRequestId || existing.customer_id !== params.customerId
+        || existing.site_id !== params.siteId || existing.metering_point_id !== params.meteringPointId) {
+        throw new Error('switch_outbound_owned_operation_required')
+      }
+      return existing
+    }
   } else {
     await cancelSupplierSwitchOutboundAttemptsForReplacement({
       actorUserId: params.actorUserId,
@@ -136,6 +147,7 @@ export async function findOrCreateSwitchOutbound(params: {
     requestType: 'supplier_switch',
     sourceType: 'supplier_switch_request',
     sourceId: params.switchRequestId,
+    operationId: params.switchRequestId,
     externalReference: params.externalReference,
     replaceOpenSupplierSwitchAttempt: Boolean(params.forceCreateNewAttempt),
     authorizationDocumentId: (params.payload?.authorization_document_id as string | null | undefined) ?? null,
@@ -222,6 +234,9 @@ export async function finalizeOutboundDraft(params: {
   routeContext: Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
   draft: CreateEdielMessageInput
   outboundRequestId?: string | null
+  customerMasterdataContext?:CustomerMasterdataValidationContext
+  reportingContext?: ExpectedContext
+  dateEventContext?: import('@/lib/ediel/prodat/prodatDateEventAuthority').ProdatDateEventValidationContext
   duplicateCheck: {
     sourceType?: string | null
     sourceId?: string | null
@@ -237,14 +252,18 @@ export async function finalizeOutboundDraft(params: {
 
   assertActiveFamily(messageFamily, 'finalizeOutboundDraft')
 
-  return finalizeCanonicalOutboundDraft({
+  const canonical = {
     actorUserId: params.actorUserId,
     requestType: params.requestType,
     routeContext: params.routeContext,
     draft: params.draft,
     outboundRequestId: params.outboundRequestId ?? null,
     duplicateCheck: params.duplicateCheck,
-  })
+    reportingContext: params.reportingContext,
+    dateEventContext: params.dateEventContext,
+    customerMasterdataContext:params.customerMasterdataContext??bindCustomerMasterdataDraftContext({draft:params.draft,companyId:params.routeContext.companyId??'',environment:params.routeContext.environment,routeId:params.routeContext.route.id}),
+  }
+  return finalizeCanonicalOutboundDraft(canonical)
 }
 
 export async function queuePreparedEdielMessage(params: {

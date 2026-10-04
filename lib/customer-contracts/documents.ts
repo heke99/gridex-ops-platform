@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { supabaseService } from "@/lib/supabase/service";
+import { requireContractRecordsAvailable, requireCustomerRecordAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
 export const CUSTOMER_CONTRACT_DOCUMENT_BUCKET = "customer-contract-documents";
 
@@ -50,6 +51,7 @@ export async function archiveSignedCustomerContractPdf(input: {
   generatedAt?: string;
   generationSnapshot: Record<string, unknown>;
 }): Promise<CustomerContractDocumentRow> {
+  await requireContractRecordsAvailable({ companyId: input.companyId, contractId: input.customerContractId });
   const mimeType = input.mimeType ?? "application/pdf";
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   const documentSha256 =
@@ -154,6 +156,7 @@ export async function getCustomerContractDocumentById(
 export async function downloadAndVerifyCustomerContractDocument(
   document: CustomerContractDocumentRow,
 ): Promise<Buffer> {
+  await requireCustomerRecordAvailable({ companyId: document.company_id, retentionClass: 'contract_signed_pdf_bytes', targetId: document.id });
   if (!document.storage_path) {
     throw new Error("customer_contract_document_storage_path_missing");
   }
@@ -179,6 +182,7 @@ export async function downloadAndVerifyCustomerContractDocument(
       .eq("document_sha256", document.document_sha256);
   }
 
+  await requireCustomerRecordAvailable({ companyId: document.company_id, retentionClass: 'contract_signed_pdf_bytes', targetId: document.id });
   return buffer;
 }
 
@@ -216,6 +220,7 @@ export async function downloadAndVerifyCustomerContractDocumentBounded(
   });
   const operation = async (): Promise<BoundedDocumentObservation> => {
     try {
+      await requireCustomerRecordAvailable({ companyId: document.company_id, retentionClass: 'contract_signed_pdf_bytes', targetId: document.id });
       const {data,error} = await supabaseService.storage.from(CUSTOMER_CONTRACT_DOCUMENT_BUCKET)
         .download(document.storage_path!, {}, {signal:controller.signal, cache:'no-store'}).asStream();
       if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); if(data) void data.cancel().catch(()=>{}); return unavailable('timeout'); }
@@ -233,6 +238,8 @@ export async function downloadAndVerifyCustomerContractDocumentBounded(
       const sha256 = digest.digest('hex');
       if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); return unavailable('timeout'); }
       if (sha256 !== document.document_sha256) { cancel(); return unavailable('hash_mismatch'); }
+      await requireCustomerRecordAvailable({ companyId: document.company_id, retentionClass: 'contract_signed_pdf_bytes', targetId: document.id });
+      if (controller.signal.aborted || performance.now() >= deadlineAt) { cancel(); return unavailable('timeout'); }
       return {status:'verified_at_observation', startedAt, completedAt:new Date().toISOString(), byteCount, sha256};
     } catch { cancel(); return unavailable(controller.signal.aborted && Date.now()-Date.parse(startedAt)>=10_000 ? 'timeout' : 'storage_error'); }
   };

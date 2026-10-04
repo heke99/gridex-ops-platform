@@ -1,4 +1,8 @@
 import { createHash } from 'node:crypto'
+import {isDeepStrictEqual} from 'node:util'
+import {bindReceivedProdatApplicationObjects} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
+import {isEvidenceRecord,isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {parseSourceReceiptInstant} from '@/lib/ediel/utilts/receivedSourceInventory'
 import { parseProdatMessage, parsedProdatObjects } from '@/lib/ediel/prodat/parser'
 import { prodatRegisterFieldValue } from '@/lib/ediel/prodat/prodatRegisterFields'
 import { validateProdatRegisterPayload } from '@/lib/ediel/rulebook/prodatRegisterPolicy'
@@ -13,7 +17,12 @@ import { parseUna } from '@/lib/ediel/core/una'
 
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantDb } from '@/lib/supabase/tenantDb'
-import { createEdielMessageEvent, linkEdielMessage } from '@/lib/ediel/db'
+import { createEdielMessageEvent, getEdielMessageById, linkEdielMessage } from '@/lib/ediel/db'
+import {readReceivedProdatApplicationObjects} from '@/lib/ediel/core/receivedProdatApplicationObjects'
+import {readReceivedProdatFinalResponsePlan} from '@/lib/ediel/core/receivedProdatFinalResponsePlan'
+import {approveSafeMasterdataChanges} from '@/lib/ediel/safeApplyReview'
+import {createReceivedProdatStructuralAcks} from '@/lib/ediel/flows/receivedProdatStructuralAcks'
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { describeProdatCaseType, edielCodeLabel } from '@/lib/ediel/codeLabels'
 import { canonicalIdempotencyKey, onboardCustomerGraph, type CanonicalOnboardingCommand, type CanonicalOnboardingSuccess } from '@/lib/customers/canonicalOnboarding'
@@ -383,11 +392,17 @@ export async function createOrUpdateInboundProdatCase(params: {
   message: EdielMessageRow
 }): Promise<EdielInboundCaseRow | null> {
   const source = parseEdifactMessageFacts(params.message.raw_payload)
-  const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
-  if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
-  const parsed = parseInboundProdatBusinessData(params.message)
   const companyId = trimOrNull(params.message.company_id)
-  const match = Number(parsed.proposedAction.objectCount) > 1 ? {customerId:null,siteId:null,meteringPointId:null,confidence:0}
+  const structural=params.message.message_family==='PRODAT'&&['Z06','Z10'].includes(params.message.message_code)
+  const application=structural&&companyId&&params.message.raw_payload?await readReceivedProdatApplicationObjects({companyId,sourceMessageId:params.message.id,rawPayload:params.message.raw_payload}):null
+  if(structural){
+    if(!application||application.headerDecision!=='accepted')throw new Error('structural_apply_complete_own_application_required')
+  }else{
+    const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
+    if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
+  }
+  const parsed = parseInboundProdatBusinessData(params.message)
+  const match = structural||Number(parsed.proposedAction.objectCount) > 1 ? {customerId:null,siteId:null,meteringPointId:null,confidence:0}
     : await maybeFindExistingCustomer(parsed, companyId)
 
   const payload = {
@@ -407,7 +422,8 @@ export async function createOrUpdateInboundProdatCase(params: {
     parsed_metering_point: parsed.meteringPoint,
     parsed_contract: parsed.contract,
     parsed_production: parsed.production,
-    proposed_action: parsed.proposedAction,
+    proposed_action: {...parsed.proposedAction,...(application?{structuralSourceReview:{version:1,assessmentId:application.assessmentId,
+      objects:application.objects.map(object=>({objectId:object.objectId,identityAgency:object.identityAgency,lineIndex:object.registers[0].segmentIndex,applicationDecision:object.applicationDecision}))}}:{})},
     updated_by: params.actorUserId,
   }
 
@@ -521,7 +537,18 @@ export async function getEdielInboundCaseForMessage(companyId: string, messageId
   const { data, error } = await (tenantDb(companyId).from('ediel_inbound_cases').select('*') as ScopedSelect)
     .eq('ediel_message_id', messageId).maybeSingle()
   if (error) throw error
-  return (data as EdielInboundCaseRow | null) ?? null
+  const row=(data as EdielInboundCaseRow|null)??null
+  if(!row||row.message_family!=='PRODAT'||!['Z06','Z10'].includes(row.message_code))return row
+  const source=await getEdielMessageById(messageId)
+  if(!source?.raw_payload||source.company_id!==companyId)throw new Error('TENANT_CONTEXT_MISMATCH')
+  const application=await readReceivedProdatApplicationObjects({companyId,sourceMessageId:messageId,rawPayload:source.raw_payload})
+  let final:Awaited<ReturnType<typeof readReceivedProdatFinalResponsePlan>>=null
+  if(application)try{final=await readReceivedProdatFinalResponsePlan({companyId,sourceMessageId:messageId,rawPayload:source.raw_payload})}catch{/* No protected effect proof is displayed as applied. */}
+  const applied=new Set(final?.plans.flatMap(plan=>[...plan.objectLineIndices])??[])
+  return {...row,proposed_action:{...row.proposed_action,structuralSourceReview:application?{version:1,assessmentId:application.assessmentId,
+    objects:application.objects.map(object=>({objectId:object.objectId,identityAgency:object.identityAgency,lineIndex:object.registers[0].segmentIndex,
+      applicationDecision:object.applicationDecision,applied:applied.has(object.registers[0].segmentIndex)}))}:null},
+    review_decision:{...row.review_decision,structuralProjection:{appliedObjectCount:final?.plans.length??0,totalObjectCount:application?.objects.length??0,protectedEffectAvailable:final!==null}}}
 }
 
 async function getGridOwnerIdByGridArea(companyId: string, gridAreaCode: string | null): Promise<string | null> {
@@ -688,6 +715,7 @@ function inboundCustomerCommand(params: {
 export async function approveEdielInboundCase(params: {
   companyId?: string
   objectDecisions?: readonly EdielInboundObjectDecision[]
+  structuralObjectLineIndices?: readonly number[]
   actorUserId: string
   caseId: string
   mode?: EdielInboundCaseActionMode
@@ -699,6 +727,41 @@ export async function approveEdielInboundCase(params: {
   const inboundCase = await getEdielInboundCaseById(params.caseId)
   if (!inboundCase) throw new Error('Inbound-caset hittades inte.')
   if (params.companyId && params.companyId !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_MISMATCH')
+  const sourceMessage=await getEdielMessageById(inboundCase.ediel_message_id)
+  if(sourceMessage?.message_family==='PRODAT'&&['Z06','Z10'].includes(sourceMessage.message_code)){
+    if(!params.companyId||params.companyId!==inboundCase.company_id||sourceMessage.company_id!==params.companyId)throw new Error('TENANT_CONTEXT_REQUIRED')
+    if(params.mode==='create_new_customer'||params.selectedCustomerId||params.selectedSiteId||params.selectedMeteringPointId)throw new Error('structural_apply_original_scope_required')
+    await assertEdielTenantActor({companyId:params.companyId,actorUserId:params.actorUserId,permission:'communication.write'})
+    let objectLineIndices=params.structuralObjectLineIndices?[...params.structuralObjectLineIndices]:undefined
+    if(objectLineIndices&&(!objectLineIndices.length||objectLineIndices.some(index=>!Number.isSafeInteger(index)||index<0)||new Set(objectLineIndices).size!==objectLineIndices.length))throw new Error('structural_apply_requested_scope_invalid')
+    if(objectLineIndices&&params.objectDecisions)throw new Error('structural_apply_requested_scope_invalid')
+    if(params.objectDecisions){
+      const application=sourceMessage.raw_payload?await readReceivedProdatApplicationObjects({companyId:params.companyId,sourceMessageId:sourceMessage.id,rawPayload:sourceMessage.raw_payload}):null
+      if(!application||!params.objectDecisions.length)throw new Error('structural_apply_complete_own_application_required')
+      objectLineIndices=params.objectDecisions.map(decision=>{
+        if(decision.mode==='create_new_customer'||decision.selectedCustomerId||decision.selectedSiteId||decision.selectedMeteringPointId)throw new Error('structural_apply_original_scope_required')
+        const own=application.objects.filter(object=>object.objectId===decision.meteringPointId&&object.identityAgency===decision.identityAgency)
+        if(own.length!==1)throw new Error('structural_apply_requested_scope_invalid')
+        return own[0].registers[0].segmentIndex
+      })
+      if(new Set(objectLineIndices).size!==objectLineIndices.length)throw new Error('structural_apply_requested_scope_invalid')
+    }
+    if(!['pending_review','failed','applied'].includes(inboundCase.status))throw new Error('structural_apply_case_not_reviewable')
+    const result=await approveSafeMasterdataChanges({actorUserId:params.actorUserId,edielMessageId:sourceMessage.id,objectLineIndices})
+    const ackIds=await createReceivedProdatStructuralAcks({actorUserId:params.actorUserId,companyId:params.companyId,sourceMessageId:sourceMessage.id,objectLineIndices})
+    const final=sourceMessage.raw_payload?await readReceivedProdatFinalResponsePlan({companyId:params.companyId,sourceMessageId:sourceMessage.id,rawPayload:sourceMessage.raw_payload}):null
+    if(!final)throw new Error('prodat_structural_response_own_effect_unavailable')
+    const reviewedAt=new Date().toISOString()
+    const {data,error}=await (tenantDb(params.companyId).from('ediel_inbound_cases').update({status:final.plans.length===final.totalObjectCount?'applied':'pending_review',
+      review_decision:{...inboundCase.review_decision,structuralApplication:{version:1,sourceMessageId:sourceMessage.id,
+        objectLineIndices:objectLineIndices??null,appliedCount:result.appliedCount,skippedCount:result.skippedCount,appliedObjectCount:final.plans.length,totalObjectCount:final.totalObjectCount,ackIds},note:trimOrNull(params.note)},
+      reviewed_by:params.actorUserId,reviewed_at:reviewedAt,applied_at:reviewedAt,failure_reason:null,updated_by:params.actorUserId}) as ScopedUpdate)
+      .eq('id',inboundCase.id).eq('updated_at',inboundCase.updated_at).eq('status',inboundCase.status).select('*').maybeSingle()
+    if(error)throw error
+    if(!data)throw new Error('PRODAT_INBOUND_CASE_CHANGED')
+    return data as EdielInboundCaseRow
+  }
+  if(params.structuralObjectLineIndices)throw new Error('structural_apply_source_required')
   if (inboundCase.review_decision?.objectApplication || (Array.isArray(inboundCase.proposed_action.objects) && inboundCase.proposed_action.objects.length > 1)) {
     if (!params.objectDecisions) throw new Error('PRODAT_MULTIPLE_OBJECTS_REQUIRE_OBJECT_SCOPED_APPLICATION')
     if (!params.companyId || params.companyId !== inboundCase.company_id) throw new Error('TENANT_CONTEXT_REQUIRED')
@@ -905,15 +968,13 @@ function objectApplication(row:EdielInboundCaseRow):ObjectApplication|null {
 
 async function compareAndSetObjectCase(row:EdielInboundCaseRow, patch:JsonRecord):Promise<EdielInboundCaseRow|null> {
   const plan=objectApplication(row)
-  let query=(tenantDb(row.company_id).from('ediel_inbound_cases').update(patch) as ScopedUpdate)
-    .eq('id',row.id).eq('updated_at',row.updated_at).eq('status',row.status)
-  // A small explicit revision prevents lost updates even if timestamps collide;
-  // do not place a whole command/receipt JSON document in a URL filter.
-  query=plan ? query.eq('review_decision->objectApplication->>fingerprint',plan.fingerprint)
-    .eq('review_decision->objectApplication->>revision',String(plan.revision))
-    : query.is('review_decision->objectApplication',null)
-  const {data,error}=await query.select('*').maybeSingle()
+  const {data,error}=await supabaseService.rpc('ediel_compare_and_set_prodat_object_case_v1',{
+    p_company_id:row.company_id,p_case_id:row.id,p_source_message_id:row.ediel_message_id,
+    p_actor_user_id:patch.updated_by,p_expected_updated_at:row.updated_at,p_expected_status:row.status,
+    p_expected_fingerprint:plan?.fingerprint??null,p_expected_revision:plan?.revision??null,p_patch:patch,
+  })
   if (error) throw error
+  if(data!==null&&(!isEvidenceRecord(data)||data.id!==row.id||data.company_id!==row.company_id||data.ediel_message_id!==row.ediel_message_id))throw new Error('PRODAT_OBJECT_APPLICATION_CASE_RECEIPT_INVALID')
   return data as EdielInboundCaseRow|null
 }
 
@@ -978,6 +1039,20 @@ async function validateSelectedObjectGraphs(companyId: string, decisions: readon
 }
 
 async function applyInboundObjects(params:{actorUserId:string;caseId:string;companyId:string;inboundCase:EdielInboundCaseRow;objectDecisions:readonly EdielInboundObjectDecision[];note?:string|null}):Promise<EdielInboundCaseRow> {
+  if(params.inboundCase.status==='applied'){
+    const saved=objectApplication(params.inboundCase)
+    if(!saved||saved.originalActorId!==params.actorUserId)throw new Error('PRODAT_OBJECT_APPLICATION_ACTOR_MISMATCH')
+    const selected=saved.decisions.map(own=>{
+      const matches=params.objectDecisions.filter(d=>d?.meteringPointId===own.meteringPointId&&d.identityAgency===own.identityAgency)
+      if(matches.length!==1)throw new Error('PRODAT_OBJECT_DECISION_REQUIRED')
+      const d=matches[0];return{meteringPointId:d.meteringPointId,identityAgency:d.identityAgency,mode:d.mode,selectedCustomerId:trimOrNull(d.selectedCustomerId),selectedSiteId:trimOrNull(d.selectedSiteId),selectedMeteringPointId:trimOrNull(d.selectedMeteringPointId)}
+    })
+    if(selected.length!==params.objectDecisions.length||!isDeepStrictEqual(selected,saved.decisions))throw new Error('PRODAT_OBJECT_APPLICATION_PLAN_MISMATCH')
+    const {data:completed,error:completedError}=await supabaseService.rpc('ediel_read_completed_prodat_object_batch_v1',{p_company_id:params.companyId,p_case_id:params.caseId,p_source_message_id:params.inboundCase.ediel_message_id,p_actor_user_id:params.actorUserId,p_decisions:selected})
+    if(completedError)throw completedError
+    if(!isEvidenceRecord(completed)||completed.id!==params.caseId||completed.company_id!==params.companyId||completed.ediel_message_id!==params.inboundCase.ediel_message_id||completed.status!=='applied')throw new Error('PRODAT_OBJECT_APPLICATION_COMPLETED_RECEIPT_REQUIRED')
+    return completed as unknown as EdielInboundCaseRow
+  }
   const {data,error}=await (tenantDb(params.companyId).from('ediel_messages').select('*') as ScopedSelect)
     .eq('id',params.inboundCase.ediel_message_id).maybeSingle()
   if (error) throw error
@@ -1010,7 +1085,26 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
     }
     return result
   })
+  const savedPlan=objectApplication(params.inboundCase)
+  if(savedPlan&&savedPlan.originalActorId!==params.actorUserId)throw new Error('PRODAT_OBJECT_APPLICATION_ACTOR_MISMATCH')
+  // The native read owns current actor, immutable INSERT original/clock,
+  // captured legal role and every complete canonical facet. Public status or
+  // parsed-payload flags cannot supply an application decision. The same gate
+  // runs again under locks at each native first effect and conditional save.
+  const {data:protectedSource,error:sourceError}=await supabaseService.rpc('ediel_read_prodat_object_batch_source_v1',{
+    p_company_id:params.companyId,p_source_message_id:message.id,p_actor_user_id:params.actorUserId,
+  })
+  if(sourceError)throw sourceError
+  const source=isEvidenceRecord(protectedSource)&&isEvidenceRecord(protectedSource.sourceMessage)?protectedSource.sourceMessage:null
+  const context=source&&isEvidenceRecord(source.execution_context_snapshot)?source.execution_context_snapshot.receivedProdatContext:null
   const sourceHash=createHash('sha256').update(message.raw_payload).digest('hex')
+  const application=source&&typeof source.raw_payload==='string'?bindReceivedProdatApplicationObjects(protectedSource.applicationValidation,source.raw_payload):null
+  if(!source||source.id!==message.id||source.company_id!==params.companyId||source.environment!==message.environment||source.direction!=='inbound'||source.message_standard!=='edifact'||source.message_family!=='PRODAT'||source.message_code!==message.message_code
+    ||source.raw_payload!==message.raw_payload||protectedSource.version!==1||protectedSource.sourcePayloadHash!==sourceHash||!isEvidenceUuid(protectedSource.assessmentId)
+    ||!isEvidenceRecord(context)||context.contextOrigin!=='database_insert'||context.sourceMessageId!==message.id||context.companyId!==params.companyId||context.environment!==message.environment||context.messageCode!==message.message_code||context.payloadHash!==sourceHash
+    ||parseSourceReceiptInstant(source.message_received_at)===null||parseSourceReceiptInstant(source.message_received_at)!==parseSourceReceiptInstant(context.sourceReceivedAt)
+    ||!application||application.headerDecision!=='accepted'||application.objects.length!==objects.length||application.objects.some(object=>object.applicationDecision!=='accepted')
+    ||!isDeepStrictEqual(application.objects.map(object=>[object.objectId,object.identityAgency]),objects.map(object=>[object.meteringPointId,object.identityAgency])))throw new Error('PRODAT_OBJECT_APPLICATION_CURRENT_SOURCE_REQUIRED')
   const fingerprint=digestObject([params.companyId,params.caseId,message.id,sourceHash,decisions])
   let current=params.inboundCase
   let plan=objectApplication(current)
@@ -1069,13 +1163,8 @@ async function applyInboundObjects(params:{actorUserId:string;caseId:string;comp
     const completed=objectApplication(current)
     if (!completed || completed.fingerprint!==fingerprint || completed.receipts.length!==completed.commands.length) throw new Error('PRODAT_OBJECT_APPLICATION_INCOMPLETE')
     if (current.status==='applied') return current
-    const results={objectCount:completed.commands.length,receipts:completed.receipts,fingerprint,sourceHash}
-    // Audit/event failure keeps the durable per-object receipts and allows
-    // retry. No singleton message link misattributes B's data to customer A.
-    await insertAuditLog({actorUserId:params.actorUserId,companyId:params.companyId,entityType:'ediel_inbound_case',entityId:params.caseId,
-      action:'ediel_inbound_objects_applied',newValues:results,metadata:{edielMessageId:message.id,fingerprint}})
-    await createEdielMessageEvent({actorUserId:params.actorUserId,edielMessageId:message.id,eventType:'validated',eventStatus:'success',
-      message:'Samtliga PRODAT-objekt har egna kanoniska kundtransaktioner och sparade kvitton.',payload:results})
+    // The final native CAS binds real graph receipts and commits the case,
+    // audit and event together. Failure retains previous per-object receipts.
     return await mutateObjectPlan(mutation,()=>({status:'applied',customer_id:null,site_id:null,metering_point_id:null,
       failure_reason:null,applied_at:new Date().toISOString()}))
   } catch (error) {

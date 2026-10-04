@@ -1,0 +1,16 @@
+import { beforeEach, expect, it, vi } from 'vitest'
+import { createHash } from 'node:crypto'
+const io=vi.hoisted(()=>({rpc:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:io.rpc}}))
+import { prepareProdatCorrectionReferences } from '@/lib/ediel/recovery/correctionReferences'
+const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+const input={companyId:id(1),actorUserId:id(2),operationId:id(3),originalMessageId:id(4),sourceAckMessageId:id(5),correctedRawPayload:'actual input wire'}
+const hash=(s:string)=>createHash('sha256').update(s,'utf8').digest('hex')
+const allocation={sourceFirstLineIndex:10,inputFirstLineIndex:10,inputLiIndex:null,point:'735123456789012345',identityAgency:'9',reference:`Z01${'A'.repeat(32)}`}
+const receipt={...input,ackMessageId:id(5),inputPayloadHash:hash(input.correctedRawPayload),correctedRawPayload:'actual native corrected wire',correctedPayloadHash:hash('actual native corrected wire'),allocations:[allocation]}
+beforeEach(()=>{vi.resetAllMocks();io.rpc.mockResolvedValue({data:receipt,error:null})})
+it('uses the protected native producer and accepts only its exact actor/source/operation hashes',async()=>{expect(await prepareProdatCorrectionReferences(input)).toBe(receipt.correctedRawPayload);expect(io.rpc).toHaveBeenCalledExactlyOnceWith('ediel_prepare_prodat_recovery_references_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_operation_id:input.operationId,p_original_message_id:input.originalMessageId,p_source_ack_message_id:input.sourceAckMessageId,p_corrected_raw_payload:input.correctedRawPayload})})
+it('ordinary correction passes the exact unchanged native wire without a new LI',async()=>{io.rpc.mockResolvedValue({data:{...receipt,correctedRawPayload:input.correctedRawPayload,correctedPayloadHash:hash(input.correctedRawPayload),allocations:[]},error:null});expect(await prepareProdatCorrectionReferences(input)).toBe(input.correctedRawPayload)})
+it.each([{companyId:id(9)},{actorUserId:id(9)},{operationId:id(9)},{originalMessageId:id(9)},{ackMessageId:id(9)},{inputPayloadHash:'a'.repeat(64)},{correctedPayloadHash:'a'.repeat(64)},{allocations:null},{allocations:[{...allocation,reference:'caller-li'}]},{allocations:[{...allocation,sourceFirstLineIndex:'10'}]}])('rejects changed native receipt %j',async change=>{io.rpc.mockResolvedValue({data:{...receipt,...change},error:null});await expect(prepareProdatCorrectionReferences(input)).rejects.toThrow('receipt_invalid')})
+it('does not accept changed bytes without a native allocation or a caller claimed verified ID',async()=>{io.rpc.mockResolvedValue({data:{...receipt,allocations:[]},error:null});await expect(prepareProdatCorrectionReferences(input)).rejects.toThrow('receipt_invalid');io.rpc.mockClear();await expect(prepareProdatCorrectionReferences({...input,actorUserId:'verified'})).rejects.toThrow('scope_required');expect(io.rpc).not.toHaveBeenCalled()})
+it('preserves a native current-policy or immutable-source denial',async()=>{const error=Error('prodat_recovery_owned_li_preparation_required');io.rpc.mockResolvedValue({data:null,error});await expect(prepareProdatCorrectionReferences(input)).rejects.toBe(error)})

@@ -1,3 +1,7 @@
+export {canonicalMessageCode,canonicalLogicalMessageCodeProjection} from '@/lib/ediel/core/messageIdentity'
+export {EDIFACT_MESSAGE_REFERENCE_CONSTRAINTS as canonicalEdifactMessageReferenceConstraints} from '@/lib/ediel/core/edifactReferenceConstraints'
+export { EDIEL_ENERGY_SHARING_CAPABILITY } from '@/lib/ediel/rulebook/guideRegistry'
+import {AUTHORITATIVE_EDIEL_GUIDES} from '@/lib/ediel/rulebook/guideRegistry'
 import {
   canonicalAckRequirements,
   resolveCanonicalAckMatrixRule,
@@ -192,3 +196,43 @@ export type {
   UtiltsRequestedMessageCode,
   UtiltsResolutionClass,
 }
+
+import {AUTHORITATIVE_AI_LIST_PROFILE} from '@/lib/ediel/rulebook/guideRegistry'
+/** Read-only source profile for the positional list codec and operational gate. */
+export function canonicalAiListProfile(){return AUTHORITATIVE_AI_LIST_PROFILE}
+/** Known original guide/registered-version scopes, derived from the same
+ * frozen registry and canonical profiles. This is source-knowledge projection,
+ * never current-date selection or evidence for an old message. */
+export function canonicalRegisteredEdielGuideScopes(){
+ return Object.freeze(AUTHORITATIVE_EDIEL_GUIDES.filter(guide=>['PRODAT','UTILTS','CONTRL'].includes(guide.family)).map(guide=>{
+  const prodat=guide.family==='PRODAT'?PRODAT_CANONICAL_PROFILES.find(profile=>profile.associationAssignedCode===guide.associationAssignedCode):null
+  const guideVersion=prodat?.guideVersion??guide.guideRevision
+  const guideRevision=prodat?.guideRevision??(guide.family==='UTILTS'?/-(\d+)$/.exec(guide.guideRevision)?.[1]??null:null)
+  return Object.freeze({family:guide.family,guideVersion,guideRevision,version:guideRevision?`${guideVersion}:r${guideRevision}`:guideVersion,
+   canonicalGuideRevision:guide.guideRevision,associationAssignedCode:guide.associationAssignedCode,documentName:guide.documentName})
+ }))
+}
+
+import {PRODAT_26A_FIELD_MATRIX} from '@/lib/ediel/prodat/prodat26AFieldMatrix'
+/** Physical field metadata only; no usage, dependency or revision decision. */
+export function canonicalProdatFieldWireDescriptor(fieldNumber:string):Readonly<{fieldNumber:string;fieldKey:string;segmentPath:string}>|null {
+ const row=PRODAT_26A_FIELD_MATRIX.find(item=>item.fieldNumber===fieldNumber)
+ return row?Object.freeze({fieldNumber:row.fieldNumber,fieldKey:row.fieldKey,segmentPath:row.segmentPath}):null
+}
+
+/** Frozen P26.A field217 code table: Z04=15 minutes, Z02=Hour.
+ * Z01 Profile and Z03 administrator choice do not establish exact resolution;
+ * field222 reporting frequency is a distinct domain and is never consulted. */
+export function canonicalProdatMeasurementResolution(value:string|null|undefined):'15'|'60'|null {
+ return value==='Z04'?'15':value==='Z02'?'60':null
+}
+
+import {canonicalProdatRequestedMethod} from '@/lib/ediel/prodat/canonicalRenderSemantics'
+import {canonicalProdatTransactionReason} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+/** Read-only projection of the existing subtype/reason and render authorities. */
+export function canonicalProdatMethodChangeTuple(subtype:'F'|'G'){
+ const method=canonicalProdatRequestedMethod(subtype),reason=canonicalProdatTransactionReason(subtype,'Z09')
+ if(!method||!reason)throw new Error('canonical_method_change_tuple_missing')
+ return Object.freeze({subtype,reason,method})
+}
+export { EDIFACT_UNUSED_HEADER_CONSTRAINTS as canonicalEdifactUnusedHeaderConstraints } from '@/lib/ediel/core/edifactHeaderConstraints'

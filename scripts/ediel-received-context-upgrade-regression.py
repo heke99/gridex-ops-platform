@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Execute the real context migration against synthetic pre-upgrade rows.
+"""Execute immutable context migrations in an owned disposable local database.
 
-Only the disposable local replay is allowed. Every probe uses a rollback-only
-transaction; no trigger is disabled and no historical file is modified.
+Native pg_dump pre-data and the installed guard trigger are copied read-only
+from the replay. Retained real contexts cannot contaminate the clean scenario.
+Every probe rolls back; no trigger is disabled or historical file modified.
 """
 from pathlib import Path
+import atexit
 import hashlib
 import json
 import os
@@ -12,6 +14,7 @@ import re
 import selectors
 import subprocess
 import time
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 URL = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -57,14 +60,55 @@ def migration_bytes(name: str, allow_preparation: bool = False) -> bytes:
 migration_data = migration_bytes(migration_name, allow_preparation=True)
 new_sql = transaction_body(migration_data.decode('utf-8'))
 old_sql = transaction_body(migration_bytes('20260921171346_ediel_inbound_prodat_source_seal.sql').decode('utf-8'))
-# The historic function is reinstated only inside each transaction. A disconnect
-# also rolls it back. This represents an actual pre-upgrade collision, not an
-# attempt to insert an impossible collision through the newly protected trigger.
-setup = 'BEGIN;\nSET LOCAL statement_timeout=\'10s\';\n' + old_sql + '''
-INSERT INTO public.companies(id,name) VALUES
- ('00000000-0000-4000-8000-00000000d099','Receive context upgrade probe');
-'''
 function_sql = "SELECT pg_get_functiondef('public.gridex_validate_ediel_message_contract()'::regprocedure);"
+source_function = checked(function_sql)
+source_rows_sql = """SELECT jsonb_build_array(count(*),
+ md5(coalesce(string_agg(id::text||':'||execution_context_snapshot::text,E'\n' ORDER BY id),'')))
+ FROM public.ediel_messages;"""
+source_rows = checked(source_rows_sql)
+# Copy actual table columns/defaults only. Foreign keys and unrelated business
+# triggers are post-data; the exact canonical guard is separately retained.
+registry = json.loads(checked("""SELECT jsonb_build_array(to_jsonb(p),to_jsonb(r))
+ FROM public.ediel_message_profiles p JOIN public.ediel_rule_packs r ON r.id=p.rule_pack_id
+ WHERE p.profile_key='PRODAT:Z04:L:26.A:r3' AND p.is_enabled;"""))
+trigger = checked("""SET search_path=pg_catalog;
+ SELECT pg_get_triggerdef(t.oid)||';' FROM pg_trigger t
+ WHERE t.tgrelid='public.ediel_messages'::regclass AND NOT t.tgisinternal
+ AND t.tgfoid='public.gridex_validate_ediel_message_contract()'::regprocedure;""")
+assert trigger.count('CREATE TRIGGER ') == 1, 'Exactly one actual canonical guard trigger required'
+assert 'EXECUTE FUNCTION public.gridex_validate_ediel_message_contract()' in trigger, 'Native trigger function must retain its qualified identity'
+# CI installs the client matching the pinned native server. Use that same
+# explicit executable as the schema snapshot; PATH can still resolve v16.
+pg_dump = os.environ.get('GRIDEX_PG_DUMP', 'pg_dump')
+dumped = subprocess.run([pg_dump, URL, '--schema-only', '--section=pre-data',
+ '--table=public.ediel_messages', '--table=public.ediel_message_profiles',
+ '--table=public.ediel_rule_packs', '--no-owner', '--no-privileges'],
+ text=True, capture_output=True, env=ENV, timeout=20)
+assert dumped.returncode == 0, dumped.stderr
+for table in ['ediel_messages', 'ediel_message_profiles', 'ediel_rule_packs']:
+    assert 'CREATE TABLE public.' + table + ' (' in dumped.stdout, 'Native DDL missing: ' + table
+ddl_digest = hashlib.sha256(dumped.stdout.encode()).hexdigest()
+database = 'gridex_context_probe_' + uuid.uuid4().hex
+assert re.fullmatch(r'gridex_context_probe_[0-9a-f]{32}', database)
+checked('CREATE DATABASE "' + database + '" TEMPLATE template0;')
+source_psql = PSQL
+# Register cleanup immediately after this exact random owned database exists.
+# Cleanup uses the original local database even after PSQL selects the probe.
+def cleanup_database() -> None:
+    cleanup = subprocess.run(source_psql, input='DROP DATABASE "' + database + '" WITH (FORCE);',
+                             text=True, capture_output=True, env=ENV, timeout=20)
+    assert cleanup.returncode == 0, cleanup.stdout + cleanup.stderr
+atexit.register(cleanup_database)
+PSQL = ['psql', URL.rsplit('/', 1)[0] + '/' + database, '-X', '-qAt',
+        '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose']
+checked('CREATE SCHEMA extensions; CREATE EXTENSION pgcrypto WITH SCHEMA extensions;\n'
+        + dumped.stdout + '\n' + old_sql + '\n' + trigger)
+for table, row in [('ediel_message_profiles', registry[0]), ('ediel_rule_packs', registry[1])]:
+    value = json.dumps(row).replace("'", "''")
+    checked("INSERT INTO public." + table + " SELECT * FROM jsonb_populate_record(NULL::public."
+            + table + ", '" + value + "'::jsonb);")
+# The historic function is reinstated only inside each rollback transaction.
+setup = 'BEGIN;\nSET LOCAL statement_timeout=\'10s\';\n' + old_sql
 original_function = checked(function_sql)
 original_digest = hashlib.sha256(original_function.encode()).hexdigest()
 for label, leaf in [('object', '{"version":1,"forged":true}'), ('json-null', 'null')]:
@@ -84,6 +128,7 @@ end $fixture$;
     assert result.returncode != 0, label + ': migration incorrectly accepted historic collision'
     assert re.search(r'ERROR:\s+23514:\s+ediel_received_context_namespace_collision\b', result.stderr), result.stderr
     assert checked(function_sql) == original_function, 'Probe changed committed function'
+    assert checked('SELECT count(*) FROM public.ediel_messages;') == '0', 'Collision rows survived rollback'
     print('RECEIVE_CONTEXT_UPGRADE: ' + label + ' collision rejected; rollback verified', flush=True)
 
 # Execute a clean upgrade and inspect its actual granted lock. Then show a
@@ -126,7 +171,13 @@ finally:
     if proc.poll() is None:
         proc.kill(); proc.wait(timeout=5)
 assert checked(function_sql) == original_function, 'Clean probe changed committed function'
-assert checked("SELECT count(*) FROM public.companies WHERE id='00000000-0000-4000-8000-00000000d099';") == '0'
+assert checked('SELECT count(*) FROM public.ediel_messages;') == '0', 'Clean probe retained rows'
+PSQL = source_psql
+assert checked(function_sql) == source_function, 'Probe changed replay guard'
+assert checked(source_rows_sql) == source_rows, 'Probe changed replay messages or received contexts'
+cleanup_database()
+atexit.unregister(cleanup_database)
 print('RECEIVE_CONTEXT_UPGRADE: actual migration lock rejects competing writer; rollback verified', flush=True)
 print('RECEIVE_CONTEXT_UPGRADE: 3/3 PASS; migration=' + migration_name + '; sql_sha256=' + hashlib.sha256(migration_data).hexdigest()
-      + '; restored_function_sha256=' + original_digest, flush=True)
+      + '; restored_function_sha256=' + original_digest + '; native_predata_sha256=' + ddl_digest
+      + '; unchanged_replay_function_sha256=' + hashlib.sha256(source_function.encode()).hexdigest(), flush=True)

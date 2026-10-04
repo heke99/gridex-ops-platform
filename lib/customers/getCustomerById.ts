@@ -1,6 +1,7 @@
 // lib/customers/getCustomerById.ts
 import { supabaseService } from '@/lib/supabase/service'
 import type { CustomerDetailData } from '@/types/customers'
+import { readCustomerRecordTombstones } from '@/lib/ediel/retention/customerRecordClasses'
 
 export async function getCustomerById(
   customerId: string
@@ -39,6 +40,9 @@ export async function getCustomerById(
   const { data: addresses, error: addressesError } = await addressesQuery
 
   if (addressesError) throw addressesError
+  if (!companyId) throw new Error('customer_address_retention_company_scope_required')
+  const addressTombstones = new Set((await readCustomerRecordTombstones({ companyId, customerId }))
+    .filter(row => row.retentionClass === 'customer_address_history').map(row => row.targetId))
 
   let sitesQuery = supabaseService
     .from('customer_sites')
@@ -74,7 +78,7 @@ export async function getCustomerById(
   return {
     customer,
     contacts: contacts ?? [],
-    addresses: addresses ?? [],
+    addresses: (addresses ?? []).filter(row => !addressTombstones.has(row.id)),
     sites: sites ?? [],
     notes: notes ?? [],
   }

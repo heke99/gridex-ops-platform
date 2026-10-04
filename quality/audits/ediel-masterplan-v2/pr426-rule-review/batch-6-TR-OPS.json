@@ -1,0 +1,1149 @@
+{
+ "batch": 6,
+ "family": "TR-OPS",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "AI-04",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql:169",
+      "lib/ediel/aiBiImportEngine.ts:11",
+      "lib/ediel/aiBiInboundReconciliation.ts:24"
+     ],
+     "tests": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs :: reconcile_source_v1 grid_area_mismatch/metering_point_not_found"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql:72-83",
+      "lib/ediel/aiBiReconciliation.ts:49"
+     ],
+     "tests": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs :: discrepancy rows with raw_columns + immutable receipt",
+      "__tests__/ediel-ai-bi-processing-decision.test.ts :: denies discrepancy decisions from an unaccepted actor before any write"
+     ],
+     "gap": "No apply process exists after approval. Approval only sets a status."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql:49"
+     ],
+     "tests": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs :: metering_points.grid_area_code stays 'WRONG' after reconciliation"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-066",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql:76"
+     ],
+     "tests": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs :: discrepancyCount 2, no masterdata overwrite"
+     ],
+     "gap": "Only the AI-04 part was checked. Period history belongs to AI-03."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The PGlite check loads the superseded 20260930174145 reconcile_source_v1, not the latest redefinition.",
+     "evidence": [
+      "scripts/ediel-ai-reconciliation-embedded-check.mjs:28",
+      "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql:169"
+     ]
+    },
+    {
+     "claim": "approveAiBiDiscrepancy returns ok:true even when no row matched. It does not check the update count.",
+     "evidence": [
+      "lib/ediel/aiBiReconciliation.ts:59-76"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "OPS-01",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql:8",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:81",
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:272",
+      "lib/ediel/scopedCapabilityReadiness.ts:69"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: wrong company/role/subtype reject + route/address/profile hash changes",
+      "__tests__/ediel-scoped-capability-readiness.test.ts :: uses actual saved message, legal identity, canonical capability and deployed release for scoped authority"
+     ],
+     "gap": "Evidence is scoped by tenant, legal actor, role, family/code/subtype, assignment, release SHA and rulepack hash."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql:115",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:168",
+      "lib/ediel/scopedCapabilityReadiness.ts:33",
+      "lib/ediel/scopedCapabilityReadiness.ts:84"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: dependencyHash changes after route/profile edit; revoked evidence gives ready=false",
+      "__tests__/ediel-scoped-capability-readiness.test.ts :: preserves incoming prescribed %s responses when business evidence is stale"
+     ],
+     "gap": "Old proofs are not marked invalid. They stop matching because the lookup uses the current dependency hash."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/productionReadiness.part-3.ts:101",
+      "lib/ediel/transport/index.part-2.ts:380"
+     ],
+     "tests": [
+      "__tests__/ediel-scoped-capability-readiness.test.ts :: an old aggregate/global ready flag never authorizes missing scoped evidence",
+      "__tests__/ediel-scoped-capability-readiness.test.ts :: keeps a generic company dry-run explicitly blocked without actual message-scope evidence"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-064",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql:52",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:162"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: require_scoped_capability_for_message_v1 rejects after wire/identity change; route change yields new hash"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-069",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:23"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: unrelated DGI Z13 profile/source edition leaves DDQ dependencyHash unchanged"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The PGlite regression never loads the latest capture() wrapper (registry market). So the latest function body is untested by the SQL regression.",
+     "evidence": [
+      "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql:272",
+      "scripts/ediel-scoped-readiness-sql-regression.mjs:250-255"
+     ]
+    },
+    {
+     "claim": "The global platform_runtime_readiness.is_ready is still read into the dependencies (as a dependency, not as an authorizer).",
+     "evidence": [
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:141"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "OPS-02",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/operations/processNextAction.ts:22",
+      "lib/ediel/operations/processNextAction.ts:66",
+      "lib/ediel/operations/processNextAction.ts:100"
+     ],
+     "tests": [
+      "__tests__/ediel-process-next-action.test.ts :: waits for business response and watches CONTRL in parallel with actual source clock and responsibility",
+      "__tests__/ediel-process-next-action-owner-port.test.ts :: uses exact actor/tenant/environment/source private RPC before actual tenant-scoped source rows"
+     ],
+     "gap": "Covers only PRODAT Z01/Z13/Z18/Z09 watches and inbound review decisions."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "app/admin/ediel/process-watches/page.tsx:7",
+      "app/admin/customer-info-requests/page.tsx:169",
+      "lib/ediel/operations/businessExpectationSweep.ts:54"
+     ],
+     "tests": [
+      "__tests__/ediel-process-watches-view.test.ts :: readonly current actor sees the same facts but no review authority or provider operation",
+      "__tests__/ediel-process-next-action.test.ts :: current UI permission controls only visibility and never grants native operation authority"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/outbox/projectSentSources.ts:6"
+     ],
+     "tests": [
+      "__tests__/ediel-post-send-source-projection.test.ts :: waits for Z02 while technical CONTRL is monitored independently",
+      "__tests__/z01-parallel-sla-watchdog.test.ts :: models customer business waiting on Z02 while CONTRL is monitored in parallel"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-022",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql",
+      "lib/ediel/operations/processNextAction.ts:50"
+     ],
+     "tests": [
+      "scripts/ediel-business-expectations-sql-regression.mjs :: Z13 expire -> manual_review",
+      "__tests__/ediel-process-next-action.test.ts :: expired own sender watch becomes review, never fabricated remote late rejection or resend"
+     ],
+     "gap": "No contact task is created. Overdue is only a manual_review status plus a review_case action."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The customer card, work queue and customer actions still derive 'waiting' from the static customer_info_requests.status (including waiting_for_contrl), not from the process projection.",
+     "evidence": [
+      "lib/customer-operations/customerCardWorkflow.ts:149",
+      "lib/customer-operations/customerCardWorkflow.ts:490",
+      "app/admin/customers/[id]/actions.part-1.ts:185",
+      "lib/customer-operations/automation.part-2.ts:248"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "OPS-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260713100000_ediel_completion_and_platform_contract.sql:986",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql:132"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: record_scoped_capability_evidence rejects without TGT/AGT/SHADOW/LIVE/RESTORE records"
+     ],
+     "gap": "Evidence types are TGT, AGT, SHADOW, PILOT, LIVE and RESTORE. There are no separate types for document coverage, unit, integration, tenant-E2E or transport."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      ".github/workflows/ediel-masterplan-v2.yml:37",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql:149",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:92"
+     ],
+     "tests": [
+      "__tests__/ediel-scoped-capability-readiness.test.ts :: requires genuine deployed release provenance without a synthetic fallback"
+     ],
+     "gap": "Release is locked to the exact head (candidateSha = release SHA). Nothing requires multi-tenant, DDQ+DGI or cross-tenant assignment test coverage. Searched: cross-tenant/DGI in the record function."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "scripts/check-ediel-masterplan-v2.cjs:48",
+      "scripts/check-ediel-masterplan-v2.cjs:55"
+     ],
+     "tests": [
+      "scripts/test-ediel-independent-common-mapping.cjs :: SC-072 normal authentic codec passes own checks and the independent revision-correct literal oracle"
+     ],
+     "gap": "Guarded mostly by CI assertions on the register, not by runtime."
+    },
+    {
+     "effect": "SC-072",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/edifactEnvelopeCodec.ts"
+     ],
+     "tests": [
+      "scripts/test-ediel-independent-common-mapping.cjs :: SC-072 ${label}: authentic own roundtrip and syntax stay green, independent source oracle detects the real defect"
+     ],
+     "gap": "This test is not listed in the ediel-masterplan-v2.yml workflow steps."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "OPS-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql:22",
+      "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql:123",
+      "lib/ediel/certificationEvidence.ts:53"
+     ],
+     "tests": [
+      "scripts/ediel-scoped-readiness-sql-regression.mjs :: route/registry/certificate gating"
+     ],
+     "gap": "Route, certificate, profile and tenant are verified. Nothing checks the incident trail or an agreed counterparty proof. Searched: incident|motpartsprov|counterparty_proof."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/certificationEvidence.ts:3",
+      "supabase/migrations/20260930145202_ediel_scoped_capability_readiness.sql:136"
+     ],
+     "tests": [
+      "__tests__/ediel-e2e-regressions.test.ts (string match only, not counted)"
+     ],
+     "gap": "LIMITED_PILOT evidence is required only after a first sent message. There is no executable controlled-flow procedure and no behavioural test."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "docs/incident-response-runbook.md:8",
+      "lib/ediel/operations/processNextAction.ts:14"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: retains no-resend on lost entry response"
+     ],
+     "gap": "The ban on mass import of references as a test strategy exists only in the runbook. No code enforces it."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "OPS-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/failureDisposition.ts:2",
+      "lib/ediel/core/failureDisposition.ts:17",
+      "lib/ediel/core/runtimeDecision.ts:511"
+     ],
+     "tests": [
+      "__tests__/ediel-local-failure-disposition.test.ts :: preserves typed quarantine and unsupported categories without giving them protocol authority"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/transport/inboundProcessor.ts:45",
+      "lib/ediel/transport/deadLetter.ts:30"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-failure-journal.test.ts :: persists %s without converting the exception into an external rejection"
+     ],
+     "gap": "Only a dead-letter row is written. There is no active alarm or notification (searched alert|notify|alarm). The 'original preserved' check runs on an in-memory object."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:512-524"
+     ],
+     "tests": [
+      "__tests__/ediel-local-failure-disposition.test.ts :: holds an unknown local thrown failure with no invented APERAK42",
+      "__tests__/ediel-local-failure-disposition.test.ts :: retains a real independently source-qualified national42/202"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "TR-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/mailReadiness.ts:120-156",
+      "lib/email/sendEdielEmail.ts:35-48",
+      "lib/ediel/transport/index.part-2.ts:466-476",
+      "lib/ediel/transport/index.part-1.ts:624-699"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-security-resolution.test.ts :: does not activate a production plaintext exception from reason and expiry alone",
+      "__tests__/ediel-smime-archive-send-guard.test.ts :: requires TLS and certificate validation for the provider hop"
+     ],
+     "gap": "No test runs assertEdielSmtpReadiness with the Resend provider set (all tests mock it), and none runs the production PRODAT plaintext stop at index.part-2.ts:466."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/transport/index.part-2.ts:436-476",
+      "lib/ediel/outbox/readinessGuard.ts:14-60"
+     ],
+     "tests": [],
+     "gap": "The receiver comes from message.receiver_email. The route-contract and readiness checks are only proven by string-matching (scripts/ediel-production-send-guard-regression.cjs), which does not count."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/productionGuards.ts:67-69,141-148",
+      "lib/ediel/db.ts:424",
+      "lib/ediel/transport/index.part-2.ts:394,406"
+     ],
+     "tests": [
+      "__tests__/ediel-production-test-bypass.test.ts :: holds live test flags, portal parties and test application addressing even with the legacy marker"
+     ],
+     "gap": "The guard only checks Ediel IDs 91100/91109 and the app ref. It never checks the portal test mailbox in receiver_email. In the SMTP send path the send lock only runs when certain contexts are present."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/mailReadiness.ts:134-140"
+     ],
+     "tests": [],
+     "gap": "Same as condition: not tested with the real path."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/productionGuards.ts:141"
+     ],
+     "tests": [
+      "__tests__/ediel-production-test-bypass.test.ts :: holds live test flags, portal parties and test application addressing even with the legacy marker"
+     ],
+     "gap": "Only the pure function is tested. sendEdielMessageViaSmtp is not tested with a production message to the portal."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The SMTP send path only applies the production send lock (portal-party check) when a validation context is present, so a production message without those contexts can skip it there.",
+     "evidence": [
+      "lib/ediel/transport/index.part-2.ts:406"
+     ]
+    },
+    {
+     "claim": "The production guard does not check receiver_email or mailbox against the portal test recipient.",
+     "evidence": [
+      "lib/ediel/core/productionGuards.ts:67-69,141-148"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql:18,105-114",
+      "lib/inbound-mail/dsnSourceObservations.ts:5-8",
+      "lib/ediel/transport/acceptedProjection.ts:3-7"
+     ],
+     "tests": [
+      "scripts/ediel-transport-journal-sql-regression.mjs :: observe accepted/immutable",
+      "scripts/ediel-accepted-projection-sql-regression.mjs :: projectionStatus sent/acknowledged/failed"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:34,47-60,78",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql:62-68,112"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: commits prepare and entry before provider, then captures outcome",
+      "scripts/ediel-transport-journal-sql-regression.mjs"
+     ],
+     "gap": "The queue ID is not extracted or stored separately; only the raw SMTP response string is kept. There is no SMTP status code for accepted results."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:80-92",
+      "lib/ediel/transport/smtpOutcome.ts:9-21",
+      "lib/ediel/transport/acceptedProjection.ts:7"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: captures transport error without inventing acceptance or releasing entered attempt",
+      "__tests__/ediel-smtp-outcome.test.ts :: keeps ambiguous SMTP error %j for transport reconciliation",
+      "scripts/ediel-accepted-projection-sql-regression.mjs :: classification unknown -> null"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-062",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:88-118",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql:119-130"
+     ],
+     "tests": [
+      "__tests__/ediel-dsn-classification.test.ts :: routes stored DSNs to transport review before attachment loading or tenant/business processing",
+      "scripts/ediel-dsn-source-observation-sql-regression.mjs"
+     ],
+     "gap": "The failure is recorded as an observation (deliveryProven=false). The attempt or message status does not change."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "An explicit 4xx/5xx after provider entry is always wrapped as SmtpDeliveryUncertainError, so the outbox reports delivery_uncertain instead of failed. The smtp-outcome test mocks the raw error path, which cannot happen in production.",
+     "evidence": [
+      "lib/ediel/transport/outboundAttempt.ts:90",
+      "__tests__/ediel-smtp-outcome.test.ts:41-50"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/rawMimeArchive.ts:16-63",
+      "lib/email/sendEdielEmail.ts:51-62,86-91",
+      "lib/ediel/transport/index.part-1.ts:397-403"
+     ],
+     "tests": [
+      "__tests__/ediel-raw-mime-archive.test.ts :: binds verified storage bytes and RFC ID to the actual tenant-owned message snapshot",
+      "__tests__/ediel-raw-mime-archive.test.ts :: does not archive a missing or ambiguous RFC Message-ID",
+      "__tests__/ediel-smime-archive-send-guard.test.ts :: submits the exact same bytes only after archival succeeds"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql:62-68,112"
+     ],
+     "tests": [
+      "scripts/ediel-transport-journal-sql-regression.mjs :: archive_not_qualified / prepare"
+     ],
+     "gap": "The provider ID is only provider_result.messageId plus the raw response. No separate provider queue ID is extracted, and no linking check between the RFC ID and the provider ID is tested."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/rawMimeArchive.ts:47-53",
+      "supabase/migrations/20260930145115_ediel_generic_transport_attempts_v1.sql:62-68"
+     ],
+     "tests": [
+      "__tests__/ediel-raw-mime-archive.test.ts :: refuses a preview or altered byte readback",
+      "__tests__/ediel-smime-archive-send-guard.test.ts :: performs zero SMTP calls when exact MIME archival cannot be persisted"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "buildAsciiMessageId uses a timestamp plus Math.random (8 chars). It is stable within one attempt, but each new build creates a new ID, and it is not cryptographically unique.",
+     "evidence": [
+      "lib/ediel/transport/index.part-1.ts:397-403"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-04",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/dsnClassifier.ts:5-9",
+      "lib/inbound-mail/edielInboundProcessor.ts:115-139",
+      "lib/inbound-mail/edielEmailParser.ts:273-274",
+      "lib/inbound-mail/edielMailboxPoller.part-1.ts:758"
+     ],
+     "tests": [
+      "__tests__/ediel-dsn-classification.test.ts :: classifies an attachment-only DSN before extracting its returned original",
+      "__tests__/ediel-dsn-classification.test.ts :: does not extract a returned original from a DSN MIME envelope"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/dsnDisposition.ts:25-83",
+      "lib/inbound-mail/dsnTransportCandidates.ts:11-35",
+      "lib/inbound-mail/dsnSourceObservations.ts:15-33",
+      "supabase/migrations/20260930194905_ediel_dsn_source_observation_journal.sql:105-130"
+     ],
+     "tests": [
+      "__tests__/ediel-dsn-disposition.test.ts :: preserves separate envelope, RFC identity and recipient failure fields",
+      "__tests__/ediel-dsn-transport-candidates.test.ts :: queries only attributed mailbox scope and exact returned RFC ID and recipient",
+      "scripts/ediel-dsn-source-observation-sql-regression.mjs"
+     ],
+     "gap": "Only a single-recipient DSN is linked to an attempt. Others go to manual review."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:104-113"
+     ],
+     "tests": [
+      "__tests__/ediel-dsn-classification.test.ts :: does not create diagnostic business messages for quarantined DSNs",
+      "__tests__/ediel-dsn-source-observations.test.ts :: never treats returned original EDIFACT as a qualified delivery report"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-062",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:88-118"
+     ],
+     "tests": [
+      "__tests__/ediel-dsn-classification.test.ts :: routes stored DSNs to transport review before attachment loading or tenant/business processing"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "TR-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql:72-121 (patched into assess_recovery_source_v1 by 20261001061029:37-52, 20261001140500, 20261001141000:150-155)"
+     ],
+     "tests": [
+      "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs :: negative_aperak_new_bgm_required / corrected_exact_failed_scope_required",
+      "scripts/ediel-prodat-recovery-cursor-sql-regression.mjs :: all_rejected retry"
+     ],
+     "gap": "No native test covers whole_original_negative_contrl_required (the interchange-scope CONTRL check)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/recovery/prodatRecovery.ts:105-185",
+      "lib/ediel/recovery/transportRetry.ts:9-20",
+      "lib/ediel/transport/index.part-2.ts:374-429"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-recovery-consumer.test.ts :: uses a new operation request and current canonical finalizer, never inherits the old rule snapshot or ACK states",
+      "scripts/ediel-prodat-recovery-phase-regression.mjs"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql:76-79",
+      "lib/ediel/transport/outboundAttempt.ts:61-67"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-recovery-consumer.test.ts :: a missing/unknown loss proof stays held and cannot create an outbox or rerender",
+      "__tests__/ediel-outbound-transport-journal.test.ts :: suppresses entered unknown without provider retry"
+     ],
+     "gap": "The 'unknown is held' case is only proven through a mocked RPC."
+    },
+    {
+     "effect": "SC-040",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930164804_ediel_prodat_retry_correction_authority.sql:107",
+      "lib/ediel/recovery/prodatRecovery.ts:150-151"
+     ],
+     "tests": [
+      "scripts/ediel-recovery-physical-negative-scope-sql-regression.mjs :: negative_aperak_new_bgm_required"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "TR-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/certificateStatus.ts:125-181",
+      "lib/ediel/security/outboundRecipientCertificate.ts:181-209"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-validity-boundaries.test.ts :: blocks expiry at %s without using rounded days as authority",
+      "__tests__/ediel-recipient-certificate-scope.test.ts :: recipient certificate same scope for explicit IDs and candidate search"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/security/certificateTrust.ts:27-75",
+      "lib/ediel/security/outboundRecipientCertificate.ts:220-245,297-344,433-452"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds a genuinely revoked leaf despite valid dates",
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds all recipients when any required leaf is actually revoked"
+     ],
+     "gap": "resolveOutboundRecipientCertificate is never called in a test, so the claim that the explicit-ID and candidate-search paths are equivalent is unproven end to end."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/certificateStatus.ts:167-181",
+      "lib/ediel/security/certificateTrust.ts:19,45"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-validity-boundaries.test.ts :: blocks a not-yet-valid replacement while an older overlapping certificate remains usable",
+      "__tests__/ediel-certificate-validity-boundaries.test.ts :: blocks lifecycle status %s despite otherwise valid dates"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-060",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:297-363"
+     ],
+     "tests": [],
+     "gap": "No integration test runs both the direct-ID path and the candidate-search path against the expired, not-yet-valid and revoked set."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The two paths use different status filters. Candidate search only reads DB status active or renewal_available, but the direct-ID path accepts any status that evaluateCertificateStatus does not block (for example expiring or critical), so the guard is not literally the same.",
+     "evidence": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:319,298-306,441"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-07",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:220-245",
+      "lib/ediel/security/outboundRecipientCertificate.ts:181-200",
+      "lib/ediel/security/outboundRecipientCertificate.ts:437-452",
+      "lib/ediel/security/certificateTrust.ts:49-51"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds a required leaf from a different legal receiver scope",
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds the whole set when a required leaf is missing"
+     ],
+     "gap": "The required set comes from the versioned authority's recipient_fingerprints, scoped by company, environment and receiver. Each leaf is also checked for subaddress, family and environment."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/index.part-2.ts:625-643",
+      "lib/ediel/transport/index.part-1.ts:345-383"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: returns every verified leaf in source order rather than newest row order",
+      "__tests__/ediel-cms-recipient-set.test.ts :: rejects omitted recipients and an extra unintended recipient"
+     ],
+     "gap": "No behaviour test runs the full chain resolve -> encrypt -> CMS check inside sendEdielMessageViaSmtp. The e2e test only string-matches the source (synthetic-customer-journey-pre-smtp.e2e.test.ts:238)."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:235",
+      "lib/ediel/security/outboundRecipientCertificate.ts:447-451"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds ambiguous leaf records instead of choosing the latest"
+     ],
+     "gap": "The candidate .find() over rows ordered by newest valid_to (lines 320, 329) only picks the primary label. The encryption set is the full required set."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:449"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds all recipients when any required leaf is actually revoked"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:235"
+     ],
+     "tests": [
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: holds ambiguous leaf records instead of choosing the latest"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-061",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/index.part-2.ts:625-643"
+     ],
+     "tests": [
+      "__tests__/ediel-cms-recipient-set.test.ts :: rejects omitted recipients and an extra unintended recipient",
+      "__tests__/ediel-certificate-trust-crypto.test.ts :: returns every verified leaf in source order rather than newest row order"
+     ],
+     "gap": "Covered only at unit level. There is no integration test against Supabase."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The candidate query and the fallback query cap results at .limit(100) with no deterministic order (fallback has none). If there are more than 100 rows, a required leaf could be missing. That fails closed (held) rather than sending wrong.",
+     "evidence": [
+      "lib/ediel/security/outboundRecipientCertificate.ts:321",
+      "lib/ediel/security/outboundRecipientCertificate.ts:441"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/mailReadiness.ts:186,192",
+      "lib/email/sendEdielEmail.ts:40-46"
+     ],
+     "tests": [],
+     "gap": "SPF is checked via DNS and first-hop TLS is enforced (requireTLS, TLSv1.2). There is no relay or next-hop TLS verification. Searched spf|next.?hop|relay_tls|deliveryTrace in lib/ and app/; nothing besides a boolean claim allRelayHopsVerified in the exception source (migrations/20261001000609:90). No test covers SPF status."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "ABSENT",
+     "code": [],
+     "tests": [],
+     "gap": "No check of provider policy and no analysis of the real delivery trace (Received headers). Searched provider_policy|delivery_trace|Received: with 0 hits."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/mailReadiness.ts:219-224",
+      "app/admin/ediel/mail-readiness/page.tsx:66-84"
+     ],
+     "tests": [],
+     "gap": "smtp_tcp only reports 'reachable via TCP' and declares no overall transport as verified. No test."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/mailReadiness.ts:192"
+     ],
+     "tests": [],
+     "gap": "Relay TLS and the real trace are missing."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/mailReadiness.ts:221-222"
+     ],
+     "tests": [],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The relay-hop TLS evidence for the reserve procedure is only a self-reported boolean in the source JSON. It is not verified.",
+     "evidence": [
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:89-100"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-09",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:56-130",
+      "lib/ediel/transport/exception/source.ts:22-48",
+      "lib/ediel/transport/index.part-2.ts:466-471"
+     ],
+     "tests": [
+      "scripts/ediel-transport-exception-sql-regression.mjs :: TR09 (rejects case:'disable_tls', tls.required:false, allRelayHopsVerified:null)",
+      "__tests__/ediel-transport-exception-source.test.ts :: holds an absent approved incident without creating a plaintext authorization"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:8-35,194-231,237-240"
+     ],
+     "tests": [
+      "scripts/ediel-transport-exception-sql-regression.mjs :: alarm/budget/immutable checks (lines 88-99)",
+      "scripts/ediel-transport-exception-native.test.ts :: native actual normal original dispatch binds source/approval and records separate bounded attempt/deviation/alarm once"
+     ],
+     "gap": "Separate operations, events and alarms journal. Attempt budget is bounded by maximum_attempts."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/config.ts:140-161",
+      "lib/ediel/transport/index.part-2.ts:466-467",
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:125,199-203"
+     ],
+     "tests": [
+      "scripts/ediel-transport-exception-sql-regression.mjs :: case 'disable_tls' rejected",
+      "__tests__/ediel-transport-exception-source.test.ts :: does not let a caller clone or mutate the issued source capability into a reserve operation"
+     ],
+     "gap": "The legacy allow_unencrypted_production always returns false. No test targets hasActiveUnencryptedProductionOverride directly."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:219-220"
+     ],
+     "tests": [
+      "scripts/ediel-transport-exception-native.test.ts :: native final administrator-alarm write failure rolls back the complete fresh prepare stage before SMTP"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:125"
+     ],
+     "tests": [
+      "scripts/ediel-transport-exception-sql-regression.mjs :: rejects case 'disable_tls'",
+      "__tests__/ediel-transport-exception-crl.test.ts :: keeps an actually revoked recipient held even under a prior-CRL reserve procedure"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Plaintext is blocked only for production PRODAT. For other families the route policy and the smtpMimeMode override can send unencrypted without an exception journal. Whether T requires S/MIME for those families is not verified.",
+     "evidence": [
+      "lib/ediel/transport/index.part-2.ts:446-467",
+      "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql:200-203"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:35-114",
+      "lib/ediel/outbox/sendOutboxItem.ts:52-70",
+      "supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql:149-193"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: retains no-resend on lost entry response",
+      "scripts/ediel-ai-transport-journal-sql-regression.mjs :: release unsafe after enter"
+     ],
+     "gap": "Fencing works via current_send_attempt_id and the attempt journal. The state is named delivery_uncertain/'unknown' (no unknown_after_submission). The stale-lease -> delivery_uncertain SQL in claim_ediel_outbox_items has no behaviour test: ops-hardening-behavior-regression.cjs only tests a missing RPC."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:65-71,99-111",
+      "lib/ediel/outbox/sendOutboxItem.ts:303-344",
+      "lib/ediel/outbox/createOutboxItem.ts:118-123"
+     ],
+     "tests": [
+      "__tests__/ediel-smtp-post-acceptance.test.ts :: does not relabel a pre-send failure as uncertain",
+      "__tests__/ediel-outbound-transport-journal.test.ts :: suppresses entered unknown without provider retry",
+      "__tests__/ediel-ack-outbox-retry-safety.test.ts :: queues a new ACK and allows a known failed ACK to be retried under the same lock"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:70,103-107",
+      "supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql:160-169"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: captures transport error without inventing acceptance or releasing entered attempt"
+     ],
+     "gap": "No claim of exactly-once was found (grep exactly.?once|exakt en gång)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/transport/smtpOutcome.ts:9-21"
+     ],
+     "tests": [
+      "__tests__/ediel-smtp-outcome.test.ts :: fails closed if the attempt fence rejects the uncertain-state write"
+     ],
+     "gap": "The restart path (stale sending) is untested in SQL."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/outboundAttempt.ts:59-63"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: suppresses entered unknown without provider retry"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-063",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql:160-169",
+      "lib/ediel/outbox/sendOutboxItem.ts:303-328"
+     ],
+     "tests": [
+      "__tests__/ediel-outbound-transport-journal.test.ts :: retains no-resend on lost entry response"
+     ],
+     "gap": "No test of worker restart or stale-lease reclaim. The name is delivery_uncertain, not submission_unknown."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The lease is purely time-based (10 min) and has no heartbeat. A slow but still-live worker gets marked delivery_uncertain while it is still sending. Its later status update then fails on locked_by/attempt and the result is lost (claim_lost). Conservative, but the real outcome is not recorded on the outbox row.",
+     "evidence": [
+      "supabase/migrations/20260618200000_ops_production_hardening_resolver_queues.sql:154-169",
+      "lib/ediel/outbox/sendOutboxItem.ts:67-69"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "TR-11",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/copy.ts:9-19",
+      "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql:4-37"
+     ],
+     "tests": [
+      "scripts/ediel-transport-copy-sql-regression.mjs :: unavailable/held/available states"
+     ],
+     "gap": "The copy is a journal-bound archive (.eml), not an IMAP Sent folder. No IMAP append or Sent read exists (grep imap.*append|Sent with 0 hits)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts:11-34",
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx:8-40",
+      "app/admin/ediel/messages/[id]/page.tsx:447"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-copy-api.test.ts :: reauthorizes the selected tenant, reads the private archive and returns exactly those bytes",
+      "__tests__/ediel-transport-copy-api.test.ts :: offers journal copies without reading bytes or asserting delivery/resend authority"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/copy.ts:11,18",
+      "app/api/ediel/messages/[messageId]/transport-copy/route.ts:28"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-copy-api.test.ts :: offers journal copies without reading bytes or asserting delivery/resend authority",
+      "__tests__/ediel-transport-copy-api.test.ts :: retains immutable journal history but returns no bytes after native retention tombstones the original"
+     ],
+     "gap": "authorizesResend:false and deliveryProven:false are enforced. An empty result triggers no resend."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql:15-36"
+     ],
+     "tests": [
+      "scripts/ediel-transport-copy-sql-regression.mjs :: available copies lanes generic_journal/sealed_z08"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/transport/copy.ts:18"
+     ],
+     "tests": [
+      "__tests__/ediel-transport-copy-api.test.ts :: offers journal copies without reading bytes or asserting delivery/resend authority"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The UI shows the same error text for 'held' (sending entered, archive not verified) and 'unavailable'. It does not tell the operator that a transport attempt exists, so it can be read as 'nothing sent'.",
+     "evidence": [
+      "components/admin/ediel/EdielTransportCopiesPanel.tsx:18"
+     ]
+    }
+   ]
+  }
+ ]
+}

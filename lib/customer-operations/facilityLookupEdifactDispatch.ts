@@ -1,3 +1,5 @@
+import {readZ01OriginalForRequest} from '@/lib/ediel/prodat/z01OriginalReplay'
+import {allocateZ01WireReferences} from '@/lib/ediel/prodat/z01WireReferences'
 import { randomUUID } from 'node:crypto'
 import { createOutboundRequest } from '@/lib/cis/db'
 import { resolvePlatformGridOwnerByAnyId } from '@/lib/grid-owners/platformGridOwnerResolver'
@@ -64,20 +66,6 @@ function missingSchema(error: unknown): boolean {
   const code = String((error as { code?: unknown } | null)?.code ?? '')
   const message = String((error as { message?: unknown } | null)?.message ?? '')
   return ['42P01', '42703', 'PGRST204', 'PGRST205'].includes(code) || /schema cache|does not exist|column .* does not exist/i.test(message)
-}
-
-function sanitize(value: unknown): string {
-  return String(value ?? '')
-    .replace(/[\r\n'+]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
-function compactReference(value: string | null | undefined, fallbackPrefix: string, maxLength: number): string {
-  const cleaned = sanitize(value).toUpperCase().replace(/[^A-Z0-9_.\/-]/g, '')
-  if (cleaned) return cleaned.slice(0, maxLength)
-  const stamp = new Date().toISOString().replace(/\D/g, '').slice(2, 12)
-  return `${fallbackPrefix}${stamp}`.slice(0, maxLength)
 }
 
 function requestMetadata(row: FacilityLookupRequestRow): JsonRecord {
@@ -221,7 +209,7 @@ async function createFacilityLookupIntent(input: {
   routeProfileId: string | null
   operationId: string
 }) {
-  const reference = compactReference(`FLZ01-${input.request.id.slice(0, 8)}`, 'FLZ01', 20)
+  const wireReferences = allocateZ01WireReferences()
   return createEdielMessageIntent({
     actorUserId: input.actorUserId,
     companyId: input.request.company_id,
@@ -254,11 +242,12 @@ async function createFacilityLookupIntent(input: {
     facilityId: null,
     meteringPointId: null,
     gridAreaCode: clean(input.request.grid_area_code),
-    interchangeReference: reference,
-    messageReference: reference,
-    transactionReference: compactReference(`FL-${input.request.id.slice(0, 12)}`, 'FL', 25),
+    interchangeReference: wireReferences.interchangeReference,
+    messageReference: wireReferences.messageReference,
+    transactionReference: wireReferences.transactionReference,
     idempotencyKey: `facility-lookup-z01:${input.request.id}`,
     payload: {
+      documentReference:wireReferences.documentReference,
       grid_owner_information_request_id: input.request.id,
       operation_id: input.operationId,
       lookupMode: 'customer_site_address_without_facility_identifier',
@@ -291,21 +280,14 @@ export async function dispatchFacilityLookupEdifact(input: {
     }
   }
 
-  const actorUserId = clean(input.actorUserId) ?? clean(request.created_by) ?? 'system'
+  const actorUserId = clean(input.actorUserId)
+  if(!actorUserId)throw new Error('ediel_tenant_actor_required')
   const metadata = requestMetadata(request)
-  if (['sent', 'waiting_response'].includes(request.status) && request.ediel_message_id && request.outbound_request_id) {
-    return {
-      requestId: request.id,
-      status: 'already_waiting',
-      outboundRequestId: clean(request.outbound_request_id),
-      edielMessageId: clean(request.ediel_message_id),
-      communicationRouteId: clean(request.communication_route_id) ?? clean(metadata.communication_route_id),
-      edielRouteProfileId: clean(request.ediel_route_profile_id) ?? clean(metadata.ediel_route_profile_id),
-      operationId: clean(request.operation_id) ?? clean(input.operationId),
-      blockerCode: null,
-      blockerMessage: null,
-    }
-  }
+  const prior=await readZ01OriginalForRequest({actorUserId,companyId:request.company_id,requestId:request.id,requestKind:'facility_lookup',customerId:request.customer_id,siteId:request.customer_site_id,
+    operationId:clean(input.operationId)??clean(request.operation_id),environment:input.environment,
+    messageIds:[request.ediel_message_id,clean(metadata.ediel_message_id)],outboundIds:[request.outbound_request_id]})
+  if(prior)return {requestId:request.id,status:'already_waiting',outboundRequestId:prior.outbound.id,edielMessageId:prior.message.id,communicationRouteId:prior.message.communication_route_id,
+    edielRouteProfileId:prior.message.route_profile_id??null,operationId:prior.message.source_operation_id??null,blockerCode:null,blockerMessage:null}
 
   if (request.request_type !== 'facility_lookup') {
     return markDispatchBlocked({
@@ -408,6 +390,7 @@ export async function dispatchFacilityLookupEdifact(input: {
         })
       }
       const message = rendered.message
+      if(rendered.status==='existing')return {requestId:request.id,status:'already_waiting',outboundRequestId:clean(existingOutbound.id),edielMessageId:message.id,communicationRouteId:message.communication_route_id,edielRouteProfileId:message.route_profile_id??null,operationId:message.source_operation_id??null,blockerCode:null,blockerMessage:null}
       existingMessageId = message.id
       // Bridge the legacy outbound row into the intent pipeline: from now on the
       // intent/outbox/message chain is the source of truth for this row.
@@ -569,6 +552,7 @@ export async function dispatchFacilityLookupEdifact(input: {
     })
   }
   const message = rendered.message
+  if(rendered.status==='existing')return {requestId:request.id,status:'already_waiting',outboundRequestId:outbound.id,edielMessageId:message.id,communicationRouteId:message.communication_route_id,edielRouteProfileId:message.route_profile_id??null,operationId:message.source_operation_id??null,blockerCode:null,blockerMessage:null}
 
   await safePatch('outbound_requests', {
     companyId: request.company_id,

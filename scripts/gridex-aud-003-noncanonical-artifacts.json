@@ -15,6 +15,31 @@
         "repo:lib/ediel/types.ts:EdielMessageRuleRow",
         "repo:scripts/migration-history-manifest.json"
       ]
+    },
+    {
+      "path": "migrations/20261001061000_ediel_ai_legal_technical_party_scope.sql",
+      "sha256": "808f9cbe5a37838e47e5b99fbaa76bad22416d7a9e2493e5a9c62980782fc767",
+      "status": "merged_repository_artifact_not_deployed",
+      "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-001",
+      "reason": "Incoming #421-lineage forward written before 20261001020550 renamed require_original_draft_v1 to require_original_before_purpose_owner_v1. The integrator reviewed it and did not apply it blindly; 20261001092522_ediel_ai_legal_technical_party_composition.sql is its composed successor and CREATEs the same transport_mandate_basis_v1/party_source_v1/require_party_wire_v1/authorize_original_*_v1/ediel_ai_outbound_party_basis_v1 functions, so both cannot be applied. Authentic clean replay of the composed candidate stops in this file at ai_list_draft_header_owner_changed. No production ledger contains it (observed deployed tail 20260806).",
+      "evidence": [
+        "repo:quality/audits/ediel-masterplan-v2/final-candidate-20261001/ai-legal-technical-restored-proof/proof.json",
+        "repo:supabase/migrations/20261001092522_ediel_ai_legal_technical_party_composition.sql",
+        "repo:supabase/migrations/20261001020550_ediel_ai_purpose_source_owner.sql:217",
+        "replay:supabase-cli-2.101.0/postgres-17.6.1.155:2026-10-01:ai_list_draft_header_owner_changed"
+      ]
+    },
+    {
+      "path": "migrations/20261001121000_ediel_metering_method_recovery_current_source_bridge.sql",
+      "sha256": "4872a6ad2c272d1017e30a59d976d11381026ccd7365705c99de1d7e2324ed20",
+      "status": "merged_repository_artifact_not_deployed",
+      "finding": "GRIDEX-EDIEL-COMPOSED-REPLAY-002",
+      "reason": "CREATE TRIGGER method_recovery_bind_message watches ediel_messages.sender_subaddress/receiver_subaddress, which no predecessor creates (actual columns: sender_sub_address/receiver_sub_address). Authentic clean replay fails with 42703, so the file cannot have been applied on any database carrying this history. Its replay-corrected successor 20261001121001 differs only in those two column names.",
+      "evidence": [
+        "replay:postgres-17.6.1.155:2026-10-01:column sender_subaddress of relation ediel_messages does not exist",
+        "repo:supabase/migrations/20261001121001_ediel_metering_method_recovery_current_source_bridge_replay_corrected.sql",
+        "db:information_schema.columns(public.ediel_messages):sender_sub_address,receiver_sub_address"
+      ]
     }
   ]
 }

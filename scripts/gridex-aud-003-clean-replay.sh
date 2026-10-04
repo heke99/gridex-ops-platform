@@ -50,6 +50,15 @@ else
   DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 fi
 
+# The native catalog probe qualifies this actual clean stack. Its receipt stays
+# with already-redacted/uploaded browser evidence, and cannot claim old OIDs.
+if [[ -z "$EXTERNAL_DB" ]]; then
+  export GRIDEX_NATIVE_DATABASE_PHASE=clean
+  export GRIDEX_UTILTS_CATALOG_RECEIPT_PATH="$ROOT/e2e-artifacts/native/utilts-catalog-clean.json"
+  unset GRIDEX_UTILTS_PREUPGRADE_CATALOG_PATH
+  mkdir -p "$ROOT/e2e-artifacts/native"
+fi
+
 cleanup(){
   set +e
   if [[ -z "${EXTERNAL_DB:-}" ]]; then
@@ -314,6 +323,9 @@ apply_sql(){
   local file="$1"
   test -f "$file" || { echo "missing replay source $file" >&2; exit 1; }
   echo "[GRIDEX-REM-002 replay] applying ${file#$ROOT/}"
+  if [[ "${file##*/}" == 20261001000500_ediel_artifact_retention_decision_and_purge.sql ]]; then
+    psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$ROOT/scripts/sql/ediel-retention-replay-role-diagnostic.sql"
+  fi
   psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$file"
 }
 while IFS= read -r file; do apply_sql "$file"; done < "$FOUNDATION_EXEC"

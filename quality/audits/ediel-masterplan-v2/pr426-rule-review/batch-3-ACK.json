@@ -1,0 +1,888 @@
+{
+ "batch": 3,
+ "family": "ACK",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "ACK-01",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:865",
+      "lib/ediel/contrlEngine.ts:71-73",
+      "lib/ediel/contrlEngine.ts:51",
+      "lib/ediel/ack/canonicalAckEngine.ts:25-33"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-direction-contract.test.ts :: renders Ediel positive CONTRL with UCI action code 1 / negative ... code 4",
+      "__tests__/ediel-contrl-original-envelope.test.ts :: preserves decoded original identities and escapes canonical UCI ...",
+      "__tests__/ediel-contrl-original-envelope.test.ts :: does not accept an unterminated or ambiguous original header or ACK loop"
+     ],
+     "gap": "Correlation is UCI/interchange level only; no UCM. The token is CONTRL:2:2:UN:EDIEL2, which the guide allows (ackGuidePolicy.ts:21)."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts:297-311",
+      "lib/ediel/ack/inboundAckOutcome.ts:155-157",
+      "lib/inbound-mail/inboundStatusUpdater.ts:1020"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-direction-contract.test.ts :: parses Ediel UCI action code ... (classifier only)"
+     ],
+     "gap": "No test runs applyCanonicalInboundAckStatusUpdate with a negative CONTRL and checks for the ediel_negative_contrl task. Loop avoidance is tested: scripts/test-ediel-unb-ack-request.cjs :: CONTRL opposing control neither requests nor awaits a new ACK."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/contrlEngine.ts:73",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:21",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:154"
+     ],
+     "tests": [
+      "__tests__/ediel-contrl-original-envelope.test.ts :: preserves decoded original identities ..."
+     ],
+     "gap": "The renderer emits only UCI. The forbidden-segment check (ACK_CONTRL_NATIONAL_SEGMENT_FORBIDDEN) has no test."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/contrlEngine.ts:61-77"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-direction-contract.test.ts :: renders Ediel negative CONTRL with UCI action code 4"
+     ],
+     "gap": "The alarm half has no test (see on_pass)."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:154"
+     ],
+     "tests": [
+      "__tests__/ediel-contrl-original-envelope.test.ts :: routes the actual CONTRL draft ..."
+     ],
+     "gap": "No test proves that a national segment is rejected."
+    },
+    {
+     "effect": "SC-041",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:856-870",
+      "lib/ediel/ack/canonicalAckEngine.ts:25-51"
+     ],
+     "tests": [
+      "scripts/test-ediel-unb-ack-request.cjs :: CONTRL opposing control neither requests nor awaits a new ACK",
+      "scripts/test-ediel-unb-ack-request.cjs :: ${family}-origin ${outcome} final ACK either has real CONTRL request ..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ACK-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:869",
+      "lib/ediel/aperakEngine.ts:279",
+      "lib/ediel/aperakEngine.ts:317",
+      "lib/ediel/aperakEngine.ts:341",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts:14-70",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:19"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-common-header-rejection.test.ts :: holds substituted national outcome or source scope",
+      "__tests__/ediel-prodat-mixed-object-outcome.test.ts :: refuses BGM34 before the untouched sibling has a real own outcome",
+      "__tests__/ediel-prodat-prior-flow.test.ts :: A8 unrelated qualified national40 still builds Swedish105",
+      "__tests__/ediel-prodat-aperak-acw-match.test.ts :: matches PRODAT APERAK through its original BGM ACW ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:359-365",
+      "lib/ediel/aperakEngine.ts:419-435",
+      "lib/ediel/aperakEngine.ts:397-403"
+     ],
+     "tests": [
+      "scripts/test-ediel-unb-ack-request.cjs :: real P-APERAK preserves BOTH own references ...",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: retains P-APERAK for PRODAT and rejects an ERR reply loop"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:300-319",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:177-180"
+     ],
+     "tests": [
+      "__tests__/ediel-canonical-ack.test.ts :: classifies PRODAT 16.B APERAK from BGM function 34 and ERC, never UTILTS 312/313"
+     ],
+     "gap": "Only the classifier is tested. No test asserts the outbound P-APERAK has no 312/313."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:276-445"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-common-header-rejection.test.ts :: admits only the exact prescribed header202 negative ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:317"
+     ],
+     "tests": [],
+     "gap": "No negative render test for PRODAT 312/313 or a transaction ACW."
+    },
+    {
+     "effect": "SC-042",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:866-870"
+     ],
+     "tests": [
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: renders U-APERAK for the stored UTILTS_ERR alias ...",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: retains P-APERAK for PRODAT ..."
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The negative fallback with no errors produces ERC40 with FTX field ref '40'. That is not a P application code, so this wire fails the guide at send. Fail-closed, but the renderer builds a non-guide wire.",
+     "evidence": [
+      "lib/ediel/aperakEngine.ts:184-194",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:205",
+      "lib/ediel/prodat/prodatAperakText.ts:37"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-03",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:868",
+      "lib/ediel/aperakEngine.ts:276",
+      "lib/ediel/aperakEngine.ts:302-315",
+      "lib/ediel/aperakEngine.ts:409-415"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: uses each physical IDE for a message-level positive APERAK rather than BGM",
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: gives separate own DM identities to two guide-error transaction groups",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: validates %s stored-ERR acknowledgement through the outbound runtime gate"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/aperakEngine.ts:353-376",
+      "lib/ediel/aperakEngine.ts:412",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:197"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-physical-document.test.ts :: copies a long observed original into its own negative header response without truncation",
+      "__tests__/ediel-ack-canonical-admission.test.ts :: uses the same guide constraints in raw send and registry parse consumers"
+     ],
+     "gap": "Header errors that do not match the derived header-guide set fall back to the sole IDE as ACW (see defect)."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:20",
+      "lib/ediel/utilts/aperakSourceText.ts:7-11",
+      "lib/ediel/aperakEngine.ts:347-351"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-source-text.test.ts :: preserves allowed long logical original text and holds bare/oversize text before rendering",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: renders U-APERAK ... (not BGM+++34)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/aperakEngine.ts:238-255"
+     ],
+     "tests": [
+      "__tests__/ediel-received-utilts-header-validation.test.ts :: records the actual header owner and exactly matches decoded negative wire without ACW"
+     ],
+     "gap": "Same as on_pass."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:196"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-canonical-admission.test.ts :: rejects malformed national ACK before original lookup"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-042",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:866-870"
+     ],
+     "tests": [
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: renders U-APERAK for the stored UTILTS_ERR alias, including original DOC"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-045",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:412",
+      "lib/ediel/utilts/headerGuide.ts:223"
+     ],
+     "tests": [
+      "__tests__/ediel-received-utilts-header-validation.test.ts :: records the actual header owner ... without ACW",
+      "__tests__/ediel-utilts-guide-execution-order.test.ts"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A negative U-APERAK whose errors have no reference, but do not exactly match the derived header-guide issues, gets RFF+ACW set to the only physical IDE. That is an invented transaction reference for a possible header error. The test feeds this path: field 209 with no reference.",
+     "evidence": [
+      "lib/ediel/aperakEngine.ts:220-231",
+      "lib/ediel/aperakEngine.ts:413-415",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts:71"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-04",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:356",
+      "lib/ediel/aperakEngine.ts:398-403",
+      "lib/ediel/utilts/aperakSourceText.ts:7-11",
+      "lib/ediel/utilts/aperakSourceText.ts:39-92",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:201-210"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-source-text.test.ts :: uses the actual failed header component ...",
+      "__tests__/ediel-utilts-aperak-source-text.test.ts :: preserves allowed long logical original text and holds bare/oversize text ...",
+      "__tests__/ediel-ack-canonical-admission.test.ts :: rejects malformed national ACK before original lookup"
+     ],
+     "gap": "The renderer accepts fieldCode null for 41/42. Only the send guide rejects it (ackGuidePolicy.ts:203), and that rejection has no test."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/aperakEngine.ts:167-170",
+      "lib/ediel/utilts/aperakSourceText.ts:88-91"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-source-text.test.ts :: decodes releases losslessly and never substitutes missing content with a diagnostic",
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: preserves a source-selected element fallback up to 17 characters"
+     ],
+     "gap": "No log-restriction code found. A grep for console.* with aperak/rawPayload in lib returned nothing. INCORRECT DATA values are stored unredacted in parsedPayload and validationReport (lib/ediel/ack.ts:947,962)."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:1306",
+      "lib/ediel/utilts/aperakSourceText.ts:61-62"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: does not borrow SG11 meter-reading DTM+597 when SG5 field 512 is absent",
+      "scripts/test-ediel-prodat-source-locators.cjs (field 327 wrong DTM+273)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/aperakEngine.ts:397-416"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: gives separate own DM identities ..."
+     ],
+     "gap": "The log restriction is missing."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:1306"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: does not borrow SG11 meter-reading DTM+597 ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-043",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:1306",
+      "lib/ediel/aperakEngine.ts:401"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity-owners.test.ts (ERC41 fieldCode 327)",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts :: does not borrow SG11 meter-reading DTM+597 when SG5 field 512 is absent",
+      "__tests__/ediel-utilts-aperak-physical-scope.test.ts :: gives separate own DM identities (renders 512 FTX)"
+     ],
+     "gap": "No end-to-end test of the full wire for PRODAT 327."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ACK-05",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:680-753",
+      "lib/ediel/ack.ts:1056-1072"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-err-physical-source.test.ts :: preserves the actual source BGM reference instead of cached row metadata",
+      "__tests__/ediel-utilts-err-physical-source.test.ts :: uses exact IDE component zero and ignores nested TN",
+      "__tests__/ediel-utilts-err-canonical-guide.test.ts :: uses the same exported national field531 reason %s"
+     ],
+     "gap": "The builder writes BGM+ERR, RFF+<original code>:<BGM-id>, RFF+TN and STS+E01 with the reason."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack/canonicalAckEngine.ts:43-50",
+      "lib/ediel/ack.ts:818,857",
+      "lib/ediel/flows/receivedErrApplicationAcks.ts:10-50"
+     ],
+     "tests": [
+      "__tests__/utilts-aperak-contrl-central-engine.test.ts :: models CONTRL, APERAK and UTILTS-ERR as distinct protocol layers",
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: renders U-APERAK for the stored UTILTS_ERR alias, including original DOC",
+      "__tests__/ediel-utilts-err-application-plan.test.ts :: projects positive APERAK only after inherited old E19 is actually guide-qualified"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/ack.ts:240-254",
+      "lib/ediel/ack/sourceCorrelation.ts:177",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:117"
+     ],
+     "tests": [
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: retains P-APERAK for PRODAT and rejects an ERR reply loop",
+      "__tests__/ediel-ack-source-correlation.test.ts :: permits the source-required APERAK for an actual UTILTS ERR without creating an ERR loop"
+     ],
+     "gap": "ERR-on-ERR is tested, but only with a generic toThrow(). No builder test covers the APERAK-on-APERAK guard at ack.ts:244. Only the matrix shape is asserted."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/ack.ts:680-753"
+     ],
+     "tests": [
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: validates %s stored-ERR acknowledgement through the outbound runtime gate"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/ack.ts:244"
+     ],
+     "tests": [
+      "__tests__/ediel-masterplan-protocol-regression.test.ts :: retains P-APERAK for PRODAT and rejects an ERR reply loop"
+     ],
+     "gap": "No behavioural test of the APERAK-on-APERAK prohibition."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "In decideUtiltsRuntimeAckPlan, the isUtiltsErr branch returns a positive APERAK before the application_rejected classification is checked. A BGM+ERR stored with family UTILTS that fails the guide could therefore get a positive APERAK.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:1472-1484",
+      "lib/ediel/utiltsEngine.part-1.ts:1486-1499"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql:4",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:100-136,170-180",
+      "lib/ediel/ack/sourceCorrelation.ts:160-219"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: does not authorize a reference-only hit with wrong %s",
+      "__tests__/ediel-ack-source-correlation.test.ts :: requires authentic sent provenance and physical environment",
+      "scripts/ediel-ack-source-sql-regression.mjs :: physical_original_scope_mismatch (foreign)"
+     ],
+     "gap": "Bound fields: UNB parties (reversed), environment, application reference (market), NAD MS/MR or FR/DO roles, and original family. Tested."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:198-236"
+     ],
+     "tests": [
+      "scripts/ediel-ack-source-sql-regression.mjs :: mixed partial/answered + PRODAT pMixed scopeOutcomes",
+      "scripts/ediel-ack-qualified-tenant-read-sql-regression.mjs :: same mixed checks"
+     ],
+     "gap": "The PGlite tests load only migrations up to 20260930203615/20261001032813. The current apply_v1 is wrapped at least five more times, last in 20261001140000:121, and that final chain is not exercised here."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:166-174",
+      "lib/ediel/ack/sourceCorrelation.ts:204-217",
+      "lib/ediel/flows/inboundAckProcessing.ts:186-203"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: refuses duplicate wire identities across tenant rows even with supplied company",
+      "scripts/ediel-ack-qualified-tenant-read-sql-regression.mjs :: longCollision other company -> physical_original_ambiguous"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-013",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:173-174"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: refuses duplicate wire identities across tenant rows"
+     ],
+     "gap": "An identical wire identity across tenants is refused as ambiguous rather than resolved to B. Selecting B when the UNB/NAD parties differ is implied but not tested with two tenants."
+    },
+    {
+     "effect": "SC-036",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:237-246"
+     ],
+     "tests": [],
+     "gap": "No test sends Z04 first and the APERAK afterwards. apply_v1 changes only the message's ACK status, and no Z04 consumer checks aperak_status (grep found none)."
+    },
+    {
+     "effect": "SC-055",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930203615_ediel_ack_first14_and_committed_replay.sql:4"
+     ],
+     "tests": [
+      "__tests__/ediel-ack-source-correlation.test.ts :: does not authorize a reference-only hit with wrong legal sender"
+     ],
+     "gap": "The 'loggad säker hantering' (logged safe handling) part is not asserted."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [],
+     "tests": [
+      "scripts/ediel-ack-source-sql-regression.mjs"
+     ],
+     "gap": "Same caveat: tests do not run the latest apply_v1 chain."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [],
+     "tests": [
+      "scripts/ediel-ack-qualified-tenant-read-sql-regression.mjs :: physical_original_ambiguous"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "ACK-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001021918_ediel_ack_bilateral_receipt_graph_lock_prefix.sql:359-362",
+      "lib/ediel/core/kernel.ts:378-399",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:212-214"
+     ],
+     "tests": [
+      "scripts/ediel-atomic-ack-sql-regression.mjs :: conflicting_ack_draft_exists",
+      "scripts/ediel-outbound-ack-replay-native.test.ts :: opposite outcome rejects with no effects"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql:26-100",
+      "lib/ediel/incidents/freshBusinessIncident.ts:11",
+      "app/admin/ediel/business-incidents/workspace.tsx:10"
+     ],
+     "tests": [
+      "scripts/ediel-fresh-business-incident-native.test.ts :: fresh reported incident requires actual accepted original ACK and positive own scope",
+      "scripts/ediel-fresh-business-incident-sql-regression.mjs"
+     ],
+     "gap": "An operator must create the incident manually; a later internal check does not raise one. The contact and correction plans are inserted only as status 'held'. No contact or correction-message process is executed."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001021918_ediel_ack_bilateral_receipt_graph_lock_prefix.sql:360-362",
+      "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql:62-63"
+     ],
+     "tests": [
+      "scripts/ediel-atomic-ack-sql-regression.mjs :: repeated replay no effects + conflicting_ack_draft_exists",
+      "scripts/ediel-fresh-business-incident-native.test.ts :: retry attempts no writes or ACK/history/outbox effects"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-056",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql:84-85"
+     ],
+     "tests": [
+      "scripts/ediel-fresh-business-incident-native.test.ts :: fresh reported incident ..."
+     ],
+     "gap": "The incident and the ackHistoryChanged=false result are tested. The correction/contact process remains held only."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Same as on_pass."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [],
+     "tests": [
+      "scripts/ediel-outbound-ack-replay-native.test.ts"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "For PRODAT APERAK, the outcome-conflict check in returnReplay is skipped. Immutability then rests only on the object/scoped-outcome comparison; a replay with neither prodatObjectOutcomes nor scopedOutcomes may pass through unchecked.",
+     "evidence": [
+      "lib/ediel/core/kernel.ts:383",
+      "lib/ediel/core/kernel.ts:388-399"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-08",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:199-254",
+      "lib/ediel/aperakEngine.ts:300-319",
+      "lib/ediel/aperakEngine.ts:378-395",
+      "lib/ediel/core/receivedProdatObjectValidation.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-mixed-object-outcome.test.ts :: retains shared header errors even where the register-only facade accepted an object",
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer stores only accepted data and finalizes independent positive, guide-negative and functional responses on stable retry"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:222-252",
+      "lib/ediel/aperakEngine.ts:394"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer ...",
+      "__tests__/ediel-prodat-mixed-object-outcome.test.ts :: refuses BGM34 before the untouched sibling has a real own outcome"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:227-245"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer ..."
+     ],
+     "gap": "The message-level classification is still global (functional before application), but responses are routed per transaction."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:199-254"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:227-235"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer ... (IDE-2 keeps ERC+42/209)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-044",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utiltsEngine.part-1.ts:199-254"
+     ],
+     "tests": [
+      "scripts/ediel-utilts-err-gateway-native.test.ts :: SC-044 exact three-IDE consumer ..."
+     ],
+     "gap": "The test notes that the downstream metering/billing sinks stay held for mixed functional messages. It treats this as outside SC-044."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Global classification helpers still exist and pick one error class for the whole message (functional > application). No production callers were found, but they are a latent ACK-08 violation.",
+     "evidence": [
+      "lib/ediel/rulebook/utiltsRulebook.ts:304-309",
+      "lib/ediel/rulebook/ackRules.ts:30",
+      "lib/ediel/utiltsEngine.ts:109-135"
+     ]
+    },
+    {
+     "claim": "When the message has a functional error, the message-level ackPlan sets shouldSendAperak=false. Correct sibling APERAKs depend on consumers reading transactionDispositions instead of the ackPlan flags.",
+     "evidence": [
+      "lib/ediel/utiltsEngine.part-1.ts:1502-1520"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-09",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001000459_ediel_immutable_inbound_reception_response_requests.sql:83-91",
+      "lib/ediel/inbound/receptions.ts:21-38"
+     ],
+     "tests": [
+      "scripts/ediel-inbound-reception-actual-columns-native.test.ts :: same retained-mail replay returns the immutable first receipt without new writes",
+      "scripts/ediel-inbound-reception-actual-columns-native.test.ts :: a new mail with the same protocol identity is a held duplicate with stable request and zero effects",
+      "__tests__/ediel-inbound-reception-kernel.test.ts :: does not manufacture an arrival during internal saved-source replay"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/orchestrator/autoAckOrchestrator.ts:39-55",
+      "lib/inbound-mail/edielInboundProcessor.ts:353-379",
+      "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql:50-72"
+     ],
+     "tests": [
+      "__tests__/ediel-genuine-duplicate-103-response.test.ts :: runs the actual strict single-own-reference renderer, retains original parties/ACW and only native atomic commit",
+      "__tests__/ediel-duplicate-103-orchestrator.test.ts :: a genuine new reception executes the shared native103 command"
+     ],
+     "gap": "The prescribed duplicate response (ERC40/FTX103) is built only for PRODAT 23-DDQ-PRODAT with the electricity_supplier role. UTILTS and other families are held for manual review and get no duplicate response."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:368-379",
+      "supabase/migrations/20261001000459_ediel_immutable_inbound_reception_response_requests.sql:93-96"
+     ],
+     "tests": [
+      "__tests__/ediel-inbound-reception-persistence.test.ts :: stops new same-wire duplicate processing at its durable held response request",
+      "__tests__/ediel-duplicate-103-orchestrator.test.ts :: an unsupported source family remains explicit native-policy hold"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/orchestrator/autoAckOrchestrator.ts:40"
+     ],
+     "tests": [
+      "__tests__/ediel-genuine-duplicate-103-response.test.ts :: runs the actual strict ..."
+     ],
+     "gap": "Covered for PRODAT only. No duplicate response exists for UTILTS or for interchange-level (T §2.1) duplicates."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/inbound-mail/edielInboundProcessor.ts:370-378"
+     ],
+     "tests": [
+      "__tests__/ediel-duplicate-103-orchestrator.test.ts :: native current authority/source failure remains held without old business effects or final response"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A received UTILTS protocol duplicate always goes to manual_review and never gets a protocol-prescribed duplicate response.",
+     "evidence": [
+      "lib/ediel/orchestrator/autoAckOrchestrator.ts:40-54",
+      "supabase/migrations/20261001124000_ediel_genuine_reception_duplicate_103_response_owner.sql:50"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "ACK-10",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:316-319",
+      "lib/ediel/prodat/prodatAckMessageFunction.ts:13-17",
+      "lib/ediel/rulebook/ackGuidePolicy.ts:176-180"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-aperak-unused-document.test.ts :: keeps the actual renderer shape BGM+++%s",
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts (buildAperakDraft -> BGM+++27)",
+      "scripts/ediel-wire-reference-namespace-embedded-check.mjs (renderAperakEdiel -> BGM+++34)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:280-286",
+      "lib/ediel/aperakEngine.ts:340-341",
+      "lib/ediel/ack.ts:856-877"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts (RFF+ACW:D)",
+      "__tests__/ediel-prodat-aperak-acw-match.test.ts :: matches PRODAT APERAK through its original BGM ACW, never its own UNB or UNH"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:178-180",
+      "supabase/migrations/20261001034855_ediel_prodat_aperak_unused_document_fields.sql",
+      "supabase/migrations/20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql:12-17"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-aperak-unused-document.test.ts :: rejects nonempty unused components in %s",
+      "scripts/ediel-outbound-owner-witness-sql-regression.mjs (ACK-10 prepare/insert rejects)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/aperakEngine.ts:317,341"
+     ],
+     "tests": [
+      "scripts/ediel-wire-reference-namespace-embedded-check.mjs (ACK-10 block)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/ackGuidePolicy.ts:180"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-aperak-unused-document.test.ts :: rejects through raw manual/API validation and registry admission before external original lookup",
+      "__tests__/ediel-prodat-aperak-acw-match.test.ts :: holds PRODAT APERAK with no original ACW even when its own UNB can match"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "When there is no PRODAT wire, the ACW falls back to message/interchange/row-id references, so a non-BGM id could be placed in ACW. The fallback only applies to sources without wire.",
+     "evidence": [
+      "lib/ediel/aperakEngine.ts:286-293"
+     ]
+    }
+   ]
+  }
+ ]
+}
