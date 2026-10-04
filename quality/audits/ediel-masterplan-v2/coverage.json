@@ -777,8 +777,7 @@
         "supabase/migrations/20261004190000_ediel_tr08_relay_trace_evidence.sql",
         "scripts/ediel-tr-08-relay-trace-probe.mjs",
         "__tests__/ediel-tr-08-relay-trace.test.ts",
-        "scripts/ediel-tr-08-relay-trace-sql-regression.mjs",
-        "pending: verkligt leveransspår via operatörens återläsning (scripts/ediel-tr-08-relay-trace-probe.mjs --execute) mot egen testbrevlåda"
+        "scripts/ediel-tr-08-relay-trace-sql-regression.mjs"
       ]
     },
     {
