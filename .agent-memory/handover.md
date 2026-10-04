@@ -1119,3 +1119,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: U-01/03/07/10/16/18 (+AT) godkända; nio U PARTIAL taggade; U-19 saknar implementation. Gap-register uppdaterat (P+U). Coverage 147.
 - 2026-10-04 #491: U-13 (+AT) godkänd (utgående ERR 9/AB i utilts-err-gateway).
 - 2026-10-04 #491: TEN-09 (+AT) nedgraderad till PARTIAL efter Codex-repro: reuse_permission-grenen (ediel_resolve_service_permission_command_v1) bortser från signerad DSO networkStart; produktfix + beteendetest kvar (Claude äger). Codex tar TR-01/02.
+- 2026-10-04 #491: U-17 (+AT) godkänd. U-06 och U-11 kvar PARTIAL med nya test (u-06-request-application-reference; E87 efter cutoff); kvarvarande luckor i gap-registret.

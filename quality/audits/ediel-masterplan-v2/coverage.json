@@ -850,7 +850,9 @@
       "acceptance_id": "AT-U-06",
       "status": "PARTIAL",
       "evidence": [
-        "__tests__/utilts-aperak-contrl-central-engine.test.ts"
+        "__tests__/utilts-aperak-contrl-central-engine.test.ts",
+        "lib/ediel/rulebook/utiltsApplicationReference.ts",
+        "__tests__/ediel-u-06-request-application-reference.test.ts"
       ]
     },
     {
@@ -894,7 +896,8 @@
       "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-utilts-runtime-cutoff.test.ts",
-        "__tests__/ediel-utilts-effective-date.test.ts"
+        "__tests__/ediel-utilts-effective-date.test.ts",
+        "lib/ediel/utiltsEngine.part-1.ts"
       ]
     },
     {
@@ -1189,9 +1192,10 @@
     {
       "id": "U-17",
       "acceptance_id": "AT-U-17",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "__tests__/ediel-utilts-aperak-physical-scope.test.ts"
+        "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+        "lib/ediel/aperakEngine.ts"
       ]
     },
     {
@@ -2293,8 +2297,10 @@
     },
     {
       "id": "AT-U-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-u-06-request-application-reference.test.ts"
+      ]
     },
     {
       "id": "AT-U-07",
@@ -2323,8 +2329,10 @@
     },
     {
       "id": "AT-U-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts"
+      ]
     },
     {
       "id": "AT-U-12",
@@ -2571,8 +2579,10 @@
     },
     {
       "id": "AT-U-17",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-utilts-aperak-physical-scope.test.ts"
+      ]
     },
     {
       "id": "AT-U-18",

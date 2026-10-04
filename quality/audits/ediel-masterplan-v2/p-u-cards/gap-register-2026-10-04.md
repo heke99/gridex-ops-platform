@@ -29,12 +29,12 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | U-16 | VERIFIED | packing-limit-authority (10 MB advisory, 1 MB / 999 conservative) | — |
 | U-18 | VERIFIED | utilts-observation-order-guide, canonical-observation-scope | — |
 | U-02 | PARTIAL | canonical-observation-scope, transaction-disposition, structural-comparison | contract matrix for other profiles' repeated groups (acceptance-utilts-package-20260930.md) |
-| U-06 | PARTIAL | utilts-aperak-contrl-central-engine | generic 23-DGI-E73 refused; S03/E31 reference |
+| U-06 | PARTIAL | utilts-aperak-contrl-central-engine, u-06-request-application-reference (generic 23-DGI-E73 refused, S02/E66 + S03/E31 resolved, unscoped request refused) | outbound E73/E74 mandate (agreement) check and object/party/period match against the request: no implementation found in prepareAndQueueUtiltsE73 |
 | U-08 | PARTIAL | utilts-structural-comparison | ESCO-Z14 partial structure (receiver not required to hold full supplier structure) |
 | U-09 | PARTIAL | consumption-contract, quantity-precision, s02-required-scope | annual forecast never used as actual quarter energy |
-| U-11 | PARTIAL | utilts-runtime-cutoff, effective-date (E19 removed in 25-A-4) | E87 + mandatory fields kept after cutoff; incomplete quarter still rejected; E97/E98/E90 limited to E30/aggregates (no implementation found) |
+| U-11 | PARTIAL | utilts-runtime-cutoff (E19 removed in 25-A-4; E98/E90 removed for individual E66; E87 kept and incomplete quarter rejected after cutoff), effective-date | E97/E98/E90 still applied to E30/aggregates after cutoff: not asserted |
 | U-12 | PARTIAL | observation-order-guide (no E23/E88 mix) | outbound splitting into compatible groups (no implementation found) |
 | U-13 | VERIFIED | utilts-err-canonical-guide (received 5/NA accepted), utilts-err-gateway (outgoing ERR BGM 9/AB) | — |
 | U-15 | PARTIAL | observation-order-guide, packing-limit-authority | packaging to one legal receiver |
-| U-17 | PARTIAL | utilts-aperak-physical-scope (17-char element fallback) | numeric field never guessed from qualifier |
+| U-17 | VERIFIED | utilts-aperak-physical-scope (17-char element fallback; no field number without source; >17 / invalid refused) | — |
 | U-19 | NOT_VERIFIED | — | no UTILTS code consumes a PRODAT case reference for correlation |

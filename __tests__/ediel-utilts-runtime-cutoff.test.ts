@@ -1,4 +1,4 @@
-// masterplan: U-03, AT-U-03, U-11
+// masterplan: U-03, AT-U-03, U-11, AT-U-11
 import { describe, expect, it } from 'vitest'
 
 import { runUtiltsRuntimeForMessage as runActualUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
@@ -737,6 +737,18 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     expect(current.ackPlan.utiltsErrCodes).not.toContain(error)
   })
 
+  it('U-11 keeps E87 after the E19 cutoff: an incomplete quarter series is still rejected', () => {
+    const source = energyHandoffMessage('2026-10-01')
+    // The period now spans two quarters but only one observation is supplied.
+    const raw_payload = source.raw_payload!.replace('202607010000202607010015:719','202607010000202607010030:719')
+    expect(raw_payload).not.toBe(source.raw_payload)
+    const october = runOctoberGuide({...source, raw_payload})
+    expect(october.ackPlan.utiltsErrCodes).toContain('E87')
+    expect(october.ackPlan.utiltsErrCodes).not.toContain('E19')
+    // The complete control series raises neither.
+    const control = runOctoberGuide(source)
+    expect(control.ackPlan.utiltsErrCodes).not.toContain('E87')
+  })
 })
 
 it('shared October grace admits a complete prior guide without blending new identity diagnostics', () => {
