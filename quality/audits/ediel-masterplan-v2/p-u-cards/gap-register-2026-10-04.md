@@ -37,4 +37,4 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | U-13 | VERIFIED | utilts-err-canonical-guide (received 5/NA accepted), utilts-err-gateway (outgoing ERR BGM 9/AB) | — |
 | U-15 | PARTIAL | observation-order-guide, packing-limit-authority | packaging to one legal receiver |
 | U-17 | VERIFIED | utilts-aperak-physical-scope (17-char element fallback; no field number without source; >17 / invalid refused) | — |
-| U-19 | NOT_VERIFIED | — | no UTILTS code consumes a PRODAT case reference for correlation |
+| U-19 | PARTIAL | u-19-prodat-reference (E66 without / unknown / non-TN field 226 gets identical validation and ACK outcome) | no UTILTS code consumes a PRODAT case reference for correlation |

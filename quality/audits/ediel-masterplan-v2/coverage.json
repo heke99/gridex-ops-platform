@@ -1213,8 +1213,11 @@
     {
       "id": "U-19",
       "acceptance_id": "AT-U-19",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "__tests__/ediel-u-19-prodat-reference.test.ts"
+      ]
     }
   ],
   "acceptance_contracts": [
@@ -2600,8 +2603,11 @@
     },
     {
       "id": "AT-U-19",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "__tests__/ediel-u-19-prodat-reference.test.ts"
+      ]
     },
     {
       "id": "AT-Z01L-SUPPLIER",
