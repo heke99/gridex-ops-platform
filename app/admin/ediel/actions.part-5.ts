@@ -36,9 +36,15 @@ function objectChoices(form: FormData): EdielInboundObjectDecision[] | undefined
 export async function approveEdielInboundCaseAction(formData: FormData) {
   const access = await caseAccess(formData)
   const objectDecisions = objectChoices(formData)
+  const structuralObjectLineIndices=formData.get('structuralObjectSelection')==='1'?formData.getAll('objectLineIndex').map(value=>{
+    if(typeof value!=='string'||!/^\d+$/.test(value)||!Number.isSafeInteger(Number(value)))throw new Error('structural_apply_requested_scope_invalid')
+    return Number(value)
+  }):undefined
+  if(structuralObjectLineIndices&&(!structuralObjectLineIndices.length||new Set(structuralObjectLineIndices).size!==structuralObjectLineIndices.length))throw new Error('structural_apply_requested_scope_invalid')
   await approveEdielInboundCase({
     ...access,
     objectDecisions,
+    structuralObjectLineIndices,
     // Per-object choices and legacy root defaults are mutually exclusive.
     ...(objectDecisions ? {} : {
       mode: parseInboundCaseMode(formData.get('mode')),

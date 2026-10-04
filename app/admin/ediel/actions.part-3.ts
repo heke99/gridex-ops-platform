@@ -1,3 +1,4 @@
+import { listBusinessAckMessagesForSource } from '@/lib/ediel/inbound/businessAckMessages'
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
 // Extracted from actions.ts; keep public imports on the facade module.
 import { applyUtiltsTestAckPlanOverride } from '@/lib/ediel/testing/utiltsAckOverrides'
@@ -10,7 +11,7 @@ import { createAckDraftForMessage } from "@/lib/ediel/orchestrator"
 import type { AckFamily, AckOutcome, EdielAperakApplicationError } from "@/lib/ediel/ack"
 import { shouldUseTransactionScopedPositiveAperak, utiltsTransactionAckReferencesForSource } from "@/lib/ediel/ack"
 
-import { createEdielMessageEvent, listAckMessagesForSource } from "@/lib/ediel/db"
+import { createEdielMessageEvent } from "@/lib/ediel/db"
 
 
 import { runUtiltsRuntimeForMessage, serializeUtiltsRuntimeUtiltsErrMessageText } from "@/lib/ediel/utiltsEngine"
@@ -72,9 +73,8 @@ export async function processEdielOperationalMessageAction(formData: FormData) {
     );
   }
 
-  const existingAckMessages = await listAckMessagesForSource({
-    sourceMessageId: edielMessageId,
-    companyId: sourceMessage.company_id ?? null,
+  const existingAckMessages = await listBusinessAckMessagesForSource({
+    sourceMessageId: edielMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
   });
   const activeAckMessages = existingAckMessages.filter(
     (message) =>
@@ -651,9 +651,8 @@ export async function createAndSendRecommendedAckAction(formData: FormData) {
   );
 
   if (sourceMessage.message_family === "PRODAT") validateProdatPermissionMessage({message:sourceMessage});
-  const relatedAcks = await listAckMessagesForSource({
-    sourceMessageId,
-    companyId: sourceMessage.company_id ?? null,
+  const relatedAcks = await listBusinessAckMessagesForSource({
+    sourceMessageId, companyId: sourceMessage.company_id ?? context.companyId, environment: sourceMessage.environment, actorUserId: context.userId,
   });
   const tgtResolution = await resolveTgtTestDataForAckAction({
     message: sourceMessage,

@@ -30,7 +30,9 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '5mb',
+      // Independent source/custody copies can each be 10 MiB, plus multipart
+      // framing. Each protected intake retains its own per-file bound.
+      bodySizeLimit: '25mb',
     },
     cpus: 1,
     memoryBasedWorkersCount: false,

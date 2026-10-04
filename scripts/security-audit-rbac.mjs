@@ -180,6 +180,7 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/customers/[id]/business-actions.ts",
   "app/admin/ediel/auto-readiness/actions.ts",
   "app/admin/ediel/auto-readiness/page.tsx",
+  "app/admin/ediel/bilateral-prodat-sources/page.tsx",
   "app/admin/facility-requests/actions.ts",
   "app/admin/manual-mailboxes/actions.ts",
   "app/admin/manual-mailboxes/page.tsx",
@@ -291,6 +292,13 @@ const reviewedServiceClientFiles = new Set([
   "app/admin/users/actions.ts",
   "app/admin/webhooks/actions.ts",
   "app/admin/website-applications/actions.ts",
+  // Reviewed 2026-10-03: Ediel source workspaces read service-only tenant
+  // tables after requireAdminPageAccess, filtered on access.companyId.
+  "app/admin/ediel/ai-purpose-sources/page.tsx",
+  "app/admin/ediel/customer-source-agreements/page.tsx",
+  "app/admin/ediel/network-registry-sources/page.tsx",
+  "app/admin/ediel/regulated-supply/page.tsx",
+  "app/admin/ediel/requested-customer-changes/page.tsx",
 ]);
 
 const serviceClientFiles = [];

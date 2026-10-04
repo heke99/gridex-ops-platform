@@ -1,3 +1,35 @@
+## Current — 2026-09-30 #421 SC-044 accepted; full ID/gate reconciliation and syntax/header native probe
+
+Last fully verified exact head `d30fa0203f0499a8e15faeddda7676af81296c86`; main/base `53bf989b0ad402bb2ce151c186eea31f1ec9cf03`. Five mandatory workflows SUCCESS: Ediel36695341379, browser36695341358, FullE2E36695341472, tenant36695341489, OPS36695341457. OPS verify109821852569/quality109821852531/replay109821852700 SUCCESS. Native439/439 includes all27 S02 and exactSC0443IDE; case/browser/tenant/parity/types/schema PASS. Authentic artifact11087503506 ZIPsha4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6; types36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d; schema8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93. All earlier d30/S02/SC044 pending text is superseded by these actual results.
+
+SC-044 PASSED after independent full-criterion source/facit/callgraph/oracle/native review. Exact one own acceptedseries/QTY136500/contract/positive312, own guide-negative313/42/209, own functionalE87 ERR, three finalreservations/ACKs and immutable fullretry. Receipt quality/audits/ediel-masterplan-v2/acceptance-sc044-20260930.md. Wider U02/U03/U14/ACK03/08 remain PARTIAL; internal contract acceptance does not approve merge/traffic/billing.
+
+Current full121+231 inventory quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json/.md has352exactIDs,354committedreferencehashes atd30, literalcriteria/ownformal-gap/technicalcomponentresponsibility/approvalgate for eachID;28rows changed references since0b6ea32a. Fivepriorityrules andSC044freshsemanticreview; other20260927codefindings explicitlyinherited/notfreshlycertified. Rules110NOT_VERIFIED/11PARTIAL; contracts219NOT_EXECUTED/11PARTIAL/1PASSED. Frozen33originalfiles remainimmutable. No whole-system percentage.
+
+One active work item: U-03/ACK-03 direct syntax and header-scope test-first native package. Three new test-only probes (442planned): valid paired control then onlyUNT999; onlyUNH/UNTrefOTHER; SC045 onlyremoveheadDTM735+correctUNT with lower ownE87. Actualsourcecapture/policy/tenant/matching/SQL/ACKwriter/finalizer/retry; no productchange. Native not executed yet. Independent reviewersapprovefacit; existing identity guard refutes acceptedstorage risk of refOTHER, leaving only candidate syntaxACKlevel there. Read actualCI before productfix. Next: publish coherent acceptance/reconciliation/nativeprobe evidence fast-forward fromd30, inspect first realnativefail, make minimumsource-backed fix only ifconfirmed, then exactnewheadfullgates. Do not rerun green unchangedheads.
+
+External requests are concrete in external-evidence-requests-20260930.md, not sent: marketissuer/representation; archivecontinuousoriginal/deletioncoverage; legalretention/tombstones; positiveLOC175registry/mandate/separatedurableconsumer/ACKretryowner; E035pre/postepochproducer/erasurecutoff. Namedexternalowners and authenticnewrecords notestablished. Historical203/505, positive175, fullE035 BLOCKED; olderStoragecause UNKNOWN. Root sole writer, independentread-only reviewers. #421draftunmerged, #310untouched, trafficHELD; no staging/TGT/AGT/counterparty/real send.
+
+## 2026-09-30 — Contract closure follows exact original clauses
+
+SC044 requires accepted application storage and independent positive/guide-negative/functionalresponses, not downstream billing or marketactivation. Independent originals/wholecontractreviewsagree; addexact3IDE nativevalue/contract/reservation/ACK/retry receipt. Approveeligiblecontracts individuallyincoverage aftercompleteproof; broaderlinkedrulesstaypartial. TechnicalCONTRL syntaxack is permitted forsource-qualified agency89 heldbusinessdata; directfailedSQLattemptsremainzeroeffects. Frozenoriginal acceptance_tests remainimmutable.
+
+## 2026-09-30 — S02 physical required fields precede durable effects
+
+After authentic native RED, enforce own LOC172 and per-observation QTY135 through retained canonical25-A-4 policy before functional eligibility; preserve guide-negative siblings and real zero. Extend the existing physical identity qualifier to guide-valid agency89 internal hold. Raw service SQL independently checks accepted S02 own physical point and every own SEQ quantity before receipt/ACK/series/contracts, without synthetic actual observations or exposed helper/grants. Quantity-content/tamper/full grammar and prior-guide/history acceptance are not inferred from presence controls.
+
+## 2026-09-30 — S02 native oracle preserves forecast semantics
+
+Empty consumption observations are correct for nonbilling forecasts, not a waiver of physical required LOC172/QTY135. Use the public canonical dispatcher, real evidence trigger and ACK writer/finalizer. Direct atomicity tests call raw supabaseService.rpc, so an application guard cannot mask database acceptance. Source-required omissions must be per-IDE guide-negative fields209/515; do not invent E87/internal national codes. Forecast quantities remain QTY135; no actual consumption observations or assumed mandates. Product changes require authentic native RED first.
+
+## 2026-09-29 — ERR builder consumes canonical policy facade
+
+Actual delivery guard rejected direct utiltsRulebook ownership inack.ts. Preserve the guard and use resolveCanonicalEdielPolicy with the generated ERR's own DTM137 date, matching the retained canonical validator; guide selection stays canonical. Do not add a projection allowlist exemption, a local version/effective-date rule, or a source-observation-date substitute. Full-IDE retry semantics are unchanged.
+
+## 2026-09-29 — Canonical ERR process and full physical IDE ownership
+
+After native a671a663407/411 reproduced both defects (all previous407 passed), derive ERR process from the canonical UTILTS profile and use complete original IDE for transaction-scoped ERR lookup/operation/23505 recovery. Retain APERAK and unscoped code sequencing. Independent review approves the bounded change pending exact-head native/five delivery gates. No repair of immutable historical wrong ACKs or claim of native concurrent deduplication. Formal ACK-08/SC-044/CALL-11 acceptance remains partial.
+
 ## 2026-10-03 — Ediel masterplan delivery contract (owner decision)
 
 Masterplan work now follows the "Ediel masterplan v2 delivery contract" in AGENTS.md: one rule to done, behaviour tests tagged `// masterplan: <IDs>`, approval in coverage.json in the same PR, small PRs merged when green, priority TEN → ESCO → ACK. `npm run ediel:masterplan-v2:test-coverage -- --check` runs in CI. Approved on main: ENV-04, P-01, P-04, AT-ENV-04, SC-024..030, SC-032, SC-033. Verified complete on #426 head 1b5ed5d79 and to be approved when that code lands: AI-01/02/03/05, AT-AI-01/02/03/05, SC-065, SC-067.
@@ -208,4 +240,19 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 
 2026-09-20 Task3 runtime authorized after independentlyapprovedRD-4 and actualmain35573+OPS. Only exact gas-policy decodedRFFvalue fixture (threealphabets lines72/74) may gain independentlyboundTIMSERIES authority preserving outcomes. No otheroldassertionwaiver. No producer/guideactivation; strictpureidentity and persistedrejection.
 
+## 2026-10-03 — Service Z13 field 513 and 260 (P26.A annex 2)
+- Z13 field 513 (CCI++Z22, installation direction) is required. A service grid-area request names no metering point and the evidence terms define no direction, so the renderer sends E19 (both directions), matching Ediel's own TGT reference data for Z13 (`resolvePermissionInstallationDirection`).
+- Z13 field 260 (RFF+Z05) is '-' in P26.A annex 2 pp.114–116; the canonical matrix wins over TGT data and the old SQL binding. The request grid area remains a required source term (receiver choice) but is not rendered; 20261002235100 makes the binding require its absence in the wire.
+
+## 2026-10-03 — Ingen separation of duties för closure-granskning
+Ägarbeslut: granskaren (reviewerUserId) får vara samma/annan behörig tenantanvändare som källans aktör. DB-bindningen till behörighet är tillräcklig. Testet prövar i stället att obehörig granskare avvisas.
+
+## 2026-10-03 — Blandade PRODAT Z04: design A med rättning
+Ägarbeslut: partitionsägaren (043234/043602) äger blandade Z04. Ett komplett BGM34-svar skapas av createReceivedProdatCommittedEffectAcks: egna kvalificerade negativa + ERC100 endast för objekt med committed effektkvitto. Facetten projicerar negativet med syskon held. Framåtmigration 20261003100100 låter require_before_prodat_scope_v1 delegera ERC100-omfång till domain_response_birth när källan är partitionsägd. Den äldre mixed-ägaren (prodat_mixed_*) används inte.
+
+## 2026-10-03 — Två regler i taget, granskning av #426
+Ägaren: granska allt i #426 i mindre batcher mot regelregistren (metod och status i
+`quality/audits/ediel-masterplan-v2/pr426-rule-review/README.md`). Framåt byggs två
+regler åt gången; båda ska vara korrekt byggda, ha märkta gröna beteendetester och
+vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras för nästa agent.
 2026-10-03 Customer portfolio: customer counts (active/new/churned) come only from customer_supply_periods; white-label access is read-only and assignment is superadmin-only via gridex_assign_company_to_whitelabel; analytics consumption is read from metering_point_monthly_consumption (never hourly values on page views) and monthly analytics are rebuilt set-based in SQL, never summed client-side.

@@ -14,5 +14,5 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = status.SERVICE_ROLE_KEY
 
 export default defineConfig({
   resolve: { alias: [{ find: '@', replacement: resolve(__dirname, '..') }] },
-  test: { environment: 'node', include: ['scripts/ediel-case-view-native.test.ts'], testTimeout: 60_000, hookTimeout: 60_000, fileParallelism: false },
+  test: { environment: 'node', setupFiles: ['scripts/helpers/ediel-native-permission-catalog.setup.ts'], include: ['scripts/ediel-case-view-native.test.ts'], testTimeout: 60_000, hookTimeout: 60_000, fileParallelism: false },
 })

@@ -1,3 +1,4 @@
+import { expectOwnReferencePair } from './helpers/p16bHold'
 import { describe, expect, it } from 'vitest'
 import { buildAckDraftForSource } from '@/lib/ediel/ack'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -32,7 +33,7 @@ describe('masterplan PRODAT parent applicability', () => {
     expect(positive.segments.some(segment => segment.startsWith('NAD+IT+'))).toBe(true)
   })
   it('accepts omitted Z14N groups without requiring their children or unrelated business facts', () => {
-    expect(validateCanonicalPolicyFields({ policy: parentPolicy('N'), rawSegments: [] })).toEqual([])
+    expect(validateCanonicalPolicyFields({ policy: parentPolicy('N'), rawSegments: ['CCI++Z13', 'CAV+Z96'] })).toEqual([])
   })
   it('does not require business facts for inapplicable Z14N parent D cells', () => {
     const evaluations = evaluateProdatDependentConditions({ messageCode: 'Z14', facts: { canonicalSubtype: 'N' } })
@@ -60,14 +61,14 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
     message_family: 'UTILTS_ERR', message_code: 'ERR', environment: 'test', test_flag: true,
     sender_ediel_id: '12345', receiver_ediel_id: '54321', application_reference: '23-DDQ-E66-T',
     external_reference: 'ORIGINAL', transaction_reference: 'SOURCE-TX',
-    raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+UTILTS:D:02B:UN:E5SE5A'BGM+ERR+ORIGINAL+9'IDE+24+SOURCE-TX'UNT+4+M'UNZ+1+I'",
+    raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I++23-DDQ-E66-T++1++1'UNH+M+UTILTS:D:02B:UN:E5SE5A'BGM+ERR+ORIGINAL+9'NAD+MS+12345:SVK:260'NAD+MR+54321:SVK:260'IDE+24+SOURCE-TX'UNT+6+M'UNZ+1+I'",
   } as unknown as EdielMessageRow
   it.each(['positive', 'negative'] as const)('validates %s stored-ERR acknowledgement through the outbound runtime gate', outcome => {
     const inferred = inferEdielFamilyAndCodeFromRawPayload(source.raw_payload!)
     expect(inferred.messageCode).toBe('UTILTS_ERR')
     const draft = buildAckDraftForSource({
       sourceMessage: { ...source, message_code: inferred.messageCode! }, ackFamily: 'APERAK', outcome,
-      applicationErrors: outcome === 'negative' ? [{ ercCode: '41', fieldCode: '209', text: 'MISSING' }] : null,
+      applicationErrors: outcome === 'negative' ? [{ ercCode: '41', fieldCode: '209', text: 'MANDATORY FIELD MISSING' }] : null,
     })
     const result = validateRulebookMessage({
       family: 'APERAK', code: 'APERAK', direction: 'outbound', mode: 'send', environment: 'test',
@@ -93,14 +94,13 @@ describe('masterplan UTILTS ERR acknowledgement profile', () => {
     // A P-family row must contain a P-family wire, not the UTILTS ERR wire
     // from the shared fixture. Keep the original document and actor identities.
     const prodatSource = { ...source, message_family: 'PRODAT', message_code: 'Z01',
-      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'DTM+137:202609101200:203'DTM+ZZZ:1:805'UNT+5+M'UNZ+1+I'",
+      raw_payload: "UNB+UNOC:3+12345:14+54321:14+260910:1200+I++23-DDQ-PRODAT++1++1'UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z01+ORIGINAL+9+AB'DTM+137:202609101200:203'DTM+ZZZ:1:805'NAD+FR+12345:160:SVK+++++++SE'NAD+DO+54321:160:SVK+++++++SE'LIN+1++735123456789012345:::9'RFF+LI:SOURCE-LI'UNT+9+M'UNZ+1+I'",
     } as EdielMessageRow
-    const result = buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' })
-    expect(result.rawPayload).toContain('APERAK:D:96A:UN:E2SE6A')
-    expect(result.rawPayload).toContain('BGM+++34')
-    expect(result.rawPayload).toContain('RFF+ACW:ORIGINAL')
+    // Both known own references are preserved in one ERC (P16B resolved,
+    // E2SE6A): the actual final builder renders the P-APERAK.
+    expectOwnReferencePair([String(buildAckDraftForSource({ sourceMessage: prodatSource, ackFamily: 'APERAK' }).rawPayload)])
     expect(() => buildAckDraftForSource({ sourceMessage: { ...source, message_family: 'PRODAT', message_code: 'Z01' }, ackFamily: 'APERAK' }))
-      .toThrow('aperak_prodat_document_reference_required')
+      .toThrow(expect.objectContaining({disposition:expect.objectContaining({code:'EDIEL_ACK_ORIGINAL_LEGAL_PARTIES_UNQUALIFIED'})}))
     expect(() => buildAckDraftForSource({ sourceMessage: source, ackFamily: 'UTILTS_ERR' })).toThrow()
   })
 })

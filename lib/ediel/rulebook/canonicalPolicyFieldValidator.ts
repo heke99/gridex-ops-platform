@@ -1,3 +1,12 @@
+import {projectProdatSourceFunctionObjects,type ReceivedProdatSourceFunctionValidation} from '@/lib/ediel/prodat/prodatSourceFunctionValidation'
+import type {DeathStatusValidationContext} from '@/lib/ediel/prodat/prodatDeathStatusAuthority'
+import {projectProdatApplicationObjects,type ProdatApplicationObjectValidation} from '@/lib/ediel/prodat/prodatApplicationObjectValidation'
+import {validateCanonicalAckGuide} from './ackGuidePolicy'
+import {validateEdifactHeaderGuide} from './edifactHeaderGuide'
+import {utiltsDecimalGuideViolations} from '@/lib/ediel/utilts/quantityPrecision'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {DEFAULT_UNA,serializeUna} from '@/lib/ediel/core/una'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 import {projectProdatRegisterValidation, type ProdatRegisterValidationEvidence} from '@/lib/ediel/prodat/prodatRegisterValidationEvidence'
 import { prodatFreeTextField, validateProdatFreeText } from '@/lib/ediel/prodat/prodatFreeText'
 import {evaluateIncomingSelectedProdatAck} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
@@ -6,7 +15,7 @@ import {evaluateIncomingProdatEnergyProduct,incomingProduct242IsFalse} from '@/l
 import {prodatFieldDiagnostic,prodatLocalDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {isGasApplicabilityField} from '@/lib/ediel/prodat/prodatGasApplicability'
 import {validateProdatGasApplicability} from './prodatGasApplicabilityPolicy'
-import {validateProdatDeathStatus} from './prodatDeathStatusPolicy'
+import {evaluateProdatDeathStatus,type ProdatDeathObjectCondition} from './prodatDeathStatusPolicy'
 import {isMeterChangeField} from '@/lib/ediel/prodat/prodatMeterChangeFacts'
 import {validateProdatMeterChange} from './prodatMeterChangePolicy'
 import {isReportingPermissionField,type ExpectedContext} from '@/lib/ediel/prodat/prodatReportingPermissionContext'
@@ -28,9 +37,11 @@ import type { EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import {
   fieldRulePresent,
+  recordIgnoredProdatField,
   validateFieldMatrixPayload,
   type FieldMatrixEvaluationInput,
   type RulebookFieldRule,
+  type ProdatIgnoredField,
 } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
@@ -46,17 +57,25 @@ function asRulebookFieldRule(value: unknown): RulebookFieldRule {
  * policy conditions for cells not yet migrated. Register overlays stay separate.
  */
 export function validateCanonicalPolicyFields(input: {
+  onIgnoredField?: (field: ProdatIgnoredField) => void
   onRegisterValidation?: (evidence: ProdatRegisterValidationEvidence) => void
+  sourceFunctionContext?:DeathStatusValidationContext
+  onSourceFunctionObjects?:(evidence:ReceivedProdatSourceFunctionValidation)=>void
+  onApplicationObjects?: (evidence: ProdatApplicationObjectValidation) => void
   reportingContext?: ExpectedContext
   policy: CanonicalEdielPolicy
   rawSegments?: readonly string[] | null
+  rawPayload?: string | null
   scope?: 'all' | 'dependent_only'
   una?: EdifactServiceStringAdvice
 }): EdielRulebookIssue[] {
+  if (input.policy.family === 'APERAK' || input.policy.family === 'CONTRL' || input.policy.family === 'UTILTS_ERR') return validateCanonicalAckGuide(input)
+  let sourceFunctionConditions:ProdatDeathObjectCondition[]=[]
   const rules = input.policy.fieldRules.map(asRulebookFieldRule).filter(rule => !(input.policy.family === 'PRODAT' && input.policy.direction === 'inbound' && (['322','324','506'].includes(rule.fieldNumber ?? '') || rule.fieldNumber === '242' && incomingProduct242IsFalse(input.policy.code)))).flatMap((rule): RulebookFieldRule[] => {
     if (input.policy.code === 'Z14' && input.policy.direction === 'outbound' && isZ14DependentField(rule.fieldNumber ?? '')) return [rule]
     // The new UD parent is selected per wire object below, never from a root snapshot.
     if (['Z06', 'Z09'].includes(input.policy.code) && (rule.fieldNumber === '229' || isSourceBoundEndUserField(input.policy.code, rule.fieldNumber ?? ''))) return [rule]
+    if (input.policy.direction === 'inbound') return [rule]
     if (input.policy.family !== 'PRODAT' || !isProdatFieldInInapplicableParent({
       messageCode: input.policy.code, subtype: input.policy.subtype, fieldNumber: rule.fieldNumber,
     })) return [rule]
@@ -65,6 +84,8 @@ export function validateCanonicalPolicyFields(input: {
   })
   const matrixInput: FieldMatrixEvaluationInput = {
     una: input.una,
+    direction: input.policy.direction as 'inbound' | 'outbound',
+    onIgnoredField: input.onIgnoredField,
     family: input.policy.family,
     code: input.policy.code,
     rawSegments: input.rawSegments ?? null,
@@ -93,10 +114,27 @@ export function validateCanonicalPolicyFields(input: {
       ? validateFieldMatrixPayload(matrixInput, baseRules.filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local'))
       : []
     : validateFieldMatrixPayload(matrixInput, baseRules)
+  if (input.scope !== 'dependent_only') issues.push(...validateEdifactHeaderGuide({
+    direction: input.policy.direction as 'inbound' | 'outbound', rawPayload: input.rawPayload, rawSegments: input.rawSegments, una: input.una,
+  }))
+  if(input.policy.family==='UTILTS' && input.scope!=='dependent_only' && input.rawSegments?.length) {
+    const una=input.una ?? DEFAULT_UNA
+    const wire=tokenizeEdifact(serializeUna(una)+input.rawSegments.join(una.segmentTerminator)+una.segmentTerminator)
+    issues.push(...utiltsDecimalGuideViolations(wire.segments,wire.una).map(violation=>({severity:'error' as const,code:violation.code,title:'Felaktigt numeriskt fält',description:violation.description,fieldPath:violation.field,blocking:true})))
+  }
   if (input.policy.family !== 'PRODAT') return issues
   if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {
-    issues.push(...evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+    const energy = evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]})
+    issues.push(...energy.issues)
+    for (const object of energy.objects) if (object.applicability === 'false') {
+      recordIgnoredProdatField(matrixInput, '506', [], 'object', object.lineIndex)
+    }
+    if (incomingProduct242IsFalse(input.policy.code)) {
+      for (const group of prodatRegisterGroups(input.rawSegments ?? [],input.una,input.policy.code).groups) {
+        recordIgnoredProdatField(matrixInput, '242', [], 'object', group.lineIndex)
+      }
+    }
     issues.push(...evaluateIncomingSelectedProdatAck({...matrixInput,rawSegments:input.rawSegments??[],facts:input.policy.prodatDependentFacts,selectedFields:input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'')}).issues)
     const permissionFields=input.policy.fieldRules.map(asRulebookFieldRule).map(rule=>rule.fieldNumber??'').filter(field=>['322','324'].includes(field))
     if(permissionFields.length)issues.push(...evaluateIncomingProdatPermissionAckFields({...matrixInput,rawSegments:input.rawSegments??[],selectedFields:permissionFields}).issues)
@@ -110,16 +148,19 @@ export function validateCanonicalPolicyFields(input: {
     una:input.una,
     facts:input.policy.prodatDependentFacts,
     rules,
+    direction:input.policy.direction as 'inbound'|'outbound',
+    onIgnoredField:input.onIgnoredField,
     requireIndependentInventory:input.policy.direction === 'outbound',
     applicationReference:input.policy.applicationReference,
   })
-  input.onRegisterValidation?.(projectProdatRegisterValidation({
+  const registerEvidence=projectProdatRegisterValidation({
     code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una,
     registerIssues: register.issues, fieldIssues: issues, handledFields: register.handledFields,
     completeRuleSelection: input.scope !== 'dependent_only' && canonicalProdat26AFieldRules(input.policy.code)
       .filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
       .every(expected => rules.some(rule => rule.fieldNumber === expected.fieldNumber)),
-  }))
+  })
+  input.onRegisterValidation?.(registerEvidence)
   issues.push(...register.issues)
   if(input.policy.direction==='outbound' && rules.some(rule=>rule.fieldNumber==='229')) issues.push(...validateProdatEndUserAddress({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts}))
 
@@ -131,7 +172,10 @@ export function validateCanonicalPolicyFields(input: {
 
   if(input.policy.direction!=='inbound'&&rules.some(rule=>isMeterChangeField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatMeterChange({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference}))
 
-  if(input.policy.direction!=='inbound'&&rules.some(rule=>rule.fieldNumber==='310'))issues.push(...validateProdatDeathStatus({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'}))
+  if((input.policy.direction!=='inbound'||input.policy.prodatDependentFacts?.deathStatus)&&rules.some(rule=>rule.fieldNumber==='310')){
+    const result=evaluateProdatDeathStatus({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound'})
+    issues.push(...result.issues);sourceFunctionConditions=result.objectConditions
+  }
 
   if(input.policy.direction!=='inbound'&&rules.some(rule=>isGasApplicabilityField(input.policy.code,rule.fieldNumber??'')))issues.push(...validateProdatGasApplicability({code:input.policy.code,rawSegments:input.rawSegments??[],una:input.una,facts:input.policy.prodatDependentFacts,direction:input.policy.direction as 'inbound'|'outbound',applicationReference:input.policy.applicationReference,fields:rules.map(rule=>rule.fieldNumber??'')}))
 
@@ -192,5 +236,13 @@ export function validateCanonicalPolicyFields(input: {
     }
   }
 
+  input.onApplicationObjects?.(projectProdatApplicationObjects({register:registerEvidence,issues,
+    completeInvocation:input.scope!=='dependent_only' && input.policy.direction==='inbound'
+      && canonicalProdat26AFieldRules(input.policy.code).every(expected=>input.policy.fieldRules.map(asRulebookFieldRule).some(rule=>rule.fieldNumber===expected.fieldNumber)),
+  }))
+  if(input.scope!=='dependent_only'&&input.policy.direction==='inbound'){
+    const facet=projectProdatSourceFunctionObjects({register:registerEvidence,conditions:sourceFunctionConditions,context:input.sourceFunctionContext})
+    if(facet)input.onSourceFunctionObjects?.(facet)
+  }
   return issues
 }

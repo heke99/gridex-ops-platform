@@ -51,11 +51,18 @@ const REQUIRED_CONTRACTS = [
   {
     file: 'lib/ediel/utilts.ts',
     mustContain: [
-      'splitComposite(segment.elements[1], una)',
+      'tokenizeEdifact(rawPayload)',
       'extractQty(qtySegment, tokenized.una)',
       'extractDateFromDtm(dtm137Segment, tokenized.una)',
     ],
+    mustMatch: [
+      ['segmentComposite of the canonical segment or its untrimmed raw source', /\bsegmentComposite\s*\(\s*(?:segment|\{\s*\.\.\.segment\s*,\s*raw\s*:\s*segmentUntrimmedRaw\s*\(\s*segment\s*\)\s*\})\s*,\s*1\s*,\s*una\s*\)/],
+    ],
     forbidden: [
+      // Legacy elements have already decoded release characters. Parsing them
+      // again turns released literal delimiters into structure.
+      ['decoded-element composite parsing', /\b(?:splitComposite|firstCompositeComponent)\s*\(\s*[\w$.?]+\.elements\s*\[/],
+      ['raw UTILTS delimiter splitting', /\b(?:rawPayload|segment(?:\.raw|\.elements\s*\[[^\]]+\])?)\s*\.split\s*\(/],
       ['raw colon quantity splitting', /segment\.split\(\s*["']:["']\s*\)/],
       ['raw colon DTM regex extraction', /segment\.match\(\/:[^/]*\\d/],
       ['raw UTILTS-ERR substring sniffing', /rawPayload\.toUpperCase\(\)\.includes\(\s*["']UTILTS[-_]ERR["']/],
@@ -77,6 +84,9 @@ function scanParserAuthority(root = process.cwd()) {
       if (!source.includes(token)) {
         violations.push(`${contract.file}: must consume ${token}`)
       }
+    }
+    for (const [label, pattern] of contract.mustMatch ?? []) {
+      if (!pattern.test(source)) violations.push(`${contract.file}: must consume ${label}`)
     }
     for (const [label, pattern] of contract.forbidden) {
       if (pattern.test(source)) {

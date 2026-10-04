@@ -1,3 +1,4 @@
+import type { EdielActorRole } from '@/lib/ediel/core/marketRole'
 // lib/ediel/config.ts
 
 import { supabaseService } from '@/lib/supabase/service'
@@ -152,7 +153,11 @@ export function hasActiveUnencryptedProductionOverride(
   if (!expiresAt) return false
   const parsed = new Date(expiresAt)
   if (Number.isNaN(parsed.getTime())) return false
-  return parsed.getTime() > now.getTime()
+  if (parsed.getTime() <= now.getTime()) return false
+  // These legacy administrative fields do not identify a source-qualified T
+  // exception, its authorized decision or the required transport evidence.
+  // Keep the stored request visible, but never activate plaintext from it.
+  return false
 }
 
 export function evaluateProductionTransportSecurity(params: {
@@ -199,7 +204,7 @@ export function evaluateProductionTransportSecurity(params: {
       key: 'production_prodat_smime_required',
       severity: 'error',
       label: 'Produktion PRODAT kräver S/MIME',
-      resolution: 'Koppla ett giltigt certifikat och sätt encryption_mode=smime, eller använd tidsbegränsad superadmin-override med orsak.',
+      resolution: 'Koppla ett giltigt mottagarcertifikat och sätt encryption_mode=smime. Ett klartextundantag kräver styrkt normativ grund och behörigt beslut.',
     })
   }
 
@@ -231,17 +236,22 @@ export function evaluateProductionTransportSecurity(params: {
 
 export async function getActiveEdielActorSettings(
   environment: EdielEnvironment = 'test',
-  companyId?: string | null
+  companyId?: string | null,
+  /** Operational role of the process (TEN-02/TEN-05). A tenant may hold one
+   * active profile per role; without a role, several active profiles stay ambiguous. */
+  actorRole?: EdielActorRole | null,
 ): Promise<EdielActorSettingsRow | null> {
   const scopedCompanyId = sanitize(companyId)
 
   if (scopedCompanyId) {
-    const scoped = await supabaseService
+    let scopedQuery = supabaseService
       .from('ediel_actor_settings')
       .select('*')
       .eq('environment', environment)
       .eq('company_id', scopedCompanyId)
       .eq('is_active', true)
+    if (actorRole) scopedQuery = scopedQuery.eq('actor_role', actorRole)
+    const scoped = await scopedQuery
       .order('id', { ascending: true })
       .limit(2)
 

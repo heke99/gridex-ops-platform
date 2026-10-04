@@ -23,6 +23,20 @@ const selected = (query: StructuralSelectionInput) => { const result=selectStruc
 const unavailable = (query: StructuralSelectionInput) => expect(selectStructuralSources(query).status).toBe('unavailable')
 
 describe('dated structural-source replacement',()=>{
+  it('selects source products and exact quarter measurement by valid time, independent of receipt order',()=>{
+    const baseline=version('baseline',2),change=version('quarter',4,'Z06',['901'])
+    baseline.measurements={productCode:'L917',measurementMethod:'Z03',reportingFrequency:'H',settlementMethod:'Z31'}
+    change.measurements={productCode:'L639Q',measurementMethod:'Z04',reportingFrequency:'Q',settlementMethod:'Z32'}
+    change.availableAt=at(15)
+    expect(selected(input([change,baseline],2,4)).states[0].measurements).toMatchObject({productCode:{value:'L917',sourceMessageId:'baseline'}})
+    expect(selected(input([baseline,change],4,5)).states[0].measurements).toEqual({productCode:{value:'L639Q',sourceMessageId:'quarter'},measurementMethod:{value:'Z04',sourceMessageId:'quarter'},reportingFrequency:{value:'Q',sourceMessageId:'quarter'},settlementMethod:{value:'Z32',sourceMessageId:'quarter'}})
+  })
+  it('keeps each omitted unchanged measurement tied to its actual predecessor, without inventing unknown values',()=>{
+    const baseline=version('baseline',2),change=version('area',4,'Z06',[null,null]);change.wire.businessCase='change_without_reading'
+    baseline.measurements={productCode:'L917',measurementMethod:'Z04',reportingFrequency:null,settlementMethod:'Z31'}
+    change.measurements={productCode:null,measurementMethod:null,reportingFrequency:null,settlementMethod:'Z32'}
+    expect(selected(input([baseline,change])).states[0].measurements).toEqual({productCode:{value:'L917',sourceMessageId:'baseline'},measurementMethod:{value:'Z04',sourceMessageId:'baseline'},reportingFrequency:{value:null,sourceMessageId:null},settlementMethod:{value:'Z32',sourceMessageId:'area'}})
+  })
   it('selects the approved full baseline for the requested interval',()=>expect(selected(input()).states).toMatchObject([{sourceMessageId:'baseline',meterNumber:'M1',registerIds:['201','202']}]))
   it.each(['readComplete','unresolvedSources'] as const)('does not hide incomplete %s evidence', key => {const q=input(); q[key]=key==='unresolvedSources'; unavailable(q)})
   it('never claims a pre-ledger business lifecycle was captured',()=>{const q=input(); q.versions[0].coverage!.switchCreatedAt='2026-09-01T00:00:00Z';unavailable(q)})

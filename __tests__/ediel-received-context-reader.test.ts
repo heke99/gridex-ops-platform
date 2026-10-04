@@ -1,13 +1,17 @@
+import { createUtiltsFinalValidationIo, qualifyUtiltsFixtureSource, UTILTS_FIXTURE_ACTOR } from './helpers/utiltsCurrentOwnerFixture'
 import { successfulUtiltsPersistenceIo } from './helpers/utiltsPersistenceIo'
+import {receivedUtiltsOwnerFixture,utiltsNamedOwnerWitness,utiltsCanonicalOwnerRpc,utiltsOwnerCompany,resetUtiltsCanonicalOwnerIo} from './helpers/utiltsCanonicalOwnerIo'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 import { processInboundUtiltsMessage } from '@/lib/ediel/flows/utiltsDataRequest.part-2'
-import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { observationHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { raw, line, characteristic, alphabets, type Parts } from './fixtures/prodat-register'
 
-const io = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from, rpc: vi.fn() } }))
+const io = vi.hoisted(() => ({ get: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), ack: vi.fn(), persist: vi.fn(), from: vi.fn(), matches: vi.fn() }))
+vi.mock('@/lib/supabase/service', async () => {
+  const { currentUtiltsActorQuery } = await import('./helpers/utiltsCurrentOwnerFixture')
+  return { supabaseService: { from: (table: string) => currentUtiltsActorQuery(table) ?? io.from(table), rpc: io.rpc } }
+})
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: io.get, updateEdielMessageStatus: io.update, createEdielMessageEvent: io.event, linkEdielMessage: vi.fn() }))
 vi.mock('@/lib/ediel/flows/shared', () => ({ ensureActorUserId: (id: string) => id }))
 vi.mock('@/lib/onboarding/inboundEdielLinking', () => ({ findActiveMeteringPermissionForUtiltsMessage: vi.fn().mockResolvedValue(null) }))
@@ -21,6 +25,7 @@ vi.mock('@/lib/ediel/flows/utiltsDataRequest.part-1', async original => ({
   stringOrNull: (v: unknown) => typeof v === 'string' && v.trim() ? v.trim() : null,
   ensureJson: (v: unknown) => v && typeof v === 'object' ? v : {},
 }))
+const COMPANY = '11111111-1111-4111-8111-111111111111'
 const point = '735999260731000007'
 const hash = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex')
 const parties: Parts[] = [['NAD', 'FR', ['91100', '160', 'SVK'], '', '', '', '', '', '', 'SE'], ['NAD', 'DO', ['21660', '160', 'SVK'], '', '', '', '', '', '', 'SE']]
@@ -31,7 +36,7 @@ function wire(code = 'Z04', date = '202607010000', body?: Parts[], alphabet: rea
 }
 function source(code = 'Z04', date = '202607010000', body?: Parts[], alphabet?: readonly string[]) {
   const value = wire(code, date, body, alphabet)
-  return { id: 'source-1', company_id: 'tenant-a', environment: 'test', direction: 'inbound', message_standard: 'edifact',
+  return { id: 'source-1', company_id: COMPANY, environment: 'test', direction: 'inbound', message_standard: 'edifact',
     message_family: 'PRODAT', message_code: code, metering_point_id: 'meter-tenant-a', raw_payload: value,
     immutable_payload_hash: hash(value), message_received_at: '2026-06-20T09:00:00.000Z',
     parsed_payload: { meterNumber: 'CACHED-WRONG', authority: true }, status: 'validated' }
@@ -60,15 +65,15 @@ function match(overrides: Row = {}) {
     meteringPointId: 'meter-tenant-a', customerId: null, siteId: null, gridOwnerId: null, matchStatus: 'matched', ...overrides }
 }
 beforeEach(() => {
-  vi.clearAllMocks(); queryCalls.length = 0
-  incoming = observationHandoffMessage(); rows = [source()]; count = 1; dbError = null
+  vi.clearAllMocks(); io.rpc.mockImplementation(createUtiltsFinalValidationIo()); queryCalls.length = 0
+  incoming = observationHandoffMessage('2026-09-30', COMPANY); rows = [source()]; count = 1; dbError = null
   io.get.mockImplementation(async () => incoming); io.update.mockResolvedValue(null); io.event.mockResolvedValue(null)
   io.ack.mockResolvedValue([]); io.persist.mockImplementation(successfulUtiltsPersistenceIo); io.matches.mockResolvedValue([match()]); io.from.mockImplementation(query)
 })
 type Evidence = { version: number; status: string; authorityStatus: string; selection: string; sources: Array<Record<string, unknown>>; issues: Array<{ code: string; sourceMessageId?: string }> }
 async function run(): Promise<Evidence> {
-  const policy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: '2026-09-30', applicationReference: '23-DDQ-E66-S', mode: 'parse' })
-  await processInboundUtiltsMessage({ actorUserId: 'operator', edielMessageId: incoming.id, canonicalPolicy: policy })
+  qualifyUtiltsFixtureSource(incoming)
+  await processInboundUtiltsMessage({ actorUserId: UTILTS_FIXTURE_ACTOR, edielMessageId: incoming.id })
   const reports = io.update.mock.calls.map(([call]) => call.parsedPayload.normalizedMeteringPayload.receivedStructuralSources)
   expect(reports[0], 'actual inbound processing must forward fresh dated received-source evidence').toBeDefined()
   for (const report of reports) expect(report).toEqual(reports[0])
@@ -88,6 +93,10 @@ function context(row: Row = rows[0], overrides: Row = {}): Row {
 it('reads the database-owned context on the actual single-SELECT processor path without exposing the whole snapshot', async () => {
   rows[0].received_prodat_context = context()
   const result = await run()
+  expect(io.rpc).toHaveBeenCalledWith('gridex_record_utilts_source_validation_v4', expect.objectContaining({
+    p_company_id: COMPANY, p_environment: incoming.environment, p_source_message_id: incoming.id,
+    p_source_payload_hash: hash(incoming.raw_payload!), p_transaction_facts_text: expect.any(String),
+  }))
   expect(result.issues).toEqual([])
   expect(result.sources[0]).toMatchObject({ acceptance: 'not_checked', receiptContext: {
     status: 'recorded', capturedAt: '2026-06-20T09:00:01.123456+00:00' } })
@@ -133,21 +142,21 @@ it.each([
   expect(JSON.stringify(report)).not.toMatch(/source-1|SECOND-PRIVATE|OTHER-TENANT/)
 })
 it('accepts the same receipt instant in a different offset, retaining the incoming SELECT literal', async () => {
-  incoming.message_received_at = '2026-09-30T22:00:00.000002+02:00'
+  incoming = { ...incoming, message_received_at: '2026-09-30T22:00:00.000002+02:00' }
   rows[0].message_received_at = '2026-06-20T11:00:00.000001+02:00'
   rows[0].received_prodat_context = context(rows[0], { sourceReceivedAt: '2026-06-20T09:00:00.000001Z' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
   expect(queryCalls).toContainEqual(['lte', 'message_received_at', '2026-09-30T22:00:00.000002+02:00'])
 })
 it.each(['2026-09-30T20:00:00.000002Z', '2026-09-30T22:00:00.000002+02:00'])('does not claim a receive context existed at the UTILTS cutoff when it was captured later: %s', async capturedAt => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = { ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' }
   rows[0].received_prodat_context = context(rows[0], { capturedAt })
   const result = await run()
   expect(result).toMatchObject({ status: 'read_failed', sources: [], issues: [{ code: 'source_receive_context_unavailable' }] })
   assertNoSourceData(result)
 })
 it('allows equality at the capture cutoff to microsecond precision', async () => {
-  incoming.message_received_at = '2026-09-30T20:00:00.000001Z'
+  incoming = { ...incoming, message_received_at: '2026-09-30T20:00:00.000001Z' }
   rows[0].received_prodat_context = context(rows[0], { capturedAt: '2026-09-30T22:00:00.000001+02:00' })
   expect((await run()).sources[0]).toMatchObject({ receiptContext: { status: 'recorded' } })
 })

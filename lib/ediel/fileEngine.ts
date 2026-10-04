@@ -1,3 +1,4 @@
+import {parseAiBiTechnicalFile} from '@/lib/ediel/aiListFormat'
 // lib/ediel/fileEngine.ts
 
 import type {
@@ -236,7 +237,6 @@ function detectAiList(
   const file = fileName?.toLowerCase() ?? "";
   const firstLine =
     rawPayload.split(/\r?\n/).find((line) => line.trim().length > 0) ?? "";
-  const upper = `${file} ${firstLine}`.toUpperCase();
 
   if (
     !file.endsWith(".csv") &&
@@ -245,24 +245,25 @@ function detectAiList(
   )
     return null;
 
-  const listType = upper.includes("BI") ? "BI" : "AI";
-  const lineCount = rawPayload
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0).length;
+  const firstToken=firstLine.split(';')[0]
+  if(firstToken!=='AI'&&firstToken!=='BI')return null
+  const technical=parseAiBiTechnicalFile(rawPayload)
+  const listType=technical.header.listType
+  const lineCount=technical.rows.length+1
 
   return {
     messageStandard: "ai_list",
     messageFamily: "AI_LIST",
     messageCode: listType,
-    messageVersion: "Ver20140401",
+    messageVersion:technical.header.version,
     processType: null,
     senderEdielId: null,
     senderSubAddress: null,
     receiverEdielId: null,
     receiverSubAddress: null,
-    interchangeReference: `AI-LIST-${listType}-${lineCount}-${rawPayload.length}`,
+    interchangeReference:null,
     transactionReference: null,
-    externalReference: `AI-LIST-${listType}-${Date.now()}`,
+    externalReference:null,
     correlationReference: null,
     applicationReference: null,
     originalMessageId: null,
@@ -272,11 +273,13 @@ function detectAiList(
     syntaxCheckStatus: "not_checked",
     functionalCheckStatus: "not_checked",
     parsedPayload: {
-      parser: "file_engine_v1",
+      parser:"shared_ai_bi_technical_codec",
       listType,
+      technicalHeader:technical.header,
+      technicalRows:technical.rows,
       lineCount,
       separator: ";",
-      fileFormat: file.endsWith(".skv") ? "legacy_skv" : "csv",
+      fileFormat:"csv",
       note: "AI/BI-listan körs filbaserat och ska granskas innan eventuell masterdata-uppdatering.",
     },
     validationReport: {
@@ -745,11 +748,16 @@ export async function registerEdielFile(
     );
   }
 
-  const senderEdielId =
+  const technicalList = parsed.messageFamily === 'AI_LIST' ? parseAiBiTechnicalFile(rawPayload) : null;
+  const senderEdielId = technicalList
+    ? params.direction === 'inbound' ? technicalList.header.networkEdielId : technicalList.header.supplierEdielId
+    :
     parsed.senderEdielId ??
     (params.direction === "outbound" ? ownActorEdielId : testPortalEdielId);
 
-  const receiverEdielId =
+  const receiverEdielId = technicalList
+    ? params.direction === 'inbound' ? technicalList.header.supplierEdielId : technicalList.header.networkEdielId
+    :
     parsed.receiverEdielId ??
     (params.direction === "outbound" ? testPortalEdielId : ownActorEdielId);
 

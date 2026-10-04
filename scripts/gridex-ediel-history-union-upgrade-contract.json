@@ -1,0 +1,192 @@
+{
+  "format": "gridex_ediel_history_union_upgrade_v1",
+  "baseSha": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+  "integratedParentSha": "3c7342c64c83b705e85c18f300705166a1732ad6",
+  "generatedFromSha": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+  "generatedFromTree": "eee88212010ac89c11c88a1ed08f4221b7f85df1",
+  "baseTail": "20261001084343",
+  "alreadyAppliedTxtSource": {
+    "name": "20261001040446_ediel_current_registry_txt_source_parity.sql",
+    "sha256": "b4bc0cc1747c38f6ca9a801aac0521857073aa2093ea4d2f7e4bf2a1fe0cb4a0"
+  },
+  "requiredPendingOrder": [
+    "20261001040159_ediel_registry_market_source_isolation.sql",
+    "20261001040445_ediel_registry_market_txt_prerequisite.sql",
+    "20261001055536_ediel_registry_ai_list_dispatch_source_alias.sql",
+    "20261001103439_ediel_registry_current_actor_source_guards.sql"
+  ],
+  "earlierAbsentInputs": [
+    {
+      "name": "20261001035555_ediel_classified_customer_event_fixture_preparation.sql",
+      "sha256": "e0e94c27be40019d8fb18996c81196d19ed58a23e9972d0162405f60e9c3389a",
+      "sourceCommit": "e948c9b16577ddaa2a048c7f855c5701a5a7d405"
+    },
+    {
+      "name": "20261001040159_ediel_registry_market_source_isolation.sql",
+      "sha256": "a4829b1f3aee9c1ba2b5fd7ceb052749731458d35e7dc61fb2d2894469910369",
+      "sourceCommit": "87bf4184c80ae0db3e5e3aaecc7f0eddeac58987"
+    },
+    {
+      "name": "20261001040445_ediel_registry_market_txt_prerequisite.sql",
+      "sha256": "969304ae55f9dab3e3b7833cd3e1b5cbeb6c77f494a487188b6fe4c2bd1feccf",
+      "sourceCommit": "4b069c9891b7056569651ac8060938536fffe37c"
+    },
+    {
+      "name": "20261001041455_ediel_prodat_aperak_fresh_transport_document_fields.sql",
+      "sha256": "db7124115230a3800975ed78c66d568999d82b57c7a94bd2f81c84abae6ae295",
+      "sourceCommit": "ef2a78cce3aede618959a02af9824805651ee180"
+    },
+    {
+      "name": "20261001041631_ediel_customer_event_recovery_source_lineage.sql",
+      "sha256": "f78ecd814759bfd5dd5894c29e1844d5bff1570eb2c64bc6f1d91a6c1b5d3d9a",
+      "sourceCommit": "f461436f20b37c2ee9fc689c9c1e6aba67f42f3b"
+    },
+    {
+      "name": "20261001043233_ediel_supply_before_legal_alias_bridge_for_partition.sql",
+      "sha256": "ce2fce0ed2b39bcca5d10385496e6d6b35a106d68c40ec6b35edcc5c385cb899",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
+      "name": "20261001043234_ediel_prodat_supply_own_effect_partition.sql",
+      "sha256": "a9e0a3e12f4c0df878259799e2d00ea248ab542dea9929c1be692b50f07ec2d2",
+      "sourceCommit": "49a3170e9309f9e539513d667a58db3410dd7442"
+    },
+    {
+      "name": "20261001043235_ediel_supply_before_legal_alias_bridge_restore.sql",
+      "sha256": "af191ea59fb3aac6a1b9174a922e83bbcb1a1cbc135a97928800bf0f733d964a",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
+      "name": "20261001043602_ediel_committed_domain_prodat_final_responses.sql",
+      "sha256": "8afd34ae3247b74970d80c28f246b4fb67a2e4301eb1ff4a55db06bbdc84e712",
+      "sourceCommit": "96f8336b7b9d3f8d5db42f1cd0d625afbdf3cc6b"
+    },
+    {
+      "name": "20261001044351_ediel_partial_permission_source_effects.sql",
+      "sha256": "842cf2a8342f4164dd61e7d7ca2e2eb577b7cbb844e978c49be141ad5720a3af",
+      "sourceCommit": "9d6d4241c0ddc587a1deff959a854552bbc59d72"
+    },
+    {
+      "name": "20261001044856_ediel_source_profile_message_reference_bounds.sql",
+      "sha256": "6d677a8dc860bcb881d2f36f1812456b86be0349c33d824bbc8558b7afb9a3ad",
+      "sourceCommit": "7d1bc739c695bc4b6a5440121526a3779c6e5bda"
+    },
+    {
+      "name": "20261001051413_ediel_utilts_aperak_dm_source_capacity.sql",
+      "sha256": "c3ac3a3b2d4aab3ebf24add841268ec006289134f9369813f2246cadaec1e4cd",
+      "sourceCommit": "2559bb323faf5f4e3b4b9410810897558ca4b74d"
+    },
+    {
+      "name": "20261001053253_ediel_source_owned_unused_unh_elements.sql",
+      "sha256": "109bb04c71b03a9ae8f1257e86c0684e0b57de4cab40988a8898f29c9a370adb",
+      "sourceCommit": "e97d6f607bef21711b66cd84a531d9f2dad02aed"
+    },
+    {
+      "name": "20261001053437_ediel_utilts_rejected_reference_diagnostic_v3.sql",
+      "sha256": "3bf690f8a2cf25658e63553f0f311d9905abfd5525eb49deed51db08362c4b1a",
+      "sourceCommit": "5c49222ba26048d2447fa5514a7b33f7f85c092e"
+    },
+    {
+      "name": "20261001053742_ediel_private_supply_activation_search_path.sql",
+      "sha256": "62fb4a64b91f168f24d438408da8d7715f1459d030c165c7d110fcf4c9c80fc4",
+      "sourceCommit": "9d1d1de0717de5148e39bf85b62d8b3716a4e5c4"
+    },
+    {
+      "name": "20261001053815_ediel_identityless_permission_register_scope.sql",
+      "sha256": "3c6466c82ca1b9aa9a7ddc14394ee80b4ac600f6b32794213265fe2ae26c28b3",
+      "sourceCommit": "25e9c3666d62a21106a067afbfbdae9feb9ff426"
+    },
+    {
+      "name": "20261001054018_ediel_supply_end_followup_receipt_command.sql",
+      "sha256": "faec77f0cadcc85e77605e2be902755aea76f64fbb91d9c0926eba5847dc5084",
+      "sourceCommit": "dda0f76287e468c1ef2de3600ce5cb745c81d25f"
+    },
+    {
+      "name": "20261001055536_ediel_registry_ai_list_dispatch_source_alias.sql",
+      "sha256": "977e09606c477ab610f4f648ed4f39ab2b3eba4849a92e778436703a51e481f3",
+      "sourceCommit": "caa19c42c9b8da5727123de4a003cf5286efa996"
+    },
+    {
+      "name": "20261001055807_ediel_customer_event_recovery_fresh_transport_cohort.sql",
+      "sha256": "06cce9503672ff17a0dd1e01a8ee2e18b28dd09448a1511d01cbd1bf6fed7e2c",
+      "sourceCommit": "f461436f20b37c2ee9fc689c9c1e6aba67f42f3b"
+    },
+    {
+      "name": "20261001061000_ediel_ai_legal_technical_party_scope.sql",
+      "sha256": "808f9cbe5a37838e47e5b99fbaa76bad22416d7a9e2493e5a9c62980782fc767",
+      "sourceCommit": "cf298abe4acaabb5092c0b8af1aeadf318e80e26"
+    },
+    {
+      "name": "20261001061029_ediel_prodat_recovery_execution_phase_authority.sql",
+      "sha256": "3cfd4de8057358b887104079efd1c5b6b36a2b376f019b78c8070c5c641fb65d",
+      "sourceCommit": "f461436f20b37c2ee9fc689c9c1e6aba67f42f3b"
+    },
+    {
+      "name": "20261001062831_ediel_service_context_timing_bridge_for_recovery_phase.sql",
+      "sha256": "885be9e78ee90a9660d31eaad17192bbfd6c1612dd3cb2f167057b1a6e32d526",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
+      "name": "20261001062832_ediel_service_origin_recovery_execution_phase.sql",
+      "sha256": "e62d85065be53b6348421af24cf6b920237c8fc8de6cb724600f52ee5b5261d0",
+      "sourceCommit": "13be9fe12cffda516c5d52bcd235c180fde33123"
+    },
+    {
+      "name": "20261001062833_ediel_service_context_timing_bridge_restore.sql",
+      "sha256": "8781ee49c8b23a76c12131bc1105b1b55df157ef72d5023d1555da17698d050e",
+      "sourceCommit": "f460fabf33eace3abb0e44df06a780f02b44a03d"
+    },
+    {
+      "name": "20261001065415_ediel_recovery_current_service_source_bridge.sql",
+      "sha256": "c6c069b55e7254960320a78f88f82f1d69e8638f8132d082790549d5ac2e0788",
+      "sourceCommit": "808681ea7ebfa785fd834a75ae521499527652b9"
+    },
+    {
+      "name": "20261001071000_ediel_invoice_file_copy_class_retention.sql",
+      "sha256": "1b07b113b8e48923326c6d2d0fce0dea0f5fdb515a76161c345b94b538ffa9e9",
+      "sourceCommit": "f14e63ff73390df64bead8d265706b160d8c5f9d"
+    },
+    {
+      "name": "20261001071100_ediel_invoice_customer_document_locator_scope.sql",
+      "sha256": "9ddce769c1c95950dc3205b1eaf7b71f51ff39fe49858cac653f9a241463270a",
+      "sourceCommit": "f14e63ff73390df64bead8d265706b160d8c5f9d"
+    },
+    {
+      "name": "20261001071200_ediel_finance_copy_closed_export_states.sql",
+      "sha256": "e9418653c4db676d8b5797176b6c74aa6affe4c4545b8945bb321e0592454e08",
+      "sourceCommit": "f14e63ff73390df64bead8d265706b160d8c5f9d"
+    },
+    {
+      "name": "20261001071500_ediel_customer_invoice_retention_decision_original_classes.sql",
+      "sha256": "3fd8db0570fb134904db81e224bd4eb51dd02ce74eed14471c7ff022705898d5",
+      "sourceCommit": "823c13c06241e40b7c1876622f36aac8919099d0"
+    },
+    {
+      "name": "20261001081500_ediel_customer_classification_copy_retention.sql",
+      "sha256": "6486387a60a50bce9e7fc366cef61051a9f844c1d9e3b4ad57c40b71346b5de1",
+      "sourceCommit": "823c13c06241e40b7c1876622f36aac8919099d0"
+    },
+    {
+      "name": "20261001081731_ediel_retention_grant_native_clock.sql",
+      "sha256": "3e5c52b040119c121886ea2a489fba21b0c66850e5f9b18abfb5168459701828",
+      "sourceCommit": "47c8dfb8c3157b196054a6b27e6455482e74e494"
+    },
+    {
+      "name": "20261001083000_ediel_contract_original_copy_retention.sql",
+      "sha256": "c66741c5cef68cad1df353be549e5eaaf61fd49b19d821e44bbf85f4c1546354",
+      "sourceCommit": "7c37892789c5bb548b08b596689ed869a9231e46"
+    },
+    {
+      "name": "20261001083359_ediel_prodat_object_batch_current_source_first_effect.sql",
+      "sha256": "eeef25e3abd95945048f6b8ec5f7686d216f709c801c0083dcb5cc3f0c840228",
+      "sourceCommit": "971df5955937745d3b50db64d61e29cefd9f0dc0"
+    },
+    {
+      "name": "20261001084106_ediel_requested_customer_change_source_owner.sql",
+      "sha256": "82ded69d225dd9f135ac6bb075f6f7605838a230b4272cc773633ae5017511ba",
+      "sourceCommit": "117ff9aa764c6e3f9f9fa849391e50d5e9ac0cfd"
+    }
+  ],
+  "scope": "One genuine committed c8 branch already applied40446; exact absent union inputs only; no source bytes/history rewrites.",
+  "ledgerClaim": "NONE: committed source and actual replay application do not establish an externally observed40446 deployment-ledger row."
+}

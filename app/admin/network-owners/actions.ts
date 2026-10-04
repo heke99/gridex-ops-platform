@@ -11,7 +11,7 @@ import {
   runGridOwnerReadinessCompletion,
   runGridOwnerVerificationBackfill,
 } from "@/lib/grid-owners/verification";
-import { importActorRegistryXml } from "@/lib/actor-registry/importActorRegistry";
+import { decodeRegistryUpload, importActorRegistryXml, readActorRegistryPriorResult } from "@/lib/actor-registry/importActorRegistry";
 import { refreshCertificatesForGridOwner, refreshScheduledActorCertificates } from "@/lib/ediel/certificates/actorCertificateRefresh";
 import {
   gridOwnerInputSchema,
@@ -169,9 +169,17 @@ export async function importActorRegistryXmlAction(formData: FormData): Promise<
     throw new Error("Filen måste vara en XML-fil.");
   }
 
-  const xml = Buffer.from(await file.arrayBuffer()).toString("utf8");
+  const sourceBytes = Buffer.from(await file.arrayBuffer());
+  const prior = await readActorRegistryPriorResult({ sourceBytes, sourceKind: 'companies_xml', actorUserId: actor.userId });
+  if (prior) {
+    revalidatePath("/admin/network-owners");
+    revalidatePath("/admin/ediel/actors");
+    return;
+  }
+  const xml = decodeRegistryUpload(sourceBytes, 'companies_xml');
   await importActorRegistryXml({
     xml,
+    sourceBytes,
     sourceFilename: name,
     uploadedBy: actor.userId,
     forceReprocess,

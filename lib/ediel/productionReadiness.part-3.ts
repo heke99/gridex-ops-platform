@@ -6,21 +6,31 @@ import type { EdielMessageRow } from "@/lib/ediel/types"
 
 
 
-import { EdifactEnvelopeCodec } from "@/lib/ediel/core/edifactEnvelopeCodec"
 import { requireTenantOperationAllowed } from '@/lib/tenant/operationPolicy'
 import type { ProductionDryRunResult } from './productionReadiness.part-1'
+import { assertScopedEdielProductionCapability, getScopedEdielProductionReadiness } from './scopedCapabilityReadiness'
 import { evaluateProductionSendGuardSnapshot, safeCount, upper } from './productionReadiness.part-1'
 import { getCompanyProductionReadiness } from './productionReadiness.part-2'
 
 export async function runProductionDryRun(
   companyId: string,
   actorUserId: string,
+  message?: EdielMessageRow,
 ): Promise<ProductionDryRunResult> {
   const readiness = await getCompanyProductionReadiness(companyId, {
     checkedBy: actorUserId,
     persist: true,
   });
-  const allowed = readiness.blockingIssues.length === 0;
+  let scopeEvidence: Awaited<ReturnType<typeof getScopedEdielProductionReadiness>> | null = null
+  if (message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound') {
+    try { scopeEvidence = await getScopedEdielProductionReadiness(message) } catch { /* explicit held projection below */ }
+  }
+  const scopeReady = scopeEvidence?.ready === true && Boolean(scopeEvidence.evidenceId) &&
+    Number.isFinite(Date.parse(scopeEvidence.expiresAt ?? '')) && Date.parse(scopeEvidence.expiresAt!) > Date.now()
+  const scopeIssue = { code: 'capability_scope_evidence_required', label: 'Kapabilitetsbevis saknas',
+    message: 'Välj ett faktiskt produktionsmeddelande med aktuellt bevis för juridisk aktör, roll och kapabilitet.', severity: 'blocking' as const, area: 'tests' as const }
+  const blockingIssues = scopeReady ? readiness.blockingIssues : [...readiness.blockingIssues, scopeIssue]
+  const allowed = blockingIssues.length === 0;
   const result: ProductionDryRunResult = {
     success: allowed,
     status: allowed
@@ -28,10 +38,15 @@ export async function runProductionDryRun(
         ? "warning"
         : "allowed"
       : "blocked",
-    blockingIssues: readiness.blockingIssues,
+    blockingIssues,
     warnings: readiness.warnings,
     previewMetadata: {
       dryRunOnly: true,
+      capabilityScope: scopeEvidence?.scope ?? null,
+      capabilityEvidenceId: scopeEvidence?.evidenceId ?? null,
+      capabilityDependencyHash: scopeEvidence?.dependencyHash ?? null,
+      capabilityScopeReady: scopeReady,
+      messageId: message?.id ?? null,
       companyId,
       environment: "production",
       edielId: readiness.summary.edielId,
@@ -44,31 +59,14 @@ export async function runProductionDryRun(
       productionUtiltsRouteProfileId:
         readiness.summary.activeProductionUtiltsRouteProfileId,
       productionMailboxId: readiness.summary.productionMailboxId,
-      receiverResolution: "dynamic_grid_owner_from_selected_customer_context",
+      receiverResolution: message ? "saved_message_route" : "scope_unavailable",
       wouldResolveReceiverFrom:
         "kundprocess -> anläggning/mätpunkt -> verifierad nätägare -> Ediel route/certifikat",
       wouldSend: false,
       wouldBeBlocked: !allowed,
     },
-    edifactPreview:
-      readiness.summary.edielId &&
-      readiness.summary.activeProductionRouteProfileId
-        ? EdifactEnvelopeCodec.encode({
-            acknowledgementRequest: true,
-            sender: readiness.summary.edielId,
-            receiver: "DYNAMIC_GRID_OWNER",
-            senderSubAddress: readiness.summary.senderSubAddress,
-            receiverSubAddress: readiness.summary.receiverSubAddress,
-            interchangeReference: "DRYRUN",
-            applicationReference: "DDQ",
-            environment: "production",
-            messages: [{
-              messageReference: "DRYRUN-1",
-              messageTypeToken: "PRODAT:D:97A:UN:E2SE6A",
-              businessSegments: ["BGM+Z01+DRYRUN+9"],
-            }],
-          })
-        : null,
+    edifactPreview: message?.company_id === companyId && message.environment === 'production' && message.direction === 'outbound'
+      ? message.raw_payload : null,
   };
 
   const { data: readinessRow, error: readinessRowError } = await supabaseService
@@ -101,6 +99,21 @@ export async function runProductionDryRun(
 }
 
 export async function assertCompanyCanSendProductionEdiel(params: {
+  companyId: string;
+  actorUserId?: string | null;
+  message: EdielMessageRow;
+}): Promise<void> {
+  if (params.message.environment !== "production") return;
+  if (params.companyId !== params.message.company_id) throw new Error('ediel_scoped_capability_evidence_required')
+  if (['PRODAT', 'UTILTS', 'CONTRL', 'APERAK', 'UTILTS_ERR', 'AI_LIST'].includes(params.message.message_family)) {
+    await assertScopedEdielProductionCapability(params.message)
+    return
+  }
+  // NBS/other platform tracks retain their separately owned existing contract.
+  await assertExternalTrackProductionSend(params)
+}
+
+async function assertExternalTrackProductionSend(params: {
   companyId: string;
   actorUserId?: string | null;
   message: EdielMessageRow;

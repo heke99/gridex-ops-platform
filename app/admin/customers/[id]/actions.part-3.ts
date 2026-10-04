@@ -17,6 +17,7 @@ import { createGridOwnerDataRequest, createOutboundRequest, findOpenOutboundBySo
 
 import { createCustomerInfoRequest, queueCustomerInfoRequestForDispatch } from "@/lib/onboarding/infoRequests"
 import { createMissingPowerOfAttorneyBlocker, ensureAuthorizationScopeFromPowerOfAttorney, getLatestSignedPowerOfAttorneyForCustomer, getSignedPowerOfAttorneyCoverage, resolveCustomerBlockersAfterSignedPowerOfAttorney } from "@/lib/operations/powerOfAttorneyWorkflow"
+import { prepareManualServicePermission } from '@/lib/ediel/services/manualPermission'
 import { routeDecisionPayload } from "@/lib/routes/routeDecisionEngine"
 
 
@@ -85,6 +86,28 @@ export async function createGridOwnerDataRequestAction(
     (requestScope === "customer_masterdata"
       ? "request_customer_masterdata"
       : `request_${requestScope}`);
+  if (requestScope === 'metering_access') {
+    const selectedVersion = formValue(formData, 'service_assignment_version');
+    const result = await prepareManualServicePermission({
+      companyId, actorUserId: actor.id, customerId,
+      selection: {
+        code: requestedAction === 'terminate_metering_access' ? 'Z18' : 'Z13',
+        permissionId: normalizeUuidOrNull(formValue(formData, 'metering_permission_id'), 'metering_permission_id'),
+        assignmentId: normalizeUuidOrNull(formValue(formData, 'service_assignment_id'), 'service_assignment_id'),
+        expectedVersion: selectedVersion ? Number(selectedVersion) : null,
+        mode: requestedAction === 'request_historical_metering_access' ? 'VH' : null,
+        fromDate: requestedPeriodStart, toDate: requestedPeriodEnd,
+      },
+    });
+    await insertAuditLog({actorUserId: actor.id, entityType: 'customer', entityId: customerId,
+      action: 'ediel_service_permission_manual_command', metadata: {customerId, result}});
+    revalidatePath(`/admin/customers/${customerId}`);
+    revalidatePath('/admin/customer-info-requests');
+    revalidatePath('/admin/operations/tasks');
+    revalidatePath('/admin/outbound');
+    return;
+  }
+
   validateHistoricalMeteringPeriod({
     requestedAction,
     startDate: requestedPeriodStart,

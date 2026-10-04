@@ -1,0 +1,14 @@
+import {readFileSync} from 'node:fs'
+import assert from 'node:assert/strict'
+const {PGlite}=await import(process.env.EDIEL_PGLITE_MODULE??'@electric-sql/pglite'),sql=readFileSync(new URL('../supabase/migrations/20261001071050_ediel_stable_finance_guard_identities.sql',import.meta.url),'utf8')
+const run=async shift=>{const db=new PGlite();try{
+ await db.exec(`CREATE ROLE clone_owner;CREATE ROLE read_role;CREATE SCHEMA gridex_ediel_retention;CREATE SCHEMA gridex_billing_source;CREATE TABLE gridex_billing_source.underlay_bindings(id integer);CREATE TABLE billing_underlays(id integer);`)
+ for(let n=0;n<shift;n++)await db.exec(`CREATE FUNCTION public.shift_${n}() RETURNS int LANGUAGE sql AS $$SELECT 1$$`)
+ for(const [name,table,trigger] of [['43212','gridex_billing_source.underlay_bindings','protect_underlay_binding'],['43219','public.billing_underlays','protect_underlay']])await db.exec(`CREATE FUNCTION gridex_ediel_retention.finance_guard_${name}() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$BEGIN IF NEW.id<0 THEN RAISE EXCEPTION 'original guard';END IF;RETURN NEW;END$$;ALTER FUNCTION gridex_ediel_retention.finance_guard_${name}() OWNER TO clone_owner;REVOKE ALL ON FUNCTION gridex_ediel_retention.finance_guard_${name}() FROM PUBLIC;GRANT EXECUTE ON FUNCTION gridex_ediel_retention.finance_guard_${name}() TO read_role;CREATE TRIGGER ${trigger} BEFORE UPDATE ON ${table} FOR EACH ROW EXECUTE FUNCTION gridex_ediel_retention.finance_guard_${name}()`)
+ const before=(await db.query(`SELECT p.oid,p.prosrc,p.proowner,p.proacl::text,p.proconfig,t.tgfoid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_trigger t ON t.tgfoid=p.oid WHERE n.nspname='gridex_ediel_retention' ORDER BY t.tgname`)).rows
+ await db.exec(sql);await db.exec(sql)
+ const after=(await db.query(`SELECT p.oid,p.prosrc,p.proowner,p.proacl::text,p.proconfig,t.tgfoid FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_trigger t ON t.tgfoid=p.oid WHERE n.nspname='gridex_ediel_retention' ORDER BY t.tgname`)).rows;assert.deepEqual(after,before)
+ await db.exec('INSERT INTO billing_underlays VALUES(1)');await assert.rejects(()=>db.exec('UPDATE billing_underlays SET id=-1'),/original guard/)
+ return (await db.query(`SELECT p.proname,pg_get_triggerdef(t.oid) d FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_trigger t ON t.tgfoid=p.oid WHERE n.nspname='gridex_ediel_retention' ORDER BY t.tgname`)).rows
+}finally{await db.close()}}
+assert.deepEqual(await run(0),await run(7));console.log('PASS actual semantic finance guard rename: shifted clean/upgrade OIDs yield same names+trigger definitions; OID/body/owner/ACL/config unchanged; original guard+idempotent replay preserved. Synthetic isolated PG catalog; full Supabase parity awaits exact-head replay.')

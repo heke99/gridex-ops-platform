@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+import {readFileSync} from 'node:fs'
+const read=name=>readFileSync(new URL(`../supabase/migrations/${name}`,import.meta.url),'utf8')
+const bridge=read('20261001054122_ediel_bilateral_customer_classification_owner_bridge.sql')
+const prefix=read('20261001063426_ediel_customer_owner_entry_lock_prefix.sql')
+const execution=read('20261001070121_ediel_classified_customer_execution_scope.sql')
+assert(bridge.includes('life_event_classification_origins'),'actual archive/review classification publisher missing')
+assert(bridge.includes('classification_chain_v1'),'source-owned descendant verification missing')
+assert(bridge.includes('validate_prodat_source_function_v1'),'actual descendant native function owner missing')
+assert(bridge.includes('provolatile<>vol_before'),'original stable owner proof must be preserved')
+assert(bridge.includes('classification_current_v1'),'fresh source/current qualification missing')
+assert.equal((prefix.match(/'public\.|'gridex_/g)||[]).length,9,'all nine early lock entries')
+assert(execution.includes("'archive','method_contract'"),'actual actor owner archive phase required')
+assert(!execution.includes("'submit','method_contract'"),'unsupported actor phase must never grant')
+assert(execution.includes("'read','method_contract'"),'personal history current read scope required')
+console.log('Customer owner recreated static invariants PASS; not native or criterion approval')

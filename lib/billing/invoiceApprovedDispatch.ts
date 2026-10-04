@@ -1,3 +1,4 @@
+import { requireInvoiceSourceCopiesAvailable } from '@/lib/ediel/retention/financeCopyRetention'
 import { InvoiceProviderConfigError, loadTenantInvoiceProviderSelection, requireTenantInvoiceProvider } from '@/lib/billing/providers/registry'
 import { tenantUpdate } from '@/lib/supabase/tenantQuery'
 import { createHash } from 'node:crypto'
@@ -96,6 +97,7 @@ export async function loadItemContext(companyId: string, itemId: string) {
 }
 
 export async function assertItemStillReady(context: Awaited<ReturnType<typeof loadItemContext>>) {
+  await requireInvoiceSourceCopiesAvailable({ companyId: String(context.item.company_id), underlayId: text(context.underlay.id), invoiceId: text(context.invoice.id), exportItemId: text(context.item.id) })
   if (context.underlay.status !== 'validated' || context.underlay.readiness_status !== 'ready') throw new Error('Faktureringsunderlaget är inte längre klart.')
   if ((num(context.underlay.missing_values_count) ?? 0) > 0) throw new Error('Mätvärden saknas fortfarande för kunden.')
   if (context.pricingRun.status !== 'locked' || !context.pricingRun.locked_at) throw new Error('Prisberäkningen är inte låst.')

@@ -2,11 +2,19 @@ import {createHash,randomUUID} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielEmail,type SendEdielEmailInput} from '@/lib/email/sendEdielEmail'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
+import {sendGenericFencedEdielEmail} from '@/lib/ediel/transport/outboundAttempt'
+import type {EdielBusinessExpectationPlan,EdielTechnicalExpectationPlan} from '@/lib/ediel/businessExpectations'
+import type {EdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
+import type {ProdatTransportRetryBasis} from '@/lib/ediel/recovery/transportRetry'
+import type {EdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
 import type {EdielMessageRow} from '@/lib/ediel/types'
+import {transportExceptionBinding,type TransportExceptionAuthorization} from '@/lib/ediel/transport/exception/source'
 
 export type OutboundDispatchOwner={kind:'direct'}|{kind:'worker';outboxId:string;sendAttemptId:string;workerId:string}
-type Receipt={scoped:boolean;unscopedReason?:string;proceed?:boolean;eventId?:string;witnessed?:boolean;facts?:{classification?:string};acceptedReceipt?:unknown}
+type Receipt={scoped:boolean;unscopedReason?:string;proceed?:boolean;eventId?:string;witnessed?:boolean;facts?:{classification?:string};acceptedReceipt?:unknown;observedAt?:string;observationClock?:string}
 type ProviderResult=Awaited<ReturnType<typeof sendEdielEmail>> & {dispatchReplay?:boolean;dispatchObservedAt?:string}
 class ReplayAccepted extends Error {constructor(readonly result:ProviderResult){super('outbound_dispatch_projection_repair')}}
 function acceptedReceipt(value:unknown):ProviderResult|null{
@@ -22,14 +30,16 @@ function receipt(value:unknown):Receipt{
  if(!value||typeof value!=='object'||typeof (value as Receipt).scoped!=='boolean')throw Error('outbound_dispatch_invalid_receipt')
  return value as Receipt
 }
-export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string}){
+export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,context:{message:EdielMessageRow;actorUserId:string;owner?:OutboundDispatchOwner;mimeMode:string;payload:Buffer;encoding:string;admissionDecision?:Readonly<Record<string,unknown>>|null;businessExpectationPlan?:EdielBusinessExpectationPlan|null;technicalExpectationPlan?:EdielTechnicalExpectationPlan|null;meteringMethodExpectationPlan?:EdielMeteringMethodExpectationPlan|null;recoveryAuthorization?:ProdatTransportRetryBasis|null;sourceRulePackEvidence?:EdielSourceRulePackEvidence|null;technicalSyntaxAckEvidence?:TechnicalSyntaxAckEvidence|null;prodatCommonHeaderRejectionEvidence?:ProdatCommonHeaderRejectionEvidence|null;transportException?:TransportExceptionAuthorization|null}){
  const {message}=context
- // Existing non-Z08 families keep their original transport contract. Inspect
- // the sealed raw grammar as well as the row code, never parsed subtype/status.
+ // The source owner selects the Z08 closure lane. All other families use
+ // the shared transport journal; inspect the sealed wire as well as row code.
  let potential=message.message_code==='Z08'
- try{const t=tokenizeEdifact(message.raw_payload);potential ||= t.segments.some(s=>s.tag==='BGM'&&segmentComposite(s,1,t.una)[0]==='Z08')}
- catch{potential=true} // malformed originals cannot use the uninstrumented lane
- if(!potential)return sendEdielEmail(input)
+ if(message.message_standard==='edifact'){
+  try{const t=tokenizeEdifact(message.raw_payload);potential ||= t.segments.some(s=>s.tag==='BGM'&&segmentComposite(s,1,t.una)[0]==='Z08')}
+  catch{potential=true} // malformed EDIFACT cannot use the uninstrumented lane
+ }
+ if(!potential)return sendGenericFencedEdielEmail(input,context)
  const identity={companyId:message.company_id,environment:message.environment,messageId:message.id,actorUserId:context.actorUserId,
   attemptId:randomUUID()}
  let callbackUsed=false,entryAttempted=false,prepared=false,scoped=false,resultCaptured=false
@@ -44,17 +54,24 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   if(w.eventId!==r.eventId||w.witnessed!==true)throw Error('outbound_dispatch_witness_missing')
  }
  try{
-  const result=await sendEdielEmail(input,{beforeProviderCall:async actual=>{
+  const entry={archiveContext:{companyId:message.company_id!,messageId:message.id},beforeProviderCall:async (actual:Record<string,unknown>)=>{
    if(callbackUsed)throw Error('outbound_dispatch_callback_reused')
    callbackUsed=true
    const binding={...actual,originalHash:hash(Buffer.from(message.raw_payload ?? '','utf8')),routeId:message.communication_route_id,
-    mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length}
+    mimeMode:context.mimeMode,encoding:context.encoding,payloadBase64:context.payload.toString('base64'),payloadHash:hash(context.payload),payloadLength:context.payload.length,admissionDecision:context.admissionDecision??null,
+    businessExpectationPlan:context.businessExpectationPlan??null,technicalExpectationPlan:context.technicalExpectationPlan??null,
+    meteringMethodExpectationPlan:context.meteringMethodExpectationPlan??null,
+    recoveryAuthorization:context.recoveryAuthorization??null,sourceRulePackEvidence:context.sourceRulePackEvidence??null,
+    technicalSyntaxAckEvidence:context.technicalSyntaxAckEvidence??null,
+    prodatCommonHeaderRejectionEvidence:context.prodatCommonHeaderRejectionEvidence??null,
+    transportException:context.transportException?transportExceptionBinding(context.transportException,message,context.actorUserId):null}
    const reservation=await call('prepare',{owner:context.owner ?? {kind:'direct'},binding})
    scoped=reservation.scoped
    if(!scoped){
     if(potential && !(reservation.unscopedReason==='canonical_lk_exemption' && message.rule_profile_key==='PRODAT:Z08:LK:26.A:r3'))
      throw Error('outbound_dispatch_scope_mismatch')
-    return
+    // LK exempt from H-specific closure evidence still belongs to the generic transport journal.
+    throw Error('outbound_dispatch_lk_generic_required')
    }
    if(reservation.proceed!==true){
     const prior=acceptedReceipt(reservation.acceptedReceipt)
@@ -68,17 +85,21 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
    const entered=await call('enter')
    if(entered.proceed!==true)throw Error('outbound_dispatch_entry_denied')
    await witness(entered)
-  }})
+  }}
+  const result=await sendEdielEmail(input,entry)
   if(!callbackUsed)throw Error('outbound_dispatch_callback_missing')
   if(scoped){
    const captured=await call('result',{result:{accepted:result.accepted,rejected:result.rejected,messageId:result.messageId ?? null,response:result.response ?? null}})
    resultCaptured=true
    await witness(captured)
    if(captured.facts?.classification!=='accepted')throw new SmtpDeliveryUncertainError(Error(`outbound_dispatch_${captured.facts?.classification ?? 'uncertain'}`),result.messageId ?? null)
+   if(captured.observationClock!=='database_provider_result_capture'||typeof captured.observedAt!=='string'||!Number.isFinite(Date.parse(captured.observedAt)))throw new SmtpDeliveryUncertainError(Error('outbound_dispatch_capture_clock_missing'),result.messageId ?? null)
+   return {...result,dispatchObservedAt:captured.observedAt}
   }
-  return result
+  throw Error('outbound_dispatch_source_authority_missing')
  }catch(error){
   if(error instanceof ReplayAccepted)return error.result
+  if(error instanceof Error&&error.message==='outbound_dispatch_lk_generic_required')return sendGenericFencedEdielEmail(input,context)
   if(scoped&&entryAttempted){
    if(!resultCaptured){
     const e=error as {message?:unknown;code?:unknown;command?:unknown;responseCode?:unknown;syscall?:unknown}

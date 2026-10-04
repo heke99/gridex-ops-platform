@@ -1,17 +1,33 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-09-28T10:22:31Z",
-  "status": "IN_PROGRESS",
+  "updated_at": "2026-10-02T12:00:39.687848Z",
+  "status": "IN_PROGRESS_CI_RED_NATIVE",
   "paused": false,
-  "branch": "codex/ediel-v2-f3-prodat-next2-20260928",
-  "active_pr": 420,
-  "base_head_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
-  "runtime_accepted_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
-  "last_merged_pr": 419,
-  "last_accepted_pr": 419,
+  "branch": "claude/zealous-rubin-6axb91",
+  "active_pr": 426,
+  "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "last_merged_pr": 420,
+  "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "PR420 field202 physical missing/unlisted code: 41/42 draft only; correct false outbound ACK from stale Z04 persisted owner",
-  "current_audit": "quality/audits/ediel-masterplan-v2/f3-prodat-field202-policy-boundary-20260928.md",
+  "active_item": "Drive #426 CI green (native suite), then merge per user decision and continue masterplan v2",
+  "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
+  "pr421_syntax_header_remediation_20260930": {
+    "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
+    "baseline_ops": 36702357516,
+    "baseline_replay_job": 109844514929,
+    "baseline_native": "439/442; UNT999 accepted series+contract, OTHER positive CONTRL with no accepted storage, SC045 two APERAKs",
+    "product_scope": "canonical syntax early, physically qualified header ACK, every affected projection/override/draft path; unchanged tenant finalizer; no SQL or frozen register change",
+    "ordinary_tests": "6296/6296 PASS, 388 files, Node22.23.3",
+    "quality_tests": "45/45 PASS",
+    "static_checks": "app/tests/scripts TypeScript PASS4096MB; lint0errors; mechanical/register/migration/service-role/large-file PASS",
+    "extra_baseline_failures": "Z14N script263 and stale UTILTS environment-facade assertion fail identically at e0 and candidate; ACK regression passes both",
+    "independent_review": "APPROVE bounded corrected scope;68/68targeted; no Critical/Important",
+    "publication": "exact future head/tree in PR comment; not self-referential source-tree assertion",
+    "native_final_head": "PENDING; local Docker/PostgreSQL unavailable",
+    "acceptance": "SC045 and widerU03/ACK03 NOT_APPROVED; retain previousSC044 only",
+    "external_state": "draft/no force/no merge/no traffic; #418/#422/#310 untouched"
+  },
   "ediel_case_navigation": {
     "status": "STREAMED_NOT_FOUND_TEST_STATIC_APPROVED_CI_PENDING",
     "published_head": "7750e2da44394b1b154eabfb4e3e8e80af30f4f6",
@@ -30,9 +46,54 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Finish local TypeScript/lint and inspect first native outcome on 470625da. Publish narrow normative-import fix plus accurate checkpoint on same draft #420. Then require all exact-head CI/native replay/schema/type gates and full review; never activate traffic or touch #310.",
+  "next_action": "Continue native clusters: z04-ack CONTRL technical reception, service-evidence held authorization, z06f unconfirmed, document-reference storage, object-batch psql, err-gateway technical reception; then remaining consumption; regenerate supabase/schema.sql at freeze.",
+  "pr421_clock_boundary_20260929": {
+    "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
+    "red_ops": 36541272452,
+    "red_native": "401/402 invalid_document_observation_time for committed same-millisecond attempt",
+    "product_head": "ad3a46fb6e0b9e1159b61aff56905db0909fa89c",
+    "ediel": 36543117019,
+    "browser": 36543117110,
+    "full_e2e": 36543116973,
+    "tenant": 36543117011,
+    "ops": 36543116960,
+    "native": "402/402 PASS; positive same-millisecond, negative prior millisecond and existing actual Storage controls",
+    "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+    "first_remaining_failure": "final db:schema:check private function-body snapshot differs; no other schema section changed",
+    "authentic_artifact": 11021687319,
+    "artifact_zip_sha256": "c614369f7d3fe77c67a6617b4a98d56d386a7595e6c84f1d97baa49de6cd7668",
+    "schema_fingerprint": "1a543e1fb12075c6d157c27f33bd9c46c53cc696f5b1cb80b22e254314d524b0",
+    "next_head_parity": "SUCCESS on final d8fea097 (native403/403, clean replay/types/schema)",
+    "market_traffic": "HELD",
+    "historical_issuer_retention_positive_175_e035_history": "BLOCKED"
+  },
+  "pr421_source_checkpoint": {
+    "published_head_before_this_step": "fbcf1eeb0359dc8b3958c6ecfe2012673413f471",
+    "branch": "codex/ediel-v2-identity-e035-owner-20260928",
+    "draft_pr": 421,
+    "prior_original_sha256": "fad5cf4f775f86258ab9d5827426d54e57881b6298836110359cf0e41706a798",
+    "current_original_sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+    "clause_comparison": "UTILTS 203/505 temporal uniqueness/ERC42 and NAD+MS legal sender agree in selected prior/current originals; source clause only, not historical implementation or G01 closure",
+    "native_control": "two physical IDE+24 occurrences with same 505 in one source: SQL receipt, ACK/outbox and business effects must stay zero on two attempts",
+    "last_verified_exact_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "last_verified_workflows": [
+      36606642504,
+      36606642640,
+      36606642591,
+      36606642793,
+      36606642637
+    ],
+    "native_before_this_step": "400/400",
+    "native_on_last_verified_head": "403/403; clean replay/types/schema SUCCESS",
+    "next_head_checks": "Final E72 authentic snapshot exact-head five workflows/replay/types/schema; older candidate subfields historical.",
+    "local_candidate": "Second forward 20260928235411 skips S01 point precheck only for unowned LOC+175 and retains private object-owner refusal; test clears individual source links before actual S01 nonbilling consumer. Migrations/types, scripts TypeScript/lint, 4 ordinary, spec/diff checks pass; native 401 and replay/type/schema pending new head.",
+    "last_published_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "first_new_head_failure": "26b0ac14 OPS 36539826693 native 400/401: Storage replace/before_witness old outcome/witness intact, readback hash_mismatch, fresh revalidation unconfirmed with 2 attempts/1 outcome/1 witness. Four companion workflows and OPS verify/quality green; schema parity not reached. Root cause unproved.",
+    "candidate": "E72 test-first empty-observation physical point authority; SQL pending native result",
+    "native_on_candidate": "OPS 36500691010 native 401/401, generated types SHA256 byte identical; schema baseline stale after only public function body changed, actual fingerprint 3c33545b9eb65f11cacc5f2fcbd947cd173ba44af79106fbf56bd33270efeaaa"
+  },
   "latest_verified_delivery": {
-    "main_sha": "f030d507a9532c6fcafc55fd812305a82c9c1076",
+    "main_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
     "merged_prs": [
       387,
       388,
@@ -58,12 +119,13 @@
       415,
       416,
       417,
-      419
+      419,
+      420
     ],
     "pr390_head": "9d6bd3c2ba336ae0e82e0fb44c4dcbc4e63879ac",
     "pr390_ops_run": 36245827122,
     "pr390_native_tests": "343/343",
-    "vercel_deployment": "dpl_HY8hqZ4FXNK6XLNVSjMbSsJQ29Jk READY for exact main f030d507; code deployment only",
+    "vercel_deployment": "dpl_GHmU5w9cDX9X1BrxvQn63FpyoSDu READY on exact main 53bf989b0ad402bb2ce151c186eea31f1ec9cf03; code deployment only",
     "boundary": "web deployed; Ediel market capabilities not activated",
     "pr392_head": "bf57d16e406842cb3325424f0b621b6588ed065b",
     "pr392_ops_run": 36247794182,
@@ -90,7 +152,10 @@
     "pr419_ops_run": 36401020685,
     "pr419_native_tests": "378/378",
     "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
-    "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6"
+    "schema_fingerprint": "08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
+    "pr420_head": "3251d8c85c1eaa1b97132120fdebbb47756a1974",
+    "pr420_ops_run": 36414871075,
+    "pr420_native_tests": "382/382"
   },
   "task4_combined_snapshot": {
     "published_head": "b1c7f993affdb68d11f4c0941c483c4d145b938e",
@@ -204,7 +269,7 @@
     "ordinary_delivery_retest_needed": true
   },
   "independent_review": "PR371_FINAL_SPEC_QUALITY_NATIVE_ACCEPTED; PR372_TASK1_SPEC_QUALITY_APPROVED",
-  "ordinary_final_head_ci": "PR394_FOUR_APPLICABLE_SUCCESS_NATIVE_REPLAY",
+  "ordinary_final_head_ci": "PR420_FOUR_APPLICABLE_SUCCESS_NATIVE382_REPLAY_SCHEMA_TYPES",
   "full_source_disposition": "DATED_POST_LEDGER_Z04_Z06F_Z06G_Z10_AND_BGM5_E61_E62_PARTIAL; APPLICABILITY_AND_HISTORY_INCOMPLETE",
   "full_E035": "NOT_COMPLETE",
   "full_F3": "NOT_COMPLETE",
@@ -219,7 +284,7 @@
     "head": "e961135199f292b8210884f07de3b616a670161a"
   },
   "live_or_explicit_deployment_actions": false,
-  "last_verified_pr_head": "09c1727c109cc73d279272b80763f96a48bbeb9e",
+  "last_verified_pr_head": "d30fa0203f0499a8e15faeddda7676af81296c86",
   "ordinary_baseline_ci": {
     "head": "95b5e391159e3164869ddabd8ec96b8f69189fe2",
     "ops": 35842844058,
@@ -481,8 +546,8 @@
     "review": "FINAL_WHOLE_BRANCH_SPEC_QUALITY_NATIVE_ACCEPTED",
     "final_head": "65f5b896cd3801eedde43db99df38afa6d9c78a1"
   },
-  "published_head": "6ac92a93c1253c6de1ca1788292fcb7c74e0cd32",
-  "published_tree": "80e322486a42248e7376284a0c3f8cd6e6e3c851",
+  "published_head": "a671a663aa00a08eaee7c2d52c6c117418c0ad8b",
+  "published_tree": "a917efb21cb6652b5316d3670654e946194072ef",
   "prior_guide_ci": {
     "run": 35931020643,
     "native_job": 107417342303,
@@ -688,7 +753,7 @@
     "final_ci": "ALL_APPLICABLE_SUCCESS",
     "active_agent": null
   },
-  "workspace": "/workspace/scratch/d9e6c237b68e/pr372-finish",
+  "workspace": "/workspace/scratch/d2ff6a61f553/gridex-ops-platform",
   "correction_process_task3b": {
     "status": "PARTIAL_PAUSED",
     "accepted_outbound_base": "d7cbab18b9b102e00cde256bc91c22271455d7c8",
@@ -918,9 +983,10 @@
       "206",
       "313",
       "204",
-      "202/C002"
+      "202/C002",
+      "202 missing/unlisted physical safe hold"
     ],
-    "active_candidate": "Missing/unlisted physical 202: typed 41/42/BGM27 draft, stale-profile ACK safely held; local 126/126 including normative authority, final PR/native gates pending",
+    "active_candidate": null,
     "formal_rules": [
       "ACK-02 partial",
       "ACK-10 partial"
@@ -932,6 +998,462 @@
     "frozen_totals": "121 cards and 231 contracts; no new percentage",
     "market_activated": false
   },
-  "active_pr_head_before_pending_commit": "470625da871eeba4b53a6356215f286a32f77ec6",
-  "active_candidate_evidence": "PR420 head 470625da Ediel 36408877709 and browser 36408877599 SUCCESS; Full E2E 36408877711 smoke+coverage FAILED on one normative import from kernel to the raw PRODAT matrix. Local RED confirmed that exact authority guard. Shared canonical document-code projection removes the import; guard, route regression, and 126/126 affected tests pass. OPS 36408877538 native/replay and final TypeScript checks pending at this checkpoint. No outbound missing/Z99 ACK is claimed. OPS quality-release-gates 108884048051 also failed the same one normative authority test (6226/6227), while verify passed; native clean replay is still in progress."
+  "active_pr_head_before_pending_commit": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+  "active_candidate_evidence": "S02 probe e1b4f897 native414/426: twelve real consumer/rawRPC omissions confirmed; all prior411+three clean PASS. Local bounded correction54/54; corrected native/final gates pending.",
+  "active_pr_latest_ci": {
+    "head": "2c4d65e095349761511943c42840c451bacaaeda",
+    "ediel": 36480846526,
+    "browser": 36480846370,
+    "full_e2e": 36480846275,
+    "tenant": 36480846292,
+    "ops": 36480846598,
+    "native": "SUCCESS 394/394; late LOC+175 bounded refusal and stable retry; E035 prior causes not isolated",
+    "replay_schema_types": "SUCCESS types SHA256 36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d and schema 08ad0f03ceab3d7b0c33dcd626e3282d8a3430997aa33f957df9f87aacdf8aa6",
+    "candidate_forward": "20260928215000 private supported_point_v1 post-SEQ duplicate LOC+172 refusal; TypeScript E035/E66/S01 fence",
+    "candidate_ci": "PENDING_LATE_172_NATIVE_398_AND_EXACT_HEAD"
+  },
+  "pr421_late172_candidate": {
+    "base_verified_head": "2c4d65e095349761511943c42840c451bacaaeda",
+    "migration": "20260928215000_utilts_late_172_physical_ide_fence.sql",
+    "local": "RED helper/E035/E66/S01 then GREEN 82/82; app/tests/scripts TS, full static migrations/types, lint, 121/231 integrity, diff check PASS",
+    "native": "First 8f3f7a15 native 396/398: two mixed S01 assertions expected zero source receipt but actual one immutable source seal; test corrected, exact-head clean replay pending. PostgreSQL/Docker unavailable locally",
+    "first_new_head_failure": "OPS 36489899332 clean replay native 396/398 at scripts/ediel-utilts-consumption-native.test.ts:328; both orders held with no final ACK/series, then zero-source-receipt assertion failed; generated parity not reached",
+    "scope": "physical IDE point/history/positive-sink refusal only; no historical ERC42, positive LOC+175, full E035 or market activation"
+  },
+  "pr421_e73_point_candidate": {
+    "base": "f917fbec9ff6b4710aaf161cfa0ca2eab07e3ead",
+    "red": "OPS 36600756414 native 402/403; direct E73 agency-89 point persisted positive ACK/series",
+    "migration": "20260929170231_utilts_e73_empty_request_point_identity.sql",
+    "native": "OPS 36604270983 403/403 PASS; only private function-body schema snapshot stale",
+    "market_traffic": "held",
+    "pr310": "untouched",
+    "product_head": "ba471ad4b43e18495bfc94288ac40ca7a8979794",
+    "first_failure": "test fixture guide rejected LOC+175 no-target and invalid GS1 before service-RPC; corrected test uses accepted clean point contract against separate object source",
+    "corrected_head": "0d9116fd05b667b1935dbed017e8fa48bf2310f1",
+    "schema_artifact": "11050414114; ZIP SHA256 4746ae4c1e6a114fa1e716671371b6f53ff0518d264969e57cfdaa057f35a941; fingerprint 633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470",
+    "final_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "final_ops_run": 36606642637,
+    "final_native": "403/403",
+    "final_replay": "SUCCESS",
+    "final_schema_fingerprint": "633beb02ff41589324576fb10d3daeb31d9b6c517ab63a755be8c1fef0362470"
+  },
+  "pr421_e72_point_candidate": {
+    "base_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "source_ids": [
+      "UF-request-209-63",
+      "UG-123-10",
+      "UG-123-11",
+      "UG-123-12"
+    ],
+    "local_red": "Actual nonbilling consumer accepted agency89 wire, expected internal hold false; national guide validation accepted as intended.",
+    "native": "407/407 on00045ba5 OPS36626528727",
+    "product_change": "Forward20260929202207 and canonical consumer E72 hold",
+    "market_traffic": "HELD",
+    "pr310": "UNTOUCHED",
+    "final_gates": "pending authentic snapshot new head"
+  },
+  "e72_forward_correction": {
+    "test_only_head": "ab8e12c6b8610d834adb407b6b12e40d881614e6",
+    "ops_run": 36624954925,
+    "native": "406/407 confirmed durable gap",
+    "migration": "20260929202207_utilts_e72_empty_request_point_identity.sql",
+    "consumer_local": "51/51",
+    "corrected_native": "407/407",
+    "final_gates": "pending new snapshot head",
+    "e73_last_verified_head": "d8fea0975a8e8812c130e765afcc3e5e1086e580",
+    "product_head": "00045ba50715b209df76591c706a73a23420f77e",
+    "corrected_ops_run": 36626528727,
+    "schema_artifact": 11061282485,
+    "schema_fingerprint": "c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924",
+    "artifact_zip_sha256": "c5487784b90b04c4dfcfee11ef149f8a6b73cd57185ba6afcd76a98b731bc738",
+    "local_related": "148/148 five files"
+  },
+  "pr421_e72_final_20260929": {
+    "status": "VERIFIED",
+    "head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
+    "main": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "workflows": {
+      "ediel": 36627945061,
+      "browser_quality": 36627944962,
+      "full_e2e": 36627945097,
+      "tenant": 36627944970,
+      "ops": 36627944994
+    },
+    "ops_jobs": {
+      "verify": 109609634958,
+      "quality_release_gates": 109609634470,
+      "clean_migration_replay": 109609634821
+    },
+    "native": "407/407 SUCCESS; case-native/browser, tenant invariants, parity selftest and types/schema PASS",
+    "generated_types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+    "schema_fingerprint": "c66e9457de217943904622927f60618c5fa0af1546376906df52bf7e360a7924",
+    "artifact": 11061900794,
+    "artifact_zip_sha256": "0f96bb7457ba601861944fd79e8950305a7821f1fa8c500d305f2f326aeeea0e",
+    "stale_pending_sections": "SUPERSEDED"
+  },
+  "pr421_err_gateway_20260929": {
+    "status": "BOUNDED_FINAL_HEAD_VERIFIED",
+    "review_head": "0b6ea32ad7e284fc3eca30e827b16aab64614a31",
+    "requirements": [
+      "ACK-08",
+      "AT-ACK-08",
+      "SC-044",
+      "U-03",
+      "CALL-09",
+      "CALL-11",
+      "CALL-12",
+      "CALL-13"
+    ],
+    "reconciliation": "352 unique IDs; 346 current code/test hashes; 105 rows changed since historical main, 95 since historical audit head; formal statuses inherited unchanged",
+    "ordinary_red": "4/4 expected failures: process mismatch, same-code distinct-IDE duplicate and earlier-than-intended interruption; no product edit",
+    "native": "Final dc1c9bae native411/411 and all five workflows SUCCESS",
+    "independent_refutation": "CONFIRMED both primary process mismatch and distinct-IDE collision; read-only agents",
+    "queued_candidates": [
+      "U-02 S02 own-field borrowing",
+      "U-03 direct consumer UNT syntax gate and header scope",
+      "ACK-03 physical IDE/reference/header scope",
+      "U-14 manual positive-ACK storage authority"
+    ],
+    "traffic": "HELD",
+    "external_issuer_retention_positive175_fullE035": "BLOCKED",
+    "test_only_head": "a671a663aa00a08eaee7c2d52c6c117418c0ad8b",
+    "native_red": {
+      "passed": 407,
+      "failed": 4,
+      "total": 411,
+      "all_previous_407": "PASS",
+      "first_consumer_failure": "CANONICAL_PROCESS_GROUP_MISMATCH",
+      "direct_gateway_failure": "Distinct full IDEs with same E87 return same stored ACK ID",
+      "run_id": 36636440192,
+      "job_id": 109638111444
+    },
+    "correction": "ERR process via resolveCanonicalEdielPolicy and generated ERR DTM137 date; full original IDE scoped lookup/operation/23505 recovery; no schema/grants/types/guard changes",
+    "local": {
+      "focused_tests": "109/109 PASS in7 files, including authority guard and dated Sep30/Oct1 ERR controls",
+      "typescript_tests": "PASS",
+      "typescript_scripts": "PASS",
+      "scoped_lint": "0 errors; 4 inherited ack.ts unused warnings",
+      "canonical_ack_persistence": "PASS",
+      "ack_chain": "PASS",
+      "acknowledgement_engine": "PASS",
+      "frozen_integrity": "33 originals,121 rules,231 contracts PASS",
+      "route_readiness": "PASS"
+    },
+    "independent_review": "APPROVE bounded correction pending exact-head native/delivery; zero Critical/Important introduced findings",
+    "concurrency": "Native same-IDE concurrency deduplication unproved and unchanged; only sequential interruption/retry and simulated23505 identity recovery",
+    "formal_closure": "No whole ACK-08/SC-044/U-03/CALL contract promotion",
+    "audit": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-20260929.md",
+    "review": "quality/audits/ediel-masterplan-v2/utilts-err-gateway-differential-review-20260929.md",
+    "product_head": "d8eccdd6dd2664550c099a9692f6219dd2a43381",
+    "corrected_native": {
+      "head": "d8eccdd6dd2664550c099a9692f6219dd2a43381",
+      "passed": 411,
+      "total": 411,
+      "files": 7,
+      "run_id": 36639375564,
+      "job_id": 109647751095,
+      "conclusion": "SUCCESS",
+      "case_native": "1/1 PASS",
+      "case_browser": "1/1 PASS",
+      "tenant_invariants": "PASS",
+      "parity": "PASS",
+      "types_schema": "PASS unchanged"
+    },
+    "first_delivery_failure": {
+      "run_id": 36639377447,
+      "ops_quality_job_id": 109647751055,
+      "ordinary": "6255/6256 PASS",
+      "cause": "New direct utiltsRulebook import in operational ack.ts violates canonical policy authority guard"
+    },
+    "followup_review": "APPROVE bounded code/tests/evidence; independent8/8 PASS, zero Critical/Important; stale top-level resume pointer corrected; final native/five gates pending",
+    "final_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+    "final_ci": {
+      "Ediel": 36641978972,
+      "browser": 36641978974,
+      "Full_E2E": 36641978957,
+      "tenant": 36641979472,
+      "OPS": 36641978949,
+      "all": "SUCCESS",
+      "verify": 109656114876,
+      "quality": 109656115294,
+      "replay": 109656115263
+    },
+    "final_receipt": "PR421 body updated; zero threads/reviews; actual logs verify case/browser/tenant/parity/types/schema"
+  },
+  "pr421_s02_required_20260930": {
+    "status": "VERIFIED_BOUNDED_D30_FINAL_NATIVE_FIVE_GATES",
+    "baseline_head": "dc1c9baef6b9146a38d3c3aefddb66949fd7ee92",
+    "source_ids": [
+      "UF-planning-209-51",
+      "UF-planning-505-51",
+      "UF-planning-514-52",
+      "UF-planning-515-52"
+    ],
+    "wider_ids": [
+      "U-02",
+      "AT-U-02",
+      "U-03",
+      "AT-U-03",
+      "U-14",
+      "AT-U-14",
+      "ACK-03",
+      "AT-ACK-03",
+      "ACK-08",
+      "AT-ACK-08",
+      "CALL-09",
+      "CALL-11",
+      "CALL-12",
+      "CALL-13"
+    ],
+    "ordinary": "Original2PASS/6FAIL/8; extended3PASS/9FAIL/12 before product; review4FAIL/13PASS/17 and stale-version2FAIL/19PASS/21 before respective corrections; final S0221/21 and affected7files54/54 PASS",
+    "native": "439/439 PASS including all27S02 and exactSC044; case/browser/tenant/parity/types/schema PASS",
+    "product": "Canonical ownLOC172/per-observationQTY13525-A-4 guide, S02 internal point hold, CLI forward20260929234037 prewrite identity/ownSEQ135; signature/grants/tenant/raw locks/175 owner retained",
+    "local": "App/tests/scripts TypeScript, scoped lint, migrations/public contract/hardening/types PASS",
+    "review": "APPROVE final bounded followup; exact d30 five mandatory workflows SUCCESS",
+    "formal_closure": "SC044PASSED only; widerU02/U03/U14/ACK03/08PARTIAL",
+    "traffic": "HELD",
+    "audit": "quality/audits/ediel-masterplan-v2/utilts-s02-required-scope-20260930.md",
+    "test_first_head": "e1b4f897ec7f3d42183f8097fc7bdd34c1b29833",
+    "probe_ops": 36644820963,
+    "probe_replay_job": 109665237704,
+    "probe_workflows": [
+      36644820924,
+      36644820926,
+      36644820952,
+      36644820896
+    ],
+    "migration": "20260929234037_utilts_s02_required_physical_scope.sql",
+    "followup_bd78": {
+      "published_head": "bd78fb3008be56b23dcf3a651d4b278f0418f49c",
+      "native": "437/438: allprevious411+26S02pass; soleagency89technicalCONTRLoraclefailure; laterretryassertionsunreached",
+      "artifact": 11084973813,
+      "zip_sha256": "ed6e65d0a2e9a2c8e1cbc0ebced35c17cc9520cc61cdfcfb0c6f49a52f3c9481",
+      "schema_fingerprint": "8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93",
+      "dependency": "Nodemailer10.0.13 exactpin; unchangedhighauditPASS high0critical0moderate3",
+      "local_verification": "34/34 targeted; app/tests/scripts TypeScript; scopedlint; offlineold/newMIME/rawbytes; APPROVE read-only review",
+      "new_native_expected": 439,
+      "SC_044": "dedicatedfullclause3IDEtestAPPROVED, nativepending; downstreambilling/activationnotcontractgate",
+      "formal_closure": "PENDING executed complete evidence; frozen231originalsimmutable"
+    },
+    "final_receipt": {
+      "head": "d30fa0203f0499a8e15faeddda7676af81296c86",
+      "workflows": [
+        36695341379,
+        36695341358,
+        36695341472,
+        36695341489,
+        36695341457
+      ],
+      "ops_jobs": [
+        109821852569,
+        109821852531,
+        109821852700
+      ],
+      "artifact": 11087503506,
+      "zip_sha256": "4dc9bd72b854a57e2d2c2d80d206a01d0c1184767f4b7bd80fe3fe5bb93a75d6",
+      "types_sha256": "36e989375ef5313e506a04f7d6e79b4058316ed0f39eb7d9530658fa1cbbed6d",
+      "schema_fingerprint": "8f922c97a546bec643e201d4c295705285b10f6d34c89f78e6d08a4cd68d9d93",
+      "SC044": "PASSED independent fullclause review; originalregisterimmutable"
+    }
+  },
+  "pr421_acceptance_reconciliation_20260930": {
+    "review_head": "d30fa0203f0499a8e15faeddda7676af81296c86",
+    "ids": 352,
+    "references": 354,
+    "fresh_priority_rules": 5,
+    "whole_contracts_passed": [
+      "SC-044"
+    ],
+    "rules": {
+      "NOT_VERIFIED": 110,
+      "PARTIAL": 11
+    },
+    "acceptance": {
+      "NOT_EXECUTED": 219,
+      "PARTIAL": 11,
+      "PASSED": 1
+    },
+    "scope": "All IDs literalcriteria/componentowner/gap/gate; others semantic findings remaininherited20260927/notcertifiedcurrent",
+    "report": "quality/audits/ediel-masterplan-v2/masterplan-v2-reconciliation-20260930.json"
+  },
+  "pr421_syntax_header_probe_20260930": {
+    "status": "TEST_ONLY_NATIVE_PENDING",
+    "baseline": "d30fa0203f0499a8e15faeddda7676af81296c86",
+    "new_native_cases": 3,
+    "expected_native_total": 442,
+    "product_changed": false,
+    "refutation": "UNH/UNT-ref currentlyinternal-held byexistingidentityguard; notasecondacceptedstorageclaim",
+    "next": "Actualnativefirstfailure beforeminimalproductfix"
+  },
+  "ediel_full_code_phase_20260930": {
+    "status": "IN_PROGRESS",
+    "baseline_local_and_remote": "885137de838481be6cda58f9af45df6c1655edfe",
+    "current_integrated_local": "bd40962b9201bc4438e1e21362fd704bf8fbb72f",
+    "last_published_remote": "0b8c1c37c0806f99e18c36d8ccd576bbda117442",
+    "last_published_local_equivalent": "0c39065f",
+    "formal_acceptance_statuses": "unchanged",
+    "latest_code_packets": [
+      "protected exact inbound dedupe/current tenant source",
+      "current actual gateway original witnesses and opaque fixture ports",
+      "source-guided APERAK/ERR native consumers and opaque historical versions",
+      "qualified AI prospective original/send journal and environment phases",
+      "P119 ignored fields/P15 dated structure consumers",
+      "normal switch/C withdrawal actual request payload scope"
+    ],
+    "latest_quick_checks": {
+      "inbound_original_scope": "6 PASS; bounded independent review no open Critical/Important",
+      "targeted_policy_sources": "20 PASS across four files; 47 PASS across five files",
+      "full_application_typecheck": "last EXIT2 process facade/payload typing; scoped corrections integrated, rerun pending",
+      "migration_integrity": "743 files/647 groups PASS before newest migrations; exact hash registration pending",
+      "embedded_sql": "explicitly synthetic scoped mechanics only; no native/authentic proof"
+    },
+    "external_state": "draft, no merge or production/counterparty traffic; #418/#422 contracts read only and #310 untouched",
+    "final_test_phase": "NOT_RUN fixed final candidate: full unit/native clean+upgrade replay/type-schema parity/security/browser/manual; mandatory CI preserved",
+    "historic_checkpoint_scope": "all older accepted/native/CI entries retain their original exact SHA and narrower scope; never imply final-candidate verification"
+  },
+  "integration_20261001": {
+    "branch": "codex/ediel-master-v2-integration-20261001",
+    "draft_pr": 424,
+    "public_previous_head": "1e050bebaea0b05302aa8bbc8beefba275a5eddd",
+    "public_previous_tree": "f4ccf1f22e8f62e90110a7f72efb5f3277ccdbd0",
+    "actual_clean_replay": "751 migrations applied; authentic artifact11133162723 retained; generated types comparison failed before native execution",
+    "actual_upgrade_replay": "Genuine d30fa020 ancestor upgraded; third lock regression collided with retained rows; disposable isolated database correction awaiting next actual native CI",
+    "masterplan_status": "NOT_APPROVED; all final same-head receipts and whole literal reviews pending",
+    "protected_refs": "#421/#423/#418/#422/#310/main untouched",
+    "market_traffic": "HELD"
+  },
+  "protected_source_owner_latest": {
+    "public_head": "8052ebff1dd3746d0b4664b5f2533164a3497ae7",
+    "public_tree": "ce0a89e92b355d8ee06ad26779aed67d6fbe47df",
+    "semantic_baseline_public_head": "cb7924a72c282b6d45025844a3f3ed82b4dfb1e1",
+    "semantic_baseline_local_head": "852b03dcb1e4ff384543a0d31aeb18b086745bf7",
+    "baseline_tree_byte_identical": true,
+    "branch_mutated": false,
+    "integration_status": "MERGED_WITH_SOURCE_AWARE_RESOLUTION_FINAL_SCOPE_FORWARD_AND_VERIFICATION_PENDING"
+  },
+  "active_integration_continuation": {
+    "updated_at": "2026-10-01T03:59:04.159965+00:00",
+    "owner": "/root",
+    "draft_pr": 424,
+    "published_head": "35016282e182cc713726702a1970c7f78ff451bb",
+    "published_tree": "eaf4d9ef7ece3f0287f7ff547d059dfb5385e35b",
+    "current_reconciliation_source": "a8e489d17695151f35b70405810211aab7d2269f",
+    "next_clean_owner_source": "7fb2a5f8337e48d1f9b81a4aa30b62be5df25715",
+    "all_ids": 352,
+    "frozen_hashes": 36,
+    "whole_masterplan_accepted": false,
+    "native_and_browser_final_candidate": "NOT_EXECUTED",
+    "generated_artifacts": "AUTHENTIC_350_RECEIPTS_PRESERVED; FINAL_SQL_REGENERATION_PENDING",
+    "prohibited": [
+      "main merge",
+      "force-push",
+      "production migration",
+      "real customer communication",
+      "Ediel/counterparty/TGT/AGT traffic"
+    ]
+  },
+  "current_subtask": "User-requested committed integration and three isolated WIP handoff",
+  "restoration_20261001": {
+    "public_source_head": "0373d6d05dfad1e3eefd5121171dc5a22d58821c",
+    "lost_unpublished_work": true,
+    "new_owner_integrations": [
+      "006938d2",
+      "97ea47d2",
+      "09b5d921"
+    ],
+    "historical_receipts_not_promoted": true,
+    "ed3_import_only_not_reapplied": true,
+    "whole352_final_approved": 0,
+    "next_action": "Publish owned coherent root/runtime corrections and inspect actual clean/upgrade/native/browser results while remaining owner packets complete."
+  },
+  "rule_family_composition": {
+    "source_heads": [
+      "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "536cdc16fcae4b7bb073229540f7e6718ca7e78d",
+      "3c7342c64c83b705e85c18f300705166a1732ad6"
+    ],
+    "prior_prs_preserved": [
+      421,
+      423,
+      424,
+      418,
+      422,
+      310
+    ],
+    "qualification": "IN_PROGRESS, no final same-candidate acceptance"
+  },
+  "ediel_composed_codephase_20261001": {
+    "last_actual_published_head": "49d4b94fe06b55d499527117361b3a10a666d7b1",
+    "last_actual_published_tree": "eee88212010ac89c11c88a1ed08f4221b7f85df1",
+    "publication_run": 36869228775,
+    "qualified_code_sha": null,
+    "frozen": false,
+    "final_qualification": "NOT_RUN",
+    "matrix_code_only": {
+      "CODE_READY_NOT_VERIFIED": 274,
+      "ALREADY_IMPLEMENTED_VERIFICATION_ONLY": 24,
+      "EXTERNAL_EVIDENCE_OR_DECISION_BLOCKED": 52,
+      "REMAINING_CODE_WORK": 2
+    },
+    "current_receipt": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/checkpoint.json",
+    "heavy_checks": "Deferred until composed candidate is frozen; old green results remain bound to original versions.",
+    "runtime_code_sha": "d396c2284f692a84dc961ee04935acb40a69c908",
+    "runtime_code_tree": "f20f8d843042f8b725c417c4e55670bf4d2227ad",
+    "additional_internal_findings": [
+      "Contract/BRP terminal actor guards still unimplemented; five RED test failures saved separately",
+      "ACK134600 WIP all actual actor/phase callers and compatibility fencing not yet qualified",
+      "Native original-intake test WIP needs both above dependency/interface settlement and config registration"
+    ],
+    "wip_branches": [
+      {
+        "source": "6376e27e011d219ab2710f0c6ebccc56c6821176",
+        "tree": "eadbc24214917dd11b0179b065d7921aca8ec7a4",
+        "sourceParents": [
+          "32aae260e12c56044f3b57dc9411ee7b1d4fd6a9"
+        ],
+        "sourceRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+        "targetRef": "refs/heads/wip/ack-private-technical-chain-134600-checkpoint-20261001",
+        "expectedTarget": ""
+      },
+      {
+        "source": "9dca678fe75a6a52128cf5b47cd79e6d8d5d3f14",
+        "tree": "2d86ad93ba387a20b07483e870ec9d3fc0f3244b",
+        "sourceParents": [
+          "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+        ],
+        "sourceRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+        "targetRef": "refs/heads/codex/ediel-intake-terminal-authority-wip-20261001",
+        "expectedTarget": ""
+      },
+      {
+        "source": "7cc1b3438a8382645179c36595596271634b83fe",
+        "tree": "1100cb4d0aed799c3d169621d32a29670aa8b819",
+        "sourceParents": [
+          "a8db3a1178b1cc73013133a751f94a2a57dd8198"
+        ],
+        "sourceRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+        "targetRef": "refs/heads/codex/ediel-original-intake-native-wip-20261001",
+        "expectedTarget": ""
+      }
+    ]
+  },
+  "head_sha": "0f61f08f57aedc6c0cc6a442829e16cc75064e67",
+  "last_commit": "see git log (claude/zealous-rubin-6axb91)",
+  "completed": [
+    "S02 native 26/26 (20261002070000, 20261002080000)",
+    "node-forge time-limited audit exception (owner approved)"
+  ],
+  "native_status": {
+    "last_full_run": "226 failed / 356 passed of 582 (before later fixes)",
+    "source_owner": "47/48 local",
+    "consumption": "103/143 local",
+    "s02": "26/26",
+    "z04_ack": "in progress (CONTRL technical endpoint)",
+    "unit": "9199/9199"
+  },
+  "blocked_on_owner": [
+    "NATIVE-BLOCKED-BILATERAL-H-PROFILES",
+    "NATIVE-OPEN-RECEIVER-208-REPLY",
+    "PREEXISTING-INBOUND-CASES-SCHEMA-DRIFT"
+  ]
 }

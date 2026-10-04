@@ -583,6 +583,7 @@ export type CreateEdielMessageInput = {
   ruleProfileVersion?: string | null;
   rulePackChecksum?: string | null;
   rulePackSnapshot?: Record<string, unknown> | null;
+  executionContextSnapshot?: Record<string, unknown> | null;
   intentId?: string | null;
   partyId?: string | null;
   partyAddressId?: string | null;

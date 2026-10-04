@@ -46,7 +46,8 @@ $$;
 DO $$
 DECLARE c uuid; env text; row_id uuid; saved jsonb; snap jsonb; receipt jsonb; first_assessment jsonb; second_assessment jsonb;
  a constant uuid:='00000000-0000-4000-8000-00000000e001'; b constant uuid:='00000000-0000-4000-8000-00000000e002';
- source_id uuid; source_hash text; inv jsonb; altered jsonb; mode text; blocked boolean; previous uuid;
+ source_id uuid; null_source_id uuid; utilts_source_id uuid; source_hash text; inv jsonb; altered jsonb; mode text; blocked boolean; previous uuid;
+ other_source_id uuid;
 BEGIN
  FOREACH c IN ARRAY ARRAY[a,b] LOOP FOREACH env IN ARRAY ARRAY['test','production'] LOOP
   row_id:=pg_temp.ledger_row(c,env);
@@ -70,10 +71,22 @@ BEGIN
  PERFORM pg_temp.ledger_check('operational-delete-retains-history',(SELECT to_jsonb(s)=saved FROM gridex_received_sources.sources s WHERE source_message_id=source_id));
  blocked:=false; BEGIN PERFORM pg_temp.ledger_row(a,'test','replacement','2026-06-20T10:00:00Z','{}','PRODAT','edifact',source_id); EXCEPTION WHEN unique_violation THEN blocked:=true; END;
  PERFORM pg_temp.ledger_check('deleted-source-uuid-cannot-be-reused',blocked AND NOT EXISTS(SELECT FROM public.ediel_messages WHERE public.ediel_messages.id=source_id));
- row_id:=pg_temp.ledger_row(a,'test',null,null);PERFORM pg_temp.ledger_check('null-source-retained',EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=row_id AND payload_hash IS NULL AND source_received_at IS NULL AND received_context IS NULL));
- row_id:=pg_temp.ledger_row(a,'test','utilts',clock_timestamp(),'{}','UTILTS');PERFORM pg_temp.ledger_check('non-prodat-not-captured',NOT EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=row_id));
+ null_source_id:=pg_temp.ledger_row(a,'test',null,null);PERFORM pg_temp.ledger_check('null-source-retained',EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=null_source_id AND payload_hash IS NULL AND source_received_at IS NULL AND received_context IS NULL));
+ utilts_source_id:=pg_temp.ledger_row(a,'test','utilts',clock_timestamp(),'{}','UTILTS');
+ PERFORM pg_temp.ledger_check('utilts-source-captured-with-own-context',EXISTS(SELECT FROM gridex_received_sources.sources s JOIN public.ediel_messages m ON m.id=s.source_message_id
+   WHERE s.source_message_id=utilts_source_id AND s.company_id=a AND s.environment='test' AND s.raw_payload='utilts'
+   AND s.payload_hash=encode(sha256(convert_to('utilts','UTF8')),'hex') AND s.received_context=m.execution_context_snapshot->'receivedUtiltsContext'));
  EXECUTE 'SET LOCAL ROLE service_role'; snap:=public.gridex_received_source_snapshot_v1(a,'test',clock_timestamp()); EXECUTE 'RESET ROLE';
- PERFORM pg_temp.ledger_check('deleted-and-unknown-receipt-discoverable',snap->>'sourceCount'='2');
+ PERFORM pg_temp.ledger_check('deleted-utilts-and-unknown-receipt-discoverable',snap->>'sourceCount'='3'
+   AND (SELECT count(*) FROM jsonb_array_elements(snap->'sources'))=3
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=source_id::text AND v->>'payloadHash'=source_hash)
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=utilts_source_id::text AND v->>'payloadHash'=encode(sha256(convert_to('utilts','UTF8')),'hex'))
+   AND EXISTS(SELECT FROM jsonb_array_elements(snap->'sources') v WHERE v->>'sourceMessageId'=null_source_id::text AND v->>'payloadHash' IS NULL AND v->>'sourceReceivedAt' IS NULL));
+ other_source_id:=pg_temp.ledger_row(a,'test','other',clock_timestamp(),'{}','OTHER');
+ PERFORM pg_temp.ledger_check('unowned-family-not-captured',NOT EXISTS(SELECT FROM gridex_received_sources.sources WHERE source_message_id=other_source_id));
+ PERFORM pg_temp.ledger_check('snapshot-exact-original-id-set',
+  (SELECT array_agg((v->>'sourceMessageId')::uuid ORDER BY (v->>'sourceMessageId')::uuid) FROM jsonb_array_elements(snap->'sources') v)
+   = (SELECT array_agg(expected ORDER BY expected) FROM unnest(ARRAY[source_id,null_source_id,utilts_source_id]) expected));
  inv:=pg_temp.ledger_inventory(snap);
  EXECUTE 'SET LOCAL ROLE service_role'; receipt:=public.gridex_record_source_discovery_v1(a,'test',(snap->>'snapshotId')::uuid,snap->>'snapshotHash','physical-lin-inventory-v1',inv::text); EXECUTE 'RESET ROLE';
  PERFORM pg_temp.ledger_check('discovery-exact-serialized-evidence',receipt->>'inventoryHash'=encode(sha256(convert_to(inv::text,'UTF8')),'hex')
@@ -121,12 +134,26 @@ END $$;
 -- All evidence kinds are immutable even for the owner; caller roles cannot
 -- bypass this by their service-role RLS exemption or table-level TRUNCATE.
 DO $$ DECLARE tab text; command text; blocked boolean; rol text; signature text; BEGIN
+ PERFORM pg_temp.ledger_check('sources/native-retention-immutable-guard-installed',EXISTS(
+  SELECT FROM pg_trigger WHERE tgrelid='gridex_received_sources.sources'::regclass
+   AND tgname='no_evidence_update_delete' AND NOT tgisinternal AND tgtype=27
+   AND tgenabled IN('O','A') AND tgfoid='gridex_ediel_retention.source_guard_v1()'::regprocedure));
  FOREACH tab IN ARRAY ARRAY['epoch','sources','snapshots','discovery_attempts','validation_assessments'] LOOP
   FOREACH command IN ARRAY ARRAY['UPDATE','DELETE','TRUNCATE'] LOOP
    blocked:=false; BEGIN
     IF command='UPDATE' THEN EXECUTE format('UPDATE gridex_received_sources.%I SET %I=%I',tab,CASE WHEN tab='epoch' THEN 'singleton' WHEN tab='sources' THEN 'source_message_id' ELSE 'id' END,CASE WHEN tab='epoch' THEN 'singleton' WHEN tab='sources' THEN 'source_message_id' ELSE 'id' END);
     ELSE EXECUTE format('%s %s gridex_received_sources.%I%s',command,CASE WHEN command='DELETE' THEN 'FROM' ELSE 'TABLE' END,tab,CASE WHEN command='TRUNCATE' THEN ' CASCADE' ELSE '' END); END IF;
-   EXCEPTION WHEN check_violation THEN blocked:=true; END;
+   EXCEPTION WHEN check_violation THEN blocked:=true;
+    WHEN raise_exception THEN
+     -- The installed qualified-retention guard replaces only the sources row
+     -- immutability trigger. Accept its exact rejection, never another error.
+     IF tab='sources' AND command IN('UPDATE','DELETE')
+       AND SQLERRM='received_original_immutable_without_native_retention'
+       AND EXISTS(SELECT FROM pg_trigger WHERE tgrelid='gridex_received_sources.sources'::regclass
+         AND tgname='no_evidence_update_delete' AND NOT tgisinternal AND tgtype=27
+         AND tgenabled IN('O','A') AND tgfoid='gridex_ediel_retention.source_guard_v1()'::regprocedure)
+     THEN blocked:=true;ELSE RAISE;END IF;
+   END;
    PERFORM pg_temp.ledger_check(tab||'/'||command||'/immutable',blocked);
   END LOOP;
   FOREACH rol IN ARRAY ARRAY['anon','authenticated','service_role'] LOOP
