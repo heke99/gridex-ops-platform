@@ -139,3 +139,9 @@ capture. Integrate already green PRs to main; preserve Claude coverage union.
 
 Next: obtain/import genuine composed-prefix schema capture, verify inputs and
 artifacts, run actual required replay/parity for the resulting head, then merge.
+
+- Genuine combined capture37229361560/artifact11313094885 imported byte for
+  byte from98da39ab; ZIPf5d80f256f4b57e895a9a1be3adf396a8ff29f749695a631fc5c4a1ea49c7600.
+  Exact checkout tree/all8 source input hashes/latest forward hash verified.
+  Includes actual staff499, TEN09 and TR04 prefix. Raw receipt retained;
+  capture-only NOT_RUN flags never changed. Final mandatory gates pending.
