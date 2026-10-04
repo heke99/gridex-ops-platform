@@ -105,8 +105,24 @@
     {
       "id": "TEN-07",
       "acceptance_id": "AT-TEN-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "lib/ediel/services/projectionRequest.ts",
+        "lib/ediel/db.ts",
+        "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+        "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        "__tests__/ediel-ten-07-owner-original.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts"
+      ]
     },
     {
       "id": "TEN-08",
@@ -456,14 +472,26 @@
     {
       "id": "ESCO-10",
       "acceptance_id": "AT-ESCO-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs"
+      ]
     },
     {
       "id": "ESCO-11",
       "acceptance_id": "AT-ESCO-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs"
+      ]
     },
     {
       "id": "ACK-01",
@@ -1443,8 +1471,24 @@
     },
     {
       "id": "AT-TEN-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "lib/ediel/services/projectionRequest.ts",
+        "lib/ediel/db.ts",
+        "app/api/ediel/beneficiary/series/[seriesId]/route.ts",
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+        "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        "__tests__/ediel-ten-07-owner-original.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-08",
@@ -1731,13 +1775,25 @@
     },
     {
       "id": "AT-ESCO-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs"
+      ]
     },
     {
       "id": "AT-ACK-01",
