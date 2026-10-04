@@ -13,6 +13,10 @@ function trimOrNull(value?: string | null): string | null {
 }
 
 export type InboundCanonicalIdentity = {
+  companyId: string | null
+  environment: 'test' | 'production' | null
+  receiverEdielId: string | null
+  applicationReference: string | null
   mailbox: string | null
   mailboxMessageId: string | null
   senderEdielId: string | null
@@ -22,6 +26,10 @@ export type InboundCanonicalIdentity = {
 }
 
 export function buildInboundCanonicalIdentity(params: {
+  companyId?: string | null
+  environment?: string | null
+  receiverEdielId?: string | null
+  applicationReference?: string | null
   mailbox?: string | null
   mailboxMessageId?: string | null
   senderEdielId?: string | null
@@ -37,6 +45,10 @@ export function buildInboundCanonicalIdentity(params: {
   })
 
   return {
+    companyId: trimOrNull(params.companyId),
+    environment:params.environment==='test'||params.environment==='production'?params.environment:null,
+    receiverEdielId:trimOrNull(params.receiverEdielId),
+    applicationReference:trimOrNull(params.applicationReference),
     mailbox: trimOrNull(params.mailbox),
     mailboxMessageId: trimOrNull(params.mailboxMessageId),
     senderEdielId: refs.senderEdielId,
@@ -49,31 +61,43 @@ export function buildInboundCanonicalIdentity(params: {
 export async function findInboundDuplicateByCanonicalIdentity(
   identity: InboundCanonicalIdentity
 ): Promise<EdielMessageRow | null> {
+  if(!identity.environment)throw new Error('ediel_inbound_duplicate_scope_required')
+  const scoped=()=>{
+    let query=supabaseService.from('ediel_messages').select('*').eq('direction','inbound').eq('environment',identity.environment!)
+    query=identity.companyId?query.eq('company_id',identity.companyId):query.is('company_id',null)
+    query=identity.receiverEdielId?query.eq('receiver_ediel_id',identity.receiverEdielId):query.is('receiver_ediel_id',null)
+    return identity.applicationReference?query.eq('application_reference',identity.applicationReference):query.is('application_reference',null)
+  }
+  const unique=(rows:EdielMessageRow[]|null)=>{
+    if((rows??[]).length>1)throw new Error('ediel_inbound_duplicate_identity_ambiguous')
+    return rows?.[0]??null
+  }
   if (identity.mailbox && identity.mailboxMessageId) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('*')
-      .eq('direction', 'inbound')
+    const { data, error } = await scoped()
       .eq('mailbox', identity.mailbox)
       .eq('mailbox_message_id', identity.mailboxMessageId)
-      .maybeSingle()
+      .limit(2)
 
     if (error) throw error
-    if (data) return data as EdielMessageRow
+    const existing=unique(data as EdielMessageRow[]|null)
+    if(existing)return existing
   }
 
+  // An unattributed wire has only its real transport receipt as a stable
+  // duplicate key. Sender/UNB numbers cannot choose a global legal tenant.
+  if(!identity.companyId)return null
+
   if (identity.senderEdielId && identity.interchangeReference) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('*')
-      .eq('direction', 'inbound')
+    const { data, error } = await scoped()
       .eq('sender_ediel_id', identity.senderEdielId)
       .eq('interchange_reference', identity.interchangeReference)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .limit(2)
 
     if (error) throw error
-    if ((data ?? []).length > 0) return data![0] as EdielMessageRow
+    // An explicit new interchange is a new original even when its BGM/IDE
+    // references repeat an earlier business transaction. Functional duplicate
+    // assessment belongs to the source owner, not canonical original reuse.
+    return unique(data as EdielMessageRow[]|null)
   }
 
   if (
@@ -81,24 +105,22 @@ export async function findInboundDuplicateByCanonicalIdentity(
     identity.transactionReference &&
     identity.externalReference
   ) {
-    const { data, error } = await supabaseService
-      .from('ediel_messages')
-      .select('*')
-      .eq('direction', 'inbound')
+    const { data, error } = await scoped()
       .eq('sender_ediel_id', identity.senderEdielId)
       .eq('transaction_reference', identity.transactionReference)
       .eq('external_reference', identity.externalReference)
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .limit(2)
 
     if (error) throw error
-    if ((data ?? []).length > 0) return data![0] as EdielMessageRow
+    const existing=unique(data as EdielMessageRow[]|null)
+    if(existing)return existing
   }
 
   return null
 }
 
 async function listMatchingOutboundRequests(params: {
+  companyId: string
   outboundRequestId?: string | null
   sourceType?: string | null
   sourceId?: string | null
@@ -110,6 +132,7 @@ async function listMatchingOutboundRequests(params: {
     const { data, error } = await supabaseService
       .from('outbound_requests')
       .select('*')
+      .eq('company_id', params.companyId)
       .eq('id', params.outboundRequestId)
       .limit(1)
 
@@ -124,6 +147,7 @@ async function listMatchingOutboundRequests(params: {
   let query = supabaseService
     .from('outbound_requests')
     .select('*')
+    .eq('company_id', params.companyId)
     .eq('source_type', params.sourceType)
     .eq('source_id', params.sourceId)
     .eq('request_type', params.requestType)
@@ -144,6 +168,9 @@ async function listMatchingOutboundRequests(params: {
 }
 
 export async function findOutboundEdielMessageDuplicate(params: {
+  companyId?: string | null
+  environment?: string | null
+  sourceOperationId?: string | null
   outboundRequestId?: string | null
   sourceType?: string | null
   sourceId?: string | null
@@ -155,7 +182,10 @@ export async function findOutboundEdielMessageDuplicate(params: {
   periodStart?: string | null
   periodEnd?: string | null
 }): Promise<EdielMessageRow | null> {
+  if (!params.companyId || !['test', 'production'].includes(params.environment ?? '')
+      || !(params.outboundRequestId || params.sourceOperationId || params.sourceType && params.sourceId && params.requestType)) return null
   const matchingOutboundRequests = await listMatchingOutboundRequests({
+    companyId: params.companyId,
     outboundRequestId: params.outboundRequestId ?? null,
     sourceType: params.sourceType ?? null,
     sourceId: params.sourceId ?? null,
@@ -163,16 +193,22 @@ export async function findOutboundEdielMessageDuplicate(params: {
     periodStart: params.periodStart ?? null,
     periodEnd: params.periodEnd ?? null,
   })
+  // A source index that has no own request is not a license to search every
+  // message of this family. Only a concrete operation/request anchors replay.
+  if (!params.sourceOperationId && !params.outboundRequestId && !matchingOutboundRequests.length) return null
 
   let query = supabaseService
     .from('ediel_messages')
     .select('*')
+    .eq('company_id', params.companyId)
+    .eq('environment', params.environment)
     .eq('direction', 'outbound')
     .eq('message_family', params.messageFamily)
     .eq('message_code', params.messageCode)
     .order('created_at', { ascending: false })
     .limit(20)
 
+  if (params.sourceOperationId) query = query.eq('source_operation_id', params.sourceOperationId)
   if (params.receiverEdielId) {
     query = query.eq('receiver_ediel_id', params.receiverEdielId)
   }
@@ -196,43 +232,32 @@ export async function findOutboundEdielMessageDuplicate(params: {
   const rows = (data ?? []) as EdielMessageRow[]
   if (rows.length === 0) return null
 
-  const receiverEdielId = trimOrNull(params.receiverEdielId)
-
-  const blockingDuplicate = rows.find((row) => {
-    const status = String(row.status ?? '').trim().toLowerCase()
-
-    // Cancelled and failed drafts/attempts must never block a new outbound message.
-    // They are kept for audit, but they are not active business duplicates.
-    if (status === 'cancelled' || status === 'failed') return false
-
-    // Edielportalen TGT is a special test receiver. During portal testing we often need
-    // to regenerate and resend the same Z03/Z04 after MIME/transport fixes while the
-    // old attempt remains stored as sent/prepared. Only a fully acknowledged TGT
-    // message should block a new test attempt. Production receivers still use the
-    // stricter branch below.
-    const rowReceiverEdielId = trimOrNull(row.receiver_ediel_id)
-    const isEdielPortalTgtReceiver = receiverEdielId === '91100' || rowReceiverEdielId === '91100'
-    if (isEdielPortalTgtReceiver) {
-      return status === 'acknowledged'
-    }
-
-    // Production/default safety: an existing active outbound message for the same
-    // canonical business key should block duplicates.
-    return ['draft', 'queued', 'prepared', 'sent', 'acknowledged'].includes(status)
+  const blockingDuplicate = rows.find(row => {
+    if (row.company_id !== params.companyId || row.environment !== params.environment) return false
+    // An immutable attempted source belongs to its own operation even when a
+    // mutable projection says failed. TR05 retries use the same original and a
+    // separate protected recovery operation; receiver 91100 is no exception.
+    if ((row as EdielMessageRow & {immutable_rendered_at?:string|null}).immutable_rendered_at || row.message_sent_at) return true
+    return ['draft', 'queued', 'prepared', 'dispatching', 'provider_accepted', 'sent', 'delivered', 'acknowledged', 'delivery_uncertain'].includes(String(row.status ?? '').toLowerCase())
   })
 
   return blockingDuplicate ?? null
 }
 
 export async function hasCanonicalAckDuplicate(params: {
+  actorUserId: string
+  phase: 'prepare'|'read'|'send'
   sourceMessageId: string
   ackFamily: 'CONTRL' | 'APERAK' | 'UTILTS_ERR'
   outcome?: 'positive' | 'negative'
+  ackScope?: 'interchange'|'message'|'transaction'|'object'
+  acknowledgedReferences?: readonly string[]
+  acknowledgedProdatObjects?: Parameters<typeof findExistingAckForSource>[0]['acknowledgedProdatObjects']
+  expectedSource?: EdielMessageRow
+  expectedTechnicalCompanyId?: string
 }): Promise<EdielMessageRow | null> {
   const exact = await findExistingAckForSource({
-    sourceMessageId: params.sourceMessageId,
-    ackFamily: params.ackFamily,
-    outcome: params.outcome,
+    ...params,
   })
 
   if (exact) return exact
@@ -240,8 +265,7 @@ export async function hasCanonicalAckDuplicate(params: {
   if (params.outcome) {
     const conflictingOutcome = params.outcome === 'positive' ? 'negative' : 'positive'
     const conflict = await findExistingAckForSource({
-      sourceMessageId: params.sourceMessageId,
-      ackFamily: params.ackFamily,
+      ...params,
       outcome: conflictingOutcome,
     })
 

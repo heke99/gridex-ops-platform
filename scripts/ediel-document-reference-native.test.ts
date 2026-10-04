@@ -1,8 +1,7 @@
 import {createServer} from 'node:http'
 import {createClient} from '@supabase/supabase-js'
-import {execFile,execFileSync} from 'node:child_process'
+import {execFileSync} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
-import {promisify} from 'node:util'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
 import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
@@ -32,7 +31,7 @@ async function sourceSeed(wire=raw()){
  INSERT INTO public.user_roles(user_id,role_id,role,company_id,status,is_active)
  SELECT ${literal(actorUserId)},id,'company_admin',${literal(companyId)},'active',true FROM public.roles WHERE key='company_admin' ON CONFLICT DO NOTHING;
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
- SELECT ${literal(actorUserId)},${literal(companyId)},id,'communication.send' FROM public.permissions WHERE key='communication.send';
+ SELECT ${literal(actorUserId)},${literal(companyId)},id,key FROM public.permissions WHERE key IN('communication.send','communication.write','communication.read');
  -- Pin the actual enabled C registry profile like the retained closure fixture.
  -- Code/date-only inference sees L, LK and C as three Z05 candidates; it cannot
  -- use parsed subtype to choose one. Preserve the real receive/commit clock.
@@ -60,9 +59,25 @@ const ownedObjects:string[]=[]
 afterEach(async()=>{
  // Only owned synthetic direct grants; never disable a shared or last admin.
  if(ownedActors.length)sql(`DELETE FROM public.user_permissions WHERE user_id IN (${ownedActors.splice(0).map(literal).join(',')})`)
- if(ownedObjects.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(ownedObjects.splice(0));expect(result.error).toBeNull()}
+ // Contract originals are retention-protected (20261001083000 storage guard):
+ // a disposable stack keeps them; deleting them must be refused, not bypassed.
+ // Objects removed by an emulated external loss are gone; every remaining
+ // signed contract must still be protected from application deletion.
+ const remaining=ownedObjects.splice(0).filter(path=>sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM storage.objects WHERE bucket_id='customer-contract-documents' AND name=${literal(path)}))`))
+ if(remaining.length){const result=await supabaseService.storage.from('customer-contract-documents').remove(remaining);expect(result.error?.message??'').toMatch(/database error|P0001/)}
  vi.restoreAllMocks()
 })
+/** External object-store loss outside the application. Application deletes and
+ * overwrites of a stored signed contract are refused by the retention guard
+ * (contract_pdf_native_class_purge_required), so the object row is removed in
+ * an isolated replica transaction; 'replace' then stores other bytes under the
+ * same path (a new object insert is allowed). */
+async function emulateExternalStorageLoss(path:string,loss:'delete'|'replace',bytes=Buffer.from('%PDF-replaced')){
+ sql(`BEGIN; SET LOCAL session_replication_role=replica;
+  DELETE FROM storage.objects WHERE bucket_id='customer-contract-documents' AND name=${literal(path)}; COMMIT;`)
+ if(loss==='delete')return {error:null}
+ return supabaseService.storage.from('customer-contract-documents').upload(path,bytes,{upsert:false,contentType:'application/pdf'})
+}
 async function seed(bytes=Buffer.from('%PDF-1.4\nsynthetic signed context\n%%EOF'),origin='gridex_signed_contract_document_v1'){
  const f=await sourceSeed();ownedActors.push(f.actorUserId)
  const customer=randomUUID(),site=randomUUID(),point=randomUUID(),grid=randomUUID(),contract=randomUUID(),supply=randomUUID()
@@ -88,11 +103,13 @@ const args=(f:Awaited<ReturnType<typeof seed>>)=>({companyId:f.companyId,sourceM
 const begin=(f:Awaited<ReturnType<typeof seed>>)=>supabaseService.rpc('gridex_begin_document_reference_v1',{p_company_id:f.companyId,p_environment:f.environment,p_source_message_id:f.sourceMessageId,p_document_id:f.documentId,p_actor_user_id:f.actorUserId})
 const saved=(f:Awaited<ReturnType<typeof seed>>,cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'))=>sql<Record<string,unknown>>(`SET ROLE service_role; SELECT public.gridex_read_document_reference_context_v1(${literal(f.companyId)},'test',${literal(f.sourceMessageId)},${literal(f.actorUserId)},${literal(cutoff)});`)
 
+// Other native files create synthetic per-test roles (keys carry a UUID);
+// no migration may grant these permissions to any named role.
 it('clean replay materializes document permission with no implicit role grants',()=>{
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='documents.read' AND is_active`)).toBe(1)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='documents.read')`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions rp LEFT JOIN public.roles r ON r.id=rp.role_id WHERE rp.permission_id IN (SELECT id FROM public.permissions WHERE key='documents.read') AND coalesce(rp.role_key,r.key,'') !~ '[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}'`)).toBe(0)
  expect(sql(`SELECT to_jsonb(count(*)) FROM public.permissions WHERE key='customers.read' AND is_active`)).toBe(1)
- expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions WHERE permission_id IN (SELECT id FROM public.permissions WHERE key='customers.read')`)).toBe(0)
+ expect(sql(`SELECT to_jsonb(count(*)) FROM public.role_permissions rp LEFT JOIN public.roles r ON r.id=rp.role_id WHERE rp.permission_id IN (SELECT id FROM public.permissions WHERE key='customers.read') AND coalesce(rp.role_key,r.key,'') !~ '[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}'`)).toBe(0)
 })
 it('customer registry forward repeats without rewriting metadata or assignments',async()=>{
  const f=await seed()
@@ -132,76 +149,8 @@ it('the combined receipt includes a real document reference attempt, outcome and
  expect(sql(`SELECT to_jsonb(readset_text=${literal(receipt.readsetText)} AND readset_hash=${literal(receipt.readsetHash)})
   FROM gridex_correction_process.combined_snapshots WHERE id=${literal(receipt.snapshotId)}`)).toBe(true)
 })
-it('one cutoff observes outbound entry and document attempt after a concurrent owner commit',async()=>{
- const f=await seed(),messageId=randomUUID(),routeId=randomUUID(),profileId=randomUUID()
- const wire=closureFixture({reason:'Z25'}).wire.replace('BGM+Z05','BGM+Z08')
-  .replace('12345:14+54321:14','54321:14+12345:14')
-  .replace('NAD+FR+12345','NAD+FR+54321')
-  .replace('NAD+DO+54321','NAD+DO+12345')
- sql(`UPDATE public.company_capabilities SET enabled=true,readiness_status='ready'
-  WHERE company_id=${literal(f.companyId)} AND capability_code='ediel_test';
-  INSERT INTO public.communication_routes(id,company_id,route_name,environment_type,is_active,target_email)
-  VALUES(${literal(routeId)},${literal(f.companyId)},'Synthetic concurrent route','bilateral_test',true,'recipient@example.invalid');
-  INSERT INTO public.ediel_route_profiles(id,company_id,communication_route_id,route_name,environment,
-   message_standard,sender_ediel_id,receiver_ediel_id,application_reference,is_enabled)
-  VALUES(${literal(profileId)},${literal(f.companyId)},${literal(routeId)},'Synthetic concurrent profile',
-   'test','edifact','54321','12345','23-DDQ-PRODAT',true);
-  INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_standard,message_family,
-   message_code,status,raw_payload,parsed_payload,application_reference,sender_ediel_id,receiver_ediel_id,
-   receiver_email,communication_route_id,route_profile_id,source_operation_id,canonical_rule_pack_id,rule_profile_key,
-   rule_profile_version_id,rule_profile_version,rule_pack_checksum,rule_pack_snapshot)
-  SELECT ${literal(messageId)},${literal(f.companyId)},'test','outbound','edifact','PRODAT',
-   'Z08','queued',${literal(wire)},'{}','23-DDQ-PRODAT','54321','12345',
-   'recipient@example.invalid',${literal(routeId)},${literal(profileId)},${literal(randomUUID())},pack.id,profile.profile_key,
-   profile.id,pack.guide_version||':r'||pack.guide_revision,pack.source_hash,profile.profile
-  FROM public.ediel_message_profiles profile JOIN public.ediel_rule_packs pack ON pack.id=profile.rule_pack_id
-  WHERE profile.profile_key='PRODAT:Z08:H:26.A:r3' AND profile.is_enabled;`)
- const attemptId=randomUUID(),bytes=Buffer.from(wire,'latin1')
- const identity={companyId:f.companyId,environment:'test',messageId,actorUserId:f.actorUserId,attemptId}
- const binding={originalHash:createHash('sha256').update(wire).digest('hex'),routeId,
-  to:'recipient@example.invalid',from:'synthetic@example.invalid',encoding:'latin1',
-  mimeMode:'ediel-singlepart-compact',payloadBase64:bytes.toString('base64'),
-  payloadHash:createHash('sha256').update(bytes).digest('hex'),payloadLength:bytes.length}
- const prepared=await supabaseService.rpc('gridex_outbound_dispatch_v1',{
-  p_input:{...identity,action:'prepare',owner:{kind:'direct'},binding}})
- expect(prepared.error).toBeNull();expect(prepared.data).toMatchObject({scoped:true,proceed:true})
- const lock=1_000_000+Math.floor(Math.random()*1_000_000)
- const writer=promisify(execFile)('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1','-c',`BEGIN;
-  SET LOCAL ROLE service_role;
-  SELECT public.gridex_outbound_dispatch_v1(${literal({...identity,action:'enter'})}::jsonb);
-  SELECT public.gridex_begin_document_reference_v1(${literal(f.companyId)},'test',
-   ${literal(f.sourceMessageId)},${literal(f.documentId)},${literal(f.actorUserId)});
-  SELECT pg_advisory_xact_lock(${lock}); SELECT pg_sleep(5); COMMIT;`],{timeout:12000})
- let acquired=false
- for(let i=0;i<40;i++){
-  if(sql(`SELECT to_jsonb(EXISTS(SELECT FROM pg_locks WHERE locktype='advisory'
-   AND objid=${lock} AND granted))`)){acquired=true;break}
-  await new Promise(resolve=>setTimeout(resolve,50))
- }
- expect(acquired).toBe(true)
- const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())')
- const open=()=>sql<{snapshotId:string;readsetText:string;readsetHash:string}>(`SET ROLE service_role;
-  SELECT public.gridex_correction_combined_snapshot_v1(${literal(f.companyId)},'test',
-   ${literal(f.sourceMessageId)},${literal(cutoff)})`)
- type Body={visibilitySnapshot:string;outbound:{visibilitySnapshot:string;originals:{messageId:string;
-  events:{kind:string}[]}[]};document:{visibilitySnapshot:string;attempts:{documentId:string}[]}}
- const before=open(),prior=JSON.parse(before.readsetText) as Body
- expect(prior.outbound.originals.map(o=>o.messageId)).toContain(messageId)
- expect(prior.outbound.originals.find(o=>o.messageId===messageId)?.events
-  .some(e=>e.kind==='provider_call_entered')).toBe(false)
- expect(prior.document.attempts).toEqual([])
- await writer
- const after=open(),later=JSON.parse(after.readsetText) as Body
- expect(later.outbound.originals.find(o=>o.messageId===messageId)?.events)
-  .toContainEqual(expect.objectContaining({kind:'provider_call_entered'}))
- expect(later.document.attempts).toContainEqual(expect.objectContaining({documentId:f.documentId}))
- expect(later.outbound.visibilitySnapshot).toBe(later.visibilitySnapshot)
- expect(later.document.visibilitySnapshot).toBe(later.visibilitySnapshot)
- expect(JSON.parse(before.readsetText)).toEqual(prior)
- expect(sql(`SELECT to_jsonb(readset_text=${literal(before.readsetText)}
-  AND readset_hash=${literal(before.readsetHash)})
-  FROM gridex_correction_process.combined_snapshots WHERE id=${literal(before.snapshotId)}`)).toBe(true)
-})
+// The concurrent outbound/document cutoff case needs a genuine national
+// rescission original: scripts/ediel-document-reference-dispatch-native.test.ts.
 it.each([2097152,2097153,10485760])('actual Storage enforces capture byte boundary %i',async size=>{
  const bytes=Buffer.alloc(size,32);bytes.write('%PDF-1.4\n');const f=await seed(bytes)
  expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:size===2097152?'verified_at_observation':'unavailable'})
@@ -216,9 +165,40 @@ it('raw sealed candidate and durable incomplete epoch survive failure before ini
  expect(saved(f)).toMatchObject({sourceMessageId:f.sourceMessageId,sourceScope:{objectId:'735123456789012345'},coverage:'incomplete',attempts:[]})
 })
 it('missing bytes leave durable attempted/unavailable context',async()=>{
- const f=await seed();await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!])
+ const f=await seed();await emulateExternalStorageLoss(f.document.storage_path!,'delete')
  expect(await captureDocumentReference(args(f))).toMatchObject({status:'recorded',observation:'unavailable'})
  expect(saved(f)).toMatchObject({attempts:[{documentId:f.documentId,outcome:{observation:{status:'unavailable'}}}]})
+})
+it('accepts a millisecond-resolution observation started after a committed attempt',async()=>{
+ const f=await seed()
+ let attempt:Record<string,unknown>|null=null
+ let startedAt=''
+ // PostgreSQL keeps microseconds while the bounded Storage readback reports
+ // JavaScript milliseconds. Its start can be in the attempt's rounded millisecond.
+ for(let i=0;i<5;i++){
+  const opened=await begin(f);expect(opened.error).toBeNull()
+  attempt=opened.data as Record<string,unknown>
+  startedAt=new Date(attempt.recordedAt as string).toISOString()
+  if(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt.recordedAt)}::timestamptz)`))break
+ }
+ expect(attempt).not.toBeNull()
+ expect(sql<boolean>(`SELECT to_jsonb(${literal(startedAt)}::timestamptz<${literal(attempt!.recordedAt)}::timestamptz)`)).toBe(true)
+ const observation={status:'unavailable',reason:'hash_mismatch',startedAt,
+  completedAt:new Date(Date.parse(startedAt)+10).toISOString(),byteCount:13}
+ const outcome=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:attempt!.attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:observation})
+ expect(outcome.error).toBeNull()
+ expect(outcome.data).toMatchObject({attemptId:attempt!.attemptId,status:'unavailable'})
+ const earlier=await begin(f);expect(earlier.error).toBeNull()
+ const beforeMillisecond=new Date(Date.parse((earlier.data as {recordedAt:string}).recordedAt)-1).toISOString()
+ const rejected=await supabaseService.rpc('gridex_observe_document_reference_v1',{
+  p_company_id:f.companyId,p_environment:f.environment,p_attempt_id:(earlier.data as {attemptId:string}).attemptId,
+  p_actor_user_id:f.actorUserId,p_observation:{...observation,startedAt:beforeMillisecond,
+   completedAt:new Date().toISOString()}})
+ expect(rejected.error?.message).toBe('invalid_document_observation_time')
+ expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.document_reference_outcomes
+  WHERE attempt_id=${literal((earlier.data as {attemptId:string}).attemptId)}`)).toBe(0)
 })
 it('null storage path remains unresolved with no verified observation',async()=>{
  const f=await seed(),id=randomUUID()
@@ -266,23 +246,41 @@ it('interruption before witness leaves committed unwitnessed outcome',async()=>{
 })
 it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['delete','replace'].map(loss=>({boundary,loss}))))('storage $loss at $boundary preserves old receipt and new reads hold',async({boundary,loss})=>{
  const f=await seed();const original=supabaseService.rpc.bind(supabaseService)
- const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown}={}
+ // The previous delete/before_witness failure returned before the witness
+ // hook (trace was empty). Record each RPC boundary without changing the
+ // fail-closed capture result or logging a document body or credentials.
+ const trace:{hook?:string;storage?:string;storageError?:string;rpcError?:string;observation?:unknown;
+  rpcStages:{name:string;phase:'start'|'returned'|'threw';error?:string;keys?:string[];eligible?:boolean}[]}={rpcStages:[]}
  const lose=async()=>{
   trace.storage='started'
   try{
-   const result=loss==='delete'?await supabaseService.storage.from('customer-contract-documents').remove([f.document.storage_path!]):await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-replaced'),{upsert:true,contentType:'application/pdf'})
+   const result=await emulateExternalStorageLoss(f.document.storage_path!,loss as "delete"|"replace")
    trace.storage='completed';trace.storageError=result.error?.message
    expect(result.error).toBeNull()
   }catch(error){trace.storageError=error instanceof Error?error.message:String(error);throw error}
  }
- if(boundary!=='after_witness')vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
-  if(name===(boundary==='before_append'?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1'))return {abortSignal:async()=>{
-   trace.hook=name
-   if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
-   await lose();const response=await original(name,params,options)
-   trace.rpcError=response.error?.message;return response
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  const hooked=boundary!=='after_witness'&&name===(boundary==='before_append'
+   ?'gridex_observe_document_reference_v1':'gridex_witness_document_reference_v1')
+  if(!hooked&&!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   trace.rpcStages.push({name,phase:'start'})
+   if(hooked){
+    trace.hook=name
+    if(name==='gridex_observe_document_reference_v1')trace.observation=(params as {p_observation?:unknown})?.p_observation
+    await lose()
+   }
+   try{
+    const response=await request.abortSignal(signal)
+    const data=response.data
+    trace.rpcStages.push({name,phase:'returned',...(response.error?{error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{keys:Object.keys(data).sort(),
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    if(hooked)trace.rpcError=response.error?.message
+    return response
+   }catch(error){trace.rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
   }} as unknown as ReturnType<typeof supabaseService.rpc>
-  return original(name,params,options)
  })
  const capture=await captureDocumentReference(args(f))
  if(capture.status==='unconfirmed'){
@@ -296,12 +294,28 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const clock=sql<{recordedAt:string;dbNow:string}>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp()) FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(capture.attemptId)}`)
-  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable})}`)
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_capture_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,object,capture,trace,clock,durable,readback})}`)
  }
  expect(capture).toMatchObject({status:'recorded',observation:'verified_at_observation'})
  vi.restoreAllMocks();const cutoff=sql<string>('SELECT to_jsonb(clock_timestamp())'),old=saved(f,cutoff)
  await lose()
+ const revalidationTrace:{name:string;error?:string;recordedAt?:unknown;status?:unknown;
+  observation?:unknown;availableAt?:unknown;returnedAt:string}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const response=await request.abortSignal(signal),data=response.data as Record<string,unknown>|null
+   revalidationTrace.push({name,...(response.error?{error:response.error.message}:{}),
+    ...(name==='gridex_observe_document_reference_v1'?{observation:(params as {p_observation?:unknown}).p_observation}:{}),
+    ...(data?.recordedAt?{recordedAt:data.recordedAt}:{}),...(data?.status?{status:data.status}:{}),
+    ...(data?.availableAt?{availableAt:data.availableAt}:{}),returnedAt:new Date().toISOString()})
+   return response
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
  const fresh=await readDocumentReferenceContext({...args(f),cutoff})
+ vi.restoreAllMocks()
  if(fresh.revalidation.some(result=>result.status==='unconfirmed')){
   const durable=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
    'attempts',count(DISTINCT a.id),'outcomes',count(DISTINCT o.id),'witnesses',count(DISTINCT w.id))
@@ -313,13 +327,13 @@ it.each(['before_append','before_witness','after_witness'].flatMap(boundary=>['d
    'ids',coalesce(jsonb_agg(id::text ORDER BY id),'[]'::jsonb)) FROM storage.objects
    WHERE bucket_id='customer-contract-documents' AND name=${literal(f.document.storage_path)}`)
   const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
-  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,objectPath:f.document.storage_path,
-   object,readback,fresh,trace,durable})}`)
+  throw Error(`document_reference_revalidation_stage ${JSON.stringify({boundary,loss,revalidationTrace,durable,
+   object,readback,revalidation:fresh.revalidation,trace,fresh})}`)
  }
  expect(fresh.revalidation).toMatchObject([{status:'recorded',observation:'unavailable'}]);expect(fresh.contentStatus).toBe('document_reference_unavailable');expect(saved(f,cutoff)).toEqual({...old,visibilitySnapshot:expect.any(String)})
 })
 it('byte replacement is unavailable despite immutable metadata',async()=>{
- const f=await seed();expect((await supabaseService.storage.from('customer-contract-documents').upload(f.document.storage_path!,Buffer.from('%PDF-wrong'),{upsert:true,contentType:'application/pdf'})).error).toBeNull()
+ const f=await seed();expect((await emulateExternalStorageLoss(f.document.storage_path!,'replace',Buffer.from('%PDF-wrong'))).error).toBeNull()
  expect(await downloadAndVerifyCustomerContractDocumentBounded(f.document)).toMatchObject({status:'unavailable',reason:'hash_mismatch'})
 })
 it('direct table access and authenticated RPC are denied; witness requires another transaction',async()=>{
@@ -363,7 +377,29 @@ it('wrong-company actor has no document capture authority',async()=>{
  expect(saved(f)).toMatchObject({attempts:[]})
 })
 it('append-only outcome and witness reject service DML and privileged mutation',async()=>{
- const f=await seed(),capture=await captureDocumentReference(args(f))
+ const f=await seed(),original=supabaseService.rpc.bind(supabaseService)
+ // Capture can deliberately return unconfirmed after a committed attempt. Retain
+ // only synthetic RPC boundaries and clocks on failure so an absent outcome is
+ // attributable to begin validation, the byte observation, or the observe RPC.
+ const rpcStages:{name:string;phase:'start'|'returned'|'threw';code?:string;error?:string;
+  recordedAt?:string;eligible?:boolean;observation?:unknown;dataKeys?:string[]}[]=[]
+ vi.spyOn(supabaseService,'rpc').mockImplementation((name,params,options)=>{
+  const request=original(name,params,options)
+  if(!['gridex_begin_document_reference_v1','gridex_observe_document_reference_v1','gridex_witness_document_reference_v1'].includes(name))return request
+  return {abortSignal:async(signal:AbortSignal)=>{
+   const observation=name==='gridex_observe_document_reference_v1'?(params as {p_observation?:unknown})?.p_observation:undefined
+   rpcStages.push({name,phase:'start',...(observation?{observation}:{})})
+   try{
+    const response=await request.abortSignal(signal),data=response.data
+    rpcStages.push({name,phase:'returned',...(response.error?{code:response.error.code,error:response.error.message}:{}),
+     ...(data&&typeof data==='object'&&!Array.isArray(data)?{
+      dataKeys:Object.keys(data).sort(),recordedAt:(data as {recordedAt?:string}).recordedAt,
+      eligible:(data as {eligible?:boolean}).eligible===true}: {})})
+    return response
+   }catch(error){rpcStages.push({name,phase:'threw',error:error instanceof Error?error.message:String(error)});throw error}
+  }} as unknown as ReturnType<typeof supabaseService.rpc>
+ })
+ const capture=await captureDocumentReference(args(f))
  const stage=sql<{attempts:number;outcomes:number;witnesses:number}>(`SELECT jsonb_build_object(
   'attempts',(SELECT count(*) FROM gridex_received_sources.document_reference_attempts
    WHERE source_message_id=${literal(f.sourceMessageId)}),
@@ -374,7 +410,14 @@ it('append-only outcome and witness reject service DML and privileged mutation',
    JOIN gridex_received_sources.document_reference_outcomes o ON o.id=w.outcome_id
    JOIN gridex_received_sources.document_reference_attempts a ON a.id=o.attempt_id
    WHERE a.source_message_id=${literal(f.sourceMessageId)}))`)
- expect(capture,JSON.stringify({capture,stage})).toMatchObject({status:'recorded'})
+ if(capture.status!=='recorded'){
+  const attemptId='attemptId' in capture?capture.attemptId:undefined
+  const clock=attemptId?sql<{recordedAt:string;dbNow:string}|null>(`SELECT jsonb_build_object('recordedAt',recorded_at,'dbNow',clock_timestamp())
+   FROM gridex_received_sources.document_reference_attempts WHERE id=${literal(attemptId)}`):null
+  const readback=await downloadAndVerifyCustomerContractDocumentBounded(f.document)
+  throw Error(`document_reference_baseline_capture_stage ${JSON.stringify({capture,stage,rpcStages,clock,readback})}`)
+ }
+ vi.restoreAllMocks()
  for(const table of ['document_reference_outcomes','document_reference_witnesses']){
   expect(()=>sql(`SET ROLE service_role; DELETE FROM gridex_received_sources.${table};`)).toThrow()
   expect(()=>sql(`DELETE FROM gridex_received_sources.${table};`)).toThrow()
@@ -416,6 +459,9 @@ it('saved null-path identity and append visibility survive later row completion 
 // Actual installed SDK + Node fetch + loopback TCP. Only client selection is
 // redirected; no mock Response, stream, clock or network operation is used.
 it.each(['headers','body'])('native SDK aborts a %s stall and rejects a late local response',async phase=>{
+ // An actual available signed-contract identity passes the retention owner
+ // (requireCustomerRecordAvailable) before the transport; only bytes stall.
+ const f=await seed()
  const bytes=Buffer.from('%PDF-local-transport'),hash=createHash('sha256').update(bytes).digest('hex')
  let transportSignal:AbortSignal|undefined,requestCount=0,closedResolve!:()=>void
  const closed=new Promise<void>(resolve=>{closedResolve=resolve})
@@ -437,7 +483,7 @@ it.each(['headers','body'])('native SDK aborts a %s stall and rejects a late loc
  const storage=vi.spyOn(supabaseService.storage,'from').mockImplementation(bucket=>client.storage.from(bucket))
  try{
   const start=performance.now()
-  const result=await downloadAndVerifyCustomerContractDocumentBounded({id:randomUUID(),company_id:randomUUID(),customer_contract_id:randomUUID(),document_type:'signed_contract_pdf',storage_bucket:'customer-contract-documents',storage_path:'synthetic-stall.pdf',mime_type:'application/pdf',document_sha256:hash,generation_snapshot:{schema:'synthetic_transport'},generated_at:new Date().toISOString(),created_at:new Date().toISOString(),archived_at:null,verified_at:null})
+  const result=await downloadAndVerifyCustomerContractDocumentBounded({id:f.documentId,company_id:f.companyId,customer_contract_id:f.contract,document_type:'signed_contract_pdf',storage_bucket:'customer-contract-documents',storage_path:'synthetic-stall.pdf',mime_type:'application/pdf',document_sha256:hash,generation_snapshot:{schema:'synthetic_transport'},generated_at:new Date().toISOString(),created_at:new Date().toISOString(),archived_at:null,verified_at:null})
   expect(result).toMatchObject({status:'unavailable',reason:'timeout'});expect(performance.now()-start).toBeGreaterThanOrEqual(9900);expect(performance.now()-start).toBeLessThan(15000)
   expect(requestCount).toBe(1);expect(transportSignal?.aborted).toBe(true)
   let closeTimer:ReturnType<typeof setTimeout>|undefined

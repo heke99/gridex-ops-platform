@@ -677,11 +677,22 @@ export function buildCustomerCardWorkflow(
           : "EDIEL-utskicket är inte skickat ännu.",
     status: facilityDispatchSent ? "done" : facilityDispatchQueued ? "current" : isWaiting ? "waiting" : "not_started",
   });
+  const acknowledgementStep = (id: string, label: string, value: string | null | undefined): CustomerWorkflowStep => ({
+    id, label,
+    explanation: value === 'received' ? 'Kvittens är mottagen.'
+      : value === 'failed' ? 'Negativ kvittens är mottagen och behöver åtgärdas.'
+        : value === 'not_required' ? 'Kvittens krävs inte för detta meddelande.'
+          : facilityDispatchSent ? 'Kvittens inväntas separat från affärssvaret.' : 'Begäran är inte skickad ännu.',
+    status: value === 'received' || value === 'not_required' ? 'done'
+      : value === 'failed' ? 'blocked' : facilityDispatchSent ? 'waiting' : 'not_started',
+  });
+  steps.push(acknowledgementStep('ack_status', 'Teknisk kvittens', dispatchState?.acknowledgements?.technical));
+  steps.push(acknowledgementStep('application_ack_status', 'Applikationskvittens', dispatchState?.acknowledgements?.application));
   steps.push({
-    id: "ack_status",
-    label: "CONTRL/APERAK status",
-    explanation: responseReceived ? "Svar/kvittens är mottagen." : "Kvittens inväntas när meddelandet är skickat.",
-    status: responseReceived ? "done" : isWaiting ? "waiting" : "not_started",
+    id: 'business_response_status', label: 'Affärssvar',
+    explanation: responseReceived ? 'Nätägarens uppgiftssvar är mottaget.'
+      : facilityDispatchSent ? 'Nätägarens uppgiftssvar inväntas.' : 'Begäran är inte skickad ännu.',
+    status: responseReceived ? 'done' : facilityDispatchSent ? 'waiting' : 'not_started',
   });
   steps.push({
     id: "supplier_switch",

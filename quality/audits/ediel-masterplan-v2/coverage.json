@@ -13,8 +13,15 @@
     {
       "id": "GOV-02",
       "acceptance_id": "AT-GOV-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "GOV-03",
@@ -45,8 +52,13 @@
     {
       "id": "GOV-07",
       "acceptance_id": "AT-GOV-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/futureCapabilityPolicy.ts",
+        "__tests__/ediel-future-capability-held.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "GOV-08",
@@ -225,8 +237,14 @@
     {
       "id": "ENV-09",
       "acceptance_id": "AT-ENV-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-unsm-inbound-source-hold.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "P-01",
@@ -254,8 +272,16 @@
     {
       "id": "P-03",
       "acceptance_id": "AT-P-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-04",
@@ -274,8 +300,16 @@
     {
       "id": "P-05",
       "acceptance_id": "AT-P-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-06",
@@ -298,8 +332,18 @@
     {
       "id": "P-09",
       "acceptance_id": "AT-P-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "P-10",
@@ -346,8 +390,14 @@
     {
       "id": "P-17",
       "acceptance_id": "AT-P-17",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "ESCO-01",
@@ -432,7 +482,8 @@
       "acceptance_id": "AT-ACK-03",
       "status": "PARTIAL",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -464,8 +515,15 @@
     {
       "id": "ACK-08",
       "acceptance_id": "AT-ACK-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+        "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "ACK-09",
@@ -482,14 +540,18 @@
     {
       "id": "U-02",
       "acceptance_id": "AT-U-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "U-03",
       "acceptance_id": "AT-U-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "U-04",
@@ -500,8 +562,15 @@
     {
       "id": "U-05",
       "acceptance_id": "AT-U-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts/periodicReasonGuide.ts",
+        "lib/ediel/utilts/periodicReasonAuthority.ts",
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+        "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-4-U.md"
+      ]
     },
     {
       "id": "U-06",
@@ -554,8 +623,10 @@
     {
       "id": "U-14",
       "acceptance_id": "AT-U-14",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "TR-01",
@@ -578,9 +649,17 @@
     {
       "id": "TR-04",
       "acceptance_id": "AT-TR-04",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
       ]
     },
     {
@@ -598,8 +677,15 @@
     {
       "id": "TR-07",
       "acceptance_id": "AT-TR-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "TR-08",
@@ -624,38 +710,69 @@
     {
       "id": "TR-11",
       "acceptance_id": "AT-TR-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/copy.ts",
+        "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AI-01",
       "acceptance_id": "AT-AI-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "AI-02",
       "acceptance_id": "AT-AI-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AI-03",
       "acceptance_id": "AT-AI-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AI-04",
       "acceptance_id": "AT-AI-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiBiReconciliation.ts",
+        "lib/ediel/aiBiInboundReconciliation.ts",
+        "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AI-05",
       "acceptance_id": "AT-AI-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "DB-01",
@@ -696,8 +813,14 @@
     {
       "id": "OPS-01",
       "acceptance_id": "AT-OPS-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "OPS-02",
@@ -732,8 +855,16 @@
     {
       "id": "ACK-10",
       "acceptance_id": "AT-ACK-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "U-15",
@@ -961,12 +1092,15 @@
       "id": "SC-030",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
         "lib/ediel/prodat/prodatParentApplicability.ts",
-        "lib/ediel/prodat/prodatEndUserAddress.ts",
-        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
         "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
-        "__tests__/ediel-prodat-death-status-builders.test.ts"
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
@@ -978,23 +1112,26 @@
       "id": "SC-032",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
         "lib/ediel/prodat/prodatSubtypeRequirement.ts",
-        "lib/ediel/rulebook/prodatSubtypePolicy.ts",
-        "__tests__/ediel-prodat-dependent-subtype-source.test.ts"
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
       "id": "SC-033",
       "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
         "lib/ediel/prodat/prodatRegisterGroups.ts",
         "lib/ediel/prodat/render/registers.ts",
-        "lib/ediel/prodat/prodatRegisterReadings.ts",
-        "__tests__/ediel-prodat-registers.test.ts",
+        "lib/ediel/prodat/buildProdat.ts",
         "__tests__/ediel-prodat-register-builders.test.ts",
-        "__tests__/ediel-prodat-register-ack-boundary.test.ts"
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
       ]
     },
     {
@@ -1134,13 +1271,30 @@
     },
     {
       "id": "SC-061",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "SC-062",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "SC-063",
@@ -1154,8 +1308,14 @@
     },
     {
       "id": "SC-065",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "SC-066",
@@ -1164,8 +1324,13 @@
     },
     {
       "id": "SC-067",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "SC-068",
@@ -1199,8 +1364,15 @@
     },
     {
       "id": "AT-GOV-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-GOV-03",
@@ -1226,8 +1398,13 @@
     },
     {
       "id": "AT-GOV-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/futureCapabilityPolicy.ts",
+        "__tests__/ediel-future-capability-held.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-GOV-08",
@@ -1377,8 +1554,14 @@
     },
     {
       "id": "AT-ENV-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-unsm-inbound-source-hold.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-7-ENV-GOV-DB-IMP.md"
+      ]
     },
     {
       "id": "AT-P-01",
@@ -1396,8 +1579,16 @@
     },
     {
       "id": "AT-P-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-subtype-source.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-send.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-04",
@@ -1406,8 +1597,16 @@
     },
     {
       "id": "AT-P-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/render/registers.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "__tests__/ediel-prodat-register-builders.test.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-register-conditions.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-06",
@@ -1426,8 +1625,18 @@
     },
     {
       "id": "AT-P-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatDeathStatus.ts",
+        "lib/ediel/rulebook/prodatDeathStatusPolicy.ts",
+        "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "__tests__/ediel-prodat-death-status-source.test.ts",
+        "__tests__/ediel-prodat-death-status-policy.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud.test.ts",
+        "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-P-10",
@@ -1466,8 +1675,14 @@
     },
     {
       "id": "AT-P-17",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-5-P.md"
+      ]
     },
     {
       "id": "AT-ESCO-01",
@@ -1538,7 +1753,8 @@
       "id": "AT-ACK-03",
       "status": "PARTIAL",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -1565,8 +1781,15 @@
     },
     {
       "id": "AT-ACK-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+        "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
+        "scripts/ediel-utilts-err-gateway-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "AT-ACK-09",
@@ -1580,13 +1803,17 @@
     },
     {
       "id": "AT-U-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-U-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-U-04",
@@ -1595,8 +1822,15 @@
     },
     {
       "id": "AT-U-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts/periodicReasonGuide.ts",
+        "lib/ediel/utilts/periodicReasonAuthority.ts",
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-periodic-dgi-reason-authority.test.ts",
+        "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-4-U.md"
+      ]
     },
     {
       "id": "AT-U-06",
@@ -1640,8 +1874,10 @@
     },
     {
       "id": "AT-U-14",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+      ]
     },
     {
       "id": "AT-TR-01",
@@ -1660,9 +1896,17 @@
     },
     {
       "id": "AT-TR-04",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "lib/inbound-mail/dsnClassifier.ts",
+        "lib/inbound-mail/dsnDisposition.ts",
+        "lib/inbound-mail/dsnSourceObservations.ts",
+        "lib/inbound-mail/edielInboundProcessor.ts",
+        "__tests__/ediel-dsn-classification.test.ts",
+        "__tests__/ediel-dsn-disposition.test.ts",
+        "__tests__/ediel-dsn-transport-candidates.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
       ]
     },
     {
@@ -1677,8 +1921,15 @@
     },
     {
       "id": "AT-TR-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-TR-08",
@@ -1699,33 +1950,64 @@
     },
     {
       "id": "AT-TR-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/copy.ts",
+        "app/api/ediel/messages/[messageId]/transport-copy/route.ts",
+        "supabase/migrations/20260930164356_ediel_transport_copy_read_v1.sql",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-AI-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-legal-transport-parties.test.ts"
+      ]
     },
     {
       "id": "AT-AI-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AT-AI-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-history.test.ts"
+      ]
     },
     {
       "id": "AT-AI-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiBiReconciliation.ts",
+        "lib/ediel/aiBiInboundReconciliation.ts",
+        "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-AI-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aiList.ts",
+        "lib/ediel/aiBiImportParser.ts",
+        "__tests__/ediel-ai-list-format.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts"
+      ]
     },
     {
       "id": "AT-DB-01",
@@ -1759,8 +2041,14 @@
     },
     {
       "id": "AT-OPS-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-scoped-capability-readiness.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+      ]
     },
     {
       "id": "AT-OPS-02",
@@ -1789,8 +2077,16 @@
     },
     {
       "id": "AT-ACK-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "__tests__/ediel-prodat-aperak-unused-document.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts",
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+      ]
     },
     {
       "id": "AT-U-15",

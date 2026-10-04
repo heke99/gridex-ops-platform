@@ -48,6 +48,7 @@ export type EdielDispatchStateResult = {
   // Plain Swedish, tenant-safe (PART 13). Never exposes BGM/UNB/route ids.
   tenantLabel: string
   // Compact technical summary for superadmin diagnostics.
+  acknowledgements?: { technical: string | null; application: string | null }
   technical: {
     validationStatus: string | null
     renderStatus: string | null
@@ -216,10 +217,10 @@ async function loadOutbox(input: {
 async function loadMessage(input: {
   companyId: string
   edielMessageId: string
-}): Promise<{ status: string | null; message_sent_at: string | null } | null> {
+}): Promise<{ status: string | null; message_sent_at: string | null; contrl_status: string | null; aperak_status: string | null } | null> {
   const { data, error } = await supabaseService
     .from('ediel_messages')
-    .select('status,message_sent_at')
+    .select('status,message_sent_at,contrl_status,aperak_status')
     .eq('company_id', input.companyId)
     .eq('id', input.edielMessageId)
     .maybeSingle()
@@ -230,6 +231,8 @@ async function loadMessage(input: {
   return (data as {
     status: string | null
     message_sent_at: string | null
+    contrl_status: string | null
+    aperak_status: string | null
   } | null) ?? null
 }
 
@@ -346,6 +349,7 @@ export async function resolveEdielDispatchState(input: {
     messageCode: clean(intent.message_code),
     blockingReasons: blockingReasonsFrom(intent.blocking_reasons),
     tenantLabel: tenantLabelForState(state, clean(intent.business_process)),
+    acknowledgements: { technical: clean(message?.contrl_status), application: clean(message?.aperak_status) },
     technical: {
       validationStatus: clean(intent.validation_status),
       renderStatus: clean(intent.render_status),

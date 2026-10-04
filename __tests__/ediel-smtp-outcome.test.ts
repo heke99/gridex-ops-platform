@@ -4,6 +4,7 @@ import { SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 
 const mocks = vi.hoisted(() => ({ send: vi.fn(), writes: [] as Array<Record<string, unknown>>, from: vi.fn(), get: vi.fn(), claimLost: false, filters: [] as Array<[string, unknown]> }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: mocks.get }))
+vi.mock('@/lib/ediel/transport/acceptedProjection', () => ({ readAcceptedEdielTransportProjection: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: mocks.send }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: mocks.from } }))
 vi.mock('@/lib/ediel/outbox/readinessGuard', () => ({ getEdielOutboundReadinessBlocker: vi.fn().mockResolvedValue(null) }))
@@ -17,7 +18,7 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     mocks.writes.length = 0
     mocks.filters.length = 0
     mocks.claimLost = false
-    mocks.get.mockResolvedValue({ id: 'message1', company_id: 'company1', status: 'prepared' })
+    mocks.get.mockResolvedValue({ id: 'message1', company_id: 'company1', environment: 'test', direction: 'outbound', status: 'prepared' })
     mocks.from.mockImplementation((table) => {
       let writing = false
       const item = { id: 'outbox1', company_id: 'company1', environment: 'test', ediel_message_id: 'message1', status: 'sending', locked_by: 'worker1', current_send_attempt_id: 'attempt1' }

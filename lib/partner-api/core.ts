@@ -916,7 +916,7 @@ async function getInvoice(request: NextRequest, reference: string, pdf: boolean)
     if (pdf) {
       const document = await supabaseService
         .from('customer_invoice_documents')
-        .select('public_url')
+        .select('id,public_url')
         .eq('company_id', context.client.company_id)
         .eq('invoice_id', invoice.id)
         .eq('document_type', 'invoice_pdf')
@@ -924,6 +924,7 @@ async function getInvoice(request: NextRequest, reference: string, pdf: boolean)
         .limit(1)
         .maybeSingle()
       if (document.error) throw document.error
+      if(document.data){const {requireInvoiceFileCopyAvailable}=await import('@/lib/ediel/retention/invoiceFileRetention');await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.data.id})}
       const downloadUrl = text(document.data?.public_url)
       if (!downloadUrl || !downloadUrl.startsWith('https://')) {
         throw new PartnerApiError('Invoice PDF is not available.', 'invoice_pdf_not_available', 404)

@@ -46,7 +46,9 @@ BEGIN
  facts:=jsonb_build_object('version',1,'owner','canonical-runtime-with-registry-v1','sourceDisposition','not_established',
   'objectDisposition','not_checked','partyDisposition','not_checked','coverage','canonical_runtime_only','originalTenantMatch','matched',
   'syntaxDecision','accepted','applicationDecision','accepted','functionalDecision','accepted','messageReference','MSG',
-  'reasonCodes','[]'::jsonb,'rulePackEvidence',jsonb_build_object('profileKey',profile.profile_key,'messageProfileId',profile.id,'rulePackId',pack.id,'sourceHash',pack.source_hash));
+  'reasonCodes','[]'::jsonb,'rulePackEvidence',jsonb_build_object('profileKey',profile.profile_key,'messageProfileId',profile.id,'rulePackId',pack.id,'sourceHash',pack.source_hash,
+   'version',pack.guide_version||':r'||pack.guide_revision,'snapshot',jsonb_build_object('rulePack',to_jsonb(pack),'messageProfile',to_jsonb(profile),
+   'guideSources',(SELECT coalesce(jsonb_agg(to_jsonb(rs) ORDER BY rs.id),'[]'::jsonb) FROM public.ediel_rule_pack_sources rs WHERE rs.rule_pack_id=pack.id))));
  facet:='{"version":1,"owner":"validateProdatRegisterPolicy","coverage":"canonical_register_only","objects":[{"messageIndex":0,"messageReference":"MSG","objectId":"MP-A","identityAgency":"9","disposition":"accepted","registers":[{"lineIndex":0,"lineNumber":"1","registerIndex":null,"registerPosition":1,"segmentIndex":3}],"reasons":[]},{"messageIndex":0,"messageReference":"MSG","objectId":"MP-B","identityAgency":"89","disposition":"rejected","registers":[{"lineIndex":1,"lineNumber":"2","registerIndex":null,"registerPosition":1,"segmentIndex":4}],"reasons":["PRODAT_REGISTER_INVALID"]}]}'::jsonb;
  PERFORM pg_temp.register_case('legacy-facts-preserved',company,source,facts,false);
  facts:=facts||jsonb_build_object('registerValidation',facet);

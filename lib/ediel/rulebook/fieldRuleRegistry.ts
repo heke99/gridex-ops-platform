@@ -19,6 +19,7 @@ export type RegistryRulePackSnapshot = {
   profileVersionId: string
   version: string
   checksum: string
+  originalWitness?: import('./canonicalRulePackRegistry').OriginalRulePackWitness
 }
 
 export type RegistryFieldRuleResult = {

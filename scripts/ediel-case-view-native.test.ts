@@ -136,7 +136,7 @@ it('provisions real GoTrue and writer cases, then verifies browser triage withou
     INSERT INTO public.companies(id,name,status) VALUES(${quote(companyA)},${quote(`Case A ${tag}`)},'active'),(${quote(companyB)},${quote(`Case B ${tag}`)},'active');
     INSERT INTO public.customers(id,company_id,customer_number,name,full_name,email,customer_type) VALUES(${quote(customerA)},${quote(companyA)},${quote(`CASE-A-${tag}`)},'Synthetic A','Synthetic A','case-a@example.invalid','private'),(${quote(customerB)},${quote(companyB)},${quote(`CASE-B-${tag}`)},'Synthetic B','Synthetic B','case-b@example.invalid','private');`)
   const writer = await createActor(`${tag}-writer`, companyA, ['communication.read', 'cases.read', 'cases.write', 'customers.read', 'switching.read'])
-  const readOnly = await createActor(`${tag}-reader`, companyA, ['communication.read', 'cases.read'])
+  const readOnly = await createActor(`${tag}-reader`, companyA, ['communication.read', 'cases.read', 'customers.read'])
   const noCaseRead = await createActor(`${tag}-nocase`, companyA, ['communication.read'])
   const actorB = await createActor(`${tag}-b`, companyB, ['cases.read', 'cases.write'])
   const old = await writeCase(companyA, customerA, writer.user)

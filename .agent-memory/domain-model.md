@@ -1,3 +1,11 @@
+## 2026-09-30 — S02 planning is nonbilling but physically scoped
+
+S02 forecast IDE24 owns required SG5 LOC172 and each own SG8 SEQ owns required SG11 QTY135 (including actual zero). A sibling point/quantity, QTY136, or QTY135 before SEQ cannot fill that own observation. Guide absence maps ERC41/209 or515 and original ACW IDE before functional effects; guide-valid unsupported namespace is an internal hold. Accepted service attempts with missing own physical required fields must fail atomically for the whole submitted batch. Empty actual-consumption observations and metering/billing skip remain correct for forecasts.
+
+## 2026-09-29 — Transaction-scoped ERR response identity
+
+A functional-negative UTILTS IDE owns its UTILTS_ERR, physical RFF+TN, full original relatedTransactionReference, source-operation key and final reservation response. Equal error codes in different IDEs do not make the responses interchangeable. Canonical ERR business process is functional_rejection. Real CALL-11 dispositions reach CALL-12 gateway/finalizer and existing CALL-13 binding; sequential retry must preserve receipt, full reservation, ACK bytes/ID/timestamps and contracts. Concurrent same-IDE reservation of ACK identity remains a separate unproved requirement.
+
 # Domain model
 
 Canonical correlation keys include `company_id`, `customer_id`,

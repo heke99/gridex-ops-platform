@@ -147,13 +147,13 @@ check(
 )
 
 // Keep #119 tip residuals present on this branch.
-const utiltsEngine = read('lib/ediel/utiltsEngine.ts')
+const utiltsEngine = read('lib/ediel/utiltsEngine.ts') + read('lib/ediel/utiltsEngine.part-1.ts')
 const persistence = read('lib/ediel/utilts/transactionPersistence.ts')
 const transactionIdentity = read('lib/ediel/utilts/transactionIdentity.ts')
 const loginError = read('lib/auth/loginError.ts')
 check(
   utiltsEngine.includes("classification === 'functional_rejected'") &&
-    utiltsEngine.includes('aperakErrorsFromIssues(params.validation.issues)'),
+    utiltsEngine.includes('aperakErrorsFromIssues(params.message,params.validation.issues)'),
   'mixed-disposition APERAK detail retention must remain on tip',
 )
 check(
@@ -284,11 +284,12 @@ check(
     utiltsEngine.includes('synthesizedTransactionIssueReference'),
   'UTILTS disposition/issue attribution must synthesize null IDE+24 ids',
 )
+// 0792805b: ERR/ACK targets carry the exact physical IDE+24 reference; a
+// missing or duplicate reference is refused instead of synthesized.
 check(
-  /resolveUtiltsTransactionId\(sanitizeEdifactToken\(group\.transactionId\),\s*index\)/.test(
-    utiltsAck,
-  ),
-  'UTILTS fallback ACK targets must synthesize null IDE+24 ids',
+  utiltsAck.includes("transaction.identityQualifier !== '24' || reference === null) throw new Error('utilts_err_source_transaction_reference_unavailable')") &&
+    utiltsAck.includes("throw new Error('utilts_err_source_transaction_reference_ambiguous')"),
+  'UTILTS ERR/ACK targets must use the exact physical IDE+24 reference and refuse missing ones',
 )
 check(
   opsHardening.includes('ediel-utilts-transaction-disposition.test.ts'),

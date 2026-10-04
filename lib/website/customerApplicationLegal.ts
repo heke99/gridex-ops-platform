@@ -672,7 +672,7 @@ export function buildCustomerLegalAcceptanceEvidence(
         },
       };
     })
-    .filter(Boolean);
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   return rows;
 }

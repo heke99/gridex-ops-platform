@@ -1,0 +1,1428 @@
+{
+ "batch": 5,
+ "family": "P",
+ "head": "829902eb",
+ "rules": [
+  {
+   "id": "P-01",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:38-116",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:142-149",
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts:194-283",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:145-164"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-26a-field-matrix.test.ts :: contains exactly 77 fields across all 13 message functions",
+      "__tests__/prodat-dependent-condition-engine.test.ts :: has exact executable coverage for every official D cell"
+     ],
+     "gap": "The matrix has 74 numeric rows, 3 group rows and 110 numeric D cells (120 D cells counting groups). The test asserts 120, not 110 directly. The register overlay is a separate owner, prodatRegisterPolicy."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatFieldDiagnostic.ts:34-66",
+      "lib/ediel/prodat/prodatFieldDiagnostic.ts:118-127",
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:12-41"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity-owners.test.ts :: keeps repeated-register topology258 and sequence314 distinct with exact own register",
+      "__tests__/ediel-prodat-field-identity-owners.test.ts :: keeps exact LI and message identity separate for repeated object IDs in two messages"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatFieldDiagnostic.ts:35-38",
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:11-49"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity-owners.test.ts :: reports missing327 from its source descriptor rather than DTM164"
+     ],
+     "gap": "The field number comes only from the matrix descriptor. A grep for regex digit extraction in lib/ found it only in lib/ediel/testing (TGT selectors)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatFieldDiagnostic.ts:48-49"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-26a-field-matrix.test.ts :: projects one deterministic 77-rule view per message function"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:47-50"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity-owners.test.ts :: reports missing327 from its source descriptor rather than DTM164"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-026",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:63",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:94"
+     ],
+     "tests": [
+      "scripts/test-ediel-prodat-source-locators.cjs :: field 327: canonical value passes and other qualifiers never satisfy it",
+      "scripts/test-ediel-prodat-source-locators.cjs :: field 325: canonical value passes and other qualifiers never satisfy it",
+      "scripts/test-ediel-prodat-source-locators.cjs :: Z15V: real renderer and parser agree on permission identity and timestamps"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-043",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:36-40"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity-owners.test.ts :: reports missing327 from its source descriptor rather than DTM164",
+      "__tests__/ediel-utilts-runtime-cutoff.test.ts (fieldCode 512 / ERC 41)"
+     ],
+     "gap": "The rendered FTX format for 327 is not asserted; FTX is asserted only for 310, 258 and 314."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-02",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:635-655",
+      "lib/ediel/rulebook/fieldMatrix.ts:62-69"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: actual canonical runtime accepts extra meter information and projects its own ignored field",
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: ignores incoming Z01 X field %s and retains outgoing prohibition"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/core/runtimeDecision.ts:177-188",
+      "lib/ediel/sources/structuralSourceWire.ts:38-50",
+      "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts:12-44",
+      "lib/ediel/prodat/parser.ts:192"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: actual canonical runtime accepts extra meter information and projects its own ignored field (raw_payload kept)",
+      "__tests__/ediel-prodat-ignored-source-binding.test.ts :: does not let later-register ignored extras suppress an allowed first-register value"
+     ],
+     "gap": "The raw payload is preserved. Only the structural measurement projection masks ignored fields (242/217/222/254/262). parseProdatMessage, with 18 callers, still projects ignored values (for example 224 meterNumber)."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/core/unsmGrammar.ts:45-60"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: uses each optional group occurrence own mandatory trigger, ordering and repetition limit",
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: retains negative CONTRL for a parseable count mismatch"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:647-655"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: every canonical X rule follows the incoming exclusion before national value validation"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/unsmGrammar.ts (directory cardinality)"
+     ],
+     "tests": [
+      "__tests__/ediel-unsm-grammar-consumers.test.ts :: rejects %s at the original physical segment and field"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-031",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:82-83"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: ignores incoming Z01 X field %s and retains outgoing prohibition",
+      "__tests__/ediel-confirmed-customer-source.test.ts :: never routes F/G or mutable subtype/customer labels to the customer owner"
+     ],
+     "gap": "Not shown generally that the ignored data never reaches business data."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The generic PRODAT parser does not use the ignore set, so business consumers that call it directly can project ignored X/D-false values.",
+     "evidence": [
+      "lib/ediel/prodat/parser.ts:192",
+      "lib/ediel/sources/structuralSourceWire.ts:46-47"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-03",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts:24",
+      "lib/ediel/prodat/prodatDependentConditionEngine.ts:284-325",
+      "lib/ediel/prodat/prodatSubtypeRequirement.ts:19-50"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-source.test.ts :: %s:%s subtype %s (%s) is %s",
+      "__tests__/ediel-prodat-dependent-subtype-source.test.ts :: %s:%s keeps missing or invalid subtype undetermined"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:347-360",
+      "lib/ediel/prodat/builders/profileRenderer.ts:425-440"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-send.test.ts :: retains a supplied matrix code list when the D outcome is optional",
+      "__tests__/ediel-prodat-dependent-subtype-send.test.ts :: forged complete snapshot cannot suppress the missing Z09F method"
+     ],
+     "gap": "No explicit 'deliberate O choice' artifact. O-branch presence is merely tolerated and validated."
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:213-236",
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:19"
+     ],
+     "tests": [
+      "__tests__/prodat-dependent-condition-engine.test.ts :: never guesses when required business facts are missing",
+      "__tests__/ediel-prodat-dependent-subtype-send.test.ts :: a wrong caller code or application reference cannot hide D defects before transport"
+     ],
+     "gap": "not_required does not trigger a forbidden error in the generic D loop."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatSubtypeRequirement.ts:43-48"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-source.test.ts :: permits optional Z06G observation length while requiring it for a sibling Z06F"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:213-224"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z06-product.test.ts (PRODAT_DEPENDENT_CONDITION_UNDETERMINED blocking)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-032",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatSubtypeRequirement.ts:43-48"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-source.test.ts :: actual canonical field validation ... enforces %s despite forged root statuses"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-04",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:6-35",
+      "lib/ediel/rulebook/fieldMatrix.ts:635-641",
+      "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts:79-83"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z14.test.ts :: parent activation suppresses N children but checks positive parent children"
+     ],
+     "gap": "Inactive-parent handling is explicit only for Z14N and Z06/Z09 UD. The IT and IV groups have their own policies."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:26-35"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-consumers.test.ts :: false Z14N extra adds no hold and source-valid A76 is positive",
+      "scripts/ediel-rule-regression.cjs :: correct Z14N must produce positive APERAK"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatZ14Policy.ts:23-26"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z14.test.ts :: accepts V/VH and empty N despite opposite stale root subtype"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:639-641"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-incoming-unused-fields.test.ts :: resolves an ignored UD parent from each own wire subtype, not root metadata"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:6-9"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts :: inactive N parents pass their bounded rule while a wrong full-message application remains held"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-024",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/fieldMatrix.ts:647-655"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-consumers.test.ts :: false Z14N extra adds no hold and source-valid A76 is positive",
+      "scripts/ediel-rule-regression.cjs :: correct Z14N must produce positive APERAK"
+     ],
+     "gap": "No test asserts absence of 41/316 or 41/233 by name; this is covered indirectly via positive outcome / null errors."
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-05",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:40-78",
+      "lib/ediel/prodat/render/registers.ts:38-61",
+      "lib/ediel/prodat/buildProdat.ts:136-173"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-builders.test.ts :: generic multi-object builder increments 314 globally and restarts 258 locally",
+      "__tests__/ediel-prodat-registers.test.ts :: keeps the six-LIN/four-object original example",
+      "__tests__/ediel-prodat-registers.test.ts :: ${code} cannot carry multiple-register C829"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:80-90",
+      "lib/ediel/prodat/prodatRegisterGroups.ts:109-128",
+      "lib/ediel/rulebook/prodatRegisterPolicy.ts"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-conditions.test.ts :: explicit readings require an own value on every register",
+      "__tests__/ediel-prodat-registers.test.ts :: never borrows annual energy from another register or another object"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:114",
+      "lib/ediel/prodat/prodatRegisterGroups.ts:125-127"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-registers.test.ts :: later LIN need not repeat first-register dates/parties/references",
+      "__tests__/ediel-prodat-registers.test.ts :: does not let a later repeat fill missing first-register authority",
+      "__tests__/ediel-prodat-registers.test.ts :: preserves unequal interleaved groups (ignored repeat 'Ignored')"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:48,69"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-registers.test.ts :: rejects ${name} without dropping wire evidence"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:114"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-registers.test.ts :: later LIN need not repeat first-register dates/parties/references"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-033",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/buildProdat.ts:172",
+      "lib/ediel/prodat/prodatRegisterGroups.ts:54-91"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-register-builders.test.ts :: generic multi-object builder increments 314 globally and restarts 258 locally",
+      "__tests__/ediel-prodat-register-conditions.test.ts :: explicit readings require an own value on every register",
+      "__tests__/ediel-prodat-registers.test.ts :: does not treat different identity agencies as one meter"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "profileRenderer always starts at LIN+1 (no firstLineSequence); multi-object only correct via buildProdat or the servicePermission LIN rewrite",
+     "evidence": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:229-231,381",
+      "lib/ediel/intent/renderers/servicePermission.ts:75-78"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-06",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/customerIdentity.ts:33-55",
+      "lib/ediel/prodat/render/segments.ts:64-81",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:60"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-identity-li-compliance.test.ts :: renders Swedish organisation and personal identities with ebIX260",
+      "scripts/test-ediel-prodat-party-fields.cjs :: Z13 date-of-birth qualifier is rejected; Z14N cannot manufacture forbidden UD/IT parents"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/servicePermission.ts:25-33",
+      "lib/ediel/prodat/customerIdentity.ts:33-55"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-identity-li-compliance.test.ts :: maps an explicit organisation number to SE1 ...",
+      "__tests__/ediel-prodat-identity-li-compliance.test.ts :: does not promote an internal customer number to a legal EDIEL identity"
+     ],
+     "gap": "No protected-identity (skyddad identitet) handling in lib/ediel; matches exist only under lib/energy, lib/customers and lib/website"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/prodat/render/segments.ts:69-72",
+      "lib/ediel/prodat/render/segments.ts:106-107"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-identity-li-compliance.test.ts :: omits the legal party id instead of guessing a qualifier when it is missing"
+     ],
+     "gap": "No UUID or name-guessing fallback found and the missing-qualifier case is tested; no test for the 'do not change all ZZZ globally' part (the renderer only emits 260/89)"
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/render/segments.ts:69-72"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-identity-li-compliance.test.ts :: renders Swedish organisation and personal identities with ebIX260"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:214-232"
+     ],
+     "tests": [],
+     "gap": "No test asserts a UUID never becomes the customer or object id"
+    },
+    {
+     "effect": "SC-025",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:228-232",
+      "lib/ediel/intent/renderers/servicePermission.ts:57"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-optional-request-identity.test.ts :: Z13%s does not require an object ID in either real builder-input gate"
+     ],
+     "gap": "LIN+1 without an object id is tested; the 'UUID not used as GSRN' prohibition has no test"
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The UD renderer accepts qualifier '1' for every code; for Z13 it is only caught downstream by the field matrix",
+     "evidence": [
+      "lib/ediel/prodat/render/segments.ts:44-48",
+      "scripts/test-ediel-prodat-party-fields.cjs:296-298"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-07",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts:20-58",
+      "lib/ediel/prodat/prodat26AFieldMatrix.ts:56-57"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-scope.test.ts :: retains physical fifth506 for late value and header placement, never relabels fourth242",
+      "scripts/test-ediel-prodat-characteristic-fields.cjs :: product242 and energy506 are independent despite a shared CCI qualifier"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:66-69,255-261",
+      "lib/ediel/prodat/render/dateSegments.ts:52-64",
+      "lib/ediel/prodat/builders/profileRenderer.ts:231"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-optional-request-identity.test.ts :: Z13%s does not require an object ID",
+      "__tests__/ediel-prodat-date-boundaries.test.ts :: profile validates the actual snapshot report dates instead of stale context aliases"
+     ],
+     "gap": "No behavioral test asserts the production renderer emits CCI++Z14/CAV+::::; only the string-match script scripts/ediel-z13vh-production-regression.cjs:38 checks it"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts:35-58",
+      "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts:27-36"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-scope.test.ts :: ${code}/${reason} rejects supplied wrong C889 qualifier ${index} as42/506"
+     ],
+     "gap": "'Reference example is not a norm' cannot be checked in code"
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:259-260"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-scope.test.ts :: exposes only applicable valid semantic506"
+     ],
+     "gap": "Same gap: the renderer's CAV+:::: output is not asserted"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts:52-58"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-scope.test.ts :: incoming preflight does not label false fourth242 as506; outgoing remains strict"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-025",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/prodat/builders/profileRenderer.ts:228-232"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-optional-request-identity.test.ts :: Z13%s does not require an object ID"
+     ],
+     "gap": "UUID prohibition untested"
+    },
+    {
+     "effect": "SC-027",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatReportingPermissionPolicy.ts:106-123"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-reporting-policy-boundaries.test.ts :: explicit indefinite nonprivate omission qualifies",
+      "__tests__/ediel-prodat-reporting-policy-boundaries.test.ts :: historical Z13 ${relation} end with current minute",
+      "__tests__/ediel-prodat-reporting-chain.test.ts :: original private ${caseCode} has explicit indefinite term and B71"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-028",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts:52-55"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-energy-product-scope.test.ts :: retains physical fifth506 ...",
+      "__tests__/ediel-prodat-characteristic-preflight.test.ts (CAV+::::8716867000030 case)"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "The only valid 506 value is hard-coded to 8716867000030; correct for EL, but any other product is rejected",
+     "evidence": [
+      "lib/ediel/prodat/prodatEnergyProduct.ts:58"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-08",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatDateEventPolicy.ts:53-57",
+      "lib/ediel/prodat/render/dateSegments.ts:85-86",
+      "lib/ediel/prodat/prodatDateFields.ts:23"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-boundaries.test.ts :: production-contract ${alias} uses92 not157 and preserves XOR",
+      "__tests__/ediel-production-contract-date-authority.test.ts :: does not accept date-only or simultaneous start and end",
+      "__tests__/ediel-prodat-date-event-wire-phase.test.ts :: keeps own D date XOR ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/productionContract.ts:19-27"
+     ],
+     "tests": [
+      "__tests__/ediel-production-contract-date-authority.test.ts :: ${kind} uses its own precise contractual boundary"
+     ],
+     "gap": "Building 92/93 is implemented. 'On valid receipt update the correct production relation' is ABSENT: Z09:D has autoStateMutationAllowed:false and nothing consumes change_production_purchase_agreement"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatDateEventPolicy.ts:57",
+      "lib/ediel/core/messageBuilder/payloadPreflight.ts:626",
+      "lib/ediel/prodat/prodatDiagnosticProjection.ts:38,71"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity.test.ts :: uses the special40/A903109 source rule for both Z09D contract dates",
+      "__tests__/ediel-prodat-field-identity-inbound.test.ts :: internal review retains own special109 with both Z09D dates ..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/productionContract.ts:26"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-boundaries.test.ts :: production-contract ${alias} uses92 not157"
+     ],
+     "gap": "No production-relation update on receipt"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDateFields.ts:23",
+      "lib/ediel/prodat/canonicalRenderSemantics.ts:40-47"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-date-boundaries.test.ts :: production-contract ${alias} uses92 not157 and preserves XOR"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-029",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/intent/renderers/productionContract.ts:26",
+      "lib/ediel/rulebook/prodatDateEventPolicy.ts:57"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-field-identity.test.ts :: uses the special40/A903109 source rule for both Z09D contract dates"
+     ],
+     "gap": "DTM+93 is only covered by a raw-wire validator test; no test renders the 'ceased' path through buildProductionContractDraft"
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "No inbound Z09D business effect updates the production relation",
+     "evidence": [
+      "lib/ediel/rulebook/businessSemantics.ts:197"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-09",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDeathStatus.ts:56",
+      "lib/ediel/rulebook/prodatDeathStatusPolicy.ts:17",
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:157"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-death-status-source.test.ts :: Z09E selects the process but only its separate death assessment requires310...",
+      "__tests__/ediel-prodat-death-status-policy.test.ts :: PC310 requires an independent death assessment also for Z09E"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatSubtypeRequirement.ts:37-41",
+      "lib/ediel/prodat/prodatParentApplicability.ts:20",
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:180-212",
+      "supabase/migrations/20261001010758_ediel_bilateral_customer_source_owner.sql:58-71",
+      "lib/ediel/prodat/prodatSourceFunctionValidation.ts:13"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud.test.ts :: Z09:227 has exact positive, forbidden and unknown branches",
+      "__tests__/ediel-prodat-source-function-validation.test.ts :: preserves a genuinely classified own object and holds unknown sibling...",
+      "scripts/ediel-confirmed-customer-bilateral-native.test.ts :: genuine current company producer commits non-death customer/invoicee facet..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatDeathStatus.ts:59-60",
+      "lib/ediel/flows/prodatLifeEvent.ts:7",
+      "lib/ediel/prodat/prodatDeathStatusAuthority.ts:20"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-death-status-source.test.ts :: source-specific nondeath bilateral process supports Z06E/Z09E but literal E34 and bankruptcy do not prove death",
+      "__tests__/ediel-customer-life-event-context.test.ts :: cannot classify bankruptcy as death without its own bilateral ground",
+      "__tests__/ediel-prodat-dependent-subtype-ud.test.ts :: forbids non-E parent even when empty or otherwise valid"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatSubtypeRequirement.ts:37"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts :: generic builder accepts full E data..."
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatParentApplicability.ts:25-31"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud.test.ts :: parent applicability keeps Z14N and unrelated parents independent"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-030",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatEndUserPolicy.ts:53"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts :: Z09/E: profiled renderer follows actual emitted reason and retains source text"
+     ],
+     "gap": "Unit level only; no Integration/E2E run"
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-10",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql:124-163",
+      "supabase/migrations/20261001022917_ediel_z02_native_actor_and_source_authority.sql:10-58"
+     ],
+     "tests": [
+      "scripts/ediel-z02-core-embedded-check.mjs :: positive apply + dispatch-proof/application-scope rejections"
+     ],
+     "gap": "LI, parties, object and customer are correlated, but Z02 grid area is never compared with Z01/request (only used to look up price area). Grid owner is only compared when both are non-null. No negative tests for LI/party/customer mismatch."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql:306-316 (status ready_for_switch)",
+      "lib/customer-operations/automation.part-2.ts:770",
+      "lib/customer-operations/automation.part-3.ts:28-50",
+      "lib/operations/businessActions/startSupplierSwitch.ts:78-133"
+     ],
+     "tests": [
+      "__tests__/switch-readiness.test.ts :: is ready and produces a versioned readiness snapshot when all systems pass",
+      "__tests__/switch-readiness.test.ts :: flags missing current supplier and move-in date as normal-priority issues"
+     ],
+     "gap": "No test chains Z02 to the separate Z03 decision"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql:282-316 (no customer_supply_periods write)",
+      "lib/operations/readiness.ts:181-197",
+      "lib/customer-operations/switchReadiness.ts:221-225"
+     ],
+     "tests": [],
+     "gap": "No behavioural test shows that Z02 creates no supply period. Z02 sets metering_points.status='active', which is a status on the metering-point record, not on supply. Existing coverage only matches strings (__tests__/z01-parallel-sla-watchdog.test.ts)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql:124"
+     ],
+     "tests": [
+      "scripts/ediel-z02-core-embedded-check.mjs :: result.ok"
+     ],
+     "gap": "Grid area correlation missing"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/customer-operations/automation.part-3.ts:50-71"
+     ],
+     "tests": [],
+     "gap": "No test of the automatic Z03 path after Z02"
+    },
+    {
+     "effect": "SC-035",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "lib/customer-operations/automation.part-2.ts:713-800"
+     ],
+     "tests": [],
+     "gap": "Not run E2E. The __tests__/z02-atomic-worker-convergence.test.ts tests are mostly string matching."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Z02 grid area is not correlated with the Z01/request; it is only used to derive price area",
+     "evidence": [
+      "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql:163-176"
+     ]
+    },
+    {
+     "claim": "Legacy applyInboundGridOwnerResponse (auto-applies Z02 without DB gates) is still exported",
+     "evidence": [
+      "lib/customer-operations/automation.ts:4",
+      "lib/customer-operations/automation.part-2.ts:453"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-11",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:90-121"
+     ],
+     "tests": [
+      "scripts/ediel-normal-switch-source-sql-regression.mjs :: applied=false before proof / applied commits=3"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:130-136",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:172-214",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:226"
+     ],
+     "tests": [
+      "scripts/ediel-normal-switch-source-sql-regression.mjs :: status confirmed_by_grid_owner; activate not_due; sweep normalActivated 0 then 1; current_confirmation_changed"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260822010000_prodat_26a_semantic_hardening.sql:278-317",
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts:233-238"
+     ],
+     "tests": [
+      "scripts/ediel-normal-switch-source-sql-regression.mjs :: transport attempt 'partial' -> applied false"
+     ],
+     "gap": "Acknowledgements cannot confirm a switch. However, a late negative APERAK/CONTRL can still set an accepted switch to rejected. The Z04 trigger is tested only by string matching."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:111"
+     ],
+     "tests": [],
+     "gap": "Z04 is accepted while the switch is 'sent' (before APERAK), but no test covers that ordering"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts:233-238"
+     ],
+     "tests": [],
+     "gap": "Late acknowledgement can move the switch backwards"
+    },
+    {
+     "effect": "SC-036",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts:184-238"
+     ],
+     "tests": [],
+     "gap": "No test of Z04 followed by APERAK. A positive APERAK only updates message columns (OK); a negative one sets status='rejected'."
+    },
+    {
+     "effect": "SC-037",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:194"
+     ],
+     "tests": [
+      "scripts/ediel-normal-switch-source-sql-regression.mjs :: activate rejects /not_due/; sweep 0 then 1"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A late negative APERAK/CONTRL sets supplier_switch_requests.status='rejected' with no guard against an already accepted (Z04) state. Activation then fails because it requires status='accepted'.",
+     "evidence": [
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts:233-238",
+      "supabase/migrations/20260930201111_ediel_normal_switch_source_atomic_confirmation.sql:209"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-12",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:157-180",
+      "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:197"
+     ],
+     "tests": [
+      "scripts/ediel-regulated-supply-ground-sql-regression.mjs :: current()=false on disabled agreement / other grid area / revoked issuer",
+      "scripts/ediel-partial-supply-source-sql-regression.mjs :: missingGround reason regulated_supply_"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:246-248"
+     ],
+     "tests": [
+      "scripts/ediel-regulated-supply-ground-sql-regression.mjs :: applied.regulated=true, counts switches:0"
+     ],
+     "gap": "Z04A tested without Z03; the Z04D (Z70) apply path with production link has no behavioural test"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:174-178"
+     ],
+     "tests": [
+      "scripts/ediel-regulated-supply-ground-sql-regression.mjs :: regulated_supply_current_ground_required"
+     ],
+     "gap": "Rejection when the Z70 production/consumption link is missing is not tested"
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Same as on_pass"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:157"
+     ],
+     "tests": [
+      "scripts/ediel-regulated-supply-ground-sql-regression.mjs :: no ordinary Z03 authority"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-038",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [
+      "scripts/ediel-regulated-supply-ground-native.test.ts :: real native HTTP archive/review/ground producer..."
+     ],
+     "gap": "Only A is covered; D is not run"
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-13",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:207-243",
+      "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql:187-203"
+     ],
+     "tests": [
+      "scripts/ediel-partial-supply-source-sql-regression.mjs :: ended.status ending; wrongEndNamespace applied false"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20260930204728_ediel_native_intent_and_source_request_guards.sql:254-262",
+      "supabase/migrations/20261002234500_supply_end_followup_for_source_owned_ends.sql:17-100"
+     ],
+     "tests": [
+      "scripts/ediel-partial-supply-source-sql-regression.mjs :: restored source_end_message_id null",
+      "scripts/supply-end-source-followup-regression.sql :: source-owned end opened final invoice task"
+     ],
+     "gap": "The end is versioned and the final-invoice task opens, but no final-reading follow-up is started (it appears only as task text)"
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [
+      "supabase/migrations/20261002213000_end_customer_supply_on_switch_away.sql:180-205"
+     ],
+     "tests": [
+      "scripts/supply-end-switch-away-regression.sql :: customer not inactive after switch away"
+     ],
+     "gap": "No test checks that ESCO service_assignments or other sites survive a supply end; there is no DELETE in the end paths"
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [],
+     "tests": [],
+     "gap": "Final-reading follow-up missing"
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED_UNTESTED",
+     "code": [],
+     "tests": [],
+     "gap": "Preservation of ESCO grants is untested"
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "Legacy gridex_end_customer_supply_v1 overwrites the period's source_message_id with the end message (losing the start provenance), selects the period without LI/time-event matching, and does not increase market_state_version. No app code calls it.",
+     "evidence": [
+      "supabase/migrations/20261002213000_end_customer_supply_on_switch_away.sql:58-93"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-14",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:267-297",
+      "supabase/migrations/20260930223846_ediel_cancellation_request_environment_scope.sql:26-56",
+      "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:158-172"
+     ],
+     "tests": [
+      "scripts/ediel-switch-cancellation-sql-regression.mjs :: exact_original_wire_required (other LI/CAV/area rejected)",
+      "scripts/ediel-partial-supply-source-sql-regression.mjs :: Z04C withdrawn / wrongNamespace z04c_exact_original_unavailable / Z05C restored",
+      "scripts/ediel-partial-permission-source-sql-regression.mjs :: Z15 Z24 applied"
+     ],
+     "gap": "Each of Z03C, Z04C, Z05C and Z15C is bound to exactly one sealed original. The 'already executed, compensation required' branch at line 282 has no test."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:289 (cancel_start),300 (restore_end)"
+     ],
+     "tests": [
+      "scripts/ediel-partial-supply-source-sql-regression.mjs :: restored.periods[0].source_end_message_id null; withdrawn.periods[0].status cancelled"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:54,136-138"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: derives the exact current message/subtype combinations from field 223"
+     ],
+     "gap": "Z13 and Z14 do not allow C. The handlers are separate per code. No test sends Z13C/Z14C as a direct negative case."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "same as condition/on_pass"
+     ],
+     "tests": [
+      "scripts/ediel-partial-supply-source-sql-regression.mjs",
+      "scripts/ediel-switch-cancellation-sql-regression.mjs"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:54"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: derives the exact current message/subtype combinations from field 223"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-039",
+     "verdict": "PARTIAL",
+     "code": [
+      "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:273,297"
+     ],
+     "tests": [],
+     "gap": "When the original is missing, a Z04C/Z05C returns applied=false (held). No test covers reverse arrival order. No code was found that re-evaluates the held message once the original arrives, or that keeps the acknowledgement deadlines while it waits."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "A held Z05C or Z04C that arrives before its original may never be re-applied. No re-evaluation path or deadline handling was found.",
+     "evidence": [
+      "supabase/migrations/20261001004331_ediel_regulated_supply_ground_archive_review.sql:297"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-15",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql:154,167-173",
+      "lib/ediel/sources/structuralSourceSelection.ts:106-164",
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts:73-77"
+     ],
+     "tests": [
+      "__tests__/ediel-structural-source-selection.test.ts :: selects source products and exact quarter measurement by valid time, independent of receipt order",
+      "__tests__/ediel-structural-source-selection.test.ts :: arrival and UUID ordering do not select between effective dates"
+     ],
+     "gap": "Valid time (effectiveAt) and receipt time (sourceReceivedAt) are stored separately. No test covers a future supplier receiving structure before its start."
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/sources/structuralSourceSelection.ts:106",
+      "lib/ediel/utilts/structuralComparison.ts:19"
+     ],
+     "tests": [
+      "__tests__/ediel-structural-source-selection.test.ts :: retains both states when a reported interval spans a meter exchange",
+      "__tests__/ediel-utilts-structural-comparison.test.ts :: uses the NEW meter after the exchange"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql:164-173"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-structural-comparison.test.ts :: counts two registers, not four reads or the energy sequence",
+      "__tests__/ediel-structural-source-selection.test.ts :: a future unapproved change does not contaminate an earlier interval"
+     ],
+     "gap": "Changes go into append-only receipt rows. No global metering_points update was found."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/sources/reviewReceivedStructuralSource.ts:76-77"
+     ],
+     "tests": [],
+     "gap": "No behavior test where structure is received before the supply start."
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/utilts/structuralComparison.ts:19"
+     ],
+     "tests": [
+      "__tests__/ediel-utilts-structural-comparison.test.ts :: counts two registers, not four reads or the energy sequence"
+     ],
+     "gap": ""
+    }
+   ],
+   "suspected_defects": []
+  },
+  {
+   "id": "P-16",
+   "verdict": "PARTIAL",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/rulebook/prodatSubtypeRegistry.ts:53-57,140-143",
+      "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql:74-78,197-198",
+      "lib/ediel/core/prodatBilateralSourceCapability.ts:15-34"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-subtypes.test.ts :: requires explicit bilateral capability for bilateral-only combinations",
+      "scripts/ediel-bilateral-prodat-profile-sql-regression.mjs :: sourceCapability owner/profileVersionId"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql:9-12,74,106,111",
+      "lib/ediel/production/bilateralProdatOutboundDraft.ts:30-56"
+     ],
+     "tests": [
+      "scripts/ediel-bilateral-prodat-profile-sql-regression.mjs :: revocation -> current() false; mixed receipt only committed scope",
+      "__tests__/ediel-bilateral-prodat-outbound-draft.test.ts :: missing/revoked native authority holds before any original/witness create"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/stateMachines/prodatLifecycle.ts:231-240,294",
+      "supabase/migrations/20261001013034_ediel_bilateral_prodat_archived_profile_review.sql:75,198"
+     ],
+     "tests": [
+      "scripts/ediel-bilateral-prodat-profile-sql-regression.mjs :: other company -> null",
+      "__tests__/ediel-bilateral-prodat-outbound-draft.test.ts :: own %s alteration cannot borrow another profile"
+     ],
+     "gap": "No test checks that an agreement or test approval for a different counterparty (DSO) in the same company is refused. The lifecycle still reads a payload boolean (see suspected_defects)."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "see condition"
+     ],
+     "tests": [
+      "scripts/ediel-bilateral-prodat-profile-sql-regression.mjs"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "PARTIAL",
+     "code": [
+      "lib/ediel/stateMachines/prodatLifecycle.ts:294"
+     ],
+     "tests": [],
+     "gap": "No negative test using another actor's approval."
+    }
+   ],
+   "suspected_defects": [
+    {
+     "claim": "decideProdatLifecycle takes bilateralCapabilityVerified from parsed_payload/validation_report, which is a global boolean, and passes it to policy resolution. This affects the lifecycle outcome on the legacy state machine path. Native owners still gate the actual effects.",
+     "evidence": [
+      "lib/ediel/stateMachines/prodatLifecycle.ts:231-240",
+      "lib/ediel/stateMachines/prodatLifecycle.ts:294",
+      "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:153,214"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "P-17",
+   "verdict": "COMPLETE",
+   "effects": [
+    {
+     "effect": "condition",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:42-48",
+      "lib/ediel/rulebook/fieldMatrix.ts:606-611"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: retains physical %s diagnosis with the actual full-response gate (first LIN 2, duplicate LIN 1)"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_pass",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:36-50"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-registers.test.ts :: P26.A: 314 and 258 are separate identities"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "on_failure",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatAckMessageFunction.ts:19-27,58-71",
+      "lib/ediel/core/runtimeDecision.ts:208-219"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: retains physical duplicate LIN 1 (BGM+++27, FTX 314)",
+      "__tests__/ediel-prodat-field-identity-inbound.test.ts :: retains malformed global LIN diagnosis (fieldCode 314, effects [])",
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: does not borrow a qualified 314 finding from another physical object"
+     ],
+     "gap": "The error is reported as fieldCode 314, not 209. No test asserts that a 209 error is absent."
+    },
+    {
+     "effect": "at_expected",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatRegisterGroups.ts:48"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-registers.test.ts"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "at_prohibited",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatAckMessageFunction.ts:71"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: holds a sequence rejection without a source-qualified 314 finding, including a positive shortcut"
+     ],
+     "gap": ""
+    },
+    {
+     "effect": "SC-034",
+     "verdict": "IMPLEMENTED",
+     "code": [
+      "lib/ediel/prodat/prodatAckMessageFunction.ts:71"
+     ],
+     "tests": [
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: duplicate LIN 1 BGM+++27",
+      "__tests__/ediel-prodat-z04-persisted-ack.test.ts :: holds a sequence rejection (LIN 4 gap)"
+     ],
+     "gap": "BGM 27 is asserted only for the duplicate case. The first-LIN-2 case asserts only the reference pair."
+    }
+   ],
+   "suspected_defects": []
+  }
+ ]
+}

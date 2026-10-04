@@ -1,5 +1,9 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
+import {buildEdielTgtRegisteredCustomerEventDraft} from './tgtEdifact.part-4';
+import {prepareTgtCustomerLifeEventSource,prepareTgtCustomerEventOriginal} from './tgtCustomerLifeEventSource';
 import {resolveTgtReportingBuildContext} from './tgtReportingPermissionContext'
 import {assertTgtReportingDraft} from './tgtReportingPermissionDraft'
+import { serializeTgtUnb } from './tgtEnvelope'
 import {resolveTgtDateEventBuildContext} from './tgtDateEventContext'
 import {assertTgtDateEventDraft} from './tgtDateEventSource'
 import { getEdielTgtTestDataForCase } from '@/lib/ediel/testing/tgtTestData'
@@ -13,14 +17,17 @@ import {
   listEdielTestRunMessages,
   listEdielTestRuns,
 } from "@/lib/ediel/db";
+import {tgtCanonicalDraftRouteRequest} from '@/lib/ediel/testing/tgtCanonicalDraftRoute'
+import {createCanonicalOutboundMessage} from '@/lib/ediel/core/kernel';
 import {
   evaluateEdielTgtRun,
   getEdielTgtNextAction,
-  getEdielTgtTestCaseByCode,
   type EdielTgtExpectedStep,
   type EdielTgtRunEvaluation,
 } from "@/lib/ediel/testing/tgtRegistry";
 import { buildEdielTgtDraft } from "@/lib/ediel/testing/tgtEdifact";
+import { bindSourceQualifiedNegativeFixtureDraft, resolveSourceQualifiedNegativeFixtureDraft } from '@/lib/ediel/testing/negativeFixtureAuthority';
+import {bindSourceQualifiedPositiveFixtureDraft,resolveSourceQualifiedPositiveFixtureDraft} from '@/lib/ediel/testing/positiveFixtureAuthority';
 import { getEdielTgtDynamicTestDataForCase } from "@/lib/ediel/testing/tgtTestDataStore";
 import { supabaseService } from "@/lib/supabase/service";
 import {
@@ -105,8 +112,7 @@ function runtimeSuiteForRun(testRun: EdielTestRunRow): "AGT" | "TGT" {
 
 function buildUnb(params: {
   interchangeRef: string;
-  date: string;
-  time: string;
+  createdAt: Date;
   family: EdielMessageFamily;
   systemTestContext: EdielSystemTestRuntimeContext;
   roleCode?: string | null;
@@ -126,13 +132,6 @@ function buildUnb(params: {
       ? params.systemTestContext.senderSubaddress
       : null;
 
-  const sender = senderSub
-    ? `${params.systemTestContext.testPortalEdielId}:ZZ:${senderSub}`
-    : `${params.systemTestContext.testPortalEdielId}:ZZ`;
-  const receiver = receiverSub
-    ? `${params.systemTestContext.actorEdielId}:ZZ:${receiverSub}`
-    : `${params.systemTestContext.actorEdielId}:ZZ`;
-
   const applicationReference =
     params.family === "CONTRL"
       ? EDIEL_TGT_PRODAT_APPLICATION_REFERENCE
@@ -142,7 +141,10 @@ function buildUnb(params: {
           messageCode: params.messageCode,
         });
 
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.date}:${params.time}+${params.interchangeRef}++${applicationReference}++1`;
+  return serializeTgtUnb({ family: params.family, code: params.messageCode,
+    sender: params.systemTestContext.testPortalEdielId, receiver: params.systemTestContext.actorEdielId,
+    senderSubAddress: senderSub, receiverSubAddress: receiverSub,
+    applicationReference, interchangeReference: params.interchangeRef, createdAt: params.createdAt });
 }
 
 function buildUnh(messageRef: string, step: EdielTgtExpectedStep) {
@@ -252,8 +254,7 @@ function buildMockPortalInput(params: {
   const rawPayload = serializeEdifact([
     buildUnb({
       interchangeRef,
-      date: parts.yyMMdd,
-      time: parts.hhmm,
+      createdAt: new Date(parts.iso),
       family: params.step.family,
       roleCode:
         params.evaluation.definition?.roleCode ?? params.testRun.role_code,
@@ -391,7 +392,10 @@ async function createDraftForStep(params: {
 
   const dateBuild=params.step.family==='PRODAT'?await resolveTgtDateEventBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,code:params.step.code,runtime:systemTestContext,testData:importedTestData??getEdielTgtTestDataForCase(params.evaluation.definition.suite,params.evaluation.definition.roleCode,params.evaluation.definition.testCaseCode)}):undefined;
   const reportingBuild=params.step.family==='PRODAT'&&params.step.code==='Z13'?await resolveTgtReportingBuildContext({run:params.evaluation.testRun,stepNo:params.step.stepNo,runtime:systemTestContext}):undefined;
-  const draft = buildEdielTgtDraft({
+  // Current tenant actor authority precedes any classified source read.
+  if(params.step.family==='PRODAT'&&params.step.code==='Z09')await assertEdielTenantActor({companyId:String(params.evaluation.testRun.company_id??''),actorUserId:params.actorUserId,permissionAnyOf:['communication.write','ediel_testing.write']});
+  const classifiedOriginal=await prepareTgtCustomerEventOriginal({companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId,family:params.step.family,code:params.step.code});
+  const buildParams = {
     actorUserId: params.actorUserId,
     testSuite: params.evaluation.definition.suite,
     roleCode: params.evaluation.definition.roleCode,
@@ -401,7 +405,8 @@ async function createDraftForStep(params: {
     testRunId:params.evaluation.testRun.id,
     registerFacts:reportingBuild?.facts??dateBuild?.facts,dateEventContext:dateBuild?.context,reportingContext:reportingBuild?.context,
     systemTestContext,
-  });
+  };
+  const draft=classifiedOriginal?buildEdielTgtRegisteredCustomerEventDraft(buildParams,classifiedOriginal):buildEdielTgtDraft(buildParams);
   const routeProfileId = String(params.evaluation.testRun.route_profile_id ?? "").trim();
   if (routeProfileId) {
     const { data: routeProfile, error } = await supabaseService
@@ -432,20 +437,33 @@ async function createDraftForStep(params: {
     }
   }
 
+  // Same contract as the manual consumer: only an independently classified
+  // test original carries the customer life-event source context.
+  if(classifiedOriginal)await prepareTgtCustomerLifeEventSource({draft,companyId:params.evaluation.testRun.company_id,runId:params.evaluation.testRun.id,stepNo:params.step.stepNo,actorUserId:params.actorUserId});
   const blockingIssues = draft.validationIssues.filter(
     (issue) => issue.severity === "error",
   );
   if (blockingIssues.length > 0) {
-    throw new Error(
+    const qualification = await resolveSourceQualifiedNegativeFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload ?? '',diagnosticCodes:blockingIssues.map(issue=>issue.code)});
+    if (!qualification) throw new Error(
       `TGT-utkastet är blockerat: ${blockingIssues
         .map((issue) => `${issue.title}: ${issue.description}`)
         .join(" | ")}`,
     );
+    bindSourceQualifiedNegativeFixtureDraft(draft.messageInput,qualification);
+    draft.messageInput.status='prepared';
+    draft.messageInput.parsedPayload={...draft.messageInput.parsedPayload,readyForDownload:true,negativeFixtureEvidence:{registrationId:qualification.registrationId,originalFileSha256:qualification.originalFileSha256,expectedOutcome:'negative'}};
+  } else if (draft.messageInput.messageFamily==='PRODAT'||draft.messageInput.messageFamily==='UTILTS') {
+    const qualification=await resolveSourceQualifiedPositiveFixtureDraft({companyId:params.evaluation.testRun.company_id!,runId:params.evaluation.testRun.id,
+      stepNo:params.step.stepNo,actorUserId:params.actorUserId,rawPayload:draft.messageInput.rawPayload??'',diagnosticCodes:[]});
+    if(!qualification)throw new Error('ediel_positive_fixture_original_required');
+    bindSourceQualifiedPositiveFixtureDraft(draft.messageInput,qualification);
   }
 
   assertTgtDateEventDraft(draft.messageInput,dateBuild?.context);
   assertTgtReportingDraft(draft.messageInput,reportingBuild?.context);
-  const message = await createEdielMessage(draft.messageInput);
+  const message = await createCanonicalOutboundMessage({actorUserId:params.actorUserId,requestType:tgtCanonicalDraftRouteRequest(draft.messageInput),baseInput:draft.messageInput,reportingContext:reportingBuild?.context,dateEventContext:dateBuild?.context});
   await attachEdielMessageToTestRun({
     companyId: params.evaluation.testRun.company_id,
     testRunId: params.evaluation.testRun.id,

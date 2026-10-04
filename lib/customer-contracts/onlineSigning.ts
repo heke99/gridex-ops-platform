@@ -1,4 +1,5 @@
 import "server-only";
+import { requireContractRecordsAvailable } from '@/lib/ediel/retention/customerRecordClasses';
 
 import { createHash, createHmac, randomBytes } from "node:crypto";
 import { getBaseAppUrl } from "@/lib/auth/urls";
@@ -364,7 +365,9 @@ export async function loadOnlineSignatureReceipt(
     { p_token_hash: hashOnlineSignatureToken(token) },
   );
   if (error) throw error;
-  return parseReceipt(data);
+  const receipt = parseReceipt(data);
+  await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
+  return receipt;
 }
 
 export async function sendOnlineContractSignatureRequest(input: {
@@ -376,6 +379,7 @@ export async function sendOnlineContractSignatureRequest(input: {
   channel?: OnlineSignatureChannel;
   expiresInHours?: number;
 }) {
+  await requireContractRecordsAvailable({ companyId: input.companyId, contractId: input.contractId });
   const token = randomBytes(32).toString("hex");
   const tokenHash = hashOnlineSignatureToken(token);
   const expiresInHours = Math.min(Math.max(input.expiresInHours ?? 72, 1), 336);
@@ -479,6 +483,7 @@ async function signedContractState(receipt: OnlineSignatureReceipt) {
 }
 
 async function deliverSignedContractReceipt(receipt: OnlineSignatureReceipt) {
+  await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
   if (!receipt.signed_at || !receipt.signature_snapshot_sha256) {
     throw new Error("signed_contract_receipt_evidence_missing");
   }
@@ -666,6 +671,7 @@ export async function finalizeOnlineContractSignature(input: {
   if (error) throw error;
   const receipt = parseReceipt(data);
 
+  await requireContractRecordsAvailable({ companyId: receipt.company_id, contractId: receipt.contract_id });
   let deliveryError: string | null = null;
   try {
     await deliverSignedContractReceipt(receipt);

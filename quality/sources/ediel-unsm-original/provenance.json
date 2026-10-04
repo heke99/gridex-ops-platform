@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "sourceType": "unchanged_original_UN_EDIFACT_directory_archives",
+  "retrieval": {
+    "mirrorRepository": "https://github.com/smooks/unedifact",
+    "mirrorCommit": "5d11e96017dfb63f6b049066817039665c530b5d",
+    "directOfficialRetrieval": "UNECE directory endpoints returned HTTP403; no independent original ZIP hash or digital signature was obtained",
+    "retrievedAt": "2026-10-01"
+  },
+  "limits": [
+    "Original document contents and selected edition headers were verified against extracted bytes; mirror provenance is explicit and is not an external certification.",
+    "No Smooks mapping model or third-party generated grammar is used.",
+    "Only selected PRODAT97A,UTILTS02B,APERAK96A andAPERAK04A business grammar is covered. CONTRL2:2 full service-message grammar remains outside this package.",
+    "UNH/UNT service elements remain owned by the separate envelope validator.",
+    "Syntaxversion4 repeating data elements are not supported by the current national tokenizer and are held, not validated using version3 assumptions."
+  ],
+  "archives": [
+    {
+      "path": "d97a.zip",
+      "mirrorPath": "d97a/mapping/d97a.zip",
+      "sha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+      "selectedGrammar": "PRODAT:D:97A:UN",
+      "originalMembers": [
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDMD.ZIP!EDIFACT/DIRECTOR/TRMD/PRODAT_D.97A",
+          "sha256": "f6d6258573235c642889c2d7404774d1fc642db4cb70c46ef7bb93a1c95f6cf9"
+        },
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDSD.ZIP!EDIFACT/DIRECTOR/TRSD/EDSD.97A",
+          "sha256": "f8e67ec915604e16768b153cd6b837ab47e0fb31265e4cfc154db246bf6d7c11"
+        },
+        {
+          "archiveMember": "EDIFACT/D97ADISK/EDCD.ZIP!EDIFACT/DIRECTOR/TRCD/EDCD.97A",
+          "sha256": "545aba5d4df750784d023633685835385b2fdbb49853769b2c79bbd1b7ccf2c1"
+        }
+      ]
+    },
+    {
+      "path": "d02b.zip",
+      "mirrorPath": "d02b/mapping/d02b.zip",
+      "sha256": "5eee0d255d03ee972be0adbcdc47c4ab5dd1e3160b90a48d5078972198ee8393",
+      "selectedGrammar": "UTILTS:D:02B:UN",
+      "originalMembers": [
+        {
+          "archiveMember": "EDMD.ZIP!UTILTS_D.02B",
+          "sha256": "12c918fe7171ce8c52102dc194c5f32493c40f9c16f7bc3bb2b641de24a0abc0"
+        },
+        {
+          "archiveMember": "EDSD.ZIP!EDSD.02B",
+          "sha256": "cf41d0d9371cfaaf1ba74d990bf727258a027122e34c64a4af688662e412b3b7"
+        },
+        {
+          "archiveMember": "EDCD.ZIP!EDCD.02B",
+          "sha256": "03e742e8a7b9164aa30069e7c9428f8dda60d307435087a2d4d6885ebaaa2dde"
+        }
+      ]
+    },
+    {
+      "path": "d96a.zip",
+      "mirrorPath": "d96a/mapping/d96a.zip",
+      "sha256": "1f94c7663a48bbc99d48e93bab16ed2ee127fda73682e6f4c80363256cbcdcd2",
+      "selectedGrammar": "APERAK:D:96A:UN",
+      "originalMembers": [
+        {
+          "archiveMember": "TRMD.ZIP!APERAK_D.96A",
+          "sha256": "6d3b4705dcb8b10833278f1aa662717d17c2cca6e4450f6be7bc29abb8741561"
+        },
+        {
+          "archiveMember": "TRSD.ZIP!TRSD.96A",
+          "sha256": "5c00de1c06bd988e40333e606274e3e0455a2d9ac7410ec38d8e17e097c5383b"
+        },
+        {
+          "archiveMember": "TRCD.ZIP!TRCD.96A",
+          "sha256": "0770a0222be494be838d7390c02f1844c48990c56a2f06039528b2c763b40487"
+        }
+      ]
+    },
+    {
+      "path": "d04a.zip",
+      "mirrorPath": "d04a/mapping/d04a.zip",
+      "sha256": "7a907cf82f9de32a913e8c8500398fdd6d965536c17389adcb5a40d4b7bcba28",
+      "selectedGrammar": "APERAK:D:04A:UN",
+      "originalMembers": [
+        {
+          "archiveMember": "EDMD.ZIP!APERAK_D.04A",
+          "sha256": "9b4e5dc0d908045b26034ae6a5783c2e5d7984ff2c99d03ec3ed49d2c9a4f415"
+        },
+        {
+          "archiveMember": "EDSD.ZIP!EDSD.04A",
+          "sha256": "8b253caeec00f10470f673aa0bc6bab64dad1ccd0c18d2e537b71d9baac4a5b2"
+        },
+        {
+          "archiveMember": "EDCD.ZIP!EDCD.04A",
+          "sha256": "dbc68e0d0f9e36874b4b90782e6a232b83046aaaaf9846462fe95a85d93add12"
+        }
+      ]
+    }
+  ],
+  "syntaxSources": [
+    {
+      "archiveSha256": "4a8fbe74935a140b0982f9b555571831e7b9d90311acdbf195ae481e2fe705a8",
+      "archiveMember": "EDIFACT/D97ADISK/PART4_D.ZIP!D422_D.97A",
+      "sha256": "2577bf074a8f529875d5c89e17ee9d724c73fe700afcb1a0149238dea64fea3f",
+      "pointers": [
+        "8.2 Repetition of data elements",
+        "10. Representation of numeric data element values"
+      ]
+    }
+  ]
+}

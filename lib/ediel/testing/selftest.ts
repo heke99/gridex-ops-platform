@@ -1,3 +1,4 @@
+import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft'
 // lib/ediel/selftest.ts
 
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -11,7 +12,6 @@ import {
 import {
   buildAperakDraft,
   buildContrlDraft,
-  buildUtiltsErrDraft,
 } from '@/lib/ediel/ack'
 import {
   createCanonicalAckMessage,
@@ -286,16 +286,9 @@ async function createNegativeUtiltsErr(params: {
 }): Promise<string> {
   const sourceMessage = await loadSourceMessage(params.sourceMessageId)
 
-  const utiltsErr = await createCanonicalAckMessage({
-    actorUserId: params.actorUserId,
-    sourceMessage,
-    ackFamily: 'UTILTS_ERR',
-    draft: buildUtiltsErrDraft({
-      actorUserId: params.actorUserId,
-      sourceMessage,
-      messageText: params.messageText,
-    }),
-  })
+  const prepared=await prepareSourceAckDraft({actorUserId:params.actorUserId,sourceMessage,ackFamily:'UTILTS_ERR',messageText:params.messageText})
+  if(prepared.kind==='existing')return prepared.message.id
+  const utiltsErr=await createCanonicalAckMessage({actorUserId:params.actorUserId,sourceMessage,ackFamily:'UTILTS_ERR',draft:prepared.draft})
 
   return utiltsErr.id
 }

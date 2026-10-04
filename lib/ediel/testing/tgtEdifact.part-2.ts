@@ -5,6 +5,7 @@ import {END_USER_ADDRESS_CODES} from '@/lib/ediel/prodat/prodatEndUserAddress'
 import { readTgtProdatSourceColumns, groupTgtProdatSourceObjects, sourceExpectationIndex, tgtProdatSourceValue } from './tgtProdatSource'
 import { prodatDate203, prodatDate102 } from '@/lib/ediel/prodat/render/dates'
 import { buildProdatDateSegments } from '@/lib/ediel/prodat/render/dateSegments'
+import { serializeTgtUnb } from './tgtEnvelope'
 // Extracted from tgtEdifact.ts; keep public imports on the facade module.
 import type { EdielMessageFamily } from "@/lib/ediel/types"
 
@@ -704,6 +705,7 @@ export function serializeEdifactSegments(segments: string[]): string {
 }
 
 export function buildUnb(params: {
+  family: EdielMessageFamily;
   refs: DraftReferences;
   senderEdielId: string;
   senderSubAddress?: string | null;
@@ -711,14 +713,14 @@ export function buildUnb(params: {
   receiverSubAddress?: string | null;
   applicationReference: string;
 }): string {
-  const sender = params.senderSubAddress
-    ? `${params.senderEdielId}:ZZ:${params.senderSubAddress}`
-    : `${params.senderEdielId}:ZZ`;
-  const receiver = params.receiverSubAddress
-    ? `${params.receiverEdielId}:ZZ:${params.receiverSubAddress}`
-    : `${params.receiverEdielId}:ZZ`;
-
-  return `UNB+UNOC:3+${sender}+${receiver}+${params.refs.createdDate}:${params.refs.createdTime}+${params.refs.interchangeRef}++${params.applicationReference}++1`;
+  const day = params.refs.createdLongDate, time = params.refs.createdTime;
+  const createdAt = new Date(`${day.slice(0,4)}-${day.slice(4,6)}-${day.slice(6,8)}T${time.slice(0,2)}:${time.slice(2,4)}:00.000Z`);
+  if (!/^\d{8}$/.test(day) || !/^\d{4}$/.test(time) || !Number.isFinite(createdAt.getTime())
+      || params.refs.createdDate !== day.slice(2)
+      || `${day.slice(2)}${time}` !== createdAt.toISOString().slice(2,16).replace(/[-T:]/g,'')) throw new Error('tgt_unb_source_clock_required');
+  return serializeTgtUnb({ family: params.family, sender: params.senderEdielId, receiver: params.receiverEdielId,
+    senderSubAddress: params.senderSubAddress, receiverSubAddress: params.receiverSubAddress,
+    applicationReference: params.applicationReference, interchangeReference: params.refs.interchangeRef, createdAt });
 }
 
 export function buildUnh(
@@ -738,6 +740,7 @@ export function buildUnh(
 
 export function buildInterchange(params: EdifactEnvelopeParams): string {
   const unb = buildUnb({
+    family: params.family,
     refs: params.refs,
     senderEdielId: params.senderEdielId,
     senderSubAddress: params.senderSubAddress,

@@ -1,10 +1,12 @@
 // lib/ediel/core/syntaxValidator.ts
 
+import { validateEdifactEnvelope, validateUnsmGrammar, type UnsmGrammarResult, type EdifactValidationIssue } from '@/lib/ediel/core/edifactValidation'
 import type { EdielMessageRow } from '@/lib/ediel/types'
-import { element, parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
+import { parseEdifactMessageFacts } from '@/lib/ediel/core/edifactSegments'
 
 export type EdielSyntaxIssue = {
   code:
+    | EdifactValidationIssue['code']
     | 'missing_unb'
     | 'missing_unh'
     | 'missing_bgm'
@@ -25,6 +27,8 @@ export type EdielSyntaxValidationResult = {
   issues: EdielSyntaxIssue[]
   declaredUntCount: number | null
   actualMessageSegmentCount: number | null
+  grammarQualification: UnsmGrammarResult['qualification']
+  grammarSources: UnsmGrammarResult['sources']
 }
 
 
@@ -61,106 +65,27 @@ function isActualContrl(message: EdielMessageRow, facts?: ReturnType<typeof pars
   return storedFamily === 'CONTRL' || storedCode === 'CONTRL' || parsedType === 'CONTRL'
 }
 
-function shouldRequireBgmReference(message: EdielMessageRow): boolean {
-  if (message.message_family !== 'PRODAT') return false
-  const code = String(message.message_code ?? '').toUpperCase()
-  return ['Z03', 'Z04', 'Z05', 'Z06', 'Z09', 'Z10'].includes(code)
-}
-
 export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxValidationResult {
-  const facts = parseEdifactMessageFacts(message.raw_payload)
-  const issues: EdielSyntaxIssue[] = []
-
-  if (!facts.unb) {
-    issues.push({
-      code: 'missing_unb',
-      severity: 'error',
-      title: 'UNB saknas',
-      description: 'Meddelandet saknar EDIFACT-interchange header UNB.',
-    })
+  const envelope = validateEdifactEnvelope(message.raw_payload)
+  const issues: EdielSyntaxIssue[] = envelope.issues.map(item => ({
+    code: item.code === 'unt_unh_reference_mismatch' ? 'unh_unt_reference_mismatch' : item.code,
+    severity: item.severity, title: 'EDIFACT-kuvert', description: item.message,
+  }))
+  // A lexical rejection cannot safely be reparsed for national/header facts.
+  const facts = envelope.issues.some(item => item.code === 'syntax_tokenization_failed')
+    ? null : parseEdifactMessageFacts(message.raw_payload)
+  const grammar: UnsmGrammarResult = facts ? validateUnsmGrammar(message.raw_payload ?? '')
+    : { qualification: 'not_applicable', syntaxOk: false, issues: [], sources: [] }
+  issues.push(...grammar.issues.map(item => ({ code: item.code, severity: item.severity,
+    title: 'Full versionsbunden UNSM-grammatik', description: item.description })))
+  if (facts && !facts.bgm && !isActualContrl(message, facts)) {
+    issues.push({ code: 'missing_bgm', severity: 'error', title: 'BGM saknas',
+      description: 'Meddelandet saknar BGM-segment. APERAK/PRODAT/UTILTS ska ha BGM enligt anvisning.' })
   }
 
-  if (!facts.unh) {
-    issues.push({
-      code: 'missing_unh',
-      severity: 'error',
-      title: 'UNH saknas',
-      description: 'Meddelandet saknar EDIFACT message header UNH.',
-    })
-  }
-
-  if (!facts.bgm && !isActualContrl(message, facts)) {
-    issues.push({
-      code: 'missing_bgm',
-      severity: 'error',
-      title: 'BGM saknas',
-      description: 'Meddelandet saknar BGM-segment. APERAK/PRODAT/UTILTS ska ha BGM enligt anvisning.',
-    })
-  }
-
-  if (facts.bgm && shouldRequireBgmReference(message) && !facts.documentReference) {
-    issues.push({
-      code: 'missing_bgm_reference',
-      severity: 'error',
-      title: 'BGM-referens saknas',
-      description: 'PRODAT-meddelandet saknar BGM/1004 dokumentreferens.',
-    })
-  }
-
-  if (!facts.unt) {
-    issues.push({
-      code: 'missing_unt',
-      severity: 'error',
-      title: 'UNT saknas',
-      description: 'Meddelandet saknar EDIFACT message trailer UNT.',
-    })
-  }
-
-  if (!facts.unz) {
-    issues.push({
-      code: 'missing_unz',
-      severity: 'error',
-      title: 'UNZ saknas',
-      description: 'Meddelandet saknar EDIFACT interchange trailer UNZ.',
-    })
-  }
-
-  const declaredUntCountRaw = element(facts.unt, 1)
-  const declaredUntCount = declaredUntCountRaw ? Number(declaredUntCountRaw) : null
-  const unhIndex = facts.unh?.index ?? -1
-  const untIndex = facts.unt?.index ?? -1
-  const actualMessageSegmentCount = unhIndex >= 0 && untIndex >= unhIndex ? untIndex - unhIndex + 1 : null
-
-  if (declaredUntCountRaw && !Number.isFinite(declaredUntCount)) {
-    issues.push({
-      code: 'unt_count_mismatch',
-      severity: 'error',
-      title: 'UNT antal är ogiltigt',
-      description: `UNT/0074 är inte numeriskt: ${declaredUntCountRaw}.`,
-    })
-  } else if (
-    declaredUntCount !== null &&
-    actualMessageSegmentCount !== null &&
-    declaredUntCount !== actualMessageSegmentCount
-  ) {
-    issues.push({
-      code: 'unt_count_mismatch',
-      severity: 'error',
-      title: 'UNT segmentantal stämmer inte',
-      description: `Deklarerat antal är ${declaredUntCount}, faktiskt antal är ${actualMessageSegmentCount}.`,
-    })
-  }
-
-  const unhReference = element(facts.unh, 1)
-  const untReference = element(facts.unt, 2)
-  if (unhReference && untReference && unhReference !== untReference) {
-    issues.push({
-      code: 'unh_unt_reference_mismatch',
-      severity: 'error',
-      title: 'UNH/UNT-referens stämmer inte',
-      description: `UNH/0062 är ${unhReference}, men UNT/0062 är ${untReference}.`,
-    })
-  }
+  // PRODAT field203 is a national Required field owned by the canonical
+  // field profile. Missing BGM/1004 therefore stays in that guide layer;
+  // service syntax must not invent a CONTRL failure from national R.
 
   if (message.syntax_check_status === 'failed' && !runtimeSyntaxAccepted(message)) {
     issues.push({
@@ -181,9 +106,11 @@ export function validateEdifactSyntax(message: EdielMessageRow): EdielSyntaxVali
   }
 
   return {
-    ok: !issues.some((issue) => issue.severity === 'error'),
+    ok: grammar.qualification !== 'unavailable' && !issues.some((issue) => issue.severity === 'error'),
     issues,
-    declaredUntCount: Number.isFinite(declaredUntCount) ? declaredUntCount : null,
-    actualMessageSegmentCount,
+    declaredUntCount: envelope.declaredUntCount,
+    actualMessageSegmentCount: envelope.actualMessageSegmentCount,
+    grammarQualification: grammar.qualification,
+    grammarSources: grammar.sources,
   }
 }

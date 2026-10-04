@@ -1,5 +1,19 @@
 import type { EdielDirection, EdielEnvironment } from '@/lib/ediel/types'
 
+/** Version admission and business timestamps have different source authority. */
+export type EdielMessageTimeAnchors = Readonly<{
+  documentDate: string | null
+  documentTimestamp: Readonly<{ value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }> | null
+  localIngressAt: string | null
+  actualSendAt: string | null
+  admissionAt: string
+  admissionDate: string
+  admissionSource: 'local_ingress' | 'message_persisted' | 'pre_send' | 'explicit'
+  businessEffectiveDate: string
+  measurementPeriods: readonly Readonly<{ qualifier: string; value: string; format: string | null; originalOffset: string | null; timeBasis: 'fixed_UTC_plus_1' | 'source_declared' }>[]
+  replayAt: string | null
+}>
+
 export type EdielExecutionFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL' | 'UTILTS_ERR'
 
 export type EdielExecutionContext = Readonly<{
@@ -12,21 +26,25 @@ export type EdielExecutionContext = Readonly<{
   transactionSubtype: string | null
   businessProcess: string
   businessDate: string
+  timeAnchors?: EdielMessageTimeAnchors | null
   senderActorId: string
+  /** Legal market actor; may differ from the transport sender when an ombud transports. */
+  legalActorEdielId: string
   senderEdielId: string
   senderRole: string
   senderSubAddress: string | null
-  receiverActorId: string
+  receiverActorId: string | null
   receiverEdielId: string
-  receiverRole: string
+  receiverRole: string | null
   receiverSubAddress: string | null
   gridAreaCode: string | null
   rulePackId: string
-  communicationRouteId: string
-  routeProfileId: string
+  /** Known once routed; a prepared draft (e.g. TGT) may precede routing. Send re-checks the route. */
+  communicationRouteId: string | null
+  routeProfileId: string | null
   certificateProfileId: string | null
   applicationReference: string
-  sourceOperationId: string
+  sourceOperationId: string | null
 }>
 
 export type EdielExecutionContextInput = {
@@ -72,16 +90,12 @@ const REQUIRED_TEXT_FIELDS = [
   'messageCode',
   'businessProcess',
   'senderActorId',
+  'legalActorEdielId',
   'senderEdielId',
   'senderRole',
-  'receiverActorId',
   'receiverEdielId',
-  'receiverRole',
   'rulePackId',
-  'communicationRouteId',
-  'routeProfileId',
   'applicationReference',
-  'sourceOperationId',
 ] as const satisfies readonly (keyof EdielExecutionContext)[]
 
 export function validateEdielExecutionContext(
@@ -111,6 +125,15 @@ export function validateEdielExecutionContext(
   const businessDate = nonEmpty(input.businessDate)
   if (!businessDate || !validBusinessDate(businessDate)) {
     issues.push({ field: 'businessDate', code: 'invalid_business_date', message: 'Affärsdatum måste vara ett verkligt YYYY-MM-DD-datum.' })
+  }
+
+  if (input.timeAnchors) {
+    const admission = new Date(input.timeAnchors.admissionAt)
+    if (Number.isNaN(admission.getTime()) || !validBusinessDate(input.timeAnchors.admissionDate)
+      || stockholmBusinessDate(admission) !== input.timeAnchors.admissionDate
+      || input.timeAnchors.businessEffectiveDate !== businessDate) {
+      issues.push({ field: 'timeAnchors', code: 'inconsistent_time_anchors', message: 'Admissionstid och affärstid måste vara separata, giltiga och sammanhängande.' })
+    }
   }
 
   if (input.environment === 'production') {
@@ -147,21 +170,27 @@ export function createEdielExecutionContext(input: EdielExecutionContextInput): 
     transactionSubtype: nullableText(input.transactionSubtype),
     businessProcess: nonEmpty(input.businessProcess)!,
     businessDate: nonEmpty(input.businessDate)!,
+    ...(input.timeAnchors ? { timeAnchors: Object.freeze({
+      ...input.timeAnchors,
+      documentTimestamp: input.timeAnchors.documentTimestamp ? Object.freeze({ ...input.timeAnchors.documentTimestamp }) : null,
+      measurementPeriods: Object.freeze(input.timeAnchors.measurementPeriods.map(period => Object.freeze({ ...period }))),
+    }) } : {}),
     senderActorId: nonEmpty(input.senderActorId)!,
+    legalActorEdielId: nonEmpty(input.legalActorEdielId)!,
     senderEdielId: nonEmpty(input.senderEdielId)!,
     senderRole: nonEmpty(input.senderRole)!,
     senderSubAddress: nullableText(input.senderSubAddress),
-    receiverActorId: nonEmpty(input.receiverActorId)!,
+    receiverActorId: nullableText(input.receiverActorId),
     receiverEdielId: nonEmpty(input.receiverEdielId)!,
-    receiverRole: nonEmpty(input.receiverRole)!,
+    receiverRole: nullableText(input.receiverRole),
     receiverSubAddress: nullableText(input.receiverSubAddress),
     gridAreaCode: nullableText(input.gridAreaCode),
     rulePackId: nonEmpty(input.rulePackId)!,
-    communicationRouteId: nonEmpty(input.communicationRouteId)!,
-    routeProfileId: nonEmpty(input.routeProfileId)!,
+    communicationRouteId: nullableText(input.communicationRouteId),
+    routeProfileId: nullableText(input.routeProfileId),
     certificateProfileId: nullableText(input.certificateProfileId),
     applicationReference: nonEmpty(input.applicationReference)!,
-    sourceOperationId: nonEmpty(input.sourceOperationId)!,
+    sourceOperationId: nullableText(input.sourceOperationId),
   })
 }
 

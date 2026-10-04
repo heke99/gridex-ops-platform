@@ -7,6 +7,8 @@ import {
   stockholmMonthBounds,
 } from "@/lib/time/stockholm";
 import { evaluateBillingGate } from "@/lib/billing/billingGate";
+import { loadQualifiedBillingValues } from './sourceBasis';
+import { isCanonicalUtiltsDecimal, sumUtiltsDecimals } from '@/lib/ediel/utilts/exactDecimal';
 import {
   companyEstimatesMissingConsumption,
   estimateMissingConsumption,
@@ -87,26 +89,11 @@ function strictNumberOrNull(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-function strictNumber(value: unknown, field: string): number {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && value.trim()
-        ? Number(value.replace(",", "."))
-        : Number.NaN;
-  if (!Number.isFinite(parsed))
-    throw new Error(`${field} är inte ett giltigt tal.`);
-  return parsed;
+function quantityKwh(row: JsonRecord): string {
+  if (!isCanonicalUtiltsDecimal(row.quantity_kwh) || row.unit !== 'kWh') throw new Error('billing_exact_kwh_source_required');
+  return row.quantity_kwh;
 }
-
-function quantityKwh(row: JsonRecord): number {
-  const quantity = strictNumber(row.quantity_kwh, "quantity_kwh");
-  const unit = text(row.unit) ?? "kWh";
-  if (unit === "kWh") return quantity;
-  if (unit === "Wh") return quantity / 1_000;
-  if (unit === "MWh") return quantity * 1_000;
-  throw new Error(`Mätenheten ${unit} stöds inte för fakturering.`);
-}
+function absoluteQuantity(row: JsonRecord): string { const quantity = quantityKwh(row); return quantity.startsWith('-') ? quantity.slice(1) : quantity; }
 
 type EnergyDirection =
   | "consumption"
@@ -131,7 +118,7 @@ function normalizeEnergyDirection(row: JsonRecord): EnergyDirection {
   ) {
     return "consumption_correction";
   }
-  if (quantityKwh(row) < 0) return "consumption_correction";
+  if (quantityKwh(row).startsWith('-')) return "consumption_correction";
   return "consumption";
 }
 
@@ -141,7 +128,7 @@ function normalizedBillingRow(row: JsonRecord): JsonRecord {
   return {
     ...row,
     direction: energyDirection,
-    quantity_kwh: Math.abs(quantityKwh(row)),
+    quantity_kwh: quantityKwh(row),
     unit: "kWh",
     energy_direction_inference:
       energyDirection === "consumption_correction" &&
@@ -227,7 +214,7 @@ async function loadNormalizedValues(
   start: string,
   end: string,
 ): Promise<JsonRecord[]> {
-  return paginatedRows<JsonRecord>(async (from, to) => {
+  const rows = await paginatedRows<JsonRecord>(async (from, to) => {
     const response = await supabaseService
       .from("normalized_metering_values")
       .select("*")
@@ -246,6 +233,8 @@ async function loadNormalizedValues(
       error: response.error,
     };
   });
+  const qualified = await loadQualifiedBillingValues(companyId, rows.map(row => String(row.id)));
+  return rows.map(row => qualified.get(String(row.id))!);
 }
 
 async function loadSupplyPeriods(
@@ -384,18 +373,17 @@ function clipMeteringRowToSegment(
     clipEnd <= clipStart
   )
     return null;
-  const ratio = (clipEnd - clipStart) / (originalEnd - originalStart);
+  // No source grants a uniform distribution across a partial interval. Keep
+  // the authentic quantity/period and hold this segment for finer source data.
   return {
     ...row,
-    period_start: new Date(clipStart).toISOString(),
-    period_end: new Date(clipEnd).toISOString(),
-    quantity_kwh: quantityKwh(row) * ratio,
+    quantity_kwh: quantityKwh(row),
     unit: "kWh",
     metadata: {
       ...object(row.metadata),
       original_period_start: row.period_start,
       original_period_end: row.period_end,
-      overlap_ratio: ratio,
+      partial_source_interval: clipStart !== originalStart || clipEnd !== originalEnd,
     },
   };
 }
@@ -526,7 +514,7 @@ function estimatedItems(
     }));
 }
 
-function estimatePayload(estimate: ConsumptionEstimate, actualKwh: number) {
+function estimatePayload(estimate: ConsumptionEstimate, actualKwh: number | string) {
   return {
     method: estimate.method,
     reference_start: estimate.referenceStart,
@@ -622,7 +610,7 @@ async function buildReconciliations(input: {
     if (itemsResult.error) throw itemsResult.error;
     const originalItems = (itemsResult.data ?? []) as JsonRecord[];
     const preliminaryKwh = Number(original.total_kwh ?? 0);
-    const finalKwh = finalRows.reduce((sum, row) => sum + Math.abs(quantityKwh(row)), 0);
+    const finalKwh = finalRows.reduce((sum, row) => sum + Number(absoluteQuantity(row)), 0);
 
     const shared = {
       customer_id: text(original.customer_id),
@@ -720,8 +708,8 @@ async function buildReconciliations(input: {
         source_table: "normalized_metering_values",
         period_start: row.period_start,
         period_end: row.period_end,
-        quantity: Math.abs(quantityKwh(row)),
-        quantity_kwh: Math.abs(quantityKwh(row)),
+        quantity: absoluteQuantity(row),
+        quantity_kwh: absoluteQuantity(row),
         energy_direction: "consumption",
         settlement_type: "invoice",
         unit: "kWh",
@@ -1161,8 +1149,10 @@ export async function generateBillingUnderlaysForMonth(input: {
             supplyPeriodCandidateCount: 1,
             contract,
             contractCandidateCount: contract ? 1 : 0,
+            sourceMessage: row.billing_source_message as JsonRecord | null,
             allowEstimatedValues: false,
           });
+          if (object(row.metadata).partial_source_interval) warnings.push('source_interval_requires_finer_data: Källkvantiteten får inte fördelas proportionellt över ett delintervall.');
           if (!gate.eligible) {
             for (const gateReason of gate.reasons) {
               warnings.push(`${gateReason.code}: ${gateReason.message}`);
@@ -1187,11 +1177,8 @@ export async function generateBillingUnderlaysForMonth(input: {
           );
         }
 
-        const totalKwh = segmentRows.reduce(
-          (sum, row) => sum + Math.abs(quantityKwh(row)),
-          0,
-        );
-        if (!Number.isFinite(totalKwh) || totalKwh <= 0) {
+        const totalKwh = sumUtiltsDecimals(segmentRows.map(absoluteQuantity));
+        if (totalKwh === '0') {
           warnings.push("Total energimängd är ogiltig eller noll.");
         }
 
@@ -1311,8 +1298,8 @@ export async function generateBillingUnderlaysForMonth(input: {
           source_line_reference: text(row.source_line_reference),
           period_start: row.period_start,
           period_end: row.period_end,
-          quantity: Math.abs(quantityKwh(row)),
-          quantity_kwh: Math.abs(quantityKwh(row)),
+          quantity: absoluteQuantity(row),
+          quantity_kwh: absoluteQuantity(row),
           energy_direction: energyDirection,
           settlement_type: settlementType,
           unit: "kWh",
@@ -1329,6 +1316,7 @@ export async function generateBillingUnderlaysForMonth(input: {
             revision_number: row.revision_number ?? null,
             previous_value_id: text(row.previous_value_id),
             billing_gate_snapshot: object(row.billing_gate_snapshot),
+            source_basis: row.billing_source_basis,
             raw_payload: object(row.raw_payload),
             energy_direction: energyDirection,
             original_quantity_kwh: quantityKwh(row),
