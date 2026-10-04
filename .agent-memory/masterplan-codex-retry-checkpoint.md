@@ -87,3 +87,8 @@ gates turn green, preserve Claude approvals/source captures, then continue TR05.
   Actual main65 approvedIDs; TEN07/ESCO10/11/TR01/02 verified, TR03/TR05 still
   pending. Main staff#499 capture retained unchanged; own handover lines
   appended without changing Claude's active task/checkpoint.
+- Efficiency: OPS had no concurrency group; superseded pushes kept running
+  expensive native jobs while current heads waited. Added per-PR/per-ref
+  cancel-in-progress, preserving every mandatory job/step/permission and
+  independent PR/schema-capture runs. Shared workflow ownership reserved on
+  #491 before editing. This is queue management, not a validation bypass.
