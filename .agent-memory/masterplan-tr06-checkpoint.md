@@ -2,10 +2,12 @@
 
 Owner: Codex chat `01a1084e-26ac-72b5-84ee-ed57bf62d040`.
 Branch: `codex/ediel-tr06-certificate-20261004`; initial base `cbefde67712a7ad4e018abf688d1d2e242a61faf`.
+Preparation follow-up: `codex/ediel-recipient-preparation-20261004`, based on #506 head `bfd5bc8e`.
+Readiness follow-up: `codex/ediel-recipient-readiness-20261004`, based on #510 head `d865f7ad`.
 Main integration `33aeb7f7` retains the existing TR-01/02 source, tests and coverage rows;
 the only conflict was the crypto test header, resolved by preserving both ID tags and lifecycle imports.
 Coordination: https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5983511741
-Status: VERIFIED (#506, merge e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f; TR-06, AT-TR-06, SC-060 approved).
+Status: VERIFIED (TR-06/AT-TR-06/SC-060 approved; #506 e7cdcd8d, #510 a40b5732 and #511 643ea134 merged after their own nine exact-head gates).
 
 ## Scope and ownership
 
@@ -43,37 +45,63 @@ Route-profile rereads require the own company. No SQL/schema/transport files cha
 - App/tests/scripts typechecks, owned lint, tagged-approval check (352 IDs, no tagged failures),
   spec integrity (33 originals/121 rules/231 contracts), service-role ratchet and diff whitespace checks PASS.
 - Independent full-criterion review APPROVE; independent 139/139 targeted tests PASS.
-- Integrated full suite: 9953/9953 PASS with the repository's existing CI unit
-  network boundary. Earlier unbounded-network runs hit the same three UTILTS
-  fixture timeouts on unmodified main; the fixture repair belonged to ENV-01/#504
-  and is now merged separately. No timeout or assertion was weakened here.
-- All nine applicable exact-head GitHub gates PASS on bfd5bc8e: verify, quality,
-  clean/upgrade migration replay, smoke, coverage, browser-public, targeted
-  regressions and PR certificate. #506 merged after reviewing intervening
-  #502/#504/#505 changes and preserving their approval rows.
+- Integrated full suite: 9950/9953 PASS without concurrent typechecking; the same
+  three UTILTS projection tests hit their 5-second timeouts on unmodified main
+  `33aeb7f7` (9864/9867 PASS) and in an isolated network-enabled run. They pass
+  3/3 when placeholder Supabase I/O is rejected immediately by the sandbox.
+  The fixture omits the issuer/periodic-reason read ports invoked by the real
+  runtime. The initial CPU hypothesis is disproved. ENV-01/#504 owns the fixture
+  repair; this packet neither duplicates it nor weakens timeouts/assertions.
+  Final run with the existing CI preload `unit-loopback-network-boundary.cjs`
+  passes 9953/9953 on #506's code tree; real loopback tests remain enabled.
+  All nine applicable gates passed on bfd5bc8e before #506 merge.
 
 Synthetic source registration proves guarded code behavior and cryptography;
 it does not prove a live issuer registration, database RLS or market activation.
 
-## Separate follow-up packets
+## Separate observed caller gap
 
-Preparation #510 (merged a40b5732 after nine exact-head gates) supplies companyId at all four callers and the already computed
-businessCode in transport metadata; 14 real-resolver/crypto/AGT behavior tests.
-Readiness #511 (merged 643ea134 after nine exact-head gates) uses the sole validated resolver and its actual PEM fingerprint;
-18 behavior tests prove successful own-company readiness and rejection effects.
-Together: independent parent 199/199 in nine security suites, full 9985/9985,
-types/lint/architecture checks PASS. Both source heads are published and retained; #510/#511 are merged. Actual
-merge trees814fa01e/599119e7 exactly match the independently tested composition.
-SC-041-only #513 is independent and remains subject to its own gates.
-These packets do not add further TR rule approvals or database/market claims.
+Existing `testing/testRunTransportMetadata.ts` and system-test certificate setup
+omitted `companyId` despite the resolver already requiring it; metadata also
+omitted its computed business code. The separate preparation packet adds exactly
+five context lines at the four actual calls. Actual SMTP send already supplies
+`message.company_id`. Route readiness additionally selects weakly matched rows
+before/after the resolver. Its separate verified repair now calls only the
+authoritative resolver with tenant/route/subaddress/family/code/environment;
+blocked trust withdraws cached approval. No unscoped certificate reload remains.
+
+Preparation evidence: four positive paths RED on unchanged callers; companyId
+alone gives 3 PASS/1 metadata RED (`message_code_mismatch`); businessCode completes
+the fourth positive. New 14-case suite uses real signed CA/leaf/clean+revoked CRLs,
+resolver, AGT gate and run persistence; only Supabase/Expisoft ports are substituted.
+Explicit/local/directory success and revoked/foreign rejection are covered.
+Actual passive AGT L2/Z04 stores the own company and true leaf fingerprint;
+foreign/code/authority/revocation failures precede locks, snapshots and run writes.
+Implementer 142/142 PASS; parent review 165/165 in seven security suites PASS;
+owned lint and application/test typechecks PASS. No new rule promotion or SQL changes.
+
+Readiness evidence: unchanged engine 14 FAIL/2 positive PASS; repaired guard
+passes those 16 cases. Two further forged stored-fingerprint probes reproduce
+RED; verified PEM fingerprint overlay repairs them without changing the source
+certificate row. Readiness18 + retained preparation14 =32/32 PASS; parent review
+199/199 in nine security suites PASS, both updated architecture scripts32/32,
+owned TypeScript lint and app/tests typechecks PASS. Shared synthetic fixture
+generation removes duplication without committing keys. Integrated full suite
+with the existing CI network preload passes 9985/9985 on the published code.
+New-main composition e7cdcd8d+#510+#511: independent 123/123 interacting behavior
+probes and 32 architecture assertions PASS. Actual merged trees814fa01e/599119e7
+match that reviewed composition exactly; nine gates pass on each source head.
+ACK-01 support was re-reviewed on latest published #491 d88fa98d (5/5 plus real
+APERAK consumer1/1 PASS); e07 receipt remains historical. No duplicate ACK packet.
+SC-041 is independently approved in #513 and awaits its own gates and merge window.
 
 ## Next action
 
-Hold independent #513 and this handover branch outside main until the
-integrator releases the shared-file merge window; #513 also requires its own
-complete gates. Next isolated rule work is OPS-05 actual failure disposition
-and caller effects; DB-01 inventory remains NOT_VERIFIED with no product finding.
-Record one handover line per actual merge; keep shared campaign memory intact.
+Hold #513 and this documentation-only branch outside main until the integrator
+releases the shared-file merge window; #513 also requires its own complete gates.
+One handover line per #506/#510/#511 merge is retained. Next isolated card is
+OPS-05 actual failure disposition and caller effects. DB-01 read-only inventory
+remains NOT_VERIFIED; existing partial guards do not prove its full design card.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
 continuation; spec-to-code-compliance + independent read-only reviewer for the
