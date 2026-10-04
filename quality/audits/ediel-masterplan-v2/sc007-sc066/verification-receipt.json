@@ -1,0 +1,180 @@
+{
+  "purpose": "SC-007 and SC-066 complete frozen expected/prohibited behavior evidence; independent approval pending",
+  "stacked_base_sha": "fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c",
+  "main_source_baseline": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+  "owner_claim_url": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985559317",
+  "scenario_ids": [
+    "SC-007",
+    "SC-066"
+  ],
+  "coverage_mutated": false,
+  "production_migrations_authority_mutated": false,
+  "native_reuse": {
+    "workflow_run_id": 37219122360,
+    "artifact_id": 11310821113,
+    "head_sha": "f4a0fb4398a79f5777824123142c82aeeb8338ec",
+    "zip_sha256": "470c1eed5afd99678c2d5ab2c7fa108bc33384cc873fb5ecab5cf9cb4f820076",
+    "junit_sha256": "e3d61b376c876c49fc2aed4f6ed61c6f9f16b8dfb110141a65fd94479c9ccb73",
+    "selected_case": "ESCO-10 stores an exact reception receipt without a permission field and distributes only through the current grant",
+    "selected_result": "PASS with zero failure/error/skip; same-GSRN no-grant stranger portion within this existing case",
+    "source_qualification": [
+      {
+        "path": "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "native_source_sha256": "77ad255ca50a52ff73a7a267b32733350d6ad6eba4fdd25fd0b25c4e37554d13",
+        "stacked_base_sha256": "a61dd471b9ba86887a72d8c076fe49d956f652ad762726c14acfdf3b7813521c",
+        "packet_sha256": "ceb2837004e815dcd5ac7e6cfa7d5eda06757614a7414e8599ca8ae803c9c5ab",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": true
+      },
+      {
+        "path": "scripts/ediel-service-evidence-native.test.ts",
+        "native_source_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "stacked_base_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "packet_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+        "native_source_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "stacked_base_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "packet_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/projection.ts",
+        "native_source_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "stacked_base_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "packet_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/commands.ts",
+        "native_source_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "stacked_base_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "packet_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/administration.ts",
+        "native_source_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "stacked_base_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "packet_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/evidenceReview.ts",
+        "native_source_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "stacked_base_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "packet_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/consumptionPreparation.ts",
+        "native_source_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+        "stacked_base_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+        "packet_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/transactionPersistence.ts",
+        "native_source_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+        "stacked_base_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+        "packet_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "native_source_sha256": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+        "stacked_base_sha256": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+        "packet_sha256": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "native_source_sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+        "stacked_base_sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+        "packet_sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "native_source_sha256": "50a9e0493fe68d5e3b780a70963d948d1f2b1a196fb0cffed178bc34c1945f84",
+        "stacked_base_sha256": "50a9e0493fe68d5e3b780a70963d948d1f2b1a196fb0cffed178bc34c1945f84",
+        "packet_sha256": "50a9e0493fe68d5e3b780a70963d948d1f2b1a196fb0cffed178bc34c1945f84",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+        "native_source_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "stacked_base_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "packet_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      },
+      {
+        "path": "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "native_source_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "stacked_base_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "packet_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "asserting_body_equals_native": true,
+        "tag_metadata_only_change": false
+      }
+    ],
+    "fresh_current_native_execution": false,
+    "SC066_native_claim": false
+  },
+  "current_production_source_sha256": {
+    "lib/ediel/aiListHistory.ts": "01c5c21557bc5c79a6ef321ae90f154bebe9dcf151cebc100386c729226cb98e",
+    "lib/ediel/aiList.ts": "2c655783a3278b74d348a95ad10041bd0eaa965f422b1c9f66136142b89a7e21",
+    "lib/ediel/aiListOrigination.ts": "62fc93e9582675ebf651379adb6530815b33966143489787cee93a305c0cef07",
+    "lib/ediel/aiListPartyBasis.ts": "7fa0dba3d80a97a1851acb17718812bee82f4f86d5a8b59ad903da20c09bccc8",
+    "lib/ediel/intent/renderers/aiList.ts": "de7f7b8721bf1949e19ffe31cda7f19feae908666a9bbaba9684a07399796aee",
+    "lib/ediel/aiBiImportEngine.ts": "4fb19858d5a782d477c7c307ad840c573aa8ec577873c72a9f71a72043ce814c",
+    "lib/ediel/aiBiReconciliation.ts": "4894c754372b7f728381fd57fc2eaebb6bbf443025fd85e70490fde8a03366f0",
+    "lib/ediel/aiBiInboundReconciliation.ts": "fdded6364d9e00e3204191749d126994d20fcfb752b40ad85c3e8f091d362abe",
+    "supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql": "cc6c7535ef61c214563898b96e4f796b7024b79c173ea66552900ac11b2e23af",
+    "supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql": "4af40a247a5429805ead539ea146f9a53a5ad6457f8623e3c211094ef1d4965a"
+  },
+  "packet_input_sha256": {
+    "__tests__/ediel-beneficiary-projection-api.test.ts": "1856e0f68b8d282ffbe978baa951860b7b0aea63fbf8ecd58898f6e06b445748",
+    "__tests__/ediel-ai-list-history.test.ts": "c43c35ea829eaacb80ef20b0b301df5e1b91f160e777d03da0912ad3f93a2c1d",
+    "__tests__/ediel-ai-bi-processing-decision.test.ts": "16eaeef971375890c4a0fed678bf16452573290436bd8ee46016001a0c7e5a02",
+    "scripts/ediel-ai-reconciliation-embedded-check.mjs": "acf7e6ab731e025d659f5f2afc8bbd97c621cf4b90b7972a13e6ec97e0de3e63",
+    "scripts/ediel-esco-10-11-projection-native.test.ts": "ceb2837004e815dcd5ac7e6cfa7d5eda06757614a7414e8599ca8ae803c9c5ab",
+    "scripts/test-ediel-ten-07-scoped-projection.cjs": "4ccee798b40110066cd65c80546c16084938436531163e90674034fb092b7ac5",
+    "scripts/test-ediel-ai-history-and-reconciliation.cjs": "a43b5a77b7762af913f62c1094c4f59bb4ed1f2723c81c270e25dc31a3a91233"
+  },
+  "executed_verification": {
+    "vitest": "66/66 PASS in6 suites with CI unit loopback preload; no skips/errors",
+    "vitest_log_sha256": "3e4c7d4902aafaede4fbef0b373b69f651bf0c5ebd305ce9049b6b0ddb65a2b0",
+    "node_wrappers": "3/3 PASS initially: scoped17 plus separatecopies14 and actualAI consumer; AI wrapper rechecked after final assertions1/1 PASS",
+    "ai_sql_final_log_sha256": "17edaa4379dabfe639a69d942d82fd50263dd9c15db5e9427030bde840dc90f7",
+    "tests_typecheck": "PASS final after all assertions",
+    "changed_TS_eslint": "PASS zero diagnostics",
+    "node_syntax": "PASS new wrapper and changed actualSQL script",
+    "spec_integrity": "PASS33 original files/121 rules/231 acceptance contracts",
+    "diff_check": "PASS"
+  },
+  "substitution_boundaries": [
+    "Existing simplified structural source/readset business declarations remain finite chronology dependencies, not private owner receipts",
+    "Current origin-read port returns actual projected current history to the actual intent/export entry; actual loader/private source authority is not claimed executed by that case",
+    "Actual header reader consumes declared source-qualified RPC input through its normal binding object; no new authority helper or private owner seed",
+    "API auth/projection ports are substituted while actual GET/request/error boundary executes",
+    "Existing SQL legal/network decision stubs and disabled before-storage trigger are declared finite upstream ports; actual committed reconciliation owner executes unchanged",
+    "Reduced protected schemas with own/foreign sentinels prove full-row preservation for those schemas, not deployed schema completeness",
+    "Native external issuer/legal/SMTP inputs are synthetic; no fresh native custody or real market acceptance claimed"
+  ],
+  "approval": "PENDING separate independent entire SC007/SC066 review; no selfapproval or coverage promotion",
+  "next_action": "Publish immutable stacked draft PR based on541 and request independent full-scenario review through root"
+}

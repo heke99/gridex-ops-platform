@@ -1,4 +1,4 @@
-// masterplan: TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-008, SC-017
+// masterplan: TEN-07, AT-TEN-07, ESCO-10, AT-ESCO-10, ESCO-11, AT-ESCO-11, SC-008, SC-017, SC-007
 // Run the actual scoped SQL consumer assertions in the regular tagged-test gate.
 const assert = require('node:assert/strict')
 const { spawnSync } = require('node:child_process')

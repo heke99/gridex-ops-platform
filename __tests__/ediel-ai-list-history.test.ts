@@ -1,5 +1,11 @@
-// masterplan: AI-02, AT-AI-02, AI-03, AT-AI-03, SC-065
+// masterplan: AI-02, AT-AI-02, AI-03, AT-AI-03, SC-065, SC-066
 import {describe,expect,it,vi} from 'vitest'
+const exportPorts=vi.hoisted(()=>({origin:vi.fn(),rpc:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:(...args:unknown[])=>({abortSignal:()=>exportPorts.rpc(...args)})}}))
+// Only the current origin-read port is substituted for the intent-entry case.
+// The actual dated projection, qualified header reader and physical draft
+// exporter run below. No private snapshot/owner or live authority is fabricated.
+vi.mock('@/lib/ediel/aiListOrigination',async()=>{const actual=await vi.importActual<typeof import('@/lib/ediel/aiListOrigination')>('@/lib/ediel/aiListOrigination');return {...actual,loadAiListOriginBasis:exportPorts.origin}})
 // Chronology fixtures test only the pure projection. They are not acceptance or
 // source-owner evidence; the existing owner/timeline/native probes stay separate.
 vi.mock('@/lib/ediel/sources/structuralSourceReadset',async()=>{const actual=await vi.importActual<typeof import('@/lib/ediel/sources/structuralSourceReadset')>('@/lib/ediel/sources/structuralSourceReadset');return {...actual,reviewedBusinessFor:(readset:{sources:{sourceMessageId:string;objects:{business:unknown}[]}[]},id:string)=>readset.sources.find(source=>source.sourceMessageId===id)?.objects[0].business}})
@@ -11,6 +17,11 @@ import {parseProdatMessage,parsedProdatObjects} from '@/lib/ediel/prodat/parser'
 import {aiListCell} from '@/lib/ediel/aiListFormat'
 import {prodatMarketMinuteToUtc} from '@/lib/ediel/prodat/render/dates'
 import type {CustomerLifeEventPatch} from '@/lib/ediel/production/customerLifeEventPatches'
+import {readAiListPartyBasis} from '@/lib/ediel/aiListPartyBasis'
+import {buildAiListIntentDraft} from '@/lib/ediel/intent/renderers/aiList'
+import {parseAiBiListCsv} from '@/lib/ediel/aiBiImportParser'
+import type {EdielMessageIntent} from '@/lib/ediel/intent/types'
+import type {resolveCanonicalOutboundContext} from '@/lib/ediel/core/kernel'
 const at=(day:string)=>prodatMarketMinuteToUtc(`${day}0000`)!
 const scope:AiListHistoryScope={companyId:'company',environment:'test',customerId:'customer',siteId:'site',legalSupplier:'12345',legalNetwork:'54321',fromDate:'20261001',toDate:'20261101',cutoffAt:'2026-11-02T12:00:00.000000Z'}
 const object={messageIndex:0,messageReference:'M',objectId:'735123456789012345',identityAgency:'9',registers:[]}
@@ -27,6 +38,41 @@ function patchReadset(patches:readonly CustomerLifeEventPatch[]):StructuralReads
  return readset([source('baseline','20261001'),...versions])
 }
 describe('AI dated supply/source projection',()=>{
+  it('exports a dated partial-delivery address transition through the real intent and physical CSV producer',async()=>{
+    const id=(n:number)=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`
+    const requested={...scope,companyId:id(1),customerId:id(6),siteId:id(7),meteringPointId:id(8)}
+    const delivered={...period,company_id:id(1),customer_id:id(6),metering_point_id:id(8),start_date:'2026-10-05',end_date:'2026-10-25'}
+    const data=readset([source('baseline','20261005'),source('address','20261010','Z06')])
+    for(const version of data.versions){version.coverage!.validFrom=at('20261005');version.coverage!.validTo=at('20261025');version.wire.contractStartMinute='202610050000'}
+    for(const entry of data.sources)Object.assign(entry.objects[0].business!,{companyId:id(1),customerId:id(6),siteId:id(7),meteringPointId:id(8)})
+    const original=structuredClone({delivered,data}),history=projectAiListHistory(requested,[delivered],data)
+    expect(history.details.map(row=>[row.franDatum,row.tillDatum,row.anlaggningsAdress])).toEqual([
+      ['20261005','20261010','Street baseline'],['20261010','20261025','Street address'],
+    ])
+    exportPorts.rpc.mockResolvedValue({data:{status:'source_qualified',companyId:id(1),environment:'test',intentId:id(3),communicationRouteId:id(4),routeProfileId:id(5),legalSupplier:'12345',legalSupplierName:'Declared Supplier',legalNetwork:'54321',legalNetworkName:'Declared Network',technicalSender:'HOST',technicalReceiver:'NETWORK-GATEWAY',sourceBasis:{declaredUnitRpc:true}},error:null})
+    const parties=await readAiListPartyBasis({companyId:id(1),actorUserId:id(2),intentId:id(3)})
+    exportPorts.origin.mockResolvedValue({request:requested,history,parties,site:{id:id(7),grid_owner_id:null}})
+    const intent:EdielMessageIntent={id:id(3),companyId:id(1),environment:'test',market:'electricity',messageFamily:'AI_LIST',messageCode:'AI',businessProcess:'reconciliation',direction:'outbound',senderEdielId:'HOST',receiverEdielId:'NETWORK-GATEWAY',applicationReference:'',routeProfileId:id(5),communicationRouteId:id(4),customerId:id(6),customerSiteId:id(7),meteringPointId:id(8),operationId:id(9),interchangeReference:'UNUSED',messageReference:'UNUSED',payload:{fromDate:scope.fromDate,toDate:scope.toDate,details:[{elanvandarNamn:'FORGED INTENT ROW',franDatum:'20261001',tillDatum:'20261101'}]},idempotencyKey:'DECLARED UNIT EXPORT',validationStatus:'validated',renderStatus:'not_rendered',outboxStatus:'not_queued'}
+    const route={environment:'test',senderEdielId:'HOST',receiverEdielId:'NETWORK-GATEWAY',senderName:'Technical Host',receiverName:'Technical Gateway',receiverEmail:'network@example.invalid',route:{id:id(4)},routeRuntime:{route_profile_id:id(5)},mailbox:null} as Awaited<ReturnType<typeof resolveCanonicalOutboundContext>>
+    const {draft}=await buildAiListIntentDraft({intent,actorUserId:id(2),routeContext:route})
+    expect(exportPorts.origin).toHaveBeenCalledWith({companyId:id(1),actorUserId:id(2),intentId:id(3),environment:'test',customerId:id(6),siteId:id(7),meteringPointId:id(8),fromDate:scope.fromDate,toDate:scope.toDate},route)
+    const physical=draft.rawPayload!.trimEnd().split('\n').slice(1).map(row=>row.split(';'))
+    expect(physical.map(row=>[row[1],row[7],row[17],row[18],row[19],row[20]])).toEqual([
+      [object.objectId,'Street baseline','199001011234','Dated Person','20261005','20261010'],
+      [object.objectId,'Street address','199001011234','Dated Person','20261010','20261025'],
+    ])
+    expect(physical.every(row=>row.length===22&&row[21]==='')).toBe(true)
+    expect(parseAiBiListCsv({raw:draft.rawPayload!,listType:'AI'}).rows).toHaveLength(2)
+    expect(draft.rawPayload).not.toContain('FORGED')
+    expect(draft.parsedPayload?.historyEvidence).toEqual(history.evidence)
+    expect(history.evidence.sourceMessageIds).toEqual(['address','baseline'])
+    expect(history.evidence.rowSources.map(row=>row.addressSourceMessageId)).toEqual(['baseline','address'])
+    expect({delivered,data}).toEqual(original)
+    exportPorts.origin.mockRejectedValueOnce(new Error('ai_list_source_history_read_unconfirmed'))
+    await expect(buildAiListIntentDraft({intent,actorUserId:id(2),routeContext:route})).rejects.toThrow('ai_list_source_history_read_unconfirmed')
+    expect(exportPorts.origin).toHaveBeenCalledTimes(2)
+    expect({delivered,data}).toEqual(original)
+  })
   it('preserves source two-line names and three-line addresses without inventing CSV whitespace',()=>{
     const raw=readset().sources[0].rawPayload.replace('++Dated Person','++ Dated Person : Second Name ').replace('+++Street baseline','+++ First Street : : Third Street ')
     const parsed=parsedProdatObjects(parseProdatMessage(raw))[0].registers[0]

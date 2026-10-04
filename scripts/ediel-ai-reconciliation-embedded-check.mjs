@@ -21,14 +21,23 @@ CREATE TABLE public.tenant_actor_roles(id uuid DEFAULT gen_random_uuid(),company
 CREATE TABLE public.ai_list_imports(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,created_by uuid,list_type text,gdpr_basis text,retention_until date,raw_payload text,filename text,grid_owner_id uuid,status text,row_count int,discrepancy_count int,metadata jsonb);
 CREATE TABLE public.ai_list_import_rows(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,import_id uuid,row_number int,raw_columns jsonb,metering_point_external_id text,matched_metering_point_id uuid,matched_customer_id uuid,matched_customer_site_id uuid,match_status text,discrepancy_reasons text[]);
 CREATE TABLE public.ai_list_discrepancies(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,import_id uuid,import_row_id uuid,discrepancy_type text,severity text,current_values jsonb,imported_values jsonb,status text);
-CREATE TABLE public.customers(id uuid PRIMARY KEY,company_id uuid);
-CREATE TABLE public.customer_sites(id uuid PRIMARY KEY,company_id uuid);
+CREATE TABLE public.customers(id uuid PRIMARY KEY,company_id uuid,full_name text,personal_number text);
+CREATE TABLE public.customer_sites(id uuid PRIMARY KEY,company_id uuid,facility_id text,site_name text);
+CREATE TABLE public.contracts(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,status text,metadata jsonb);
+CREATE TABLE public.customer_contracts(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,status text,metadata jsonb);
+CREATE TABLE public.supplier_switch_requests(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,status text,metadata jsonb);
 CREATE TABLE public.metering_points(id uuid PRIMARY KEY,company_id uuid,customer_id uuid,site_id uuid,customer_site_id uuid,metering_point_id text,meter_point_id text,ediel_reference text,site_facility_id text,grid_area_code text,grid_owner_ediel_id text);`)
 await db.exec(readFileSync(new URL('../supabase/migrations/20260930165219_ediel_ai_processing_decision_consumer.sql',import.meta.url),'utf8'))
 await db.exec(readFileSync(new URL('../supabase/migrations/20260930174145_ediel_ai_source_atomic_reconciliation.sql',import.meta.url),'utf8'))
 const company='00000000-0000-4000-8000-000000000001',actor='00000000-0000-4000-8000-000000000002',decision='00000000-0000-4000-8000-000000000003',source='00000000-0000-4000-8000-000000000004',point='00000000-0000-4000-8000-000000000005',foreign='00000000-0000-4000-8000-000000000006'
 const csv='AI;54321;Network;12345;Supplier;202610011200;;20261001;20261101;Ver20140401\nNET;735123456789012345;9;;;;;Street;12345;Town;12345;;;;;;;199001011234;Person;;;\nOTHER;735123456789012346;9;;;;;Other;12345;Town;12345;;;;;;;199001011234;Person;;;\n'
 const hash=createHash('sha256').update(csv,'utf8').digest('hex')
+const customer='00000000-0000-4000-8000-000000000007',site='00000000-0000-4000-8000-000000000008'
+// The reduced schemas and full-row sentinels are finite test dependencies,
+// not genuine customer/supply or legal authority. Snapshot every protected
+// table, including foreign rows; a matching GSRN cannot authorize any write.
+const protectedTables=['customers','customer_sites','metering_points','contracts','customer_contracts','supplier_switch_requests']
+const masterdataSnapshot=async()=>Object.fromEntries(await Promise.all(protectedTables.map(async table=>[table,(await db.query(`SELECT to_jsonb(t) AS row FROM public.${table} t ORDER BY id`)).rows.map(result=>result.row)])))
 await db.query('INSERT INTO public.companies(id) VALUES($1),($2)',[company,foreign])
 await db.query("INSERT INTO public.company_memberships VALUES($1,$2,'active',true,now())",[company,actor])
 await db.query("INSERT INTO public.user_profiles VALUES($1,'active')",[actor])
@@ -54,7 +63,12 @@ CREATE TRIGGER synthetic_row_failure BEFORE INSERT ON public.ai_list_import_rows
 await assert.rejects(()=>apply(),/synthetic_second_row_failure/)
 for(const table of ['public.ai_list_imports','public.ai_list_import_rows','public.ai_list_discrepancies','gridex_ai_processing.reconciliation_receipts'])assert.equal((await db.query(`SELECT count(*)::int AS count FROM ${table}`)).rows[0].count,0)
 await db.exec('DROP TRIGGER synthetic_row_failure ON public.ai_list_import_rows')
-await db.query("INSERT INTO public.metering_points(id,company_id,meter_point_id,grid_area_code,grid_owner_ediel_id) VALUES($1,$2,'735123456789012345','WRONG','54321'),($3,$4,'735123456789012346','OTHER','54321')",[point,company,foreign,foreign])
+await db.query("INSERT INTO public.customers VALUES($1,$2,'Retained own customer','199001011234'),($3,$3,'Retained foreign customer','FOREIGN')",[customer,company,foreign])
+await db.query("INSERT INTO public.customer_sites VALUES($1,$2,'735123456789012345','Retained own site'),($3,$3,'735123456789012346','Retained foreign site')",[site,company,foreign])
+for(const table of ['contracts','customer_contracts','supplier_switch_requests'])await db.query(`INSERT INTO public.${table} VALUES($1,$2,$3,'active','{"retained":"own original"}'),($4,$4,$4,'active','{"retained":"foreign original"}')`,[point,company,customer,foreign])
+await db.query("INSERT INTO public.metering_points(id,company_id,customer_id,customer_site_id,meter_point_id,grid_area_code,grid_owner_ediel_id) VALUES($1,$2,$5,$6,'735123456789012345','WRONG','54321'),($3,$4,$3,$3,'735123456789012346','OTHER','54321')",[point,company,foreign,foreign,customer,site])
+const originalMasterdata=await masterdataSnapshot()
+const originalSource=(await db.query('SELECT to_jsonb(m) AS row FROM public.ediel_messages m WHERE id=$1',[source])).rows[0].row
 const result=await apply()
 assert.equal(result.status,'applied');assert.equal(result.rowCount,2);assert.equal(result.discrepancyCount,2)
 const rows=(await db.query('SELECT * FROM public.ai_list_import_rows ORDER BY row_number')).rows
@@ -62,8 +76,26 @@ assert.deepEqual(rows[0].discrepancy_reasons,['grid_area_mismatch']);assert.equa
 assert.deepEqual(rows[1].discrepancy_reasons,['metering_point_not_found']);assert.equal(rows[1].matched_metering_point_id,null)
 assert.equal(rows[0].raw_columns.physical_columns[17],'199001011234');assert.equal(rows[0].raw_columns.source_row_number,2)
 assert.equal((await db.query('SELECT grid_area_code FROM public.metering_points WHERE id=$1',[point])).rows[0].grid_area_code,'WRONG')
+assert.deepEqual(await masterdataSnapshot(),originalMasterdata)
+assert.deepEqual((await db.query('SELECT to_jsonb(m) AS row FROM public.ediel_messages m WHERE id=$1',[source])).rows[0].row,originalSource)
+const investigations=(await db.query('SELECT * FROM public.ai_list_discrepancies ORDER BY import_row_id')).rows
+assert.equal((await db.query('SELECT status FROM public.ai_list_imports WHERE id=$1',[result.importId])).rows[0].status,'review_required')
+assert.equal(investigations.length,2)
+for(const row of rows){
+ const investigation=investigations.find(item=>item.import_row_id===row.id)
+ assert.equal(investigation.company_id,company);assert.equal(investigation.import_id,result.importId);assert.equal(investigation.status,'open')
+ assert.equal(investigation.discrepancy_type,row.discrepancy_reasons[0]);assert.deepEqual(investigation.imported_values,row.raw_columns)
+ if(row.matched_metering_point_id===point)assert.deepEqual(investigation.current_values,{id:point,company_id:company,customer_id:customer,site_id:site,grid_area_code:'WRONG',grid_owner_ediel_id:'54321'})
+ else assert.deepEqual(investigation.current_values,{})
+}
+const retainedOutcome=(await db.query('SELECT to_jsonb(r) AS row FROM gridex_ai_processing.reconciliation_receipts r WHERE source_message_id=$1',[source])).rows[0].row
+assert.equal(retainedOutcome.source_payload_hash,hash);assert.equal(retainedOutcome.import_id,result.importId);assert.deepEqual(retainedOutcome.result,result)
 await db.exec("CREATE OR REPLACE FUNCTION gridex_ai_processing.current_decision_v1(c uuid,actor uuid,list_type text) RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('status','held','blocker','ai_bi_processing_decision_missing')$$")
 assert.deepEqual(await apply(),result)
+assert.deepEqual(await masterdataSnapshot(),originalMasterdata)
+assert.deepEqual((await db.query('SELECT to_jsonb(r) AS row FROM gridex_ai_processing.reconciliation_receipts r WHERE source_message_id=$1',[source])).rows[0].row,retainedOutcome)
+assert.deepEqual((await db.query('SELECT * FROM public.ai_list_discrepancies ORDER BY import_row_id')).rows,investigations)
+assert.deepEqual((await db.query('SELECT to_jsonb(m) AS row FROM public.ediel_messages m WHERE id=$1',[source])).rows[0].row,originalSource)
 assert.equal((await db.query('SELECT count(*)::int AS count FROM public.ai_list_imports')).rows[0].count,1)
 await assert.rejects(()=>apply(company,'b'.repeat(64)),/ai_bi_reconciliation_sealed_source_required/)
 await assert.rejects(()=>apply(foreign),/ediel_tenant_actor_forbidden/)
@@ -73,4 +105,4 @@ assert.equal((await db.query("SELECT has_table_privilege('service_role','gridex_
 await db.query("UPDATE public.company_memberships SET status='revoked' WHERE company_id=$1 AND user_id=$2",[company,actor])
 await assert.rejects(()=>apply(),/ediel_tenant_actor_forbidden/)
 await db.close()
-console.log('PASS: synthetic AI atomic rollback, sealed own source, no caller matches/masterdata writes, tenant separation, immutable exact replay and service-only receipt mechanics. Real legal owner stays held; native/replay/RLS/concurrency acceptance NOT RUN.')
+console.log('PASS: synthetic AI atomic rollback, sealed own source, six whole masterdata tables unchanged, open review-required investigation provenance, tenant separation, immutable exact replay and service-only receipt mechanics. Real legal owner stays held; native/replay/RLS/concurrency acceptance NOT RUN.')
