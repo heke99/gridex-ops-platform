@@ -12,6 +12,8 @@ import {
   parsePublicJwk,
   tenantKeyAudience,
   tenantKeyIssuer,
+  identityProviderPurpose,
+  type IdentityProviderPurpose,
 } from '@/lib/customer-portal/identityProviderSetup'
 
 export type CustomerLoginActionState = { ok: boolean; message: string }
@@ -33,15 +35,15 @@ async function authorize(formData: FormData) {
   return { companyId: expected, userId: access.userId }
 }
 
-async function replaceActiveProvider(companyId: string, userId: string, row: Record<string, unknown>, label: string) {
+async function replaceActiveProvider(companyId: string, userId: string, purpose: IdentityProviderPurpose, row: Record<string, unknown>, label: string) {
   const deactivate = await tenantUpdate(companyId, 'tenant_customer_identity_providers', { is_active: false, updated_by: userId, updated_at: new Date().toISOString() })
-    .eq('is_active', true)
+    .eq('purpose', purpose).eq('is_active', true)
   if (deactivate.error) throw deactivate.error
-  const insert = await tenantInsert(companyId, 'tenant_customer_identity_providers', { ...row, enforcement: 'report', is_active: true, created_by: userId, updated_by: userId })
+  const insert = await tenantInsert(companyId, 'tenant_customer_identity_providers', { ...row, purpose, subject_claim: 'sub', enforcement: purpose === 'staff' ? 'enforce' : 'report', is_active: true, created_by: userId, updated_by: userId })
   if (insert.error) throw insert.error
   await logAdminActionAndUsage({
     companyId, actorUserId: userId, entityType: 'tenant_customer_identity_provider', entityId: companyId,
-    action: 'customer_login_configured', label, newValues: { kind: row.kind, issuer: row.issuer, audience: row.audience },
+    action: 'customer_login_configured', label, newValues: { purpose, kind: row.kind, issuer: row.issuer, audience: row.audience },
   })
   resetCustomerIdentityProviderCache(companyId)
   revalidatePath('/admin/customer-login')
@@ -61,12 +63,13 @@ async function run(fn: () => Promise<string>): Promise<CustomerLoginActionState>
 export async function saveOidcProviderAction(_prev: CustomerLoginActionState, formData: FormData) {
   return run(async () => {
     const { companyId, userId } = await authorize(formData)
+    const purpose = identityProviderPurpose(text(formData, 'purpose'))
     const clientId = text(formData, 'client_id')
     if (!clientId || clientId.length > 200) throw new IdentityProviderSetupError('Ange Client-ID från er inloggningsleverantör.')
     const discovery = await discoverOidcProvider(text(formData, 'issuer'))
-    await replaceActiveProvider(companyId, userId, {
+    await replaceActiveProvider(companyId, userId, purpose, {
       kind: 'oidc', display_name: text(formData, 'display_name') || 'Inloggningsleverantör',
-      issuer: discovery.issuer, audience: clientId, jwks_uri: discovery.jwksUri, public_jwk: null,
+      issuer: discovery.issuer, audience: purpose === 'staff' ? tenantKeyAudience(companyId, purpose) : clientId, jwks_uri: discovery.jwksUri, public_jwk: null,
       last_tested_at: new Date().toISOString(), last_test_result: { ok: true, key_count: discovery.keyCount },
     }, 'Kundinloggning via leverantör sparad')
     return `Klart. Vi hittade ${discovery.keyCount} publik${discovery.keyCount === 1 ? '' : 'a'} nyckel${discovery.keyCount === 1 ? '' : 'ar'} hos leverantören.`
@@ -77,10 +80,11 @@ export async function saveOidcProviderAction(_prev: CustomerLoginActionState, fo
 export async function saveTenantKeyProviderAction(_prev: CustomerLoginActionState, formData: FormData) {
   return run(async () => {
     const { companyId, userId } = await authorize(formData)
+    const purpose = identityProviderPurpose(text(formData, 'purpose'))
     const jwk = parsePublicJwk(text(formData, 'public_jwk'))
-    await replaceActiveProvider(companyId, userId, {
+    await replaceActiveProvider(companyId, userId, purpose, {
       kind: 'tenant_key', display_name: 'Egen inloggning',
-      issuer: tenantKeyIssuer(companyId), audience: tenantKeyAudience(companyId), jwks_uri: null, public_jwk: jwk,
+      issuer: tenantKeyIssuer(companyId), audience: tenantKeyAudience(companyId, purpose), jwks_uri: null, public_jwk: jwk,
       last_tested_at: new Date().toISOString(), last_test_result: { ok: true },
     }, 'Kundinloggning med egen nyckel sparad')
     return 'Klart. Den publika nyckeln är sparad. Den privata nyckeln finns bara hos er.'
@@ -91,8 +95,9 @@ export async function saveTenantKeyProviderAction(_prev: CustomerLoginActionStat
 export async function testProviderAction(_prev: CustomerLoginActionState, formData: FormData) {
   return run(async () => {
     const { companyId } = await authorize(formData)
+    const purpose = identityProviderPurpose(text(formData, 'purpose'))
     const { data, error } = await tenantSelect(companyId, 'tenant_customer_identity_providers', 'id,kind,issuer,public_jwk')
-      .eq('is_active', true).maybeSingle()
+      .eq('purpose', purpose).eq('is_active', true).maybeSingle()
     if (error) throw error
     const provider = data as { id: string; kind: string; issuer: string; public_jwk: unknown } | null
     if (!provider) throw new IdentityProviderSetupError('Ingen kundinloggning är inställd än.')
@@ -117,14 +122,18 @@ export async function testProviderAction(_prev: CustomerLoginActionState, formDa
 export async function setEnforcementAction(_prev: CustomerLoginActionState, formData: FormData) {
   return run(async () => {
     const { companyId, userId } = await authorize(formData)
+    const purpose = identityProviderPurpose(text(formData, 'purpose'))
+    if (purpose === 'staff' && text(formData, 'enforcement') !== 'enforce') {
+      throw new IdentityProviderSetupError('Personal kräver alltid ett giltigt personalbevis.')
+    }
     const enforcement = text(formData, 'enforcement') === 'enforce' ? 'enforce' : 'report'
     const { data, error } = await tenantUpdate(companyId, 'tenant_customer_identity_providers', { enforcement, updated_by: userId, updated_at: new Date().toISOString() })
-      .eq('is_active', true).select('id').maybeSingle()
+      .eq('purpose', purpose).eq('is_active', true).select('id').maybeSingle()
     if (error) throw error
     if (!data) throw new IdentityProviderSetupError('Ställ in kundinloggning först.')
     await logAdminActionAndUsage({
       companyId, actorUserId: userId, entityType: 'tenant_customer_identity_provider', entityId: companyId,
-      action: 'customer_login_enforcement_changed', label: 'Krav på verifierad kund ändrat', newValues: { enforcement },
+      action: 'customer_login_enforcement_changed', label: 'Krav på verifierad kund ändrat', newValues: { purpose, enforcement },
     })
     resetCustomerIdentityProviderCache(companyId)
     revalidatePath('/admin/customer-login')
@@ -137,8 +146,9 @@ export async function setEnforcementAction(_prev: CustomerLoginActionState, form
 export async function removeProviderAction(_prev: CustomerLoginActionState, formData: FormData) {
   return run(async () => {
     const { companyId, userId } = await authorize(formData)
+    const purpose = identityProviderPurpose(text(formData, 'purpose'))
     const { error } = await tenantUpdate(companyId, 'tenant_customer_identity_providers', { is_active: false, updated_by: userId, updated_at: new Date().toISOString() })
-      .eq('is_active', true)
+      .eq('purpose', purpose).eq('is_active', true)
     if (error) throw error
     await logAdminActionAndUsage({
       companyId, actorUserId: userId, entityType: 'tenant_customer_identity_provider', entityId: companyId,
@@ -146,6 +156,6 @@ export async function removeProviderAction(_prev: CustomerLoginActionState, form
     })
     resetCustomerIdentityProviderCache(companyId)
     revalidatePath('/admin/customer-login')
-    return 'Kundinloggningen är borttagen. API:t fungerar som tidigare.'
+    return purpose === 'staff' ? 'Personalinloggningen är borttagen. Personal-API:t nekar anrop tills en leverantör har kopplats.' : 'Kundinloggningen är borttagen. Kund-API:t fungerar som tidigare.'
   })
 }

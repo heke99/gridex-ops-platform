@@ -6,7 +6,7 @@
  * credential. Internal database identifiers are never part of the public V1
  * request contract.
  */
-export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-02.4' as const
+export const WEBSITE_INTEGRATION_CONTRACT_VERSION = '2026-10-04.1' as const
 // Schema-only correction: integrations built for the preceding release remain supported.
 export const MINIMUM_TENANT_INTEGRATION_VERSION = '2026-10-02.3' as const
 
@@ -112,3 +112,10 @@ export const TENANT_WEBSITE_RECOMMENDED_SCOPES = [
   'customer_facility_data.write',
   'customer_power_of_attorney.write',
 ] as const
+
+/** Additive Staff API release; existing website and customer business contracts stay compatible. */
+export const STAFF_API_CONTRACT_VERSION = WEBSITE_INTEGRATION_CONTRACT_VERSION
+export const STAFF_OPENAPI_PATH = '/api/v1/openapi/staff-v1.json' as const
+export const STAFF_VERSIONED_OPENAPI_PATH = `/api/v1/openapi/${STAFF_API_CONTRACT_VERSION}/staff-v1.json` as const
+export const STAFF_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${STAFF_OPENAPI_PATH}` as const
+export const STAFF_VERSIONED_OPENAPI_URL = `${WEBSITE_INTEGRATION_ORIGIN}${STAFF_VERSIONED_OPENAPI_PATH}` as const

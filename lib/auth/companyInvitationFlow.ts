@@ -30,6 +30,10 @@ type CompanyInviteInput = {
   actorUserId: string | null
   source: string
   sendEmail?: boolean
+  idempotencyKey?: string
+  staffOperation?: 'invite'
+  channel?: 'ops' | 'staff_api'
+  apiClientId?: string | null
 }
 
 type CompanyInvitationRow = {
@@ -150,6 +154,10 @@ export async function deliverCompanyInvitationIntent(input: {
   membershipRole: string
   roleKey: string
   sendEmail?: boolean
+  idempotencyKey?: string
+  staffOperation?: 'invite'
+  channel?: 'ops' | 'staff_api'
+  apiClientId?: string | null
 }) {
   const acceptUrl = buildAcceptUrl(input.token)
   const authRedirectTo = `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(input.token)}`)}`
@@ -246,7 +254,7 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
   if (!email) throw new Error('E-post saknas.')
   if (!input.actorUserId) throw new Error('Verifierad aktör krävs för tenantinbjudan.')
 
-  const idempotencyKey = `tenant-invitation:${input.companyId}:${hashCompanyInvitationToken(`${email}:${input.roleKey}`)}`
+  const idempotencyKey = input.idempotencyKey || `tenant-invitation:${input.companyId}:${hashCompanyInvitationToken(`${email}:${input.roleKey}`)}`
   const { data, error } = await supabaseService.rpc('canonical_create_tenant_invitation', {
     p_command: {
       company_id: input.companyId,
@@ -257,6 +265,7 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
       role_key: input.roleKey,
       source: input.source,
       idempotency_key: idempotencyKey,
+      ...(input.staffOperation ? { staff_operation: input.staffOperation, channel: input.channel, api_client_id: input.apiClientId ?? null } : {}),
     },
   })
   if (error) throw error

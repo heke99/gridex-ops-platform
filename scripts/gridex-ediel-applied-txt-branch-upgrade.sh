@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Additional final-CI branch-history qualification, after the ordinary genuine
-# d30 upgrade/independent clean run. No deployed40446 ledger row is invented.
+# main-ancestor upgrade/independent clean run. No40446 ledger row is invented.
 set -euo pipefail
 CANDIDATE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CANDIDATE_SHA="$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)"
@@ -41,6 +41,13 @@ PY
 for artifact in schema/schema.sql schema/schema.fingerprint.json database.types.ts; do
  [[ -s "$REFERENCE_CLEAN/$artifact" ]] || { echo "history_union_independent_clean_missing:$artifact" >&2; exit 1; }
 done
+# The split main history need not retain the original branch ref forever.
+# Fetch only this immutable approved source witness and its actual ancestors;
+# the planner still checks every closed pin, ancestry edge and original byte.
+SOURCE_PORT_WITNESS=f460fabf33eace3abb0e44df06a780f02b44a03d
+if ! git cat-file -e "$SOURCE_PORT_WITNESS^{commit}" 2>/dev/null; then
+ git fetch --no-tags origin "$SOURCE_PORT_WITNESS"
+fi
 python3 "$CANDIDATE_ROOT/scripts/gridex-ediel-history-union-inputs.py" --out "$UNION_WORK/plan"
 cp "$UNION_WORK/plan/history-union-inputs.json" "$UNION_OUT/history-union-inputs.json"
 python3 - "$UNION_OUT/history-union-inputs.json" "$UNION_BASE" <<'PY'
@@ -51,7 +58,7 @@ PY
 git worktree add --detach "$UNION_WORK/base" "$UNION_BASE"
 (
  cd "$UNION_WORK/base"
- # Unchanged ancestor source owns its disposable local Supabase stack and EXIT
+ # Unchanged original branch source owns its disposable local stack and EXIT
  # restoration. Candidate SQL is copied from Git, not this shell's CLI markers.
  source scripts/gridex-aud-003-clean-replay.sh
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 <<'SQL' > "$UNION_OUT/importer-before.json"
@@ -67,7 +74,8 @@ if owner['txtCountryApplied'] is not True:
  raise SystemExit('history_union_original_txt_country_boundary_missing')
 print(json.dumps({'baseSha':plan['baseSha'],'candidateSha':plan['candidateSha'],'candidateTree':plan['candidateTree'],
  'alreadyAppliedSource':plan['alreadyAppliedTxtSource'],'installedImporter':owner,
- 'provenance':'unchanged c8 ancestor replay actually applied checksum-pinned40446 SQL; source and installed catalog observed',
+ 'splitSquashProvenanceBridge':plan.get('splitSquashProvenanceBridge'),
+ 'provenance':'unchanged original c8 branch replay actually applied checksum-pinned40446 SQL; source and installed catalog observed',
  'ledgerClaim':plan['ledgerClaim']},indent=2))
 PY
  psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture.sql"

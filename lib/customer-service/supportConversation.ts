@@ -3,6 +3,7 @@ import { publicReference } from '@/lib/integrations/publicReferences'
 import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit } from '@/lib/customer-portal/keysetPagination'
 import { createTenantSupportCase } from '@/lib/customer-cases/support'
 import type { CustomerCaseStatus } from '@/lib/customer-cases/types'
+import { supabaseService } from '@/lib/supabase/service'
 
 /**
  * Customer support conversation on top of the existing customer cases.
@@ -228,6 +229,21 @@ async function insertSupportEvent(input: {
   payload: Record<string, unknown>
   actorUserId: string | null
 }): Promise<SupportEventRow> {
+  if (input.payload.channel === 'staff_api') {
+    if (!input.actorUserId || typeof input.payload.api_client_id !== 'string') {
+      throw new Error('staff_support_actor_required')
+    }
+    // The staff API event and audit commit together. Existing OPS/customer callers retain
+    // their established path; this boundary is typed by the migration's generated capture.
+    type StaffEventRpc = (name: 'gridex_staff_support_event', args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
+    const { data, error } = await (supabaseService.rpc as unknown as StaffEventRpc)('gridex_staff_support_event', {
+      p_company_id: input.companyId, p_case_id: input.caseId, p_customer_id: input.customerId,
+      p_actor_user_id: input.actorUserId, p_api_client_id: input.payload.api_client_id,
+      p_event_type: input.eventType, p_message: input.message, p_payload: input.payload,
+    })
+    if (error) throw error
+    return data as SupportEventRow
+  }
   const { data, error } = await tenantInsert(input.companyId, 'customer_case_events', {
       customer_case_id: input.caseId,
       customer_id: input.customerId,
@@ -376,7 +392,19 @@ export async function addCustomerSupportMessage(input: CustomerScope & {
   return publicSupportMessage(input.companyId, row)
 }
 
-type StaffScope = CustomerScope & { caseId: string; actorUserId: string }
+type StaffScope = CustomerScope & {
+  caseId: string
+  actorUserId: string
+  channel?: 'ops' | 'phone' | 'staff_api'
+  apiClientId?: string
+}
+
+function staffAttribution(scope: StaffScope, defaultChannel: 'ops' | 'phone') {
+  return {
+    channel: scope.channel ?? defaultChannel,
+    ...(scope.channel === 'staff_api' ? { actor_user_id: scope.actorUserId, api_client_id: scope.apiClientId } : {}),
+  }
+}
 
 async function loadStaffCase(scope: StaffScope): Promise<SupportCaseRow> {
   const { data, error } = await tenantSelect(scope.companyId, 'customer_cases', SUPPORT_CASE_SELECT)
@@ -402,7 +430,7 @@ export async function replyToCustomer(scope: StaffScope & { message: unknown; ki
     caseId: supportCase.id,
     eventType: SUPPORT_EVENT_TYPES.staffReply,
     message: body,
-    payload: { visibility: 'customer', author_type: 'staff', kind: scope.kind ?? 'message', channel: 'ops' },
+    payload: { visibility: 'customer', author_type: 'staff', kind: scope.kind ?? 'message', ...staffAttribution(scope, 'ops') },
     actorUserId: scope.actorUserId,
   })
 }
@@ -418,7 +446,7 @@ export async function addInternalNote(scope: StaffScope & { message: unknown }) 
     caseId: supportCase.id,
     eventType: SUPPORT_EVENT_TYPES.internalNote,
     message: body,
-    payload: { visibility: 'internal', author_type: 'staff', channel: 'ops' },
+    payload: { visibility: 'internal', author_type: 'staff', ...staffAttribution(scope, 'ops') },
     actorUserId: scope.actorUserId,
   })
 }
@@ -463,7 +491,7 @@ export async function recordPhoneInteraction(scope: StaffScope & {
     payload: {
       visibility: 'internal',
       author_type: 'staff',
-      channel: 'phone',
+      ...staffAttribution(scope, 'phone'),
       direction: scope.direction === 'outbound' ? 'outbound' : 'inbound',
       verification: {
         method: scope.verificationMethod,

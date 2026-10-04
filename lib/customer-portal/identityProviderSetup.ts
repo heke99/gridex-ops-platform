@@ -8,8 +8,16 @@ import type { JsonWebKey } from 'node:crypto'
  * Audience a tenant-key assertion must carry. Per tenant, so an assertion minted for one tenant is
  * refused by every other tenant even before key matching. OIDC providers use the tenant's client id.
  */
-export function tenantKeyAudience(companyId: string): string {
-  return `gridex-customer-api:${companyId}`
+export type IdentityProviderPurpose = 'customer' | 'staff'
+
+export function identityProviderPurpose(value: string): IdentityProviderPurpose {
+  if (value === 'customer' || value === '') return 'customer'
+  if (value === 'staff') return 'staff'
+  throw new IdentityProviderSetupError('Välj Kund eller Personal som syfte.')
+}
+
+export function tenantKeyAudience(companyId: string, purpose: IdentityProviderPurpose = 'customer'): string {
+  return purpose === 'staff' ? `gridex-staff-api:${companyId}` : `gridex-customer-api:${companyId}`
 }
 
 export function tenantKeyIssuer(companyId: string): string {

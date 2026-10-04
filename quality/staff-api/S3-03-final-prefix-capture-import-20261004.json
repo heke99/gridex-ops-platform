@@ -1,0 +1,75 @@
+{
+  "workflow_run": 37207685431,
+  "workflow_run_attempt": 1,
+  "artifact_id": 11304983843,
+  "artifact_zip_sha256": "d5dd159d700cbcb0d8da84f87e8949d47984c800a6adacf3c0e659af9c819da3",
+  "published_artifact_digest": "sha256:d5dd159d700cbcb0d8da84f87e8949d47984c800a6adacf3c0e659af9c819da3",
+  "artifact_expires_at": "2026-10-18T14:04:20Z",
+  "actual_checkout_commit": "b6335782da29c3785b08bc296f6012f4f42af4b7",
+  "actual_checkout_tree": "4f038da127283df6fe235dfda6f451328b5bed2c",
+  "import_source_commit": "6264becb0493442d612eb7a12d5063519d0e877a",
+  "import_source_tree": "4f038da127283df6fe235dfda6f451328b5bed2c",
+  "captured_and_import_source_trees_match": true,
+  "artifact_sha256": {
+    "database.types.ts": "de673a4f8c7e723b8d77143d7f4714128953fc49243ad5e0e56d78581ef711f9",
+    "schema.sql": "bc7d7057f7e8a0172b7dfaa12179f9ddc43d1a95686edf6da0df727270cf8fc9",
+    "schema.fingerprint.json": "32c6525643079649c4ec88fd3f3bd03019dfd48e2637f541aac06a90ed1a93bb"
+  },
+  "input_sha256": {
+    "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+    "scripts/migration-history-manifest.json": "6fb4a66227110f058dcd143dce08e263c560e04501bc00a10fc7be1244057ff6",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "d0a5688efb56ea84602e6f8459fe345336c846c158d74bac7b9d7a43ceece695",
+    "scripts/supabase-types-manifest.json": "a6009d2296f72ea60181f0d49f7b6010639a77766d5b07abe4ab78d4fac96037",
+    "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+    "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+    "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+  },
+  "schema_fingerprint": "8649297752e7db5d75e6e8c423f7ff5c1dad53334fbaedafd6c5ede39c4fcafd",
+  "qualification": "Authentic S3-03 own-prefix PostgreSQL 17 clean replay capture only. Captured checkout b6335782da29c3785b08bc296f6012f4f42af4b7 and frozen import source 6264becb0493442d612eb7a12d5063519d0e877a have the same complete tree. Published ZIP digest/expiry/provenance, exact member set/CRC, all eight frozen input hashes, three generated hashes, latest source SQL hash and canonical section fingerprint are verified. Generated files and the raw receipt are byte-copied. Native tests, browser tests, type-schema comparison and upgrade parity were NOT_RUN. db:migrations:check and independent raw-capture/import review PASS; native/browser/type-schema comparison/upgrade parity remain NOT_RUN in this capture. Fresh exact-head full CI and authentic OPS native clean/upgrade replay/parity are mandatory; this capture import is not qualification or CI acceptance.",
+  "purpose": "S3-03-final-own-prefix-generated-artifact-import",
+  "imported_at": "2026-10-04T14:08:41.075620+00:00",
+  "original_capture_receipt": "quality/staff-api/S3-03-final-prefix-capture-receipt-20261004.json",
+  "original_capture_receipt_sha256": "109ca681dbcd0f7beec576b665a0cf111ec178e22d9019a813f13d64a879c9e7",
+  "preserved_prior_receipt_sha256": {
+    "quality/staff-api/S1-02-final-acl-capture-import-20261004.json": "48ff68dbaeee4ec2c3afc7b5ea500d0724c956ada21c53eb1e91b2802cae75d9",
+    "quality/staff-api/S1-02-final-acl-capture-receipt-20261004.json": "2c560fabd49cb1400329741169d305c06a87f822787de0a5c5d7c97d86f2cec2",
+    "quality/staff-api/S1-capture-import-20261004.json": "f92e42411fcf9b26601fc3ba0468c645a3b5e39c92b66655c6e2070a5d293f91",
+    "quality/staff-api/S1-capture-receipt-20261004.json": "61eb3c55b36308016cbef9f396dc558de37e9ca07ed3eee9ed63978d596fc287",
+    "quality/staff-api/S2-01-final-prefix-capture-import-20261004.json": "856685142952b32db164a8bd1678cc1a2e4372b17986e1ac0e5a1e2109698c63",
+    "quality/staff-api/S2-01-final-prefix-capture-receipt-20261004.json": "4d764f1c55d5091ffec44006ba883b5adb46cbd7e3f7c8da52dea295513ab1fb",
+    "quality/staff-api/S3-01-final-capture-import-20261004.json": "918405df6aacd2cccdd516170d8bd6292c374dc72493dcff83353fb31c651b36",
+    "quality/staff-api/S3-01-final-capture-receipt-20261004.json": "2c41a546c69f0058c7b669f93ac1242117154f16735e2140fed9566ba0d4bebf",
+    "quality/staff-api/S3-02-final-prefix-capture-import-20261004.json": "bf19171f8938a83e184e8af7e9eec1832727a2622899aa2b4dceca165740aa7b",
+    "quality/staff-api/S3-02-final-prefix-capture-receipt-20261004.json": "12b5dc3a1fe01fdee6eb9a89632c48292e1be2f0269aad68b1eff7cd51383502"
+  },
+  "validation": {
+    "published_artifact_digest_expiry_run_and_head": "PASS",
+    "zip_crc_and_exact_four_members": "PASS",
+    "complete_captured_checkout_and_frozen_local_tree_equality": "PASS",
+    "exact_eight_input_hashes_against_frozen_source": "PASS",
+    "three_generated_member_hashes": "PASS",
+    "latest_source_sql_name_and_hash": "PASS",
+    "postgres_17_and_cli_2_101_0": "PASS",
+    "canonical_schema_scope_and_section_fingerprint": "PASS",
+    "capture_only_not_run_flags": "PASS",
+    "prior_receipts_byte_identical": "PASS",
+    "destination_generated_and_raw_receipt_bytes": "PASS",
+    "db_migrations_check": "PASS",
+    "independent_review": "PASS"
+  },
+  "latest_replay_migration": {
+    "name": "20261004132630_staff_invitation_domain_columns.sql",
+    "sha256": "c31a729085170cac6801f66015d69c5005f16f9f138202d1b3b98f79d79b073c"
+  },
+  "generated_artifact_changed": {
+    "database.types.ts": true,
+    "schema.sql": true,
+    "schema.fingerprint.json": true
+  },
+  "superseded_manifest_sha256": "a6009d2296f72ea60181f0d49f7b6010639a77766d5b07abe4ab78d4fac96037",
+  "superseded_manifest_source_only_pending": true,
+  "db_migrations_check_log_sha256": "889fd2fba49b2dcc9ea41d0b106eea630f1200dfec4fabdab28dfce925b69ef9",
+  "independent_reviewer": "s1_schema_ui",
+  "independent_review_summary": "For this own prefix, raw schema outside exactly nine nullable/no-default column lines and two validated Auth SET NULL FK blocks is byte-identical to prior raw capture; only columns(+9)/constraints(+2) fingerprint sections differ. Removing 27 new nullable/optional TS fields reproduces entire prior TS bytes. All imported generated/raw receipt bytes and old quality evidence are unchanged; no native/full-CI acceptance implied."
+}

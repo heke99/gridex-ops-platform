@@ -15,6 +15,7 @@ function readJson(file) {
 
 const website = readJson(websitePath)
 const portal = readJson(portalPath)
+const staff = readJson(path.join(root, 'docs/openapi/staff-v1.json'))
 const runtimeSource = fs.readFileSync(runtimePath, 'utf8')
 const runtimeMatch = runtimeSource.match(
   /WEBSITE_INTEGRATION_CONTRACT_VERSION\s*=\s*['"]([^'"]+)['"]/,
@@ -28,6 +29,8 @@ const currentContractVersion = website.info?.version
 if (
   typeof currentContractVersion !== 'string' ||
   portal.info?.version !== currentContractVersion ||
+  staff.info?.version !== currentContractVersion ||
+  staff['x-contract-schema-version'] !== currentContractVersion ||
   website['x-contract-schema-version'] !== currentContractVersion ||
   portal['x-contract-schema-version'] !== currentContractVersion ||
   runtimeMatch[1] !== currentContractVersion

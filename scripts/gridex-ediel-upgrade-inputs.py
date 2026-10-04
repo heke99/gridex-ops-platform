@@ -39,15 +39,13 @@ def prepare(root, base, out):
     base_sha = git(root, 'rev-parse', base + '^{commit}').decode().strip()
     head = git(root, 'rev-parse', 'HEAD').decode().strip()
     subprocess.run(['git', 'merge-base', '--is-ancestor', base_sha, head], cwd=root, check=True)
-    if base_sha == head:
-        raise ValueError('no_forward_upgrade_migrations')
     previous, current = manifest(root, base_sha), manifest(root, head)
     for name, digest in previous.items():
         if current.get(name) != digest:
             raise ValueError('historical_migration_removed_or_changed:' + name)
-    # A candidate without new migrations is still replayed: the base schema is
-    # upgraded by zero files and must byte-match an independent clean run.
     additions = sorted(set(current) - set(previous))
+    if not additions:
+        raise ValueError('no_forward_upgrade_migrations')
     last = max(name[:14] for name in previous if re.match(r'^\d{14}_', name))
     for name in additions:
         if not re.fullmatch(r'\d{14}_[A-Za-z0-9_]+\.sql', name) or name[:14] <= last:
@@ -95,7 +93,6 @@ def prepare(root, base, out):
         'baseSha': base_sha, 'candidateSha': head,
         'candidateTree': git(root, 'rev-parse', 'HEAD^{tree}').decode().strip(),
         'historicalMigrationsPreserved': len(previous), 'forwardMigrations': rows,
-        'parityOnly': not rows,
         'excludedNoncanonical': excluded,
         'provenance': 'committed exact ancestor bytes and checksum-pinned manifests; no invented ledger',
     }

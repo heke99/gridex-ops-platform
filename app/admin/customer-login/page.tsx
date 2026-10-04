@@ -12,25 +12,24 @@ export default async function CustomerLoginPage() {
   const scope = await getOperationalCompanyScope(context.userId);
   const companyId = scope.companyId;
 
-  let provider: CustomerLoginProviderView | null = null;
+  let providers: CustomerLoginProviderView[] = [];
   let unavailable = false;
   if (companyId) {
     const { data, error } = await tenantSelect(
       companyId,
       "tenant_customer_identity_providers",
-      "kind,display_name,issuer,audience,enforcement,last_tested_at,last_test_result",
+      "purpose,kind,display_name,issuer,audience,enforcement,last_tested_at,last_test_result",
     )
-      .eq("is_active", true)
-      .maybeSingle();
+      .eq("is_active", true);
     if (error) unavailable = true;
-    else provider = (data as CustomerLoginProviderView | null) ?? null;
+    else providers = (data as CustomerLoginProviderView[] | null) ?? [];
   }
 
   return (
     <div className="min-h-screen">
       <AdminHeader
         title="Kundinloggning"
-        subtitle="Låt Gridex själv kontrollera att det verkligen är er kund som är inloggad på Mina sidor."
+        subtitle="Kontrollera kundernas och personalens identitet från ert eget system."
         userEmail={context.email}
       />
       <div className="space-y-6 p-8">
@@ -45,7 +44,7 @@ export default async function CustomerLoginPage() {
         ) : (
           <CustomerLoginSetup
             companyId={companyId}
-            provider={provider}
+            providers={providers}
             tenantKeyIssuer={tenantKeyIssuer(companyId)}
             tenantKeyAudience={tenantKeyAudience(companyId)}
           />

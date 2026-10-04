@@ -8,9 +8,9 @@ CANDIDATE_TREE="$(git -C "$CANDIDATE_ROOT" rev-parse 'HEAD^{tree}')"
 cd "$CANDIDATE_ROOT"
 [[ "${GITHUB_ACTIONS:-}" == true && -n "${RUNNER_TEMP:-}" ]] || { echo 'upgrade_disposable_ci_runner_required' >&2; exit 1; }
 [[ -z "${GRIDEX_REPLAY_DB_URL:-}" ]] || { echo 'upgrade_external_database_forbidden' >&2; exit 1; }
-# Main after the #426 split stack (#483-#489 merged, PR #489 merge commit);
-# the old ancestor d30fa02 is not reachable from main. Owner decision A1.
-UPGRADE_BASE=2bc65eab67dfb45a61e192a3233ed16584fb5a2e
+# Verified main ancestor: #420 preserves its green head's replay inputs exactly.
+# The former d30 branch pin is not an ancestor after the #483–#489 split merges.
+UPGRADE_BASE=53bf989b0ad402bb2ce151c186eea31f1ec9cf03
 UPGRADE_WORK="$(mktemp -d "$RUNNER_TEMP/gridex-upgrade.XXXXXX")"
 UPGRADE_OUT="$CANDIDATE_ROOT/rem002-upgrade"
 mkdir -p "$UPGRADE_OUT"
@@ -69,9 +69,6 @@ generate_upgrade_artifacts() {
  done < "$UPGRADE_WORK/plan/upgrade-inputs.list"
  mkdir -p "$UPGRADE_OUT/upgraded"
  supabase status -o json > "$UPGRADE_WORK/native-status.json"
- # The OID-preservation proof spans 20261001110500 only. When that migration is
- # already in the base, no pre-actor catalog exists and the proof does not apply.
- if [[ -f "$UPGRADE_OUT/utilts-pre110500.json" ]]; then
  (
   cd "$CANDIDATE_ROOT"
   GRIDEX_NATIVE_STATUS="$UPGRADE_WORK/native-status.json" \
@@ -83,11 +80,6 @@ generate_upgrade_artifacts() {
    -t 'native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain' \
    --reporter=default --reporter=junit --outputFile="$UPGRADE_OUT/utilts-catalog-upgrade-junit.xml"
  )
- elif grep -q '/20261001110500_ediel_utilts_current_execution_actor\.sql$' "$UPGRADE_WORK/plan/upgrade-inputs.list"; then
-  echo 'pre110500_original_public6_missing' >&2; exit 1
- else
-  echo 'UPGRADE_CATALOG: 20261001110500 is in the base; UTILTS OID-preservation proof not applicable'
- fi
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-after.json"
  cmp "$UPGRADE_OUT/retained-before.json" "$UPGRADE_OUT/retained-after.json"
  # An old original acquires no prospective legal approval as a side effect.
@@ -117,6 +109,6 @@ ACTUAL_TYPES_HASH="$(sha256sum "$UPGRADE_OUT/clean/database.types.ts" | awk '{pr
 EXPECTED_TYPES_HASH="$(node -p 'require("./scripts/supabase-types-manifest.json").sha256')"
 [[ "$ACTUAL_TYPES_HASH" == "$EXPECTED_TYPES_HASH" ]] || { echo 'upgrade_generated_types_manifest_mismatch' >&2; exit 1; }
 echo 'UPGRADE_REPLAY: PASS; genuine ancestor -> forward-only checksummed upgrade == independent candidate clean schema/types; retained source unchanged'
-# The applied-TXT branch-history scenario (c8f666d9/#424) was retired after the
-# #426 split (owner decision H1): its bases are not in main and no environment
-# applied that branch history. This replay plus the clean replay cover upgrade.
+# A separate committed-history scenario proves an already-applied TXT importer
+# accepts only exact absent union inputs. It never weakens the strict old path.
+bash "$CANDIDATE_ROOT/scripts/gridex-ediel-applied-txt-branch-upgrade.sh"
