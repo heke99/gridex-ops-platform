@@ -262,3 +262,4 @@ vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras f�
 - Ett masterplan-ID godkänns först när varje condition/on_pass/on_failure och AT expected/prohibited har asserterande test; kärnbeteende räcker inte (TEN-01/02/05/06, U-04, U-14 lämnade ogodkända 2026-10-04).
 - Användaren: stanna före fasen "två regler i taget" och lämna över till nästa agent med prompt.
 - 2026-10-04 TEN-09: explicit permission reuse obeys the same request timing (DSO network contract period + 3 years) as the coordinator; owner chose the conservative gate over Codex's 'old source-approved reuse may predate' reading.
+- 2026-10-04 P-08: valid receipt = positive APERAK on our bound Z09D confirms our own production-contract event (owner choice over 'not applicable for supplier').

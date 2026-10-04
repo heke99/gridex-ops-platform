@@ -446,7 +446,10 @@
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
-        "__tests__/ediel-prodat-date-fields.test.ts"
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "supabase/migrations/20261004190000_ediel_production_contract_ack_confirmation.sql",
+        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
+        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
       ]
     },
     {
@@ -2102,7 +2105,10 @@
         "__tests__/ediel-prodat-field-identity.test.ts",
         "__tests__/ediel-prodat-date-events.test.ts",
         "__tests__/ediel-prodat-date-event-wire-phase.test.ts",
-        "__tests__/ediel-prodat-date-fields.test.ts"
+        "__tests__/ediel-prodat-date-fields.test.ts",
+        "supabase/migrations/20261004190000_ediel_production_contract_ack_confirmation.sql",
+        "scripts/ediel-p-08-production-contract-confirmation-sql-regression.mjs",
+        "scripts/test-ediel-p-08-production-contract-confirmation.cjs"
       ]
     },
     {
