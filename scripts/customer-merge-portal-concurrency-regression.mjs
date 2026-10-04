@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { randomUUID } from 'node:crypto'
-import { spawn } from 'node:child_process'
+import { startBoundedChild } from './helpers/bounded-child-process.mjs'
 
 const databaseUrl = process.argv[2]
 const parsed = new URL(databaseUrl)
@@ -10,20 +10,18 @@ const fixture = { tenant: randomUUID(), actor: randomUUID(), primary: randomUUID
 const suffix = randomUUID()
 const holderName = `merge-holder-${suffix}`
 const followerName = `merge-follower-${suffix}`
+const liveProcesses = new Set()
 
 function sql(statement, applicationName = `merge-check-${suffix}`) {
-  return new Promise((resolve, reject) => {
-    const proc = spawn('psql', [databaseUrl, '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', ...Object.entries(fixture).flatMap(([key, value]) => ['-v', `${key}=${value}`])], {
-      env: { ...process.env, PGAPPNAME: applicationName }, stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    let output = ''
-    let error = ''
-    proc.stdout.on('data', (chunk) => { output += chunk })
-    proc.stderr.on('data', (chunk) => { error += chunk })
-    proc.on('error', reject)
-    proc.on('close', (code) => resolve({ code, output, error }))
-    proc.stdin.end(statement)
+  const worker = startBoundedChild('psql', [databaseUrl, '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', ...Object.entries(fixture).flatMap(([key, value]) => ['-v', `${key}=${value}`])], {
+    env: { ...process.env, PGAPPNAME: applicationName,
+      PGOPTIONS: `${process.env.PGOPTIONS ?? ''} -c statement_timeout=120000 -c idle_in_transaction_session_timeout=120000` },
+    label: applicationName,
   })
+  liveProcesses.add(worker)
+  worker.completion.then(() => liveProcesses.delete(worker))
+  worker.child.stdin.end(statement)
+  return worker.completion
 }
 
 async function requireSql(statement) {
@@ -118,6 +116,9 @@ try {
   assert.equal(await requireSql(`SELECT count(*) FROM public.customers WHERE id=:'profile_source' AND phone IS NOT NULL;`), '0')
   assert.equal(await requireSql(`SELECT count(*) FROM public.domain_events WHERE company_id=:'tenant' AND subject_customer_id=:'profile_source';`), '0')
 } finally {
+  // Failure in an observation must cancel the sessions before awaiting them.
+  // Successful assertions have already observed each normal transaction exit.
+  for (const worker of liveProcesses) worker.stop()
   await Promise.allSettled([holder, follower].filter(Boolean))
   // Company onboarding publishes immutable legal texts. Retain their synthetic
   // tenant until this local replay database is discarded; deleting the company
