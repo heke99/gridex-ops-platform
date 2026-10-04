@@ -17,6 +17,8 @@ SELECT jsonb_build_object(
  'databaseAcl',(SELECT to_jsonb(d.datacl) FROM pg_database d WHERE datname=current_database()),
  'publicAcl',(SELECT to_jsonb(n.nspacl) FROM pg_namespace n WHERE nspname='public'),
  'customersAcl',(SELECT to_jsonb(c.relacl) FROM pg_class c WHERE oid='public.customers'::regclass),
+ 'authAcl',(SELECT to_jsonb(n.nspacl) FROM pg_namespace n WHERE nspname='auth'),
+ 'authUsersAcl',(SELECT to_jsonb(c.relacl) FROM pg_class c WHERE oid='auth.users'::regclass),
  'rpc',(SELECT to_jsonb(p) FROM pg_proc p WHERE oid=to_regprocedure('public.ediel_customer_record_tombstones_v1(uuid,uuid)')),
  'relations',(SELECT jsonb_agg(jsonb_build_object('relation',to_jsonb(c),
    'columns',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.attnum) FROM pg_attribute a WHERE a.attrelid=c.oid AND a.attnum>0 AND NOT a.attisdropped),
@@ -24,25 +26,25 @@ SELECT jsonb_build_object(
    'triggers',(SELECT jsonb_agg(to_jsonb(t) ORDER BY t.tgname) FROM pg_trigger t WHERE t.tgrelid=c.oid AND NOT t.tgisinternal)) ORDER BY c.relname)
    FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='gridex_ediel_retention'));
 $$;
-CREATE TEMP TABLE staff_retention_before AS SELECT pg_temp.staff_retention_catalog() AS catalog;
+CREATE TEMP TABLE staff_retention_before AS SELECT pg_temp.staff_retention_catalog() AS catalog,current_user AS migration_receiver;
 -- Disposable native absence rehearsal: preserve every canonical object by OID.
 -- These names/roles/grants exist only inside this savepoint and outer rollback.
 SAVEPOINT staff_retention_absent;
 ALTER ROLE gridex_ediel_retention_owner RENAME TO staff_retention_native_original_owner;
 ALTER SCHEMA gridex_ediel_retention RENAME TO staff_retention_native_original_schema;
 ALTER FUNCTION public.ediel_customer_record_tombstones_v1(uuid,uuid) RENAME TO staff_retention_native_original_reader;
-CREATE ROLE staff_retention_native_migration NOLOGIN NOINHERIT CREATEROLE BYPASSRLS;
-GRANT staff_retention_native_migration TO CURRENT_USER WITH INHERIT FALSE,SET TRUE;
-GRANT USAGE ON SCHEMA public,auth,gridex_received_sources TO staff_retention_native_migration WITH GRANT OPTION;
-GRANT CREATE ON SCHEMA public TO staff_retention_native_migration WITH GRANT OPTION;
-GRANT SELECT,UPDATE ON public.customers TO staff_retention_native_migration WITH GRANT OPTION;
-GRANT REFERENCES ON public.companies,public.customers,public.customer_contracts,auth.users TO staff_retention_native_migration;
-GRANT EXECUTE ON FUNCTION gridex_received_sources.reject_mutation() TO staff_retention_native_migration;
-DO $$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO staff_retention_native_migration WITH GRANT OPTION',current_database()); END $$;
-SET LOCAL ROLE staff_retention_native_migration;
+-- Exercise the actual nonsuper replay caller with its existing Auth rights.
+-- Managed Auth USAGE/REFERENCES need not carry a delegable grant option.
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND NOT rolsuper AND rolcreaterole AND rolbypassrls)
+  OR has_schema_privilege(current_user,'auth','USAGE') IS NOT TRUE
+  OR has_table_privilege(current_user,'auth.users','REFERENCES') IS NOT TRUE THEN
+  RAISE EXCEPTION 'native nonsuper migration caller and actual Auth references required';
+ END IF;
+END $$;
 \i :staff_retention_read_sql
 DO $$ BEGIN
- IF current_user<>'staff_retention_native_migration'
+ IF current_user<>(SELECT migration_receiver FROM pg_temp.staff_retention_before)
   OR NOT EXISTS(SELECT FROM pg_roles WHERE rolname=current_user AND NOT rolsuper AND rolcreaterole AND rolbypassrls)
   OR has_database_privilege('gridex_ediel_retention_owner',current_database(),'CREATE')
   OR has_schema_privilege('gridex_ediel_retention_owner','public','CREATE')

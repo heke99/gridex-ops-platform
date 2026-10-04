@@ -61,6 +61,20 @@
     "app_types": "PASS",
     "full_native_postgresql_ci": "NOT_YET_VERIFIED",
     "exact_hosted_rollback_rehearsal": "NOT_YET_VERIFIED",
-    "production_apply_and_live_api_acceptance": "NOT_YET_VERIFIED"
+    "production_apply_and_live_api_acceptance": "NOT_YET_VERIFIED",
+    "evidence_scope": "Historical implementation snapshot at implementation_timestamp_utc; current native fixture revision is documented separately below."
+  },
+  "native_fixture_revision": {
+    "status": "LOCAL_ACTUAL_SOURCE_GREEN_AUTHENTIC_NATIVE_CI_PENDING",
+    "cause": "The nonsuper native replay caller has Auth USAGE and REFERENCES without grant options. A fabricated executor cannot obtain those rights through the prior fixture delegation.",
+    "change": "The absence guard executes unchanged migration bytes as the authentic nonsuper replay caller, verifies effective Auth rights and the restored receiver, and snapshots Auth ACLs. Private ownership, RLS/FORCE, scope, FK, immutable, application-denial, temporary CREATE cleanup and rollback assertions remain mandatory.",
+    "embedded_reproduction": "Separate managed Auth schema/table owners; authentic nonsuper migration caller has both required rights and neither grant option. Entire checked-in native script executes with both unchanged source includes.",
+    "red": "Original native script: 1 failed/16 passed with permission denied for schema auth.",
+    "green": "Revised native script: 17/17 passed; full test types, scoped ESLint and diff checks passed.",
+    "native_guard_sha256": "6d37a2260cc53cb2e090734cf4022abd22a5f1759826f0f4ad084a962f31758a",
+    "sql_test_sha256": "733244ff7db752f8c3260fc85a0b921ac007772b6fd160a1167fff02a4b75b7f",
+    "forward_source_sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+    "forward_source_changed": false,
+    "native_postgresql_and_full_ci": "Fresh final-head qualification remains mandatory; embedded SQL is not native PostgreSQL qualification."
   }
 }

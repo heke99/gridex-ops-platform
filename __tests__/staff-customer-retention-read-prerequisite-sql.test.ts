@@ -100,7 +100,33 @@ describe('entire customer retention read prerequisite forward', () => {
   })
   it('executes the entire mandatory native rollback guard against the actual qualified SQL', async () => {
     await apply()
-    await db.exec('RESET ROLE')
+    // Match native replay: postgres has Auth USAGE/REFERENCES, but cannot
+    // delegate either privilege from the managed schema/table owners.
+    await db.exec(`RESET ROLE;
+      CREATE ROLE native_replay NOLOGIN NOINHERIT CREATEROLE BYPASSRLS;
+      CREATE ROLE managed_auth_schema_owner NOLOGIN;
+      CREATE ROLE managed_auth_table_owner NOLOGIN;
+      ALTER SCHEMA auth OWNER TO managed_auth_schema_owner;
+      GRANT USAGE,CREATE ON SCHEMA auth TO managed_auth_table_owner;
+      ALTER TABLE auth.users OWNER TO managed_auth_table_owner;
+      GRANT USAGE ON SCHEMA auth TO native_replay;
+      GRANT SELECT,INSERT,UPDATE,REFERENCES ON auth.users TO native_replay;
+      GRANT USAGE,CREATE ON SCHEMA public,gridex_received_sources TO native_replay WITH GRANT OPTION;
+      GRANT CREATE ON DATABASE postgres TO native_replay WITH GRANT OPTION;
+      ALTER TABLE public.companies OWNER TO native_replay;
+      ALTER TABLE public.customers OWNER TO native_replay;
+      ALTER TABLE public.customer_contracts OWNER TO native_replay;
+      ALTER FUNCTION gridex_received_sources.reject_mutation() OWNER TO native_replay;
+      GRANT gridex_ediel_retention_owner,anon,authenticated,service_role TO native_replay WITH ADMIN TRUE,INHERIT TRUE,SET TRUE;
+      SET ROLE native_replay;`)
+    expect((await db.query(`SELECT r.rolsuper,
+      has_schema_privilege(current_user,'auth','USAGE') AS auth_usage,
+      has_schema_privilege(current_user,'auth','USAGE WITH GRANT OPTION') AS auth_usage_grant,
+      has_table_privilege(current_user,'auth.users','REFERENCES') AS auth_references,
+      has_table_privilege(current_user,'auth.users','REFERENCES WITH GRANT OPTION') AS auth_references_grant
+      FROM pg_roles r WHERE r.rolname=current_user`)).rows[0]).toEqual({
+      rolsuper: false, auth_usage: true, auth_usage_grant: false, auth_references: true, auth_references_grant: false,
+    })
     const native = readFileSync('scripts/staff-customer-retention-read-prerequisite-regression.sql', 'utf8')
       .replace(/^\\i :staff_retention_read_sql$/gm, () => migration)
       .replace(/^[ \t]*\\[^\n]*$/gm, '')
