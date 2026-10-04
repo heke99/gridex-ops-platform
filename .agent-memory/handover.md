@@ -1125,3 +1125,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 ÄGARBESLUT TEN-09: behåll timing-grinden på explicit återbruk (20261004170000), även om tidigare källgodkänt tillstånd täcker äldre historik. Codex-refutation 5982182197 beaktad.
 - 2026-10-04 #491: U-15 (+AT) godkänd (send-preflight blockerar flera MR/blandade skäl/upplösning). U-12 kvar PARTIAL: ingen delningsplanerare.
 - 2026-10-04 #491 (lokalt, pushas efter merge): U-08 (+AT) godkänd.
+- 2026-10-04 #491 (lokalt): U-11 aggregat-E98 efter cutoff bevisat; kvar: inga E30-energikontroller implementerade.
