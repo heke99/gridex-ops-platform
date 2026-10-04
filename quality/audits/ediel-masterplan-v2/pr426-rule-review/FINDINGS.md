@@ -15,7 +15,9 @@
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |
 | U-2 | TEN-09 | låg | ej avgjord | end_assignment LIMIT 1 |
 | TR-09/E6 | TR-09 | medel | ej avgjord | kräver källa T §3.1 |
-| ENV-02, ENV-03, IMP-04, DB-01 | — | — | CONTRADICTED i granskning, fp-check återstår | se batch-7 |
+| ENV-02, ENV-03, IMP-04 | — | — | CONTRADICTED i granskning, fp-check återstår | se batch-7 |
+| F-DB-01 | DB-01 | medel | BEKRÄFTAD (fp-check 2026-10-04), öppen | tre aktivt skrivna ruttauktoriteter: `communication_routes` (primär, lib/ediel/core/routeRegistry.ts m.fl.), `platform_actor_routes` (lib/energy/gridOwnerRequests.ts:137, lib/ediel/certificates/actorCertificateRefresh.ts:453) och `ediel_party_addresses` (skrivs av app/admin/ediel/actors/actions.ts:720-740). `resolveEdielPartyRoute` (lib/ediel/partyRegistry.ts:153) saknar anropare = död läsväg, men tabellen underhålls fortfarande. Condition (identifiera auktoritet före nytt) är processkrav utan kodgrind. Kräver contract-plan (backfill→validate→contract) i egen serie, inte en liten PR |
+| F-DB-02 | DB-02 | medel | BEKRÄFTAD lucka (fp-check 2026-10-04), öppen | ca 13 sammansatta `(company_id, x)`-FK mot ~1080 UUID-only `references public.x(id)` i migrationerna; inga `EXCLUDE USING`-constraints för aktiva perioder; överlappande tenantprofiler fångas bara i efterhand av auditorn (20260827134553 EDIEL-006, kind audit). Regeln gäller alla tenantägda relationer och kan inte bevisas generellt; behöver inventering + per-tabell-PR:er |
 | PGLITE-CI | alla | medel | ✅ delvis | PGlite-regressioner kördes inte i CI; 0.3.14 nu devDependency, U-04/U-14 körs via test-ediel-wrapper |
 
 Falsklarm (fp-check): D4, D5, D6, D8, D9, D11–D15 (TEN), A1–A3 (ACK), C1–C2 (P/U), E1, E2, E4, E5, E7 (TR/OPS/AI), G3–G5 (ENV/GOV).
