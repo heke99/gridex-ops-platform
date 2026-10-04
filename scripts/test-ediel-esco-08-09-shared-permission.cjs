@@ -1,4 +1,5 @@
 // masterplan: ESCO-08, AT-ESCO-08, ESCO-09, AT-ESCO-09
+// masterplan: TEN-09, AT-TEN-09
 // Runs the focused PGlite shared-permission termination and grant re-evaluation regression over the real
 // service administration, positive-ACK service scope and grant-set SQL.
 // Mechanics only; native replay remains the clean-replay job.

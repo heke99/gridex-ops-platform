@@ -1103,3 +1103,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: ACK-09 (+AT) godkänd, ACK-08 kompletterad. Alla ACK-regler klara. Nästa Claude: TEN-03+04.
 - 2026-10-04 #491: ACK-02 ERC40/41 stängd. Codex äger TEN-07 + ESCO-10/11 (egen PR). Claude nästa: TEN-03+04.
 - 2026-10-04 #491: TEN-03/04 (+AT) godkända via taggade befintliga tester. Nästa Claude: TEN-09+11.
+- 2026-10-04 #491: TEN-09/11 (+AT) godkända. Nästa Claude: TEN-12/13/14.

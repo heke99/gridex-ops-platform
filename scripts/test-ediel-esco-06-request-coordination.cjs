@@ -1,4 +1,5 @@
 // masterplan: ESCO-06, AT-ESCO-06
+// masterplan: TEN-09, AT-TEN-09
 // Runs the focused PGlite Z13 repeat-coordination regression over the real
 // service permission coordinator and request-timing consumer.
 // Mechanics only; native replay remains the clean-replay job.

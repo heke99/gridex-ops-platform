@@ -163,8 +163,14 @@
     {
       "id": "TEN-09",
       "acceptance_id": "AT-TEN-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+        "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+        "scripts/test-ediel-esco-06-request-coordination.cjs",
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+      ]
     },
     {
       "id": "TEN-10",
@@ -181,8 +187,14 @@
     {
       "id": "TEN-11",
       "acceptance_id": "AT-TEN-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "__tests__/ediel-ten-11-no-fabricated-protocol-error.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+      ]
     },
     {
       "id": "TEN-12",
@@ -1654,8 +1666,11 @@
     },
     {
       "id": "AT-TEN-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-06-request-coordination.cjs",
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+      ]
     },
     {
       "id": "AT-TEN-10",
@@ -1666,8 +1681,11 @@
     },
     {
       "id": "AT-TEN-11",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ten-11-no-fabricated-protocol-error.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-12",
