@@ -179,8 +179,11 @@ export async function verifyCustomerAssertion(input: {
     || exp <= iat || (nbf !== null && !Number.isSafeInteger(nbf))
   )) return { ok: false, reason: 'malformed' }
   if (exp === null || exp <= nowSeconds - CLOCK_SKEW_SECONDS) return { ok: false, reason: 'expired' }
+  if (input.requireIssuedAt && iat !== null && iat > nowSeconds + CLOCK_SKEW_SECONDS) return { ok: false, reason: 'not_yet_valid' }
   if ((nbf ?? iat ?? nowSeconds) > nowSeconds + CLOCK_SKEW_SECONDS) return { ok: false, reason: 'not_yet_valid' }
-  if (exp - (iat ?? nbf ?? nowSeconds) > MAX_LIFETIME_SECONDS) return { ok: false, reason: 'lifetime_too_long' }
+  // A staff proof's nbf cannot hide future issuance or extend its short validity window.
+  const lifetimeStart = input.requireIssuedAt && iat !== null ? Math.min(iat, nbf ?? iat) : (iat ?? nbf ?? nowSeconds)
+  if (exp - lifetimeStart > MAX_LIFETIME_SECONDS) return { ok: false, reason: 'lifetime_too_long' }
 
   const subject = claimString(payload, input.provider.subject_claim)
   if (!subject) return { ok: false, reason: 'subject_missing' }
