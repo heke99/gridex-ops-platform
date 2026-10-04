@@ -86,3 +86,22 @@ continue TR-04 on a separate branch to keep existing CI heads stable.
 
 Next: publish final #500 coverage/memory; continue TR-04 from this explicit
 gap list on its own branch, keeping existing CI heads stable for main merge.
+
+## 2026-10-04 — actual CI budget failure and bounded correction
+
+- Failed-job-only rerun37223225246/job111507313181 hit the existing60min
+  total job budget. Genuine artifact11312709170 ZIP SHA256
+  12e79f90976c12ee0d40ad9f79cbc985d03866aa05f8c60a8eea8ba7ff028a20:
+  native604PASS/one unrelated incident skip/zeroFAIL orERROR; every
+  before-browser fixture zeroFAIL. Actual phase times19:04:17 native start,
+  19:50:13 native complete,19:53:40 browser start,20:00 cancelled by budget.
+  No archive-source defect inferred; browser/after-browser not complete.
+- Minimal shared OPS correction reserved on491: clean-replay job60->90min
+  so the same required native/browser/after-browser/parity effects can finish.
+  Existing owned per-PR/ref concurrency reused identically. No assertions,
+  jobs, steps, permissions, business budgets or quality requirements changed.
+- Required exact-head rerun remains mandatory; do not merge based on partial
+  phases. Preserve Claude approvals and actual main staff capture on merge.
+
+Next: run unchanged full gates with sufficient total job budget, inspect final
+artifact, merge approved TR03 to main and append one exact handover line.
