@@ -1,3 +1,4 @@
+// masterplan: ENV-01, AT-ENV-01
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -48,6 +49,9 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
       if (index === 3) expect(mime).toContain(source)
       else expect(mime).toContain(Buffer.from(source, 'latin1').toString('base64'))
     })
+    it.each(['\0', '\t', '\u007f', '\u0080', '\u009f', '\r\n'])(`MIME mode ${index} rejects UNOC control data (%j)`, character => {
+      expect(() => build(`FTX+AAO+++PRIVATE${character}ID'`)).toThrow('edifact_character_not_unoc')
+    })
   }
 
   it('the actual send path rejects before route, archive, attempt or provider effects', async () => {
@@ -71,6 +75,32 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
     await expect(createSmimeEncryptedPayloadReference({ rawEdifact: "FTX+AAO+++€'", publicCertificatePem: '' }))
       .rejects.toThrow('edifact_character_not_iso8859_1')
     expect(io.effects).toEqual([])
+  })
+
+  it.each(['\0', '\t', '\u0085', '\n'])('rejects control data on actual fresh SMTP and direct S/MIME paths (%j)', async character => {
+    const raw = `UNB+UNOC:3+S+R+261004:1200+I'FTX+AAO+++PRIVATE${character}ID'UNZ+1+I'`
+    const message = { id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+      direction: 'outbound', environment: 'test', message_standard: 'edifact', message_family: 'PRODAT', message_code: 'Z01',
+      receiver_email: headers.to, raw_payload: raw, parsed_payload: {} } as unknown as EdielMessageRow
+    const before = structuredClone(message)
+    await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' })).rejects.toThrow('edifact_character_not_unoc')
+    await expect(createSmimeEncryptedPayloadReference({ rawEdifact: raw, publicCertificatePem: '' })).rejects.toThrow('edifact_character_not_unoc')
+    expect(io.effects).toEqual([])
+    expect(message).toEqual(before)
+  })
+
+  it.each(['PRODAT', 'UTILTS', 'APERAK'])('requires UNOC:3 before fresh %s effects', async family => {
+    for (const syntax of ['UNOB:3', 'UNOC:2']) {
+      const message = { id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+        direction: 'outbound', environment: 'test', message_standard: 'edifact', message_family: family,
+        message_code: family === 'PRODAT' ? 'Z01' : family === 'UTILTS' ? 'E66' : 'APERAK',
+        receiver_email: headers.to, raw_payload: `UNB+${syntax}+S+R+261004:1200+I'UNH+1+${family}:D:96A:UN:GUIDE'UNT+2+1'UNZ+1+I'`,
+        parsed_payload: {} } as unknown as EdielMessageRow
+      const before = structuredClone(message)
+      await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' })).rejects.toThrow('edifact_unoc_syntax_3_required')
+      expect(io.effects).toEqual([])
+      expect(message).toEqual(before)
+    }
   })
 
   it.each(['PRODAT', 'UTILTS'])('cannot bypass the byte boundary by marking physical %s as XML', async (family) => {
