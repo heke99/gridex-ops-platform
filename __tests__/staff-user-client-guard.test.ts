@@ -30,7 +30,7 @@ beforeAll(async () => {
     CREATE TABLE permissions(id uuid,key text,name text,is_active boolean);
     CREATE TABLE user_permissions(company_id uuid,user_id uuid,permission_key text,permission_id uuid,status text,is_active boolean,effect text);
     CREATE TABLE integration_api_clients(id uuid PRIMARY KEY,company_id uuid,name text,key_prefix text,secret_hash text,scopes text[],status text,deleted_at timestamptz,revoked_at timestamptz,expires_at timestamptz);
-    CREATE TABLE roles(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),key text,name text,created_at timestamptz DEFAULT now());
+    ${extract(file('01_db1_schema_repair_core_helpers_and_canonical_tables.sql'), 'create table if not exists public.roles (', '\n);')}
     CREATE TABLE user_roles(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,user_id uuid,role text,role_id uuid,status text,is_active boolean,created_at timestamptz DEFAULT now(),updated_at timestamptz);
     CREATE UNIQUE INDEX user_roles_company_user_role_active_uidx ON user_roles(company_id,user_id,role_id) WHERE company_id IS NOT NULL AND user_id IS NOT NULL AND role_id IS NOT NULL AND coalesce(status,'active')='active' AND coalesce(is_active,true);
     CREATE TABLE audit_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),company_id uuid,actor_user_id uuid,entity_type text,entity_id text,action text,new_values jsonb,metadata jsonb,actor_type text,request_id text,correlation_id text,resource_type text,resource_id text);
@@ -141,7 +141,9 @@ describe('staff account writes reauthorize clients before mutation and cache rep
 
   it('executes the rollback native regression using the actual canonical chain', async () => {
     await db.exec('ROLLBACK')
-    const script = readFileSync('scripts/staff-user-client-guard-regression.sql', 'utf8').replace(/^\\set ON_ERROR_STOP on\s*$/m, '')
+    const script = readFileSync('scripts/staff-user-client-guard-regression.sql', 'utf8')
+      .replace(/^\\set ON_ERROR_STOP on\s*$/m, '')
+      .replace(/^\\ir sql\/staff-native-role-catalog-fixture\.sql$/m, () => readFileSync('scripts/sql/staff-native-role-catalog-fixture.sql', 'utf8'))
     await expect(db.exec(script)).resolves.toBeDefined()
     await db.exec('BEGIN')
   })
