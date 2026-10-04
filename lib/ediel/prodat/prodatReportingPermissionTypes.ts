@@ -117,7 +117,7 @@ export type RequestAssociation = {
 export type ObjectBase = {
     objectKey: UUID;
     requestKey: UUID;
-    selector: Selector;
+    selector: Selector | null;
     process: Ref;
     authorization: Ref;
     li: string;
@@ -248,6 +248,13 @@ export type TgtEvidence = {
     source: ServerSource;
     objects: ReportingObject[];
 };
+export type ServiceReportingRoute = Pick<Route, 'routeProfileId' | 'communicationRouteId' | 'legalSender' | 'legalRecipient' | 'senderId' | 'receiverId' | 'senderQualifier' | 'receiverQualifier' | 'senderSubaddress' | 'receiverSubaddress' | 'applicationReference' | 'mailbox' | 'receiverEmail'> & { transportType: 'smtp' };
+export type ServiceReportingSource = {
+    kind: 'service_permission'; companyId: UUID; assignmentId: UUID; assignmentVersion: number; scopeBasisVersion:number;
+    permissionId: UUID; evidenceId: UUID; evidenceVersion: string; evidenceSha256: string;
+    actorId: UUID; intentId: UUID; environment: 'test' | 'production'; code: 'Z13'; route: ServiceReportingRoute;
+};
+export type ServiceReportingEvidence = { source: ServiceReportingSource; objects: ReportingObject[] };
 export type PureSelection = {
     source: {
         kind: 'caller_selection';
@@ -257,7 +264,7 @@ export type PureSelection = {
     evaluationUtcMs: number;
 };
 export type ExpectedContext = {
-    source: ServerSource;
+    source: ServerSource | ServiceReportingSource;
     objects: ReportingObject[];
     evaluationUtcMs: number;
 };
@@ -265,7 +272,7 @@ export type BuildResolution = {
     evidence: TgtEvidence | null;
     expected: ExpectedContext | null;
 };
-export type ReportingSelection = PureSelection | TgtEvidence;
+export type ReportingSelection = PureSelection | TgtEvidence | ServiceReportingEvidence;
 export type ReportingClock = {
     nowUtcMs(): number;
 };

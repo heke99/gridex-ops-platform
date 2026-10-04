@@ -23,10 +23,16 @@ function partyText(value: string | null | undefined, max: number): string {
   return text
 }
 
-function partyLines(value: string | null | undefined, lines: readonly string[] | undefined, max: number): string {
+function partyLiteralText(value: string | null | undefined, max: number): string {
+  const text=String(value ?? '')
+  if(text.length>max||/[\x00-\x1f\x7f]/.test(text))throw new Error('prodat_party_field_invalid')
+  return text
+}
+
+function partyLines(value: string | null | undefined, lines: readonly string[] | undefined, max: number, literal=false): string {
   const parts = lines ?? [value ?? '']
   if (parts.length > max) throw new Error('prodat_party_components_invalid')
-  return parts.map(part => escapeEdifactValue(partyText(part, 35))).join(':')
+  return parts.map(part => escapeEdifactValue((literal?partyLiteralText:partyText)(part, 35))).join(':')
 }
 
 export function prodatPartySegment(role: 'FR' | 'DO', edielId: string, country = 'SE'): string {
@@ -65,10 +71,10 @@ function customerParty(role: 'UD' | 'IV', params: CustomerPartyInput): string {
   // agency89 with no list qualifier. Never infer a legal-id type from length.
   const id = customerId && qualifier ? `${escapeEdifactValue(customerId)}:${qualifier}:260`
     : customerId && params.idAgency === '89' ? `${escapeEdifactValue(customerId)}::89` : ''
-  const name = partyLines(params.customerName, params.nameLines, 2)
-  const address = partyLines(params.address, params.addressLines, 3)
-  const city = escapeEdifactValue(partyText(params.city, 35))
-  const postalCode = escapeEdifactValue(partyText(params.postalCode, 9))
+  const name = partyLines(params.customerName, params.nameLines, 2, role==='UD')
+  const address = partyLines(params.address, params.addressLines, 3, role==='UD')
+  const city = escapeEdifactValue((role==='UD'?partyLiteralText:partyText)(params.city, 35))
+  const postalCode = escapeEdifactValue((role==='UD'?partyLiteralText:partyText)(params.postalCode, 9))
   const country = partyText(params.country ?? 'SE', 3)
   if (country && !/^[A-Z]{2,3}$/.test(country)) throw new Error('prodat_party_country_invalid')
   return `NAD+${role}+${id}++${name}+${address}+${city}++${postalCode}+${country}`

@@ -1,20 +1,31 @@
 // masterplan: SC-028
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {describe,it,expect,vi} from 'vitest'
 import {validateRulebookMessage} from '@/lib/ediel/rulebook/validator'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {buildAperakDraft} from '@/lib/ediel/ack'
+import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
 import {raw,characteristic,alphabets,type Parts} from './fixtures/prodat-register'
 import {head,own,source} from './fixtures/prodat-identity'
 import {permissionWire,permissionObject,z18Message} from './fixtures/prodat-energy-product'
 vi.mock('@/lib/ediel/rulebook/canonicalRulePackRegistry',()=>({resolveCanonicalRulePack:vi.fn(async()=>({profileKey:'synthetic-qualified',sourceHash:'synthetic-evidence',messageProfileId:'synthetic',rulePackId:'synthetic'}))}))
+vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('UNEXPECTED_DB')}}}))
 const check=(wire:string,code:string)=>validateRulebookMessage({family:'PRODAT',code,direction:'inbound',rawPayload:wire,applicationReference:code==='Z13'||code==='Z14'?'23-DGI-PRODAT':'23-DDQ-PRODAT',mode:'parse'})
 const national=(wire:string,code:string)=>check(wire,code).issues.filter(i=>i.prodatDiagnostic?.kind==='field'&&['242','506'].includes(i.prodatDiagnostic.fieldNumber))
 for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet ${n}`,()=>{
  it('qualifies complete Z01 and ignores false fifth-slot invalid or late extras',async()=>{
   for(const extra of [[],characteristic('Z14','8716867000030',4),characteristic('Z14','INVALID',4),characteristic('Z14','X'.repeat(36),4)]){
-   const wire=raw([...head(),...own('1','735123456789012345','CASE:A+B?C'),...extra],'Z01',alphabet)
+   // The extra characteristic group sits in its directory position (after the
+   // object's own CCI/CAV); only its national fifth slot is false.
+   const object=own('1','735123456789012345','CASE:A+B?C');object.splice(4,0,...extra)
+   const wire=raw([...head(),...object],'Z01',alphabet)
    const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(wire))
+   // Directory an..35 (CAV/C889/7110) is a syntax owner, not a national field.
+   if(extra.some(part=>JSON.stringify(part).includes('X'.repeat(36)))){
+    expect(d.syntaxDecision).toBe('rejected');expect(d.issues.map(i=>i.code)).toContain('UNSM_ELEMENT_LENGTH_INVALID')
+    expect(national(wire,'Z01')).toEqual([]);expect(d.responsePlan.map(p=>p.family)).toEqual(['CONTRL']);continue
+   }
    expect(d.applicationDecision).toBe('accepted');expect(d.responsePlan.map(p=>p.family)).toEqual(['CONTRL'])
   }
  })
@@ -23,6 +34,12 @@ for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet
    for(const [value,erc] of [['8716867000030',null],[null,'41'],['INVALID','42'],['X'.repeat(36),'42']] as const){
     const wire=permissionWire(code,reason,value,alphabet),msg={...source(wire,code),application_reference:'23-DGI-PRODAT'}
     const d=await resolveCanonicalRuntimeDecisionWithRegistry(msg),p=d.responsePlan.find(p=>p.family==='APERAK')!
+    if(value==='X'.repeat(36)){
+     // an..35 overflow is rejected by the full directory syntax owner (CONTRL),
+     // before any national506 application outcome can be planned.
+     expect(d.syntaxDecision).toBe('rejected');expect(d.issues.map(i=>i.code)).toContain('UNSM_ELEMENT_LENGTH_INVALID')
+     expect(d.responsePlan.map(p=>p.family)).toEqual(['CONTRL']);continue
+    }
     expect(d.syntaxDecision).toBe('accepted');expect(d.applicationDecision,JSON.stringify(d.issues)).toBe(erc?'rejected':'accepted')
     if(value==='X'.repeat(36)){
      expect(d).toMatchObject({applicationDecision:'rejected',functionalDecision:'manual_review',prodatProcessingDisposition:{kind:'internal_review'}})
@@ -31,7 +48,12 @@ for(const [n,alphabet] of alphabets.entries())describe(`incoming energy alphabet
     }
     expect(p.applicationErrors??[]).toMatchObject(erc?[{ercCode:erc,fieldCode:'506',referenceNumber:code==='Z13'?null:'735123456789012345',lineItemReference:'CASE:A+B?C'}]:[])
     expect(p.applicationErrors??[]).toHaveLength(erc?1:0)
-    if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}
+    if(erc&&code==='Z14'){
+     // Own object id (Z07) and LI share the ERC: exact P16B hold, no wire.
+     p16bBlockedAperaks.length=0
+     expectOwnReferencePair([String((buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors})).rawPayload)])
+     expectP16bHold(wire);expect(p16bBlockedAperaks.join('')).toContain('FTX+AAO++506::260');expect(p16bBlockedAperaks.join('')).toContain('RFF+LI:CASE?:A?+B??C')
+    }else if(erc){const draft=buildAperakDraft({sourceMessage:msg,outcome:'negative',applicationErrors:p.applicationErrors});expect(draft.rawPayload).toContain('FTX+AAO++506::260');expect(draft.rawPayload).toContain('RFF+LI:CASE?:A?+B??C')}
    }
   })
  }
@@ -52,7 +74,8 @@ it('ignores false fourth242 but does not let it supply required fifth506',()=>{
  expect(national(permissionWire('Z13','S17',null,alphabets[0],body),'Z13')).toMatchObject([{prodatDiagnostic:{fieldNumber:'506',errorKind:'missing'}}])
 })
 it('preserves independent invalid207 and syntax count errors beside false506',async()=>{
- const wire=raw([...head(true),...own('1','735123456789012345','CASE'),...characteristic('Z14','BAD',4)],'Z01')
+ const object=own('1','735123456789012345','CASE');object.splice(4,0,...characteristic('Z14','BAD',4))
+ const wire=raw([...head(true),...object],'Z01')
  const d=await resolveCanonicalRuntimeDecisionWithRegistry(source(wire))
  expect(d.responsePlan.find(p=>p.family==='APERAK')?.applicationErrors).toMatchObject([{fieldCode:'207',ercCode:'42'}]);expect(national(wire,'Z01')).toEqual([])
  const broken=wire.replace(/UNT\+\d+/,'UNT+999'),syntax=await resolveCanonicalRuntimeDecisionWithRegistry(source(broken))

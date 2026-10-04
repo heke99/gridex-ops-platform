@@ -1,4 +1,4 @@
-// masterplan: SC-032
+// masterplan: SC-032, P-03, AT-P-03
 import { describe, expect, it } from 'vitest'
 import { resolveProdatDependentCondition } from '@/lib/ediel/prodat/prodatDependentConditionEngine'
 import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'

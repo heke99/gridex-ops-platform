@@ -14,7 +14,7 @@ import { prodatCharacteristicPresent, prodatCharacteristicValues } from '@/lib/e
 import { prodatRegisterRuleScopes, prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups'
 import { prodatSourceSubtypeRule, resolveProdatSourceSubtypeRequirement } from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import { findProdatSubtypeRule } from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
-import { validateFieldMatrixPayload, type FieldMatrixEvaluationInput, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
+import { recordIgnoredProdatField, validateFieldMatrixPayload, type FieldMatrixEvaluationInput, type RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
 
 /** Recompute migrated subtype-dependent D cells from each actual first-register
@@ -22,6 +22,7 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook'
  * The matrix owns field descriptors; bounded source overlays retain domain and scope restrictions.
  */
 export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, rules: readonly RulebookFieldRule[], direction?: string): EdielRulebookIssue[] {
+  input = {...input, direction: direction === 'inbound' || direction === 'outbound' ? direction : input.direction}
   const code = input.code ?? ''
   if (code === 'Z14') return validateProdatZ14Policy(input, rules)
   const una = input.una ?? parseUna(null)
@@ -62,9 +63,11 @@ export function validateProdatSubtypePolicy(input: FieldMatrixEvaluationInput, r
       // absent optional field required or infer its D condition from presence.
       const suppliedCharacteristic = prodatCharacteristicPresent(sourceRule.fieldNumber, segments, {una, forbidden:true})
       const effectiveRule: RulebookFieldRule = {...rule, requirement:requirement === 'optional' && suppliedCharacteristic ? 'required' : requirement}
-      const failures = validateFieldMatrixPayload({...input, rawSegments:segments.map(segment => segment.raw), mode:'parse'}, [effectiveRule])
       const originalGroup = prodatRegisterGroups(prodatRegisterMessageSegments(input.rawSegments ?? [],una),una,code).groups
         .find(group => group.segments[0]?.index === lin?.index)
+      const failures = validateFieldMatrixPayload({...input, rawSegments:segments.map(segment => segment.raw), mode:'parse',
+        onIgnoredField: field => recordIgnoredProdatField(input, field.fieldNumber, segments.map(segment => segment.raw), field.occurrence.scope, originalGroup?.lineIndex),
+      }, [effectiveRule])
       issues.push(...failures.map(failure => ({...failure,
         ...(failure.prodatDiagnostic?.kind === 'field' ? {prodatDiagnostic:prodatFieldDiagnostic(
           failure.prodatDiagnostic.fieldNumber,

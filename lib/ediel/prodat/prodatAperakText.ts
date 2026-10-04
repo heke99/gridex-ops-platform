@@ -24,6 +24,28 @@ export const PRODAT_APERAK_FIELD_NAMES: Readonly<Record<string,string>> = Object
   '250':'Fakturamottagare ID','251':'Namn-fakturamottagare','252':'Adress-fakturamottagare',
   '253':'Postnr-fakturamottgare','317':'Postort-fakturamottagare','318':'Land-fakturamottagare','262':'Balansansvarig',
 })
+/** The frozen PDF display spelling is retained above. A905 is transported as
+ * UNOC/ISO8859-1: the published typographic dash in the field216 label has the
+ * explicit wire spelling '-', preserving its words and A904 field identity.
+ * This projection never changes caller data, identifiers or failure evidence. */
+export function prodatAperakFieldWireLabel(fieldNumber: string): string | undefined {
+  return PRODAT_APERAK_FIELD_NAMES[fieldNumber]?.replaceAll('\u2013', '-')
+}
+/** P26.A r3 §3.3 p93, authenticated original-page transcription retained in
+ * quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/.
+ * These are A903 under ERC40; A903=100 is distinct from positive ERC100. */
+export const PRODAT_APERAK_APPLICATION_TEXTS:Readonly<Record<string,string>>=Object.freeze({
+  '100':'Meddelandetyp/funktion är inte implementerad i applikationen',
+  '102':'Meddelandehuvudet kunde inte läsas',
+  '103':'Dubblett av meddelandet',
+  '104':'Liknande meddelande mottaget tidigare',
+  '105':'Anläggningen kan inte identifieras',
+  '106':'Liknande meddelande mottaget från annan aktör',
+  '107':'Aktören är inte knuten till aktuell anläggning',
+  '108':'Aktören är redan knuten till aktuell anläggning',
+  '109':'En period anges där endast en dag/tidpunkt förväntas',
+  '110':'Okänd eller ogiltig avsändare',
+})
 export type ProdatAperakText =
   | {kind:'ready';text:string;fallback:'not_needed'|'included'|'unavailable'}
   | {kind:'unready';reason:'capacity'|'failure_evidence_unavailable'|'label_unavailable'}
@@ -33,9 +55,9 @@ export type ProdatAperakText =
 export function composeProdatAperakText(diagnostic: ProdatDiagnostic): ProdatAperakText {
   let text: string
   let fallback: Extract<ProdatAperakText,{kind:'ready'}>['fallback'] = 'not_needed'
-  if (diagnostic.kind === 'application') text = 'En period anges där endast en dag/tidpunkt förväntas'
+  if (diagnostic.kind === 'application') text = PRODAT_APERAK_APPLICATION_TEXTS[diagnostic.applicationCode]
   else if (diagnostic.kind === 'field') {
-    const label = PRODAT_APERAK_FIELD_NAMES[diagnostic.fieldNumber]
+    const label = prodatAperakFieldWireLabel(diagnostic.fieldNumber)
     if (!label) return {kind:'unready',reason:'label_unavailable'}
     if (diagnostic.errorKind === 'missing') {
       text = `${label} saknas`

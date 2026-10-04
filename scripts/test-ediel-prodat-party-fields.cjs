@@ -6,8 +6,10 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
 const { test } = require('node:test')
+const {sourceRuntimeBoundary,assertNoSourceBoundaryAttempts}=require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 async function runtime() {
   const modules = new Map()
@@ -55,14 +57,20 @@ async function runtime() {
     for(const name of names) this.setExport(name,()=>{throw new Error(`Unexpected mutation/context call: ${specifier}/${name}`)})
   })]))
   await entry.link((specifier, parent) => {
-    if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
+    // Only the explicitly installed finite projection/candidate fixture may
+    // reach this declared DB port. All other adapters remain denied below.
     if (specifier === '@/lib/supabase/service') return service
+    const sourceBoundary=sourceRuntimeBoundary(specifier,modules,parent)
+    if(sourceBoundary)return sourceBoundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
+    if (specifier === 'crypto' || specifier === 'node:crypto') return crypto
     if (unreachable.has(specifier)) return unreachable.get(specifier)
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
+    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()
@@ -323,3 +331,5 @@ test('a nonempty headerless candidate cannot borrow stored customer id as permis
  const a=await api,message=permissionRow('Z14',[nad('UD')]),candidate=permissionRow('Z13',[],{raw_payload:'NO-EDIFACT',customer_id:'000abc',metering_point_id:'735999999999999999',transaction_reference:'CASE'})
  a.boundary.set([candidate]);try{assert((await a.resolveProdatPermissionAperakValidationIssues({message})).length>0)}finally{a.boundary.clear()}
 })
+
+test('source-only runtime attempted no external operation',async()=>{await api;assertNoSourceBoundaryAttempts()})

@@ -1,13 +1,18 @@
+import {createHash} from 'node:crypto';
 import { it, expect, vi } from 'vitest';
 import type { EdielMessageRow } from '@/lib/ediel/types';
-const io = vi.hoisted(() => ({ from: vi.fn(), mail: vi.fn(() => { throw new Error('PROVIDER_BOUNDARY_REACHED'); }), event: vi.fn(), update: vi.fn() }));
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }));
+import {raw,line,characteristic} from './fixtures/prodat-register';
+import {head} from './fixtures/prodat-identity';
+const io = vi.hoisted(() => ({ from: vi.fn(), rpc:vi.fn(), mail: vi.fn(() => { throw new Error('PROVIDER_BOUNDARY_REACHED'); }), event: vi.fn(), update: vi.fn() }));
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from,rpc:io.rpc } }));
 vi.mock('@/lib/ediel/mailReadiness', () => ({ assertEdielSmtpReadiness: io.mail }));
 vi.mock('@/lib/ediel/db', () => ({ getEdielRouteProfileByCommunicationRouteId: vi.fn(), createEdielMessageEvent: io.event, updateEdielMessageStatus: io.update }));
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport';
 for (const label of ['Z09', 'Z04'])
     it(`direct SMTP protects actual Z09D even under row label ${label}`, async () => {
-        const row: Partial<EdielMessageRow> = { id: 'MSG', company_id: 'tenant', direction: 'outbound', environment: 'test', message_family: 'PRODAT', message_code: label, receiver_email: 'synthetic@example.invalid', raw_payload: "UNH+M+PRODAT:D:97A:UN:E2SE6A'BGM+Z09+DOC+9+AB'LIN+1++A:::89'DTM+92:202610010000:203'DTM+93:202611010000:203'CCI++Z13'CAV+Z70'UNT+8+M'", parsed_payload: { rulebookAllowInvalidSend: true } };
+        const rawPayload=raw([...head(),line('1','735123456789012345',undefined,'9'),['DTM',['92','202610010000','203']],['DTM',['93','202611010000','203']],...characteristic('Z13','Z70')],'Z09');
+        const row: Partial<EdielMessageRow> = { id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002', direction: 'outbound', environment: 'test', message_standard:'edifact',mime_type:'application/edifact',message_family: 'PRODAT', message_code: label, receiver_email: 'synthetic@example.invalid', raw_payload:rawPayload, parsed_payload: { rulebookAllowInvalidSend: true } };
+        io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>{if(name==='gridex_ediel_negative_fixture_read_v1'){expect(args).toEqual({p_context:{companyId:row.company_id,messageId:row.id,actorUserId:'ACTOR'}});return{data:null,error:null}} if(name==='gridex_ediel_accepted_transport_projection_v1'){expect(args).toEqual({p_company_id:row.company_id,p_environment:'test',p_message_id:row.id,p_actor_user_id:'ACTOR'});return{data:null,error:null}} if(name==='ediel_metering_method_change_send_basis_v1'){expect(args).toEqual({p_company_id:row.company_id,p_message_id:row.id,p_actor_user_id:'ACTOR'});return{data:{version:1,kind:'not_applicable',companyId:row.company_id,environment:'test',messageId:row.id,sourcePayloadHash:createHash('sha256').update(rawPayload).digest('hex'),intentId:row.intent_id},error:null}} if(name==='ediel_customer_masterdata_message_basis_v1'||name==='ediel_customer_life_event_message_basis_v1'||name==='ediel_brp_change_message_basis_v1'||name==='ediel_metering_method_change_message_basis_v1'||name==='ediel_require_metering_method_change_source_current_v1'||name==='ediel_prodat_recovery_original_basis_v1'||name==='ediel_production_contract_message_basis_v1'){expect(args).toEqual({p_company_id:row.company_id,p_message_id:row.id,p_actor_user_id:'ACTOR'});return{data:null,error:null}} if(name==='ediel_require_brp_change_source_current_v1'){expect(args).toEqual({p_company_id:row.company_id,p_message_id:row.id});return{data:null,error:null}} throw new Error('UNEXPECTED_RPC_BOUNDARY:'+name)});
         io.from.mockImplementation(() => { const q = { select: () => q, eq: () => q, limit: async () => ({ data: [], error: null }) }; return q; });
         await expect(sendEdielMessageViaSmtp(row as EdielMessageRow, { actorUserId: 'ACTOR' })).rejects.toThrow('PRODAT_DATE_EVENT_XOR');
         expect(io.mail).not.toHaveBeenCalled();

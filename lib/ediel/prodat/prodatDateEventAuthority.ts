@@ -2,7 +2,7 @@ import type { EdielRulebookIssue } from '@/lib/ediel/rulebook/rulebook';
 import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
 import { prodatRegisterTokens } from './prodatRegisterFields';
-import { copyProdatDateEventObjects, copyProdatDateEventSource, type ProdatDateEventObject, type TgtDateEventSource } from './prodatDateEvents';
+import { copyProdatDateEventObjects, copyProdatDateEventSource, type ProdatDateEventObject, type TgtDateEventSource, type ProductionContractDateEventSource } from './prodatDateEvents';
 import type { ProdatDependentConditionFacts } from './prodatDependentConditionEngine';
 import type { EdielMessageRow } from '@/lib/ediel/types';
 export class ProdatDateEventAuthorityError extends Error {
@@ -13,10 +13,11 @@ export function prodatDateEventAuthorityIssue(error: unknown): EdielRulebookIssu
     return error instanceof ProdatDateEventAuthorityError ? { scope: 'prodat_dependent', severity: 'error', blocking: true, code: error.code, title: 'PRODAT-händelseunderlag är inte auktoriserat', description: error.message } : undefined;
 }
 /** Supplied separately by a company-scoped server resolver, never parsed payload. */
-export type TgtDateEventValidationContext = {
-    source: TgtDateEventSource;
+export type ProdatDateEventValidationContext = {
+    source: TgtDateEventSource | ProductionContractDateEventSource;
     objects: readonly ProdatDateEventObject[];
 };
+export type TgtDateEventValidationContext = ProdatDateEventValidationContext & { source: TgtDateEventSource };
 export type ProdatDateEventRow = Pick<EdielMessageRow, 'company_id' | 'environment' | 'direction' | 'message_code' | 'sender_ediel_id' | 'receiver_ediel_id' | 'sender_sub_address' | 'receiver_sub_address' | 'application_reference' | 'transport_type' | 'receiver_email' | 'communication_route_id' | 'route_profile_id' | 'mailbox'>;
 export function assertProdatDateEventAuthority(input: {
     code: string;
@@ -24,7 +25,7 @@ export function assertProdatDateEventAuthority(input: {
     una?: EdifactServiceStringAdvice;
     facts?: ProdatDependentConditionFacts;
     row?: ProdatDateEventRow;
-    expected?: TgtDateEventValidationContext;
+    expected?: ProdatDateEventValidationContext;
     runId?: string | null;
     stepNo?: number | null;
 }) {
@@ -32,9 +33,9 @@ export function assertProdatDateEventAuthority(input: {
         return;
     const invalid = (code = 'PRODAT_DATE_EVENT_EVIDENCE_INVALID'): never => { throw new ProdatDateEventAuthorityError(code); };
     const facts = input.facts, source = facts.dateEventSource && copyProdatDateEventSource(facts.dateEventSource), row = input.row, expected = input.expected;
-    if (!source || source.kind !== 'tgt' || !expected || !row || row.environment !== 'test' || row.direction !== 'outbound' || facts.market !== 'electricity')
+    if (!source || source.kind === 'caller_selection' || !expected || !row || row.direction !== 'outbound' || facts.market !== 'electricity' || (source.kind === 'tgt' ? row.environment !== 'test' : row.environment !== source.environment || input.code !== 'Z09'))
         return invalid('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED');
-    if (row.company_id !== source.companyId || row.message_code !== input.code || source.code !== input.code || input.runId !== source.runId || input.stepNo !== source.stepNo)
+    if (row.company_id !== source.companyId || row.message_code !== input.code || source.code !== input.code || (source.kind === 'tgt' && (input.runId !== source.runId || input.stepNo !== source.stepNo)))
         return invalid('PRODAT_DATE_EVENT_SCOPE_MISMATCH');
     if (JSON.stringify(source) !== JSON.stringify(copyProdatDateEventSource(expected.source)) || JSON.stringify(copyProdatDateEventObjects(facts.dateEventObjects)) !== JSON.stringify(copyProdatDateEventObjects(expected.objects)))
         return invalid();

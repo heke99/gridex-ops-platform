@@ -1,4 +1,4 @@
-// masterplan: SC-033
+// masterplan: SC-033, P-05, P-17, AT-P-05, AT-P-17
 import { describe, expect, it } from 'vitest'
 import { parseProdatMessage } from '@/lib/ediel/prodat/parser'
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'

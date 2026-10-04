@@ -88,7 +88,7 @@ export function evaluateProdatReportingPermission(input: ReportingPolicyInput) {
                 fail('FORBIDDEN', 'Z14N får inte ange syfte', '323');
             continue;
         }
-        if (input.requireAuthority && (input.code === 'Z14' || selected?.source.kind !== 'tgt' || !input.reportingContext))
+        if (input.requireAuthority && (input.code === 'Z14' || (selected?.source.kind !== 'tgt' && selected?.source.kind !== 'service_permission') || !input.reportingContext))
             fail('SOURCE_UNQUALIFIED', 'oberoende beständigt testunderlag saknas');
         const reference = (qualifier: string) => {
             const refs = own.filter(t => t.tag === 'RFF' && c(t, 1)[0]?.trim() === qualifier), r = refs[0], p = r ? c(r, 1) : [];

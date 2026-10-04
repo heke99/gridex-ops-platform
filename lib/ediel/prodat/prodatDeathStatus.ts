@@ -6,7 +6,7 @@ export type DeathAssessment = {kind:'unknown'}|{kind:'known';value:'death'|'not_
 export type DeathEventObject = {
  objectKey:string;installation:{id:string;agency:'9'|'89'};customer:DeathCustomer;
  legalSupplier:DeathActor;legalGridOwner:DeathActor;
- process:{code:'Z05';reason:'Z23'}|{code:'Z06';reason:'E34'};
+ process:{code:'Z05';reason:'Z23'}|{code:'Z06'|'Z09';reason:'E34'};
  event:DeathRef;assessment:DeathAssessment;lineItemReference:string;
 }
 export type DeathSelection = {source:{kind:'caller_selection';reference:string};objects:DeathEventObject[]}
@@ -35,7 +35,7 @@ function customer(v:unknown):DeathCustomer{
 function object(v:unknown):DeathEventObject{
  const r=rec(v,['objectKey','installation','customer','legalSupplier','legalGridOwner','process','event','assessment','lineItemReference'])
  const i=rec(r.installation,['id','agency']),p=rec(r.process,['code','reason']),event=ref(r.event)
- const code=choice(p.code,['Z05','Z06']);if(p.reason!==(code==='Z05'?'Z23':'E34')||event.key!==event.eventKey)return invalid()
+ const code=choice(p.code,['Z05','Z06','Z09']);if(p.reason!==(code==='Z05'?'Z23':'E34')||event.key!==event.eventKey)return invalid()
  let assessment:DeathAssessment
  if((r.assessment as {kind?:unknown}|null)?.kind==='unknown'){rec(r.assessment,['kind']);assessment={kind:'unknown'}}else{
   const a=rec(r.assessment,['kind','value','evidence']);choice(a.kind,['known']);const evidence=ref(a.evidence)
@@ -52,11 +52,10 @@ export function copyDeathSelection(v:unknown):DeathSelection{
  return {source:{kind:'caller_selection',reference:text(s.reference)},objects}
 }
 export const isDeathStatusField=(code:string,field:string)=>['Z05','Z06','Z09'].includes(code)&&field==='310'
-/** Valid own Z09E is intrinsically death; no local event is required. */
+/** PC-310-Z05/06/09: subtype is necessary but never proves a death event. */
 export function deathCondition(code:string,subtype:string|null|undefined,assessment?:DeathAssessment):boolean|null{
  const allowed:Record<string,string[]>={Z05:['L','LK','C','H'],Z06:['E','F','G'],Z09:['B','D','E','F','G']}
  if(!subtype||!allowed[code]?.includes(subtype))return null
- if(code==='Z09')return subtype==='E'
  if(subtype!==(code==='Z05'?'LK':'E'))return false
  return assessment?.kind==='known'?assessment.value==='death':null
 }

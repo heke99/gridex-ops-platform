@@ -115,7 +115,11 @@ describe('actual builders retain choice separately from requiredness', () => {
     });
 });
 function row(environment: 'test' | 'production', state: 'valid' | 'absent' | 'required-omitted' | 'tampered' | 'wrong-company'): EdielMessageRow {
-    const payload = raw(body('Z03', state !== 'required-omitted'), 'Z03'), wire = tokenizeEdifact(payload), facts = selected();
+    const customerBody=body('Z03',state!=='required-omitted');
+    // Actual Z03L wire, independently selected invoicee source facts. This
+    // positive send guard fixture must also satisfy reason/date/reference and
+    // legal-party rules; a bare invoicee fragment is not an admissible message.
+    const payload=raw([['NAD','FR',['12345','160','SVK'],'','','','','','','SE'],['NAD','DO',['54321','160','SVK'],'','','','','','','SE'],customerBody[0],['DTM',['92','202610010000','203']],['CCI','','Z13'],['CAV','Z22'],['CCI','','Z04'],['CAV','Z03'],['RFF',['Z05','TES']],['RFF',['ANJ','SYNTHETIC-AGREEMENT']],['RFF',['LI','CASE']],['NAD','Z02',['99999','160','SVK']],...customerBody.slice(1)],'Z03'),wire=tokenizeEdifact(payload),facts=selected();
     if (state === 'required-omitted')
         facts.invoiceeObjects[0].invoicee.address.city = 'Other';
     const evidence = createProdatRegisterEvidence({ code: 'Z03', rawSegments: wire.segments.map(s => s.raw), una: wire.una, facts: state === 'absent' ? {} : facts });

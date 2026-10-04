@@ -23,7 +23,7 @@ const context: ProdatEngineProductionContext = {
 function rendered() { return buildProfiledProdatSegments({context,variant:'L',mode:'test',generatedAt:new Date('2026-09-17T12:00:00Z')}) }
 function message(payload:string,metadata?:unknown):EdielMessageRow {
  return {message_family:'PRODAT',message_code:'Z04',message_version:'26A',direction:'outbound',environment:'test',message_standard:'edifact',
- application_reference:'23-DDQ-PRODAT',company_id:'tenant-A',raw_payload:payload,mime_type:'application/EDIFACT',parsed_payload:metadata} as EdielMessageRow
+ application_reference:'23-DDQ-PRODAT',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'tenant-A',raw_payload:payload,mime_type:'application/EDIFACT',parsed_payload:metadata} as EdielMessageRow
 }
 function renderedMessage() {
  const r=rendered()
