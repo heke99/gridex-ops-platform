@@ -153,8 +153,8 @@ for (const kind of ['contrl','aperak27','aperak34'] as const) {
 it('actual correction preparation denies omitted/foreign objects and a prepared correction cannot queue after current actor revocation',async () => {
   const f = await seed(), ack = await receiveAck(f,externalAck(f,'contrl')), before = originals(f), initial = effects(f)
   for (const options of [{omitObject:true},{wrongPoint:true}]) {
-    await expect(prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f,options)})).rejects.toThrow()
-    expect(effects(f)).toEqual(initial)
+    await expect(prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f,options)})).resolves.toEqual({status:'held',reason:'corrected_exact_failed_scope_required'})
+    expect(effects(f)).toEqual(initial); expect(originals(f)).toEqual(before); expect(smtp).toHaveBeenCalledTimes(1)
   }
   const prepared = await prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f)})
   expect(prepared.status).toBe('prepared'); if (!('messageId' in prepared)) throw Error('actual_correction_not_prepared')

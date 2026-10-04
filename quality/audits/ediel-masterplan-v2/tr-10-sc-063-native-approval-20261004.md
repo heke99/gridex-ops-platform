@@ -44,3 +44,7 @@ remote-hop/SPF evidence are not provided. The fixture/guard corrections after
 the reviewed head do not alter these passing case/restart producer predicates.
 Current composed native/capture and all ordinary exact-head
 OPS/browser/upgrade/schema/type/parity checks remain mandatory before merge.
+
+Subsequent independent whole TR-10/AT-TR-10 approval uses the current05c6
+native receipt in `tr-10-native-complete-approval-20261004.md`; the unapproved
+TR-10 wording above records this original SC-063-only approval at0c526.

@@ -1098,9 +1098,13 @@
     {
       "id": "TR-10",
       "acceptance_id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {
@@ -2615,9 +2619,13 @@
     },
     {
       "id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {

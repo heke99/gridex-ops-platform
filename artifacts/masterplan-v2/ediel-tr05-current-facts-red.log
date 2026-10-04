@@ -1,0 +1,62 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-retry
+
+ ❯ __tests__/ediel-prodat-recovery-gateway.test.ts (9 tests | 2 failed) 24ms
+     × replaces caller protected UD selectors with fresh native context after private reservation 9ms
+     × publishes fresh address and independently read contract invoicee facts for corrected Z03 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-prodat-recovery-gateway.test.ts > correction intent/private origin gateway > replaces caller protected UD selectors with fresh native context after private reservation
+AssertionError: expected undefined to deeply equal [ { …(6) } ]
+
+- Expected:
+[
+  {
+    "addressLines": [
+      "Testgatan 1",
+    ],
+    "availability": "available",
+    "endUser": {
+      "agency": "260",
+      "id": "198001019999",
+      "qualifier": "SE2",
+    },
+    "identityAgency": "9",
+    "meteringPointId": "735123456789012345",
+    "source": {
+      "asOf": "2026-10-04T12:00:00Z",
+      "companyId": "tenant",
+      "customerId": "customer",
+      "kind": "customer_masterdata",
+      "reference": "synthetic signed contract",
+      "sourceContextId": "11111111-1111-4111-8111-111111111111",
+      "sourceDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    },
+  },
+]
+
++ Received:
+undefined
+
+ ❯ __tests__/ediel-prodat-recovery-gateway.test.ts:73:212
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  __tests__/ediel-prodat-recovery-gateway.test.ts > correction intent/private origin gateway > publishes fresh address and independently read contract invoicee facts for corrected Z03
+AssertionError: expected "vi.fn()" to be called once with arguments: [ { companyId: 'tenant', …(5) } ]
+
+Number of calls: 0
+
+ ❯ __tests__/ediel-prodat-recovery-gateway.test.ts:85:23
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 7 passed (9)
+   Start at  22:44:08
+   Duration  662ms (transform 368ms, setup 24ms, import 430ms, tests 24ms, environment 0ms)
+

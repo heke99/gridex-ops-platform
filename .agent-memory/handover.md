@@ -1172,3 +1172,20 @@ other351 coverage rows unchanged. Retained reviewers own disjoint fixture/role
 checks; current Claude reservations remain authoritative in491 comments. Root
 publishes functional220429+actualreceipts+fixtures+this approval together; no
 status-only push and no merge during the renewed491/812 priority window.
+
+2026-10-04T22:55Z Codex current05c6 genuine28:23PASS5FAIL, allTR10case9,
+firstreception2 andtruelease-lockP0001 refusal PASS. IndependentcompleteTR10/AT
+APPROVE now promoted only2rows withfunctionalTR05 currentcustomer/address+
+independentcontractinvoicee handoff; no originalfact/validator/privatebypass.
+Authentic220429 capture imported exactbytes/receipts, finalmainunion stillpending.
+Primary491812 cleanFAILURE; soleP-owner calendar9433 reusedexactlybeforefresh
+native. No sourceleftonlylocalafterpublication; rootholds500/501prioritywindow.
+NexttwoSC008/017 ten06; separateTR08realTLS20PASS/TR09newnative9pending ten08+
+child, nowholeTR08approval. Each ownscope/checkpoint/sourceclaim in491, noTEN/
+P/U/ACK/DB/GOV/IMP overlap. Complete detailsrootretrycheckpoint/currentaudit.
+
+2026-10-04T22:58Z rootgateway/fullunit9984/9984PASS779files, supportedtag172/
+186green/0failing PASS, appTS/ownedlint/ratchet2251/diffPASS. Then soleClaude
+calendar9433 cherry-picked a7633802; all3blobsidentical/calendar9PASS, no second
+variant and no fabricated fullnewhead result. Freshactual28/native and ordinary
+currentheadallgreen/mainunion stillpending. Functionalpublication next.
