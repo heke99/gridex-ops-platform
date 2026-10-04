@@ -447,8 +447,14 @@
     {
       "id": "P-10",
       "acceptance_id": "AT-P-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930154552_ediel_z02_source_owned_core.sql",
+        "supabase/migrations/20260930164947_ediel_z02_original_dispatch_proof.sql",
+        "scripts/ediel-z02-core-embedded-check.mjs",
+        "scripts/ediel-p-10-z02-correlation-sql-regression.mjs",
+        "scripts/test-ediel-p-10-z02-correlation.cjs"
+      ]
     },
     {
       "id": "P-11",
@@ -1943,8 +1949,10 @@
     },
     {
       "id": "AT-P-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-p-10-z02-correlation.cjs"
+      ]
     },
     {
       "id": "AT-P-11",
