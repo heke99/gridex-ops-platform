@@ -2,6 +2,7 @@
 -- every synthetic mutation, receipt, outbox event and audit is rolled back.
 \set ON_ERROR_STOP on
 BEGIN;
+\ir sql/staff-native-role-catalog-fixture.sql
 CREATE FUNCTION pg_temp.expect_staff_user_actor_denied(command jsonb,invitation boolean)
 RETURNS void LANGUAGE plpgsql AS $$
 BEGIN

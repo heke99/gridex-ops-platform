@@ -58,3 +58,11 @@ run all mandatory exact-head gates before merge/production migration.
 - Qualification is capture-only: native tests, browser tests, type/schema comparison and upgrade parity were NOT_RUN in this source capture. Fresh exact-head full CI/OPS clean and upgrade replay/parity are mandatory before merge; this import does not qualify runtime behavior. Only this staff checkpoint is updated; Ediel memory and other package worktrees remain untouched.
 - db:migrations:check PASS: 1049 files/952 version groups with checksums; legal public-contract migration, database contract hardening and generated types hash/nullability/latest migration. git diff --check PASS. Independent artifact/provenance review PASS with no blocker; native qualification remains NOT_RUN.
 - Next: root publishes this S2-only artifact/provenance commit and the large generated files, then qualifies fresh exact-head full CI. No remote/production mutation is performed by this import.
+
+## S2 native role fixture repair (2026-10-04)
+
+The full native qualification of remote c7e2b22825773f976293ccc8a2991fd5d7897d63 failed: three SQL producers and all four concurrency cases stopped before their domain assertions because canonical clean replay has no legacy role seed rows. The authoritative schema/type artifacts still matched exactly; that does not qualify native behavior.
+
+Source repair f4e7b6c7656ec8ab55e34de0ced0de19cde6b69f adds ordinary company role reference rows inside each existing fixture transaction, using the real unique key and preserving existing rows. All five producers share this fixture; permissions, authority checks, race assertions and failure latches are unchanged. Six source-backed tests reproduce the actual missing-role seeds and verify the fix, existing-row preservation and uniqueness. Scoped lint and scripts/tests typechecks pass. No migration or generated schema bytes change.
+
+Next: publish this fixture repair and require a fresh exact-head full native clean replay, including both two-session races. Native qualification is pending. No production mutation has been performed.

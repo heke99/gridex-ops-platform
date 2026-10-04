@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 
 // This test commits a separate synthetic cohort so both native sessions can see it.
 // Its rows remain until the owned clean-replay stack is destroyed. No table,
 // trigger or audit record is changed for cleanup; only its unused client is revoked.
 const DATABASE = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+const roleCatalogFixture = readFileSync(new URL('./sql/staff-native-role-catalog-fixture.sql', import.meta.url), 'utf8')
 type Operation = 'disable' | 'change_role'
 type SqlResult = { code: number | null; output: string; error: string }
 
@@ -96,6 +98,7 @@ it.each(['disable', 'change_role'] as const)(
     let seeded = false
     try {
       await sql(`BEGIN;
+        ${roleCatalogFixture}
         INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
         VALUES ${[f.actor, f.adminA, f.adminB].map(id => `('${id}','authenticated','authenticated','${id}@example.invalid',now(),'{}','{}',now(),now(),false,false)`).join(',')};
         INSERT INTO public.user_profiles(id,email,user_status)
