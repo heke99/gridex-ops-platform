@@ -261,3 +261,8 @@ vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras f�
 - #426 delas i staplade PR:er per regelområde (#483–#489); bara toppen bevisas grön, merge i ordning (användarbeslut 2026-10-03).
 - Ett masterplan-ID godkänns först när varje condition/on_pass/on_failure och AT expected/prohibited har asserterande test; kärnbeteende räcker inte (TEN-01/02/05/06, U-04, U-14 lämnade ogodkända 2026-10-04).
 - Användaren: stanna före fasen "två regler i taget" och lämna över till nästa agent med prompt.
+
+## 2026-10-04 — DB-01/DB-02 migrationsplan godkänd (ägarbeslut)
+- Planen i `quality/audits/ediel-masterplan-v2/db-01-db-02-plan.md` är godkänd.
+- Plattformsrutter: alternativ a — `communication_routes` med `company_id IS NULL` + egen `route_scope`, RLS så att tenants inte ser dem.
+- Contract/DROP och rensning av produktionsdata kräver separat ägargodkännande senare.

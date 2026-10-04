@@ -9,6 +9,8 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "db:tenant-fk:inventory": "node scripts/tenant-fk-inventory.mjs",
+    "db:tenant-fk:check": "node scripts/tenant-fk-inventory.mjs --check",
     "lint": "eslint",
     "security:rbac": "node scripts/security-audit-rbac.mjs",
     "ediel:rule-regression": "node scripts/ediel-rule-regression.cjs",

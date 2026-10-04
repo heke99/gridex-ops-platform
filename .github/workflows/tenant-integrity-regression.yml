@@ -23,6 +23,11 @@ on:
       - 'scripts/check-service-role-tenant-ratchet.cjs'
       - 'scripts/service-role-tenant-ratchet.json'
       - 'scripts/sql/tenant-isolation-invariants.sql'
+      - 'supabase/schema.sql'
+      - 'scripts/tenant-fk-inventory.mjs'
+      - 'scripts/sql/tenant-fk-inventory.sql'
+      - 'quality/audits/ediel-masterplan-v2/tenant-fk-baseline.json'
+      - '__tests__/tenant-fk-ratchet.test.ts'
       - '.github/workflows/tenant-integrity-regression.yml'
   push:
     branches: [main]
@@ -47,6 +52,11 @@ on:
       - 'scripts/check-service-role-tenant-ratchet.cjs'
       - 'scripts/service-role-tenant-ratchet.json'
       - 'scripts/sql/tenant-isolation-invariants.sql'
+      - 'supabase/schema.sql'
+      - 'scripts/tenant-fk-inventory.mjs'
+      - 'scripts/sql/tenant-fk-inventory.sql'
+      - 'quality/audits/ediel-masterplan-v2/tenant-fk-baseline.json'
+      - '__tests__/tenant-fk-ratchet.test.ts'
       - '.github/workflows/tenant-integrity-regression.yml'
 
 permissions:
@@ -55,7 +65,7 @@ permissions:
 jobs:
   tenant-integrity-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,3 +79,14 @@ jobs:
       # queries use tenantDb(companyId) from lib/supabase/tenantDb.
       - name: Service-role tenant ratchet
         run: node scripts/check-service-role-tenant-ratchet.cjs
+      # DB-02: single-column tenant->tenant FKs may only decrease. New links use a
+      # composite (company_id, <ref>_id) FK onto UNIQUE (company_id, id).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Tenant FK ratchet gate (self-test)
+        run: npx vitest run __tests__/tenant-fk-ratchet.test.ts
+      - name: Tenant FK ratchet (supabase/schema.sql snapshot via PGlite)
+        run: npm run db:tenant-fk:check
