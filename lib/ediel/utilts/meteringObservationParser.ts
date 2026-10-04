@@ -1,4 +1,5 @@
 import type { ParsedUtilts } from '@/lib/ediel/utilts/parseUtilts'
+import {utiltsRuntimeSegments} from '@/lib/ediel/utiltsEngine.part-1'
 import { addNormalizedResolution, normalizeEdifactResolution } from '@/lib/ediel/utilts/resolution'
 import {
   localEdifactDateTimeToUtc,
@@ -47,7 +48,7 @@ function intervalPeriod(params: {
 }
 
 export function parseMeteringObservations(parsed: ParsedUtilts): ParsedMeteringObservation[] {
-  const timezone = parseEdifactTimezoneOffsetFromSegments(parsed.rawSegments)
+  const timezone = parseEdifactTimezoneOffsetFromSegments(utiltsRuntimeSegments(parsed))
   const transactions = parsed.transactions.length > 0 ? parsed.transactions : [{
     transactionId: parsed.transactionId,
     meterPointId: parsed.meterPointId,

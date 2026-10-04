@@ -1,12 +1,11 @@
 /**
- * Keep TypeScript transaction identity aligned with
- * `gridex_persist_utilts_transactions_v1`, which falls back to
- * `transaction-<1-based-index>` when IDE+24 is absent.
+ * Preserve a physically supplied IDE+24 without normalizing its identity.
+ * Only absent/empty IDEs use the existing transaction-<1-based-index> diagnostic
+ * identity; this helper grants no guide or persistence acceptance.
  */
 export function resolveUtiltsTransactionId(
   transactionId: string | null | undefined,
   index: number,
 ): string {
-  const trimmed = typeof transactionId === 'string' ? transactionId.trim() : ''
-  return trimmed.length > 0 ? trimmed : `transaction-${index + 1}`
+  return typeof transactionId === 'string' && transactionId.trim() !== '' ? transactionId : `transaction-${index + 1}`
 }

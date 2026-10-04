@@ -1,3 +1,5 @@
+import {requireDataRequestStructure} from '@/lib/ediel/sources/dataRequestStructure'
+import {dataRequestLegalParties} from '@/lib/ediel/sources/dataRequestLegalParties'
 import { supabaseService } from '@/lib/supabase/service'
 import { getCustomerSiteById, getGridOwnerById, getMeteringPointById } from '@/lib/masterdata/db'
 import { buildUtiltsOutboundDraft } from '@/lib/ediel/utilts'
@@ -18,17 +20,9 @@ import { requireCompanyOperationalForWrites } from '@/lib/tenant/governance'
 import {
   assertCanonicalSupplierUtiltsOutboundAllowed,
   canonicalSupplierUtiltsApplicationReference,
-  canonicalUtiltsResolutionClass,
   type UtiltsRequestedMessageCode,
 } from '@/lib/ediel/rulebook/canonicalEdielFacade'
-import { normalizeMeteringResolution, type MeteringResolution } from '@/lib/metering/contractMeteringResolution'
-
-const UTILTS_RESOLUTION_CLASS: Record<MeteringResolution, 'monthly' | 'daily' | 'hourly' | 'quarter_hour'> = {
-  month: 'monthly',
-  day: 'daily',
-  hour: 'hourly',
-  quarter_hour: 'quarter_hour',
-}
+import { normalizeMeteringResolution } from '@/lib/metering/contractMeteringResolution'
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -131,14 +125,12 @@ export async function prepareAndQueueUtiltsE73(params: {
     ? await getGridOwnerById(supabase, dataRequest.grid_owner_id)
     : null
 
-  // The contract decides the resolution (set when the data request was created);
-  // the meter's reading frequency is only the fallback for requests without it.
+  // The contract's requested resolution (set when the data request was created)
+  // travels with the request; the wire resolution stays bound to the qualified
+  // dated meter structure below.
   const contractRequestedResolution = normalizeMeteringResolution(
     record(dataRequest.request_payload).requested_resolution,
   )
-  const resolution = contractRequestedResolution
-    ? UTILTS_RESOLUTION_CLASS[contractRequestedResolution]
-    : canonicalUtiltsResolutionClass(meteringPoint?.reading_frequency ?? null)
 
   // Route/actor selection happens first. The selected route may carry an exact
   // field-311 Application Reference, but it is NOT authoritative by itself: the
@@ -175,6 +167,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     applicationReference: routeContext.applicationReference,
   })
 
+  const sourceStructure=await requireDataRequestStructure({companyId,actorUserId,environment,customerId:dataRequest.customer_id,siteId:dataRequest.site_id,meteringPointId:dataRequest.metering_point_id,
+    periodStart:dataRequest.requested_period_start,periodEnd:dataRequest.requested_period_end,...dataRequestLegalParties({companyId,environment,route:routeContext,networkEdielId:gridOwner?.ediel_id})})
   const outbound = await findOrCreateDataRequestOutbound({
     actorUserId,
     requestType: 'meter_values',
@@ -216,6 +210,8 @@ export async function prepareAndQueueUtiltsE73(params: {
     routeDefaultMessageVersion: routeContext.defaultMessageVersion,
     applicationReference,
     payload: {
+      legalSenderEdielId: sourceStructure.legalSupplier,
+      legalReceiverEdielId: sourceStructure.legalNetwork,
       meterPointId: meteringPoint?.meter_point_id ?? null,
       meteringPointId: meteringPoint?.meter_point_id ?? null,
       gridAreaId: gridOwner?.owner_code ?? gridOwner?.ediel_id ?? null,
@@ -231,8 +227,11 @@ export async function prepareAndQueueUtiltsE73(params: {
       transactionReason: `Request missing ${requestedMessageCode}`,
       requestScope: dataRequest.request_scope,
       siteType: site?.site_type ?? 'consumption',
-      readingFrequency: meteringPoint?.reading_frequency ?? null,
-      resolution,
+      readingFrequency: sourceStructure.fields.reportingFrequency,
+      measurementMethod:sourceStructure.fields.measurementMethod,
+      timeSeriesProduct:sourceStructure.fields.productCode,
+      structuralSource:{snapshotId:sourceStructure.snapshotId,readsetHash:sourceStructure.readsetHash,selection:sourceStructure.selection},
+      resolution:sourceStructure.resolution,
       requestedResolution: contractRequestedResolution,
     },
   })

@@ -17,7 +17,7 @@ export function bindingRpcRows(input: UtiltsBoundPersistenceInput, outcomes?: un
       const row = value as UtiltsTransactionPersistenceResult
       const c = input.contracts.find(contract => contract.transactionId === row.transactionId)
       return { ...row, sourceBinding: { sourceMessageId: input.sourceMessageId, rawHash: createHash('sha256').update(input.rawPayload).digest('hex'), boundAt: '2026-09-23T00:00:00Z' },
-        ...(row.persistenceStatus === 'persisted' ? { seriesId: 'series-' + row.transactionId, contractHash: 'a'.repeat(64), contractVersion: 1, consumptionContract: structuredClone(c) } : {}) }
+        ...(row.persistenceStatus === 'persisted' ? { seriesId: 'series-' + row.transactionId, contractHash: 'a'.repeat(64), contractVersion: c?.version, consumptionContract: structuredClone(c) } : {}) }
     })
 }
 export function boundLegacySinkFixture(payload: Record<string, unknown>): UtiltsTransactionPersistenceResult[] {

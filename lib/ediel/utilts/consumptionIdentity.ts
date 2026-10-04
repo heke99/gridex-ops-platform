@@ -14,11 +14,11 @@ export function supportedUtiltsConsumptionIdentity(raw: string, index: number): 
     const stop = transaction.segments.findIndex(segment => segment.tag === 'SEQ')
     const header = stop < 0 ? transaction.segments : transaction.segments.slice(0, stop)
     const locations = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '172')
-    // A regulating object is a different identity domain. An ambiguous IDE
-    // must not be consumed as an ordinary accounting point merely because 172
-    // also appears in its header.
-    if (header.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '175')) return null
-    if (locations.length !== 1 || segmentComposite(locations[0], 1, ast.una).length !== 1) return null
+    // SG5 identifies one point before SEQ. A later LOC+172 or LOC+175 in the
+    // same physical IDE cannot silently leave the first point authoritative.
+    if (transaction.segments.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '175')) return null
+    if (locations.length !== 1 || transaction.segments.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '172').length !== 1
+      || segmentComposite(locations[0], 1, ast.una).length !== 1) return null
     const point = segmentComposite(locations[0], 2, ast.una)
     if (point.length !== 3 || point[1] !== '' || point[2] !== '9' || !point[0] || point[0] !== point[0].trim()
       || /[\u0000-\u001f\u007f]/.test(point[0])) return null

@@ -1,3 +1,5 @@
+import type {PeriodicReasonAuthority} from './periodicReasonAuthority'
+import type {UtiltsIssuerIdentityAuthority} from './issuerIdentityAuthority'
 import {supportedUtiltsConsumptionIdentity} from './consumptionIdentity'
 import {supabaseService} from '@/lib/supabase/service'
 import {isEvidenceUuid} from './durableSourceDiscovery'
@@ -5,14 +7,14 @@ import {parseSourceReceiptInstant} from './receivedSourceInventory'
 import {inspectCombinedCorrectionReadset} from '@/lib/ediel/sources/combinedCorrectionReadset'
 import type {StructuralReadset} from '@/lib/ediel/sources/structuralSourceReadset'
 import {compareUtiltsStructure,type StructuralComparison} from './structuralComparison'
-import {rebuildUtiltsRuntimeResult,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
+import {rebuildUtiltsRuntimeResult,takeUtiltsRuntimeOwner,utiltsRuntimeOwnerFingerprint,type UtiltsRuntimeResult,type UtiltsValidationIssue} from '@/lib/ediel/utiltsEngine'
 import {resolveUtiltsProcessabilityPolicy} from '@/lib/ediel/rulebook/utilts25A4'
 import type {CanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 export type ReceivedStructureQualification={
   runtime:UtiltsRuntimeResult;hasInternalReview:boolean;hasNationalMismatch:boolean
-  evidence:{version:1;owner:'received-structure-comparison-v1';status:'not_applicable'|'evaluated';
+  evidence:{version:1;owner:'received-structure-comparison-v1'|'regulating-object-ownership-v1';status:'not_applicable'|'evaluated';
     cutoffAt:string|null;snapshotId:string|null;readsetHash:string|null;comparisons:StructuralComparison[]}
 }
 
@@ -20,12 +22,51 @@ export type ReceivedStructureQualification={
  * snapshot and immediately applies the result to the current invocation. There
  * is no parameter for cached/serialized approvals or caller-supplied readsets.
  * Expected values never come from current metering masterdata or the UTILTS. */
-export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
+async function qualifyReceivedUtiltsStructureCore(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy}):Promise<ReceivedStructureQualification>{
   const {message,runtime,canonicalPolicy}=input
   const result:ReceivedStructureQualification={runtime,hasInternalReview:false,hasNationalMismatch:false,
     evidence:{version:1,owner:'received-structure-comparison-v1',status:'not_applicable',cutoffAt:null,snapshotId:null,readsetHash:null,comparisons:[]}}
   if(canonicalPolicy.family!=='UTILTS'||canonicalPolicy.direction!=='inbound'||canonicalPolicy.code!==message.message_code
-    ||message.direction!=='inbound'||!['E30','E66','S07'].includes(message.message_code??''))return result
+    ||message.direction!=='inbound')return result
+  // U 25-A-4 requires LOC+172 for E72 (UF-request-209-63) and
+  // S02 (UF-planning-209-51), including empty nonbilling observations. Other
+  // profiles below permit LOC+175, but a valid field
+  // is not a tenant/actor mandate or a durable regulating-object identity.
+  // The point comparison owner below is limited to E30/E66/S07. Hold only the
+  // accepted physical IDE here, preserving genuine guide-negative siblings.
+  if(['S01','E72','E73','S06','S02'].includes(message.message_code??'')){
+    const unowned=runtime.transactionDispositions.flatMap((disposition,index)=>
+      disposition.disposition==='accepted'&&runtime.facts.transactions[index]?.regulatingObjectPresent
+        ?[disposition.transactionId]:[])
+    const unsupportedPoint=runtime.transactionDispositions.flatMap((disposition,index)=>{
+      if(disposition.disposition!=='accepted'||runtime.facts.transactions[index]?.regulatingObjectPresent)return []
+      const identity=supportedUtiltsConsumptionIdentity(message.raw_payload??'',index)
+      return !identity||identity.transactionId!==disposition.transactionId?[disposition.transactionId]:[]
+    })
+    if(!unowned.length&&!unsupportedPoint.length)return result
+    const held=new Set([...unowned,...unsupportedPoint]),unownedIds=new Set(unowned)
+    const dispositions=runtime.transactionDispositions.map(disposition=>disposition.disposition==='accepted'&&held.has(disposition.transactionId)
+      ?{...disposition,disposition:'internal_review' as const,responseType:'none' as const,
+        issueCodes:[...disposition.issueCodes,unownedIds.has(disposition.transactionId)?'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE':'UTILTS_STRUCTURE_UNAVAILABLE']}:disposition)
+    result.evidence={...result.evidence,owner:unsupportedPoint.length?'received-structure-comparison-v1':'regulating-object-ownership-v1',status:'evaluated',comparisons:[...held].map(transactionId=>({
+      transactionId,status:'unavailable',reason:unownedIds.has(transactionId)?'regulating_object_owner_unavailable':'utilts_consumption_identity_unsupported',codes:[],selected:[],
+    }))}
+    result.hasInternalReview=true
+    result.runtime={...runtime,transactionDispositions:dispositions,
+      validation:{...runtime.validation,ok:false,classification:runtime.validation.classification==='accepted'?'internal_review':runtime.validation.classification,
+        issues:[...runtime.validation.issues,...[...held].map(transactionId=>({severity:'warning' as const,kind:'functional' as const,
+          code:unownedIds.has(transactionId)?'UTILTS_REGULATING_OBJECT_OWNER_UNAVAILABLE':'UTILTS_STRUCTURE_UNAVAILABLE',
+          title:unownedIds.has(transactionId)?'Reglerobjektets ägare saknas':'Fysisk punktidentitet kan inte fastställas',
+          description:unownedIds.has(transactionId)
+            ?'Juridisk aktör, mandat och beständig reglerobjektsägare är inte verifierade. Ingen nationell felkod har skapats.'
+            :'En entydig anläggning kan inte fastställas i den fysiska transaktionen. Ingen nationell felkod har skapats.',
+          referenceNumber:transactionId,lineItemReference:transactionId}))]},
+      ackPlan:{...runtime.ackPlan,...(dispositions.every(disposition=>disposition.disposition==='internal_review')?{shouldSendAperak:false,aperakOutcome:null}:{}),
+        reason:unsupportedPoint.length&&unowned.length?'Reglerobjektets ägare och fysisk punktidentitet kan inte fastställas för alla transaktioner.'
+          :unsupportedPoint.length?'Fysisk punktidentitet kan inte fastställas för en eller flera transaktioner.':'Reglerobjektets juridiska ägare och mandat är inte verifierade.'}}
+    return result
+  }
+  if(!['E30','E66','S07'].includes(message.message_code??''))return result
   const eligible=runtime.transactionDispositions.map((disposition,index)=>({disposition,index})).filter(({disposition})=>disposition.disposition==='accepted')
   if(!eligible.length)return result
   const raw=message.raw_payload
@@ -97,5 +138,24 @@ export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessage
         reason:'Godkänt och tidsmässigt fullständigt strukturunderlag saknas för en eller flera transaktioner.'}}
   }
   result.runtime=qualified
+  return result
+}
+
+const qualifiedOwners=new WeakMap<UtiltsRuntimeResult,{sourceHash:string;resultHash:string;policy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}>()
+export function takeQualifiedUtiltsRuntimeOwner(runtime:UtiltsRuntimeResult,message:EdielMessageRow,policy:CanonicalEdielPolicy,issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority,periodicReasonAuthority?:PeriodicReasonAuthority):UtiltsRuntimeResult|null {
+  const owner=qualifiedOwners.get(runtime)
+  qualifiedOwners.delete(runtime)
+  if(!owner) return null
+  const scope=utiltsRuntimeOwnerFingerprint(message,runtime)
+  return owner.policy===policy && owner.issuerIdentityAuthority===issuerIdentityAuthority && owner.periodicReasonAuthority===periodicReasonAuthority && owner.sourceHash===scope.sourceHash && owner.resultHash===scope.resultHash ? structuredClone(runtime) : null
+}
+/** This seal is minted only after this module obtained its own immutable
+ * structural readset and restricted the actual engine invocation. */
+export async function qualifyReceivedUtiltsStructure(input:{message:EdielMessageRow;runtime:UtiltsRuntimeResult;canonicalPolicy:CanonicalEdielPolicy;issuerIdentityAuthority?:UtiltsIssuerIdentityAuthority;periodicReasonAuthority?:PeriodicReasonAuthority}):Promise<ReceivedStructureQualification>{
+  const before=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
+  const owner=takeUtiltsRuntimeOwner(input.runtime,input.message,input.canonicalPolicy,input.issuerIdentityAuthority,input.periodicReasonAuthority)
+  const result=await qualifyReceivedUtiltsStructureCore(input)
+  const after=utiltsRuntimeOwnerFingerprint(input.message,input.runtime)
+  if(owner && before.sourceHash===after.sourceHash && before.resultHash===after.resultHash) qualifiedOwners.set(result.runtime,{...utiltsRuntimeOwnerFingerprint(input.message,result.runtime),policy:input.canonicalPolicy,issuerIdentityAuthority:input.issuerIdentityAuthority,periodicReasonAuthority:input.periodicReasonAuthority})
   return result
 }
