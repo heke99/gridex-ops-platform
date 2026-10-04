@@ -268,3 +268,4 @@ vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras f�
 - U25-A-5 is not a separate edition: masterplan §2.1/G07 says the uploaded U footer reads 25-A-5 despite cover revision 4 (registered source conflict). U cards stay on U25-A-4.
 - P-06 "ändra inte alla ZZZ globalt" = E012: fix only the NAD+UD end-user agency to 260; keep other legitimate ZZZ (field 206 DTM+ZZZ:1:805).
 - U-11: E30 is a disabled (non-production) capability for DDQ/DGI (§9). U-11 only scopes E90/E97/E98 away from individual E66 and keeps them for aggregates; aggregate value limits are CV-U-FN-* rules behind G02.
+- Owner rule (2026-10-04): open interpretation questions are answered first by re-reading the project's purpose and MASTERMASTERPLAN_v2 + annexes A–E (incl. E-findings, §20 gates G01–G07); only ask the owner when the sources truly leave it open.
