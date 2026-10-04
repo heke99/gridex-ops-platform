@@ -1,9 +1,11 @@
-import { getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
+import { canonicalUtiltsObservationRequirements, getCanonicalUtiltsProfile } from '@/lib/ediel/rulebook/utiltsRulebook'
 import type { UtiltsRuntimeFacts, UtiltsValidationIssue } from '@/lib/ediel/utiltsEngine'
 import { expectedObservationCountForResolution } from '@/lib/ediel/utilts/resolution'
 import { resolveUtiltsTransactionId } from '@/lib/ediel/utilts/transactionIdentity'
+import {segmentComposite,segmentUntrimmedRaw,tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {isValidUtiltsTransactionReference} from './physicalReference'
 
-function issue(code: string, title: string, description: string, reference?: string | null): UtiltsValidationIssue {
+function issue(code: string, title: string, description: string, reference?: string | null, field = '512'): UtiltsValidationIssue {
   return {
     severity: 'error',
     kind: 'application',
@@ -11,7 +13,7 @@ function issue(code: string, title: string, description: string, reference?: str
     title,
     description,
     aperakErcCode: '41',
-    aperakFieldCode: '512',
+    aperakFieldCode: field,
     aperakText: 'MANDATORY FIELD MISSING',
     referenceQualifier: reference ? 'ACW' : null,
     referenceNumber: reference ?? null,
@@ -35,9 +37,12 @@ export function isSingletonE30Reading(facts: UtiltsRuntimeFacts, index: number):
     || transaction.quantities.length !== 1 || transaction.quantities[0].qualifier !== '220') return false
   const reading = observed.observations[0]
   if (reading.quantities.length !== 1 || reading.quantities[0].qualifier !== '220' || !reading.quantities[0].value) return false
-  const dates = reading.segments.filter(segment => segment.tag === 'DTM' && segment.raw.startsWith('DTM+597:'))
-  if (dates.length !== 1 || !/^DTM\+597:\d{12}:203$/.test(dates[0].raw)) return false
-  const minute = dates[0].raw.slice(8,20),year=Number(minute.slice(0,4)),month=Number(minute.slice(4,6)),day=Number(minute.slice(6,8)),
+  const dates = reading.segments.filter(segment=>segment.tag==='DTM').map(segment=>{
+    const token=tokenizeEdifact(facts.runtimeSegments?.[segment.index]??segment.raw).segments[0]
+    return token ? segmentComposite({...token,raw:segmentUntrimmedRaw(token)},1) : []
+  }).filter(parts=>parts[0]==='597')
+  if (dates.length !== 1 || dates[0].length!==3 || !/^\d{12}$/.test(dates[0][1]) || dates[0][2]!=='203') return false
+  const minute = dates[0][1],year=Number(minute.slice(0,4)),month=Number(minute.slice(4,6)),day=Number(minute.slice(6,8)),
     hour=Number(minute.slice(8,10)),clockMinute=Number(minute.slice(10,12))
   const parsed=new Date(Date.UTC(year,month-1,day,hour,clockMinute))
   return parsed.getUTCFullYear()===year&&parsed.getUTCMonth()===month-1&&parsed.getUTCDate()===day
@@ -48,7 +53,7 @@ function intervalQuantities(
   messageCode: string | null | undefined,
   quantities: Array<{ qualifier: string | null; value: number | null; raw: string }>,
 ) {
-  if (String(messageCode ?? '').trim().toUpperCase() !== 'E66') return quantities
+  if (!['E30','E66','S07'].includes(String(messageCode ?? '').trim().toUpperCase())) return quantities
 
   // Field 516 in the Swedish 25-A-3 matrix is QTY+136 (periodic energy).
   // Field 517 is QTY+220 (meter reading). Register readings are evidence for
@@ -62,45 +67,43 @@ export function validateCanonicalUtiltsProfile(facts: UtiltsRuntimeFacts, functi
   if (!profile) return [issue('UTILTS_PROFILE_MISSING', 'UTILTS-profil saknas', `Ingen aktiv profil finns för ${facts.messageCode ?? '(saknas)'}.`)]
   if (profile.messageCode === 'ERR') return []
 
-  const transactions = facts.transactions.length > 0 ? facts.transactions : [{
-    transactionId: facts.transactionId,
-    meterPointId: facts.meterPointId,
-    regulatingObjectId: null,
-    regulatingObjectPresent: false,
-    gridAreaId: facts.gridAreaId,
-    deliveryPeriodStart: facts.deliveryPeriodStart,
-    deliveryPeriodEnd: facts.deliveryPeriodEnd,
-    resolution: facts.resolution,
-    resolutionFormat: null,
-    unit: facts.unit,
-    quantities: facts.quantities,
-  }]
+  // Global facts are a legacy summary of the first/all IDEs. They never fill
+  // an absent field or transaction in the physical source scope (U §2/3.8).
+  const transactions = facts.transactions
   const issues: UtiltsValidationIssue[] = []
-  if (profile.requiresTransaction && transactions.length === 0) issues.push(issue('UTILTS_TRANSACTION_REQUIRED', 'Transaktion saknas', `${profile.profileKey} kräver minst en transaktion.`))
+  if (profile.requiresTransaction && transactions.length === 0) issues.push(issue('UTILTS_TRANSACTION_REQUIRED', 'Transaktion saknas', `${profile.profileKey} kräver minst en transaktion.`, null, '505'))
 
   transactions.forEach((transaction, index) => {
     const reference = resolveUtiltsTransactionId(
-      transaction.transactionId ?? facts.transactionId,
+      transaction.transactionId,
       index,
     )
-    if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 eller TN-referens per transaktion.`, reference))
+    if (!transaction.transactionId) issues.push(issue('UTILTS_TRANSACTION_ID_MISSING', 'Transaktions-id saknas', `${profile.profileKey} kräver IDE+24 per transaktion.`, reference, '505'))
+    else if(!isValidUtiltsTransactionReference(transaction.transactionId)) issues.push({
+      ...issue('UTILTS_TRANSACTION_ID_INVALID','Ogiltigt transaktions-id','Transaktions-id uppfyller inte källfält505 an..35.',reference,'505'),
+      aperakErcCode:'42',aperakText:'INCORRECT DATA',
+      aperakInvalidOccurrence:facts.utiltsObservedTransactions?.[index] ? {segmentIndex:facts.utiltsObservedTransactions[index].segmentIndex,elementIndex:2,componentIndex:0} : undefined,
+    })
     if (profile.requiresMeteringPoint && !(facts.messageCode === 'E66'
       ? transaction.meterPointId || transaction.regulatingObjectPresent
-      : transaction.meterPointId || facts.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference))
-    if (profile.requiresGridArea && !transaction.gridAreaId && !facts.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference))
+      : transaction.meterPointId)) issues.push(issue('UTILTS_PROFILE_METERING_POINT_MISSING', 'Anläggnings-id saknas', `${profile.profileKey} kräver ${facts.messageCode === 'E66' ? 'LOC+172 eller LOC+175' : 'LOC+172'} per transaktion.`, reference, '209'))
+    if (profile.requiresGridArea && !transaction.gridAreaId) issues.push(issue('UTILTS_PROFILE_GRID_AREA_MISSING', 'Nätområde saknas', `${profile.profileKey} kräver LOC+239.`, reference, '260a'))
     const singletonReading = isSingletonE30Reading(facts, index)
-    if (profile.requiresPeriod && !singletonReading && (!(transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart) || !(transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd))) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference))
-    if (profile.requiresResolution && !singletonReading && !(transaction.resolution ?? facts.resolution)) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference))
-    if (profile.requiresUnit && !(transaction.unit ?? facts.unit)) issues.push(issue('UTILTS_PROFILE_UNIT_MISSING', 'Enhet saknas', `${profile.profileKey} kräver MEA-enhet.`, reference))
-    const quantities = transaction.quantities?.length ? transaction.quantities : facts.quantities
-    if (profile.requiresQuantities && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden.`, reference))
+    if (profile.requiresPeriod && !singletonReading && (!transaction.deliveryPeriodStart || !transaction.deliveryPeriodEnd)) issues.push(issue('UTILTS_PROFILE_PERIOD_MISSING', 'Leveransperiod saknas', `${profile.profileKey} kräver både start och slut i DTM+324.`, reference, '245'))
+    if (profile.requiresResolution && !singletonReading && !transaction.resolution) issues.push(issue('UTILTS_PROFILE_RESOLUTION_MISSING', 'Upplösning saknas', `${profile.profileKey} kräver DTM+354.`, reference, '508'))
+    const quantities = transaction.quantities
+    const observations=facts.utiltsObservedTransactions?.[index]?.observations ?? []
+    const requirement=canonicalUtiltsObservationRequirements(profile.messageCode,{quantityCount:quantities.length,
+      hasAmountOrPrice:observations.some(observation=>observation.segments.some(segment=>segment.tag==='MOA' || segment.tag==='PRI'))})
+    if (requirement.unitRequired && !transaction.unit) issues.push(issue('UTILTS_PROFILE_UNIT_MISSING', 'Enhet saknas', `${profile.profileKey} kräver MEA-enhet för denna kvantitetsgren.`, reference, '264'))
+    if (requirement.quantitiesRequired && quantities.length === 0) issues.push(issue('UTILTS_PROFILE_QUANTITY_MISSING', 'Mätvärden saknas', `${profile.profileKey} kräver QTY-värden i denna observationsgren.`, reference, ['S02','S03','S04'].includes(profile.messageCode) ? '515' : 'QTY/6060'))
 
     const countedQuantities = intervalQuantities(facts.messageCode, quantities)
     if (profile.validatesDst && countedQuantities.length > 0 && (!functionalEligible || functionalEligible.has(reference))) {
       const expected = expectedObservationCountForResolution({
-        start: transaction.deliveryPeriodStart ?? facts.deliveryPeriodStart,
-        end: transaction.deliveryPeriodEnd ?? facts.deliveryPeriodEnd,
-        value: transaction.resolution ?? facts.resolution,
+        start: transaction.deliveryPeriodStart,
+        end: transaction.deliveryPeriodEnd,
+        value: transaction.resolution,
         format: transaction.resolutionFormat ?? null,
       })
       if (expected !== null && countedQuantities.length !== expected) {

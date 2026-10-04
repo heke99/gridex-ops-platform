@@ -140,10 +140,16 @@ function matchedScopes(ast: CanonicalEdifactAst, matches: readonly UtiltsTransac
     if (transactions.filter(item => item.transactionId === transaction.transactionId).length !== 1) continue
     const end = transaction.segments.findIndex(segment => segment.tag === 'SEQ')
     const header = end < 0 ? transaction.segments : transaction.segments.slice(0, end)
+    // An SG5 point cannot select history when the same physical IDE also
+    // carries another point or a regulating object, even after SEQ.
+    if (transaction.segments.some(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '175')) continue
     const locations = header.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '172')
-    if (locations.length !== 1 || segmentComposite(locations[0], 1, ast.una).length !== 1) continue
+    if (locations.length !== 1 || transaction.segments.filter(segment => segment.tag === 'LOC' && segmentComposite(segment, 1, ast.una)[0] === '172').length !== 1
+      || segmentComposite(locations[0], 1, ast.una).length !== 1) continue
     const parts = segmentComposite(locations[0], 2, ast.una)
-    if (parts.length !== 3 || !exactId(parts[0]) || parts[1] !== '' || !['9', '89'].includes(parts[2])) continue
+    // The tenant matcher is a plain-ID lookup. For agency 89 it cannot prove
+    // which distributor assigned that text to this point at receipt time.
+    if (parts.length !== 3 || !exactId(parts[0]) || parts[1] !== '' || parts[2] !== '9') continue
     const candidates = matches.filter(match => match.transactionReference === transaction.transactionId)
     if (candidates.length !== 1) continue
     const match = candidates[0]

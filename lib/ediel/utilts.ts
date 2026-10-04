@@ -16,9 +16,10 @@ import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegi
 import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'
 import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
 import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'
+import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'
 import {
-  firstCompositeComponent,
-  splitComposite,
+  segmentComposite,
+  segmentUntrimmedRaw,
   tokenizeEdifact,
   type EdifactTokenizedSegment,
 } from '@/lib/ediel/core/edifactTokenizer'
@@ -41,6 +42,9 @@ export type ParsedUtiltsMessage = {
   senderEdielId: string | null
   receiverEdielId: string | null
   rawSegments: string[]
+  /** Transient release-aware default-alphabet projection for runtime consumers.
+   * Original rawSegments and observed token provenance remain unchanged. */
+  runtimeSegments?: string[]
   /** Raw-owned observations only; not expected structure or validation authority. */
   utiltsObservedTransactions?: CanonicalUtiltsTransaction[]
   parsedPayload: Record<string, unknown>
@@ -135,12 +139,9 @@ function extractUnbEdielIds(
     return { senderEdielId: null, receiverEdielId: null }
   }
 
-  const senderRaw = unb.elements[2] ?? ''
-  const receiverRaw = unb.elements[3] ?? ''
-
   return {
-    senderEdielId: firstCompositeComponent(senderRaw, una),
-    receiverEdielId: firstCompositeComponent(receiverRaw, una),
+    senderEdielId: segmentComposite({...unb,raw:segmentUntrimmedRaw(unb)},2,una)[0] || null,
+    receiverEdielId: segmentComposite({...unb,raw:segmentUntrimmedRaw(unb)},3,una)[0] || null,
   }
 }
 
@@ -152,9 +153,9 @@ function extractReference(
   const normalized = qualifier.toUpperCase()
   for (const segment of segments) {
     if (segment.tag !== 'RFF') continue
-    const components = splitComposite(segment.elements[1], una)
+    const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
     if (String(components[0] ?? '').toUpperCase() !== normalized) continue
-    const value = components.slice(1).join(una.componentDataElementSeparator).trim()
+    const value = components[1]
     if (value) return value
   }
   return null
@@ -165,7 +166,7 @@ function extractDateFromDtm(
   una: ReturnType<typeof tokenizeEdifact>['una'],
 ): string | null {
   if (!segment || segment.tag !== 'DTM') return null
-  const components = splitComposite(segment.elements[1], una)
+  const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
   const raw = String(components[1] ?? '').trim()
   if (!/^\d{8,12}$/.test(raw)) return null
   return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
@@ -176,7 +177,7 @@ function extractQty(
   una: ReturnType<typeof tokenizeEdifact>['una'],
 ): number | null {
   if (!segment || segment.tag !== 'QTY') return null
-  const components = splitComposite(segment.elements[1], una)
+  const components = segmentComposite({...segment,raw:segmentUntrimmedRaw(segment)},1,una)
   const raw = String(components[1] ?? '').trim()
   if (!raw) return null
   const normalized = una.decimalMark && una.decimalMark !== '.'
@@ -263,31 +264,32 @@ function inferUtiltsReadingType(payload: Record<string, unknown>): string {
 export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
   const tokenized = tokenizeEdifact(rawPayload)
   const rawSegments = tokenized.segments.map((segment) => segment.raw)
+  const runtimeSegments = tokenized.segments.map(segment=>utiltsDefaultAlphabetSegment(segment,tokenized.una))
   const inferred = inferEdielFamilyAndCodeFromRawPayload(rawPayload)
   const byTag = (tag: string) => tokenized.segments.find((segment) => segment.tag === tag) ?? null
   const unbSegment = byTag('UNB')
   const unhSegment = byTag('UNH')
   const bgmSegment = byTag('BGM')
   const loc172Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '172',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment,1, tokenized.una)[0] === '172',
   ) ?? null
   const loc239Segment = tokenized.segments.find(
-    (segment) => segment.tag === 'LOC' && firstCompositeComponent(segment.elements[1], tokenized.una) === '239',
+    (segment) => segment.tag === 'LOC' && segmentComposite(segment,1, tokenized.una)[0] === '239',
   ) ?? null
   const dtmSegment = (qualifier: string) => tokenized.segments.find(
-    (segment) => segment.tag === 'DTM' && firstCompositeComponent(segment.elements[1], tokenized.una) === qualifier,
+    (segment) => segment.tag === 'DTM' && segmentComposite(segment,1, tokenized.una)[0] === qualifier,
   ) ?? null
   const qtySegment = byTag('QTY')
   const cciSegment = byTag('CCI')
   const ids = extractUnbEdielIds(unbSegment, tokenized.una)
 
-  const bgmCode = (firstCompositeComponent(bgmSegment?.elements[1], tokenized.una) || inferred.messageCode || null) as
+  const bgmCode = (segmentComposite(bgmSegment,1, tokenized.una)[0] || inferred.messageCode || null) as
     | UtiltsMessageCode
     | EdielKnownMessageCode
     | null
 
-  const meterPointId = firstCompositeComponent(loc172Segment?.elements[2], tokenized.una)
-  const gridAreaId = firstCompositeComponent(loc239Segment?.elements[2], tokenized.una)
+  const meterPointId = segmentComposite(loc172Segment,2,tokenized.una)[0] || null
+  const gridAreaId = segmentComposite(loc239Segment,2,tokenized.una)[0] || null
   const quantity = extractQty(qtySegment, tokenized.una)
   const unb = unbSegment?.raw ?? null
   const unh = unhSegment?.raw ?? null
@@ -308,14 +310,15 @@ export function parseInboundUtilts(rawPayload: string): ParsedUtiltsMessage {
       extractReference(tokenized.segments, 'CR', tokenized.una) ||
       extractReference(tokenized.segments, 'E66', tokenized.una),
     externalReference:
-      String(bgmSegment?.elements[2] ?? '').trim() ||
+      segmentComposite(bgmSegment,2,tokenized.una)[0] ||
       extractReference(tokenized.segments, 'ON', tokenized.una) ||
       extractReference(tokenized.segments, 'AAS', tokenized.una) ||
       extractReference(tokenized.segments, 'ACE', tokenized.una),
-    applicationReference: String(unbSegment?.elements[7] ?? '').trim() || null,
+    applicationReference: segmentComposite(unbSegment,7,tokenized.una)[0] || null,
     senderEdielId: ids.senderEdielId,
     receiverEdielId: ids.receiverEdielId,
     rawSegments,
+    runtimeSegments,
     utiltsObservedTransactions,
     parsedPayload: {
       utiltsObservedTransactions,
@@ -403,11 +406,16 @@ export function buildInboundUtiltsMessageInput(
 
 function renderUtiltsSegments(input: {
   code: 'E66' | 'E73'
+  applicationReference: string
   bgmReference: string
   transactionReference: string
   payload: Record<string, unknown>
 }): string[] {
   const payload = input.payload
+  // This is a canonical wire candidate. The real outbound admission/witness
+  // independently qualifies current legal sender/receiver and business scope.
+  // Payload flags never assert an E88 bilateral exception.
+  const periodicDgi = input.code === 'E66' && /^23-DGI-E66-(S|T)$/.test(input.applicationReference)
   const meterPointId = sanitize(getPayloadString(payload, 'meterPointId', 'meteringPointId'))
   const gridAreaId = sanitize(getPayloadString(payload, 'gridAreaId', 'gridOwnerEdielId'))
   const periodStart = getPayloadString(payload, 'periodStart', 'requestedPeriodStart')
@@ -415,6 +423,14 @@ function renderUtiltsSegments(input: {
   const registrationTime =
     getPayloadString(payload, 'registrationTime') || new Date().toISOString()
   const quantity = getPayloadNumber(payload, 'quantity', 'valueKwh', 'requestedQuantity')
+  // U §3.7.3 pp62–65 defines request fields, without observation QTY.
+  // An invented SEQ would hide the unsupported national request semantics.
+  if (input.code === 'E73' && quantity !== null) throw new Error('utilts_request_quantity_not_source_supported')
+  const legalSender = getPayloadString(payload, 'legalSenderEdielId')
+  const legalReceiver = getPayloadString(payload, 'legalReceiverEdielId')
+  // UNB identifies transport endpoints. A separate source-owned legal party
+  // is mandatory in SG2 and must never be inferred from that endpoint.
+  if (!/^\d{5}$/.test(legalSender) || !/^\d{5}$/.test(legalReceiver)) throw new Error('utilts_legal_parties_source_required')
   const unit = sanitize(getPayloadString(payload, 'unit') || 'KWH')
   const transactionReason = sanitize(
     getPayloadString(payload, 'transactionReason') ||
@@ -432,6 +448,9 @@ function renderUtiltsSegments(input: {
   segments.push(`DTM+735:?+0100:406`)
   segments.push(`MKS+23+E02::260`)
   segments.push(`RFF+TN:${sanitize(input.transactionReference)}`)
+  segments.push(`NAD+MS+${legalSender}:SVK:260`)
+  segments.push(`NAD+MR+${legalReceiver}:SVK:260`)
+  if (periodicDgi) segments.push(`NAD+DGI`)
 
   if (meterPointId) {
     segments.push(`IDE+24+${sanitize(input.transactionReference)}`)
@@ -454,8 +473,10 @@ function renderUtiltsSegments(input: {
 
   if (input.code === 'E66') {
     segments.push(`DTM+354:${resolution}:802`)
-    segments.push(`STS+7++E88::260`)
+    segments.push(`STS+7++${periodicDgi ? 'E23' : 'E88'}::260`)
     segments.push(`MEA+AAZ++${unit}`)
+    // D02B SG5 FTX precedes SG6/SG7 and all SG8 observations.
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
     segments.push(`CCI+++${readingType}`)
     segments.push(`CAV+E17::260`)
 
@@ -468,13 +489,7 @@ function renderUtiltsSegments(input: {
   if (input.code === 'E73') {
     segments.push(`STS+7++E73::260`)
     segments.push(`FTX+AAO+++${transactionReason}`)
-    if (quantity !== null) {
-      segments.push(`QTY+47:${String(quantity)}`)
-    }
-  }
-
-  if (siteType) {
-    segments.push(`FTX+ZZZ+++${siteType}`)
+    if (siteType) segments.push(`FTX+ZZZ+++${siteType}`)
   }
 
   return segments
@@ -545,6 +560,7 @@ export async function buildUtiltsOutboundDraft(
     messageTypeToken: `UTILTS:D:02B:UN:${messageVersion}`,
     segments: renderUtiltsSegments({
       code: input.code,
+      applicationReference,
       bgmReference: externalReference,
       transactionReference,
       payload: parsedPayload,

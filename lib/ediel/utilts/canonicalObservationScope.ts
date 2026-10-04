@@ -37,6 +37,19 @@ export type CanonicalUtiltsTransaction = {
   observations: CanonicalUtiltsObservation[]
 }
 
+/** U p97: STS+8 describes the preceding own SG11/QTY. Omission is
+ * an exact/approved source value; another quantity's status cannot qualify it. */
+export function utiltsPhysicalQuantityQuality(observation: CanonicalUtiltsObservation | null, quantity: CanonicalUtiltsQuantity, una: EdifactServiceStringAdvice): string | null {
+  if (!observation || !observation.quantities.includes(quantity)) throw new Error('utilts_quantity_quality_scope_unavailable')
+  const nextQuantity = observation.quantities.find(candidate => candidate.segmentIndex > quantity.segmentIndex)?.segmentIndex ?? Infinity
+  const statuses = observation.segments.filter(segment => segment.index > quantity.segmentIndex && segment.index < nextQuantity && segment.tag === 'STS' && segmentComposite(segment, 1, una)[0] === '8')
+  if (statuses.length > 1) throw new Error('utilts_quantity_quality_ambiguous')
+  if (!statuses.length) return null
+  const quality = segmentComposite(statuses[0], 2, una)[0]
+  if (!quality || !['21', '46', '56', '113', '125'].includes(quality)) throw new Error('utilts_quantity_quality_unsupported')
+  return quality
+}
+
 /** Empty is observable absence; spaces, case and punctuation are source data. */
 function observedScalar(value: string | undefined): string | null {
   return value === undefined || value === '' ? null : value

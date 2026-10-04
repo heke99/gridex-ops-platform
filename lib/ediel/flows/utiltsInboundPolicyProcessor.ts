@@ -1,7 +1,10 @@
+import {assertEdielTenantActor} from '@/lib/ediel/services/authorization'
 import { createEdielMessageEvent, getEdielMessageById, updateEdielMessageStatus } from '@/lib/ediel/db'
 import { ensureActorUserId } from '@/lib/ediel/flows/shared'
 import type { CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
+import {readCanonicalPeriodicReasonAuthority,readCanonicalUtiltsIssuerIdentityAuthority,type CanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
+import {holdCanonicalEvidenceGateBlocked,initialCanonicalUtiltsDecision,recordFinalCanonicalUtiltsDecision} from './utiltsCanonicalValidation'
 import { applyCertifiedUtiltsAckPolicy } from '@/lib/ediel/rulebook/utiltsAckPolicy'
 import { resolveUtiltsInboundBusinessOutcome } from '@/lib/ediel/utilts/inboundBusinessOutcome'
 import {
@@ -9,7 +12,7 @@ import {
   persistUtiltsTransactionResults,
   resolveUtiltsTransactionId,
 } from '@/lib/ediel/utilts/transactionPersistence'
-import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage,utiltsRuntimeSegments } from '@/lib/ediel/utiltsEngine'
 import { qualifyReceivedUtiltsStructure } from '@/lib/ediel/utilts/qualifyReceivedStructure'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { UtiltsProcessResult } from './utiltsDataRequest.part-1'
@@ -37,6 +40,7 @@ function hasIndividualLink(message: EdielMessageRow): boolean {
 }
 
 async function persistNonBillingTransactions(params: {
+  actorUserId:string
   message: EdielMessageRow
   messageCode: string
   runtime: ReturnType<typeof runUtiltsRuntimeForMessage>
@@ -51,6 +55,7 @@ async function persistNonBillingTransactions(params: {
   }
 
   const persistenceResults = await persistUtiltsTransactionResults({
+    actorUserId:params.actorUserId,
     companyId,
     environment: params.message.environment,
     sourceMessageId: params.message.id,
@@ -61,7 +66,7 @@ async function persistNonBillingTransactions(params: {
     transactions: buildUtiltsTransactionPersistencePayload({
       messageCode: params.messageCode,
       transactions: params.runtime.facts.transactions,
-      rawSegments: params.runtime.facts.rawSegments,
+      rawSegments: utiltsRuntimeSegments(params.runtime.facts),
       dispositions: params.runtime.transactionDispositions,
       // Non-billing outcomes deliberately persist only protocol/business
       // identity. They never acquire tenant customer/metering-point links here.
@@ -94,6 +99,7 @@ async function processExplicitNonBillingOutcome(params: {
   message: EdielMessageRow
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision: CanonicalRuntimeDecision
 }): Promise<UtiltsProcessResult> {
   const policy = resolveInboundPolicy(params.message, params.canonicalPolicy)
   const outcome = resolveUtiltsInboundBusinessOutcome(policy)
@@ -109,14 +115,18 @@ async function processExplicitNonBillingOutcome(params: {
     sourceMessage: params.message,
     explicitTestCaseCode: params.testCaseCode ?? null,
   })
+  const periodicReasonAuthority=readCanonicalPeriodicReasonAuthority({decision:params.canonicalDecision,message:params.message})??undefined
+  const issuerIdentityAuthority=readCanonicalUtiltsIssuerIdentityAuthority({decision:params.canonicalDecision,message:params.message})??undefined
   const structuralQualification = await qualifyReceivedUtiltsStructure({
-    message: params.message, canonicalPolicy: policy,
-    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy }),
+    message: params.message, canonicalPolicy: policy,issuerIdentityAuthority,periodicReasonAuthority,
+    runtime: runUtiltsRuntimeForMessage(params.message, { canonicalPolicy: policy,issuerIdentityAuthority,periodicReasonAuthority }),
   })
   const runtime = structuralQualification.runtime
+  await recordFinalCanonicalUtiltsDecision({original:params.message,validated:params.message,initialDecision:params.canonicalDecision,runtime})
   const ackPlan = structuralQualification.hasInternalReview || structuralQualification.hasNationalMismatch
     ? runtime.ackPlan : applyCertifiedUtiltsAckPolicy({ runtime, testCaseCode: runtimeTestCaseCode })
   const persisted = await persistNonBillingTransactions({
+    actorUserId:params.actorUserId,
     message: params.message,
     messageCode: policy.code,
     runtime,
@@ -224,13 +234,21 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
   edielMessageId: string
   testCaseCode?: string | null
   canonicalPolicy?: CanonicalEdielPolicy | null
+  canonicalDecision?: CanonicalRuntimeDecision | null
 }): Promise<UtiltsProcessResult> {
   const actorUserId = ensureActorUserId(params.actorUserId)
   const message = await getEdielMessageById(params.edielMessageId)
   if (!message) throw new Error('Ediel-meddelande hittades inte')
   if (message.message_family !== 'UTILTS') throw new Error(`Meddelande ${message.id} är inte UTILTS.`)
 
-  const policy = resolveInboundPolicy(message, params.canonicalPolicy)
+  if(!message.company_id) throw new Error('UTILTS-meddelandet saknar tenantkoppling.')
+  await assertEdielTenantActor({companyId:message.company_id,actorUserId,permission:'metering.write'})
+
+  const initialDecision=await initialCanonicalUtiltsDecision(message,params.canonicalDecision,params.canonicalPolicy)
+  if (await holdCanonicalEvidenceGateBlocked({actorUserId,message,initialDecision})) {
+    return {message,matchedDataRequest:null,ackIds:[],internalReviewRequired:true,outboundRequestId:null,ingestedMeterValueId:null,ingestedMeterValueIds:[],billingUnderlayId:null}
+  }
+  const policy = resolveInboundPolicy(message, initialDecision.policy)
   const outcome = resolveUtiltsInboundBusinessOutcome(policy)
 
   if (outcome.kind === 'actual_metering_values') {
@@ -242,6 +260,7 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
       edielMessageId: params.edielMessageId,
       testCaseCode: params.testCaseCode ?? null,
       canonicalPolicy: policy,
+      canonicalDecision: initialDecision,
     })
   }
 
@@ -250,5 +269,6 @@ export async function processInboundUtiltsMessageByCanonicalPolicy(params: {
     message,
     testCaseCode: params.testCaseCode ?? null,
     canonicalPolicy: policy,
+    canonicalDecision: initialDecision,
   })
 }

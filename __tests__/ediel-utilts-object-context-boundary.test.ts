@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { runUtiltsOperationsEngine } from '@/lib/ediel/utilts/engine'
@@ -103,12 +103,41 @@ describe('UTILTS object/processability context boundary', () => {
   })
 
   it('keeps parser-only validation and operations preview on the same central runtime boundary', () => {
-    const validation = validateUtilts(VALID_MONTHLY_E66)
-    const operations = runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66 })
+    const evaluationAt='2026-08-31T16:11:00Z'
+    const validation = validateUtilts(VALID_MONTHLY_E66,{evaluationAt})
+    const operations = runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66,evaluationAt })
 
     expect(validation.classification).toBe('accepted')
     expect(validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
     expect(operations.validation.classification).toBe('accepted')
     expect(operations.validation.issues.some((issue) => issue.code === 'UTILTS_E66_UNKNOWN_METERING_POINT')).toBe(false)
+    expect(operations.previewEvaluationAt).toBe(evaluationAt.replace('Z','.000Z'))
+  })
+
+  it('keeps preview evaluation independent of the original document date',()=>{
+    const rawPayload=VALID_MONTHLY_E66.replace('QTY+136:1000','QTY+136:500')
+    const prior=runUtiltsOperationsEngine({rawPayload,evaluationAt:'2026-09-30T12:00:00Z'})
+    const current=runUtiltsOperationsEngine({rawPayload,evaluationAt:'2026-10-01T12:00:00Z'})
+    expect(prior.ackPlan.utiltsErrCodes).toContain('E19')
+    expect(current.ackPlan.utiltsErrCodes).not.toContain('E19')
+    expect(current.facts.rawSegments).toContain('DTM+137:202608311811:203')
+    expect(current.previewEvaluationAt).toBe('2026-10-01T12:00:00.000Z')
+  })
+
+  it('rejects an invalid explicit evaluation clock without creating an ingress receipt', () => {
+    expect(() => validateUtilts(VALID_MONTHLY_E66, {evaluationAt:'invalid'})).toThrow('ediel_evaluation_time_invalid')
+    expect(() => runUtiltsOperationsEngine({ rawPayload: VALID_MONTHLY_E66,evaluationAt:'invalid' })).toThrow('ediel_evaluation_time_invalid')
+  })
+
+  it('keeps an explicit preview evaluation stable despite a later wall clock and unchanged older UNB date', () => {
+    const raw = VALID_MONTHLY_E66.replace('QTY+220:11000', 'QTY+220:11001')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2030-01-01T00:00:00Z'))
+    try {
+      expect(validateUtilts(raw, {evaluationAt:'2026-08-31T18:11:00+02:00'}).issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(true)
+      expect(runUtiltsOperationsEngine({ rawPayload: raw, evaluationAt: '2026-08-31T18:11:00+02:00' })
+        .validation.issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(true)
+      expect(validateUtilts(raw, {evaluationAt:'2026-10-01T18:11:00+02:00'}).issues.some(issue => issue.utiltsErrCode === 'E19')).toBe(false)
+    } finally { vi.useRealTimers() }
   })
 })
