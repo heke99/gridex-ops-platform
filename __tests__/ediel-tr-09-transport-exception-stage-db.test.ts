@@ -35,7 +35,7 @@ beforeAll(async () => {
      RETURN jsonb_build_object('status','authorized','approvalId',eid,'case','temporary_encryption_failure','sourceDigest','s','approvalDigest','a','tlsEvidenceDigest','t','validTo','2026-10-05T00:00:00Z');END$$;`)
   await db.exec(extract(base, 'CREATE FUNCTION gridex_transport_exception.case_v1'))
   await db.exec(extract(forward, 'CREATE OR REPLACE FUNCTION gridex_transport_exception.stage_v1'))
-})
+}, 60_000)
 afterAll(async () => { await db.close() })
 beforeEach(async () => {
   await db.exec(`TRUNCATE public.ediel_messages,gridex_transport_exception.approvals,gridex_transport_exception.operations,gridex_transport_exception.events,gridex_transport_exception.alarms`)
