@@ -34,7 +34,7 @@ describe('ACK-01 CONTRL on the right correlation level, no national APERAK conte
  it('outbound CONTRL uses CONTRL:2:2:UN with UCI result 1 (accepted) or 4 (rejected) for the original interchange',()=>{
   for(const [outcome,action] of [['positive','1'],['negative','4']] as const){
    const draft=buildContrlDraft({sourceMessage:source(prodat),outcome})
-   const wire=segments(draft.rawPayload)
+   const wire=segments(draft.rawPayload!)
    expect(wire.segments.find(s=>s.tag==='UNH')!.raw).toContain('CONTRL:2:2:UN')
    const uci=wire.segments.find(s=>s.tag==='UCI')!
    expect(segmentComposite(uci,1,wire.una)).toEqual(['ORIG-I'])
@@ -45,7 +45,7 @@ describe('ACK-01 CONTRL on the right correlation level, no national APERAK conte
  })
  it('avoids an acknowledgement loop: a CONTRL never requests a CONTRL and is never itself acknowledged',()=>{
   const draft=buildContrlDraft({sourceMessage:source(prodat),outcome:'positive'})
-  expect(segments(draft.rawPayload).acknowledgementRequest).toBeFalsy()
+  expect(segments(draft.rawPayload!).acknowledgementRequest).toBeFalsy()
   expect(draft.requiresContrl).toBe(false)
   const contrl=EdifactEnvelopeCodec.encode({sender:'7300000000002',receiver:'7300000000001',senderQualifier:'14',receiverQualifier:'14',interchangeReference:'C-1',environment:'test',
    acknowledgementRequest:false,messages:[{messageReference:'1',messageTypeToken:'CONTRL:2:2:UN:EDIEL2',businessSegments:['UCI+X+A:14+B:14+7']}]})
