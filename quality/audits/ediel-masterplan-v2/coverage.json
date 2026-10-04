@@ -144,7 +144,7 @@
       "evidence": [
         "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
         "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
-        "supabase/migrations/20261001035402_ediel_beneficiary_projection_read_before_write_replay.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
         "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
         "scripts/test-ediel-ten-08-10-grants.cjs"
       ]
@@ -162,7 +162,7 @@
       "evidence": [
         "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
         "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
-        "supabase/migrations/20261001035402_ediel_beneficiary_projection_read_before_write_replay.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
         "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
         "scripts/test-ediel-ten-08-10-grants.cjs"
       ]
