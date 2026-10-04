@@ -1,3 +1,4 @@
+import { ApiInputError } from '@/lib/api/strictRequest'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
 import type { Database, Json } from '@/supabase/database.types'
@@ -15,7 +16,7 @@ type ContactChangeArgs = Database['public']['Functions']['gridex_customer_contac
  */
 
 export type ContactChangeActor =
-  | { kind: 'staff'; userId: string }
+  | { kind: 'staff'; userId: string; apiClientId?: string }
   | { kind: 'customer_portal'; apiClientId: string; portalIdentityId: string | null }
 
 export type ContactChangeErrorCode =
@@ -62,7 +63,7 @@ type ContactChangeInput = {
   companyId: string
   customerId: string
   actor: ContactChangeActor
-  channel: 'ops' | 'customer_api' | 'phone'
+  channel: 'ops' | 'customer_api' | 'phone' | 'staff_api'
   expectedUpdatedAt: string | null
   customerPatch: Record<string, unknown>
   contactPatch: Record<string, string | null>
@@ -148,7 +149,7 @@ async function applySequentialContactChange(input: ContactChangeInput): Promise<
     metadata: {
       channel: input.channel,
       actor_type: staff ? 'staff' : 'customer_portal_account',
-      api_client_id: portal?.apiClientId ?? null,
+      api_client_id: staff?.apiClientId ?? portal?.apiClientId ?? null,
       portal_identity_id: portal?.portalIdentityId ?? null,
       primary_contact_changes: contactChanges,
       transaction: 'sequential_fallback',
@@ -162,7 +163,7 @@ export async function applyCustomerContactChange(input: {
   companyId: string
   customerId: string
   actor: ContactChangeActor
-  channel: 'ops' | 'customer_api' | 'phone'
+  channel: 'ops' | 'customer_api' | 'phone' | 'staff_api'
   expectedUpdatedAt: string | null
   customerPatch: Record<string, unknown>
   contactPatch: Record<string, string | null>
@@ -175,7 +176,7 @@ export async function applyCustomerContactChange(input: {
     p_customer_id: input.customerId,
     p_actor_kind: input.actor.kind,
     p_actor_user_id: staff?.userId ?? null,
-    p_api_client_id: portal?.apiClientId ?? null,
+    p_api_client_id: staff?.apiClientId ?? portal?.apiClientId ?? null,
     p_portal_identity_id: portal?.portalIdentityId ?? null,
     p_channel: input.channel,
     p_expected_updated_at: input.expectedUpdatedAt,
@@ -185,6 +186,9 @@ export async function applyCustomerContactChange(input: {
   } as unknown as ContactChangeArgs)
   if (error) {
     if (isMissingFunction(error)) {
+      if (input.channel === 'staff_api') {
+        throw new ApiInputError('Kontaktändringen är inte tillgänglig ännu.', 'contact_change_unavailable', 503)
+      }
       console.warn('[customer-service] contact_change_rpc_missing_fallback', { companyId: input.companyId })
       return applySequentialContactChange(input)
     }
