@@ -1,7 +1,9 @@
 # TR-06 certificate ownership and exact validity
 
 Owner: Codex chat `01a1084e-26ac-72b5-84ee-ed57bf62d040`.
-Branch: `codex/ediel-tr06-certificate-20261004`; base `cbefde67712a7ad4e018abf688d1d2e242a61faf`.
+Branch: `codex/ediel-tr06-certificate-20261004`; initial base `cbefde67712a7ad4e018abf688d1d2e242a61faf`.
+Main integration `33aeb7f7` retains the existing TR-01/02 source, tests and coverage rows;
+the only conflict was the crypto test header, resolved by preserving both ID tags and lifecycle imports.
 Coordination: https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5983511741
 Status: VERIFIED_CODE_SCOPE (TR-06, AT-TR-06, SC-060 approved; GitHub merge gates pending).
 

@@ -18,7 +18,7 @@ try{
  const forward=readFileSync(new URL('../supabase/migrations/20260930182758_ediel_current_service_origin_and_registry_conflict_guards.sql',import.meta.url),'utf8');await db.exec(forward.slice(forward.indexOf('-- Atomic projection'),forward.lastIndexOf('COMMIT;')));
  assert.equal(await read(),null);checks++
  await db.exec(`INSERT INTO gridex_ediel_transport.attempts VALUES('${uid(4)}','${uid(3)}','${uid(1)}','test',${json(binding)},${json(provider)},'accepted','2026-09-30 12:00+00','2026-09-30 12:01+00')`)
- const frozen=await read();assert.equal(frozen.status,'accepted_projection');assert.equal(frozen.observedAt,'2026-09-30T12:01:00+00:00');assert.deepEqual(frozen.businessExpectationPlan,plan);assert.equal(frozen.authorizesProviderEntry,false);checks++
+ const frozen=await read();assert.equal(frozen.status,'accepted_projection');assert.equal(frozen.observedAt,'2026-09-30T12:01:00+00:00');assert.deepEqual(frozen.businessExpectationPlan,plan);assert.equal(frozen.authorizesProviderEntry,false);assert.equal(frozen.deliveryProven,false);checks++
  await db.exec("UPDATE user_profiles SET user_status='inactive'");
  assert.deepEqual((await db.query('SELECT gridex_ediel_transport.accepted_source_basis_v1(m) result FROM ediel_messages m')).rows[0].result,frozen);checks++
  await assert.rejects(read(),/actor_forbidden/);checks++

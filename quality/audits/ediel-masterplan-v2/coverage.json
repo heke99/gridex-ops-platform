@@ -659,14 +659,42 @@
     {
       "id": "TR-01",
       "acceptance_id": "AT-TR-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/productionGuards.ts",
+        "lib/ediel/core/routeRegistry.ts",
+        "lib/ediel/transport/productionRecipient.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/email/sendEdielEmail.ts",
+        "__tests__/ediel-tr-01-production-recipient.test.ts",
+        "__tests__/ediel-tr-01-mail-channels.test.ts",
+        "__tests__/ediel-accepted-projection-consumers.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-security-resolution.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        ".agent-memory/masterplan-codex-transport-checkpoint.md"
+      ]
     },
     {
       "id": "TR-02",
       "acceptance_id": "AT-TR-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/smtpEvidence.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-02-smtp-evidence.test.ts",
+        "__tests__/ediel-correction-outbound-scope.test.ts",
+        "__tests__/ediel-accepted-projection-consumers.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "scripts/test-ediel-tr-02-smtp-ledger.cjs",
+        "scripts/ediel-tr-02-smtp-ledger-sql-regression.mjs",
+        "scripts/ediel-accepted-projection-sql-regression.mjs",
+        "scripts/ediel-atomic-accepted-source-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-transport-checkpoint.md"
+      ]
     },
     {
       "id": "TR-03",
@@ -1951,13 +1979,41 @@
     },
     {
       "id": "AT-TR-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/productionGuards.ts",
+        "lib/ediel/core/routeRegistry.ts",
+        "lib/ediel/transport/productionRecipient.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/email/sendEdielEmail.ts",
+        "__tests__/ediel-tr-01-production-recipient.test.ts",
+        "__tests__/ediel-tr-01-mail-channels.test.ts",
+        "__tests__/ediel-accepted-projection-consumers.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-security-resolution.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts",
+        "__tests__/ediel-cms-recipient-set.test.ts",
+        ".agent-memory/masterplan-codex-transport-checkpoint.md"
+      ]
     },
     {
       "id": "AT-TR-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/smtpEvidence.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-02-smtp-evidence.test.ts",
+        "__tests__/ediel-correction-outbound-scope.test.ts",
+        "__tests__/ediel-accepted-projection-consumers.test.ts",
+        "__tests__/ediel-dsn-source-observations.test.ts",
+        "scripts/test-ediel-tr-02-smtp-ledger.cjs",
+        "scripts/ediel-tr-02-smtp-ledger-sql-regression.mjs",
+        "scripts/ediel-accepted-projection-sql-regression.mjs",
+        "scripts/ediel-atomic-accepted-source-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-transport-checkpoint.md"
+      ]
     },
     {
       "id": "AT-TR-03",

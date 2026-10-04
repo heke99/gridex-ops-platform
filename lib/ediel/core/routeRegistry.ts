@@ -14,7 +14,7 @@ import {
   type EdielRouteRuntimeRow,
 } from '@/lib/ediel/config'
 import { resolveCanonicalActorContext } from '@/lib/ediel/core/actorRegistry'
-import { isEdielPortalParty } from '@/lib/ediel/core/productionGuards'
+import { isEdielPortalParty, isEdielPortalEmail } from '@/lib/ediel/core/productionGuards'
 import { validateApplicationReferencePolicy } from '@/lib/ediel/intent/applicationReferencePolicy'
 
 export type CanonicalRouteRequestType =
@@ -221,9 +221,8 @@ export async function resolveCanonicalRouteContext(params: {
       throw new Error(`production_application_reference_required:${route.id}`)
     }
     const normalizedApplicationReference = String(applicationReference).toUpperCase()
-    const normalizedReceiverEmail = String(route.target_email ?? '').toLowerCase()
 
-    if (isEdielPortalTgtRoute || isEdielPortalParty(receiverEdielId) || normalizedReceiverEmail.endsWith('@ediel.se')) {
+    if (isEdielPortalTgtRoute || isEdielPortalParty(receiverEdielId) || isEdielPortalEmail(route.target_email)) {
       throw new Error(
         `Produktionsruntime får inte använda Edielportalens TGT-route (${route.route_name}). Välj testmiljö eller en riktig motpartsroute.`
       )

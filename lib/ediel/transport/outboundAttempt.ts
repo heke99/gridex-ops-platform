@@ -8,6 +8,7 @@ import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAu
 import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import { sendEdielEmail, type SendEdielEmailInput } from '@/lib/email/sendEdielEmail'
 import { SmtpDeliveryUncertainError } from './smtpOutcome'
+import { smtpErrorEvidence, smtpResultEvidence } from './smtpEvidence'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import type { OutboundDispatchOwner } from '@/lib/ediel/sources/correctionOutboundDispatch'
 import {transportExceptionBinding,type TransportExceptionAuthorization} from './exception/source'
@@ -75,7 +76,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
   try {
     const result = await sendEdielEmail(input, entry)
     if (!callbackUsed || !entered) throw new Error('ediel_transport_callback_missing')
-    const observation = await call('observe', { result: { accepted: result.accepted, rejected: result.rejected, messageId: result.messageId ?? null, response: result.response ?? null } })
+    const observation = await call('observe', { result: smtpResultEvidence(result) })
     observed = true
     if (observation.classification !== 'accepted') throw new SmtpDeliveryUncertainError(new Error(`ediel_transport_${observation.classification ?? 'unknown'}`), result.messageId ?? null)
     if (typeof observation.observedAt !== 'string' || !Number.isFinite(Date.parse(observation.observedAt))) throw new SmtpDeliveryUncertainError(new Error('ediel_transport_capture_clock_missing'), result.messageId ?? null)
@@ -84,8 +85,7 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
     if (error instanceof AcceptedProjection) return error.result
     if (entered) {
       if (!observed) {
-        const e = error as { message?: unknown; code?: unknown; command?: unknown; responseCode?: unknown; syscall?: unknown }
-        try { await call('observe', { result: { error: { message: String(e?.message ?? error), code: e?.code ?? null, command: e?.command ?? null, responseCode: e?.responseCode ?? null, syscall: e?.syscall ?? null } } }) } catch { /* committed entry remains no-resend authority */ }
+        try { await call('observe', { result: smtpErrorEvidence(error) }) } catch { /* committed entry remains no-resend authority */ }
       }
       throw error instanceof SmtpDeliveryUncertainError ? error : new SmtpDeliveryUncertainError(error)
     }

@@ -1,3 +1,4 @@
+// masterplan: TR-01, AT-TR-01
 import { describe, expect, it } from 'vitest'
 import { certificateMessageScopeBlocker, certificateSubaddressScopeBlocker } from '@/lib/ediel/certificateScope'
 import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'

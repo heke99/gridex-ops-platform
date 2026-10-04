@@ -1,3 +1,4 @@
+// masterplan: TR-01, AT-TR-01, TR-02, AT-TR-02
 import { createHash } from 'node:crypto'
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
@@ -36,6 +37,16 @@ it('repairs frozen accepted clock before current route, service, guide or provid
  expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
  expect(io.register).not.toHaveBeenCalled()
  expect(io.current).not.toHaveBeenCalled();expect(io.provider).not.toHaveBeenCalled();expect(io.status).not.toHaveBeenCalled()
+})
+it('retains historical production acceptance when the current row now points at a test portal',async()=>{
+ const row={...message(),environment:'production' as const,receiver_email:'91100@ediel.se'}
+ io.rpc.mockImplementation(async(name:string)=>{
+  if(name==='gridex_ediel_accepted_transport_projection_v1'||name==='gridex_ediel_repair_accepted_transport_projection_v1')return {data:{...receipt(),environment:'production'},error:null}
+  throw new Error(`unexpected_rpc:${name}`)
+ })
+ expect(await sendEdielMessageViaSmtp(row,{actorUserId})).toEqual({accepted:['original@example.invalid'],rejected:[],messageId:'<frozen@example.invalid>',dispatchObservedAt:observedAt})
+ expect(io.provider).not.toHaveBeenCalled();expect(io.current).not.toHaveBeenCalled();expect(io.status).not.toHaveBeenCalled()
+ expect(io.rpc.mock.calls.map(([name])=>name)).toEqual(['gridex_ediel_accepted_transport_projection_v1','gridex_ediel_repair_accepted_transport_projection_v1'])
 })
 it('projects a late provider acceptance through the same atomic owner while retaining current ACK status',async()=>{
  const result=await repairObservedEdielSmtpProjection({message:message(),actorUserId,observedAt,smtpMessageId:'<frozen@example.invalid>'})

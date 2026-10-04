@@ -10,6 +10,7 @@ import type {EdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackE
 import type {TechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import type {ProdatCommonHeaderRejectionEvidence} from '@/lib/ediel/ack/prodatCommonHeaderRejectionAuthority'
 import {SmtpDeliveryUncertainError} from '@/lib/ediel/transport/smtpOutcome'
+import {smtpErrorEvidence,smtpResultEvidence} from '@/lib/ediel/transport/smtpEvidence'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {transportExceptionBinding,type TransportExceptionAuthorization} from '@/lib/ediel/transport/exception/source'
 
@@ -89,7 +90,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   const result=await sendEdielEmail(input,entry)
   if(!callbackUsed)throw Error('outbound_dispatch_callback_missing')
   if(scoped){
-   const captured=await call('result',{result:{accepted:result.accepted,rejected:result.rejected,messageId:result.messageId ?? null,response:result.response ?? null}})
+   const captured=await call('result',{result:smtpResultEvidence(result)})
    resultCaptured=true
    await witness(captured)
    if(captured.facts?.classification!=='accepted')throw new SmtpDeliveryUncertainError(Error(`outbound_dispatch_${captured.facts?.classification ?? 'uncertain'}`),result.messageId ?? null)
@@ -102,9 +103,8 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   if(error instanceof Error&&error.message==='outbound_dispatch_lk_generic_required')return sendGenericFencedEdielEmail(input,context)
   if(scoped&&entryAttempted){
    if(!resultCaptured){
-    const e=error as {message?:unknown;code?:unknown;command?:unknown;responseCode?:unknown;syscall?:unknown}
     // Failure to capture this observation leaves an entered, unresolved attempt.
-    try{const captured=await call('result',{result:{error:{message:String(e?.message ?? error),code:e?.code ?? null,command:e?.command ?? null,responseCode:e?.responseCode ?? null,syscall:e?.syscall ?? null}}});await witness(captured)}catch{/* durable entry remains the no-resend fence */}
+    try{const captured=await call('result',{result:smtpErrorEvidence(error)});await witness(captured)}catch{/* durable entry remains the no-resend fence */}
    }
    throw error instanceof SmtpDeliveryUncertainError?error:new SmtpDeliveryUncertainError(error)
   }
