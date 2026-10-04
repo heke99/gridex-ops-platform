@@ -851,11 +851,15 @@
     {
       "id": "U-06",
       "acceptance_id": "AT-U-06",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/utilts-aperak-contrl-central-engine.test.ts",
         "lib/ediel/rulebook/utiltsApplicationReference.ts",
-        "__tests__/ediel-u-06-request-application-reference.test.ts"
+        "__tests__/ediel-u-06-request-application-reference.test.ts",
+        "lib/ediel/sources/dataRequestStructure.ts",
+        "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+        "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+        "__tests__/ediel-u-06-request-mandate-scope.test.ts"
       ]
     },
     {
@@ -2312,9 +2316,10 @@
     },
     {
       "id": "AT-U-06",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "__tests__/ediel-u-06-request-application-reference.test.ts"
+        "__tests__/ediel-u-06-request-application-reference.test.ts",
+        "__tests__/ediel-u-06-request-mandate-scope.test.ts"
       ]
     },
     {

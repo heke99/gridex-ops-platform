@@ -1126,3 +1126,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: U-15 (+AT) godkänd (send-preflight blockerar flera MR/blandade skäl/upplösning). U-12 kvar PARTIAL: ingen delningsplanerare.
 - 2026-10-04 #491 (lokalt, pushas efter merge): U-08 (+AT) godkänd.
 - 2026-10-04 #491 (lokalt): U-11 aggregat-E98 efter cutoff bevisat; kvar: inga E30-energikontroller implementerade.
+- 2026-10-04 #491: U-06 (+AT) godkänd; mandatgrinden = requireDataRequestStructure (tidigare 'saknas'-fynd var fel).
