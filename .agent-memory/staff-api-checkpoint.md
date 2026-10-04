@@ -72,3 +72,28 @@ run all mandatory exact-head gates before merge/production migration.
 ## Upstream package evidence retained (2026-10-04)
 
 The numbered upstream capture receipts and checkpoint sections are retained byte-for-byte for the stacked PR history. This package keeps its own generated artifacts and truthful original capture source/superseded-manifest provenance; retaining upstream evidence does not claim that it was an input to this package capture. Full exact-head native and CI qualification remains pending.
+
+## S2 native role fixture repair (2026-10-04)
+
+The full native qualification of remote c7e2b22825773f976293ccc8a2991fd5d7897d63 failed: three SQL producers and all four concurrency cases stopped before their domain assertions because canonical clean replay has no legacy role seed rows. The authoritative schema/type artifacts still matched exactly; that does not qualify native behavior.
+
+Source repair f4e7b6c7656ec8ab55e34de0ced0de19cde6b69f adds ordinary company role reference rows inside each existing fixture transaction, using the real unique key and preserving existing rows. All five producers share this fixture; permissions, authority checks, race assertions and failure latches are unchanged. Six source-backed tests reproduce the actual missing-role seeds and verify the fix, existing-row preservation and uniqueness. Scoped lint and scripts/tests typechecks pass. No migration or generated schema bytes change.
+
+Next: publish this fixture repair and require a fresh exact-head full native clean replay, including both two-session races. Native qualification is pending. No production mutation has been performed.
+
+## S3 contact permission authority forward (2026-10-04)
+
+- Authentic S3 exact-head native clean replay 37196421981/job111419147699 exposed a valid profile-only staff actor denied by the second legacy OPS permission resolver in the contact RPC. A narrow new forward 20261004114944_staff_contact_profile_authority.sql skips only that legacy predicate for staff_api after the unchanged strict masterdata.write guard succeeds; no historical migration, OPS/customer behavior or native contact fixture change.
+- Actual-source PGlite RED: 5 legacy authorization failures/14 passing controls before the forward. GREEN: 103/103 targeted tests across seven suites, including fresh actor/client/role/override checks, cached replay denial, isolation, audit rollback, exact fullbody delta and fail-closed predecessor checks. Migration checks pass1052 files/955 version groups; new test lint and git diff --check pass. Evidence: quality/staff-api/S3-contact-permission-authority-20261004.md.
+- Generated types/schema/fingerprint and prior receipts are unchanged. Types manifest marks composition_capture_pending=true with the signature-unchanged forward and retains historical capture provenance. Fresh own-prefix PG capture and exact-head clean/upgrade/native CI are required; bounded PGlite proof is not final native or CI acceptance. Root owns publication/integration and subsequent captures.
+- Independent S5 source review approved with no blocker: Node22 actual-source contact SQL27/27 and all four migration subgates pass; checksum and unchanged generated/historical RPC/guard bytes independently verified. Qualification remains pending native capture and exact-head CI.
+
+## Staff assertion lifetime fixture clock repair (2026-10-04)
+
+- Full S2 quality job111430198019/run37200219138 exposed a test-only clock drift: the it.each table stored exp=collectionTime+901, then token() minted iat later; one second produces a legitimate900-second assertion. Production shared verifier/context and security bounds remain byte-identical. Only the test claims factory now derives exp from its single mint-time iat.
+- Deterministic actual-context original RED1fail/20pass at collection12:00:00.999→mint12:00:01.999; same delay GREEN23/23 after repair. New cold/warm signed900accept/901deny controls cover1s/120s pre-mint delays and deny before membership/JTI. Three independent targeted4-suite runs each53/53pass, lint and bounded context-test TypeScript/transitive imports pass. Temporary repro files removed; fake Date restored in finally. Evidence quality/staff-api/JWT-lifetime-test-clock-20261004.md.
+- No production source, SQL, generated artifact or capture metadata changes; root owns integration into S2/S3/S4 and fresh exact-head full CI qualification. No publication, native rerun or hosted database action performed by this repair.
+
+## Embedded native fixture adapters repaired (2026-10-04)
+
+The two embedded PGlite consumers now inline the exact shared role SQL and extract the unchanged historical roles declaration with its real global UNIQUE(key). Source repair 0949ff91e3f563f0c1086e33f74e5358ef209d85 reproduces both prior 42601 errors and passes all 32 affected tests; independent exact-commit review also passes. Native scripts, guard assertions, role privileges and migrations are unchanged. The three test failures in quality job 111430198019 are now addressed by this repair and the deterministic JWT fixture. Fresh exact-head full CI, including native concurrency, remains required. No production mutation performed.

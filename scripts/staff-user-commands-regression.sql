@@ -1,6 +1,7 @@
 -- Run only on the disposable clean replay database; every synthetic row is rolled back.
 \set ON_ERROR_STOP on
 BEGIN;
+\ir sql/staff-native-role-catalog-fixture.sql
 DO $staff_regression$
 DECLARE
   company_a uuid := gen_random_uuid();

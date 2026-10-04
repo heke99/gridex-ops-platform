@@ -14,10 +14,12 @@ const rsa = generateKeyPairSync('rsa', { modulusLength: 2048 })
 const ec = generateKeyPairSync('ec', { namedCurve: 'P-256' })
 const provider: CustomerIdentityProvider = { id: randomUUID(), company_id: company, kind: 'tenant_key', display_name: 'Staff',
   issuer: `gridex-tenant:${company}`, audience: `gridex-staff-api:${company}`, jwks_uri: null, public_jwk: rsa.publicKey.export({ format: 'jwk' }), subject_claim: 'sub', enforcement: 'enforce' }
-function token(changes: Record<string, unknown> = {}, alg = 'RS256', key: KeyObject = rsa.privateKey) {
+type AssertionClaims = Record<string, unknown> | ((issuedAt: number) => Record<string, unknown>)
+function token(changes: AssertionClaims = {}, alg = 'RS256', key: KeyObject = rsa.privateKey) {
   const now = Math.floor(Date.now() / 1000)
+  const claims = typeof changes === 'function' ? changes(now) : changes
   const header = Buffer.from(JSON.stringify({ alg })).toString('base64url')
-  const payload = Buffer.from(JSON.stringify({ iss: provider.issuer, aud: provider.audience, sub: actor, iat: now, exp: now + 300, jti: randomUUID(), ...changes })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ iss: provider.issuer, aud: provider.audience, sub: actor, iat: now, exp: now + 300, jti: randomUUID(), ...claims })).toString('base64url')
   const signed = Buffer.from(`${header}.${payload}`)
   const signature = sign('sha256', signed, alg === 'PS256' ? { key, padding: constants.RSA_PKCS1_PSS_PADDING, saltLength: 32 } : alg === 'ES256' ? { key, dsaEncoding: 'ieee-p1363' } : key)
   return `${header}.${payload}.${signature.toString('base64url')}`
@@ -54,11 +56,39 @@ describe('staff API trust boundary', () => {
   it.each([
     ['issuer_mismatch', { iss: 'other-company' }], ['audience_mismatch', { aud: 'customer-api' }],
     ['subject_mismatch', { sub: 'not-a-user-id' }], ['malformed', { iat: undefined }],
-    ['malformed', { exp: 1e100 }], ['lifetime_too_long', { exp: Math.floor(Date.now()/1000)+901 }],
+    ['malformed', { exp: 1e100 }], ['lifetime_too_long', (issuedAt: number) => ({ exp: issuedAt + 901 })],
   ])('rejects signed %s before membership lookup', async (reason, claims) => {
     const { call, ports } = setup()
     await expect(call(token(claims))).rejects.toMatchObject({ status: 401, code: `staff_assertion_${reason}` })
     expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
+  it.each([1, 120])('keeps the signed 900/901-second lifetime boundary after a %s-second minting delay, cold and warm', async delay => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    try {
+      const collectedAt = new Date('2026-10-04T12:00:00.999Z').getTime()
+      vi.setSystemTime(collectedAt)
+      // Define the fixture before minting is delayed, as a full suite does.
+      const overlong: AssertionClaims = issuedAt => ({ exp: issuedAt + 901 })
+      const allowed: AssertionClaims = issuedAt => ({ exp: issuedAt + 900 })
+      const { call, ports } = setup()
+      vi.setSystemTime(collectedAt + delay * 1000)
+
+      await expect(call(token(overlong))).rejects.toMatchObject({ status: 401, code: 'staff_assertion_lifetime_too_long' })
+      expect(ports.loadMembership).not.toHaveBeenCalled()
+      expect(ports.consumeJti).not.toHaveBeenCalled()
+
+      await expect(call(token(allowed))).resolves.toMatchObject({ companyId: company, actorUserId: actor })
+      expect(ports.loadMembership).toHaveBeenCalledWith(company, actor)
+      expect(ports.consumeJti).toHaveBeenCalledOnce()
+      vi.mocked(ports.loadMembership).mockClear()
+      vi.mocked(ports.consumeJti).mockClear()
+
+      await expect(call(token(overlong))).rejects.toMatchObject({ status: 401, code: 'staff_assertion_lifetime_too_long' })
+      expect(ports.loadMembership).not.toHaveBeenCalled()
+      expect(ports.consumeJti).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
   it.each(['RS256', 'PS256', 'ES256'])('verifies %s and binds signed actor to exact company', async alg => {
     const { call, ports } = setup()

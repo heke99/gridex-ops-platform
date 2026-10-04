@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 
 // Owned disposable clean replay only. Both native sessions see a synthetic
 // cohort. Its rows remain until stack destruction; its unused API client is
 // revoked by the actual lifecycle/catalog trigger path exercised below.
 const DATABASE = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+const roleCatalogFixture = readFileSync(new URL('./sql/staff-native-role-catalog-fixture.sql', import.meta.url), 'utf8')
 type SqlResult = { code: number | null; output: string; error: string }
 
 function nativeSession(input: string, applicationName: string, hold = false) {
@@ -95,6 +97,7 @@ it.each(['first_write', 'cached_replay'] as const)(
     let seeded = false
     try {
       await sql(`BEGIN;
+        ${roleCatalogFixture}
         INSERT INTO auth.users(id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,is_sso_user,is_anonymous)
         VALUES ${[f.actor, f.target].map(id => `('${id}','authenticated','authenticated','${id}@example.invalid',now(),'{}','{}',now(),now(),false,false)`).join(',')};
         INSERT INTO public.user_profiles(id,email,user_status)

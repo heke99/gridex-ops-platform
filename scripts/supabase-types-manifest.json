@@ -4,9 +4,9 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37195219584",
   "generated_types": "supabase/database.types.ts",
   "sha256": "1cfe23e0b398daab041b54069c9a0e3a404f233d5f1b8028bd11d85e975e1a53",
-  "latest_migration": "20261004100918_staff_user_lock_order.sql",
-  "latest_migration_schema_effect": "Final S3 own database prefix: S1 staff identity/replay ACL; S2 staff account commands, role ceiling and last-admin protection; S3 company-bound customer search/reference, contact staff attribution and identity change provenance; final active actor/client permission guards and staff account lock-order forward 20261004100918. All three generated files are imported byte-for-byte from this prefix actual PostgreSQL 17 clean replay. S4 case-specific migration inputs are absent.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261004114944_staff_contact_profile_authority.sql",
+  "latest_migration_schema_effect": "Function-body-only forward: staff_api contact writes rely on the already installed fresh locked staff masterdata.write guard; OPS/phone/customer permission, validation, audit, replay and all callable signatures remain unchanged. Types/schema/fingerprint files retain their previous authentic S3 capture bytes; the schema body and canonical fingerprint require a new native capture before final qualification.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "workflow_run": 37195219584,
@@ -159,5 +159,12 @@
         "reason": "Historical capture describes older database inputs and is superseded by the verified S1 capture above."
       }
     }
+  },
+  "pending_forward_capture": {
+    "latest_migration": "20261004114944_staff_contact_profile_authority.sql",
+    "migration_sha256": "549fcda905f17ee9f3ed562bd7ecb8de13b99ab475ada307ab5e3d9ddf9a83aa",
+    "previous_capture_latest_migration": "20261004100918_staff_user_lock_order.sql",
+    "generated_artifacts_modified": false,
+    "qualification": "Local source-backed PGlite regression only. Prior capture provenance above is preserved as historical evidence and does not capture this new function body. Fresh own-prefix PostgreSQL capture and exact-head clean/upgrade/native CI remain mandatory."
   }
 }
