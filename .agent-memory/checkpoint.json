@@ -1513,5 +1513,16 @@
     "handed_over": {
       "ENV-01": "#504"
     }
+  },
+  "ediel_masterplan_v2_db_01": {
+    "date": "2026-10-04",
+    "branch": "claude/db-01",
+    "status": "PARTIAL",
+    "owner_decision": "fasa ut ediel_party_addresses",
+    "remaining": [
+      "forward-migration som avvecklar ediel_party_addresses/party_address_id",
+      "granska ediel_parties vs platform_market_actors"
+    ],
+    "verification": "vitest 766/10077 PASS; typecheck app PASS; coverage --check"
   }
 }

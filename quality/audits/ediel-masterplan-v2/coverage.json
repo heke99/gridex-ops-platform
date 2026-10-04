@@ -857,8 +857,13 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "DB-02",
@@ -2188,8 +2193,13 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "AT-DB-02",
