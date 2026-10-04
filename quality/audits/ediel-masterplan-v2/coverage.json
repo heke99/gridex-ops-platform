@@ -1624,8 +1624,12 @@
     },
     {
       "id": "SC-050",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "lib/ediel/utiltsEngine.part-1.ts"
+      ]
     },
     {
       "id": "SC-051",
@@ -1639,8 +1643,13 @@
     },
     {
       "id": "SC-053",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+        "__tests__/ediel-u-09-estimate-never-actual.test.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "lib/ediel/metering/meteringQualityMapper.ts"
+      ]
     },
     {
       "id": "SC-054",

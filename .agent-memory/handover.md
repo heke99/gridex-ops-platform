@@ -1134,3 +1134,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
 - 2026-10-04 U-19 (+AT) VERIFIED på wip/p08-p15: RFF+TN (fält 226) som valfri, tenant-scopad korrelationsnyckel i findMatchingGridOwnerDataRequest. Landar efter #491.
 - 2026-10-04 P-06 (+AT) och U-11 (+AT) VERIFIED på wip/p08-p15 efter genomläsning av masterplanen (E012 resp. §9/G02). Landar efter #491.
+- 2026-10-04 SC-050 + SC-053 PASSED på wip/p08-p15 (88/96 → E87 trots lika energisumma; NULL≠0 med kvalitet 46/21, QTY220≠136).
