@@ -97,3 +97,11 @@ Next: publish this fixture repair and require a fresh exact-head full native cle
 ## Embedded native fixture adapters repaired (2026-10-04)
 
 The two embedded PGlite consumers now inline the exact shared role SQL and extract the unchanged historical roles declaration with its real global UNIQUE(key). Source repair 0949ff91e3f563f0c1086e33f74e5358ef209d85 reproduces both prior 42601 errors and passes all 32 affected tests; independent exact-commit review also passes. Native scripts, guard assertions, role privileges and migrations are unchanged. The three test failures in quality job 111430198019 are now addressed by this repair and the deterministic JWT fixture. Fresh exact-head full CI, including native concurrency, remains required. No production mutation performed.
+
+## S3-02 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37201895473, artifact 11302479567, checkout d6ced9ea67fdeb414428716191351eeb33b7b539, tree a530741fdf73da1aef9d01a039e82914cba3a629, frozen source 5d7523af676a0e4d8fa76b4b82db007283e3edc7.
+- ZIP SHA256 `01a1845dd66ce6750be4cb93da144ee92c2ca75b629158332579951938decf3d` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 8 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S3-02-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S3-02-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent artifact/provenance review PASS. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.

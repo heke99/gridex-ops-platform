@@ -59691,6 +59691,7 @@ BEGIN
   -- Staff: the canonical resolver grants masterdata.write in exactly this company (active member
   -- with the permission) or to an active platform superadmin; disabled/banned users never pass.
   IF p_actor_kind='staff'
+     AND p_channel <> 'staff_api'
      AND NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write'),false) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
