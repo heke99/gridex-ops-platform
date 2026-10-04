@@ -403,7 +403,9 @@
       "evidence": [
         "__tests__/ediel-prodat-identity-li-compliance.test.ts",
         "__tests__/ediel-prodat-aperak-text-evidence.test.ts",
-        "__tests__/ediel-p-06-z13-birth-date.test.ts"
+        "__tests__/ediel-p-06-z13-birth-date.test.ts",
+        "lib/energy/facilityDataErrors.ts",
+        "lib/website/applicationReview.ts"
       ]
     },
     {
@@ -1999,7 +2001,11 @@
     {
       "id": "AT-P-06",
       "status": "NOT_EXECUTED",
-      "evidence": []
+      "evidence": [
+        "lib/energy/facilityDataErrors.ts",
+        "lib/website/applicationReview.ts",
+        "__tests__/ediel-p-06-z13-birth-date.test.ts"
+      ]
     },
     {
       "id": "AT-P-07",
