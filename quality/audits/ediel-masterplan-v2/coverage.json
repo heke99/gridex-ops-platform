@@ -343,9 +343,12 @@
     {
       "id": "P-02",
       "acceptance_id": "AT-P-02",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-energy-product.test.ts"
       ]
     },
     {
@@ -393,8 +396,12 @@
     {
       "id": "P-06",
       "acceptance_id": "AT-P-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-prodat-identity-li-compliance.test.ts",
+        "__tests__/ediel-prodat-aperak-text-evidence.test.ts",
+        "__tests__/ediel-p-06-z13-birth-date.test.ts"
+      ]
     },
     {
       "id": "P-07",
@@ -1844,9 +1851,12 @@
     },
     {
       "id": "AT-P-02",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/protocol.md"
+        "quality/audits/ediel-masterplan-v2/protocol.md",
+        "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
+        "__tests__/ediel-prodat-energy-product-inbound.test.ts",
+        "__tests__/ediel-prodat-energy-product.test.ts"
       ]
     },
     {

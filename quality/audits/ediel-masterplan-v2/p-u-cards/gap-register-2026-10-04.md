@@ -8,8 +8,8 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 |---|---|---|---|
 | P-07 | VERIFIED | energy-product, date-boundaries, date-fields, field-identity, energy-product-scope, permission-identityless-register-scope | — |
 | P-08 | PARTIAL | date-boundaries (92 not 157, XOR), field-identity (40/109), date-events, date-event-wire-phase, date-fields | GAP: a valid inbound contract receipt updates the right production relation; no implementing path found |
-| P-02 | open | incoming-unused-fields, energy-product(-inbound) | check that ignored fields stay out of the business projection |
-| P-06 | open | identity-li-compliance (SE1/SE2/260, no guessing), aperak-text-evidence (inbound birth-date qualifier) | GAP: renderer-side Z13 birth-date ban; protected identity rules; no UUID fallback; ZZZ (field 206) not changed globally |
+| P-02 | VERIFIED | incoming-unused-fields, energy-product(-inbound)  (ignored fields reported separately as prodatIgnoredFields, raw kept, no negative APERAK) | — |
+| P-06 | PARTIAL | identity-li-compliance (SE1/SE2/260, no guessing), aperak-text-evidence (inbound birth-date qualifier) , p-06-z13-birth-date (field 249 not in Z13/Z14/Z15/Z18) | GAP: protected-identity rules (no implementation found); ZZZ (field 206) not changed globally |
 | P-10 | open | — (existing LI tests only string-match migrations) | GAP: Z02↔Z01 correlation by LI/parties/object/grid area/customer; Z02 not start confirmation; no automatic Z03 (gridex_apply_exact_z02_core) |
 | P-11 | open | normal-switch-source-sql-regression, supply-market-consumers, supplier-switch-activation-sweep | GAP: Z04 before positive APERAK; Z02/ACK alone never activate; late ACK cannot roll back |
 | P-12 | open | supply-market-consumers (assigned supply without own Z03; missing legal ground held) | GAP: role/contract/grid-area/production-link verification |
