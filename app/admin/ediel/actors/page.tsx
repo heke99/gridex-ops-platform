@@ -159,6 +159,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
   const importRuns = importRunsResult.error ? [] : importRunsResult.data ?? []
+  const latestPreview = importRuns.find((run) => isRecord(run.metadata) && run.metadata.mode === 'preview')
+  const reviewedSnapshotHash = latestPreview ? String(previewValue(latestPreview.metadata, 'snapshotHash')) : ''
+  const reviewedSourceSha256 = latestPreview ? String(previewValue(latestPreview.metadata, 'sourceSha256')) : ''
   const addressesByParty = new Map<string, typeof addresses>()
   for (const address of addresses) {
     const existing = addressesByParty.get(address.party_id) ?? []
@@ -254,6 +257,8 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                 </select>
                 <input type="hidden" name="source" value="actor_registry_ui" />
                 <button name="importMode" value="preview" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-800 hover:bg-slate-50">Förhandsgranska diff</button>
+                <input name="reviewedSnapshotHash" defaultValue={reviewedSnapshotHash === '—' ? '' : reviewedSnapshotHash} aria-label="Granskad registersnapshot" placeholder="Granskad snapshot (från förhandsgranskningen)" className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[11px]" />
+                <input name="reviewedSourceSha256" defaultValue={reviewedSourceSha256 === '—' ? '' : reviewedSourceSha256} aria-label="Granskad källfil (SHA-256)" placeholder="Granskad källfil SHA-256" className="rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-[11px]" />
                 <input name="confirmApply" placeholder="Skriv IMPORTERA för att godkänna" className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs" />
                 <button name="importMode" value="apply" className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Godkänn och importera</button>
               </div>

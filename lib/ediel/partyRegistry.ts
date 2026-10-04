@@ -1,4 +1,3 @@
-import { supabaseService } from '@/lib/supabase/service'
 import { fullEdielAddress, normalizeEdielSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
 
 export type EdielPartyRole =
@@ -57,13 +56,6 @@ export type EdielPartyAddressRow = {
   metadata?: Record<string, unknown> | null
   created_at: string
   updated_at: string
-}
-
-export type ResolvedEdielPartyRoute = {
-  party: EdielPartyRow
-  address: EdielPartyAddressRow
-  match: 'exact_business_code' | 'family'
-  generatedUnbReceiver: string
 }
 
 function clean(value?: string | null): string | null {
@@ -126,94 +118,6 @@ export function buildEdielAddress(edielId?: string | null, qualifier?: string | 
   return address
 }
 
-function isActiveAddress(row: EdielPartyAddressRow, now = new Date()): boolean {
-  if (row.status !== 'active') return false
-  if (row.valid_from && Date.parse(row.valid_from) > now.getTime()) return false
-  if (row.valid_to && Date.parse(row.valid_to) <= now.getTime()) return false
-  return true
-}
-
-function bestAddressMatch(params: {
-  rows: EdielPartyAddressRow[]
-  businessCode?: string | null
-}): { address: EdielPartyAddressRow; match: ResolvedEdielPartyRoute['match'] } | null {
-  const businessCode = upper(params.businessCode)
-  const activeRows = params.rows.filter((row) => isActiveAddress(row))
-  if (businessCode) {
-    const exact = activeRows.find((row) => upper(row.business_code) === businessCode)
-    if (exact) return { address: exact, match: 'exact_business_code' }
-  }
-  const family = activeRows.find((row) => {
-    const code = upper(row.business_code)
-    return !code || code === '*'
-  })
-  return family ? { address: family, match: 'family' } : null
-}
-
-export async function resolveEdielPartyRoute(input: {
-  partyId?: string | null
-  edielId?: string | null
-  environment: 'test' | 'production' | 'agt' | string
-  messageFamily: string
-  businessCode?: string | null
-}): Promise<ResolvedEdielPartyRoute> {
-  const partyId = clean(input.partyId)
-  const edielId = clean(input.edielId)
-  const messageFamily = upper(input.messageFamily)
-  const environment = clean(input.environment)?.toLowerCase()
-
-  if (!partyId && !edielId) throw new Error('Party route resolution requires party_id or ediel_id.')
-  if (!messageFamily) throw new Error('Party route resolution requires message_family.')
-  if (!environment) throw new Error('Party route resolution requires environment.')
-
-  let partyQuery = supabaseService
-    .from('ediel_parties')
-    .select('*')
-    .limit(1)
-
-  partyQuery = partyId ? partyQuery.eq('id', partyId) : partyQuery.eq('ediel_id', edielId)
-
-  const { data: partyData, error: partyError } = await partyQuery.maybeSingle()
-  if (partyError) throw partyError
-  if (!partyData) throw new Error(`Sändning stoppad: verifierad Ediel-part saknas för ${edielId ?? partyId}.`)
-
-  const party = partyData as EdielPartyRow
-  if (party.status !== 'verified') {
-    throw new Error(`Sändning stoppad: Ediel-part ${party.name} (${party.ediel_id}) är ${party.status}, inte verified.`)
-  }
-
-  const addressEnvironment = environment === 'agt' ? ['agt', 'test'] : [environment]
-  const { data: addressData, error: addressError } = await supabaseService
-    .from('ediel_party_addresses')
-    .select('*')
-    .eq('party_id', party.id)
-    .in('environment', addressEnvironment)
-    .eq('message_family', messageFamily)
-    .order('business_code', { ascending: false, nullsFirst: false })
-    .order('updated_at', { ascending: false })
-
-  if (addressError) throw addressError
-  const match = bestAddressMatch({
-    rows: (addressData ?? []) as EdielPartyAddressRow[],
-    businessCode: input.businessCode,
-  })
-
-  if (!match) {
-    throw new Error(
-      `Sändning stoppad: säker route saknas för ${party.name} (${party.ediel_id}) ${environment}/${messageFamily}${
-        input.businessCode ? ` ${input.businessCode}` : ''
-      }.`,
-    )
-  }
-
-  if (match.address.requires_subaddress && !clean(match.address.subaddress)) {
-    throw new Error(`Sändning stoppad: routen för ${party.ediel_id}/${messageFamily} kräver subadress men saknar värde.`)
-  }
-
-  return {
-    party,
-    address: match.address,
-    match: match.match,
-    generatedUnbReceiver: buildEdielAddress(match.address.ediel_id, match.address.qualifier, match.address.subaddress),
-  }
-}
+// IMP-02/SC-058: the former market-less party-route resolver (first active
+// ediel_party_addresses match, no EL/GAS) was removed. Outbound routing must
+// use the source-qualified EL registry route (registryMarketSource.ts).

@@ -180,14 +180,31 @@
     {
       "id": "IMP-02",
       "acceptance_id": "AT-IMP-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+        "lib/ediel/partyRegistry.ts"
+      ]
     },
     {
       "id": "IMP-03",
       "acceptance_id": "AT-IMP-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+        "__tests__/ediel-imp-03-reviewed-snapshot-apply.test.ts"
+      ]
     },
     {
       "id": "IMP-04",
@@ -1606,13 +1623,30 @@
     },
     {
       "id": "AT-IMP-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+        "lib/ediel/partyRegistry.ts"
+      ]
     },
     {
       "id": "AT-IMP-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "lib/actor-registry/importActorRegistry.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+        "__tests__/ediel-imp-03-reviewed-snapshot-apply.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-04",

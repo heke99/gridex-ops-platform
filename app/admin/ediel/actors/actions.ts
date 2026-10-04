@@ -1,5 +1,6 @@
 'use server'
 
+import { createHash } from 'node:crypto'
 import { readRegistryRouteSource, verifyElRegistryActor, type SourceQualifiedRegistryRoute } from '@/lib/actor-registry/registryMarketSource'
 import { revalidatePath } from 'next/cache'
 import {diffRegistryRecord,readRegistryPreviewSnapshot} from '@/lib/actor-registry/registrySnapshotDiff'
@@ -205,6 +206,7 @@ type ActorImportPreviewSummary = {
   changedActors: number
   unchangedActors:number
   snapshotHash:string
+  sourceSha256:string|null
   changes:Array<{edielId:string;actorId:string;fields:string[]}>
   gridOwners: number
   electricitySuppliers: number
@@ -219,14 +221,14 @@ type ActorImportPreviewSummary = {
   issues: ActorImportPreviewIssue[]
 }
 
-async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:string): Promise<ActorImportPreviewSummary> {
+async function buildActorImportPreview(records: ActorImportRecord[],actorUserId:string,sourceSha256:string|null=null): Promise<ActorImportPreviewSummary> {
   const snapshot=await readRegistryPreviewSnapshot(actorUserId,records.flatMap(r=>r.edielId?[r.edielId]:[]))
   const summary: ActorImportPreviewSummary = {
     recordsSeen: records.length,
     newActors: 0,
     existingActors: 0,
     changedActors: 0,
-    unchangedActors:0,snapshotHash:snapshot.snapshotHash,changes:[],
+    unchangedActors:0,snapshotHash:snapshot.snapshotHash,sourceSha256,changes:[],
     gridOwners: 0,
     electricitySuppliers: 0,
     routesSeen: 0,
@@ -327,8 +329,9 @@ async function createActorImportPreviewRun(input: {
   importType: string
   parsed: ActorImportRecord[]
   userId: string
+  sourceSha256?: string | null
 }) {
-  const preview = await buildActorImportPreview(input.parsed,input.userId)
+  const preview = await buildActorImportPreview(input.parsed,input.userId,input.sourceSha256??null)
   const run = await supabaseService
     .from('platform_actor_import_runs')
     .insert({
@@ -394,6 +397,7 @@ export async function importPlatformActorsAction(formData: FormData) {
   const fileName = file.name || 'actor-import'
   const importType = format==='txt'||fileName.toLowerCase().endsWith('.txt')?'companies_txt':format === 'csv' || fileName.toLowerCase().endsWith('.csv') ? 'csv' : 'companies_xml'
   const sourceBytes=Buffer.from(await file.arrayBuffer())
+  const sourceSha256=createHash('sha256').update(sourceBytes).digest('hex')
   if(mode==='apply') {
     if(confirmApply!=='IMPORTERA')throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
     const prior=await readActorRegistryPriorResult({sourceBytes,sourceKind:importType,actorUserId:context.userId})
@@ -417,6 +421,7 @@ export async function importPlatformActorsAction(formData: FormData) {
       importType,
       parsed,
       userId: context.userId,
+      sourceSha256,
     })
     revalidatePath('/admin/ediel/actors')
     revalidatePath('/admin/customers/intake')
@@ -427,15 +432,26 @@ export async function importPlatformActorsAction(formData: FormData) {
     throw new Error('Skriv IMPORTERA för att godkänna att säkra fält uppdateras och osäkra ändringar läggs i granskning.')
   }
 
-  const preview = await buildActorImportPreview(parsed,context.userId)
+  const preview = await buildActorImportPreview(parsed,context.userId,sourceSha256)
   if (preview.routesSeen === 0) {
-    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId, sourceSha256 })
     revalidatePath('/admin/ediel/actors')
     throw new Error('ediel_registry_zero_routes_source_held: Importen saknar routes. Granska originalfilens format och kommunikationsuppgifter innan tillämpning.')
   }
   if (preview.conflicts > 0) {
-    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId })
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId, sourceSha256 })
     throw new Error('Importen stoppades eftersom förhandsgranskningen hittade konflikt i Ediel-ID/aktörsmatchning. Lös granskningspunkterna innan importen godkänns.')
+  }
+  // IMP-03: the approved diff is bound to the exact reviewed source and the
+  // registry snapshot it was computed against. A changed registry or file
+  // requires a fresh preview; apply never silently re-diffs another state.
+  const reviewedSnapshotHash = value(formData, 'reviewedSnapshotHash')
+  const reviewedSourceSha256 = value(formData, 'reviewedSourceSha256')
+  if (!reviewedSnapshotHash || !reviewedSourceSha256) throw new Error('ediel_registry_reviewed_snapshot_required: Förhandsgranska filen och godkänn den granskade snapshoten innan import.')
+  if (reviewedSnapshotHash !== preview.snapshotHash || reviewedSourceSha256 !== sourceSha256) {
+    await createActorImportPreviewRun({ fileName, source, importType, parsed, userId: context.userId, sourceSha256 })
+    revalidatePath('/admin/ediel/actors')
+    throw new Error('ediel_registry_reviewed_snapshot_stale: Registret eller filen har ändrats sedan granskningen. En ny förhandsgranskning har skapats.')
   }
 
   const applied = await applyActorRegistryRecords({ sourceBytes, sourceKind: importType as 'companies_xml' | 'companies_txt' | 'csv', sourceFilename: fileName, actorUserId: context.userId,
