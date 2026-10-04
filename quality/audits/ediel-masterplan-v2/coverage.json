@@ -1517,8 +1517,12 @@
     },
     {
       "id": "SC-031",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-prodat-incoming-unused-fields.test.ts",
+        "__tests__/ediel-received-register-validation-binding.test.ts",
+        "lib/ediel/core/runtimeDecision.ts"
+      ]
     },
     {
       "id": "SC-032",
@@ -1548,8 +1552,12 @@
     },
     {
       "id": "SC-034",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts"
+      ]
     },
     {
       "id": "SC-035",
