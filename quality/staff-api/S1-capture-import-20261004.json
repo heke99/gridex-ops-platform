@@ -1,0 +1,43 @@
+{
+  "purpose": "S1-generated-artifact-import",
+  "imported_at": "2026-10-04T09:48:38.226318+00:00",
+  "artifact_zip_sha256": "a36b20e1bb74f02243ecf1a94c2fbac76385f3e486f3d0a4ddbf10dad59b9130",
+  "original_capture_receipt": "quality/staff-api/S1-capture-receipt-20261004.json",
+  "original_capture_receipt_sha256": "61eb3c55b36308016cbef9f396dc558de37e9ca07ed3eee9ed63978d596fc287",
+  "captured_checkout_commit": "032899d30d514f537f0ce090339de3218cdf2461",
+  "captured_checkout_tree": "48a48990be3573e4c4c0768e9240afe854253f9c",
+  "import_source_commit": "2a09a8ba99ba3e01b77f476e9ced2e31ac6cd598",
+  "import_source_tree": "48a48990be3573e4c4c0768e9240afe854253f9c",
+  "validation": {
+    "zip_digest_and_all_four_member_bytes": "PASS",
+    "all_eight_captured_input_hashes_against_clean_root": "PASS",
+    "complete_checkout_tree_equality": "PASS",
+    "all_three_generated_artifact_hashes": "PASS",
+    "latest_replay_migration_and_hash": "PASS",
+    "schema_names_and_canonical_section_fingerprint": "PASS",
+    "destination_generated_files_byte_identical": "PASS",
+    "db_migrations_check": "PASS"
+  },
+  "artifact_sha256": {
+    "database.types.ts": "673d8b96fc83f26bf4497a0c6a8d39be326c6d43b7fffc2042e6f64070b8ec2a",
+    "schema.sql": "8473327a9e2d9883784dbfc14fe51acfc237ea233e2cb93150221f502c0c281e",
+    "schema.fingerprint.json": "5b58e6da92ec8120ae6df544b6dd9730700a84bc7fa5343748478b4cf331b8dd"
+  },
+  "latest_replay_migration": {
+    "name": "20261004085008_staff_active_membership.sql",
+    "sha256": "a740c68886993e2349d129c784491891a856ad1b4c02a064d3c4223cbbb24749"
+  },
+  "qualification": "capture_only; native/browser/type-schema/upgrade gates NOT_RUN in source capture; mandatory full CI remains required",
+  "db_migrations_check": {
+    "exit_code": 0,
+    "migration_files": 1044,
+    "version_groups": 947,
+    "checks": [
+      "migration integrity/checksums",
+      "public-contract legal migration",
+      "database contract hardening",
+      "generated types hash/nullability/latest migration"
+    ],
+    "log_sha256": "f4d2a676095cf3293243b6ca77f7948eb5d941fa401bc6f98aaadf80c59906a7"
+  }
+}
