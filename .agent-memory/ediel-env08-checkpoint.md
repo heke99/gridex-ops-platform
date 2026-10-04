@@ -1,0 +1,11 @@
+# ENV-08 / AT-ENV-08 — 2026-10-04
+
+Own isolated branch `codex/ediel-env08-fixed-normal-time-20261004`, base actual main `e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f`. Root owns CI/main integration and one repository handover line after the actual merge. Only the private UTILTS format203 helper/import changes; #509 retains subaddress/UNT/builders, other owners retain their semantics and SQL.
+
+Skills: spec-to-code-compliance + independent full-card review; direct false-positive verification (foreign-offset claim refuted), systematic-debugging/test-driven-development for the real UTC-stripping defect; isolated clone, verification-before-completion/requesting-code-review/finishing-a-development-branch for delivery. Database/schema, UI, security-audit and performance skills are not triggered by this codec-only change.
+
+Frozen ENV08/AT and complete U206 p122 permit foreign-country offsets; no blanket inbound restriction or country inference. T original SHA5204…951 §4.2/5.2.5 distinguishes UNB local time from payload; T§7.9 requires0000 for current editions. Existing PRODAT fixed-CET renderer is reused for U creation, period endpoints and registration; local/floating/date inputs stay literal and explicit instants convert once. Generic historical offset decoding remains intact.
+
+RED commit `349d158e`: real outbound builder6 failures/2 passing controls. Current tagged suite31/31 PASS: actual P/U payload vs UNB summer/winter/midnight/year clocks; absolute/local period and registration inputs; actual prepared and serialized persistence arguments preserve original source/local periods/offset/format alongside UTC; business date stays local; real runtime/profile rejects92/100 and accepts96 quarters on both DST days; foreign offset conversion preserved. RPC IO is substituted; native durability remains the existing native suite's responsibility. Focused nine-file run before the last ten added cases295/295 PASS. Independent review, final scoped/type/lint/integrity/tag checks and approval remain pending; no rule promotion yet.
+
+Next: freeze/publish candidate, independent full-card review, complete appropriate checks, then set exactly ENV08 VERIFIED/AT-ENV08 PASSED in the same small PR. No production/market traffic or hosted database change.
