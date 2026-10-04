@@ -479,8 +479,14 @@
     {
       "id": "ESCO-06",
       "acceptance_id": "AT-ESCO-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
+        "scripts/test-ediel-esco-06-request-coordination.cjs"
+      ]
     },
     {
       "id": "ESCO-07",
@@ -1799,8 +1805,10 @@
     },
     {
       "id": "AT-ESCO-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-06-request-coordination.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-07",
