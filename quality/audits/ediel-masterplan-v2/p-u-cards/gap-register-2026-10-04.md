@@ -14,6 +14,6 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | P-11 | open | normal-switch-source-sql-regression, supply-market-consumers, supplier-switch-activation-sweep | GAP: Z04 before positive APERAK; Z02/ACK alone never activate; late ACK cannot roll back |
 | P-12 | open | supply-market-consumers (assigned supply without own Z03; missing legal ground held) | GAP: role/contract/grid-area/production-link verification |
 | P-13 | open | supply-end-followup, bilateral-prodat-closure-operation, bilateral-prodat-supply-consumer | GAP: end versioned with history preserved; customer/other facilities/ESCO grants not deleted |
-| P-14 | open | switch-cancellation-sql-regression, switch-cancellation-source, prodat-prior-flow, prodat-subtypes (no Z13C/Z14C) | GAP: cancellation arriving before the original without double effect |
+| P-14 | VERIFIED | switch-cancellation-sql-regression, switch-cancellation-source, prodat-prior-flow, prodat-subtypes (no Z13C/Z14C) , supply-market-consumers ("does not reaccept an ordinary start already cancelled") | — |
 | P-15 | open | received-structure-reader(-boundaries), prodat-registers | GAP: future supplier structure before start; history not overwritten in one global row |
 | P-16 | VERIFIED | prodat-subtypes (explicit capability), bilateral-prodat-profile-native/intake, bilateral-prodat-supply-consumer, prodat-bilateral-source-capability , bilateral-prodat-profile-intake (other company/agreement/environment scope rejected) | — |

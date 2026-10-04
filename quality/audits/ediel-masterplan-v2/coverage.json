@@ -464,8 +464,15 @@
     {
       "id": "P-14",
       "acceptance_id": "AT-P-14",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/prodatSubtypeRegistry.ts",
+        "scripts/ediel-switch-cancellation-sql-regression.mjs",
+        "__tests__/ediel-switch-cancellation-source.test.ts",
+        "__tests__/ediel-prodat-prior-flow.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "P-15",
@@ -1938,8 +1945,13 @@
     },
     {
       "id": "AT-P-14",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-switch-cancellation-source.test.ts",
+        "__tests__/ediel-prodat-prior-flow.test.ts",
+        "__tests__/ediel-prodat-subtypes.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "AT-P-15",

@@ -1109,3 +1109,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 Codex försökte claima TEN-09 (redan klar i #491) — svarat 5981753458+; Codex PR #497 (TEN-07, ESCO-10/11 overifierade tills CI).
 - 2026-10-04 #491: P-07 godkänd; P-08 PARTIAL (taggad, lucka: produktionsrelation vid mottagning). Gap-register för P i quality/audits/ediel-masterplan-v2/p-u-cards/.
 - 2026-10-04 #491: P-16 (+AT) godkänd (ny test: motpartsscope för annat bolag/avtal/miljö avvisas).
+- 2026-10-04 #491: P-14 (+AT) godkänd via taggade tester (bundet original, ingen Z13C/Z14C, sen start efter kancellering återaccepteras inte).

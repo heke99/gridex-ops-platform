@@ -1,3 +1,4 @@
+// masterplan: P-14, AT-P-14
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { applySupplyMarketSource, advanceSupplyMarketDeadlines } from '@/lib/ediel/flows/supplyMarketTransition'
 import { applyInboundBusinessStateMachine } from '@/lib/ediel/flows/inboundBusinessStateMachineLegacy'
