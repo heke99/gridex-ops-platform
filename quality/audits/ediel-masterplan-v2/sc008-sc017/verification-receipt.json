@@ -1,0 +1,217 @@
+{
+  "purpose": "SC-008 and SC-017 source-qualified reusable native evidence and current bounded assertions",
+  "review_base_sha": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+  "scenario_ids": [
+    "SC-008",
+    "SC-017"
+  ],
+  "native_reuse": {
+    "workflow_run_id": 37219122360,
+    "artifact_id": 11310821113,
+    "github_run_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37219122360",
+    "head_sha": "f4a0fb4398a79f5777824123142c82aeeb8338ec",
+    "zip_sha256": "470c1eed5afd99678c2d5ab2c7fa108bc33384cc873fb5ecab5cf9cb4f820076",
+    "junit_sha256": "e3d61b376c876c49fc2aed4f6ed61c6f9f16b8dfb110141a65fd94479c9ccb73",
+    "total": 605,
+    "passed": 604,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 1,
+    "selected_suites": [
+      {
+        "path": "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "ESCO-10 stores an exact reception receipt without a permission field and distributes only through the current grant",
+          "ESCO-11 rechecks authentic current downstream_use basis while preserving original DGI and prior receipts",
+          "ESCO-11 rechecks authentic current privacy_roles basis while preserving original DGI and prior receipts"
+        ]
+      },
+      {
+        "path": "scripts/ediel-service-evidence-native.test.ts",
+        "tests": 29,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "ESCO02 native archive refuses DSO network-period terms on another actual contract kind before any artifact or business effect",
+          "native issuer archive and separate review reject legacy_nine_terms without source/request/grant/storage/ACK effects",
+          "native issuer archive and separate review reject legacy_eleven_terms without source/request/grant/storage/ACK effects",
+          "native issuer archive and separate review reject staged_agreement without source/request/grant/storage/ACK effects",
+          "native issuer archive and separate review reject staged_method without source/request/grant/storage/ACK effects",
+          "native issuer archive and separate review reject staged_network_period without source/request/grant/storage/ACK effects",
+          "ESCO02 native current archive/review holds before_three_years before any permission/request/source/storage/ACK effects",
+          "ESCO02 native current archive/review holds before_network_start before any permission/request/source/storage/ACK effects",
+          "ESCO02 native current archive/review holds historical_today before any permission/request/source/storage/ACK effects",
+          "ESCO02 native current archive/review holds continuous_past_end before any permission/request/source/storage/ACK effects",
+          "ESCO02 native first request captures the actual server day and DSO period once; current replay attempts no permission/link/receipt insert",
+          "ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction",
+          "ESCO02 native last timing receipt failure rolls back permission/link/request-owner creation",
+          "genuine archived/reviewed V scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+          "genuine archived/reviewed VH scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+          "real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects",
+          "retained actual ESCO ACK and storage deny current reviewer revocation without effects",
+          "retained actual ESCO ACK and storage deny current role revocation without effects",
+          "retained actual ESCO ACK and storage deny current issuer_representation revocation without effects",
+          "retained actual ESCO ACK and storage deny current issuer_key revocation without effects",
+          "pending real own_actor DENY insertion wins before any ACK/storage effects under the same graph order",
+          "pending real global_reviewer DENY insertion wins before any ACK/storage effects under the same graph order",
+          "a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval",
+          "actual native resolver preserves positive rights and exact OID/ACL while current own/global direct/override denies remain tenant/time scoped",
+          "SC005/006 one actual upstream storage/ACK serves two independently archived and approved missions, with original replay and filtered isolated beneficiaries",
+          "SC071 pending company beneficiary DENY wins before real projection and leaks zero rows/effects",
+          "SC071 pending global beneficiary DENY wins before real projection and leaks zero rows/effects",
+          "literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18",
+          "ESCO11 native filtered derivatives retain the original DGI source and private contract across separate missions; exact current replay attempts no insert"
+        ]
+      }
+    ],
+    "source_qualification": [
+      {
+        "path": "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "native_source_sha256": "77ad255ca50a52ff73a7a267b32733350d6ad6eba4fdd25fd0b25c4e37554d13",
+        "current_base_sha256": "77ad255ca50a52ff73a7a267b32733350d6ad6eba4fdd25fd0b25c4e37554d13",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": true
+      },
+      {
+        "path": "scripts/ediel-service-evidence-native.test.ts",
+        "native_source_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "current_base_sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+        "native_source_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "current_base_sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/projection.ts",
+        "native_source_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "current_base_sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/commands.ts",
+        "native_source_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "current_base_sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/administration.ts",
+        "native_source_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "current_base_sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/services/evidenceReview.ts",
+        "native_source_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "current_base_sha256": "508aeaed21152e061085259e7e6fa3b3de8bc63532459dd08ea3e9f63d09ba8c",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/consumptionPreparation.ts",
+        "native_source_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+        "current_base_sha256": "bb3996ba471e747caf334a1d663a0ea90bbd636e5936ad37b74a5b53ef152524",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/transactionPersistence.ts",
+        "native_source_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+        "current_base_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "native_source_sha256": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+        "current_base_sha256": "cc55cab8a142cb253a7d63b096905d50bb087dba3c9f42134707212014622568",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "native_source_sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+        "current_base_sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "native_source_sha256": "50a9e0493fe68d5e3b780a70963d948d1f2b1a196fb0cffed178bc34c1945f84",
+        "current_base_sha256": "50a9e0493fe68d5e3b780a70963d948d1f2b1a196fb0cffed178bc34c1945f84",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql",
+        "native_source_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "current_base_sha256": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      },
+      {
+        "path": "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "native_source_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "current_base_sha256": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+        "source_equals_current_base": true,
+        "packet_body_unchanged": true,
+        "packet_metadata_only_change": false
+      }
+    ],
+    "fresh_current_main_native_execution": false
+  },
+  "current_verification": {
+    "vitest": "35/35 PASS across owner raw reader, beneficiary API/provenance and existing owner-original suites; 4 files, 0 skips/errors",
+    "scoped_sql_wrapper": "2/2 PASS; 17 scoped consumer effects and 14 separate outbound transport-copy effects; incoming raw proof is separate server reader test",
+    "tests_typecheck": "PASS; final run after all source assertions completed with exit0",
+    "eslint": "PASS, zero diagnostics on changed TS files",
+    "diff_check": "PASS",
+    "initial_wrapper_attempt": "Default restricted sandbox invocation terminated without subtest diagnostics. Same unchanged wrapper rerun with child network permission completed 2/2 PASS; no production/test implementation changed to obtain that pass."
+  },
+  "approval": "PENDING INDEPENDENT COMPLETE-SCENARIO REVIEW; no coverage mutation",
+  "fixture_boundaries": [
+    "Native issuer/legal/SMTP facts are explicit synthetic external inputs",
+    "Mixed object PostgreSQL consumer uses declared finite source/accepted-storage/legal-review dependencies",
+    "New raw-read proof substitutes auth-context and row-query ports while calling actual server guards/tenant scope/message reader",
+    "No native mixed-file intake custody or authentic external market approval claimed"
+  ],
+  "scope_exclusions": [
+    "production source",
+    "SQL/migrations",
+    "helper/source-authority changes",
+    "shared memory",
+    "coverage approval",
+    "merge"
+  ],
+  "packet_input_sha256": {
+    "__tests__/ediel-sc008-owner-raw-read.test.ts": "9dcdfdb05c07b6e45530ae563913ee7bb9507595e779a6f18ce2b0267eb29a43",
+    "__tests__/ediel-beneficiary-projection-api.test.ts": "2f1ddd9b14a84ff58aeb0bf5e9841dccf232c272d6a5f639c24e7a68059f04a3",
+    "scripts/ediel-esco-10-11-projection-native.test.ts": "a61dd471b9ba86887a72d8c076fe49d956f652ad762726c14acfdf3b7813521c",
+    "scripts/test-ediel-ten-07-scoped-projection.cjs": "ed9f045afe3f9c2bb965b152976cda265bc79da49f244f11a3152507803551f8"
+  }
+}
