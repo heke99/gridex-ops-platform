@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hashIntegrationApiSecret } from '@/lib/integrations/apiClientSecrets'
 
 const state = vi.hoisted(() => ({
-  rpc: vi.fn(), ready: vi.fn(), denied: null as string | null, unavailable: false,
+  rpc: vi.fn(), ready: vi.fn(), denied: null as string | null, unavailable: false, tenantStatus: 'active',
 }))
 vi.mock('@/lib/platform/schemaReadiness', () => ({ assertPlatformSchemaReady: state.ready }))
 vi.mock('@/lib/tenant/context', () => ({ tenantContextForIntegration: (input: unknown) => input }))
@@ -22,10 +22,10 @@ function request(path = '/api/v1/staff/me', method = 'GET', headers: Record<stri
 
 beforeEach(() => {
   vi.clearAllMocks()
-  state.denied = null; state.unavailable = false
+  state.denied = null; state.unavailable = false; state.tenantStatus = 'active'
   process.env.INTEGRATION_API_TRUST_PROXY_HEADERS = 'true'
   state.rpc.mockImplementation(async () => state.unavailable ? { data: null, error: { code: 'PGRST202' } } : { data: [{
-    auth_outcome: state.denied === 'rate_limited' ? 'rate_limited' : state.denied ? 'denied' : 'allowed', error_code: state.denied, tenant_status: 'active',
+    auth_outcome: state.denied === 'rate_limited' ? 'rate_limited' : state.denied ? 'denied' : 'allowed', error_code: state.denied, tenant_status: state.tenantStatus,
     client_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2', company_id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1', client_name: 'Synthetic Staff', client_status: 'active', key_prefix: token.slice(0, 12),
     scopes: ['staff_context.read', 'staff_support.write'], allowed_ips: ['10.10.0.0/16'], allowed_origins: ['https://support.example.invalid'], metadata: { integration_kind: 'staff_support_v1' },
     rate_limit_per_minute: 6, expires_at: null, request_count: state.denied === 'rate_limited' ? 3 : 1, route_limit: 2, reset_at: new Date(Date.now() + 30_000).toISOString(),
@@ -64,6 +64,20 @@ describe('staff machine auth transport using actual API auth module', () => {
     }
     expect(state.ready).not.toHaveBeenCalled()
     expect(state.rpc).not.toHaveBeenCalled()
+  })
+  it.each([
+    { family: 'integration', tenant: 'paused', status: 423 },
+    { family: 'integration', tenant: 'suspended', status: 403 },
+    { family: 'staff', tenant: 'paused', status: 423 },
+    { family: 'staff', tenant: 'suspended', status: 403 },
+  ])('denies $tenant tenants through the $family authentication path', async ({ family, tenant, status }) => {
+    state.denied = `tenant_${tenant}`; state.tenantStatus = tenant
+    const result = family === 'staff'
+      ? await requireStaffIntegrationApiAccess(request(), ['staff_context.read'])
+      : await requireIntegrationApiAccess(request('/api/v1/website/contracts'), ['website_contracts.read'])
+    expect(result).toMatchObject({ ok: false, status, errorCode: `organization_${tenant}` })
+    expect(state.rpc).toHaveBeenCalledOnce()
+    expect(state.rpc.mock.calls[0][0]).toBe(family === 'staff' ? 'authenticate_staff_integration_request_v1' : 'authenticate_integration_request_v1')
   })
   it('preserves generic legacy key compatibility while rejecting it for staff', async () => {
     await requireIntegrationApiAccess(request('/api/v1/website/contracts', 'GET', { 'x-api-key': token }), ['website_contracts.read'])

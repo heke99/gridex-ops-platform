@@ -107,7 +107,7 @@ if expected_version and version.split()[0] != expected_version:
 if query("SELECT count(*) FROM pg_namespace WHERE nspname='auth';") != "0":
     raise SystemExit("Refusing to replay staff fixtures over a preexisting database")
 
-fixture = subprocess.run([shutil.which("node") or "node", "scripts/lib/staff-sql-fixture.cjs"], cwd=ROOT, env=ENV, text=True, capture_output=True, timeout=20, check=True)
+fixture = subprocess.run([shutil.which("node") or "node", "scripts/lib/staff-sql-fixture.cjs", "--postgres-major=" + version.split(".")[0]], cwd=ROOT, env=ENV, text=True, capture_output=True, timeout=20, check=True)
 query(fixture.stdout)
 required = {"20261003220000_staff_api_sessions.sql", "20261003220500_staff_support_commands.sql", "20261003221000_staff_support_attachments.sql", "20261003224139_staff_api_storage_integrity.sql", "20261003225321_staff_attachment_lock_order.sql", "20261003230216_staff_native_account_policy_columns.sql", "20261003231500_staff_machine_auth.sql", "20261003232132_staff_command_client_policy_binding.sql"}
 migrations = sorted((ROOT / "supabase/migrations").glob("20261003*_staff_*.sql"))

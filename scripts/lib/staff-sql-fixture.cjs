@@ -14,7 +14,8 @@ const tables = new Set([
   'company_capabilities',
 ])
 
-function buildStaffFixture(root, { wasm = false } = {}) {
+function buildStaffFixture(root, { wasm = false, postgresMajor } = {}) {
+  if (postgresMajor !== undefined && ![16, 17].includes(postgresMajor)) throw new Error('Expected an observed PostgreSQL 16/17 major version')
   const schema = fs.readFileSync(path.join(root, 'supabase/schema.sql'), 'utf8')
   const blocks = schema.split(/\n--\n-- Name:/)
   const functions = new Map()
@@ -109,10 +110,23 @@ CREATE TABLE IF NOT EXISTS auth.mfa_factors (
     exact(privateSource, new RegExp(`revoke all on function public\\.${name}\\([\\s\\S]+?\\) from public, anon, authenticated;`, 'g'), `${name} revoke`),
     exact(privateSource, new RegExp(`grant execute on function public\\.${name}\\([\\s\\S]+?\\) to service_role;`, 'g'), `${name} grant`),
   ])
+  // MAINTAIN was introduced in PostgreSQL 17. A source dump from 17 cannot
+  // replay that privilege on 16, where it does not exist. Remove only that
+  // table-ACL token in the explicitly observed native-16 fixture. This grants
+  // no replacement privilege and never alters function/schema/Auth ACLs.
+  // Native 17, unspecified versions and the WASM diagnostic keep source ACLs.
+  const tablePrivileges = postgresMajor === 16 && !wasm ? privileges.flatMap(statement => {
+    const match = /^(GRANT|REVOKE)\s+(.+?)(\s+ON TABLE\s+[\s\S]+)$/i.exec(statement)
+    if (!match) throw new Error('Expected a source-defined table privilege statement')
+    const list = match[2].split(',')
+    const supported = list.filter(privilege => privilege.trim().toUpperCase() !== 'MAINTAIN')
+    if (supported.length === list.length) return [statement]
+    return supported.length ? [`${match[1]} ${supported.join(',')}${match[3]}`] : []
+  }) : privileges
   return [bootstrap, factorSurface, 'SET check_function_bodies=off;',
     ...nativeCredential, ...[...needed].flatMap(name => functions.get(name)), ...definitions,
     ...constraints.filter(body => !body.includes('FOREIGN KEY')), ...uniqueIndexes,
-    ...constraints.filter(body => body.includes('FOREIGN KEY')), ...triggers, ...privileges, ...nativeAuthPrivileges,
+    ...constraints.filter(body => body.includes('FOREIGN KEY')), ...triggers, ...tablePrivileges, ...nativeAuthPrivileges,
     'SET check_function_bodies=on;'].join('\n')
 }
 
@@ -120,5 +134,8 @@ module.exports = { buildStaffFixture }
 
 if (require.main === module) {
   if (process.env.GRIDEX_STAFF_API_NATIVE_TEST !== '1') throw new Error('Explicit native fixture mode is required')
-  process.stdout.write(buildStaffFixture(path.resolve(__dirname, '../..')))
+  const args = process.argv.slice(2)
+  if (args.length > 1 || (args.length === 1 && !/^--postgres-major=(16|17)$/.test(args[0]))) throw new Error('Expected only an observed --postgres-major=16 or 17')
+  const postgresMajor = args.length ? Number(args[0].split('=')[1]) : undefined
+  process.stdout.write(buildStaffFixture(path.resolve(__dirname, '../..'), { postgresMajor }))
 }
