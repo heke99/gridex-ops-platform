@@ -37,14 +37,24 @@
     {
       "id": "GOV-04",
       "acceptance_id": "AT-GOV-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "__tests__/ediel-gov-04-send-time-guide.test.ts"
+      ]
     },
     {
       "id": "GOV-05",
       "acceptance_id": "AT-GOV-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts"
+      ]
     },
     {
       "id": "GOV-06",
@@ -1483,13 +1493,23 @@
     },
     {
       "id": "AT-GOV-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "__tests__/ediel-gov-04-send-time-guide.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-06",

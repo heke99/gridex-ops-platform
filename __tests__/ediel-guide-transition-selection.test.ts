@@ -1,3 +1,4 @@
+// masterplan: GOV-05, AT-GOV-05
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
