@@ -1,7 +1,7 @@
 // masterplan: TEN-09, AT-TEN-09
 // Extends the service request-timing regression (real coordinator, archive,
 // stage, separate review and 20261001043917 timing consumer) with the
-// 20261004120000 gate on the public explicit-permission resolver. The resolver
+// 20261004170000 gate on the public explicit-permission resolver. The resolver
 // predecessor in the parent harness is its declared finite read-only stub, so
 // this proves the gate, not the reuse semantics (ediel-service-manual-sql-regression).
 // PGlite mechanics, not native replay or legal approval.
@@ -18,7 +18,7 @@ const extension=String.raw`
  let ten09Checks=0
  const ten09=async fn=>{await fn();ten09Checks++}
  const resolverOid=(await db.query("SELECT oid FROM pg_proc WHERE oid='public.ediel_resolve_service_permission_command_v1(uuid,uuid,uuid,bigint,uuid)'::regprocedure")).rows[0].oid
- await db.exec(readFileSync(new URL('../supabase/migrations/20261004120000_ediel_service_resolve_permission_request_timing.sql',import.meta.url),'utf8'))
+ await db.exec(readFileSync(new URL('../supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql',import.meta.url),'utf8'))
  const resolveAs=async(assignment,permission,role='service_role')=>{if(role)await db.exec('SET ROLE '+role);try{return(await db.query('SELECT public.ediel_resolve_service_permission_command_v1($1,$2,$3,2,$4) r',[uid(1),assignment,uid(20),permission])).rows[0].r}finally{await db.exec('RESET ROLE')}}
  await ten09(async()=>assert.equal((await db.query("SELECT oid FROM pg_proc WHERE oid='public.ediel_resolve_service_permission_command_v1(uuid,uuid,uuid,bigint,uuid)'::regprocedure")).rows[0].oid,resolverOid))
  // Codex repro shape: dataStart before the signed DSO network start. An explicit

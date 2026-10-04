@@ -6,18 +6,13 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isPlatformAdminContext, requireAdminActionAccess, requirePlatformAdminActionAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
 import { listOperationalCompaniesForUser } from '@/lib/tenant/scope'
-import { assertCompanyRoleChangeAllowed } from '@/lib/tenant/roleChangeGuard'
-import {
-  deactivateCompanyUserAccess,
-  grantCompanyUserAccess,
-} from '@/lib/auth/companyUserAccess'
+import { inviteStaff, changeStaffRole, disableStaff, reactivateStaff, type StaffCommandContext } from '@/lib/tenant/staffCommands'
 import { provisionCompanyInvitation } from '@/lib/auth/companyInvitationFlow'
 import {
   getCompanyById,
   getCompanyDeleteBlockers,
   logTenantGovernanceEvent,
   normalizeCompanyStatus,
-  requireCompanyOperationalForWrites,
   type CompanyOperationalStatus,
   type GovernanceEventAction,
 } from '@/lib/tenant/governance'
@@ -27,10 +22,6 @@ import {
 } from '@/lib/tenant/lifecycle'
 import { seedDefaultCompanyEmailConfiguration } from '@/lib/email/bootstrap'
 import { seedCompanyOnboardingTasks } from '@/lib/onboarding/companyReadiness'
-import {
-  parseCompanyAssignableRoleKey,
-  resolveCanonicalCompanyAccessRole,
-} from '@/lib/tenant/companyUserRoles'
 
 export type CompanyActionState = {
   ok: boolean
@@ -117,7 +108,7 @@ function governanceActionForStatus(status: CompanyOperationalStatus): Governance
 }
 
 async function assertCanManageCompanyUsers(companyId: string) {
-  const context = await requireAdminActionAccess({ anyOf: ['tenants.invite', 'users.write'] })
+  const context = await requireAdminActionAccess({ allOf: ['users.write'] })
   if (isPlatformAdminContext(context)) return context
 
   const memberships = await listOperationalCompaniesForUser(context.userId)
@@ -348,60 +339,28 @@ export async function createCompanyAction(
   }
 }
 
+function staffOpsContext(companyId: string, context: Awaited<ReturnType<typeof assertCanManageCompanyUsers>>): StaffCommandContext {
+  return { companyId, actorUserId: context.userId, permissions: context.permissions, channel: 'ops', actorIsPlatformAdmin: isPlatformAdminContext(context) }
+}
+
 export async function inviteCompanyUserAction(
   _prevState: CompanyActionState,
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const email = normalizeEmail(formData.get('email'))
-    const fullName = normalizeText(formData.get('full_name')) || null
-    const requestedRoleKey = parseCompanyAssignableRoleKey(
-      normalizeText(formData.get('role_key')) || 'company_admin',
-    )
-    const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(requestedRoleKey)
-
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
-    await assertCanManageCompanyUsers(companyId)
-    if (!email) return { ok: false, message: 'E-post saknas.' }
-
-    await requireCompanyOperationalForWrites(companyId)
-    const company = await getCompanyById(companyId)
-    if (!company) return { ok: false, message: 'Bolaget hittades inte.' }
-
-    const invitation = await provisionCompanyInvitation({
-      companyId,
-      companyName: company.name,
-      email,
-      fullName,
-      membershipRole,
-      roleKey,
-      actorUserId,
-      source: 'company_users_dashboard',
-      sendEmail: true,
+    const context = await assertCanManageCompanyUsers(companyId)
+    await inviteStaff(staffOpsContext(companyId, context), {
+      email: normalizeEmail(formData.get('email')),
+      fullName: normalizeText(formData.get('full_name')) || null,
+      roleKey: normalizeText(formData.get('role_key')) || 'company_admin',
     })
-
-    await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_ROLE_CHANGED',
-      actorUserId,
-      companyId,
-      targetUserId: invitation.userId,
-      reason: 'Verifierad Auth-inbjudan köades för leased provider delivery',
-      metadata: { membershipRole, roleKey, email, accountFlow: 'verified_auth_invitation_link' },
-    })
-
-    revalidatePath('/admin/companies')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
     revalidatePath('/admin/company-settings')
-
-    return {
-      ok: true,
-      message: 'Inbjudan köades för säker leverans. Åtkomst skapas först när rätt Auth-användare har verifierat och accepterat länken.',
-    }
+    return { ok: true, message: 'Inbjudan köades för säker leverans. Åtkomst skapas när användaren verifierar och accepterar länken.' }
   } catch (error) {
-    return { ok: false, message: errorMessage(error, 'Användaren kunde inte skapas eller kopplas till bolaget.') }
+    return { ok: false, message: errorMessage(error, 'Användaren kunde inte bjudas in.') }
   }
 }
 
@@ -554,40 +513,18 @@ export async function removeUserFromCompanyAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const userId = normalizeText(formData.get('user_id'))
-    const reason = normalizeText(formData.get('reason')) || null
-
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
-    await assertCanManageCompanyUsers(companyId)
-    if (!userId) return { ok: false, message: 'Användare saknas.' }
-
-    await deactivateCompanyUserAccess({ companyId, userId, actorUserId, reason })
-
-    await supabaseService
-      .from('company_invitations')
-      .update({ status: 'invitation_revoked', revoked_at: new Date().toISOString() })
-      .eq('company_id', companyId)
-      .eq('invited_user_id', userId)
-      .eq('status', 'pending')
-
-    await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_USER_REMOVED_FROM_COMPANY',
-      actorUserId,
-      companyId,
-      targetUserId: userId,
-      reason,
+    const context = await assertCanManageCompanyUsers(companyId)
+    await disableStaff(staffOpsContext(companyId, context), {
+      userId: normalizeText(formData.get('user_id')),
+      reason: normalizeText(formData.get('reason')) || null,
     })
-
-    revalidatePath('/admin/companies')
     revalidatePath(`/admin/companies/${companyId}/users`)
     revalidatePath('/admin/users')
     revalidatePath('/admin/company-settings')
-
-    return { ok: true, message: 'Användaren togs bort från bolaget utan att historik raderades.' }
+    return { ok: true, message: 'Användarens åtkomst stängdes av utan att historik raderades.' }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Användaren kunde inte tas bort från bolaget.' }
+    return { ok: false, message: errorMessage(error, 'Användaren kunde inte stängas av.') }
   }
 }
 
@@ -596,49 +533,32 @@ export async function setCompanyUserRoleAction(
   formData: FormData
 ): Promise<CompanyActionState> {
   try {
-    const actorUserId = await getCurrentUserId()
     const companyId = normalizeText(formData.get('company_id'))
-    const userId = normalizeText(formData.get('user_id'))
-    const requestedRoleKey = parseCompanyAssignableRoleKey(
-      normalizeText(formData.get('role_key')) || 'company_admin',
-    )
-    const { membershipRole, roleKey } = resolveCanonicalCompanyAccessRole(requestedRoleKey)
-
-    if (!companyId) return { ok: false, message: 'Bolag saknas.' }
     const context = await assertCanManageCompanyUsers(companyId)
-    if (!userId) return { ok: false, message: 'Användare saknas.' }
-    const isPlatformAdmin = isPlatformAdminContext(context)
-    await assertCompanyRoleChangeAllowed({
-      companyId,
-      actorUserId,
-      actorIsPlatformAdmin: isPlatformAdmin,
-      targetUserId: userId,
-      nextMembershipRole: membershipRole,
+    await changeStaffRole(staffOpsContext(companyId, context), {
+      userId: normalizeText(formData.get('user_id')),
+      roleKey: normalizeText(formData.get('role_key')) || 'company_admin',
     })
-
-    await grantCompanyUserAccess({
-      companyId,
-      userId,
-      membershipRole,
-      roleKey,
-      actorUserId,
-      source: 'company_user_role_update',
-    })
-
-    await logTenantGovernanceEvent({
-      action: 'SUPERADMIN_ROLE_CHANGED',
-      actorUserId,
-      companyId,
-      targetUserId: userId,
-      reason: isPlatformAdmin ? 'Bolagsroll ändrades av Gridex support' : 'Bolagsroll ändrades av bolagets administratör',
-      metadata: { membershipRole, roleKey },
-    })
-
     revalidatePath('/admin/users')
     revalidatePath(`/admin/companies/${companyId}/users`)
-
     return { ok: true, message: 'Användarens bolagsroll uppdaterades.' }
   } catch (error) {
-    return { ok: false, message: error instanceof Error ? error.message : 'Bolagsrollen kunde inte uppdateras.' }
+    return { ok: false, message: errorMessage(error, 'Bolagsrollen kunde inte uppdateras.') }
+  }
+}
+
+export async function reactivateCompanyUserAction(
+  _prevState: CompanyActionState,
+  formData: FormData
+): Promise<CompanyActionState> {
+  try {
+    const companyId = normalizeText(formData.get('company_id'))
+    const context = await assertCanManageCompanyUsers(companyId)
+    await reactivateStaff(staffOpsContext(companyId, context), { userId: normalizeText(formData.get('user_id')) })
+    revalidatePath('/admin/users')
+    revalidatePath(`/admin/companies/${companyId}/users`)
+    return { ok: true, message: 'Användarens bolagsåtkomst återaktiverades.' }
+  } catch (error) {
+    return { ok: false, message: errorMessage(error, 'Användaren kunde inte återaktiveras.') }
   }
 }

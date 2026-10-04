@@ -1259,6 +1259,6 @@ Local stack note: never start native tests before "[harness] holding stack" (fix
 
 ## 2026-10-04 (Claude, #491) — läge efter 22a45cca/8ecea64a/d9bcb0ff
 - Klart: U-13, U-17 VERIFIED. U-06, U-11, U-19 PARTIAL med smalare luckor (se gap-register-2026-10-04.md).
-- TEN-09: fix-migration 20261004120000 pushad; PARTIAL tills native CI kör riktiga resolvern bakom grinden. schema.sql + schema.fingerprint.json ska uppdateras från CI-artefakten rem002-schema-snapshot (ops-hardening) om db:schema:check fallerar.
+- TEN-09: fix-migration 20261004170000 pushad; PARTIAL tills native CI kör riktiga resolvern bakom grinden. schema.sql + schema.fingerprint.json ska uppdateras från CI-artefakten rem002-schema-snapshot (ops-hardening) om db:schema:check fallerar.
 - Codex: TR-01/02 + #497 (TEN-07, ESCO-10/11). Rör inte deras filer.
 - Nästa exakta steg: 1) läs CI på 22a45cca+, åtgärda schema-baseline; 2) claima på #491 innan produktkod för U-12/U-15 (UTILTS batch planner), P-06, P-08, P-15, U-08; 3) U-09 kräver underlay-nivåtest.

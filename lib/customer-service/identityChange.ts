@@ -236,6 +236,8 @@ export async function requestCustomerIdentityChange(input: {
   newValue: string
   reason: string
   actorUserId: string
+  channel?: 'ops' | 'staff_api'
+  apiClientId?: string
 }): Promise<IdentityChangeResult> {
   const reason = input.reason.trim()
   if (reason.length < 3 || reason.length > 500) {
@@ -322,6 +324,8 @@ export async function requestCustomerIdentityChange(input: {
     new_value: newValue,
     reason,
     requested_by: input.actorUserId,
+    // Existing OPS requests retain their default schema path until the additive migration is deployed.
+    ...(input.channel === 'staff_api' ? { source_channel: 'staff_api', api_client_id: input.apiClientId ?? null } : {}),
     requested_at: requestedAt,
     approval_required: approvalRequired,
     affected_contract_count: contractCount,
@@ -340,7 +344,7 @@ export async function requestCustomerIdentityChange(input: {
     }
     throw inserted.error
   }
-  await appendEvent({ companyId: input.companyId, customerId: input.customerId, requestId, eventType: 'requested', actorUserId: input.actorUserId, field: input.field, previousValue, newValue, detail: { reason, approval_required: approvalRequired, affected_contract_count: contractCount, takeover_required: takeoverRequired } })
+  await appendEvent({ companyId: input.companyId, customerId: input.customerId, requestId, eventType: 'requested', actorUserId: input.actorUserId, field: input.field, previousValue, newValue, detail: { reason, approval_required: approvalRequired, affected_contract_count: contractCount, takeover_required: takeoverRequired, ...(input.channel === 'staff_api' ? { channel: 'staff_api', api_client_id: input.apiClientId ?? null } : {}) } })
 
   if (!approvalRequired) {
     await decide(input.companyId, requestId, 'applied', 'staff', input.actorUserId)
@@ -375,7 +379,7 @@ ${takeoverText}
     await decide(input.companyId, requestId, 'cancelled', 'system', null).catch(() => undefined)
     throw new IdentityChangeError('identity_change_email_failed', `Godkännandemejlet kunde inte skickas: ${error instanceof Error ? error.message : 'okänt fel'}`, 503)
   }
-  await appendEvent({ companyId: input.companyId, customerId: input.customerId, requestId, eventType: 'approval_sent', actorUserId: null, field: input.field, previousValue, newValue, detail: { recipient: maskEmail(recipient as string), expires_at: expiresAt, takeover_required: takeoverRequired } })
+  await appendEvent({ companyId: input.companyId, customerId: input.customerId, requestId, eventType: 'approval_sent', actorUserId: null, field: input.field, previousValue, newValue, detail: { recipient: maskEmail(recipient as string), expires_at: expiresAt, takeover_required: takeoverRequired, ...(input.channel === 'staff_api' ? { channel: 'staff_api', api_client_id: input.apiClientId ?? null } : {}) } })
   return { status: 'pending_customer_approval', requestId, recipientMasked: maskEmail(recipient as string), expiresAt: expiresAt as string, contractCount, takeoverRequired }
 }
 

@@ -170,7 +170,7 @@
         "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
         "scripts/test-ediel-esco-06-request-coordination.cjs",
         "scripts/test-ediel-esco-08-09-shared-permission.cjs",
-        "supabase/migrations/20261004120000_ediel_service_resolve_permission_request_timing.sql",
+        "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
         "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
         "scripts/test-ediel-ten-09-resolve-timing.cjs"
       ]
@@ -1809,7 +1809,7 @@
       "evidence": [
         "scripts/test-ediel-esco-06-request-coordination.cjs",
         "scripts/test-ediel-esco-08-09-shared-permission.cjs",
-        "supabase/migrations/20261004120000_ediel_service_resolve_permission_request_timing.sql",
+        "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
         "scripts/ediel-ten-09-resolve-timing-sql-regression.mjs",
         "scripts/test-ediel-ten-09-resolve-timing.cjs"
       ]

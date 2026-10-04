@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 
 const { validateResponse } = createRequire(import.meta.url)('../scripts/lib/openapi-schema-validator.cjs') as {
   validateResponse: (document: unknown, path: string, value: unknown, method?: string, status?: string) => string[]
@@ -145,7 +146,7 @@ describe('mounted customer support routes', () => {
     expect(created.status).toBe(201)
     const createdBody = await created.json()
     expect(createdBody.data.case_reference).toMatch(/^support_case_/)
-    expect(createdBody.contract_schema_version).toBe('2026-10-02.4')
+    expect(createdBody.contract_schema_version).toBe(WEBSITE_INTEGRATION_CONTRACT_VERSION)
     expect(createdBody.data.status).toBe('received')
     expect(JSON.stringify(createdBody.data)).not.toMatch(UUID)
 

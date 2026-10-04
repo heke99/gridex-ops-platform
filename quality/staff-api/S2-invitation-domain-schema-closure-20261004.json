@@ -1,0 +1,243 @@
+{
+  "purpose": "Source-backed canonical invitation schema closure; not full native qualification",
+  "date": "2026-10-04",
+  "base_commit": "c3839fee49d57ad1381889cb6065e5674c576e10",
+  "branch": "fix/staff-invitation-schema-closure-20261004",
+  "failed_authentic_native": {
+    "artifact_id": 11304103137,
+    "checkout": "2f2b86e7",
+    "zip_sha256": "5f8e86a2c7f4a21f9d6a5f7ca7a18013e2998a78934a21e9616c2e4b66088da1",
+    "member": "rem002-schema-snapshot/schema.sql",
+    "invitation_declaration_sha256": "c457c78774df3cbf624cead526b59ee2f594ac4d7016b4f628e3fa65ce1c82dd",
+    "status": "FAILED; receipt retained, not superseded by embedded tests",
+    "symptoms": [
+      "Actual invitation42703 missing full_name",
+      "Actual disable42703 missing invited_user_id",
+      "Client/actor native invitation fixture also lacked full_name"
+    ]
+  },
+  "migration": {
+    "file": "supabase/migrations/20261004132630_staff_invitation_domain_columns.sql",
+    "sha256": "c31a729085170cac6801f66015d69c5005f16f9f138202d1b3b98f79d79b073c",
+    "created_using_supabase_cli": "2.119.0",
+    "capture_workflow_cli_remains": "2.101.0",
+    "effect": "Only missing nine fields added nullable with no defaults/backfills/credential generation. New actor/user columns alone receive Auth ON DELETE SET NULL. Existing incompatible types abort22023 and roll back additions.",
+    "transaction": "BEGIN/COMMIT; SET LOCAL lock_timeout10s, statement_timeout120s",
+    "preserved": [
+      "All old invitation rows",
+      "Existing defaults/nullability/constraints including status and company FK",
+      "Table RLS/policies/grants",
+      "Canonical/staff function body/signature/config/ACL",
+      "Staff scopes and role authority",
+      "Historical migration and capture receipt bytes"
+    ]
+  },
+  "closure": [
+    {
+      "column": "full_name",
+      "type": "text",
+      "consumer": "Canonical invitation intent, provisioning worker, acceptance profile"
+    },
+    {
+      "column": "membership_role",
+      "type": "text",
+      "consumer": "Canonical invitation intent, provisioning worker, canonical acceptance mapping"
+    },
+    {
+      "column": "role_key",
+      "type": "text",
+      "consumer": "Canonical invitation intent, provisioning worker, canonical acceptance mapping"
+    },
+    {
+      "column": "token",
+      "type": "uuid",
+      "consumer": "Canonical explicit token producer, provisioning worker fail-closed check, delivery"
+    },
+    {
+      "column": "invited_by",
+      "type": "uuid",
+      "consumer": "Canonical actor producer, provisioning worker, governance"
+    },
+    {
+      "column": "accept_token_hash",
+      "type": "text",
+      "consumer": "Canonical explicit SHA-256 producer, verified-user acceptance lookup"
+    },
+    {
+      "column": "invited_user_id",
+      "type": "uuid",
+      "consumer": "Worker link, verified-user acceptance, disable invitation revocation, governance"
+    },
+    {
+      "column": "revoked_at",
+      "type": "timestamp with time zone",
+      "consumer": "Disable invitation revocation"
+    },
+    {
+      "column": "invited_email",
+      "type": "text",
+      "consumer": "Exact explicit invitation projection in lib/tenant/governance.ts:746"
+    }
+  ],
+  "source_evidence": [
+    "supabase/migrations/20261004083640_staff_user_commands.sql canonical invitation/disable bodies",
+    "supabase/schema.sql captured canonical mapped/v2/unchecked access and acceptance functions with hash/worker/accept/last-admin triggers",
+    "lib/tenant/provisioningWorker.ts:100-103,132",
+    "lib/auth/companyInvitationFlow.ts:178,299-302",
+    "lib/tenant/governance.ts:746",
+    "supabase/migrations/20260519_saas_ui_tenant_admin.sql:55-73",
+    "supabase/migrations/20260519_final_saas_hardening.sql:45-65",
+    "supabase/migrations/20260519_company_invite_temp_password_sync.sql:149-188",
+    "supabase/migrations/20260527_fix_company_user_invite_runtime_columns.sql:78"
+  ],
+  "production_catalog_evidence": {
+    "file": "/tmp/gridex-staff-invitation-closure-production-catalog.json",
+    "sha256": "73a0dbced9ca985d02c3244d4c1f1d22bd27c1b2ba23f682ae141266c4ed54e5",
+    "collection": "Root read-only metadata; no business/account rows or secrets. This agent made no hosted DB calls.",
+    "columns": 23,
+    "all_nine_already_present": true,
+    "preservation": "Existing defaults/NOT NULL/token/membership check/Auth SET NULL/company FK CASCADE/status10value CHECK remain unchanged; native prefix company FK RESTRICT also preserved."
+  },
+  "verification": {
+    "engine": "PGlite finite supporting tables with unchanged actual captured functions/ACL/hash/audit/worker/accept/last-admin triggers; not full native PostgreSQL17 replay",
+    "baseline": "Actual failed clean-replay invitation declaration plus original PK/company FK/idempotency unique index/RLS. No legacy invitation/access RPC mocks.",
+    "old_source_red": {
+      "failed": 8,
+      "passed": 4,
+      "total": 12,
+      "mode": "GRIDEX_STAFF_INVITATION_SCHEMA_SOURCE=old; same final assertions"
+    },
+    "exact_forward_green": {
+      "passed": 12,
+      "total": 12
+    },
+    "adjacent_targeted": {
+      "passed": 49,
+      "suites": 5
+    },
+    "controls": [
+      "Actual invite token/hash and one worker job/cache/audit/event with exact replay",
+      "Actual disable/enable and exact replay",
+      "Actual invitation worker-link then disable pending-invite revocation with foreign-company isolation",
+      "Actual verified Auth invitation acceptance/replay and correct mapped membership/role",
+      "Exact actual governance projection ninth-field closure",
+      "All nine correct nullable/no-default fields; legacy row/catalog preserved",
+      "Production-like23column defaults/NOT NULL/Auth references/company CASCADE remain byte-identical after twice applying",
+      "Incompatible token type abort22023 and atomic rollback",
+      "Revoked client still denied without receipt/audit",
+      "Actual canonical function body/config/ACL preserved",
+      "Entire mandatory native rollback script executed with real domain/assertions in embedded harness"
+    ],
+    "inference_correction": "An intermediate invited_email DROP probe disproved an acceptance-failure assumption: NOT NULL email short-circuits its lazy COALESCE fallback. The ninth-field proof uses the actual explicit governance projection instead.",
+    "strict_scoped_types": "PASS Node22.23.3",
+    "scoped_eslint": "PASS Node22.23.3",
+    "db_migrations_check": "PASS all4gates under Node24.19.0; integrity1050files/953versiongroups; generated types3674566bytes b74fd09... retained; capturepending acknowledged",
+    "git_diff_check": "PASS",
+    "authentic_full_native": "PENDING root own-prefix capture and exact-head clean/upgrade/concurrency CI",
+    "full_app_typecheck_lint_vitest": "PENDING root exact-head CI"
+  },
+  "integrity": {
+    "historical_checksum_key_order": "Exact original bytes plus sole new checksum line; no sorting",
+    "composition_capture_pending": true,
+    "protected_files": [
+      {
+        "file": "supabase/database.types.ts",
+        "sha256": "b74fd09bd36566263ab27e872255b84261ed66de193cca1fee0e4b351dad4ae4"
+      },
+      {
+        "file": "supabase/schema.sql",
+        "sha256": "ba52bb112906984744e3973e2467c94c00556b25d4512d3fe37d427a63918551"
+      },
+      {
+        "file": "supabase/schema.fingerprint.json",
+        "sha256": "8a8d7d701cff6e6147ba3ed1c91e6d3dee00740e055fa8cf87dea960dfa05606"
+      },
+      {
+        "file": "quality/staff-api/S2-01-final-prefix-capture-import-20261004.json",
+        "sha256": "856685142952b32db164a8bd1678cc1a2e4372b17986e1ac0e5a1e2109698c63"
+      },
+      {
+        "file": "quality/staff-api/S1-capture-receipt-20261004.json",
+        "sha256": "61eb3c55b36308016cbef9f396dc558de37e9ca07ed3eee9ed63978d596fc287"
+      },
+      {
+        "file": "quality/staff-api/S1-capture-import-20261004.json",
+        "sha256": "f92e42411fcf9b26601fc3ba0468c645a3b5e39c92b66655c6e2070a5d293f91"
+      },
+      {
+        "file": "quality/staff-api/S1-02-final-acl-capture-receipt-20261004.json",
+        "sha256": "2c560fabd49cb1400329741169d305c06a87f822787de0a5c5d7c97d86f2cec2"
+      },
+      {
+        "file": "quality/staff-api/S1-02-final-acl-capture-import-20261004.json",
+        "sha256": "48ff68dbaeee4ec2c3afc7b5ea500d0724c956ada21c53eb1e91b2802cae75d9"
+      },
+      {
+        "file": "quality/staff-api/S2-01-final-prefix-capture-receipt-20261004.json",
+        "sha256": "4d764f1c55d5091ffec44006ba883b5adb46cbd7e3f7c8da52dea295513ab1fb"
+      }
+    ]
+  },
+  "independent_review": {
+    "agent": "/root/existing_staff_review",
+    "status": "PASS final source review and own12/12 exact-source PGlite run; no blocker",
+    "test_sha256": "af85e641e844e5003fa706373c3520068b6d04e5feacf803f07999f1d8fbea49",
+    "note": "Final type-only query annotations reviewed; no runtime/oracle weakening. Immutable commit documentary review follows."
+  },
+  "verification_logs": [
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/red-final.log",
+      "sha256": "bfca6b9291997fc2532425bae52675f8d06feba7ff9bf5e235705b961d3be7df"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/green-exact-final.log",
+      "sha256": "f751e51842dc7d7a6914509e22384fb65f3b9368fa9c3b4fe021de69f2729cf5"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/targeted-final.log",
+      "sha256": "9ac17a1977b7d4624362627867c7524c84c6d2b40db8c71098ad442a8c0f754e"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/lint-final.log",
+      "sha256": "db12ad97221988bf346c55d06788e21a01bb6a683d69266bf732ed4d6d9763c8"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/dbcheck.log",
+      "sha256": "f93f6038762d7e3dae80ce81a8ec13ce255f8495dca8c47dd6283c1ca3763e22"
+    },
+    {
+      "file": "/workspace/scratch/5f3e30311741/staff-invitation-schema-closure-evidence/integrity-final.log",
+      "sha256": "58e4c789f9177e12e772801a9fa14932ec07e27d18378d80a24a34e463974b64"
+    }
+  ],
+  "source_files": [
+    {
+      "file": "supabase/migrations/20261004132630_staff_invitation_domain_columns.sql",
+      "sha256": "c31a729085170cac6801f66015d69c5005f16f9f138202d1b3b98f79d79b073c"
+    },
+    {
+      "file": "__tests__/fixtures/staff-invitation-pre-closure.sql",
+      "sha256": "352985ae0f47fd0452fb0a50d3d0c7ddb900484237872adbfa09c66ebc2dcf9f"
+    },
+    {
+      "file": "__tests__/staff-invitation-domain-columns.test.ts",
+      "sha256": "af85e641e844e5003fa706373c3520068b6d04e5feacf803f07999f1d8fbea49"
+    },
+    {
+      "file": "scripts/staff-user-commands-regression.sql",
+      "sha256": "a7c7cf83f44b81755a17ab509b291eb237f85806eb46548a29c3dad1b28b490e"
+    },
+    {
+      "file": "scripts/migration-history-manifest.json",
+      "sha256": "4709bbe3f14fe5693b782e6e843625a03791bca792ef2d38d294f8d5c0f343e1"
+    },
+    {
+      "file": "scripts/supabase-types-manifest.json",
+      "sha256": "0d4f2bace9563ef997cce80e2dbb224d4ac9b074fd74473163d5900da021539b"
+    }
+  ]
+}

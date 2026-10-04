@@ -19,7 +19,7 @@ function parseScopeExpression(expression) {
   }
   return scopes
 }
-const routeRe = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\]/g
+const routeRe = /{ method: '(GET|POST|PATCH)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\]/g
 const registry = []
 let match
 while ((match = routeRe.exec(registrySource))) {
@@ -40,13 +40,14 @@ while ((match = routeRe.exec(registrySource))) {
     rateLimitClass: /rateLimitClass: '(read|write|expensive)'/.exec(line)?.[1],
     idempotencyRequired: line.includes('idempotencyRequired: true'),
     cachePolicy: match[2].includes('/openapi/') ? match[2].includes('/2026-') ? 'public-immutable' : 'private-revalidate' : 'no-store',
-    publicIdPolicy: match[2].includes('/openapi/') ? 'none' : 'opaque-references',
+    publicIdPolicy: match[2].includes('/openapi/') ? 'none' : match[2].startsWith('/api/v1/staff/') ? 'staff-identities-and-opaque-references' : 'opaque-references',
   })
 }
 
 const specs = [
   JSON.parse(fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8')),
   JSON.parse(fs.readFileSync('docs/openapi/customer-portal-v1.json', 'utf8')),
+  JSON.parse(fs.readFileSync('docs/openapi/staff-v1.json', 'utf8')),
 ]
 const failures = []
 const operations = []
@@ -54,7 +55,7 @@ for (const spec of specs) {
   const specOperationIds = []
   for (const [specPath, value] of Object.entries(spec.paths ?? {})) {
     if (!specPath.startsWith('/api/v1')) continue
-    for (const method of ['get', 'post']) {
+    for (const method of ['get', 'post', 'patch']) {
       if (!value[method]) continue
       operations.push({
         method: method.toUpperCase(),
@@ -82,7 +83,7 @@ function normalizeScopeMode(value) {
 
 function immutableOpenApiArtifact(route) {
   const match = route.runtimePath.match(
-    /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1)\.json$/,
+    /^\/api\/v1\/openapi\/(\d{4}-\d{2}-\d{2}\.\d+)\/(website-integration-v1|customer-portal-v1|staff-v1)\.json$/,
   )
   if (!match) return null
   return {

@@ -1,5 +1,6 @@
 import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './helpers/utiltsConsumptionParties'
 import {execFileSync,spawn} from 'node:child_process'
+import {nativeLockProcess,nativeLockProcessEnv} from './helpers/native-lock-process'
 import {createHash,createHmac,randomUUID} from 'node:crypto'
 import {beforeEach,expect,it,vi} from 'vitest'
 import {coordinateEdielServicePermission} from '@/lib/ediel/services/commands'
@@ -215,13 +216,15 @@ it('ESCO02 native first request captures the actual server day and DSO period on
 })
 it('ESCO02 native pending metering actor DENY wins before the fresh timing/permission transaction',async()=>{
  const f=await seed();await archiveReviewEvidence(f);expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'});const before=f.effects()
- const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
- const ready=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('native_request_deny_lock_timeout')),10000);blocker.stdout.on('data',chunk=>{if(String(chunk).includes('request-deny-locked')){clearTimeout(timeout);resolve()}});blocker.on('error',reject)})
+ const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+ const lock=nativeLockProcess(blocker,{marker:'request-deny-locked',markerError:'native_request_deny_lock_timeout'})
+ try{
  blocker.stdin.write(`BEGIN;LOCK TABLE public.user_permission_overrides IN SHARE ROW EXCLUSIVE MODE;INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(${lit(f.ids.actor)},${lit(f.ids.company)},'metering.write','deny',true,now()-interval '1 minute',NULL);SELECT 'request-deny-locked';\n`)
- await ready;const pending=coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'}).then(value=>({value,error:null}),error=>({value:null,error}))
- try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity a JOIN pg_locks l ON l.pid=a.pid WHERE a.wait_event_type='Lock' AND a.query LIKE '%ediel_coordinate_service_permission_v1%' AND l.relation='public.user_permission_overrides'::regclass AND l.mode='ShareLock' AND NOT l.granted AND a.pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'actual HTTP native request waits for current DENY before any service writer locks/effects').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
+ await lock.ready;const pending=coordinateEdielServicePermission({providerCompanyId:f.ids.company,assignmentId:f.assignment,actorUserId:f.ids.actor,expectedVersion:f.current().version,command:'request_access'}).then(value=>({value,error:null}),error=>({value:null,error}))
+ try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity a JOIN pg_locks l ON l.pid=a.pid WHERE a.wait_event_type='Lock' AND a.query LIKE '%ediel_coordinate_service_permission_v1%' AND l.relation='public.user_permission_overrides'::regclass AND l.mode='ShareLock' AND NOT l.granted AND a.pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'actual HTTP native request waits for current DENY before any service writer locks/effects').toBe(true)}finally{await lock.release('COMMIT')}
  expect((await pending).error).toMatchObject({message:expect.stringContaining('ediel_service_manual_actor_forbidden')});expect(f.effects()).toEqual(before)
  expect(sql<number>(`SELECT to_jsonb(count(*)) FROM gridex_service_permission.request_timing_receipts WHERE company_id=${lit(f.ids.company)}`)).toBe(0);expect(external.send).not.toHaveBeenCalled()
+ }finally{await lock.dispose()}
 })
 it('ESCO02 native last timing receipt failure rolls back permission/link/request-owner creation',async()=>{
  const f=await seed();await archiveReviewEvidence(f);expect(await f.command({action:'approve_assignment',commandId:randomUUID(),assignmentId:f.assignment,expectedVersion:f.current().version})).toMatchObject({status:'approved_waiting_permission'});const before=f.effects(),fn='native_timing_last_write_'+randomUUID().replaceAll('-','')
@@ -259,12 +262,14 @@ it.each(['V','VH'] as const)('genuine archived/reviewed %s scope, sent Z13, nati
 })
 it('real pending grant revocation wins before accepted storage and causes zero business/binding/reservation/audit effects',async()=>{
  const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-PREWRITE-RACE'),before=f.effects()
- const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
- const ready=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('native_esco_grant_lock_timeout')),10000);blocker.stdout.on('data',chunk=>{if(String(chunk).includes('grant-locked')){clearTimeout(timeout);resolve()}});blocker.on('error',reject)})
+ const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+ const lock=nativeLockProcess(blocker,{marker:'grant-locked',markerError:'native_esco_grant_lock_timeout'})
+ try{
  blocker.stdin.write(`BEGIN;LOCK TABLE public.ediel_data_access_grants IN SHARE ROW EXCLUSIVE MODE;UPDATE public.ediel_data_access_grants SET status='revoked',revoked_at=now() WHERE id=${lit(authority.grantId)};SELECT 'grant-locked';\n`)
- await ready;const pending=positive.persist().then(value=>({value,error:null}),error=>({value:null,error}))
- try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%gridex_persist_utilts_consumption_v1%' AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'actual HTTP storage command is waiting behind genuine revocation').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
+ await lock.ready;const pending=positive.persist().then(value=>({value,error:null}),error=>({value:null,error}))
+ try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%gridex_persist_utilts_consumption_v1%' AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'actual HTTP storage command is waiting behind genuine revocation').toBe(true)}finally{await lock.release('COMMIT')}
  expect((await pending).error).toMatchObject({message:expect.stringContaining('ediel_ack_service_scope_current_grant_required')});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ }finally{await lock.dispose()}
 })
 
 it.each(['reviewer','role','issuer_representation','issuer_key'] as const)('retained actual ESCO ACK and storage deny current %s revocation without effects',async revoked=>{
@@ -286,13 +291,15 @@ it.each(['own_actor','global_reviewer'] as const)('pending real %s DENY insertio
  const f=await seed();await qualify(f);const positive=await f.utilts('accepted','NATIVE-ESCO-DENY-'+target)
  if(target==='own_actor')await positive.persist()
  const before=f.effects(),actor=target==='own_actor'?f.ids.actor:f.ids.reviewer,company=target==='own_actor'?lit(f.ids.company):'NULL',permission=target==='own_actor'?'communication.write':'ediel.service_evidence.review'
- const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
- const ready=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('native_current_deny_lock_timeout')),10000);blocker.stdout.on('data',chunk=>{if(String(chunk).includes('deny-locked')){clearTimeout(timeout);resolve()}});blocker.on('error',reject)})
+ const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+ const lock=nativeLockProcess(blocker,{marker:'deny-locked',markerError:'native_current_deny_lock_timeout'})
+ try{
  blocker.stdin.write(`BEGIN;LOCK TABLE public.user_permission_overrides IN SHARE ROW EXCLUSIVE MODE;INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(${lit(actor)},${company},${lit(permission)},'deny',true,now()-interval '1 minute',NULL);SELECT 'deny-locked';\n`)
- await ready
+ await lock.ready
  const pending=(target==='own_actor'?positive.ack():positive.persist()).then(value=>({value,error:null}),error=>({value:null,error}))
- try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND (query LIKE '%ediel_read_outbound_ack_replay_v1%' OR query LIKE '%gridex_persist_utilts_consumption_v1%') AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'genuine HTTP operation waits behind deny insertion before source/business locks').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
+ try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND (query LIKE '%ediel_read_outbound_ack_replay_v1%' OR query LIKE '%gridex_persist_utilts_consumption_v1%') AND pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'genuine HTTP operation waits behind deny insertion before source/business locks').toBe(true)}finally{await lock.release('COMMIT')}
  expect((await pending).error).toMatchObject({message:expect.stringMatching(target==='own_actor'?/actor_not_authorized|ediel_business_ack_current_actor_required/:/ediel_ack_service_scope_(?:current_grant_required|captured_grant_not_current)|ediel_periodic_reason_current_contract_source_fact_required/)});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ }finally{await lock.dispose()}
 })
 it('a genuine already accepted ACK transport journal replays after issuer revocation without a second SMTP call or fresh scope approval',async()=>{
  const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-SENT-ACK')
@@ -371,12 +378,14 @@ it('SC005/006 one actual upstream storage/ACK serves two independently archived 
 it.each(['company','global'] as const)('SC071 pending %s beneficiary DENY wins before real projection and leaks zero rows/effects',async scope=>{
  const f=await seed(),authority=await qualify(f),positive=await f.utilts('accepted','NATIVE-ESCO-PROJECTION-DENY-'+scope)
  await positive.persist();const p=projection(f,authority,positive.source.id);expect((await p.read()).rows.length).toBeGreaterThan(0);const before=f.effects()
- const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
- const ready=new Promise<void>((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('native_projection_deny_lock_timeout')),10000);blocker.stdout.on('data',chunk=>{if(String(chunk).includes('projection-deny-locked')){clearTimeout(timeout);resolve()}});blocker.on('error',reject)})
+ const blocker=spawn('psql',[DB,'-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+ const lock=nativeLockProcess(blocker,{marker:'projection-deny-locked',markerError:'native_projection_deny_lock_timeout'})
+ try{
  blocker.stdin.write(`BEGIN;LOCK TABLE public.user_permission_overrides IN SHARE ROW EXCLUSIVE MODE;INSERT INTO public.user_permission_overrides(user_id,company_id,permission_key,effect,is_active,valid_from,valid_to) VALUES(${lit(p.actor)},${scope==='company'?lit(f.ids.beneficiary):'NULL'},'metering.read','deny',true,now()-interval '1 minute',NULL);SELECT 'projection-deny-locked';\n`)
- await ready;const pending=p.read().then(value=>({value,error:null}),error=>({value:null,error}))
- try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity a JOIN pg_locks l ON l.pid=a.pid WHERE a.wait_event_type='Lock' AND a.query LIKE '%ediel_beneficiary_series_page_v1%' AND l.relation='public.user_permission_overrides'::regclass AND l.mode='ShareLock' AND NOT l.granted AND a.pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'real HTTP beneficiary read waits behind DENY fence before source/series').toBe(true)}finally{blocker.stdin.end('COMMIT;\n')}
+ await lock.ready;const pending=p.read().then(value=>({value,error:null}),error=>({value:null,error}))
+ try{let observed=false;for(let n=0;n<100;n++){observed=sql<boolean>(`SELECT to_jsonb(EXISTS(SELECT FROM pg_stat_activity a JOIN pg_locks l ON l.pid=a.pid WHERE a.wait_event_type='Lock' AND a.query LIKE '%ediel_beneficiary_series_page_v1%' AND l.relation='public.user_permission_overrides'::regclass AND l.mode='ShareLock' AND NOT l.granted AND a.pid<>pg_backend_pid()))`);if(observed)break;await new Promise(resolve=>setTimeout(resolve,25))}expect(observed,'real HTTP beneficiary read waits behind DENY fence before source/series').toBe(true)}finally{await lock.release('COMMIT')}
  const result=await pending;expect(result.value).toBeNull();expect(result.error).toMatchObject({message:expect.stringContaining('ediel_beneficiary_forbidden')});expect(f.effects()).toEqual(before);expect(external.send).toHaveBeenCalledTimes(1)
+ }finally{await lock.dispose()}
 })
 
 it('literal SC005/006 same actual market permission reused by independent reviewed mission; ending one keeps the other and originates no Z18',async()=>{

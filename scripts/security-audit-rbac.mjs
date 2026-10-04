@@ -2,8 +2,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import sourceFamily from "./lib/read-source-family.cjs";
+import staffUserAudit from "./lib/staff-user-rbac-audit.cjs";
 
 const { readSourceFamily } = sourceFamily;
+const { auditStaffUserCommandBoundary } = staffUserAudit;
 
 const root = process.cwd();
 const failures = [];
@@ -69,7 +71,14 @@ mustNotContain(
   "href={`/admin/companies/${companyId}`}",
   "company settings link to platform company detail",
 );
-mustContain("app/admin/companies/actions.ts", "parseCompanyAssignableRoleKey");
+// OPS actions now adapt the shared commands. Keep the known-role parser at
+// its canonical owner and require every adapter/command/native guard edge.
+failures.push(...auditStaffUserCommandBoundary({
+  actions: read("app/admin/companies/actions.ts"),
+  commands: read("lib/tenant/staffCommands.ts"),
+  roles: read("lib/tenant/companyUserRoles.ts"),
+  sql: read("supabase/migrations/20261004083640_staff_user_commands.sql"),
+}));
 mustContain("proxy.ts", "isPlatformAdminPath");
 mustContain("proxy.ts", "pathname === '/admin/companies'");
 mustContain("proxy.ts", "pathname === '/admin/users'");

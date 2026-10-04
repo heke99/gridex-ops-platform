@@ -1,6 +1,6 @@
 // masterplan: TEN-09, AT-TEN-09
 // Runs the focused PGlite regression for the request-timing gate on the public
-// explicit-permission resolver (20261004120000) over the real coordinator.
+// explicit-permission resolver (20261004170000) over the real coordinator.
 // Mechanics only; native replay remains the clean-replay job.
 const { spawnSync } = require('node:child_process')
 const path = require('node:path')

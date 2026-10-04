@@ -1,5 +1,7 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { LatestContractBucketFilter } from '@/lib/customer-contracts/db'
+import { tenantDb } from '@/lib/supabase/tenantDb'
+import { tenantSelect } from '@/lib/supabase/tenantQuery'
 import { isMissingRelationError } from '@/lib/tenant/scope'
 
 export type CustomerListRow = {
@@ -670,4 +672,47 @@ export async function getCustomers(options: GetCustomersOptions = {}): Promise<C
   })
 
   return result.rows
+}
+
+/** Complete, deterministic company search for staff; legacy OPS diagnostics retain the original API. */
+export async function listCustomersPageForCompany(options: {
+  companyId: string
+  query?: string | null
+  page?: number
+  pageSize?: number
+  status?: CustomerStatusFilter
+  customerType?: CustomerTypeFilter
+}): Promise<Omit<CustomerListPageResult, 'counts'>> {
+  if (!options.companyId.trim()) throw new Error('customer_company_scope_required')
+  const page = options.page ?? 1
+  const pageSize = options.pageSize ?? 100
+  const db = tenantDb(options.companyId).unscoped() as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
+  }
+  const search = await db.rpc('gridex_staff_customer_search_v1', {
+    p_company_id: options.companyId,
+    p_query: (options.query ?? '').trim(),
+    p_page: page,
+    p_page_size: pageSize,
+    p_status: options.status ?? 'all',
+    p_customer_type: options.customerType ?? 'all',
+  })
+  if (search.error) throw search.error
+  const result = (search.data ?? {}) as { customer_ids?: unknown; total?: unknown }
+  if (!Array.isArray(result.customer_ids) || !Number.isSafeInteger(result.total) || Number(result.total) < 0) {
+    throw new Error('staff_customer_search_result_invalid')
+  }
+  const ids = result.customer_ids.filter((id): id is string => typeof id === 'string')
+  if (ids.length !== result.customer_ids.length || ids.length > pageSize) throw new Error('staff_customer_search_result_invalid')
+  const total = Number(result.total)
+  let rows: CustomerListRow[] = []
+  if (ids.length) {
+    // Even the service-only search result is re-read with an explicit company predicate.
+    const selected = await tenantSelect(options.companyId, 'customers', CUSTOMER_LIST_SELECT).in('id', ids)
+    if (selected.error) throw selected.error
+    const byId = new Map(((selected.data ?? []) as unknown as RawCustomerRow[])
+      .filter(row => typeof row.id === 'string').map(row => [row.id!, normalizeCustomerRow(row)]))
+    rows = await hydrateDerivedCustomerData(ids.flatMap(id => byId.has(id) ? [byId.get(id)!] : []), options.companyId)
+  }
+  return { rows, total, page, pageSize, totalPages: Math.max(1, Math.ceil(total / pageSize)) }
 }

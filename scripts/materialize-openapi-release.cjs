@@ -13,6 +13,10 @@ const specifications = [
     contractName: 'customer-portal-v1',
     currentPath: 'docs/openapi/customer-portal-v1.json',
   },
+  {
+    currentPath: 'docs/openapi/staff-v1.json',
+    contractName: 'staff-v1',
+  },
 ]
 
 function canonicalBytes(file) {
@@ -42,7 +46,7 @@ function routeSource({ version, contractName }) {
   const variableName =
     contractName === 'website-integration-v1'
       ? 'websiteIntegrationOpenApi'
-      : 'customerPortalOpenApi'
+      : contractName === 'customer-portal-v1' ? 'customerPortalOpenApi' : 'staffOpenApi'
   return `import { NextRequest } from 'next/server'\nimport ${variableName} from '@/docs/openapi/releases/${version}/${contractName}.json'\nimport { openApiDocumentResponse } from '@/lib/integrations/openApiResponse'\n\nexport const runtime = 'nodejs'\nexport const dynamic = 'force-dynamic'\n\nexport async function GET(request: NextRequest) {\n  return openApiDocumentResponse(\n    request,\n    ${variableName},\n    'gridex-${contractName}-${version}.json',\n    { cacheControl: 'public, max-age=31536000, immutable' },\n  )\n}\n`
 }
 
@@ -74,7 +78,7 @@ const materialized = specifications.map((specification) => {
 })
 
 if (new Set(materialized.map((entry) => entry.version)).size !== 1) {
-  throw new Error('Website and customer portal OpenAPI versions must match.')
+  throw new Error('All public OpenAPI specification versions must match.')
 }
 
 console.log(
