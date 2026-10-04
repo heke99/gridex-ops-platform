@@ -1,3 +1,7 @@
+## ENV-03 + IMP-04 — 2026-10-04 (claude/env-03-imp-04)
+
+- Godkända (+AT). GOV-03 i #505, OPS-02 i #507. Nästa lediga: DB-01 fp-check (kolla #491).
+
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 
 - #426 (`claude/zealous-rubin-6axb91`) **helt grön** på `f32e40b5` (alla 10 CI-jobb). Senare commits är bara agent-memory.

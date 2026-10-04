@@ -187,8 +187,11 @@
     {
       "id": "IMP-04",
       "acceptance_id": "AT-IMP-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "IMP-05",
@@ -211,8 +214,14 @@
     {
       "id": "ENV-03",
       "acceptance_id": "AT-ENV-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "ENV-04",
@@ -1570,8 +1579,11 @@
     },
     {
       "id": "AT-IMP-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-05",
@@ -1590,8 +1602,14 @@
     },
     {
       "id": "AT-ENV-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-04",
