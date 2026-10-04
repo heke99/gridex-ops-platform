@@ -20,6 +20,8 @@ export default defineConfig({
   resolve:{alias:[{find:'@',replacement:resolve(__dirname,'..')},{find:/^server-only$/,replacement:resolve(__dirname,'../node_modules/next/dist/compiled/server-only/empty.js')}]},
   test:{environment:'node',include:[
     'scripts/staff-identity-provider-native.test.ts',
+    'scripts/staff-user-concurrency-native.test.ts',
+    'scripts/staff-user-client-concurrency-native.test.ts',
     'scripts/ediel-source-owner-native.test.ts',
     'scripts/ediel-closure-wire-native.test.ts',
     'scripts/ediel-utilts-consumption-native.test.ts',

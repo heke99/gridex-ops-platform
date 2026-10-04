@@ -34840,6 +34840,69 @@ $$;
 
 CREATE FUNCTION public.canonical_change_tenant_user_access(p_command jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  v_command jsonb := p_command;
+  v_company_id uuid := nullif(p_command->>'company_id','')::uuid;
+  v_user_id uuid := nullif(p_command->>'user_id','')::uuid;
+  v_actor_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_operation text := p_command->>'staff_operation';
+  v_key text := p_command->>'idempotency_key';
+  v_existing public.canonical_command_results%rowtype;
+  v_member public.company_memberships%rowtype;
+  v_result jsonb;
+BEGIN
+  IF v_operation IS NULL THEN RETURN public.canonical_change_tenant_user_access_pre_staff_v1(p_command); END IF;
+  IF nullif(btrim(v_key),'') IS NULL THEN RAISE EXCEPTION 'idempotency_key_required'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_company_id::text||':tenant.user_access.change:'||v_key,0));
+  PERFORM 1 FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
+  SELECT * INTO v_existing FROM public.canonical_command_results
+  WHERE company_id=v_company_id AND command_type='tenant.user_access.change' AND idempotency_key=v_key;
+  IF FOUND THEN
+    IF v_existing.actor_user_id IS DISTINCT FROM v_actor_id THEN RAISE EXCEPTION 'idempotency_actor_mismatch'; END IF;
+    -- Staff request stays unmodified in the outer cache (enable resolves role only inside the transaction).
+    IF v_existing.request_hash IS DISTINCT FROM public.canonical_json_sha256(p_command-'actor_user_id') THEN
+      RAISE EXCEPTION 'idempotency_key_payload_mismatch';
+    END IF;
+    PERFORM public.gridex_assert_staff_command_v1(p_command,true);
+    RETURN v_existing.result_payload;
+  END IF;
+  PERFORM public.gridex_assert_staff_command_v1(v_command);
+  SELECT * INTO v_member FROM public.company_memberships WHERE company_id=v_company_id AND user_id=v_user_id;
+  IF v_operation IN ('enable','disable') THEN
+    v_command := v_command || jsonb_build_object('role_key',v_member.role_key,'membership_role',v_member.membership_role);
+  END IF;
+  v_result := public.canonical_change_tenant_user_access_pre_staff_v1(v_command);
+  UPDATE public.company_memberships SET role_key=v_command->>'role_key',
+    disabled_by=CASE WHEN v_operation='disable' THEN v_actor_id ELSE NULL END,
+    status_reason=CASE WHEN v_operation='disable' THEN v_command->>'reason' ELSE NULL END
+  WHERE company_id=v_company_id AND user_id=v_user_id;
+  SELECT * INTO v_member FROM public.company_memberships WHERE company_id=v_company_id AND user_id=v_user_id;
+  v_result := jsonb_build_object('user_id',v_user_id,'role_key',v_member.role_key,'membership_role',v_member.membership_role,'status',v_member.status);
+  UPDATE public.canonical_command_results
+  SET request_payload=p_command-'actor_user_id', request_hash=public.canonical_json_sha256(p_command-'actor_user_id'), result_payload=v_result
+  WHERE company_id=v_company_id AND command_type='tenant.user_access.change' AND idempotency_key=v_key;
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,new_values,metadata,
+    actor_type,request_id,correlation_id,resource_type,resource_id)
+  VALUES(v_company_id,v_actor_id,'user',v_user_id::text,'STAFF_'||upper(v_operation),v_result,
+    jsonb_build_object('channel',p_command->>'channel','api_client_id',p_command->>'api_client_id'),
+    'user',v_key,v_key,'staff',v_user_id::text);
+  IF v_operation='disable' THEN
+    UPDATE public.company_invitations SET status='invitation_revoked',revoked_at=now()
+    WHERE company_id=v_company_id AND invited_user_id=v_user_id
+      AND status IN ('pending','sending','sent','delivery_uncertain');
+  END IF;
+  RETURN v_result;
+END;
+$$;
+
+--
+-- Name: canonical_change_tenant_user_access_pre_staff_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_change_tenant_user_access_pre_staff_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'pg_temp'
     AS $$
 declare
@@ -34967,7 +35030,7 @@ begin
     raise exception 'company_user_actor_and_idempotency_required';
   end if;
   if v_action not in ('upsert','remove','disable') then raise exception 'invalid_access_action'; end if;
-  if v_membership_role not in ('owner','admin','company_admin','member','viewer') then raise exception 'invalid_membership_role'; end if;
+  if v_membership_role not in ('owner','admin','company_admin','operations','support','member','viewer') then raise exception 'invalid_membership_role'; end if;
 
   select result_payload into v_existing from public.canonical_command_results
   where company_id=v_company_id and command_type='tenant.user_access.change' and idempotency_key=v_idempotency_key;
@@ -34986,7 +35049,11 @@ begin
     where company_id=v_company_id and user_id=v_actor_user_id
       and status='active' and coalesce(is_active,true)
     for update;
-    if v_actor_membership_role not in ('owner','admin','company_admin') then
+    if p_command ? 'staff_operation' then
+      if not ('users.write'=any(public.gridex_staff_actor_permissions_v1(v_company_id,v_actor_user_id,false))) then
+        raise exception 'staff_permission_denied';
+      end if;
+    elsif v_actor_membership_role not in ('owner','admin','company_admin') then
       raise exception 'actor_not_authorized_for_tenant_user_management';
     end if;
   end if;
@@ -35026,14 +35093,14 @@ begin
     if not v_target_profile_active then raise exception 'target_user_profile_missing_or_inactive'; end if;
 
     insert into public.company_memberships(
-      company_id,user_id,membership_role,status,is_active,invited_by,accepted_at,
+      company_id,user_id,membership_role,role_key,status,is_active,invited_by,accepted_at,
       suspended_at,disabled_at,removed_at,metadata
     ) values (
-      v_company_id,v_user_id,v_membership_role,'active',true,v_actor_user_id,now(),
+      v_company_id,v_user_id,v_membership_role,v_role_key,'active',true,v_actor_user_id,now(),
       null,null,null,jsonb_build_object('canonical_access_command',v_idempotency_key)
     )
     on conflict(company_id,user_id) do update set
-      membership_role=excluded.membership_role,status='active',is_active=true,
+      membership_role=excluded.membership_role,role_key=excluded.role_key,status='active',is_active=true,
       accepted_at=coalesce(public.company_memberships.accepted_at,now()),
       suspended_at=null,disabled_at=null,removed_at=null,
       metadata=coalesce(public.company_memberships.metadata,'{}'::jsonb)||excluded.metadata,
@@ -35099,7 +35166,11 @@ declare
   v_existing public.canonical_command_results%rowtype;
   v_result jsonb;
 begin
-  if not public.canonical_actor_is_authorized(v_company_id, v_actor_user_id, 'tenant.user.manage', false) then
+  if p_command ? 'staff_operation' then
+    if not ('users.write'=any(public.gridex_staff_actor_permissions_v1(v_company_id,v_actor_user_id,p_command->>'channel'='ops'))) then
+      raise exception 'staff_permission_denied';
+    end if;
+  elsif not public.canonical_actor_is_authorized(v_company_id, v_actor_user_id, 'tenant.user.manage', false) then
     raise exception 'actor_not_authorized_for_tenant_user_management';
   end if;
   if nullif(btrim(v_idempotency_key), '') is null then raise exception 'idempotency_key_required'; end if;
@@ -35114,7 +35185,7 @@ begin
     return v_existing.result_payload;
   end if;
   v_result := public.canonical_change_tenant_user_access_v1_unchecked(p_command);
-  update public.canonical_command_results set request_payload = v_request
+  update public.canonical_command_results set request_payload = v_request, request_hash = v_hash
   where company_id = v_company_id and command_type = 'tenant.user_access.change'
     and idempotency_key = v_idempotency_key;
   return v_result;
@@ -35446,6 +35517,48 @@ $$;
 
 CREATE FUNCTION public.canonical_create_tenant_invitation(p_command jsonb) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  v_company_id uuid := nullif(p_command->>'company_id','')::uuid;
+  v_actor_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_key text := p_command->>'idempotency_key';
+  v_existing public.canonical_command_results%rowtype;
+  v_result jsonb;
+BEGIN
+  IF NOT (p_command ? 'staff_operation') THEN RETURN public.canonical_create_tenant_invitation_pre_staff_v1(p_command); END IF;
+  IF p_command->>'staff_operation'<>'invite' THEN RAISE EXCEPTION 'staff_invalid_operation'; END IF;
+  IF nullif(btrim(v_key),'') IS NULL THEN RAISE EXCEPTION 'idempotency_key_required'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_company_id::text||':tenant.invitation.create:'||v_key,0));
+  PERFORM 1 FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
+  SELECT * INTO v_existing FROM public.canonical_command_results
+  WHERE company_id=v_company_id AND command_type='tenant.invitation.create' AND idempotency_key=v_key;
+  IF FOUND THEN
+    IF v_existing.actor_user_id IS DISTINCT FROM v_actor_id THEN RAISE EXCEPTION 'idempotency_actor_mismatch'; END IF;
+    IF v_existing.request_hash IS DISTINCT FROM public.canonical_json_sha256(p_command-'actor_user_id') THEN RAISE EXCEPTION 'idempotency_key_payload_mismatch'; END IF;
+    PERFORM public.gridex_assert_staff_command_v1(p_command,true);
+    RETURN v_existing.result_payload;
+  END IF;
+  PERFORM public.gridex_assert_staff_command_v1(p_command);
+  v_result := public.canonical_create_tenant_invitation_pre_staff_v1(p_command);
+  UPDATE public.canonical_command_results SET request_payload=p_command-'actor_user_id',request_hash=public.canonical_json_sha256(p_command-'actor_user_id')
+  WHERE company_id=v_company_id AND command_type='tenant.invitation.create' AND idempotency_key=v_key;
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,new_values,metadata,
+    actor_type,request_id,correlation_id,resource_type,resource_id)
+  VALUES(v_company_id,v_actor_id,'company_invitation',v_result->>'invitation_id','STAFF_INVITED',
+    jsonb_build_object('status','pending','role_key',p_command->>'role_key'),
+    jsonb_build_object('channel',p_command->>'channel','api_client_id',p_command->>'api_client_id'),
+    'user',v_key,v_key,'staff_invitation',v_result->>'invitation_id');
+  RETURN v_result;
+END;
+$$;
+
+--
+-- Name: canonical_create_tenant_invitation_pre_staff_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.canonical_create_tenant_invitation_pre_staff_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'auth', 'extensions', 'pg_temp'
     AS $$
 declare
@@ -35462,7 +35575,11 @@ begin
   if v_company_id is null or nullif(v_email,'') is null or nullif(v_idempotency_key,'') is null then
     raise exception 'company_email_and_idempotency_key_required';
   end if;
-  if not (
+  if p_command ? 'staff_operation' then
+    if not ('users.write'=any(public.gridex_staff_actor_permissions_v1(v_company_id,v_actor_user_id,p_command->>'channel'='ops'))) then
+      raise exception 'staff_permission_denied';
+    end if;
+  elsif not (
     public.canonical_actor_is_authorized(v_company_id,v_actor_user_id,'tenants.invite',false)
     or public.canonical_actor_is_authorized(v_company_id,v_actor_user_id,'users.write',false)
   ) then
@@ -50066,6 +50183,119 @@ begin
 
   return new;
 end
+$$;
+
+--
+-- Name: gridex_assert_staff_command_v1(jsonb, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assert_staff_command_v1(p_command jsonb, p_replay boolean DEFAULT false) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  v_company_id uuid := nullif(p_command->>'company_id','')::uuid;
+  v_actor_user_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_client_id uuid := nullif(p_command->>'api_client_id','')::uuid;
+  v_channel text := p_command->>'channel';
+  v_operation text := p_command->>'staff_operation';
+  v_role_key text := p_command->>'role_key';
+  v_permissions text[];
+  v_membership public.company_memberships%rowtype;
+  v_company_status text;
+  v_company_active boolean;
+  v_target_user_id uuid := nullif(p_command->>'user_id','')::uuid;
+BEGIN
+  IF v_company_id IS NULL OR v_actor_user_id IS NULL OR v_channel IS NULL OR v_channel NOT IN ('ops','staff_api') THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied';
+  END IF;
+  SELECT status,is_active INTO v_company_status,v_company_active FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied'; END IF;
+  IF v_company_status NOT IN ('active','onboarding') OR v_company_active IS DISTINCT FROM true THEN
+    RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_company_not_operational';
+  END IF;
+  v_permissions := public.gridex_staff_actor_permissions_v1(v_company_id,v_actor_user_id,v_channel='ops');
+  IF NOT ('users.write'=ANY(v_permissions)) THEN
+    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied';
+  END IF;
+  IF v_channel='staff_api' THEN
+    -- Lock the exact actor rows before the client; global OPS administrators
+    -- retain their existing separate authority path. No broad Auth grant is used.
+    PERFORM 1 FROM public.company_memberships cm
+      JOIN public.user_profiles profile ON profile.id=cm.user_id
+      JOIN auth.users account ON account.id=cm.user_id
+      WHERE cm.company_id=v_company_id AND cm.user_id=v_actor_user_id
+      FOR SHARE OF cm,profile,account;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied'; END IF;
+    PERFORM 1 FROM public.integration_api_clients client
+      WHERE client.id=v_client_id AND client.company_id=v_company_id FOR SHARE;
+    IF NOT FOUND OR NOT EXISTS (
+      SELECT FROM public.integration_api_clients client
+      WHERE client.id=v_client_id AND client.company_id=v_company_id AND client.status='active'
+        AND client.deleted_at IS NULL AND client.revoked_at IS NULL
+        AND (client.expires_at IS NULL OR client.expires_at>clock_timestamp())
+        AND 'staff_users.write'=ANY(client.scopes)
+    ) THEN RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied'; END IF;
+    -- Check eligibility after all potentially blocking row locks, before any
+    -- replay return or target mutation. Use wall-clock time for current bans.
+    IF NOT EXISTS (
+      SELECT FROM public.company_memberships cm
+        JOIN public.user_profiles profile ON profile.id=cm.user_id
+        JOIN auth.users account ON account.id=cm.user_id
+        JOIN public.companies company ON company.id=cm.company_id
+      WHERE cm.company_id=v_company_id AND cm.user_id=v_actor_user_id
+        AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+        AND profile.user_status='active' AND account.deleted_at IS NULL
+        AND (account.banned_until IS NULL OR account.banned_until<=clock_timestamp())
+        AND company.status IN ('active','onboarding') AND company.is_active
+    ) THEN RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied'; END IF;
+    v_permissions := public.gridex_staff_actor_permissions_v1(v_company_id,v_actor_user_id,false);
+    IF NOT ('users.write'=ANY(v_permissions)) THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_permission_denied';
+    END IF;
+  END IF;
+  IF p_replay THEN RETURN; END IF;
+  IF v_operation='invite' THEN
+    NULL;
+  ELSIF v_operation IN ('change_role','disable','enable') THEN
+    SELECT * INTO v_membership FROM public.company_memberships
+    WHERE company_id=v_company_id AND user_id=v_target_user_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='staff_user_not_found'; END IF;
+    IF v_operation='enable' THEN
+      IF v_membership.status<>'disabled' THEN RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_invalid_user_state'; END IF;
+      v_role_key := v_membership.role_key;
+    ELSIF v_membership.status<>'active' OR NOT v_membership.is_active THEN
+      RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_invalid_user_state';
+    END IF;
+    IF v_operation='disable' AND v_target_user_id=v_actor_user_id THEN
+      RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_self_disable_forbidden';
+    END IF;
+    IF v_operation='change_role' AND v_target_user_id=v_actor_user_id
+       AND NOT (v_channel='ops' AND public.canonical_actor_is_platform_admin(v_actor_user_id)) THEN
+      RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_self_role_change_forbidden';
+    END IF;
+    IF v_membership.status='active' AND v_membership.is_active
+       AND v_membership.membership_role IN ('owner','admin','company_admin')
+       AND (v_operation='disable' OR (v_operation='change_role' AND v_role_key NOT IN ('company_admin','admin')))
+       AND NOT EXISTS (SELECT FROM public.company_memberships other
+         WHERE other.company_id=v_company_id AND other.user_id<>v_target_user_id
+           AND other.status='active' AND other.is_active
+           AND other.membership_role IN ('owner','admin','company_admin')) THEN
+      RAISE EXCEPTION USING ERRCODE='23514', MESSAGE='staff_last_admin_required';
+    END IF;
+  ELSE
+    RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='staff_invalid_operation';
+  END IF;
+  IF v_operation<>'disable' THEN
+    IF v_role_key IS NULL OR NOT EXISTS (
+      SELECT FROM public.canonical_tenant_access_role_mapping mapping
+      WHERE mapping.role_key=v_role_key AND mapping.is_assignable AND mapping.role_key<>'owner'
+    ) THEN RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='staff_role_not_assignable'; END IF;
+    IF NOT (public.gridex_staff_role_profile_v1(v_role_key)<@v_permissions) THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='staff_role_ceiling_exceeded';
+    END IF;
+  END IF;
+END;
 $$;
 
 --
@@ -85111,6 +85341,69 @@ $$;
 COMMENT ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) IS 'Service-only exact-company staff membership lookup with accepted membership, active global profile and nondeleted/nonbanned Auth account; no OPS session is required.';
 
 --
+-- Name: gridex_staff_actor_permissions_v1(uuid, uuid, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean DEFAULT false) RETURNS text[]
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE
+  v_role_key text;
+  v_permissions text[];
+BEGIN
+  IF p_allow_platform AND public.canonical_actor_is_platform_admin(p_actor_user_id) THEN
+    RETURN public.gridex_staff_role_profile_v1('super_admin');
+  END IF;
+  SELECT public.gridex_staff_normalize_role_v1(cm.role_key) INTO v_role_key
+  FROM public.company_memberships cm
+  JOIN public.user_profiles profile ON profile.id=cm.user_id AND profile.user_status='active'
+  JOIN auth.users auth_user ON auth_user.id=cm.user_id
+  WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id
+    AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+    AND auth_user.deleted_at IS NULL
+    AND (auth_user.banned_until IS NULL OR auth_user.banned_until<=now());
+  IF v_role_key IS NULL OR v_role_key IN ('super_admin','platform_admin','white_label_platform_admin','customer') THEN
+    RETURN ARRAY[]::text[];
+  END IF;
+  v_permissions := public.gridex_staff_role_profile_v1(v_role_key);
+  IF cardinality(v_permissions)=0 THEN RETURN ARRAY[]::text[]; END IF;
+  SELECT coalesce(array_agg(DISTINCT granted.permission ORDER BY granted.permission),ARRAY[]::text[])
+  INTO v_permissions
+  FROM (
+    SELECT unnest(v_permissions) AS permission
+    UNION
+    SELECT coalesce(nullif(up.permission_key,''),catalog.key,catalog.name)
+    FROM public.user_permissions up
+    LEFT JOIN public.permissions catalog ON catalog.id=up.permission_id AND catalog.is_active
+    WHERE up.company_id=p_company_id AND up.user_id=p_actor_user_id
+      AND up.status='active' AND up.is_active AND up.effect='allow'
+  ) granted
+  WHERE granted.permission IS NOT NULL
+    AND NOT EXISTS (
+      SELECT FROM public.user_permissions up
+      LEFT JOIN public.permissions catalog ON catalog.id=up.permission_id AND catalog.is_active
+      WHERE up.company_id=p_company_id AND up.user_id=p_actor_user_id
+        AND up.status='active' AND up.is_active AND up.effect='deny'
+        AND coalesce(nullif(up.permission_key,''),catalog.key,catalog.name)=granted.permission
+    );
+  RETURN v_permissions;
+END;
+$$;
+
+--
+-- Name: gridex_staff_normalize_role_v1(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_normalize_role_v1(p_role_key text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+WITH normalized AS (SELECT nullif(trim(both '_' from regexp_replace(translate(lower(btrim(p_role_key)),'åäö','aao'),'[^a-z0-9]+','_','g')),'') AS role_key)
+SELECT coalesce(('{"superadmin":"super_admin","super_admin":"super_admin","platform_superadmin":"super_admin","platformsuperadmin":"super_admin","platformadmin":"platform_admin","platform_admin":"platform_admin","companyadmin":"company_admin","company_admin":"company_admin","company_owner":"company_admin","tenant_admin":"company_admin","bolagsansvarig":"company_admin","compliance_officer":"compliance_manager","kundservice":"customer_service_agent","customer_service":"customer_service_agent","support":"customer_service_agent","ekonomi":"finance_readonly","finance":"finance_readonly","finance_readonly":"finance_readonly"}'::jsonb)->>role_key,role_key) FROM normalized;
+$$;
+
+--
 -- Name: gridex_staff_permission_overrides_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -85124,6 +85417,18 @@ CREATE FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p
   WHERE up.company_id=p_company_id AND up.user_id=p_user_id
     AND up.status='active' AND up.is_active
     AND coalesce(nullif(up.permission_key,''),p.key,p.name) IS NOT NULL
+$$;
+
+--
+-- Name: gridex_staff_role_profile_v1(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) RETURNS text[]
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'pg_catalog'
+    AS $$
+SELECT coalesce(array_agg(value ORDER BY value), ARRAY[]::text[])
+FROM jsonb_array_elements_text(coalesce(('{"super_admin":["audit.read","billing_underlay.export","billing_underlay.read","cases.read","cases.write","communication.read","communication.send","contracts.read","contracts.write","customers.read","customers.write","documents.read","documents.write","integrations.read","integrations.write","masterdata.read","masterdata.write","metering.read","metering.write","metering_points.read","metering_points.write","partner_exports.read","partner_exports.write","permissions.manage","poa.read","poa.write","pricing.publish","pricing.read","pricing.write","reports.read","roles.manage","sites.read","sites.write","switching.read","switching.write","tenants.invite","tenants.read","tenants.write","users.read","users.write","whitelabel.read","whitelabel.write"],"white_label_platform_admin":["audit.read","communication.read","communication.send","reports.read","tenants.invite","tenants.read","users.read","users.write","whitelabel.read","whitelabel.write"],"company_admin":["audit.read","billing_underlay.export","billing_underlay.read","cases.read","cases.write","communication.read","communication.send","contracts.read","contracts.write","customers.read","customers.write","documents.read","documents.write","integrations.read","integrations.write","masterdata.read","masterdata.write","metering.read","metering.write","metering_points.read","metering_points.write","partner_exports.read","partner_exports.write","poa.read","poa.write","pricing.read","pricing.write","reports.read","sites.read","sites.write","switching.read","switching.write","tenants.invite","users.read","users.write"],"admin":["audit.read","billing_underlay.export","billing_underlay.read","cases.read","cases.write","communication.read","communication.send","contracts.read","contracts.write","customers.read","customers.write","documents.read","documents.write","integrations.read","integrations.write","masterdata.read","masterdata.write","metering.read","metering.write","metering_points.read","metering_points.write","partner_exports.read","partner_exports.write","poa.read","poa.write","pricing.read","pricing.write","reports.read","sites.read","sites.write","switching.read","switching.write","users.read"],"operations_manager":["audit.read","billing_underlay.export","billing_underlay.read","communication.read","communication.send","customers.read","customers.write","documents.read","documents.write","masterdata.read","masterdata.write","metering.read","metering.write","metering_points.read","metering_points.write","partner_exports.read","partner_exports.write","poa.read","poa.write","reports.read","sites.read","sites.write","switching.read","switching.write"],"operations_agent":["billing_underlay.export","billing_underlay.read","communication.read","customers.read","customers.write","documents.read","documents.write","masterdata.read","masterdata.write","metering.read","metering.write","metering_points.read","metering_points.write","partner_exports.read","partner_exports.write","poa.read","poa.write","reports.read","sites.read","sites.write","switching.read","switching.write"],"customer_service_manager":["audit.read","billing_underlay.read","cases.read","cases.write","communication.read","communication.send","contracts.read","customers.read","customers.write","documents.read","documents.write","masterdata.read","metering.read","metering_points.read","partner_exports.read","poa.read","reports.read","sites.read","switching.read","users.read"],"customer_service_agent":["billing_underlay.read","cases.read","cases.write","communication.read","contracts.read","customers.read","documents.read","documents.write","masterdata.read","metering.read","metering_points.read","poa.read","reports.read","sites.read","switching.read"],"pricing_manager":["audit.read","contracts.read","contracts.write","customers.read","pricing.read","pricing.write","reports.read"],"pricing_approver":["audit.read","contracts.read","pricing.publish","pricing.read","reports.read"],"compliance_manager":["audit.read","billing_underlay.read","cases.read","communication.read","contracts.read","customers.read","documents.read","masterdata.read","metering.read","metering_points.read","partner_exports.read","poa.read","pricing.read","reports.read","sites.read","switching.read","users.read"],"sales_manager":["cases.read","cases.write","communication.read","communication.send","contracts.read","customers.read","customers.write","documents.read","documents.write","poa.read","reports.read","users.read"],"partner_manager":["audit.read","billing_underlay.read","communication.read","customers.read","documents.read","integrations.read","integrations.write","masterdata.read","metering.read","partner_exports.read","partner_exports.write","reports.read","sites.read","switching.read"],"finance_readonly":["audit.read","billing_underlay.read","contracts.read","customers.read","partner_exports.read","pricing.read","reports.read"],"executive_readonly":["audit.read","billing_underlay.read","communication.read","contracts.read","customers.read","metering.read","partner_exports.read","pricing.read","reports.read","switching.read","users.read"],"partner_api_user":["partner_exports.read"]}'::jsonb)->p_role_key, '[]'::jsonb)) AS value;
 $$;
 
 --
@@ -102443,6 +102748,15 @@ CREATE TABLE public.company_invitations (
     created_by uuid,
     updated_by uuid,
     idempotency_key text,
+    full_name text,
+    membership_role text,
+    role_key text,
+    token uuid,
+    invited_by uuid,
+    accept_token_hash text,
+    invited_user_id uuid,
+    revoked_at timestamp with time zone,
+    invited_email text,
     CONSTRAINT company_invitations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'delivery_uncertain'::text, 'accepted'::text, 'revoked'::text, 'expired'::text, 'invitation_revoked'::text, 'invited'::text, 'failed'::text])))
 );
 
@@ -150080,6 +150394,20 @@ ALTER TABLE ONLY public.company_invitations
     ADD CONSTRAINT company_invitations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
 
 --
+-- Name: company_invitations company_invitations_invited_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_invitations
+    ADD CONSTRAINT company_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: company_invitations company_invitations_invited_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_invitations
+    ADD CONSTRAINT company_invitations_invited_user_id_fkey FOREIGN KEY (invited_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
 -- Name: company_market_party_routes company_market_party_routes_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -183959,6 +184287,12 @@ REVOKE ALL ON FUNCTION public.canonical_change_tenant_user_access(p_command json
 GRANT ALL ON FUNCTION public.canonical_change_tenant_user_access(p_command jsonb) TO service_role;
 
 --
+-- Name: FUNCTION canonical_change_tenant_user_access_pre_staff_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_change_tenant_user_access_pre_staff_v1(p_command jsonb) FROM PUBLIC;
+
+--
 -- Name: FUNCTION canonical_change_tenant_user_access_v1_unchecked(p_command jsonb); Type: ACL; Schema: public; Owner: -
 --
 
@@ -184024,6 +184358,12 @@ REVOKE ALL ON FUNCTION public.canonical_complete_company_provisioning_job_v1_pre
 
 REVOKE ALL ON FUNCTION public.canonical_create_tenant_invitation(p_command jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.canonical_create_tenant_invitation(p_command jsonb) TO service_role;
+
+--
+-- Name: FUNCTION canonical_create_tenant_invitation_pre_staff_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.canonical_create_tenant_invitation_pre_staff_v1(p_command jsonb) FROM PUBLIC;
 
 --
 -- Name: FUNCTION canonical_current_ediel_engine_schema_version(); Type: ACL; Schema: public; Owner: -
@@ -186867,6 +187207,12 @@ GRANT ALL ON FUNCTION public.gridex_assert_price_option_snapshot_unique_v1() TO 
 
 REVOKE ALL ON FUNCTION public.gridex_assert_role_scope_is_consistent() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_assert_role_scope_is_consistent() TO service_role;
+
+--
+-- Name: FUNCTION gridex_assert_staff_command_v1(p_command jsonb, p_replay boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assert_staff_command_v1(p_command jsonb, p_replay boolean) FROM PUBLIC;
 
 --
 -- Name: FUNCTION gridex_assert_supplier_switch_ready(p_company_id uuid, p_contract_id uuid); Type: ACL; Schema: public; Owner: -
@@ -190502,11 +190848,32 @@ REVOKE ALL ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uui
 GRANT ALL ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) TO service_role;
 
 --
+-- Name: FUNCTION gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_normalize_role_v1(p_role_key text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_normalize_role_v1(p_role_key text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_normalize_role_v1(p_role_key text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_role_profile_v1(p_role_key text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_stage_energy_geodata_feature(p_geodata_version_id uuid, p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
