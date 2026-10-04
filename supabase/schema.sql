@@ -102748,6 +102748,15 @@ CREATE TABLE public.company_invitations (
     created_by uuid,
     updated_by uuid,
     idempotency_key text,
+    full_name text,
+    membership_role text,
+    role_key text,
+    token uuid,
+    invited_by uuid,
+    accept_token_hash text,
+    invited_user_id uuid,
+    revoked_at timestamp with time zone,
+    invited_email text,
     CONSTRAINT company_invitations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'delivery_uncertain'::text, 'accepted'::text, 'revoked'::text, 'expired'::text, 'invitation_revoked'::text, 'invited'::text, 'failed'::text])))
 );
 
@@ -150383,6 +150392,20 @@ ALTER TABLE ONLY public.company_email_settings
 
 ALTER TABLE ONLY public.company_invitations
     ADD CONSTRAINT company_invitations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: company_invitations company_invitations_invited_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_invitations
+    ADD CONSTRAINT company_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES auth.users(id) ON DELETE SET NULL;
+
+--
+-- Name: company_invitations company_invitations_invited_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.company_invitations
+    ADD CONSTRAINT company_invitations_invited_user_id_fkey FOREIGN KEY (invited_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 --
 -- Name: company_market_party_routes company_market_party_routes_company_id_tenant_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -

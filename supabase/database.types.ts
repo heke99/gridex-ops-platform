@@ -9801,6 +9801,7 @@ export type Database = {
       }
       company_invitations: {
         Row: {
+          accept_token_hash: string | null
           accepted_at: string | null
           cancelled_at: string | null
           company_id: string
@@ -9808,17 +9809,26 @@ export type Database = {
           created_by: string | null
           email: string
           expires_at: string | null
+          full_name: string | null
           id: string
           idempotency_key: string | null
           invitation_token: string | null
+          invited_by: string | null
+          invited_email: string | null
+          invited_user_id: string | null
+          membership_role: string | null
           metadata: Json
+          revoked_at: string | null
           role: string | null
           role_id: string | null
+          role_key: string | null
           status: string
+          token: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          accept_token_hash?: string | null
           accepted_at?: string | null
           cancelled_at?: string | null
           company_id: string
@@ -9826,17 +9836,26 @@ export type Database = {
           created_by?: string | null
           email: string
           expires_at?: string | null
+          full_name?: string | null
           id?: string
           idempotency_key?: string | null
           invitation_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_user_id?: string | null
+          membership_role?: string | null
           metadata?: Json
+          revoked_at?: string | null
           role?: string | null
           role_id?: string | null
+          role_key?: string | null
           status?: string
+          token?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          accept_token_hash?: string | null
           accepted_at?: string | null
           cancelled_at?: string | null
           company_id?: string
@@ -9844,13 +9863,21 @@ export type Database = {
           created_by?: string | null
           email?: string
           expires_at?: string | null
+          full_name?: string | null
           id?: string
           idempotency_key?: string | null
           invitation_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_user_id?: string | null
+          membership_role?: string | null
           metadata?: Json
+          revoked_at?: string | null
           role?: string | null
           role_id?: string | null
+          role_key?: string | null
           status?: string
+          token?: string | null
           updated_at?: string
           updated_by?: string | null
         }
