@@ -1,5 +1,52 @@
 # Codex — masterplan v2, TR-05
 
+Current2026-10-04T21:48Z (supersedes earlier pending findings):
+- Published39af9fdb51ea1eaf4c0a779d52749d630054b0f1 genuine native
+  run37235628015/artifact11315134887 ZIPSHA256
+  2006f4b84ad91319fc2de696b0d2d86c34ebeef1523420020fca729f98813308:
+  28TOTAL16PASS12FAIL0ERROR0SKIP. TR10 cases8/9PASS; unswept lease,
+  unknown/crash publication rollback, sealed crash+late accepted witness,
+  current authorization/revocation and preserved accepted repair PASS.
+- Independent ten07 loaded7 exact39capture functions+capturedACLs and
+  reproduced42501 service_role_required in actual public ledger→3definers→
+  public ACK invoker; direct service_role public ACK reader succeeds, zero
+  assessments written. Report retained in artifacts/masterplan-v2.
+- CLI forward20261004214144 SHA256
+  ed925604abf81ebab51a778797ce040a290c8d05aefcd23a156e4004eb765f6b
+  replaces exactly one internal public read with existing private physical
+  original + immutable require_v1 witness readers. External facade unchanged;
+  entire pg_proc metadata exceptprosrc preserved; no guide reselection or fake
+  admission. Independent ten07 bounded review: no blocker, no full-card approval.
+  New actual-role regression28PASS (13 inheritedwitness+15 role/patch checks).
+- Native fixture-only corrections: ten06 uses canonicalcommunication.send/read
+  public grants+actualresolution assertions; ten08 preserves every old archive
+  row byID and adds bound verified-byte readback while permitting fresh required
+  presend copies. Root labels foreign-recipient SMTP result actualunknown,
+  fixes interval literal spacing, and diagnoses actual fresh ledger evidence
+  without replacing its mandatory production receipt assertion.
+- Authentic capture37235627837/artifact11315746757 ZIP
+  e2b381bac79c9f9475f831543b1e5a9eaa7b21afe3077225444eba427e08b88a
+  binds39af9/tree2ad6cd06; all8inputs/3outputs verified. Raw receipt
+  eb1af41201fd5de3099bbf39244fa89f06bb4a5c06fe6666057bebf46efad200.
+  Schema052c4dc76d806b6d1506ff2153b6194ccd2227b779dd6ffb76fe6eb8c9248299,
+  fingerprintfilee9ebd578b8f23f1c142cbb626223802990a10b513075062fa1c35f2d4784172b,
+  publictypes4f5713d6 unchanged. Importedbyte-for-byte. New214144 prefix capture
+  explicitlypending; native/browser/upgrade/parity NOT_RUN by capture alone.
+- #500858/#5016bb ALLGREEN exact-head final raw clean receipts verified;
+  held unchanged for priority#491 memory/coverage window. Latestmain643ea134.
+  Order remains491→500→501→ClaudeP08→503, with actual union capture/review/gates.
+- No TR05/TR10 approval yet. Frozen352 cards, Claude shared primary memory,
+  unresolved TEN routing adapter and other agent source paths unchanged.
+Validation2026-10-04T21:50Z: new finite wrapper group7/7PASS plus existing
+case wrapper1/1PASS (8total); scriptsTypeScript/ownedTS+MJS lint PASS; CJS
+wrapper is ESLintignored but executed. Migration1065files/968groups/fullcontract
+and generatedtypes checksum check PASS; diffcheck PASS. New production change
+is bounded SQLonly; prior39 full9979unit result remains tied to its actualhead.
+Next: publish this functional bridge+fixtures+truthful receipts/memory, run
+actual28 native and authentic214144 capture; complete-card approval only after
+behavior proof and independent review, then all-green main merge in agreed order.
+
+
 Current2026-10-04T21:12Z (supersedes older pending findings below):
 - Published #50333b9f3d4 genuine run37232785275/artifact11314961110,
   ZIPcbe9e9bf08531dcd7ecad9fab7d861f5fb404ea6f841e0b6f99f7b289d23a601:

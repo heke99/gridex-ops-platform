@@ -30,7 +30,13 @@ async function fixture(family: 'CONTRL' | 'APERAK') {
   sql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'Synthetic ACK reception tenant','active');
     INSERT INTO public.ediel_mailboxes(id,company_id,mailbox_name,environment,is_active,is_shared_platform_mailbox)
     VALUES(${literal(mailboxId)},${literal(companyId)},'Synthetic retained ACK mailbox','test',true,false)`)
-  const actor = await decisionUser(companyId, ['communication.write', 'communication.read'], randomUUID() + 'Aa1!')
+  // The reception owner's legacy write marker resolves the current canonical
+  // communication.send grant; communication.write is absent from the registry.
+  const actor = await decisionUser(companyId, ['communication.send', 'communication.read'], randomUUID() + 'Aa1!')
+  expect(sql(`SELECT jsonb_build_object(
+    'send',public.gridex_actor_has_company_permission(${literal(actor.id)},${literal(companyId)},'communication.send'),
+    'read',public.gridex_actor_has_company_permission(${literal(actor.id)},${literal(companyId)},'communication.read')
+    )`)).toEqual({send: true, read: true})
   const retain = async () => {
     const inboundEmailMessageId = randomUUID(), parsed = parseEdifactPayload(raw)
     // Only this upstream retained-mail input is written directly. Parse rows,

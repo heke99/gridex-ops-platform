@@ -5,7 +5,7 @@
 // Only external SMTP and the browser-cookie client factory are replaced;
 // sourceSession still uses actual local GoTrue/JWT. No private attempt, ready
 // source, entry, acceptance, case or witness is inserted by these tests.
-import {randomUUID} from 'node:crypto'
+import {createHash,randomUUID} from 'node:crypto'
 import type {SupabaseClient} from '@supabase/supabase-js'
 import {afterEach,expect,it,vi} from 'vitest'
 vi.mock('server-only',()=>({}))
@@ -20,6 +20,7 @@ import {claimEdielOutboxItem} from '@/lib/ediel/outbox/claimOutboxItems'
 import {processEdielOutbox} from '@/lib/ediel/outbox/processEdielOutbox'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {readEdielTransportCopies} from '@/lib/ediel/transport/copy'
+import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {prepareAndQueueProdatRecovery} from '@/lib/ediel/recovery/prodatRecovery'
 
@@ -154,9 +155,19 @@ it('genuine H sealed unknown result opens before its result witness and preserve
  expect((await readEdielTransportCopies(f)).reconciliationCases).toEqual([expect.objectContaining({lane:'sealed_z08',attemptId:a.id,originalHash:a.binding.originalHash,mimeSha256:a.binding.mimeSha256,reason:'provider_outcome_unknown',status:'needs_tracking',observedClassification:'uncertain'})])
  expect(sql(`SELECT jsonb_build_object('entryWitness',(SELECT count(*) FROM gridex_outbound_dispatch.events e JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id WHERE e.attempt_id=${literal(a.id)} AND e.kind='provider_call_entered'),'resultWitness',(SELECT count(*) FROM gridex_outbound_dispatch.events e JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id WHERE e.attempt_id=${literal(a.id)} AND e.kind='provider_result'),'openings',(SELECT count(*) FROM gridex_ediel_transport.reconciliation_case_events e JOIN gridex_ediel_transport.reconciliation_cases c ON c.id=e.case_id WHERE c.attempt_id=${literal(a.id)} AND e.origin='sealed_result'))`)).toEqual({entryWitness:1,resultWitness:1,openings:1})
  expect(sql(`SELECT to_jsonb(c.opened_at<=w.available_at) FROM gridex_ediel_transport.reconciliation_cases c JOIN gridex_outbound_dispatch.events e ON e.attempt_id=c.attempt_id AND e.kind='provider_result' JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id WHERE c.attempt_id=${literal(a.id)}`)).toBe(true)
- const history=frozenCases(f),original=rawOriginal(f)
+ const history=frozenCases(f),original=rawOriginal(f) as {raw:unknown;hash:unknown;rendered:unknown;archives:Array<Record<string,unknown>&{id:string}>}
+ const archiveBytes=await readVerifiedEdielTransportCopy({...f,attemptId:a.id})
+ expect(createHash('sha256').update(archiveBytes).digest('hex')).toBe(a.binding.mimeSha256)
+ expect(archiveBytes.length).toBe(Number(a.binding.mimeLength))
  await expect(sendEdielMessageViaSmtp((await getEdielMessageById(f.messageId))!,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})).rejects.toThrow()
- expect(frozenCases(f)).toEqual(history);expect(rawOriginal(f)).toEqual(original);expect(businessCounts(f)).toEqual(before);expect(protectedSources(f)).toEqual(sources);expect(smtp).toHaveBeenCalledTimes(1)
+ const retained=rawOriginal(f) as typeof original
+ expect({raw:retained.raw,hash:retained.hash,rendered:retained.rendered}).toEqual({raw:original.raw,hash:original.hash,rendered:original.rendered})
+ // Re-entry must archive its newly prepared MIME before the existing owner can
+ // suppress SMTP. Every OLD archive remains identical; extra pre-send evidence
+ // does not mutate the entered attempt or the archive bound to its case.
+ for(const oldArchive of original.archives)expect(retained.archives.find(row=>row.id===oldArchive.id)).toEqual(oldArchive)
+ expect((await readVerifiedEdielTransportCopy({...f,attemptId:a.id})).equals(archiveBytes)).toBe(true)
+ expect(frozenCases(f)).toEqual(history);expect(businessCounts(f)).toEqual(before);expect(protectedSources(f)).toEqual(sources);expect(smtp).toHaveBeenCalledTimes(1)
 },180000)
 
 it('actual sealed worker entry/witness supports crash tracking and a later witnessed outcome without mutating the opening',async()=>{

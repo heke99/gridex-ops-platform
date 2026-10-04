@@ -8428,7 +8428,7 @@ BEGIN
   alias_wire:=gridex_customer_life_events.wire_v1(alias_message.raw_payload);previous_wire:=gridex_customer_life_events.wire_v1(previous.raw_payload);
   IF qualified IS NULL OR qualified->>'operationId' IS DISTINCT FROM step->>'operationId' OR qualified->>'originalMessageId' IS DISTINCT FROM step->>'originalMessageId' OR qualified->>'correctedPayloadHash' IS DISTINCT FROM step->>'payloadHash'
    OR alias_message.environment IS DISTINCT FROM op.environment OR previous.environment IS DISTINCT FROM op.environment
-   OR alias_message.original_message_id IS DISTINCT FROM previous.id OR alias_message.source_operation_id IS DISTINCT FROM step->>'operationId'
+   OR alias_message.original_message_id IS DISTINCT FROM previous.id::text OR alias_message.source_operation_id IS DISTINCT FROM step->>'operationId'
    OR alias_message.raw_payload IS NULL OR alias_message.immutable_rendered_at IS NULL OR alias_message.immutable_payload_hash IS DISTINCT FROM step->>'payloadHash' OR alias_message.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(alias_message.raw_payload,'UTF8')),'hex')
    OR alias_wire IS NULL OR previous_wire IS NULL OR alias_wire->>'code' IS DISTINCT FROM 'Z09' OR alias_wire->>'legalSender' IS DISTINCT FROM previous_wire->>'legalSender' OR alias_wire->>'legalReceiver' IS DISTINCT FROM previous_wire->>'legalReceiver'
    OR EXISTS(SELECT FROM jsonb_array_elements(alias_wire->'objects')own WHERE NOT EXISTS(SELECT FROM jsonb_array_elements(previous_wire->'objects')approved WHERE approved=own)) THEN RAISE EXCEPTION 'customer_life_event_recovery_alias_source_changed';END IF;
@@ -8932,7 +8932,7 @@ BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id=p.recovery_operation_id AND company_id=m.company_id FOR SHARE;
  SELECT * INTO o FROM gridex_received_sources.prodat_recovery_origins WHERE operation_id=op.id AND company_id=m.company_id FOR SHARE;
  SELECT prep.* INTO source FROM gridex_customer_masterdata.originals original JOIN gridex_customer_masterdata.preparations prep ON prep.id=original.preparation_id WHERE original.company_id=m.company_id AND original.message_id=(q->>'sourceOriginMessageId')::uuid FOR SHARE OF prep;
- IF source.id IS NULL OR p.id=source.id OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM source.customer_id OR p.environment IS DISTINCT FROM source.environment OR p.as_of IS DISTINCT FROM source.as_of OR p.observed_at IS DISTINCT FROM source.observed_at OR p.basis IS DISTINCT FROM source.basis OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.intent_id IS DISTINCT FROM o.intent_id OR m.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR m.original_message_id IS DISTINCT FROM op.original_message_id OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') IS DISTINCT FROM op.corrected_payload_hash THEN RAISE EXCEPTION 'customer_masterdata_recovery_preparation_scope_required';END IF;
+ IF source.id IS NULL OR p.id=source.id OR p.actor_user_id IS DISTINCT FROM m.created_by OR p.customer_id IS DISTINCT FROM source.customer_id OR p.environment IS DISTINCT FROM source.environment OR p.as_of IS DISTINCT FROM source.as_of OR p.observed_at IS DISTINCT FROM source.observed_at OR p.basis IS DISTINCT FROM source.basis OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.intent_id IS DISTINCT FROM o.intent_id OR m.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR m.original_message_id IS DISTINCT FROM op.original_message_id::text OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') IS DISTINCT FROM op.corrected_payload_hash THEN RAISE EXCEPTION 'customer_masterdata_recovery_preparation_scope_required';END IF;
 END$$;
 
 --
@@ -17299,6 +17299,7 @@ BEGIN
     OR basis->>'previousAttemptId' IS DISTINCT FROM r.attempt_id::text THEN RAISE EXCEPTION 'ediel_transport_retry_binding_invalid';END IF;
    PERFORM 1 FROM public.ediel_outbox o WHERE o.id=(basis->>'outboxId')::uuid AND o.company_id=c AND o.ediel_message_id=mid AND o.environment=m.environment
     AND o.status='sending' AND o.current_send_attempt_id=(p_input#>>'{owner,sendAttemptId}')::uuid AND o.locked_by=p_input#>>'{owner,workerId}' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(p_input#>>'{owner,outboxId}')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=m.environment AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    IF NOT FOUND THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    IF NOT public.ediel_consume_prodat_retry_authorization_v1(c,mid,r.attempt_id,aid,actor,(basis->>'operationId')::uuid) THEN RAISE EXCEPTION 'ediel_transport_retry_authorization_denied';END IF;
    prior:=to_jsonb(a);
@@ -17574,6 +17575,7 @@ begin
   end if;
   if owner->>'kind'='worker' then
    perform 1 from public.ediel_outbox o where o.id=(owner->>'outboxId')::uuid and o.ediel_message_id=mid and o.company_id=c and o.environment=env and o.status='sending' and o.current_send_attempt_id=(owner->>'sendAttemptId')::uuid and o.locked_by=owner->>'workerId' for update;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    if not found then raise exception 'ediel_transport_worker_fence_lost'; end if;
   elsif owner is distinct from '{"kind":"direct"}'::jsonb then raise exception 'ediel_transport_direct_owner_invalid'; end if;
   insert into gridex_ediel_transport.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) values(aid,mid,c,env,actor,owner,binding);
@@ -17588,6 +17590,7 @@ begin
   if is_ai and (a.binding->>'payloadHash' is distinct from ai_basis->>'sourceHash' or a.binding->>'encoding' is distinct from 'utf8') then raise exception 'ediel_ai_transport_source_bytes_required'; end if;
   if a.owner->>'kind'='worker' then
    perform 1 from public.ediel_outbox o where o.id=(a.owner->>'outboxId')::uuid and o.ediel_message_id=mid and o.company_id=c and o.environment=env and o.status='sending' and o.current_send_attempt_id=(a.owner->>'sendAttemptId')::uuid and o.locked_by=a.owner->>'workerId' for update;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(a.owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'ediel_transport_worker_fence_lost';END IF;
    if not found then raise exception 'ediel_transport_worker_fence_lost'; end if;
   end if;
   update gridex_ediel_transport.attempts set entered_at=now() where id=aid;
@@ -17746,6 +17749,74 @@ CREATE FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) RETURNS jsonb
     AS $$DECLARE r jsonb;BEGIN PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();PERFORM gridex_bilateral_prodat.lock_source_receipts_v1();r:=gridex_ediel_transport.mutate_before_duplicate_protocol_v1(p_input);IF p_input->>'action' IN('prepare','enter') AND r->>'proceed'='true' THEN PERFORM gridex_ediel_duplicate_responses.require_transport_v1((p_input->>'companyId')::uuid,(p_input->>'messageId')::uuid,(p_input->>'actorUserId')::uuid);END IF;RETURN r;END$$;
 
 --
+-- Name: open_reconciliation_case_v1(text, uuid, text, text, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE a record; m public.ediel_messages%rowtype; snapshot_id uuid; n bigint; old_case gridex_ediel_transport.reconciliation_cases%rowtype; case_id uuid; bh text;
+BEGIN
+ IF p_lane='generic_journal' THEN
+  SELECT x.id,x.company_id,x.environment,x.message_id,x.actor_user_id,x.binding,x.entered_at INTO STRICT a
+   FROM gridex_ediel_transport.attempts x JOIN gridex_ediel_transport.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state IN ('entered','observed')
+   WHERE x.id=p_attempt_id AND x.entered_at IS NOT NULL;
+ ELSIF p_lane='sealed_z08' THEN
+  SELECT x.id,x.company_id,x.environment,x.message_id,x.actor_user_id,x.binding,e.observed_at entered_at INTO STRICT a
+   FROM gridex_outbound_dispatch.attempts x
+   JOIN gridex_outbound_dispatch.originals o ON o.message_id=x.message_id AND o.company_id=x.company_id AND o.environment=x.environment AND o.payload_hash=x.binding->>'originalHash' AND o.payload_hash=encode(sha256(convert_to(o.raw_payload,'UTF8')),'hex')
+   JOIN gridex_outbound_dispatch.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='provider_call_entered'
+   JOIN gridex_outbound_dispatch.events e ON e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_call_entered'
+   JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id AND w.company_id=e.company_id AND w.environment=e.environment
+   WHERE x.id=p_attempt_id AND e.created_xid<>pg_current_xact_id() AND w.created_xid<>pg_current_xact_id()
+    AND pg_visible_in_snapshot(e.created_xid,pg_current_snapshot()) AND pg_visible_in_snapshot(w.created_xid,pg_current_snapshot());
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_lane_invalid'; END IF;
+ IF p_reason='provider_outcome_unknown' THEN
+  IF p_lane='generic_journal' THEN
+   IF p_origin IS DISTINCT FROM 'generic_observation' OR p_origin_id IS DISTINCT FROM a.id OR NOT EXISTS(SELECT FROM gridex_ediel_transport.attempts x WHERE x.id=a.id AND x.observed_at IS NOT NULL AND x.classification='unknown' AND jsonb_typeof(x.provider_result)='object')
+   THEN RAISE EXCEPTION 'ediel_reconciliation_observation_binding_invalid'; END IF;
+  ELSE
+   IF p_origin IS DISTINCT FROM 'sealed_result' OR NOT EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.id=p_origin_id AND e.attempt_id=a.id AND e.message_id=a.message_id AND e.company_id=a.company_id AND e.environment=a.environment AND e.kind='provider_result' AND e.facts->>'classification'='uncertain' AND jsonb_typeof(e.facts->'provider')='object' AND e.facts->>'automaticResend'='false')
+   THEN RAISE EXCEPTION 'ediel_reconciliation_observation_binding_invalid'; END IF;
+  END IF;
+ ELSIF p_reason='entry_unresolved_after_lease' THEN
+  IF p_origin IS DISTINCT FROM 'worker_claim_uncertain'
+   OR NOT EXISTS(SELECT FROM public.ediel_outbox o WHERE o.id=p_origin_id AND o.company_id=a.company_id AND o.environment=a.environment AND o.ediel_message_id=a.message_id AND o.status='delivery_uncertain')
+   OR p_lane='generic_journal' AND EXISTS(SELECT FROM gridex_ediel_transport.attempts x WHERE x.id=a.id AND x.observed_at IS NOT NULL)
+   OR p_lane='sealed_z08' AND EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=a.id AND e.kind='provider_result')
+  THEN RAISE EXCEPTION 'ediel_reconciliation_unresolved_binding_invalid'; END IF;
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_reason_invalid'; END IF;
+ SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=a.message_id AND company_id=a.company_id AND environment=a.environment FOR SHARE;
+ IF m.direction IS DISTINCT FROM 'outbound' OR m.immutable_rendered_at IS NULL OR m.raw_payload IS NULL
+  OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+  OR a.binding->>'originalHash' IS DISTINCT FROM m.immutable_payload_hash
+  OR coalesce(a.binding->>'mimeSha256','') !~ '^[a-f0-9]{64}$' OR coalesce(a.binding->>'mimeLength','') !~ '^[1-9][0-9]*$'
+  OR nullif(a.binding->>'mimeArchiveRef','') IS NULL OR nullif(a.binding->>'rfcMessageId','') IS NULL
+ THEN RAISE EXCEPTION 'ediel_reconciliation_original_binding_invalid'; END IF;
+ bh:=encode(sha256(convert_to(a.binding::text,'UTF8')),'hex');
+ SELECT * INTO old_case FROM gridex_ediel_transport.reconciliation_cases WHERE company_id=a.company_id AND environment=a.environment AND lane=p_lane AND attempt_id=a.id;
+ IF FOUND THEN
+  IF old_case.message_id IS DISTINCT FROM a.message_id OR old_case.actor_user_id IS DISTINCT FROM a.actor_user_id OR old_case.binding_hash IS DISTINCT FROM bh OR old_case.entered_at IS DISTINCT FROM a.entered_at
+  THEN RAISE EXCEPTION 'ediel_reconciliation_case_binding_changed'; END IF;
+  RETURN old_case.id;
+ END IF;
+ -- Lock the exact retained archive metadata, without copying bytes or addresses.
+ PERFORM 1 FROM public.ediel_message_payloads p WHERE p.company_id=a.company_id AND p.ediel_message_id=a.message_id AND p.encrypted_payload_ref=a.binding->>'mimeArchiveRef' FOR SHARE;
+ SELECT count(*),(array_agg(p.id))[1] INTO n,snapshot_id FROM public.ediel_message_payloads p
+  WHERE p.company_id=a.company_id AND p.ediel_message_id=a.message_id AND p.encrypted_payload_ref=a.binding->>'mimeArchiveRef'
+   AND p.payload_kind IN ('raw_mime','smime_enveloped') AND p.metadata->>'archive_verified'='true'
+   AND p.metadata->>'archived_mime_sha256'=a.binding->>'mimeSha256' AND p.metadata->>'archived_mime_bytes'=a.binding->>'mimeLength'
+   AND p.metadata->>'archived_rfc_message_id'=a.binding->>'rfcMessageId';
+ IF n<>1 THEN RAISE EXCEPTION 'ediel_reconciliation_archive_binding_not_qualified'; END IF;
+ INSERT INTO gridex_ediel_transport.reconciliation_cases(company_id,environment,lane,attempt_id,message_id,actor_user_id,original_hash,binding_hash,mime_sha256,mime_length,mime_archive_ref,mime_payload_snapshot_id,rfc_message_id,entered_at,reason)
+ VALUES(a.company_id,a.environment,p_lane,a.id,a.message_id,a.actor_user_id,m.immutable_payload_hash,bh,a.binding->>'mimeSha256',(a.binding->>'mimeLength')::bigint,a.binding->>'mimeArchiveRef',snapshot_id,a.binding->>'rfcMessageId',a.entered_at,p_reason) RETURNING id INTO case_id;
+ INSERT INTO gridex_ediel_transport.reconciliation_case_events(case_id,company_id,environment,actor_user_id,kind,origin,origin_id)
+ VALUES(case_id,a.company_id,a.environment,a.actor_user_id,'opened',p_origin,p_origin_id);
+ RETURN case_id;
+END $_$;
+
+--
 -- Name: read_dsn_v1(uuid, uuid, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -17761,6 +17832,99 @@ BEGIN
   OR NOT EXISTS(SELECT FROM public.ediel_messages m WHERE m.id=p_message_id AND m.company_id=p_company_id AND m.direction='outbound') THEN RAISE EXCEPTION 'ediel_dsn_actor_scope_invalid' USING ERRCODE='42501';END IF;
  IF (SELECT count(*) FROM gridex_ediel_transport.dsn_observations WHERE company_id=p_company_id AND message_id=p_message_id)>256 THEN RAISE EXCEPTION 'ediel_dsn_observation_read_limit';END IF;
  RETURN jsonb_build_object('version',1,'companyId',p_company_id,'messageId',p_message_id,'authorizesResend',false,'deliveryProven',false,'observations',coalesce((SELECT jsonb_agg(jsonb_build_object('observationId',o.id,'attemptId',o.attempt_id,'observedAt',o.observed_at,'transportCorrelation','source_matched_unverified','recipient',o.report#>'{recipients,0}') ORDER BY o.observed_at,o.id) FROM gridex_ediel_transport.dsn_observations o WHERE o.company_id=p_company_id AND o.message_id=p_message_id),'[]'::jsonb));
+END $$;
+
+--
+-- Name: read_reconciliation_cases_v1(uuid, text, uuid); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE result jsonb;
+BEGIN
+ IF (SELECT count(*) FROM gridex_ediel_transport.reconciliation_cases WHERE company_id=p_company_id AND environment=p_environment AND message_id=p_message_id)>50
+ THEN RAISE EXCEPTION 'ediel_reconciliation_case_scope_overflow'; END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object('caseId',c.id,'companyId',c.company_id,'environment',c.environment,'messageId',c.message_id,'lane',c.lane,'attemptId',c.attempt_id,'originalHash',c.original_hash,'mimeSha256',c.mime_sha256,'enteredAt',c.entered_at,'openedAt',c.opened_at,'reason',c.reason,
+  'status',CASE WHEN coalesce(g.classification,s.classification) IN ('accepted','partial','all_rejected','explicit_negative','pre_connect_negative') THEN 'outcome_observed' ELSE 'needs_tracking' END,
+  'observedClassification',coalesce(g.classification,s.classification),'observedAt',coalesce(g.observed_at,s.observed_at),'authorizesResend',false,'deliveryProven',false) ORDER BY c.opened_at,c.id),'[]'::jsonb) INTO result
+ FROM gridex_ediel_transport.reconciliation_cases c
+ LEFT JOIN gridex_ediel_transport.attempts g ON c.lane='generic_journal' AND g.id=c.attempt_id AND g.company_id=c.company_id AND g.environment=c.environment AND g.message_id=c.message_id AND g.entered_at=c.entered_at AND encode(sha256(convert_to(g.binding::text,'UTF8')),'hex')=c.binding_hash
+ LEFT JOIN LATERAL (
+  SELECT e.facts->>'classification' classification,e.observed_at FROM gridex_outbound_dispatch.attempts a
+  JOIN gridex_outbound_dispatch.events e ON e.attempt_id=a.id AND e.message_id=a.message_id AND e.company_id=a.company_id AND e.environment=a.environment AND e.kind='provider_result'
+  JOIN gridex_outbound_dispatch.witnesses w ON w.event_id=e.id AND w.company_id=e.company_id AND w.environment=e.environment
+  WHERE c.lane='sealed_z08' AND a.id=c.attempt_id AND a.company_id=c.company_id AND a.environment=c.environment AND a.message_id=c.message_id
+   AND encode(sha256(convert_to(a.binding::text,'UTF8')),'hex')=c.binding_hash AND e.created_xid<>pg_current_xact_id() AND w.created_xid<>pg_current_xact_id()
+   AND pg_visible_in_snapshot(e.created_xid,pg_current_snapshot()) AND pg_visible_in_snapshot(w.created_xid,pg_current_snapshot())
+ ) s ON true
+ WHERE c.company_id=p_company_id AND c.environment=p_environment AND c.message_id=p_message_id;
+ RETURN result;
+END $$;
+
+--
+-- Name: reconciliation_append_only_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN RAISE EXCEPTION 'ediel_reconciliation_append_only' USING ERRCODE='23514'; END $$;
+
+--
+-- Name: reconciliation_observed_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_observed_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+BEGIN
+ IF TG_TABLE_SCHEMA='gridex_ediel_transport' AND TG_TABLE_NAME='attempts' AND TG_OP='UPDATE' THEN
+  IF OLD.observed_at IS NULL AND NEW.observed_at IS NOT NULL AND NEW.classification='unknown' AND NEW.entered_at IS NOT NULL THEN
+   PERFORM gridex_ediel_transport.open_reconciliation_case_v1('generic_journal',NEW.id,'provider_outcome_unknown','generic_observation',NEW.id);
+  END IF;
+ ELSIF TG_TABLE_SCHEMA='gridex_outbound_dispatch' AND TG_TABLE_NAME='events' AND TG_OP='INSERT' THEN
+  IF NEW.kind='provider_result' AND NEW.facts->>'classification'='uncertain' THEN
+   -- Result witness can only be made after commit; require the committed ENTRY witness.
+   PERFORM gridex_ediel_transport.open_reconciliation_case_v1('sealed_z08',NEW.attempt_id,'provider_outcome_unknown','sealed_result',NEW.id);
+  END IF;
+ ELSE RAISE EXCEPTION 'ediel_reconciliation_observation_origin_invalid'; END IF;
+ RETURN NEW;
+END $$;
+
+--
+-- Name: reconciliation_worker_uncertain_v1(); Type: FUNCTION; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a record;
+BEGIN
+ IF OLD.status IS DISTINCT FROM 'sending' OR NEW.status IS DISTINCT FROM 'delivery_uncertain' OR OLD.current_send_attempt_id IS NULL OR OLD.locked_at IS NULL OR nullif(OLD.locked_by,'') IS NULL
+  OR NEW.company_id IS DISTINCT FROM OLD.company_id OR NEW.environment IS DISTINCT FROM OLD.environment OR NEW.ediel_message_id IS DISTINCT FROM OLD.ediel_message_id OR NEW.current_send_attempt_id IS DISTINCT FROM OLD.current_send_attempt_id
+ THEN RETURN NEW; END IF;
+ -- The prior real claim, not a caller boolean, must own an unresolved entry.
+ FOR a IN
+  SELECT x.id,'generic_journal'::text lane FROM gridex_ediel_transport.attempts x
+   JOIN gridex_ediel_transport.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='entered'
+   WHERE x.company_id=OLD.company_id AND x.environment=OLD.environment AND x.message_id=OLD.ediel_message_id AND x.entered_at IS NOT NULL AND x.observed_at IS NULL
+    AND x.owner->>'kind'='worker' AND x.owner->>'outboxId'=OLD.id::text AND x.owner->>'sendAttemptId'=OLD.current_send_attempt_id::text AND x.owner->>'workerId'=OLD.locked_by
+  UNION ALL
+  SELECT x.id,'sealed_z08' FROM gridex_outbound_dispatch.attempts x
+   JOIN gridex_outbound_dispatch.reservations r ON r.message_id=x.message_id AND r.attempt_id=x.id AND r.state='provider_call_entered'
+   WHERE x.company_id=OLD.company_id AND x.environment=OLD.environment AND x.message_id=OLD.ediel_message_id
+    AND x.owner->>'kind'='worker' AND x.owner->>'outboxId'=OLD.id::text AND x.owner->>'sendAttemptId'=OLD.current_send_attempt_id::text AND x.owner->>'workerId'=OLD.locked_by
+    AND EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_call_entered')
+    AND NOT EXISTS(SELECT FROM gridex_outbound_dispatch.events e WHERE e.attempt_id=x.id AND e.message_id=x.message_id AND e.company_id=x.company_id AND e.environment=x.environment AND e.kind='provider_result')
+ LOOP
+  PERFORM gridex_ediel_transport.open_reconciliation_case_v1(a.lane,a.id,'entry_unresolved_after_lease','worker_claim_uncertain',OLD.id);
+ END LOOP;
+ RETURN NEW;
 END $$;
 
 --
@@ -19792,6 +19956,7 @@ BEGIN
   IF owner->>'kind'='worker' THEN
    PERFORM 1 FROM public.ediel_outbox WHERE id=(owner->>'outboxId')::uuid AND ediel_message_id=mid AND company_id=c AND environment=env
     AND status='sending' AND current_send_attempt_id=(owner->>'sendAttemptId')::uuid AND locked_by=owner->>'workerId' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501';END IF;
    IF NOT FOUND THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501'; END IF;
   ELSIF owner IS DISTINCT FROM '{"kind":"direct"}'::jsonb THEN RAISE EXCEPTION 'outbound_dispatch_direct_owner_invalid'; END IF;
   INSERT INTO gridex_outbound_dispatch.attempts(id,message_id,company_id,environment,actor_user_id,owner,binding) VALUES(aid,mid,c,env,actor,owner,binding);
@@ -19823,6 +19988,7 @@ BEGIN
    IF a.owner->>'kind'='worker' THEN
     PERFORM 1 FROM public.ediel_outbox WHERE id=(a.owner->>'outboxId')::uuid AND ediel_message_id=mid AND company_id=c AND environment=env
      AND status='sending' AND current_send_attempt_id=(a.owner->>'sendAttemptId')::uuid AND locked_by=a.owner->>'workerId' FOR UPDATE;
+   IF FOUND AND NOT EXISTS(SELECT FROM public.ediel_outbox lease WHERE lease.id=(a.owner->>'outboxId')::uuid AND lease.company_id=c AND lease.ediel_message_id=mid AND lease.environment=env AND lease.locked_at IS NOT NULL AND lease.locked_at<=clock_timestamp() AND lease.locked_at>clock_timestamp()-interval '10 minutes') THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501';END IF;
     IF NOT FOUND THEN RAISE EXCEPTION 'outbound_dispatch_worker_fence_lost' USING ERRCODE='42501'; END IF;
    END IF;
    UPDATE gridex_outbound_dispatch.reservations SET state='provider_call_entered' WHERE message_id=mid;
@@ -23079,7 +23245,7 @@ BEGIN
   SELECT * INTO attempt FROM gridex_ediel_transport.attempts WHERE id=p_previous_attempt_id AND message_id=m.id AND company_id=m.company_id AND environment=m.environment FOR SHARE;
   IF NOT FOUND OR (attempt.classification IN ('pre_connect_negative','explicit_negative','all_rejected')) IS NOT TRUE OR attempt.observed_at IS NULL OR attempt.binding->>'originalHash' IS DISTINCT FROM m.immutable_payload_hash
    OR EXISTS(SELECT FROM gridex_ediel_transport.attempts a WHERE a.message_id=m.id AND (a.classification IN ('accepted','partial','unknown') OR a.entered_at IS NOT NULL AND a.observed_at IS NULL))
-   OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages a WHERE a.company_id=m.company_id AND a.environment=m.environment AND a.direction='inbound' AND a.original_message_id=m.id AND a.ack_outcome='positive') THEN RETURN jsonb_build_object('status','held','reason','verified_transfer_loss_required');END IF;
+   OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages a WHERE a.company_id=m.company_id AND a.environment=m.environment AND a.direction='inbound' AND a.original_message_id=m.id::text AND a.ack_outcome='positive') THEN RETURN jsonb_build_object('status','held','reason','verified_transfer_loss_required');END IF;
   recovery_kind:='verified_transfer_loss';
  ELSE
   IF p_source_ack_message_id IS NULL OR p_corrected_raw_payload IS NULL OR octet_length(p_corrected_raw_payload)>262144 THEN RAISE EXCEPTION 'prodat_correction_source_required';END IF;
@@ -23223,7 +23389,7 @@ DECLARE op gridex_received_sources.prodat_recovery_operations%rowtype;
 BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id::text=NEW.source_operation_id AND kind IN ('contrl_correction','aperak_correction');
  IF NOT FOUND THEN RETURN NEW;END IF;
- IF NEW.company_id IS DISTINCT FROM op.company_id OR NEW.environment IS DISTINCT FROM op.environment OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') OR op.corrected_raw_payload IS DISTINCT FROM NEW.raw_payload THEN RAISE EXCEPTION 'prodat_recovery_bound_message_conflict';END IF;
+ IF NEW.company_id IS DISTINCT FROM op.company_id OR NEW.environment IS DISTINCT FROM op.environment OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id::text OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(NEW.raw_payload,'UTF8')),'hex') OR op.corrected_raw_payload IS DISTINCT FROM NEW.raw_payload THEN RAISE EXCEPTION 'prodat_recovery_bound_message_conflict';END IF;
  INSERT INTO gridex_received_sources.prodat_recovery_messages(operation_id,message_id) VALUES(op.id,NEW.id);
  RETURN NEW;
 END $$;
@@ -25894,7 +26060,7 @@ BEGIN
   SELECT * INTO STRICT op FROM gridex_received_sources.prodat_recovery_operations WHERE id=next_op AND company_id=c;
   IF (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.environment IS DISTINCT FROM m.environment
    OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.source_operation_id IS DISTINCT FROM op.id::text
-   OR m.original_message_id IS DISTINCT FROM op.original_message_id OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload
+   OR m.original_message_id IS DISTINCT FROM op.original_message_id::text OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload
    OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash
    OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'prodat_recovery_origin_alias_changed';END IF;
   op_id:=next_op;
@@ -26239,7 +26405,7 @@ BEGIN
    PERFORM public.ediel_require_prodat_recovery_current_v1(p_company_id,m.id);
    SELECT * INTO original FROM public.ediel_messages WHERE id=op.original_message_id AND company_id=p_company_id FOR SHARE;
    original_wire:=gridex_received_sources.prodat_recovery_wire_v1(original.raw_payload);
-   IF original.id IS NULL OR m.original_message_id IS DISTINCT FROM original.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.corrected_raw_payload IS DISTINCT FROM m.raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
+   IF original.id IS NULL OR m.original_message_id IS DISTINCT FROM original.id::text OR m.source_operation_id IS DISTINCT FROM op.id::text OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR op.corrected_raw_payload IS DISTINCT FROM m.raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
     OR original_wire->>'legalSender' IS DISTINCT FROM w->>'legalSender' OR original_wire->>'legalReceiver' IS DISTINCT FROM w->>'legalReceiver' OR jsonb_array_length(w->'objects') IS DISTINCT FROM 1 OR (w#>'{objects,0}'-'li'-'line') IS DISTINCT FROM (original_wire#>'{objects,0}'-'li'-'line') THEN RAISE EXCEPTION 'production_contract_recovery_source_scope_required';END IF;
    SELECT jsonb_agg(token->'elements'->1 ORDER BY token->>'index') INTO actual_dates FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(m.raw_payload)) token WHERE token->>'tag'='DTM' AND token#>>'{elements,1,0}' IN('92','93','157');
    SELECT jsonb_agg(token->'elements'->1 ORDER BY token->>'index') INTO original_dates FROM jsonb_array_elements(gridex_received_sources.closure_wire_tokens_v2(original.raw_payload)) token WHERE token->>'tag'='DTM' AND token#>>'{elements,1,0}' IN('92','93','157');
@@ -26347,7 +26513,7 @@ BEGIN
  PERFORM public.ediel_reserve_prodat_recovery_origin_v1(op.company_id,op.id,NEW.created_by,o.intent_id,o.outbound_request_id);
  IF o.operation_id IS NULL OR i.id IS NULL OR NEW.company_id IS DISTINCT FROM o.company_id OR NEW.intent_id IS DISTINCT FROM o.intent_id OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id
  OR NEW.environment IS DISTINCT FROM i.environment OR NEW.message_family IS DISTINCT FROM i.message_family OR NEW.message_code IS DISTINCT FROM i.message_code OR NEW.customer_id IS DISTINCT FROM i.customer_id
- OR NEW.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id THEN RAISE EXCEPTION 'prodat_recovery_private_origin_required';END IF;
+ OR NEW.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.original_message_id IS DISTINCT FROM op.original_message_id::text THEN RAISE EXCEPTION 'prodat_recovery_private_origin_required';END IF;
  RETURN NEW;
 END $$;
 
@@ -30873,7 +31039,7 @@ BEGIN
   OR NEW.application_reference IS DISTINCT FROM i.application_reference OR NEW.sender_ediel_id IS DISTINCT FROM i.sender_ediel_id OR NEW.receiver_ediel_id IS DISTINCT FROM i.receiver_ediel_id
   OR NEW.sender_sub_address IS DISTINCT FROM i.sender_subaddress OR NEW.receiver_sub_address IS DISTINCT FROM i.receiver_subaddress
   OR NEW.communication_route_id IS DISTINCT FROM i.communication_route_id OR NEW.route_profile_id IS DISTINCT FROM i.route_profile_id
-  OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR NEW.source_operation_id IS DISTINCT FROM o.id::text OR NEW.original_message_id IS DISTINCT FROM o.original_message_id
+  OR NEW.outbound_request_id IS DISTINCT FROM o.outbound_request_id OR NEW.source_operation_id IS DISTINCT FROM o.id::text OR NEW.original_message_id IS DISTINCT FROM o.original_message_id::text
   OR NEW.switch_request_id IS DISTINCT FROM o.switch_id OR NEW.customer_id::text IS DISTINCT FROM b->>'customerId' OR NEW.metering_point_id::text IS DISTINCT FROM b->>'meteringPointId' OR NEW.site_id::text IS DISTINCT FROM b->>'siteId'
   OR own->>'li' IS DISTINCT FROM b->>'li' OR own->>'installationPoint' IS DISTINCT FROM b->>'pointId' OR own->>'installationAgency' IS DISTINCT FROM b->>'identityAgency'
   OR own->>'customerIdentity' IS DISTINCT FROM b->>'customerIdentity' OR own->>'customerQualifier' IS DISTINCT FROM b->>'customerQualifier' OR own->>'customerAgency' IS DISTINCT FROM '260' OR own->>'gridArea' IS DISTINCT FROM b->>'gridArea'
@@ -41664,7 +41830,7 @@ BEGIN
  expected_reason:=CASE WHEN s.request_type='move_in' OR s.prodat_variant='LK' OR s.prodat_reason='Z23' THEN 'Z23' ELSE 'Z22' END;
  IF i.id IS NULL OR i.operation_id IS DISTINCT FROM op.id OR i.supplier_switch_request_id IS DISTINCT FROM s.id OR s.id IS NULL OR c.id IS NULL OR mp.id IS NULL OR r.id IS NULL OR w IS NULL OR m.direction IS DISTINCT FROM 'outbound' OR m.message_standard IS DISTINCT FROM 'edifact' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.message_code IS DISTINCT FROM 'Z03' OR m.status IS DISTINCT FROM 'draft'
   OR m.immutable_rendered_at IS NULL OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex')
-  OR m.switch_request_id IS DISTINCT FROM s.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM original.id OR m.environment IS DISTINCT FROM op.environment OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash OR m.customer_id IS DISTINCT FROM s.customer_id OR m.site_id IS DISTINCT FROM coalesce(s.site_id,s.customer_site_id) OR m.metering_point_id IS DISTINCT FROM s.metering_point_id
+  OR m.switch_request_id IS DISTINCT FROM s.id OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM original.id::text OR m.environment IS DISTINCT FROM op.environment OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR m.immutable_payload_hash IS DISTINCT FROM op.corrected_payload_hash OR m.customer_id IS DISTINCT FROM s.customer_id OR m.site_id IS DISTINCT FROM coalesce(s.site_id,s.customer_site_id) OR m.metering_point_id IS DISTINCT FROM s.metering_point_id
   OR (s.site_id IS NOT NULL AND s.site_id IS DISTINCT FROM m.site_id) OR (s.customer_site_id IS NOT NULL AND s.customer_site_id IS DISTINCT FROM m.site_id) OR (s.contract_id IS NOT NULL AND s.contract_id IS DISTINCT FROM c.id) OR (s.customer_contract_id IS NOT NULL AND s.customer_contract_id IS DISTINCT FROM c.id)
   OR s.outbound_z03_message_id IS DISTINCT FROM original.id OR s.inbound_z04_message_id IS NOT NULL OR s.lifecycle_blocked IS DISTINCT FROM false OR (s.status IN('prepared','queued','submitted','failed','rejected')) IS NOT TRUE
   OR (r.payload->>'environment') IS DISTINCT FROM m.environment OR r.source_type IS DISTINCT FROM 'manual' OR r.source_id IS DISTINCT FROM i.id OR r.operation_id IS DISTINCT FROM op.id OR r.request_type IS DISTINCT FROM 'supplier_switch' OR r.customer_id IS DISTINCT FROM s.customer_id OR r.site_id IS DISTINCT FROM m.site_id OR r.metering_point_id IS DISTINCT FROM mp.id
@@ -42120,7 +42286,7 @@ BEGIN
  SELECT * INTO op FROM gridex_received_sources.prodat_recovery_operations WHERE id=p_operation_id AND company_id=p_company_id AND original_message_id=m.id AND kind='verified_transfer_loss' AND previous_attempt_id=p_previous_attempt_id;
  SELECT * INTO a FROM gridex_ediel_transport.attempts WHERE id=p_previous_attempt_id AND company_id=p_company_id AND message_id=m.id AND environment=m.environment FOR SHARE;
  IF op.id IS NULL OR op.environment IS DISTINCT FROM m.environment OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT' OR m.immutable_rendered_at IS NULL OR a.id IS NULL OR p_new_attempt_id IS NULL OR p_new_attempt_id=p_previous_attempt_id OR op.original_payload_hash IS DISTINCT FROM m.immutable_payload_hash OR m.immutable_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') OR (a.classification IN ('pre_connect_negative','explicit_negative','all_rejected')) IS NOT TRUE OR a.observed_at IS NULL
- OR NOT EXISTS(SELECT FROM gridex_ediel_transport.reservations r WHERE r.message_id=m.id AND r.attempt_id=p_previous_attempt_id AND r.state='observed') OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages ack WHERE ack.company_id=m.company_id AND ack.environment=m.environment AND ack.direction='inbound' AND ack.original_message_id=m.id AND ack.ack_outcome='positive')
+ OR NOT EXISTS(SELECT FROM gridex_ediel_transport.reservations r WHERE r.message_id=m.id AND r.attempt_id=p_previous_attempt_id AND r.state='observed') OR (m.contrl_status='received') IS TRUE OR (m.aperak_status='received') IS TRUE OR EXISTS(SELECT FROM public.ediel_messages ack WHERE ack.company_id=m.company_id AND ack.environment=m.environment AND ack.direction='inbound' AND ack.original_message_id=m.id::text AND ack.ack_outcome='positive')
  OR EXISTS(SELECT FROM gridex_ediel_transport.attempts prior WHERE prior.message_id=m.id AND (prior.classification IN ('accepted','partial','unknown') OR prior.entered_at IS NOT NULL AND prior.observed_at IS NULL)) THEN RETURN false;END IF;
  PERFORM gridex_received_sources.require_established_recovery_source_v1(p_company_id,op.id);
  INSERT INTO gridex_received_sources.prodat_recovery_attempts(operation_id,attempt_id) VALUES(op.id,p_new_attempt_id) ON CONFLICT DO NOTHING;
@@ -45420,7 +45586,7 @@ BEGIN
  PERFORM gridex_received_sources.prelock_recovery_source_cohort_v1(p_company_id,op.id,p_message_id);
  SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=p_message_id AND company_id=p_company_id FOR SHARE;
  IF m.environment IS DISTINCT FROM op.environment OR m.direction IS DISTINCT FROM 'outbound' OR m.message_family IS DISTINCT FROM 'PRODAT'
-  OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM op.original_message_id
+  OR m.source_operation_id IS DISTINCT FROM op.id::text OR m.original_message_id IS DISTINCT FROM op.original_message_id::text
   OR m.raw_payload IS DISTINCT FROM op.corrected_raw_payload OR op.corrected_payload_hash IS DISTINCT FROM encode(sha256(convert_to(m.raw_payload,'UTF8')),'hex') THEN RAISE EXCEPTION 'prodat_recovery_current_source_required';END IF;
  -- Source-only: actual sender/worker is authorized by its existing journal.
  -- An inactive historical creator cannot invalidate genuine immutable source.
@@ -45650,7 +45816,7 @@ BEGIN
  expected_operation:=o.switch_id;expected_request_source:=o.switch_id;expected_request_type:='supplier_switch_request';
  IF o.recovery_operation_id IS NOT NULL THEN
   SELECT operation.* INTO op FROM gridex_received_sources.prodat_recovery_messages link JOIN gridex_received_sources.prodat_recovery_operations operation ON operation.id=link.operation_id WHERE link.message_id=m.id AND operation.company_id=p_company_id;
-  IF op.id IS DISTINCT FROM o.recovery_operation_id OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR m.original_message_id IS DISTINCT FROM op.original_message_id THEN RAISE EXCEPTION 'switch_correction_current_operation_required';END IF;
+  IF op.id IS DISTINCT FROM o.recovery_operation_id OR (op.kind IN('contrl_correction','aperak_correction')) IS NOT TRUE OR m.original_message_id IS DISTINCT FROM op.original_message_id::text THEN RAISE EXCEPTION 'switch_correction_current_operation_required';END IF;
   PERFORM public.ediel_require_prodat_recovery_current_v1(p_company_id,m.id);
   expected_operation:=op.id;expected_request_source:=o.intent_id;expected_request_type:='manual';
  END IF;
@@ -62294,6 +62460,7 @@ CREATE FUNCTION public.gridex_ediel_transport_copy_v1(p_company_id uuid, p_actor
 DECLARE m public.ediel_messages%rowtype; copies jsonb; entered_count integer;
 BEGIN
  IF p_company_id IS NULL OR p_actor_user_id IS NULL OR p_message_id IS NULL THEN RAISE EXCEPTION 'ediel_transport_copy_scope_required'; END IF;
+ PERFORM gridex_ediel_ack_replay.lock_current_graph_v2();
  IF NOT EXISTS(SELECT FROM public.company_memberships x WHERE x.company_id=p_company_id AND x.user_id=p_actor_user_id AND x.status='active' AND x.is_active AND x.accepted_at IS NOT NULL)
  OR NOT EXISTS(SELECT FROM public.user_profiles x WHERE x.id=p_actor_user_id AND x.user_status='active')
  OR NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'communication.read'),false) THEN RAISE EXCEPTION 'ediel_transport_copy_forbidden' USING ERRCODE='42501'; END IF;
@@ -62321,7 +62488,7 @@ BEGIN
   ORDER BY e.entered_at,e.id LIMIT 50
  )
  SELECT (SELECT count(*) FROM entered),coalesce(jsonb_agg(jsonb_build_object('attemptId',q.id,'lane',q.lane,'companyId',q.company_id,'messageId',q.message_id,'environment',q.environment,'mimeArchiveRef',q.binding->>'mimeArchiveRef','mimeSha256',q.binding->>'mimeSha256','mimeLength',(q.binding->>'mimeLength')::bigint,'rfcMessageId',q.binding->>'rfcMessageId','mimePayloadSnapshotId',q.snapshot_id,'enteredAt',q.entered_at,'observedAt',q.observed_at,'smtpClassification',q.classification,'archiveReadbackRequired',true) ORDER BY q.entered_at,q.id),'[]'::jsonb) INTO entered_count,copies FROM qualified q;
- RETURN jsonb_build_object('status',CASE WHEN jsonb_array_length(copies)>0 THEN 'available' WHEN entered_count>0 THEN 'held' ELSE 'unavailable' END,'companyId',m.company_id,'messageId',m.id,'environment',m.environment,'copies',copies,'blocker',CASE WHEN entered_count>0 AND jsonb_array_length(copies)=0 THEN 'entered_mime_archive_binding_not_qualified' END,'authorizesResend',false,'deliveryProven',false);
+ RETURN jsonb_build_object('status',CASE WHEN jsonb_array_length(copies)>0 THEN 'available' WHEN entered_count>0 THEN 'held' ELSE 'unavailable' END,'companyId',m.company_id,'messageId',m.id,'environment',m.environment,'copies',copies,'blocker',CASE WHEN entered_count>0 AND jsonb_array_length(copies)=0 THEN 'entered_mime_archive_binding_not_qualified' END,'authorizesResend',false,'deliveryProven',false,'reconciliationCases',gridex_ediel_transport.read_reconciliation_cases_v1(m.company_id,m.environment,m.id));
 END $_$;
 
 --
@@ -96260,6 +96427,62 @@ CREATE TABLE gridex_ediel_transport.dsn_observations (
 ALTER TABLE ONLY gridex_ediel_transport.dsn_observations FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: reconciliation_case_events; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TABLE gridex_ediel_transport.reconciliation_case_events (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    case_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    actor_user_id uuid NOT NULL,
+    kind text NOT NULL,
+    origin text NOT NULL,
+    origin_id uuid NOT NULL,
+    recorded_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT reconciliation_case_events_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT reconciliation_case_events_kind_check CHECK ((kind = 'opened'::text)),
+    CONSTRAINT reconciliation_case_events_origin_check CHECK ((origin = ANY (ARRAY['generic_observation'::text, 'sealed_result'::text, 'worker_claim_uncertain'::text])))
+);
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events FORCE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_cases; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TABLE gridex_ediel_transport.reconciliation_cases (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    lane text NOT NULL,
+    attempt_id uuid NOT NULL,
+    message_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    original_hash text NOT NULL,
+    binding_hash text NOT NULL,
+    mime_sha256 text NOT NULL,
+    mime_length bigint NOT NULL,
+    mime_archive_ref text NOT NULL,
+    mime_payload_snapshot_id uuid NOT NULL,
+    rfc_message_id text NOT NULL,
+    entered_at timestamp with time zone NOT NULL,
+    opened_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    reason text NOT NULL,
+    CONSTRAINT reconciliation_cases_binding_hash_check CHECK ((binding_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
+    CONSTRAINT reconciliation_cases_lane_check CHECK ((lane = ANY (ARRAY['generic_journal'::text, 'sealed_z08'::text]))),
+    CONSTRAINT reconciliation_cases_mime_archive_ref_check CHECK ((length(mime_archive_ref) > 0)),
+    CONSTRAINT reconciliation_cases_mime_length_check CHECK ((mime_length > 0)),
+    CONSTRAINT reconciliation_cases_mime_sha256_check CHECK ((mime_sha256 ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_original_hash_check CHECK ((original_hash ~ '^[a-f0-9]{64}$'::text)),
+    CONSTRAINT reconciliation_cases_reason_check CHECK ((reason = ANY (ARRAY['provider_outcome_unknown'::text, 'entry_unresolved_after_lease'::text]))),
+    CONSTRAINT reconciliation_cases_rfc_message_id_check CHECK ((length(rfc_message_id) > 0))
+);
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases FORCE ROW LEVEL SECURITY;
+
+--
 -- Name: reservations; Type: TABLE; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -120964,6 +121187,34 @@ ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
     ADD CONSTRAINT dsn_observations_pkey PRIMARY KEY (id);
 
 --
+-- Name: reconciliation_case_events reconciliation_case_events_case_id_key; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_case_id_key UNIQUE (case_id);
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_pkey PRIMARY KEY (id);
+
+--
+-- Name: reconciliation_cases reconciliation_cases_company_id_environment_lane_attempt_id_key; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_company_id_environment_lane_attempt_id_key UNIQUE (company_id, environment, lane, attempt_id);
+
+--
+-- Name: reconciliation_cases reconciliation_cases_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_pkey PRIMARY KEY (id);
+
+--
 -- Name: reservations reservations_pkey; Type: CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -127162,6 +127413,12 @@ CREATE INDEX receptions_source_message ON gridex_ediel_inbound_receptions.recept
 --
 
 CREATE INDEX ediel_scoped_readiness_evidence_lookup ON gridex_ediel_readiness.evidence USING btree (company_id, dependency_hash, expires_at DESC);
+
+--
+-- Name: ediel_reconciliation_case_scope_idx; Type: INDEX; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE INDEX ediel_reconciliation_case_scope_idx ON gridex_ediel_transport.reconciliation_cases USING btree (company_id, environment, message_id, opened_at, id);
 
 --
 -- Name: ediel_transport_attempts_owner_idx; Type: INDEX; Schema: gridex_ediel_transport; Owner: -
@@ -140295,6 +140552,36 @@ CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_technical_ack.
 CREATE TRIGGER immutable_truncate BEFORE TRUNCATE ON gridex_ediel_technical_ack.syntax_facets FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_technical_ack.immutable();
 
 --
+-- Name: reconciliation_cases ediel_reconciliation_cases_immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_cases_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_transport.reconciliation_cases FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_cases ediel_reconciliation_cases_no_truncate; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_cases_no_truncate BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_cases FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_case_events ediel_reconciliation_events_immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_events_immutable BEFORE DELETE OR UPDATE ON gridex_ediel_transport.reconciliation_case_events FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: reconciliation_case_events ediel_reconciliation_events_no_truncate; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_events_no_truncate BEFORE TRUNCATE ON gridex_ediel_transport.reconciliation_case_events FOR EACH STATEMENT EXECUTE FUNCTION gridex_ediel_transport.reconciliation_append_only_v1();
+
+--
+-- Name: attempts ediel_reconciliation_generic_observed; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_generic_observed AFTER UPDATE ON gridex_ediel_transport.attempts FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_observed_v1();
+
+--
 -- Name: dsn_observations immutable; Type: TRIGGER; Schema: gridex_ediel_transport; Owner: -
 --
 
@@ -140629,6 +140916,12 @@ CREATE TRIGGER revocations_immutable BEFORE DELETE OR UPDATE ON gridex_network_r
 --
 
 CREATE TRIGGER revocations_no_truncate BEFORE TRUNCATE ON gridex_network_registry_sources.revocations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: events ediel_reconciliation_sealed_result; Type: TRIGGER; Schema: gridex_outbound_dispatch; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_sealed_result AFTER INSERT ON gridex_outbound_dispatch.events FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_observed_v1();
 
 --
 -- Name: attempts immutable; Type: TRIGGER; Schema: gridex_outbound_dispatch; Owner: -
@@ -143439,6 +143732,12 @@ CREATE TRIGGER ediel_positive_fixture_origin AFTER INSERT OR UPDATE OF raw_paylo
 --
 
 CREATE TRIGGER ediel_production_state_sync_company_projection AFTER INSERT OR UPDATE OF state, approved_by, approved_at, paused_by, paused_at, pause_reason, blocked_reason, first_live_send_approved_by, first_live_send_approved_at ON public.ediel_production_state FOR EACH ROW EXECUTE FUNCTION public.canonical_sync_company_ediel_projection_v1();
+
+--
+-- Name: ediel_outbox ediel_reconciliation_worker_uncertain; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER ediel_reconciliation_worker_uncertain AFTER UPDATE OF status ON public.ediel_outbox FOR EACH ROW EXECUTE FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1();
 
 --
 -- Name: ediel_send_locks ediel_requeue_outbox_after_send_lock_release; Type: TRIGGER; Schema: public; Owner: -
@@ -147406,6 +147705,48 @@ ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
 
 ALTER TABLE ONLY gridex_ediel_transport.dsn_observations
     ADD CONSTRAINT dsn_observations_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_case_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_case_id_fkey FOREIGN KEY (case_id) REFERENCES gridex_ediel_transport.reconciliation_cases(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_case_events reconciliation_case_events_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_case_events
+    ADD CONSTRAINT reconciliation_case_events_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE RESTRICT;
+
+--
+-- Name: reconciliation_cases reconciliation_cases_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE ONLY gridex_ediel_transport.reconciliation_cases
+    ADD CONSTRAINT reconciliation_cases_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id) ON DELETE RESTRICT;
 
 --
 -- Name: reservations reservations_attempt_id_fkey; Type: FK CONSTRAINT; Schema: gridex_ediel_transport; Owner: -
@@ -158904,6 +159245,18 @@ ALTER TABLE gridex_ediel_transport.attempts ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE gridex_ediel_transport.dsn_observations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_case_events; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE gridex_ediel_transport.reconciliation_case_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_cases; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
+--
+
+ALTER TABLE gridex_ediel_transport.reconciliation_cases ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: reservations; Type: ROW SECURITY; Schema: gridex_ediel_transport; Owner: -
@@ -182162,11 +182515,41 @@ REVOKE ALL ON FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) FROM PUBL
 GRANT ALL ON FUNCTION gridex_ediel_transport.mutate_v1(p_input jsonb) TO service_role;
 
 --
+-- Name: FUNCTION open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.open_reconciliation_case_v1(p_lane text, p_attempt_id uuid, p_reason text, p_origin text, p_origin_id uuid) FROM PUBLIC;
+
+--
 -- Name: FUNCTION read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
 --
 
 REVOKE ALL ON FUNCTION gridex_ediel_transport.read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION gridex_ediel_transport.read_dsn_v1(p_company_id uuid, p_actor_user_id uuid, p_message_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.read_reconciliation_cases_v1(p_company_id uuid, p_environment text, p_message_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_append_only_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_append_only_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_observed_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_observed_v1() FROM PUBLIC;
+
+--
+-- Name: FUNCTION reconciliation_worker_uncertain_v1(); Type: ACL; Schema: gridex_ediel_transport; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_ediel_transport.reconciliation_worker_uncertain_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION record_dsn_v1(p_input jsonb); Type: ACL; Schema: gridex_ediel_transport; Owner: -

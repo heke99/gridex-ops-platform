@@ -17,6 +17,7 @@ import {createInboundEdielMessage, createParseResult} from '@/lib/inbound-mail/i
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
+import {buildReceivedSourceValidationEvidence} from '@/lib/ediel/core/receivedSourceValidationEvidence'
 import {processInboundAckMessage} from '@/lib/ediel/flows/inboundAckProcessing'
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck'
 import {renderContrl2Ediel2} from '@/lib/ediel/contrlEngine'
@@ -90,7 +91,17 @@ async function receiveAck(f: Fixture, raw: string) {
   const message = (await getEdielMessageById(id!))!
   const decision = await resolveCanonicalRuntimeDecisionWithRegistry(message)
   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
-  expect(await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision})).toMatchObject({status:'recorded'})
+  const validationInput={original:message,validated:message,resolvedCompanyId:f.companyId,decision}
+  const evidence=buildReceivedSourceValidationEvidence(validationInput)
+  expect(evidence,JSON.stringify({id:message.id,family:message.message_family,code:message.message_code,receivedAt:message.message_received_at,context:(message.execution_context_snapshot as Record<string,unknown> | null)?.receivedAckContext})).not.toBeNull()
+  const validationReceipt=await recordReceivedSourceValidation(validationInput)
+  if(validationReceipt.status!=='recorded' && evidence){
+    // Diagnose the same public owner using its real fresh canonical evidence.
+    // This cannot replace the failed production receipt or seed ACK admission.
+    const diagnostic=await supabaseService.rpc('gridex_record_source_validation_v1',{p_company_id:evidence.companyId,p_environment:evidence.environment,p_source_message_id:evidence.sourceMessageId,p_source_payload_hash:evidence.sourcePayloadHash,p_facts_text:evidence.factsText})
+    expect(diagnostic.error,JSON.stringify(diagnostic.error)).toBeNull()
+  }
+  expect(validationReceipt).toMatchObject({status:'recorded'})
   const applied = await processInboundAckMessage({actorUserId:f.actorUserId,message})
   expect(applied).toMatchObject({outcome:'negative',sourceMessage:{id:f.originalZ03.id},sourceAccepted:false})
   const committed = await readCommittedInboundAck({actorUserId:f.actorUserId,message:(await getEdielMessageById(id!))!})
@@ -262,15 +273,17 @@ it('an actual provider-entered unobserved attempt and expired timer cannot grant
     await sending
   }
 },120000)
-it('the actual sweep of a declared expired public SLA row cannot create recovery/outbox/provider effects for absent, accepted, partial or uncertain attempts',async () => {
-  for (const kind of ['absent','accepted','partial','unknown'] as const) {
+it('the actual sweep of a declared expired public SLA row cannot create recovery/outbox/provider effects for absent, accepted, foreign-mixed or uncertain attempts',async () => {
+  for (const kind of ['absent','accepted','foreign_mixed','unknown'] as const) {
     const f = await seed(false)
     let evaluatedAt: string | undefined
     if (kind !== 'absent') {
       if (kind === 'unknown') smtp.mockRejectedValue(Object.assign(new Error('synthetic provider timeout'),{code:'ETIMEDOUT',command:'DATA'}))
-      else smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:kind === 'partial' ? ['other@example.invalid'] : [],messageId:randomUUID(),response:'250 synthetic accepted'})
+      else smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:kind === 'foreign_mixed' ? ['other@example.invalid'] : [],messageId:randomUUID(),response:'250 synthetic accepted'})
       await sendEdielMessageViaSmtp(f.originalZ03,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'}).catch(() => null)
-      expect(sql(`SELECT to_jsonb(classification) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)}`)).toBe(kind)
+      // A foreign rejected address cannot prove partial delivery to this
+      // original's sole recipient. The real classifier must remain unknown.
+      expect(sql(`SELECT to_jsonb(classification) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)}`)).toBe(kind === 'foreign_mixed' ? 'unknown' : kind)
     }
     if (kind === 'accepted') {
       const original = (await getEdielMessageById(f.originalZ03.id))!
@@ -412,7 +425,7 @@ it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease
   expect(claim).toMatchObject({status:'sending',current_send_attempt_id:expect.any(String)})
   // Leave20s on the real public claim, then hold its identity-qualified row
   // for24s in a second genuine PostgreSQL session. These are clock/lock inputs.
-  sql(`UPDATE public.ediel_outbox SET locked_at=clock_timestamp()-interval '9 minutes40 seconds' WHERE id=${literal(id)};SELECT to_jsonb(true)`)
+  sql(`UPDATE public.ediel_outbox SET locked_at=clock_timestamp()-interval '9 minutes 40 seconds' WHERE id=${literal(id)};SELECT to_jsonb(true)`)
   const holder=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
   let output='',holderError=''
   holder.stderr.on('data',chunk=>{holderError+=String(chunk)})

@@ -1140,3 +1140,15 @@ Older Current sections above are historical and SUPERSEDED.
 ## Codex TR05/TR10 coordination — 2026-10-04T21:12Z
 
 Root composes reviewed ten07f97 whole-CONTRL proof and published ten088791 uncertainty cases into #503. Genuine33b9 native is6PASS9FAIL, not approved: six failures establish actual resolved intake birth-selector omission; unswept claim actually sends. Ten06 owns only typed resolved mailbox birth binding and independent real first/replay/duplicate tests; unresolved routing remains TEN owner. Root owns current post-row-lock lease guard (finite55/13), actual lock-wait expiry/guide-retirement proofs, final28-case native configuration, checksum and authentic composed capture. Existing valid #500858/#5016bb clean gates continue unchanged. No duplicate Claude source patch: canonical ACK260fa reused exactly; no primary-owner current-task/checkpoint overwritten. Details/exact artifacts/hashes and next action in masterplan-codex-retry-checkpoint.md. Full-card approval awaits genuine composed proof; no production/hosted send or migration.
+
+
+Codex TR05/TR10 update2026-10-04T21:48Z (root exclusive, #503):
+Genuine39native28total16PASS12FAIL; no approval. ten07 independently reproduces
+actual seven-function definer→public ACK invoker42501 with zero assessments.
+RootCLI214144 exact private original+witness bridge, SHAed925604…765f6b,
+finite28PASS, reviewer no blocker; public facade/catalogmetadata preserved.
+ten06 public canonical send/read fixture, ten08 old-archive-ID+boundbyte fixture,
+root actualforeignmixedunknown/intervalspacing/ledgerdiagnostic: no duplicate
+producer/auth bypass. Capture39bytes imported unchanged; new214144 capturepending.
+Parent500/501 all-green/frozen; respect491 prioritywindow and P08union capture.
+See own masterplan-codex-retry-checkpoint.md and GitHub491comments5984651618/5984680584.
