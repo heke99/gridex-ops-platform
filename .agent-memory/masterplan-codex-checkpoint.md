@@ -134,3 +134,26 @@ grants and unchanged market reception/ACK state.
 Next: publish the reused CI fixes, examine genuine native results and repair
 any failing assertions. Complete and share the bounded TEN-09 review probe;
 coordinate remediation with Claude, preserving his single coverage row.
+
+## 2026-10-04 — current main integration
+
+- Claude reports main's authoritative upgrade/history repair in #491
+  5982277365. Fetched main 8f3b42f1 and merged it into this isolated branch.
+  Upgrade/history-union/applied-TXT scripts and SQL fixtures are taken byte
+  for byte from that main, superseding the earlier coordinated A1/H1 reuse.
+  Resolved only the two CI script conflicts; retained native ESCO tests and
+  main's new staff migrations/config inclusion without editing SQL history.
+- Main's upgrade-input selftest 8/8 PASS; bash syntax and git diff --check PASS.
+  The known missing marker in the intentionally divergent fixture is expected.
+  Real current-head replay remains a GitHub CI requirement.
+- The old a01e8dfc CI had verify/upgrade/quality and all auxiliary checks PASS;
+  clean replay was still running. Its results cannot certify this merged head.
+- TR-01/02 continue in a separate branch with a separate resumable checkpoint.
+  User explicitly requires publication of all results and main integration
+  after review and CI; status posted in #491 5982337348. Claude keeps TEN-09
+  resolver ownership and conservative owner decision 5982240442; Codex has
+  made no resolver changes. ESCO-10/11 remain unapproved until genuine native
+  assertions execute successfully.
+
+Next: publish the main merge, inspect exact-head native results and integrate
+after required checks pass. Continue TR review closure and remaining cards.

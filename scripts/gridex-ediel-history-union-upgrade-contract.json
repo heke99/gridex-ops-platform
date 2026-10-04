@@ -188,5 +188,14 @@
     }
   ],
   "scope": "One genuine committed c8 branch already applied40446; exact absent union inputs only; no source bytes/history rewrites.",
-  "ledgerClaim": "NONE: committed source and actual replay application do not establish an externally observed40446 deployment-ledger row."
+  "ledgerClaim": "NONE: committed source and actual replay application do not establish an externally observed40446 deployment-ledger row.",
+  "splitSquashProvenanceBridge": {
+    "format": "gridex_ediel_split_squash_provenance_bridge_v1",
+    "originalContractSha256": "952419d88f41ff8d24185142be389b9cae680b556ffbd3aeb54a225fb8d63fce",
+    "commonAncestorSha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+    "sourceWitnessSha": "f460fabf33eace3abb0e44df06a780f02b44a03d",
+    "sourceWitnessTree": "313743370cc76c48c964926cf345e31763d3ff12",
+    "mainWitnessSha": "fa4147b33dd3215c150cbe91d755db30e5ae6c62",
+    "mainWitnessTree": "25265898ce976f1de714b1a039d0bdf92857efc6"
+  }
 }

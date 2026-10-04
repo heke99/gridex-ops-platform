@@ -245,6 +245,9 @@ async function queueCaseEmail(row: CustomerCaseRow, actorUserId?: string | null)
 }
 
 export async function createCustomerCase(input: CustomerCaseInput): Promise<CustomerCaseRow> {
+  // Staff support must use the shared support command's atomic case/event/audit path.
+  // Refuse bypassing it before the first write; ordinary OPS and customer defaults are unchanged.
+  if (input.metadata?.support_channel === 'staff_api') throw new Error('staff_support_atomic_command_required')
   const assessed = assessWithdrawal({
     caseType: input.caseType,
     agreementCreatedAt: input.agreementCreatedAt,
@@ -392,7 +395,20 @@ export async function updateCustomerCaseStatus(input: {
   message?: string | null
   actorUserId?: string | null
   expectedSource?: string
+  channel?: 'ops' | 'staff_api'
+  apiClientId?: string
 }) {
+  if (input.channel === 'staff_api') {
+    if (!input.actorUserId || !input.apiClientId) throw new Error('staff_case_status_actor_required')
+    type StaffStatusRpc = (name: 'gridex_staff_update_customer_case_status', args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
+    const { data, error } = await (supabaseService.rpc as unknown as StaffStatusRpc)('gridex_staff_update_customer_case_status', {
+      p_case_id: input.caseId, p_company_id: input.companyId, p_status: input.status,
+      p_actor_user_id: input.actorUserId, p_api_client_id: input.apiClientId,
+      p_expected_source: input.expectedSource ?? null, p_message: input.message ?? null,
+    })
+    if (error) throw error
+    return data as CustomerCaseRow
+  }
   const { data, error } = await supabaseService.rpc('gridex_update_customer_case_status', {
     p_case_id: input.caseId,
     p_company_id: input.companyId,

@@ -21,6 +21,7 @@ jobs:
       - run: npm run db:migrations:check
       - run: python3 scripts/gridex-ediel-upgrade-inputs-selftest.py
       - run: python3 scripts/gridex-redact-native-evidence-selftest.py
+      - run: node --test scripts/bounded-child-process.test.mjs
       # F-15: service_role bypasses RLS, so every direct call site carries tenant
       # isolation on its own. The count may fall but never rise; new tenant-scoped
       # queries use tenantDb(companyId) from lib/supabase/tenantDb.
@@ -128,7 +129,11 @@ jobs:
         run: |
           set -o pipefail
           exec > >(tee rem002-clean-replay.log) 2>&1
+          native_phase() { printf '[CI-PHASE] %s %s\n' "$(date -u +%FT%TZ)" "$1"; }
+          native_phase clean_replay_start
           source scripts/gridex-aud-003-clean-replay.sh
+          native_phase clean_replay_complete
+          native_phase artifact_generation_start
           # Preserve authentic post-migration schema evidence even when a later
           # native fixture fails. The stack remains alive in this sourced step.
           SHADOW_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -156,6 +161,8 @@ jobs:
             { TYPE_COMPARISON_FAILED=1; echo "::error::TYPE_COMPARISON_FAILED set at step line $LINENO"; }
           fi
 
+          native_phase artifact_generation_complete
+          native_phase sql_regressions_start
           if ! python3 scripts/ediel-received-context-upgrade-regression.py; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
@@ -163,6 +170,8 @@ jobs:
           # the verified original input available to both native case passes.
           export GRIDEX_EDIEL_CASE_RESTORATION_SQL="$(cd "$HOLD" && pwd)/20260923180557_restore_customer_case_events_atomic_status.sql"
           [[ -f "$GRIDEX_EDIEL_CASE_RESTORATION_SQL" ]] || exit 1
+          export GRIDEX_STAFF_REPLAY_ACL_SQL="$(cd "$HOLD" && pwd)/20261004100320_staff_assertion_replay_least_privilege.sql"
+          [[ -f "$GRIDEX_STAFF_REPLAY_ACL_SQL" ]] || exit 1
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/manual-inbound-tenant-graph-regression.sql; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
@@ -173,6 +182,30 @@ jobs:
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/tenantservice-identity-billing-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-integration-auth-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-api-active-membership-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-user-commands-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-user-client-guard-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-user-actor-guard-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-case-events-api-auth-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-write-actor-guard-regression.sql; then
+            { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
+          fi
+          if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/staff-case-assignee-eligibility-regression.sql; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-archive-atomic-regression.sql; then
@@ -217,16 +250,22 @@ jobs:
           if ! psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -X -v ON_ERROR_STOP=1 -f scripts/customer-merge-portal-lifecycle-regression.sql; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
+          native_phase merge_concurrency_start
           if ! node scripts/customer-merge-portal-concurrency-regression.mjs "postgresql://postgres:postgres@127.0.0.1:54322/postgres"; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
+          native_phase merge_concurrency_complete
+          native_phase sql_regressions_complete
           # Exercise the actual canonical registry, business writes and owner
           # RPCs over the local Data API. No keys enter uploaded evidence.
           supabase status --help
           supabase status -o json > "$RUNNER_TEMP/e035-native-status.json"
+          native_phase native_owners_start
           if ! GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json" npx vitest run --config scripts/ediel-source-owner-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-native-junit.xml; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
+          native_phase native_owners_complete
+          native_phase browser_fixtures_start
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/e035-native-status.json"
           export NEXT_PUBLIC_SUPABASE_URL="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.env.GRIDEX_NATIVE_STATUS,"utf8")).API_URL')"
           [[ "$NEXT_PUBLIC_SUPABASE_URL" == 'http://127.0.0.1:54321' ]] || exit 1
@@ -309,10 +348,14 @@ jobs:
           [[ -s "$GRIDEX_RECORD_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_RECORD_RETENTION_FIXTURE_PATH
           [[ -s "$GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH" ]] || unset GRIDEX_EDIEL_INCIDENT_FIXTURE_PATH
           [[ -s "$GRIDEX_BLOB_RETENTION_FIXTURE_PATH" ]] || unset GRIDEX_BLOB_RETENTION_FIXTURE_PATH
+          native_phase browser_fixtures_complete
+          native_phase browser_start
           npx playwright install --with-deps chromium
           if ! npx playwright test e2e/browser/ediel-case-local.spec.mjs e2e/browser/ediel-requested-change-local.spec.mjs e2e/browser/ediel-regulated-supply-ground-local.spec.mjs e2e/browser/ediel-bilateral-customer-source-local.spec.mjs e2e/browser/ediel-bilateral-prodat-profile-local.spec.mjs e2e/browser/ediel-ai-purpose-local.spec.mjs e2e/browser/ediel-network-registry-local.spec.mjs e2e/browser/ediel-customer-record-retention-local.spec.mjs e2e/browser/ediel-business-incident-local.spec.mjs e2e/browser/ediel-message-content-retention-local.spec.mjs e2e/browser/ediel-process-journal-retention-local.spec.mjs e2e/browser/ediel-finance-copy-retention-local.spec.mjs e2e/browser/ediel-decision-evidence-retention-local.spec.mjs --config=playwright.config.mjs --project=chromium; then
             { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
           fi
+          native_phase browser_complete
+          native_phase after_browser_native_start
           if [[ -s "${GRIDEX_EDIEL_CASE_FIXTURE_PATH:-}" ]]; then
             if ! GRIDEX_EDIEL_CASE_VERIFY_AFTER_BROWSER=1 npx vitest run --config scripts/ediel-case-view-native.config.ts --reporter=default --reporter=junit --outputFile=rem002-case-after-browser-junit.xml; then
               { NATIVE_SUITE_FAILED=1; echo "::error::NATIVE_SUITE_FAILED set at step line $LINENO"; }
@@ -385,6 +428,7 @@ jobs:
           rm -f "${GRIDEX_RCS_FIXTURE_PATH:-}"
           unset GRIDEX_EDIEL_CASE_TEST_PASSWORD SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_SUPABASE_ANON_KEY
           rm -f "$RUNNER_TEMP/e035-native-status.json"
+          native_phase after_browser_native_complete
 
           # Everything below runs in THIS step on purpose. The replay script is
           # sourced, so its EXIT trap stops the local Supabase stack when this
@@ -393,6 +437,7 @@ jobs:
 
           # The tenant isolation gate must hold for a system rebuilt from the
           # repository, not only for the live database it was written against.
+          native_phase schema_gates_start
           DATABASE_URL="$SHADOW_URL" npm run tenant:invariants
 
           # A parity engine that stops detecting drift would make a green run
@@ -413,6 +458,7 @@ jobs:
             echo "no committed canonical schema baseline yet; snapshot uploaded as evidence"
           fi
           # Independent receipts are retained, but every comparator stays blocking.
+          native_phase schema_gates_complete
           [[ "$TYPE_COMPARISON_FAILED" == 0 && "$NATIVE_SUITE_FAILED" == 0 ]] || exit 1
       - name: Redact disposable credentials from native and browser evidence
         if: always()

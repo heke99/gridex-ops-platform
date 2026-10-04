@@ -19,6 +19,19 @@ FORMAT = 'gridex_ediel_history_union_upgrade_v1'
 NEW_NAME = re.compile(r'\d{14}_[A-Za-z0-9_]+\.sql')
 SHA = re.compile(r'[a-f0-9]{40}')
 DIGEST = re.compile(r'[a-f0-9]{64}')
+BRIDGE_KEY = 'splitSquashProvenanceBridge'
+CONTRACT_REPOSITORY_PATH = 'scripts/gridex-ediel-history-union-upgrade-contract.json'
+# One explicit port of the original #426 history through the #483–#489 split.
+# These pins are not a general permission to use unrelated branch histories.
+APPROVED_SPLIT_SQUASH_BRIDGE = {
+    'format': 'gridex_ediel_split_squash_provenance_bridge_v1',
+    'originalContractSha256': '952419d88f41ff8d24185142be389b9cae680b556ffbd3aeb54a225fb8d63fce',
+    'commonAncestorSha': '53bf989b0ad402bb2ce151c186eea31f1ec9cf03',
+    'sourceWitnessSha': 'f460fabf33eace3abb0e44df06a780f02b44a03d',
+    'sourceWitnessTree': '313743370cc76c48c964926cf345e31763d3ff12',
+    'mainWitnessSha': 'fa4147b33dd3215c150cbe91d755db30e5ae6c62',
+    'mainWitnessTree': '25265898ce976f1de714b1a039d0bdf92857efc6',
+}
 
 
 def ancestor(root, before, after, reason):
@@ -36,6 +49,65 @@ def commit(root, revision):
 
 def migration_bytes(root, revision, name):
     return git(root, 'show', f'{revision}:supabase/migrations/{name}')
+
+
+def preserved_inputs(root, source, targets, reason):
+    original = manifest(root, source)
+    for target in targets:
+        current = manifest(root, target)
+        for name, digest in original.items():
+            if current.get(name) != digest:
+                raise ValueError(reason + ':manifest:' + name)
+            before, after = (migration_bytes(root, ref, name) for ref in (source, target))
+            if hashlib.sha256(before).hexdigest() != digest or hashlib.sha256(after).hexdigest() != digest:
+                raise ValueError(reason + ':checksum:' + name)
+            if before != after:
+                raise ValueError(reason + ':bytes:' + name)
+    return len(original)
+
+
+def split_squash_bridge(root, contract, head, base, other, snapshot):
+    bridge = contract[BRIDGE_KEY]
+    if bridge != APPROVED_SPLIT_SQUASH_BRIDGE:
+        raise ValueError('unapproved_split_squash_provenance_bridge')
+    witness, source, common = (commit(root, bridge[key]) for key in
+                               ('mainWitnessSha', 'sourceWitnessSha', 'commonAncestorSha'))
+    for ref, key in ((witness, 'mainWitnessTree'), (source, 'sourceWitnessTree')):
+        if git(root, 'rev-parse', ref + '^{tree}').decode().strip() != bridge[key]:
+            raise ValueError('split_squash_witness_tree_mismatch:' + key)
+    ancestor(root, witness, head, 'split_squash_main_witness_not_candidate_ancestor')
+    # Preserve the old contract exactly as recorded on the actual main witness.
+    # Its additive bridge field cannot approve edits to the original scenario.
+    original_bytes = git(root, 'show', f'{witness}:{CONTRACT_REPOSITORY_PATH}')
+    if hashlib.sha256(original_bytes).hexdigest() != bridge['originalContractSha256']:
+        raise ValueError('split_squash_original_contract_checksum_mismatch')
+    if {key: value for key, value in contract.items() if key != BRIDGE_KEY} != json.loads(original_bytes):
+        raise ValueError('split_squash_original_contract_payload_mismatch')
+    for ref in (base, other, snapshot):
+        ancestor(root, ref, source, 'split_squash_original_not_source_witness_ancestor')
+    for ref in (base, other, snapshot, source, witness):
+        ancestor(root, common, ref, 'split_squash_common_ancestor_not_preserved')
+    # Bind the actual shared history, not merely a conveniently old commit.
+    if git(root, 'merge-base', source, witness).decode().strip() != common:
+        raise ValueError('split_squash_common_merge_base_mismatch')
+    for row in contract['earlierAbsentInputs']:
+        ancestor(root, commit(root, row['sourceCommit']), source,
+                 'split_squash_earlier_source_not_source_witness_ancestor')
+    base_count = preserved_inputs(root, base, (source,),
+                                  'split_squash_original_base_input_not_preserved')
+    other_count = preserved_inputs(root, other, (source,),
+                                   'split_squash_integrated_parent_input_not_preserved')
+    original_count = preserved_inputs(root, snapshot, (source, witness, head),
+                                      'split_squash_original_snapshot_input_not_preserved')
+    source_count = preserved_inputs(root, source, (witness, head),
+                                    'split_squash_source_witness_input_not_preserved')
+    return {**bridge, 'originalSnapshotSha': snapshot,
+            'originalSnapshotTree': contract['generatedFromTree'],
+            'originalBaseInputsPreserved': base_count,
+            'integratedParentInputsPreserved': other_count,
+            'originalSnapshotInputsPreserved': original_count,
+            'sourceWitnessInputsPreserved': source_count,
+            'ledgerClaim': 'NONE: exact historical source port, not a deployment ledger'}
 
 
 def noncanonical(root, head, committed, current):
@@ -68,10 +140,14 @@ def prepare(root, out, contract_path, candidate='HEAD'):
     base = commit(root, contract['baseSha'])
     other = commit(root, contract['integratedParentSha'])
     snapshot = commit(root, contract['generatedFromSha'])
-    for ref, reason in [(base, 'base_not_candidate_ancestor'),
-                        (other, 'integrated_parent_not_candidate_ancestor'),
-                        (snapshot, 'contract_snapshot_not_candidate_ancestor')]:
-        ancestor(root, ref, head, reason)
+    bridge = None
+    if BRIDGE_KEY in contract:
+        bridge = split_squash_bridge(root, contract, head, base, other, snapshot)
+    else:
+        for ref, reason in [(base, 'base_not_candidate_ancestor'),
+                            (other, 'integrated_parent_not_candidate_ancestor'),
+                            (snapshot, 'contract_snapshot_not_candidate_ancestor')]:
+            ancestor(root, ref, head, reason)
     if git(root, 'rev-parse', snapshot + '^{tree}').decode().strip() != contract['generatedFromTree']:
         raise ValueError('contract_snapshot_tree_mismatch')
     previous, current = manifest(root, base), manifest(root, head)
@@ -130,7 +206,9 @@ def prepare(root, out, contract_path, candidate='HEAD'):
         if current[name] != row['sha256']:
             raise ValueError('earlier_input_checksum_drift:' + name)
         source = commit(root, row['sourceCommit'])
-        ancestor(root, source, head, 'earlier_source_not_candidate_ancestor')
+        ancestor(root, source, bridge['sourceWitnessSha'] if bridge else head,
+                 'split_squash_earlier_source_not_source_witness_ancestor' if bridge
+                 else 'earlier_source_not_candidate_ancestor')
         if migration_bytes(root, source, name) != committed[name]:
             raise ValueError('earlier_source_bytes_mismatch:' + name)
     # Checksum-bound artifacts the canonical clean replay also excludes are not
@@ -156,9 +234,12 @@ def prepare(root, out, contract_path, candidate='HEAD'):
         'earlierAbsentInputs': len(earlier), 'pendingMigrations': rows,
         'excludedNoncanonical': excluded,
         'alreadyAppliedTxtSource': applied,
-        'provenance': 'actual committed branch ancestor and exact absent checksummed inputs; old source bytes preserved',
+        'provenance': ('original committed branch ported through pinned source/main witnesses; complete historical bytes preserved'
+                       if bridge else 'actual committed branch ancestor and exact absent checksummed inputs; old source bytes preserved'),
         'ledgerClaim': 'NONE: already-applied source execution is not an externally observed40446 deployment ledger',
     }
+    if bridge:
+        result[BRIDGE_KEY] = bridge
     (out / 'history-union-inputs.json').write_text(json.dumps(result, indent=2) + '\n')
     (out / 'history-union-inputs.list').write_text(''.join(row['path'] + '\n' for row in rows))
     return result

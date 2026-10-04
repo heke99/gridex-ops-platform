@@ -9801,6 +9801,7 @@ export type Database = {
       }
       company_invitations: {
         Row: {
+          accept_token_hash: string | null
           accepted_at: string | null
           cancelled_at: string | null
           company_id: string
@@ -9808,17 +9809,26 @@ export type Database = {
           created_by: string | null
           email: string
           expires_at: string | null
+          full_name: string | null
           id: string
           idempotency_key: string | null
           invitation_token: string | null
+          invited_by: string | null
+          invited_email: string | null
+          invited_user_id: string | null
+          membership_role: string | null
           metadata: Json
+          revoked_at: string | null
           role: string | null
           role_id: string | null
+          role_key: string | null
           status: string
+          token: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          accept_token_hash?: string | null
           accepted_at?: string | null
           cancelled_at?: string | null
           company_id: string
@@ -9826,17 +9836,26 @@ export type Database = {
           created_by?: string | null
           email: string
           expires_at?: string | null
+          full_name?: string | null
           id?: string
           idempotency_key?: string | null
           invitation_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_user_id?: string | null
+          membership_role?: string | null
           metadata?: Json
+          revoked_at?: string | null
           role?: string | null
           role_id?: string | null
+          role_key?: string | null
           status?: string
+          token?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          accept_token_hash?: string | null
           accepted_at?: string | null
           cancelled_at?: string | null
           company_id?: string
@@ -9844,13 +9863,21 @@ export type Database = {
           created_by?: string | null
           email?: string
           expires_at?: string | null
+          full_name?: string | null
           id?: string
           idempotency_key?: string | null
           invitation_token?: string | null
+          invited_by?: string | null
+          invited_email?: string | null
+          invited_user_id?: string | null
+          membership_role?: string | null
           metadata?: Json
+          revoked_at?: string | null
           role?: string | null
           role_id?: string | null
+          role_key?: string | null
           status?: string
+          token?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -20817,6 +20844,7 @@ export type Database = {
         Row: {
           acceptance_evidence: Json | null
           affected_contract_count: number
+          api_client_id: string | null
           approval_required: boolean
           company_id: string
           customer_id: string
@@ -20832,6 +20860,7 @@ export type Database = {
           recipient_email: string | null
           requested_at: string
           requested_by: string
+          source_channel: string
           status: string
           takeover_required: boolean
           takeover_snapshot: Json | null
@@ -20841,6 +20870,7 @@ export type Database = {
         Insert: {
           acceptance_evidence?: Json | null
           affected_contract_count?: number
+          api_client_id?: string | null
           approval_required: boolean
           company_id: string
           customer_id: string
@@ -20856,6 +20886,7 @@ export type Database = {
           recipient_email?: string | null
           requested_at?: string
           requested_by: string
+          source_channel?: string
           status: string
           takeover_required?: boolean
           takeover_snapshot?: Json | null
@@ -20865,6 +20896,7 @@ export type Database = {
         Update: {
           acceptance_evidence?: Json | null
           affected_contract_count?: number
+          api_client_id?: string | null
           approval_required?: boolean
           company_id?: string
           customer_id?: string
@@ -20880,6 +20912,7 @@ export type Database = {
           recipient_email?: string | null
           requested_at?: string
           requested_by?: string
+          source_channel?: string
           status?: string
           takeover_required?: boolean
           takeover_snapshot?: Json | null
@@ -20887,6 +20920,27 @@ export type Database = {
           token_hash?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
           {
             foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
             columns: ["company_id", "customer_id"]
@@ -75410,6 +75464,7 @@ export type Database = {
           last_test_result: Json | null
           last_tested_at: string | null
           public_jwk: Json | null
+          purpose: string
           subject_claim: string
           updated_at: string
           updated_by: string | null
@@ -75429,6 +75484,7 @@ export type Database = {
           last_test_result?: Json | null
           last_tested_at?: string | null
           public_jwk?: Json | null
+          purpose?: string
           subject_claim?: string
           updated_at?: string
           updated_by?: string | null
@@ -75448,6 +75504,7 @@ export type Database = {
           last_test_result?: Json | null
           last_tested_at?: string | null
           public_jwk?: Json | null
+          purpose?: string
           subject_claim?: string
           updated_at?: string
           updated_by?: string | null
@@ -77982,6 +78039,140 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
+      }
+      tenant_staff_assertion_replays: {
+        Row: {
+          company_id: string
+          expires_at: string
+          jti: string
+          seen_at: string
+        }
+        Insert: {
+          company_id: string
+          expires_at: string
+          jti: string
+          seen_at?: string
+        }
+        Update: {
+          company_id?: string
+          expires_at?: string
+          jti?: string
+          seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -93133,6 +93324,10 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_change_tenant_user_access_pre_staff_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       canonical_change_tenant_user_access_v1_unchecked: {
         Args: { p_command: Json }
         Returns: Json
@@ -93194,6 +93389,10 @@ export type Database = {
         Returns: Json
       }
       canonical_create_tenant_invitation: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_create_tenant_invitation_pre_staff_v1: {
         Args: { p_command: Json }
         Returns: Json
       }
@@ -96362,6 +96561,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      gridex_assert_staff_command_v1: {
+        Args: { p_command: Json; p_replay?: boolean }
+        Returns: undefined
+      }
       gridex_assert_supplier_switch_ready: {
         Args: { p_company_id: string; p_contract_id: string }
         Returns: Json
@@ -96523,6 +96726,17 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      gridex_assign_customer_case: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_assignee_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_source?: string
+        }
+        Returns: Json
       }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {
@@ -97288,6 +97502,21 @@ export type Database = {
           p_settlement_id: string
         }
         Returns: string
+      }
+      gridex_create_staff_support_case_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_category: string
+          p_company_id: string
+          p_customer_id: string
+          p_description: string
+          p_idempotency_key: string
+          p_metadata: Json
+          p_priority: string
+          p_title: string
+        }
+        Returns: Json
       }
       gridex_create_supplier_switch_v1: {
         Args: { p_company_id: string; p_event: Json; p_request: Json }
@@ -99727,6 +99956,90 @@ export type Database = {
         Args: { p_company_id: string; p_cutoff: string; p_environment: string }
         Returns: Json
       }
+      gridex_staff_active_membership_v1: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: {
+          is_active: boolean
+          membership_role: string
+          role_key: string
+          status: string
+          user_id: string
+        }[]
+      }
+      gridex_staff_actor_permissions_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_allow_platform?: boolean
+          p_company_id: string
+        }
+        Returns: string[]
+      }
+      gridex_staff_assert_write_actor_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_company_id: string
+          p_permission: string
+        }
+        Returns: undefined
+      }
+      gridex_staff_customer_id_for_reference_v1: {
+        Args: { p_company_id: string; p_reference: string }
+        Returns: string
+      }
+      gridex_staff_customer_search_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_type: string
+          p_page: number
+          p_page_size: number
+          p_query: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      gridex_staff_normalize_role_v1: {
+        Args: { p_role_key: string }
+        Returns: string
+      }
+      gridex_staff_permission_overrides_v1: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: {
+          effect: string
+          is_active: boolean
+          permission_key: string
+          status: string
+        }[]
+      }
+      gridex_staff_role_profile_v1: {
+        Args: { p_role_key: string }
+        Returns: string[]
+      }
+      gridex_staff_support_event: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_event_type: string
+          p_message: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
+      gridex_staff_update_customer_case_status: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_source?: string
+          p_message?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       gridex_stage_energy_geodata_feature: {
         Args: {
           p_feature_id: string
@@ -99887,6 +100200,19 @@ export type Database = {
           p_company_id: string
           p_expected_source?: string
           p_message?: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      gridex_update_customer_case_status_with_actor_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_channel: string
+          p_company_id: string
+          p_expected_source: string
+          p_message: string
           p_status: string
         }
         Returns: Json

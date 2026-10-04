@@ -15,7 +15,7 @@ function customerSupportCaseDetail(caseSchema) {
   }
 }
 
-function releaseManifestSchemas(version, minimumVersion) {
+function releaseManifestSchemas(version, minimumVersion, { includeStaff = false } = {}) {
   const contractVersion = { type: 'string', const: version }
   const dateTime = { type: 'string', format: 'date-time' }
   const compatibility = { type: 'string', enum: ['backward-compatible', 'breaking-client-update-required', 'breaking'] }
@@ -23,6 +23,7 @@ function releaseManifestSchemas(version, minimumVersion) {
     release_version: contractVersion,
     website_openapi_version: contractVersion,
     customer_portal_openapi_version: contractVersion,
+    ...(includeStaff ? { staff_openapi_version: contractVersion } : {}),
     runtime_contract_version: contractVersion,
     guide_version: contractVersion,
     released_at: dateTime,
@@ -42,10 +43,11 @@ function releaseManifestSchemas(version, minimumVersion) {
     specifications: {
       type: 'object',
       additionalProperties: false,
-      required: ['website', 'customer_portal'],
+      required: ['website', 'customer_portal', ...(includeStaff ? ['staff'] : [])],
       properties: {
         website: { $ref: '#/components/schemas/OpenApiReleaseSpecification' },
         customer_portal: { $ref: '#/components/schemas/OpenApiReleaseSpecification' },
+        ...(includeStaff ? { staff: { $ref: '#/components/schemas/OpenApiReleaseSpecification' } } : {}),
       },
     },
   }

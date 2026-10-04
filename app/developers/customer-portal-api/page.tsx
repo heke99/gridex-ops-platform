@@ -303,6 +303,7 @@ export default function CustomerPortalApiDocumentationPage() {
             <a className="block hover:text-slate-950" href="#customer-portal">Customer Portal</a>
             <a className="block hover:text-slate-950" href="#partner-api">Partner API</a>
             <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
+            <a className="block hover:text-slate-950" href="/developers/staff-api">Staff API</a>
             <a className="block hover:text-slate-950" href="#reliability">Reliability</a>
             <a className="block hover:text-slate-950" href="#errors">Errors</a>
             <a className="block hover:text-slate-950" href="#endpoints">Endpoint reference</a>

@@ -6,6 +6,7 @@ import {
   parsePublicJwk,
   tenantKeyAudience,
   tenantKeyIssuer,
+  identityProviderPurpose,
 } from '@/lib/customer-portal/identityProviderSetup'
 
 describe('Kundinloggning setup (P1c)', () => {
@@ -72,5 +73,20 @@ describe('migration 20261002080000', () => {
     expect(sql).toContain('REVOKE ALL ON TABLE public.tenant_customer_identity_providers FROM PUBLIC, anon, authenticated')
     expect(sql).toContain("enforcement text NOT NULL DEFAULT 'report'")
     expect(sql).not.toMatch(/\b(DROP|DELETE FROM|TRUNCATE)\b/)
+  })
+})
+
+describe('staff identity provider purpose', () => {
+  it('keeps customer defaults and requires an explicit valid purpose', () => {
+    expect(identityProviderPurpose('')).toBe('customer')
+    expect(identityProviderPurpose('customer')).toBe('customer')
+    expect(identityProviderPurpose('staff')).toBe('staff')
+    expect(() => identityProviderPurpose('platform')).toThrow(/syfte/)
+  })
+  it('isolates staff audience from customers and other companies', () => {
+    const a = '00000000-0000-4000-8000-00000000000a', b = '00000000-0000-4000-8000-00000000000b'
+    expect(tenantKeyAudience(a, 'staff')).toBe(`gridex-staff-api:${a}`)
+    expect(tenantKeyAudience(a, 'staff')).not.toBe(tenantKeyAudience(a))
+    expect(tenantKeyAudience(a, 'staff')).not.toBe(tenantKeyAudience(b, 'staff'))
   })
 })

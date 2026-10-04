@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { supabaseService } from '@/lib/supabase/service'
 import { tenantInsert, tenantSelect, tenantUpdate } from '@/lib/supabase/tenantQuery'
+import { buildPortalDatabasePage, decodePortalCursor, portalPageLimit } from '@/lib/customer-portal/keysetPagination'
 
 /**
  * Private support-case attachments with quarantine.
@@ -110,7 +111,7 @@ export async function addSupportAttachment(input: CaseScope & {
   fileName: string | null
   declaredMime: string | null
   visibility: 'customer' | 'internal'
-  uploadedBy: { kind: 'staff'; userId: string } | { kind: 'customer'; apiClientId: string | null }
+  uploadedBy: { kind: 'staff'; userId: string; apiClientId?: string } | { kind: 'customer'; apiClientId: string | null }
 }): Promise<SupportAttachmentRow> {
   if (input.bytes.length === 0) throw new SupportAttachmentError('attachment_empty', 'Filen är tom.')
   if (input.bytes.length > SUPPORT_ATTACHMENT_MAX_BYTES) {
@@ -142,7 +143,7 @@ export async function addSupportAttachment(input: CaseScope & {
     visibility: input.visibility,
     uploaded_by_kind: input.uploadedBy.kind,
     uploaded_by_user_id: input.uploadedBy.kind === 'staff' ? input.uploadedBy.userId : null,
-    api_client_id: input.uploadedBy.kind === 'customer' ? input.uploadedBy.apiClientId : null,
+    api_client_id: input.uploadedBy.apiClientId ?? null,
     scan_status: 'quarantined',
   }).select(COLUMNS).single()
   if (insert.error) {
@@ -171,6 +172,23 @@ export async function listSupportAttachments(scope: CaseScope & { audience: 'sta
   const { data, error } = await query.order('created_at', { ascending: true }).limit(100)
   if (error) throw error
   return (data ?? []) as unknown as SupportAttachmentRow[]
+}
+
+/** Addressable history for staff API clients; no silent fixed-size truncation. */
+export async function listSupportAttachmentsPage(scope: CaseScope & { audience: 'staff' | 'customer' }, input: { limit?: number | null; cursor?: string | null } = {}) {
+  const limit = portalPageLimit(input.limit)
+  const resource = `support_attachments:${scope.caseId}:${scope.audience}`
+  const cursor = decodePortalCursor({ cursor: input.cursor, companyId: scope.companyId, customerId: scope.customerId, resource })
+  let query = tenantSelect(scope.companyId, 'customer_case_attachments', COLUMNS)
+    .eq('customer_id', scope.customerId).eq('customer_case_id', scope.caseId)
+  if (scope.audience === 'customer') query = query.eq('visibility', 'customer').eq('scan_status', 'released')
+  if (cursor) query = query.or(`created_at.lt.${cursor.orderValue},and(created_at.eq.${cursor.orderValue},id.lt.${cursor.id})`)
+  const { data, error } = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1)
+  if (error) throw error
+  const page = buildPortalDatabasePage((data ?? []) as unknown as Array<SupportAttachmentRow & Record<string, unknown>>, {
+    limit, companyId: scope.companyId, customerId: scope.customerId, resource, orderColumn: 'created_at',
+  })
+  return { items: page.items, page: page.page }
 }
 
 /** Returns verified bytes of a released attachment, or refuses. */
