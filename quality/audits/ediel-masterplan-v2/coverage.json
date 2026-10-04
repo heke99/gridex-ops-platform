@@ -905,8 +905,19 @@
     {
       "id": "ENV-10",
       "acceptance_id": "AT-ENV-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/unsmGrammar.generated.json",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "__tests__/ediel-env10-family-release-locators.test.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-prodat-dependent-z06-product.test.ts",
+        "__tests__/ediel-prodat-characteristic-preflight.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts",
+        ".agent-memory/masterplan-env10-checkpoint.md"
+      ]
     },
     {
       "id": "ACK-10",
@@ -2184,8 +2195,19 @@
     },
     {
       "id": "AT-ENV-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/unsmGrammar.ts",
+        "lib/ediel/core/unsmGrammar.generated.json",
+        "lib/ediel/prodat/prodatCharacteristicFields.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "__tests__/ediel-env10-family-release-locators.test.ts",
+        "__tests__/ediel-unsm-grammar-consumers.test.ts",
+        "__tests__/ediel-prodat-dependent-z06-product.test.ts",
+        "__tests__/ediel-prodat-characteristic-preflight.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts",
+        ".agent-memory/masterplan-env10-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ACK-10",
