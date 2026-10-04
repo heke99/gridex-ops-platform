@@ -343,7 +343,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Bolagsnamn
-                <input
+                <input aria-label="Bolagsnamn"
                   name="actor_name"
                   defaultValue={runtime.actor?.actor_name ?? ""}
                   className={inputClassName()}
@@ -351,7 +351,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Leverantörens Ediel-id
-                <input
+                <input aria-label="Leverantörens Ediel-id"
                   name="actor_ediel_id"
                   defaultValue={runtime.actor?.actor_ediel_id ?? ""}
                   className={inputClassName()}
@@ -359,7 +359,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Balansansvarig Ediel-id
-                <input
+                <input aria-label="Balansansvarig Ediel-id"
                   name="balance_responsible_ediel_id"
                   defaultValue={agtActorNotes.balanceResponsibleEdielId ?? ""}
                   className={inputClassName()}
@@ -368,7 +368,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 PRODAT sender subaddress
-                <input
+                <input aria-label="PRODAT sender subaddress"
                   name="prodat_sender_sub_address"
                   defaultValue={
                     runtime.prodat.profile?.sender_sub_address ??
@@ -381,7 +381,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Sender name
-                <input
+                <input aria-label="Sender name"
                   name="sender_name"
                   defaultValue={
                     runtime.actor?.sender_name ??
@@ -393,7 +393,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Mailbox
-                <input
+                <input aria-label="Mailbox"
                   name="mailbox"
                   defaultValue={runtime.actor?.mailbox ?? "INBOX"}
                   className={inputClassName()}
@@ -401,7 +401,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 SMTP from email
-                <input
+                <input aria-label="SMTP from email"
                   name="smtp_from_email"
                   defaultValue={runtime.actor?.smtp_from_email ?? ""}
                   className={inputClassName()}
@@ -410,7 +410,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Reply-to
-                <input
+                <input aria-label="Reply-to"
                   name="smtp_reply_to_email"
                   defaultValue={runtime.actor?.smtp_reply_to_email ?? ""}
                   className={inputClassName()}
@@ -427,7 +427,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
             <div className="grid gap-3 md:grid-cols-2">
               <label className="text-sm text-slate-700">
                 Mottagare
-                <input
+                <input aria-label="Mottagare"
                   name="receiver_name"
                   defaultValue={
                     systemTestSettings?.testPortalName ?? "Edielportalen"
@@ -437,7 +437,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Testportal Ediel-ID
-                <input
+                <input aria-label="Testportal Ediel-ID"
                   name="receiver_ediel_id"
                   defaultValue={portalEdielId ?? ""}
                   className={inputClassName()}
@@ -446,7 +446,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 SMTP till testportal
-                <input
+                <input aria-label="SMTP till testportal"
                   name="target_email"
                   defaultValue={portalSmtp ?? ""}
                   className={inputClassName()}
@@ -455,7 +455,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 Receiver subaddress PRODAT
-                <input
+                <input aria-label="Receiver subaddress PRODAT"
                   name="receiver_sub_address"
                   defaultValue={receiverSubaddress ?? ""}
                   className={inputClassName()}
@@ -464,7 +464,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 PRODAT application reference
-                <input
+                <input aria-label="PRODAT application reference"
                   name="prodat_application_reference"
                   defaultValue={
                     runtime.prodat.profile?.application_reference ??
@@ -475,7 +475,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 PRODAT default version
-                <input
+                <input aria-label="PRODAT default version"
                   name="prodat_default_message_version"
                   defaultValue={
                     runtime.prodat.profile?.default_message_version ?? ""
@@ -486,7 +486,7 @@ export default async function EdielAgtPage({ searchParams }: PageProps) {
               </label>
               <label className="text-sm text-slate-700">
                 UTILTS default version
-                <input
+                <input aria-label="UTILTS default version"
                   name="utilts_default_message_version"
                   defaultValue={
                     runtime.utilts.profile?.default_message_version ?? ""

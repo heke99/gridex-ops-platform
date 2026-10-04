@@ -41,7 +41,7 @@ function formatDate(value: string | null | undefined): string {
 function reviewTone(status: EdielSafeApplyReviewItem['status']): 'slate' | 'emerald' | 'amber' | 'red' {
  if (status === 'applied') return 'emerald'
  if (status === 'rejected') return 'red'
- if (status === 'pending') return 'amber'
+ if (status === 'pending' || status === 'partially_applied') return 'amber'
  return 'slate'
 }
 
@@ -93,7 +93,8 @@ function ChangeTable({ item }: { item: EdielSafeApplyReviewItem }) {
 }
 
 function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
- const disabled = item.status !== 'pending'
+ const selectable=item.objectScopes.filter(object=>object.applied||object.applicationDecision==='accepted')
+ const disabled=selectable.length===0||item.status==='rejected'
 
  return (
  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -104,7 +105,6 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
  {item.message.message_family} {item.message.message_code}
  </h3>
  <Badge tone={reviewTone(item.status)}>{item.status}</Badge>
- <Badge tone="emerald">Batch 6C</Badge>
  </div>
  <p className="mt-1 text-sm text-slate-700">{item.summary}</p>
  <div className="mt-2 text-xs text-slate-700">
@@ -122,12 +122,13 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
 
  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]">
  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
- Safe apply skriver bara till whitelisted masterdatafält. Allt annat hoppas över och måste hanteras manuellt.
+ Tillämpningen bevarar daterad strukturhistorik från granskat original. Varje objekt prövas mot sin egen källbedömning; avvisade eller spärrade objekt ändras inte.
  </div>
  <form action={rejectEdielSafeApplyAction} className="flex gap-2">
  <input type="hidden" name="edielMessageId" value={item.message.id} />
  <input
  name="reason"
+ aria-label="Avvisningsorsak"
  placeholder="Avvisningsorsak"
  className="w-36 rounded-xl border border-slate-300 px-3 py-2 text-xs"
  disabled={disabled}
@@ -140,14 +141,26 @@ function SafeApplyCard({ item }: { item: EdielSafeApplyReviewItem }) {
  Avvisa
  </button>
  </form>
- <form action={approveEdielSafeApplyAction}>
+ <form action={approveEdielSafeApplyAction} className="space-y-3">
  <input type="hidden" name="edielMessageId" value={item.message.id} />
+ <input type="hidden" name="objectSelection" value="1" />
+ <fieldset disabled={disabled} className="space-y-2 rounded-xl border border-slate-200 p-3">
+ <legend className="px-1 text-xs font-semibold text-slate-900">Originalets egna objekt</legend>
+ {item.objectScopes.length===0?<p className="text-xs text-slate-700">Granska strukturunderlaget för att få en skyddad objektbedömning.</p>:item.objectScopes.map(object=>(
+ <label key={object.lineIndex} className="flex items-start gap-2 text-xs text-slate-800">
+ <input type="checkbox" name="objectLineIndex" value={object.lineIndex}
+ disabled={!object.applied&&object.applicationDecision!=='accepted'}
+ defaultChecked={object.applicationDecision==='accepted'&&(!object.applied||item.status==='applied')} className="mt-0.5 h-4 w-4"/>
+ <span className="break-all">{object.objectId??'Objekt-id saknas'} ({object.identityAgency??'identitetsauktoritet saknas'}) · {object.applied?'tillämpad':object.applicationDecision==='accepted'?'anvisningskontroll godkänd':object.applicationDecision==='rejected'?'avvisad':'spärrad'}</span>
+ </label>
+ ))}
+ </fieldset>
  <button
  type="submit"
  disabled={disabled}
  className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
  >
- Godkänn och applicera
+ {item.status==='applied'?'Kontrollera egna kvittenser':'Pröva och tillämpa valda objekt'}
  </button>
  </form>
  </div>

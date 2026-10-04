@@ -1,3 +1,4 @@
+import { readRegistryRouteSource } from '@/lib/actor-registry/registryMarketSource'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePlatformAdminAccess } from '@/lib/admin/guards'
 import { supabaseService } from '@/lib/supabase/service'
@@ -6,7 +7,7 @@ import { importPlatformActorsAction, refreshExpisoftReceiverCertificateAction, r
 export const dynamic = 'force-dynamic'
 
 type PageProps = {
-  searchParams?: Promise<{ role?: string; status?: string; q?: string }>
+  searchParams?: Promise<{ role?: string; status?: string; q?: string; market?: string }>
 }
 
 function actorStatusLabel(value: string | null | undefined) {
@@ -152,6 +153,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const marketActors = marketActorsResult.error ? [] : marketActorsResult.data ?? []
   const actorRoles = actorRolesResult.error ? [] : actorRolesResult.data ?? []
   const actorRoutes = actorRoutesResult.error ? [] : actorRoutesResult.data ?? []
+  const sourceEntries = await Promise.all(actorRoutes.map(async route => [route.id, await readRegistryRouteSource(route.id)] as const))
+  const routeSources = new Map(sourceEntries)
+  const sourceMarket = (routeId: string) => { const source = routeSources.get(routeId); return source?.status === 'source_qualified' ? source.market : null }
   const importIssues = importIssuesResult.error ? [] : importIssuesResult.data ?? []
   const messageRegler = semanticsResult.error ? [] : semanticsResult.data ?? []
   const importRuns = importRunsResult.error ? [] : importRunsResult.data ?? []
@@ -174,6 +178,9 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
     const actorId = String(route.actor_id ?? '')
     if (!actorId) continue
     const existing = routesByActor.get(actorId) ?? []
+    const source = routeSources.get(route.id)
+    const sourceMarket = source?.status === 'source_qualified' ? source.market : 'unknown'
+    if (params.market && params.market !== 'all' && params.market !== sourceMarket) continue
     existing.push(route)
     routesByActor.set(actorId, existing)
   }
@@ -186,7 +193,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
     const matchesQuery = !queryFilter || [actor.name, actor.org_number, actor.source, String(routeCount)]
       .filter(Boolean)
       .some((item) => String(item).toLowerCase().includes(queryFilter))
-    return matchesRole && matchesStatus && matchesQuery
+    return matchesRole && matchesStatus && matchesQuery && (!params.market || params.market === 'all' || routeCount > 0)
   })
 
   const verifiedGridOwners = parties.filter((party) => Array.isArray(party.roles) && party.roles.includes('grid_owner') && party.status === 'verified').length
@@ -195,7 +202,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
   const hiddenOrTestParties = parties.filter((party) => !party.visible_to_customer_flow || (Array.isArray(party.roles) && (party.roles.includes('ediel_portal') || party.roles.includes('test_counterparty')))).length
   const registryGridOwners = new Set(actorRoles.filter((role) => ['netowner', 'grid_owner', 'network_owner'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
   const registrySuppliers = new Set(actorRoles.filter((role) => ['powersupplier', 'electricity_supplier', 'supplier'].includes(String(role.actor_role ?? '').toLowerCase())).map((role) => role.actor_id)).size
-  const verifiedRegistryRoutes = actorRoutes.filter((route) => route.is_verified || route.status === 'verified' || route.status === 'active').length
+  const verifiedRegistryRoutes = actorRoutes.filter(route => sourceMarket(route.id) === 'EL' && (route.is_verified || route.status === 'verified' || route.status === 'active')).length
   const openImportIssues = importIssues.filter((issue) => issue.status !== 'resolved').length
 
   return (
@@ -313,7 +320,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
           </div>
           <form className="mt-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-4" action="/admin/ediel/actors">
             <label className="text-xs font-bold text-slate-700">Roll
-              <select name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Roll" name="role" defaultValue={roleFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla roller</option>
                 <option value="grid_owner">Nätägare</option>
                 <option value="electricity_supplier">Elleverantörer</option>
@@ -323,7 +330,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700">Status
-              <select name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+              <select aria-label="Status" name="status" defaultValue={statusFilter} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
                 <option value="all">Alla statusar</option>
                 <option value="active">Aktiv</option>
                 <option value="needs_review">Kräver granskning</option>
@@ -332,12 +339,17 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
               </select>
             </label>
             <label className="text-xs font-bold text-slate-700 md:col-span-1">Sök
-              <input name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
+              <input aria-label="Sök" name="q" defaultValue={params.q ?? ''} placeholder="Namn, org.nr, källa..." className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs" />
             </label>
             <div className="flex items-end gap-2">
               <button className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white">Filtrera</button>
               <a href="/admin/ediel/actors" className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700">Rensa</a>
             </div>
+            <label className="text-xs font-semibold text-slate-700">Källmarknad
+              <select aria-label="Källmarknad" name="market" defaultValue={params.market ?? 'all'} className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs">
+                <option value="all">Alla</option><option value="EL">EL</option><option value="GAS">GAS (spärrad)</option><option value="unknown">Källmarknad saknas</option>
+              </select>
+            </label>
             <div className="md:col-span-4 text-xs text-slate-600">Visar {filteredMarketActors.length} aktörer · filter: {roleFilterLabel(roleFilter)}</div>
           </form>
 
@@ -361,7 +373,7 @@ export default async function EdielActorsPage({ searchParams }: PageProps) {
                   <div className="mt-3 space-y-1 text-xs text-slate-700">
                     {routes.slice(0, 3).map((route) => (
                       <div key={route.id} className="rounded-xl border border-slate-200 bg-white px-2 py-1">
-                        {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {routeStatusLabel(route.status, route.is_verified)}
+                        {sourceMarket(route.id) ?? 'Källmarknad saknas'} · {route.message_family} · {route.environment} · {route.subaddress ?? 'ingen subadress'} · {routeStatusLabel(route.status, route.is_verified)}
                       </div>
                     ))}
                     {routes.length === 0 ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">Route saknas</div> : null}

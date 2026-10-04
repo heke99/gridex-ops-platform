@@ -44,6 +44,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -89,6 +91,8 @@ jobs:
       GRIDEX_E2E_BROWSER_PASSWORD: ${{ secrets.GRIDEX_E2E_BROWSER_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -141,6 +145,8 @@ jobs:
       GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE: ${{ vars.GRIDEX_E2E_K6_PUBLIC_CONTRACT_ROUTE }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Require k6 staging target
         shell: bash
         run: |
@@ -191,6 +197,8 @@ jobs:
       GRIDEX_E2E_K6_SOAK_DURATION: ${{ vars.GRIDEX_E2E_K6_SOAK_DURATION || '15m' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Require k6 soak staging target
         shell: bash
         run: |
@@ -230,6 +238,8 @@ jobs:
       GRIDEX_E2E_ZAP_TARGET: ${{ secrets.GRIDEX_E2E_BROWSER_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Require ZAP staging target
         shell: bash
         run: |

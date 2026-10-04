@@ -140,11 +140,11 @@ export default async function EdielRuleProfilesPage() {
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Version
-                <input name="version" placeholder="prodat_26a_review_1" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Version" name="version" placeholder="prodat_26a_review_1" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Standardfamilj
-                <select name="defaultFamily" defaultValue="PRODAT" className="mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal">
+                <select aria-label="Standardfamilj" name="defaultFamily" defaultValue="PRODAT" className="mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal">
                   <option value="PRODAT">PRODAT</option>
                   <option value="UTILTS">UTILTS</option>
                   <option value="APERAK">APERAK</option>
@@ -154,28 +154,28 @@ export default async function EdielRuleProfilesPage() {
               </label>
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Källdokument
-                <input name="sourceDocument" defaultValue="PRODAT 26.A / APERAK 16.B" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Källdokument" name="sourceDocument" defaultValue="PRODAT 26.A / APERAK 16.B" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Källversion
-                <input name="sourceVersion" placeholder="26.A / 16.B" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Källversion" name="sourceVersion" placeholder="26.A / 16.B" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Giltig från
-                <input name="validFrom" type="date" defaultValue="2026-04-01" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Giltig från" name="validFrom" type="date" defaultValue="2026-04-01" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
               <label className="text-xs font-black uppercase tracking-[0.14em] text-slate-600">
                 Källa internt
-                <input name="source" defaultValue="admin_field_matrix_import" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+                <input aria-label="Källa internt" name="source" defaultValue="admin_field_matrix_import" className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
               </label>
             </div>
             <label className="mt-3 block text-xs font-black uppercase tracking-[0.14em] text-slate-600">
               CSV/TSV-fil
-              <input name="matrixFile" type="file" accept=".csv,.tsv,.txt" className="mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal" />
+              <input aria-label="CSV/TSV-fil" name="matrixFile" type="file" accept=".csv,.tsv,.txt" className="mt-1 block w-full rounded-2xl border border-slate-300 bg-white px-3 py-2 text-sm normal-case tracking-normal" />
             </label>
             <label className="mt-3 block text-xs font-black uppercase tracking-[0.14em] text-slate-600">
               Eller klistra in från Excel
-              <textarea name="matrixText" rows={10} placeholder={'profile_key\tmessage_family\tmessage_code\tsegment\tqualifier\trequirement\tnote\nprodat_z15_permission_ended\tPRODAT\tZ15\tRFF\tZ09\trequired\tPermission id'} className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
+              <textarea aria-label="Eller klistra in från Excel" name="matrixText" rows={10} placeholder={'profile_key\tmessage_family\tmessage_code\tsegment\tqualifier\trequirement\tnote\nprodat_z15_permission_ended\tPRODAT\tZ15\tRFF\tZ09\trequired\tPermission id'} className="mt-1 block w-full rounded-2xl border border-slate-300 px-3 py-2 text-sm normal-case tracking-normal" />
             </label>
             <button type="submit" className="mt-5 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white hover:bg-emerald-800">Importera till review</button>
           </form>
