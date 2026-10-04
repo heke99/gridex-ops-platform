@@ -1140,3 +1140,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 SC-045 + SC-048 PASSED (wip). Observation: omvänd DTM+324-period accepteras positivt; bilaga2 s.130–131:s exakta E50-villkor finns inte i repo-källorna, så ingen gissad regel.
 - 2026-10-04 SC-044 + SC-047 PASSED (wip).
 - 2026-10-04 SC-031 + SC-034 PASSED (wip): befintliga P-02/P-17-tester taggade.
+- 2026-10-04 SC-035 + SC-037 PASSED (wip).

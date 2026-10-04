@@ -1,4 +1,4 @@
-// masterplan: P-10, AT-P-10
+// masterplan: P-10, AT-P-10, SC-035
 // Runs the focused PGlite Z02 correlation regression over the real
 // gridex_apply_exact_z02_core (20260930164947) and Z02 decoder.
 // Mechanics only; native replay remains the clean-replay job.
