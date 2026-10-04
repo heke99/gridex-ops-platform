@@ -1624,9 +1624,11 @@ export type Database = {
           id: string
           list_type: string
           metadata: Json
+          processing_decision_id: string | null
           raw_payload: string | null
           retention_until: string | null
           row_count: number
+          source_ediel_message_id: string | null
           status: string
           updated_at: string
         }
@@ -1643,9 +1645,11 @@ export type Database = {
           id?: string
           list_type: string
           metadata?: Json
+          processing_decision_id?: string | null
           raw_payload?: string | null
           retention_until?: string | null
           row_count?: number
+          source_ediel_message_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -1662,9 +1666,11 @@ export type Database = {
           id?: string
           list_type?: string
           metadata?: Json
+          processing_decision_id?: string | null
           raw_payload?: string | null
           retention_until?: string | null
           row_count?: number
+          source_ediel_message_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -1780,6 +1786,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_message_ack_state_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_list_imports_source_ediel_message_id_fkey"
+            columns: ["source_ediel_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_overdue_message_acks_v"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -29088,9 +29115,13 @@ export type Database = {
           customer_id: string
           end_date: string | null
           id: string
+          market_end_at: string | null
+          market_start_at: string | null
+          market_state_version: number
           metadata: Json
           metering_point_id: string
           source: string
+          source_end_message_id: string | null
           source_message_id: string | null
           source_process: string | null
           source_switch_request_id: string | null
@@ -29108,9 +29139,13 @@ export type Database = {
           customer_id: string
           end_date?: string | null
           id?: string
+          market_end_at?: string | null
+          market_start_at?: string | null
+          market_state_version?: number
           metadata?: Json
           metering_point_id: string
           source?: string
+          source_end_message_id?: string | null
           source_message_id?: string | null
           source_process?: string | null
           source_switch_request_id?: string | null
@@ -29128,9 +29163,13 @@ export type Database = {
           customer_id?: string
           end_date?: string | null
           id?: string
+          market_end_at?: string | null
+          market_start_at?: string | null
+          market_state_version?: number
           metadata?: Json
           metering_point_id?: string
           source?: string
+          source_end_message_id?: string | null
           source_message_id?: string | null
           source_process?: string | null
           source_switch_request_id?: string | null
@@ -29389,6 +29428,27 @@ export type Database = {
             columns: ["metering_point_id"]
             isOneToOne: false
             referencedRelation: "metering_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_supply_periods_source_end_message_id_fkey"
+            columns: ["source_end_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_message_ack_state_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_supply_periods_source_end_message_id_fkey"
+            columns: ["source_end_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_supply_periods_source_end_message_id_fkey"
+            columns: ["source_end_message_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_overdue_message_acks_v"
             referencedColumns: ["id"]
           },
           {
@@ -32671,6 +32731,45 @@ export type Database = {
           },
         ]
       }
+      ediel_assignment_permission_links: {
+        Row: {
+          assignment_id: string
+          company_id: string
+          created_at: string
+          id: string
+          permission_id: string
+        }
+        Insert: {
+          assignment_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          permission_id: string
+        }
+        Update: {
+          assignment_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          permission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_assignment_permission_links_company_id_assignment_id_fkey"
+            columns: ["company_id", "assignment_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_service_assignments"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "ediel_assignment_permission_links_company_id_permission_id_fkey"
+            columns: ["company_id", "permission_id"]
+            isOneToOne: false
+            referencedRelation: "metering_permissions"
+            referencedColumns: ["company_id", "id"]
+          },
+        ]
+      }
       ediel_brp_settings: {
         Row: {
           brp_ediel_id: string
@@ -33387,7 +33486,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string
-          due_at: string
+          due_at: string | null
           environment: string
           expected_case_reference: string | null
           expected_code: string
@@ -33404,7 +33503,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string
-          due_at: string
+          due_at?: string | null
           environment: string
           expected_case_reference?: string | null
           expected_code: string
@@ -33421,7 +33520,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string
-          due_at?: string
+          due_at?: string | null
           environment?: string
           expected_case_reference?: string | null
           expected_code?: string
@@ -35394,6 +35493,196 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      ediel_data_access_grants: {
+        Row: {
+          assignment_id: string
+          beneficiary_company_id: string
+          company_id: string
+          created_at: string
+          data_end: string | null
+          data_start: string
+          fields: string[]
+          id: string
+          object_ids: string[]
+          permission_link_id: string
+          product_ids: string[]
+          purpose: string
+          revoked_at: string | null
+          status: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          version: number
+        }
+        Insert: {
+          assignment_id: string
+          beneficiary_company_id: string
+          company_id: string
+          created_at?: string
+          data_end?: string | null
+          data_start: string
+          fields: string[]
+          id?: string
+          object_ids: string[]
+          permission_link_id: string
+          product_ids: string[]
+          purpose: string
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+          valid_from: string
+          valid_to?: string | null
+          version?: number
+        }
+        Update: {
+          assignment_id?: string
+          beneficiary_company_id?: string
+          company_id?: string
+          created_at?: string
+          data_end?: string | null
+          data_start?: string
+          fields?: string[]
+          id?: string
+          object_ids?: string[]
+          permission_link_id?: string
+          product_ids?: string[]
+          purpose?: string
+          revoked_at?: string | null
+          status?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_company_id_assignment_id_fkey"
+            columns: ["company_id", "assignment_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_service_assignments"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "ediel_data_access_grants_company_id_permission_link_id_fkey"
+            columns: ["company_id", "permission_link_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_assignment_permission_links"
+            referencedColumns: ["company_id", "id"]
           },
         ]
       }
@@ -37383,6 +37672,7 @@ export type Database = {
       }
       ediel_inbound_cases: {
         Row: {
+          applied_at: string | null
           assigned_to: string | null
           case_type: string
           company_id: string | null
@@ -37390,17 +37680,32 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           ediel_message_id: string | null
+          failure_reason: string | null
           id: string
+          match_confidence: number | null
+          message_code: string | null
+          message_family: string | null
           metadata: Json | null
           metering_point_id: string | null
+          parsed_contract: Json
+          parsed_customer: Json
+          parsed_metering_point: Json
+          parsed_production: Json
+          parsed_site: Json
           payload: Json
+          proposed_action: Json
+          review_decision: Json | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           site_id: string | null
           status: string
           switch_request_id: string | null
+          transaction_type: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          applied_at?: string | null
           assigned_to?: string | null
           case_type?: string
           company_id?: string | null
@@ -37408,17 +37713,32 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           ediel_message_id?: string | null
+          failure_reason?: string | null
           id?: string
+          match_confidence?: number | null
+          message_code?: string | null
+          message_family?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
+          parsed_contract?: Json
+          parsed_customer?: Json
+          parsed_metering_point?: Json
+          parsed_production?: Json
+          parsed_site?: Json
           payload?: Json
+          proposed_action?: Json
+          review_decision?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           site_id?: string | null
           status?: string
           switch_request_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          applied_at?: string | null
           assigned_to?: string | null
           case_type?: string
           company_id?: string | null
@@ -37426,13 +37746,27 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           ediel_message_id?: string | null
+          failure_reason?: string | null
           id?: string
+          match_confidence?: number | null
+          message_code?: string | null
+          message_family?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
+          parsed_contract?: Json
+          parsed_customer?: Json
+          parsed_metering_point?: Json
+          parsed_production?: Json
+          parsed_site?: Json
           payload?: Json
+          proposed_action?: Json
+          review_decision?: Json | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           site_id?: string | null
           status?: string
           switch_request_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -39773,6 +40107,7 @@ export type Database = {
           encrypted_payload_ref: string | null
           encryption_mode: string
           id: string
+          inbound_email_message_id: string | null
           metadata: Json
           payload_kind: string
           raw_payload: string | null
@@ -39797,6 +40132,7 @@ export type Database = {
           encrypted_payload_ref?: string | null
           encryption_mode?: string
           id?: string
+          inbound_email_message_id?: string | null
           metadata?: Json
           payload_kind?: string
           raw_payload?: string | null
@@ -39821,6 +40157,7 @@ export type Database = {
           encrypted_payload_ref?: string | null
           encryption_mode?: string
           id?: string
+          inbound_email_message_id?: string | null
           metadata?: Json
           payload_kind?: string
           raw_payload?: string | null
@@ -39944,6 +40281,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_message_payloads_inbound_email_message_id_fkey"
+            columns: ["inbound_email_message_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_email_messages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -40650,6 +40994,7 @@ export type Database = {
           id: string
           immutable_payload_hash: string | null
           immutable_rendered_at: string | null
+          inbound_email_message_id: string | null
           intent_id: string | null
           interchange_reference: string | null
           mailbox: string | null
@@ -40778,6 +41123,7 @@ export type Database = {
           id?: string
           immutable_payload_hash?: string | null
           immutable_rendered_at?: string | null
+          inbound_email_message_id?: string | null
           intent_id?: string | null
           interchange_reference?: string | null
           mailbox?: string | null
@@ -40906,6 +41252,7 @@ export type Database = {
           id?: string
           immutable_payload_hash?: string | null
           immutable_rendered_at?: string | null
+          inbound_email_message_id?: string | null
           intent_id?: string | null
           interchange_reference?: string | null
           mailbox?: string | null
@@ -41144,6 +41491,13 @@ export type Database = {
             columns: ["grid_owner_information_request_id"]
             isOneToOne: false
             referencedRelation: "grid_owner_information_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_messages_inbound_email_message_id_fkey"
+            columns: ["inbound_email_message_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_email_messages"
             referencedColumns: ["id"]
           },
           {
@@ -45776,6 +46130,778 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      ediel_service_assignments: {
+        Row: {
+          actor_profile_id: string
+          beneficiary_company_id: string
+          company_id: string
+          created_at: string
+          customer_id: string
+          data_end: string | null
+          data_start: string
+          dso_actor_id: string
+          environment: string
+          field_sets: string[]
+          id: string
+          mode: string
+          object_ids: string[]
+          product_ids: string[]
+          provider_actor_id: string
+          purpose: string
+          scope_basis_version: number | null
+          status: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          version: number
+        }
+        Insert: {
+          actor_profile_id: string
+          beneficiary_company_id: string
+          company_id: string
+          created_at?: string
+          customer_id: string
+          data_end?: string | null
+          data_start: string
+          dso_actor_id: string
+          environment: string
+          field_sets: string[]
+          id?: string
+          mode: string
+          object_ids: string[]
+          product_ids: string[]
+          provider_actor_id: string
+          purpose: string
+          scope_basis_version?: number | null
+          status?: string
+          updated_at?: string
+          valid_from: string
+          valid_to?: string | null
+          version?: number
+        }
+        Update: {
+          actor_profile_id?: string
+          beneficiary_company_id?: string
+          company_id?: string
+          created_at?: string
+          customer_id?: string
+          data_end?: string | null
+          data_start?: string
+          dso_actor_id?: string
+          environment?: string
+          field_sets?: string[]
+          id?: string
+          mode?: string
+          object_ids?: string[]
+          product_ids?: string[]
+          provider_actor_id?: string
+          purpose?: string
+          scope_basis_version?: number | null
+          status?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_beneficiary_company_id_fkey"
+            columns: ["beneficiary_company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_actor_profile_id_fkey"
+            columns: ["company_id", "actor_profile_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_ediel_profiles"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_customer_id_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "company_customer_list_summary_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_customer_id_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_ops_master_readiness_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_customer_id_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_customer_id_fkey"
+            columns: ["company_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_data_cleanup_customer_candidates_v"
+            referencedColumns: ["company_id", "customer_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_electricity_scope_classification_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_readiness_status"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "grid_owner_supplier_switch_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_verification_status_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_readiness_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "non_electricity_actor_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "platform_market_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_dso_actor_id_fkey"
+            columns: ["dso_actor_id"]
+            isOneToOne: false
+            referencedRelation: "system_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_electricity_scope_classification_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_readiness_status"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "grid_owner_supplier_switch_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_verification_status_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_readiness_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "non_electricity_actor_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "platform_market_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_assignments_provider_actor_id_fkey"
+            columns: ["provider_actor_id"]
+            isOneToOne: false
+            referencedRelation: "system_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+        ]
+      }
+      ediel_service_evidence: {
+        Row: {
+          approved_assignment_version: number | null
+          approved_at: string | null
+          approved_by: string | null
+          assignment_id: string
+          company_id: string
+          created_at: string
+          id: string
+          kind: string
+          permission_agreement_reference: string | null
+          permission_customer_classification: string | null
+          permission_network_contract_end: string | null
+          permission_network_contract_start: string | null
+          permission_purpose_code: string | null
+          permission_reporting_frequency: string | null
+          permission_reporting_term_kind: string | null
+          permission_request_grid_area: string | null
+          permission_requested_method: string | null
+          permission_termination_at: string | null
+          permission_termination_reason: string | null
+          source_reference: string
+          source_sha256: string
+          source_version: string
+          status: string
+          transport_actor_id: string | null
+          transport_relation_id: string | null
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          approved_assignment_version?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assignment_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          permission_agreement_reference?: string | null
+          permission_customer_classification?: string | null
+          permission_network_contract_end?: string | null
+          permission_network_contract_start?: string | null
+          permission_purpose_code?: string | null
+          permission_reporting_frequency?: string | null
+          permission_reporting_term_kind?: string | null
+          permission_request_grid_area?: string | null
+          permission_requested_method?: string | null
+          permission_termination_at?: string | null
+          permission_termination_reason?: string | null
+          source_reference: string
+          source_sha256: string
+          source_version: string
+          status?: string
+          transport_actor_id?: string | null
+          transport_relation_id?: string | null
+          valid_from: string
+          valid_to?: string | null
+        }
+        Update: {
+          approved_assignment_version?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          assignment_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          permission_agreement_reference?: string | null
+          permission_customer_classification?: string | null
+          permission_network_contract_end?: string | null
+          permission_network_contract_start?: string | null
+          permission_purpose_code?: string | null
+          permission_reporting_frequency?: string | null
+          permission_reporting_term_kind?: string | null
+          permission_request_grid_area?: string | null
+          permission_requested_method?: string | null
+          permission_termination_at?: string | null
+          permission_termination_reason?: string | null
+          source_reference?: string
+          source_sha256?: string
+          source_version?: string
+          status?: string
+          transport_actor_id?: string | null
+          transport_relation_id?: string | null
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_service_evidence_company_id_assignment_id_fkey"
+            columns: ["company_id", "assignment_id"]
+            isOneToOne: false
+            referencedRelation: "ediel_service_assignments"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_electricity_scope_classification_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "actor_readiness_status"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "electricity_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "grid_owner_supplier_switch_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_grid_owner_verification_status_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_route_readiness_v"
+            referencedColumns: ["actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "non_electricity_actor_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "platform_market_actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_actor_id_fkey"
+            columns: ["transport_actor_id"]
+            isOneToOne: false
+            referencedRelation: "system_supplier_readiness_v"
+            referencedColumns: ["platform_market_actor_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_evidence_transport_relation_id_fkey"
+            columns: ["transport_relation_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_counterparty_relations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ediel_service_history: {
+        Row: {
+          after_record: Json
+          before_record: Json | null
+          company_id: string
+          entity_id: string
+          entity_table: string
+          id: number
+          recorded_at: string
+        }
+        Insert: {
+          after_record: Json
+          before_record?: Json | null
+          company_id: string
+          entity_id: string
+          entity_table: string
+          id?: never
+          recorded_at?: string
+        }
+        Update: {
+          after_record?: Json
+          before_record?: Json | null
+          company_id?: string
+          entity_id?: string
+          entity_table?: string
+          id?: never
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ediel_service_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       ediel_sla_timers: {
         Row: {
@@ -53152,6 +54278,8 @@ export type Database = {
       }
       inbound_email_messages: {
         Row: {
+          ai_processing_actor_user_id: string | null
+          ai_processing_decision_id: string | null
           body_html: string | null
           body_text: string | null
           company_id: string | null
@@ -53187,6 +54315,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ai_processing_actor_user_id?: string | null
+          ai_processing_decision_id?: string | null
           body_html?: string | null
           body_text?: string | null
           company_id?: string | null
@@ -53222,6 +54352,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ai_processing_actor_user_id?: string | null
+          ai_processing_decision_id?: string | null
           body_html?: string | null
           body_text?: string | null
           company_id?: string | null
@@ -59049,6 +60181,7 @@ export type Database = {
           company_id: string
           created_at: string
           customer_id: string
+          end_at: string | null
           end_date: string | null
           facility_id: string | null
           grid_area_code: string | null
@@ -59056,7 +60189,9 @@ export type Database = {
           metadata: Json
           metering_permission_id: string
           metering_point_id: string | null
+          permission_end_at: string | null
           site_id: string | null
+          start_at: string | null
           start_date: string | null
           status: string
           updated_at: string
@@ -59065,6 +60200,7 @@ export type Database = {
           company_id: string
           created_at?: string
           customer_id: string
+          end_at?: string | null
           end_date?: string | null
           facility_id?: string | null
           grid_area_code?: string | null
@@ -59072,7 +60208,9 @@ export type Database = {
           metadata?: Json
           metering_permission_id: string
           metering_point_id?: string | null
+          permission_end_at?: string | null
           site_id?: string | null
+          start_at?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -59081,6 +60219,7 @@ export type Database = {
           company_id?: string
           created_at?: string
           customer_id?: string
+          end_at?: string | null
           end_date?: string | null
           facility_id?: string | null
           grid_area_code?: string | null
@@ -59088,7 +60227,9 @@ export type Database = {
           metadata?: Json
           metering_permission_id?: string
           metering_point_id?: string | null
+          permission_end_at?: string | null
           site_id?: string | null
+          start_at?: string | null
           start_date?: string | null
           status?: string
           updated_at?: string
@@ -59273,7 +60414,9 @@ export type Database = {
       }
       metering_permissions: {
         Row: {
+          approved_end_at: string | null
           approved_end_date: string | null
+          approved_start_at: string | null
           approved_start_date: string | null
           authorization_document_id: string | null
           case_reference: string | null
@@ -59289,6 +60432,7 @@ export type Database = {
           inbound_z14_message_id: string | null
           inbound_z15_message_id: string | null
           last_blocker: string | null
+          market_state_version: number
           metadata: Json
           metering_point_id: string | null
           outbound_z13_message_id: string | null
@@ -59313,7 +60457,9 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          approved_end_at?: string | null
           approved_end_date?: string | null
+          approved_start_at?: string | null
           approved_start_date?: string | null
           authorization_document_id?: string | null
           case_reference?: string | null
@@ -59329,6 +60475,7 @@ export type Database = {
           inbound_z14_message_id?: string | null
           inbound_z15_message_id?: string | null
           last_blocker?: string | null
+          market_state_version?: number
           metadata?: Json
           metering_point_id?: string | null
           outbound_z13_message_id?: string | null
@@ -59353,7 +60500,9 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          approved_end_at?: string | null
           approved_end_date?: string | null
+          approved_start_at?: string | null
           approved_start_date?: string | null
           authorization_document_id?: string | null
           case_reference?: string | null
@@ -59369,6 +60518,7 @@ export type Database = {
           inbound_z14_message_id?: string | null
           inbound_z15_message_id?: string | null
           last_blocker?: string | null
+          market_state_version?: number
           metadata?: Json
           metering_point_id?: string | null
           outbound_z13_message_id?: string | null
@@ -62082,11 +63232,16 @@ export type Database = {
       }
       outbound_requests: {
         Row: {
+          ack_policy: Json
           acknowledged_at: string | null
+          agreement_id: string | null
+          application_reference: string | null
           attempts_count: number
           authorization_document_id: string | null
           automation_key: string | null
           automation_origin: string | null
+          blocking_reasons: Json
+          business_process: string | null
           channel_type: string
           communication_route_id: string | null
           company_id: string | null
@@ -62096,12 +63251,18 @@ export type Database = {
           customer_id: string | null
           customer_site_id: string | null
           dispatch_batch_key: string | null
+          ediel_route_profile_id: string | null
           external_reference: string | null
           failed_at: string | null
           failure_reason: string | null
+          grid_owner_access_agreement_id: string | null
           grid_owner_id: string | null
           grid_owner_information_request_id: string | null
           id: string
+          message_code: string | null
+          message_family: string | null
+          message_intent: string | null
+          message_version: string | null
           metadata: Json | null
           metering_point_id: string | null
           operation_id: string | null
@@ -62110,8 +63271,14 @@ export type Database = {
           period_start: string | null
           prepared_at: string | null
           queued_at: string
+          receiver_ediel_id: string | null
+          receiver_sub_address: string | null
           request_type: string
+          required_admin_actions: Json
           response_payload: Json
+          route_decision_payload: Json
+          sender_ediel_id: string | null
+          sender_sub_address: string | null
           sent_at: string | null
           site_id: string | null
           source_id: string | null
@@ -62121,11 +63288,16 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          ack_policy?: Json
           acknowledged_at?: string | null
+          agreement_id?: string | null
+          application_reference?: string | null
           attempts_count?: number
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          blocking_reasons?: Json
+          business_process?: string | null
           channel_type?: string
           communication_route_id?: string | null
           company_id?: string | null
@@ -62135,12 +63307,18 @@ export type Database = {
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
+          ediel_route_profile_id?: string | null
           external_reference?: string | null
           failed_at?: string | null
           failure_reason?: string | null
+          grid_owner_access_agreement_id?: string | null
           grid_owner_id?: string | null
           grid_owner_information_request_id?: string | null
           id?: string
+          message_code?: string | null
+          message_family?: string | null
+          message_intent?: string | null
+          message_version?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           operation_id?: string | null
@@ -62149,8 +63327,14 @@ export type Database = {
           period_start?: string | null
           prepared_at?: string | null
           queued_at?: string
+          receiver_ediel_id?: string | null
+          receiver_sub_address?: string | null
           request_type: string
+          required_admin_actions?: Json
           response_payload?: Json
+          route_decision_payload?: Json
+          sender_ediel_id?: string | null
+          sender_sub_address?: string | null
           sent_at?: string | null
           site_id?: string | null
           source_id?: string | null
@@ -62160,11 +63344,16 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          ack_policy?: Json
           acknowledged_at?: string | null
+          agreement_id?: string | null
+          application_reference?: string | null
           attempts_count?: number
           authorization_document_id?: string | null
           automation_key?: string | null
           automation_origin?: string | null
+          blocking_reasons?: Json
+          business_process?: string | null
           channel_type?: string
           communication_route_id?: string | null
           company_id?: string | null
@@ -62174,12 +63363,18 @@ export type Database = {
           customer_id?: string | null
           customer_site_id?: string | null
           dispatch_batch_key?: string | null
+          ediel_route_profile_id?: string | null
           external_reference?: string | null
           failed_at?: string | null
           failure_reason?: string | null
+          grid_owner_access_agreement_id?: string | null
           grid_owner_id?: string | null
           grid_owner_information_request_id?: string | null
           id?: string
+          message_code?: string | null
+          message_family?: string | null
+          message_intent?: string | null
+          message_version?: string | null
           metadata?: Json | null
           metering_point_id?: string | null
           operation_id?: string | null
@@ -62188,8 +63383,14 @@ export type Database = {
           period_start?: string | null
           prepared_at?: string | null
           queued_at?: string
+          receiver_ediel_id?: string | null
+          receiver_sub_address?: string | null
           request_type?: string
+          required_admin_actions?: Json
           response_payload?: Json
+          route_decision_payload?: Json
+          sender_ediel_id?: string | null
+          sender_sub_address?: string | null
           sent_at?: string | null
           site_id?: string | null
           source_id?: string | null
@@ -63693,6 +64894,7 @@ export type Database = {
           party_id: string | null
           party_id_qualifier: string | null
           party_id_responsible: string | null
+          registry_market: string | null
           requires_poa: boolean
           source: string
           status: string
@@ -63720,6 +64922,7 @@ export type Database = {
           party_id?: string | null
           party_id_qualifier?: string | null
           party_id_responsible?: string | null
+          registry_market?: string | null
           requires_poa?: boolean
           source?: string
           status?: string
@@ -63747,6 +64950,7 @@ export type Database = {
           party_id?: string | null
           party_id_qualifier?: string | null
           party_id_responsible?: string | null
+          registry_market?: string | null
           requires_poa?: boolean
           source?: string
           status?: string
@@ -92356,6 +93560,2518 @@ export type Database = {
           dry_run: boolean
         }[]
       }
+      ediel_advance_permission_deadlines_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id?: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
+      ediel_advance_supply_deadlines_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_limit?: number
+        }
+        Returns: Json
+      }
+      ediel_ai_bi_processing_decision_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_list_type: string
+        }
+        Returns: Json
+      }
+      ediel_ai_export_decision_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      ediel_ai_outbound_party_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_actor_registry_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_records: Json
+          p_source_base64: string
+          p_source_filename: string
+          p_source_kind: string
+          p_source_sha256: string
+        }
+        Returns: Json
+      }
+      ediel_apply_customer_before_bilateral_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_customer_life_event_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_permission_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_permission_id?: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_reviewed_customer_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_reviewed_structure_objects_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_object_line_indices?: number[]
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_reviewed_structure_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_apply_supply_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_archive_ai_purpose_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_bilateral_customer_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_bilateral_prodat_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_contract_original_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_environment: string
+          p_kind: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_network_registry_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_regulated_supply_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_requested_change_source_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_requested_change_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_requested_customer_change_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_service_evidence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_signed_brp_declaration_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_archive_supply_rescission_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_submission: Json
+        }
+        Returns: Json
+      }
+      ediel_begin_blob_purge_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_begin_customer_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_begin_invoice_file_purge_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_beneficiary_series_page_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_after_at?: string
+          p_after_id?: string
+          p_beneficiary_company_id: string
+          p_end: string
+          p_expected_grant_version: number
+          p_fields: string[]
+          p_grant_id: string
+          p_limit?: number
+          p_purpose: string
+          p_series_id: string
+          p_start: string
+        }
+        Returns: Json
+      }
+      ediel_bilateral_prodat_ground_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_selector: Json
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_correction_before_brp_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_correction_before_method_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_correction_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_original_before_brp_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_original_before_method_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_bind_switch_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_brp_change_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_brp_change_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_brp_field_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_at: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_environment: string
+          p_period_id: string
+          p_point_id: string
+          p_site_id: string
+        }
+        Returns: Json
+      }
+      ediel_brp_responsibility_history_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_supply_period_id: string
+        }
+        Returns: Json
+      }
+      ediel_capture_customer_record_retention_origin_v1: {
+        Args: { p_new: Json; p_old: Json; p_table: string }
+        Returns: boolean
+      }
+      ediel_capture_source_rule_pack_basis_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_capture_technical_syntax_ack_basis_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_capture_technical_syntax_ack_basis_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_phase: string
+        }
+        Returns: Json
+      }
+      ediel_commit_duplicate_103_response_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_draft: Json
+          p_inbound_email_message_id: string
+          p_smtp: Json
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_compare_and_set_prodat_object_case_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_fingerprint: string
+          p_expected_revision: number
+          p_expected_status: string
+          p_expected_updated_at: string
+          p_patch: Json
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_confirmed_customer_snapshot_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_readset_hash: string
+          p_site_id: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      ediel_confirmed_customer_snapshot_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_readset_hash: string
+          p_site_id: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      ediel_consume_prodat_mixed_reply_v1: {
+        Args: {
+          p_acknowledgement_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_consume_prodat_retry_authorization_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_new_attempt_id: string
+          p_operation_id: string
+          p_previous_attempt_id: string
+        }
+        Returns: boolean
+      }
+      ediel_contract_intake_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_environment: string
+          p_kind: string
+        }
+        Returns: Json
+      }
+      ediel_contract_metering_request_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      ediel_contract_retention_storage_target_v1: {
+        Args: { p_path: string }
+        Returns: boolean[]
+      }
+      ediel_coordinate_service_permission_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assignment_id: string
+          p_command: string
+          p_expected_version: number
+          p_provider_company_id: string
+        }
+        Returns: Json
+      }
+      ediel_create_bilateral_prodat_original_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_draft: Json }
+        Returns: Json
+      }
+      ediel_create_national_supply_rescission_original_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_draft: Json }
+        Returns: Json
+      }
+      ediel_create_outbound_ack_atomic_v1: {
+        Args: {
+          p_ack_family: string
+          p_actor_user_id: string
+          p_common_smtp?: Json
+          p_company_id: string
+          p_draft: Json
+          p_environment: string
+          p_outcome: string
+          p_sequence_field: string
+          p_sequence_value: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      ediel_create_outbound_ack_scope_atomic_v2: {
+        Args: {
+          p_ack_family: string
+          p_actor_user_id: string
+          p_common_smtp?: Json
+          p_company_id: string
+          p_draft: Json
+          p_environment: string
+          p_outcome: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      ediel_current_retention_companies_v1: { Args: never; Returns: Json }
+      ediel_current_retention_session_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
+      ediel_customer_event_certification_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_expected_outcome: string
+          p_raw_payload: string
+          p_run_id: string
+          p_step_no: number
+        }
+        Returns: Json
+      }
+      ediel_customer_event_certification_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_run_id: string
+          p_step_no: number
+        }
+        Returns: Json
+      }
+      ediel_customer_event_certification_preparation_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_raw_payload: string
+          p_run_id: string
+          p_step_no: number
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_boundaries_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_from: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_brp_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_committed_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_export_at_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_as_of: string
+          p_company_id: string
+          p_customer_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_export_projection_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_inbound_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_patches_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_cutoff?: string
+          p_from: string
+          p_to: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_recovery_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_life_event_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_masterdata_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_customer_record_retention_targets_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_limit?: number
+          p_retention_class: string
+        }
+        Returns: Json
+      }
+      ediel_customer_record_tombstones_v1: {
+        Args: { p_company_id: string; p_customer_id: string }
+        Returns: Json
+      }
+      ediel_finance_copy_retention_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_finish_blob_storage_purge_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_finish_contract_document_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_finish_invoice_file_purge_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_fresh_business_incident_access_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
+      ediel_inbound_reception_request_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_inbound_email_message_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_invoice_file_locator_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_invoice_file_retention_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_invoice_file_storage_delete_target_v1: {
+        Args: { p_bucket: string; p_path: string }
+        Returns: boolean
+      }
+      ediel_is_duplicate_protocol_ack_v1: {
+        Args: { p_ack_id: string }
+        Returns: boolean
+      }
+      ediel_is_qualified_customer_record_transition_v1: {
+        Args: { p_new: Json; p_old: Json; p_table: string }
+        Returns: boolean
+      }
+      ediel_is_qualified_finance_retention_transition_v1: {
+        Args: { p_new: Json; p_old: Json; p_schema: string; p_table: string }
+        Returns: boolean
+      }
+      ediel_is_qualified_process_retention_transition_v1: {
+        Args: { p_new: Json; p_old: Json; p_table: string }
+        Returns: boolean
+      }
+      ediel_is_qualified_retention_transition_v1: {
+        Args: {
+          newrow: Database["public"]["Tables"]["ediel_messages"]["Row"]
+          oldrow: Database["public"]["Tables"]["ediel_messages"]["Row"]
+        }
+        Returns: boolean
+      }
+      ediel_list_business_acks_for_source_v1: {
+        Args: {
+          p_ack_family?: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment?: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_list_contract_original_sources_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_contract_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_change_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_change_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_change_send_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_change_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_recovery_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_metering_method_recovery_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_originate_requested_change_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_route: Json
+        }
+        Returns: Json
+      }
+      ediel_originate_requested_change_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_route: Json
+        }
+        Returns: Json
+      }
+      ediel_permission_source_is_current_v1: {
+        Args: {
+          p_company_id: string
+          p_permission_id: string
+          p_source_z14_message_id: string
+        }
+        Returns: boolean
+      }
+      ediel_prepare_bilateral_prodat_closure_operation_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_effective_at: string
+          p_supply_period_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_common_header_negative_ack_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_raw_payload: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_common_header_negative_ack_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_raw_payload: string
+          p_smtp_from: string
+          p_smtp_host: string
+          p_smtp_port: number
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_customer_masterdata_recovery_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_operation_id: string
+          p_route_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_customer_masterdata_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_as_of: string
+          p_company_id: string
+          p_customer_id: string
+          p_environment?: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_duplicate_103_response_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_inbound_email_message_id: string
+          p_smtp: Json
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_outbound_owner_witness_v1: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      ediel_prepare_prodat_recovery_references_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_corrected_raw_payload: string
+          p_operation_id: string
+          p_original_message_id: string
+          p_source_ack_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prepare_prodat_recovery_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_corrected_raw_payload?: string
+          p_operation_id: string
+          p_original_message_id: string
+          p_previous_attempt_id?: string
+          p_source_ack_message_id?: string
+        }
+        Returns: Json
+      }
+      ediel_probe_source_rule_pack_capture_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_process_journal_retention_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_process_journal_tombstoned_v1: {
+        Args: {
+          p_company_id: string
+          p_retention_class: string
+          p_source_hash: string
+          p_target_id: string
+        }
+        Returns: boolean
+      }
+      ediel_process_prodat_mixed_z04_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prodat_recovery_operation_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_prodat_recovery_original_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_prodat_recovery_workspace_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id?: string
+        }
+        Returns: Json
+      }
+      ediel_prodat_retry_outbox_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_outbox_id: string
+        }
+        Returns: Json
+      }
+      ediel_production_contract_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_production_contract_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_project_accepted_source_state_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_expected_original_hash: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_project_supply_end_followup_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_effect_receipt_id: string
+        }
+        Returns: Json
+      }
+      ediel_pseudonymise_customer_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_publish_customer_event_certification_v1: {
+        Args: {
+          p_classification_original: string
+          p_context: Json
+          p_workbook_original: string
+        }
+        Returns: string
+      }
+      ediel_publish_transport_exception_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_approval_original: string
+          p_company_id: string
+          p_message_id: string
+          p_source_original: string
+        }
+        Returns: string
+      }
+      ediel_purge_artifact_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_purge_decision_evidence_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+        }
+        Returns: Json
+      }
+      ediel_purge_finance_copy_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_purge_process_journal_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_bilateral_prodat_outbound_draft_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_raw_payload: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_bilateral_prodat_switch_preparation_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_brp_source_candidate_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_at: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_environment: string
+          p_period_id: string
+          p_point_id: string
+          p_readset_hash: string
+          p_site_id: string
+          p_snapshot_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_persisted_prodat_outbound_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_supply_rescission_draft_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_mandate_id: string
+          p_raw_payload: string
+        }
+        Returns: Json
+      }
+      ediel_qualify_supply_rescission_prepared_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_queue_prodat_retry_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_actor_registry_batch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_source_base64: string
+          p_source_kind: string
+          p_source_sha256: string
+        }
+        Returns: Json
+      }
+      ediel_read_ai_purpose_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_bilateral_customer_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_bilateral_prodat_closure_operation_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_operation_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_bilateral_prodat_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_bilateral_prodat_outbound_original_v1:
+        | {
+            Args: {
+              p_actor_user_id: string
+              p_company_id: string
+              p_message_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: { p_company_id: string; p_message_id: string }
+            Returns: Json
+          }
+      ediel_read_blob_retention_decision_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_include_document?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_business_ack_status_v1: {
+        Args: {
+          p_ack_family?: string
+          p_actor_user_id: string
+          p_company_id?: string
+          p_environment?: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_common_header_negative_ack_route_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_smtp_from: string
+          p_smtp_host: string
+          p_smtp_port: number
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_common_header_negative_ack_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      ediel_read_completed_prodat_object_batch_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_decisions: Json
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_contract_original_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_customer_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_decision_evidence_policy_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_include_document?: boolean
+          p_policy_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_dsn_source_observations_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_finance_copy_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_fresh_business_incident_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_incident_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_inbound_prodat_physical_outcomes_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_invoice_file_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_invoice_file_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_network_registry_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_outbound_ack_replay_v1: {
+        Args: {
+          p_ack_family: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_sequence_field?: string
+          p_sequence_value?: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_outbound_ack_scope_replay_v2: {
+        Args: {
+          p_ack_family: string
+          p_ack_raw_payload: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      ediel_read_outbound_ack_source_rule_pack_basis_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      ediel_read_persisted_technical_contrl_basis_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      ediel_read_persisted_technical_contrl_basis_v2: {
+        Args: {
+          p_ack_message_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_phase: string
+        }
+        Returns: Json
+      }
+      ediel_read_process_journal_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_application_objects_v1: {
+        Args: { p_company_id: string; p_source_message_id: string }
+        Returns: Json
+      }
+      ediel_read_prodat_bilateral_source_capability_v1: {
+        Args: { p_company_id: string; p_source_message_id: string }
+        Returns: Json
+      }
+      ediel_read_prodat_common_header_rejection_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_mixed_reply_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_object_batch_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_prodat_structural_final_response_v1: {
+        Args: {
+          p_company_id: string
+          p_object_line_indices?: number[]
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_received_err_application_response_authority_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_registry_preview_snapshot_v1: {
+        Args: { p_actor_user_id: string; p_ediel_ids: string[] }
+        Returns: Json
+      }
+      ediel_read_regulated_supply_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_requested_change_artifact_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_requested_change_artifact_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_requested_customer_change_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_retention_decision_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_include_document?: boolean
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_service_evidence_archive_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_signed_brp_declaration_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_source_rule_pack_basis_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_read_source_supply_at_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_at: string
+          p_company_id: string
+          p_period_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_source_supply_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_end: string
+          p_period_id: string
+          p_start: string
+        }
+        Returns: Json
+      }
+      ediel_read_structural_effect_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assessment_id: string
+          p_at: string
+          p_company_id: string
+          p_customer_id: string
+          p_environment: string
+          p_identity_agency: string
+          p_object_id: string
+          p_period_id: string
+          p_point_id: string
+          p_readset_hash: string
+          p_site_id: string
+          p_snapshot_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_supply_rescission_artifact_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_include_bytes?: boolean
+        }
+        Returns: Json
+      }
+      ediel_read_supply_rescission_mandate_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_mandate_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_supply_rescission_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_technical_source_endpoint_v1: {
+        Args: { p_source_message_id: string }
+        Returns: Json
+      }
+      ediel_read_technical_source_endpoint_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_phase: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_technical_syntax_ack_route_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_smtp_from: string
+          p_smtp_host: string
+          p_smtp_port: number
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_transport_exception_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_exception_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_read_z06f_reading_followup_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_record_dsn_source_observation_v1: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      ediel_record_inbound_reception_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_inbound_email_message_id: string
+          p_message_id: string
+          p_parse_result_id: string
+        }
+        Returns: Json
+      }
+      ediel_record_scoped_capability_evidence_v1: {
+        Args: {
+          p_actor_role: string
+          p_assignment_id: string
+          p_certification_evidence_ids: string[]
+          p_code: string
+          p_company_id: string
+          p_expected_dependency_hash: string
+          p_expires_at: string
+          p_family: string
+          p_legal_actor_id: string
+          p_message_id: string
+          p_release_sha: string
+          p_rulepack_hash: string
+          p_subtype: string
+        }
+        Returns: string
+      }
+      ediel_record_technical_syntax_facet_v1: {
+        Args: {
+          p_company_id: string
+          p_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      ediel_record_technical_syntax_facet_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_facts_text: string
+          p_phase: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      ediel_register_invoice_file_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_byte_length: number
+          p_company_id: string
+          p_retention_class: string
+          p_source_hash: string
+          p_storage_object_id: string
+          p_target_hash: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_registry_dispatch_source_v1: {
+        Args: {
+          p_application_reference: string
+          p_communication_route_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_family: string
+          p_route_profile_id: string
+        }
+        Returns: Json
+      }
+      ediel_registry_route_source_v1: {
+        Args: { p_route_id: string }
+        Returns: Json
+      }
+      ediel_regulated_supply_ground_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_selector: Json
+        }
+        Returns: Json
+      }
+      ediel_report_fresh_business_incident_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
+      ediel_requested_change_message_basis_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_requested_change_message_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_requested_change_source_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_requested_change_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+        }
+        Returns: Json
+      }
+      ediel_requested_customer_change_queue_basis_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+        }
+        Returns: Json
+      }
+      ediel_require_brp_change_source_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_contract_records_available_v1: {
+        Args: { p_company_id: string; p_contract_id: string }
+        Returns: undefined
+      }
+      ediel_require_current_prodat_bilateral_ack_source_v1: {
+        Args: { p_ack_message_id: string; p_company_id: string }
+        Returns: undefined
+      }
+      ediel_require_customer_record_available_v1: {
+        Args: {
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_require_finance_copy_available_v1: {
+        Args: {
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: undefined
+      }
+      ediel_require_inbound_legal_context_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_require_invoice_file_copy_available_v1: {
+        Args: {
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: undefined
+      }
+      ediel_require_invoice_source_copies_available_v1: {
+        Args: {
+          p_company_id: string
+          p_export_item_id?: string
+          p_invoice_id?: string
+          p_underlay_id: string
+        }
+        Returns: undefined
+      }
+      ediel_require_message_consumed_records_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_metering_method_change_source_current_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: undefined
+      }
+      ediel_require_portal_retention_access_v1: {
+        Args: { p_company_id: string; p_customer_id: string }
+        Returns: undefined
+      }
+      ediel_require_process_journal_available_v1: {
+        Args: {
+          p_company_id: string
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: undefined
+      }
+      ediel_require_prodat_bilateral_positive_source_v1: {
+        Args: { p_company_id: string; p_source_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_prodat_recovery_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_recorded_prodat_bilateral_ack_source_v1: {
+        Args: {
+          p_company_id: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: undefined
+      }
+      ediel_require_requested_change_source_current_before_scope_fenc: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_requested_change_source_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_scoped_capability_for_message_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_service_permission_origin_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_source_bytes_available_v1: {
+        Args: { p_company_id: string; p_source_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_source_rule_pack_basis_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_require_switch_cancellation_source_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_switch_original_current_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_require_technical_syntax_ack_basis_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      ediel_require_technical_syntax_ack_basis_v2: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+          p_phase: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_brp_change_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_intent_id: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_customer_life_event_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_intent_id: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_metering_method_change_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_intent_id: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_prodat_recovery_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_operation_id: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_production_contract_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_event_id: string
+          p_intent_id: string
+          p_outbound_request_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_service_permission_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assignment_id: string
+          p_code: string
+          p_company_id: string
+          p_expected_version: number
+          p_intent_id: string
+          p_permission_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_switch_cancellation_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+          p_outbound_request_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_reserve_wire_reference_namespace_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: undefined
+      }
+      ediel_resolve_service_permission_command_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assignment_id: string
+          p_company_id: string
+          p_expected_version: number
+          p_permission_id: string
+        }
+        Returns: Json
+      }
+      ediel_retention_lock_auth_actor_v1: {
+        Args: { p_actor_user_id: string }
+        Returns: boolean
+      }
+      ediel_retention_session_actor_v1: { Args: never; Returns: string }
+      ediel_review_ai_purpose_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_artifact_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_bilateral_customer_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_bilateral_prodat_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_blob_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_contract_original_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_customer_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_customer_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_decision_evidence_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_outcome: string
+          p_policy_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_finance_copy_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_invoice_file_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_network_registry_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_periodic_e66_reason_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_evidence_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_process_journal_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_outcome: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_review_regulated_supply_ground_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_requested_change_artifact_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_requested_change_artifact_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_requested_customer_change_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_service_evidence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_evidence_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_signed_brp_declaration_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_review_supply_rescission_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_revoke_artifact_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_blob_retention_before_class_guard_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_blob_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_customer_event_certification_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_declaration_id: string
+          p_revocation_original: string
+          p_source_reference: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_customer_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_customer_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_decision_evidence_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_policy_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_finance_copy_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_invoice_file_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_network_registry_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_review: Json
+        }
+        Returns: Json
+      }
+      ediel_revoke_process_journal_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_decision_id: string
+          p_reason: string
+        }
+        Returns: undefined
+      }
+      ediel_revoke_signed_brp_declaration_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
+      ediel_revoke_transport_exception_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_exception_id: string
+          p_original: string
+        }
+        Returns: undefined
+      }
+      ediel_scoped_capability_readiness_v1: {
+        Args: {
+          p_actor_role: string
+          p_assignment_id: string
+          p_code: string
+          p_company_id: string
+          p_family: string
+          p_legal_actor_id: string
+          p_message_id: string
+          p_release_sha: string
+          p_rulepack_hash: string
+          p_subtype: string
+        }
+        Returns: Json
+      }
+      ediel_service_administration_command_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string; p_input: Json }
+        Returns: Json
+      }
+      ediel_service_administration_read_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assignment_id?: string
+          p_company_id: string
+        }
+        Returns: Json
+      }
+      ediel_service_assignment_assessment_v1: {
+        Args: { p_assignment_id: string; p_provider_company_id: string }
+        Returns: Json
+      }
+      ediel_service_permission_manual_context_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_selection: Json
+        }
+        Returns: Json
+      }
+      ediel_service_permission_manual_options_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_permission_ids: string[]
+        }
+        Returns: Json
+      }
+      ediel_service_permission_message_basis_v1:
+        | {
+            Args: {
+              p_actor_user_id: string
+              p_company_id: string
+              p_message_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_actor_user_id: string
+              p_company_id: string
+              p_message_id: string
+              p_phase: string
+            }
+            Returns: Json
+          }
+      ediel_service_permission_origin_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_assignment_id: string
+          p_code: string
+          p_company_id: string
+          p_expected_version: number
+          p_permission_id: string
+        }
+        Returns: Json
+      }
+      ediel_signed_brp_declaration_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_selector: Json
+        }
+        Returns: Json
+      }
+      ediel_storage_retention_target_v1: {
+        Args: { p_path: string }
+        Returns: boolean[]
+      }
+      ediel_submit_artifact_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_artifact_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+        }
+        Returns: Json
+      }
+      ediel_submit_blob_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_submit_customer_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_submit_customer_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+        }
+        Returns: Json
+      }
+      ediel_submit_decision_evidence_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_submit_finance_copy_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_submit_invoice_file_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_submit_process_journal_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_document_base64: string
+          p_issuer_receipt: Json
+          p_retention_class: string
+          p_target_id: string
+        }
+        Returns: Json
+      }
+      ediel_supply_rescission_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_selector: Json
+        }
+        Returns: Json
+      }
+      ediel_supply_start_is_cancelled_v1: {
+        Args: { p_company_id: string; p_switch_request_id: string }
+        Returns: boolean
+      }
+      ediel_switch_cancellation_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_switch_id: string
+        }
+        Returns: Json
+      }
+      ediel_transport_exception_alarms_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
+      ediel_verify_registry_el_actor_v1: {
+        Args: {
+          p_actor_id: string
+          p_actor_user_id: string
+          p_route_id?: string
+        }
+        Returns: Json
+      }
+      ediel_witness_confirmed_customer_source_before_scope_fence_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      ediel_witness_confirmed_customer_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
       gridex_acquire_automation_lock: {
         Args: {
           p_company_id?: string
@@ -92416,6 +96132,67 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      gridex_ai_bi_personal_storage_scope_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_header_line: string
+        }
+        Returns: Json
+      }
+      gridex_ai_bi_processing_decision_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_list_type: string
+        }
+        Returns: Json
+      }
+      gridex_ai_bi_reconcile_source_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_ai_export_decision_v1: {
+        Args: { p_actor_user_id: string; p_company_id: string }
+        Returns: Json
+      }
+      gridex_ai_outbound_origin_status_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_intent_id: string
+        }
+        Returns: Json
+      }
+      gridex_ai_prepare_outbound_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_draft_text: string
+          p_intent_id: string
+        }
+        Returns: Json
+      }
+      gridex_ai_record_outbound_original_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_file_name: string
+          p_intent_id: string
+          p_mime_type: string
+          p_raw_payload: string
+          p_readset_hash: string
+          p_row_sources: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
       gridex_analytics_point_month_internal: {
         Args: { p_company_id: string; p_month: string }
         Returns: {
@@ -92459,6 +96236,16 @@ export type Database = {
           p_operation_id?: string
           p_request_id: string
           p_site_id: string
+        }
+        Returns: Json
+      }
+      gridex_apply_inbound_ack_source_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
         }
         Returns: Json
       }
@@ -93911,6 +97698,41 @@ export type Database = {
         Args: { p_value: Json }
         Returns: boolean
       }
+      gridex_ediel_accepted_transport_projection_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_business_expectations_v1: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      gridex_ediel_certificate_trust_publish_v1: {
+        Args: { p_materials: Json; p_original_register: string; p_scope: Json }
+        Returns: string
+      }
+      gridex_ediel_certificate_trust_read_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_receiver_ediel_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_dsn_attempt_candidates_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_final_recipient: string
+          p_mailbox_id: string
+          p_rfc_message_id: string
+        }
+        Returns: Json
+      }
       gridex_ediel_message_summary: {
         Args: { p_company_id?: string }
         Returns: {
@@ -93925,6 +97747,59 @@ export type Database = {
           sent_messages: number
           total_messages: number
         }[]
+      }
+      gridex_ediel_metering_method_expectations_v1: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      gridex_ediel_negative_fixture_prepare_read_v1: {
+        Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_negative_fixture_prepare_v1: {
+        Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_negative_fixture_publish_v1: {
+        Args: { p_context: Json; p_original: string }
+        Returns: string
+      }
+      gridex_ediel_negative_fixture_read_v1: {
+        Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_positive_fixture_prepare_v1: {
+        Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_positive_fixture_publish_v1: {
+        Args: { p_context: Json; p_original: string }
+        Returns: string
+      }
+      gridex_ediel_positive_fixture_read_v1: {
+        Args: { p_context: Json }
+        Returns: Json
+      }
+      gridex_ediel_repair_accepted_transport_projection_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_message_id: string
+        }
+        Returns: Json
+      }
+      gridex_ediel_transport_attempt_v1: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      gridex_ediel_transport_copy_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_message_id: string
+        }
+        Returns: Json
       }
       gridex_edifact_cci_cav_value: {
         Args: { p_cci_code: string; p_raw: string }
@@ -93998,6 +97873,14 @@ export type Database = {
         Returns: Json
       }
       gridex_finalize_customer_contract_signature_v1: {
+        Args: {
+          p_signed_ip_hash?: string
+          p_signed_user_agent?: string
+          p_token_hash: string
+        }
+        Returns: Json
+      }
+      gridex_finalize_signature_before_record_retention_v1: {
         Args: {
           p_signed_ip_hash?: string
           p_signed_user_agent?: string
@@ -94135,6 +98018,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      gridex_get_signature_before_record_retention_v1: {
+        Args: { p_token_hash: string }
+        Returns: Json
       }
       gridex_get_user_permissions: {
         Args: { p_user_id: string }
@@ -94721,6 +98608,7 @@ export type Database = {
       }
       gridex_persist_utilts_consumption_v1: {
         Args: {
+          p_actor_user_id?: string
           p_company_id: string
           p_environment: string
           p_message_code: string
@@ -94797,6 +98685,19 @@ export type Database = {
           p_company_id: string
           p_payload: Json
           p_pricing_snapshot: Json
+        }
+        Returns: Json
+      }
+      gridex_prepare_signature_before_record_retention_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_channel?: string
+          p_company_id: string
+          p_contract_id: string
+          p_customer_id: string
+          p_expires_at: string
+          p_recipient_email: string
+          p_token_hash: string
         }
         Returns: Json
       }
@@ -95013,6 +98914,33 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_read_billing_source_values_v1: {
+        Args: { p_company_id: string; p_value_ids: string[] }
+        Returns: Json
+      }
+      gridex_read_billing_underlay_source_basis_v1: {
+        Args: { p_company_id: string; p_underlay_ids: string[] }
+        Returns: Json
+      }
+      gridex_read_committed_inbound_ack_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      gridex_read_committed_inbound_ack_v2: {
+        Args: {
+          p_ack_message_id: string
+          p_ack_payload_hash: string
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
       gridex_read_document_reference_context_v1: {
         Args: {
           p_actor_user_id: string
@@ -95021,6 +98949,45 @@ export type Database = {
           p_environment: string
           p_source_message_id: string
         }
+        Returns: Json
+      }
+      gridex_read_inbound_ack_source_v1: {
+        Args: {
+          p_ack_message_id: string
+          p_company_id: string
+          p_environment: string
+        }
+        Returns: Json
+      }
+      gridex_read_outbound_acks_for_source_v1: {
+        Args: { p_ack_family: string; p_source_message_id: string }
+        Returns: Json
+      }
+      gridex_read_outbound_acks_for_source_v2: {
+        Args: {
+          p_ack_family: string
+          p_actor_user_id: string
+          p_phase: string
+          p_source_message_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_periodic_dgi_e66_reason_v1: {
+        Args: { p_company_id: string; p_message_id: string }
+        Returns: Json
+      }
+      gridex_read_prodat_ignored_fields_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_company_id: string
+          p_environment: string
+          p_readset_hash: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      gridex_read_utilts_issuer_identity_authority_v1: {
+        Args: { p_company_id: string; p_message_id: string }
         Returns: Json
       }
       gridex_read_webhook_signing_secret_v1: {
@@ -95128,6 +99095,108 @@ export type Database = {
         Args: { p_api_client_id: string; p_route: string }
         Returns: undefined
       }
+      gridex_record_prodat_object_validation_v1: {
+        Args: {
+          p_assessment_id: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_response_source_validation_v3: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_response_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_function_validation_v5: {
+        Args: {
+          p_application_facts_text: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_response_facts_text: string
+          p_source_function_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_validation_v2: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_validation_v3: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_object_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_validation_v4: {
+        Args: {
+          p_application_facts_text: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_response_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_validation_v5: {
+        Args: {
+          p_application_facts_text: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_object_facts_text: string
+          p_response_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_prodat_source_validation_v6: {
+        Args: {
+          p_application_facts_text: string
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_ignored_fields_text: string
+          p_object_facts_text: string
+          p_response_facts_text: string
+          p_source_function_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+        }
+        Returns: Json
+      }
       gridex_record_source_discovery_v1: {
         Args: {
           p_company_id: string
@@ -95157,6 +99226,55 @@ export type Database = {
           p_facts_text: string
           p_source_message_id: string
           p_source_payload_hash: string
+        }
+        Returns: Json
+      }
+      gridex_record_utilts_source_validation_v1: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+          p_transaction_facts_text?: string
+        }
+        Returns: Json
+      }
+      gridex_record_utilts_source_validation_v2: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_header_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+          p_transaction_facts_text: string
+        }
+        Returns: Json
+      }
+      gridex_record_utilts_source_validation_v3: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_functional_facts_text: string
+          p_header_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+          p_transaction_facts_text: string
+        }
+        Returns: Json
+      }
+      gridex_record_utilts_source_validation_v4: {
+        Args: {
+          p_company_id: string
+          p_environment: string
+          p_facts_text: string
+          p_functional_facts_text: string
+          p_header_facts_text: string
+          p_source_message_id: string
+          p_source_payload_hash: string
+          p_transaction_facts_text: string
         }
         Returns: Json
       }
@@ -95305,6 +99423,21 @@ export type Database = {
           p_actor_user_id?: string
           p_explicit_invoice_fee_sek?: number
           p_publication_version_id: string
+        }
+        Returns: Json
+      }
+      gridex_require_outbound_reply_basis_v1: {
+        Args: { m: Database["public"]["Tables"]["ediel_messages"]["Row"] }
+        Returns: undefined
+      }
+      gridex_require_utilts_positive_ack_authority_v1: {
+        Args: {
+          p_ack_message_id?: string
+          p_ack_raw_payload?: string
+          p_company_id: string
+          p_environment: string
+          p_source_message_id: string
+          p_transaction_id: string
         }
         Returns: Json
       }
@@ -96026,6 +100159,13 @@ export type Database = {
           stockholm_date: string
         }[]
       }
+      require_metering_method_expectation_binding_v1: {
+        Args: {
+          binding: Json
+          m: Database["public"]["Tables"]["ediel_messages"]["Row"]
+        }
+        Returns: Json
+      }
       resolve_canonical_ediel_rule_pack: {
         Args: {
           p_business_date: string
@@ -96058,6 +100198,17 @@ export type Database = {
           valid_to: string
           validator_ready: boolean
         }[]
+      }
+      resolve_canonical_ediel_rule_pack_with_witness_v1: {
+        Args: {
+          p_business_date: string
+          p_direction: string
+          p_family: string
+          p_market: string
+          p_message_code: string
+          p_transaction_subtype: string
+        }
+        Returns: Json[]
       }
       resolve_ediel_ack_matrix_rule: {
         Args: {
