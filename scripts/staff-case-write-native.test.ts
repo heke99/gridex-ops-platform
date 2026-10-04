@@ -74,3 +74,70 @@ it('native staff support event rolls back when its audit cannot be written',()=>
       IF EXISTS(SELECT FROM public.customer_case_events WHERE customer_case_id='${f.caseId}') THEN RAISE EXCEPTION 'staff_event_survived_audit_failure'; END IF;
     END$$;`)).not.toThrow()
 })
+
+it('native OPS status wrapper preserves status-only event payload and legacy audit metadata',()=>{
+  const f=staffWriteNativeFixture()
+  expect(()=>f.run(`
+    SELECT public.gridex_update_customer_case_status('${f.caseId}','${f.companyId}','resolved','${f.actorId}',NULL,'Support resolved.');
+    DO $$BEGIN
+      IF NOT EXISTS(SELECT FROM public.customer_case_events WHERE customer_case_id='${f.caseId}'
+        AND event_type='status_changed' AND event_status='success' AND message='Support resolved.'
+        AND payload='{"status":"resolved"}'::jsonb AND created_by='${f.actorId}')
+        OR NOT EXISTS(SELECT FROM public.audit_logs WHERE entity_id='${f.caseId}'
+          AND action='customer_case_status_changed' AND actor_user_id='${f.actorId}'
+          AND metadata-ARRAY['actor_type','system_actor','request_id','correlation_id','resource_type','resource_id','previous_status','new_status']::text[]
+            =jsonb_build_object('customer_id','${f.customerId}'::uuid)
+          AND actor_type='user' AND system_actor IS NULL AND resource_type='customer_case' AND resource_id='${f.caseId}'
+          AND previous_status='open' AND new_status='resolved' AND request_id<>'' AND correlation_id<>'' )
+      THEN RAISE EXCEPTION 'ops_status_event_or_audit_shape_changed'; END IF;
+    END$$;`)).not.toThrow()
+})
+
+it('native shared staff status core uses fresh staff profile/client authority without legacy catalogue grants',()=>{
+  const f=staffWriteNativeFixture()
+  expect(()=>f.run(`
+    DELETE FROM public.user_permissions WHERE user_id='${f.actorId}' AND company_id='${f.companyId}';
+    DELETE FROM public.user_roles WHERE user_id='${f.actorId}';
+    DO $$BEGIN
+      IF public.gridex_actor_has_company_permission('${f.actorId}','${f.companyId}','cases.write') IS DISTINCT FROM FALSE
+      THEN RAISE EXCEPTION 'synthetic_legacy_status_permission_still_allowed'; END IF;
+    END$$;
+    SELECT public.gridex_update_customer_case_status_with_actor_v1('${f.caseId}','${f.companyId}','resolved','${f.actorId}',NULL,'Staff resolved.','staff_api','${f.clientId}');
+    DO $$BEGIN
+      IF NOT EXISTS(SELECT FROM public.customer_case_events WHERE customer_case_id='${f.caseId}'
+        AND payload=jsonb_build_object('status','resolved','channel','staff_api','actor_user_id','${f.actorId}'::uuid,'api_client_id','${f.clientId}'::uuid)
+        AND created_by='${f.actorId}')
+        OR NOT EXISTS(SELECT FROM public.audit_logs WHERE entity_id='${f.caseId}' AND actor_user_id='${f.actorId}'
+          AND metadata-ARRAY['actor_type','system_actor','request_id','correlation_id','resource_type','resource_id','previous_status','new_status']::text[]
+            =jsonb_build_object('customer_id','${f.customerId}'::uuid,'channel','staff_api','api_client_id','${f.clientId}'::uuid)
+          AND actor_type='user' AND system_actor IS NULL AND resource_type='customer_case' AND resource_id='${f.caseId}'
+          AND previous_status='open' AND new_status='resolved' AND request_id<>'' AND correlation_id<>'' )
+      THEN RAISE EXCEPTION 'strict_staff_status_attribution_missing'; END IF;
+    END$$;
+    UPDATE public.integration_api_clients SET revoked_at=clock_timestamp() WHERE id='${f.clientId}';
+    DO $$BEGIN
+      BEGIN
+        PERFORM public.gridex_update_customer_case_status_with_actor_v1('${f.caseId}','${f.companyId}','closed','${f.actorId}',NULL,NULL,'staff_api','${f.clientId}');
+        RAISE EXCEPTION 'revoked_staff_status_client_allowed';
+      EXCEPTION WHEN insufficient_privilege THEN IF SQLERRM<>'staff_api_client_not_in_scope' THEN RAISE; END IF; END;
+    END$$;
+    UPDATE public.integration_api_clients SET revoked_at=NULL WHERE id='${f.clientId}';
+    UPDATE public.company_memberships SET role_key='finance_readonly' WHERE company_id='${f.companyId}' AND user_id='${f.actorId}';
+    DO $$BEGIN
+      BEGIN
+        PERFORM public.gridex_update_customer_case_status_with_actor_v1('${f.caseId}','${f.companyId}','closed','${f.actorId}',NULL,NULL,'staff_api','${f.clientId}');
+        RAISE EXCEPTION 'low_role_staff_status_allowed';
+      EXCEPTION WHEN insufficient_privilege THEN IF SQLERRM<>'staff_api_actor_not_authorized' THEN RAISE; END IF; END;
+    END$$;
+    UPDATE public.company_memberships SET role_key='company_admin' WHERE company_id='${f.companyId}' AND user_id='${f.actorId}';
+    DO $$BEGIN
+      BEGIN
+        PERFORM public.gridex_update_customer_case_status_with_actor_v1('${f.caseId}','${f.companyId}','closed','${f.actorId}',NULL,NULL,'staff_api','${f.foreignClientId}');
+        RAISE EXCEPTION 'foreign_staff_status_client_allowed';
+      EXCEPTION WHEN insufficient_privilege THEN IF SQLERRM<>'staff_api_client_not_in_scope' THEN RAISE; END IF; END;
+      IF (SELECT status FROM public.customer_cases WHERE id='${f.caseId}')<>'resolved'
+        OR (SELECT count(*) FROM public.customer_case_events WHERE customer_case_id='${f.caseId}')<>1
+        OR (SELECT count(*) FROM public.audit_logs WHERE entity_id='${f.caseId}' AND action='customer_case_status_changed')<>1
+      THEN RAISE EXCEPTION 'failed_staff_status_checks_wrote'; END IF;
+    END$$;`)).not.toThrow()
+})

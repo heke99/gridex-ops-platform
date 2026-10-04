@@ -4,9 +4,9 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37195224010",
   "generated_types": "supabase/database.types.ts",
   "sha256": "e738c10a566b5ecaa14ac30f797d38f74382b6fc6b59fc2b6495591275d2c4ce",
-  "latest_migration": "20261004100918_staff_user_lock_order.sql",
-  "latest_migration_schema_effect": "Final S4 own-prefix: S1 staff provider purpose/auth/replay ACL; S2 canonical staff account commands, strict actor/client eligibility and company/actor/client lock-order forwards; S3 scoped staff customer reads/contact/identity writes and strict write-actor guard; S4 atomic support case creation, staff-attributed events/status/assignment, bounded history auth, and accepted same-company recognized staff assignee guard. Latest 20261004100918_staff_user_lock_order.sql changes staff command company row locks to NO KEY UPDATE to avoid the client/catalog FK lock cycle. Authentic types/schema/fingerprint are imported byte-for-byte from this exact prefix; capture does not execute native/browser tests or parity.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261004115007_staff_case_status_actor_compatibility.sql",
+  "latest_migration_schema_effect": "Combined body-only forwards: S3 staff contact uses the unchanged fresh role-profile/client/scope guard without a duplicate legacy OPS permission predicate; S4 status restores original nonstaff business JSON and independently guards the staff core before its case lock. All callable signatures are unchanged. Generated types, schema and fingerprint still retain their previous authentic S4 own-prefix capture bytes; fresh own-prefix native capture and full CI remain required.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "workflow_run": 37195224010,
@@ -160,5 +160,29 @@
       }
     },
     "reason": "Final S1 ACL-prefix capture is preserved as historical provenance and superseded for this S4 branch by the verified final S4 own-prefix capture; S2/S3 import branches remain independent."
+  },
+  "pending_capture": {
+    "reason": "New status core function body differs from the retained verified S4 capture; no generated schema or fingerprint was hand edited.",
+    "latest_migration": "20261004115007_staff_case_status_actor_compatibility.sql",
+    "changed_schema_objects": [
+      "public.gridex_update_customer_case_status_with_actor_v1(uuid,uuid,text,uuid,text,text,text,uuid)"
+    ],
+    "prior_generated_types_sha256": "e738c10a566b5ecaa14ac30f797d38f74382b6fc6b59fc2b6495591275d2c4ce",
+    "prior_capture_receipt": "quality/staff-api/S4-01-final-prefix-capture-receipt-20261004.json",
+    "qualification": "Targeted source/PGlite tests and migration integrity do not replace authentic final clean replay capture, native/browser tests or clean/upgrade parity."
+  },
+  "pending_forward_capture": {
+    "forwards": [
+      {
+        "migration": "20261004114944_staff_contact_profile_authority.sql",
+        "sha256": "549fcda905f17ee9f3ed562bd7ecb8de13b99ab475ada307ab5e3d9ddf9a83aa"
+      },
+      {
+        "migration": "20261004115007_staff_case_status_actor_compatibility.sql",
+        "sha256": "1a60f96140f8c8bc151d26b4cd6058b36f48b693ebc0ffbae75e72f1d57df492"
+      }
+    ],
+    "generated_artifacts_modified": false,
+    "qualification": "Source-backed bounded regression only; native PostgreSQL capture and exact-head full CI pending."
   }
 }
