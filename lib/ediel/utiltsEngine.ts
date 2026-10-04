@@ -889,7 +889,19 @@ function runUtiltsRuntimeForMessageCore(
   // Shared admission selects one complete source guide package. Candidate
   // passes always carry an explicit policy, so this default path cannot recurse.
   const sourceGuideIssues = s02SourceGuideHeaderIssues(message, canonicalPolicy, options)
+  // GOV-06: an explicit decision is never silently re-dated. A caller-supplied
+  // reference date that disagrees with the decision it passes is a local
+  // incoherence and is refused before any runtime result can drive mutation.
+  if (canonicalPolicy && options?.referenceDate && normalizedReferenceDate(message, options) !== canonicalPolicy.referenceDate) {
+    throw new Error(`ediel_admission_time_incoherent:${normalizedReferenceDate(message, options)}:${canonicalPolicy.referenceDate}`)
+  }
+  if (canonicalPolicy?.timeAnchors && canonicalPolicy.timeAnchors.admissionDate !== canonicalPolicy.referenceDate) {
+    throw new Error(`ediel_admission_time_incoherent:${canonicalPolicy.timeAnchors.admissionDate}:${canonicalPolicy.referenceDate}`)
+  }
   if (!canonicalPolicy) {
+    // GOV-06: no implicit now(). Outbound has no ingress receipt, so without an
+    // explicit decision or time anchor the guide cannot be selected here.
+    if (message.direction === 'outbound' && !options?.referenceDate) throw new Error('ediel_admission_time_missing:utilts_explicit_decision_required')
     try {
       canonicalPolicy = resolveCanonicalMessagePolicy(message,undefined,{admissionAt:options?.referenceDate ?? undefined}) ?? undefined
     } catch (error) {

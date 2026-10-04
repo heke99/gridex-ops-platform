@@ -43,15 +43,24 @@
     {
       "id": "GOV-05",
       "acceptance_id": "AT-GOV-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-masterplan-gov-05-gov-06.test.ts"
+      ]
     },
     {
       "id": "GOV-06",
       "acceptance_id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/context.md"
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-masterplan-gov-05-gov-06.test.ts"
       ]
     },
     {
@@ -1488,14 +1497,23 @@
     },
     {
       "id": "AT-GOV-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-masterplan-gov-05-gov-06.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/context.md"
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "__tests__/ediel-masterplan-gov-05-gov-06.test.ts"
       ]
     },
     {

@@ -46,6 +46,12 @@ import {
 } from '@/lib/ediel/rulebook/utilts25A4'
 import type { RulebookFieldRule } from '@/lib/ediel/rulebook/fieldMatrix'
 
+export type CanonicalGuideSelection = Readonly<{
+  selectedGuideRevision: string
+  basis: 'current_only' | 'current_guide' | 'previous_guide_grace' | 'current_guide_no_candidate_passed'
+  evaluated: readonly Readonly<{ guideRevision: string; passed: boolean }>[]
+}>
+
 export type CanonicalEdielPolicyDirection = 'inbound' | 'outbound'
 export type CanonicalEdielPolicyMode = 'send' | 'parse' | 'historical_replay' | 'catalog_evidence'
 
@@ -71,6 +77,8 @@ export type CanonicalEdielPolicy = {
   acceptedInboundGuides: readonly AuthoritativeEdielGuide[]
   acceptedOutboundGuides: readonly AuthoritativeEdielGuide[]
   previousGuideGraceActive: boolean
+  /** GOV-05 trace of the one complete guide package chosen for this pass. */
+  guideSelection?: CanonicalGuideSelection
   associationAssignedCode: string | null
   applicationReference: string | null
   fieldRules: readonly (RulebookFieldRule | UtiltsFieldRule)[]

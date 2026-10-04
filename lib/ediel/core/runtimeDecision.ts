@@ -353,6 +353,7 @@ function canonicalPolicyProjection(policy: CanonicalEdielPolicy | null) {
       subtype: policy.subtype,
       referenceDate: policy.referenceDate,
       timeAnchors: policy.timeAnchors ?? null,
+      guideSelection: policy.guideSelection ?? null,
       profileKey: policy.profileKey,
       guide: policy.guide,
       applicationReference: policy.applicationReference,
@@ -485,6 +486,7 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
   let policy: CanonicalEdielPolicy | null = null
   try {
     policy = resolveCanonicalMessagePolicy(message, canonical,facts)
+    if (policy?.guideSelection) decisionTrace.push(`Anvisningsval: ${policy.guideSelection.selectedGuideRevision} (${policy.guideSelection.basis}; prövade ${policy.guideSelection.evaluated.map(entry => `${entry.guideRevision}=${entry.passed ? 'godkänd' : 'underkänd'}`).join(', ') || 'ingen alternativ prövning'}).`)
   } catch (error) {
     const description = error instanceof Error ? error.message : String(error)
     issues.push(issue({

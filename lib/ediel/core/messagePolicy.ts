@@ -5,7 +5,8 @@ import { segmentComposite, tokenizeEdifact } from '@/lib/ediel/core/edifactToken
 import { stockholmBusinessDate, type EdielMessageTimeAnchors } from '@/lib/ediel/core/executionContext'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { parseCanonicalMessageRow, type CanonicalEdielMessage } from '@/lib/ediel/core/canonicalMessage'
-import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { resolveCanonicalEdielPolicy, type CanonicalEdielPolicy, type CanonicalGuideSelection } from '@/lib/ediel/rulebook/canonicalEdielPolicy'
+import { validateCanonicalAckGuide } from '@/lib/ediel/rulebook/ackGuidePolicy'
 import {sourceQualifiedProdatBilateralCapability,type SourceQualifiedProdatBilateralCapability} from './prodatBilateralSourceCapability'
 
 // Shared protocol date selection; receipt/object matching must not reselect a guide.
@@ -152,18 +153,41 @@ export function resolveCanonicalMessagePolicy(message: EdielMessageRow, canonica
     mode: 'parse',
   }), timeAnchors })
   const current = candidate()
-  if (family !== 'UTILTS' || message.direction !== 'inbound' || !current.previousGuideGraceActive) return current
+  // GOV-05: every inbound family with a dated guide successor (UTILTS and its
+  // UTILTS_ERR/APERAK companions on the shared E5SE5A code) may be tried
+  // against the immediately preceding guide during the two-week grace window.
+  const guideFamilyWithGrace = family === 'UTILTS' || family === 'UTILTS_ERR' || family === 'APERAK'
+  if (!guideFamilyWithGrace || message.direction !== 'inbound' || !current.previousGuideGraceActive) return withGuideSelection(current, 'current_only', [])
   const passesGuide = (policy: CanonicalEdielPolicy) => {
+    if (family !== 'UTILTS') {
+      return !validateCanonicalAckGuide({ policy, rawPayload: message.raw_payload, rawSegments: canonical.rawSegments, una: canonical.una })
+        .some(finding => finding.blocking || finding.severity === 'error')
+    }
     const result = runUtiltsRuntimeForMessage(message, { canonicalPolicy: policy, guideOnly: true })
     return result.validation.syntaxOk && !result.validation.issues.some(issue => issue.severity === 'error' && issue.kind === 'application')
   }
   // Complete syntax/guide passes only. Functional rejection must never cause
   // a switch to older semantics, and candidates must never blend diagnostics.
-  if (passesGuide(current)) return current
+  const evaluated: { guideRevision: string; passed: boolean }[] = []
+  const currentPassed = passesGuide(current)
+  evaluated.push({ guideRevision: current.guide.guideRevision, passed: currentPassed })
+  if (currentPassed) return withGuideSelection(current, 'current_guide', evaluated)
   for (const guide of current.acceptedInboundGuides) {
     if (guide.guideRevision === current.guide.guideRevision) continue
     const previous = candidate(guide.guideRevision)
-    if (passesGuide(previous)) return previous
+    const passed = passesGuide(previous)
+    evaluated.push({ guideRevision: guide.guideRevision, passed })
+    if (passed) return withGuideSelection(previous, 'previous_guide_grace', evaluated)
   }
-  return current
+  return withGuideSelection(current, 'current_guide_no_candidate_passed', evaluated)
+}
+
+/** GOV-05: the selected complete package and every whole-guide candidate tried
+ * are carried (and thereby logged) with the decision. */
+function withGuideSelection(policy: CanonicalEdielPolicy, basis: CanonicalGuideSelection['basis'], evaluated: readonly { guideRevision: string; passed: boolean }[]): CanonicalEdielPolicy {
+  return Object.freeze({ ...policy, guideSelection: Object.freeze({
+    selectedGuideRevision: policy.guide.guideRevision,
+    basis,
+    evaluated: Object.freeze(evaluated.map(entry => Object.freeze({ ...entry }))),
+  }) })
 }
