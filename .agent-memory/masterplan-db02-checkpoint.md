@@ -9,9 +9,11 @@ Root assigned a bounded whole-card review, not a general database audit. Scope
 registration: [491/5985015284](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985015284).
 Owner/file proposal: [491/5985115747](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985115747).
 Initial inventory publication `31c600365ac8e27f173adc673179f40a81b101e8` contains
-only this checkpoint. The subsequent tests-first freeze adds the own tests,
-one additive native-config include and the empty CLI migration scaffold. No
-production guard, generated artifact, shared memory or coverage rows change.
+only this checkpoint. Tests-first freeze
+`c8eaa153684b398f1aeeb104fe064fce56656aa9` adds own tests, one additive
+native-config include and the empty CLI scaffold. The following source freeze
+implements only that new forward and its own checksum entry. Generated
+artifacts, shared memory and coverage rows remain unchanged.
 
 ## Exact frozen contract
 
@@ -115,7 +117,7 @@ the narrowly required `btree_gist` dependency. Public precise scope:
 [491/5985180650](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985180650).
 CLI 2.101.0 version/help/new created
 `20261004223219_ediel_tenant_profile_interval_guard.sql`, later than GOV-08
-221605 and latest queued #503 220429. It remains empty at the tests-first freeze.
+221605 and latest queued #503 220429. It is empty at the tests-first freeze.
 
 Own durable `__tests__/ediel-db02-profile-periods.test.ts` executes the actual
 immutable production profile DDL and real PGlite `btree_gist`, then the forward.
@@ -142,6 +144,18 @@ and legacy preflight against an isolated exact-source profile table. Synthetic
 tenant/profile data is explicit. Genuine execution remains pending; local
 psql/Supabase is unavailable, so no local native or concurrent PASS is claimed.
 
+Source implementation: the transactional table lock and source-owner
+preflight precede the extension install, ordered-date CHECK and partial GiST
+exclusion. It contains no row mutation, new table/function, grant or reader
+change. Source receipt:
+[491/5985253813](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985253813).
+Own 25 cases plus unchanged 45 cases: **70/70 PASS**. Tests/scripts TypeScript
+and scoped ESLint PASS. Migration integrity: **1060 files / 963 groups PASS**;
+spec integrity **33 originals / 121 rules / 231 contracts PASS**; diff PASS.
+The registration helper computed the new checksum; old entries/order were
+preserved so the manifest delta contains only that new entry. Genuine capture
+and native behavior, followed by independent review, are still pending.
+
 ## Smallest authorized next package
 
 Only `tenant_ediel_profiles` write validity, plus durable actual-source SQL
@@ -167,9 +181,8 @@ reader, TEN-09 permission resolver, P-08, grants or unrelated schema owners.
 - Do not rewrite or close historical/current rows automatically. Existing
   contradictory intervals need an explicit source-owner migration policy.
 
-Next action: implement only the authorized forward after the frozen RED tests,
-run focused actual-source regressions and checks, then genuine source capture
-and mandatory native/concurrency/legacy proof. Independent complete-card
+Next action: publish the frozen source for root review, then genuine source
+capture and mandatory native/concurrency/legacy proof. Independent complete-card
 approval precedes only the two own coverage rows. No local full-suite retry
 after the earlier auto-review rejection; actual-head required GitHub gates
 provide that qualification. DB-02 and AT-DB-02 remain unapproved.
