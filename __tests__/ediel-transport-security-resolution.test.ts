@@ -4,6 +4,15 @@ import { evaluateProductionTransportSecurity } from '@/lib/ediel/config'
 import { resolveRouteTransportSecurityMode } from '@/lib/ediel/partyRegistry'
 
 describe('Ediel route transport security resolution', () => {
+  it('does not activate a production plaintext exception from reason and expiry alone', () => {
+    const result = evaluateProductionTransportSecurity({ runtime: {
+      environment: 'production', message_standard: 'edifact', message_family: 'PRODAT', encryption_mode: 'none', certificate_id: null,
+      allow_unencrypted_production: true, allow_unencrypted_production_reason: 'operator request', allow_unencrypted_production_expires_at: '2030-01-01T00:00:00Z',
+    }, now: new Date('2026-09-30T00:00:00Z') })
+    expect(result.ok).toBe(false)
+    expect(result.overrideActive).toBe(false)
+    expect(result.issues.some(issue => issue.key === 'production_prodat_smime_required')).toBe(true)
+  })
   it('prefers an explicit verified transport-security policy', () => {
     expect(resolveRouteTransportSecurityMode({ transportSecurityMode: 'required_encrypted', encryptionMode: 'none' })).toBe('required_encrypted')
   })

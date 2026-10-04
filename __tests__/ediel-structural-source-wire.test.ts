@@ -1,8 +1,11 @@
 import {describe,it,expect} from 'vitest'
-import {readStructuralSourceWire} from '@/lib/ediel/sources/structuralSourceWire'
+import {readStructuralSourceWire,readStructuralMeasurementProjection} from '@/lib/ediel/sources/structuralSourceWire'
 import {timelineFacts} from './helpers/sourceDecisionTimelineFixtures'
 import {raw, line, common, characteristic, type Parts} from './fixtures/prodat-register'
 import type {SourceObjectScope} from '@/lib/ediel/sources/sourceOwnerWire'
+import {prodatErrorOccurrence} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatRegisterGroups} from '@/lib/ediel/prodat/prodatRegisterGroups'
 
 // Wire-only fixtures; expected national business cases come from P26.A
 // pp110-112, dates p50 and register ownership pp115-116, not parser output.
@@ -19,6 +22,23 @@ function fixture(code='Z04',reason='E03',minute='202610010000',registerIds:(stri
   return {wire,scope}
 }
 describe('original-wire structural source scope',()=>{
+  it('projects exact source product and quarter measurement without changing the existing immutable approval marker shape',()=>{
+    const {wire,scope}=fixture('Z06','E64')
+    const projected=wire.replace("CAV+Z03'","CAV+Z03'CCI++Z14'CAV+:::L639Q'CCI++Z12'CAV+:::Q'CCI++Z15'CAV+Z32'")
+    const actualScope=timelineFacts(projected).objects[0].object as SourceObjectScope
+    expect(readStructuralMeasurementProjection(projected,actualScope,[])).toEqual({productCode:'L639Q',measurementMethod:'Z03',reportingFrequency:'Q',settlementMethod:'Z32',balanceResponsibleId:null})
+    expect(readStructuralSourceWire(projected,actualScope)).not.toHaveProperty('productCode')
+    expect(readStructuralMeasurementProjection(projected,{...scope,objectId:'FOREIGN'},[])).toBeNull()
+  })
+  it('projects physical own262 only when the same canonical occurrence mask permits it',()=>{
+    const {wire}=fixture('Z06','E64'),projected=wire.replace("RFF+LI:CASE-1'","RFF+LI:CASE-1'NAD+Z02+11111:160:SVK'")
+    const actualScope=timelineFacts(projected).objects[0].object as SourceObjectScope,ast=tokenizeEdifact(projected),rawSegments=ast.segments.map(s=>s.raw),group=prodatRegisterGroups(ast.segments,ast.una,'Z06').groups[0]
+    const occurrence=prodatErrorOccurrence({code:'Z06',rawSegments,una:ast.una},group.segments.map(s=>s.raw),'object',group.lineIndex)!
+    expect(readStructuralSourceWire(projected,actualScope)).not.toBeNull()
+    expect(readStructuralMeasurementProjection(projected,actualScope,[])?.balanceResponsibleId).toBe('11111')
+    expect(readStructuralMeasurementProjection(projected,actualScope,[{fieldNumber:'262',sourceRule:'PRODAT26A:P119',occurrence}])?.balanceResponsibleId).toBeNull()
+    expect(readStructuralMeasurementProjection(projected,actualScope)).toBeNull() // no historical facet is invented
+  })
   it.each([
     ['Z04','E03','supply_baseline','210'],['Z06','E34','customer_only','216'],
     ['Z06','E64','change_with_reading','216'],['Z06','E32','change_without_reading','216'],['Z10','E58','meter_exchange','216'],

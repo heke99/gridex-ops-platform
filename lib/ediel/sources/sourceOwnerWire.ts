@@ -29,6 +29,6 @@ export function readCommittedZ04Wire(raw:string, scope:SourceObjectScope) {
   const utc = prodatMarketMinuteToUtc(minute)
   if (!minute || !utc) return null
   return {parties:{legalSender,legalReceiver,transportSender:sender[0],transportReceiver:receiver[0]},
-    effectiveFrom:{fieldNumber:'210' as const,marketMinute:minute,utc,committedDatePrecision:'market_calendar_day' as const},
+    effectiveFrom:{fieldNumber:'210' as const,marketMinute:minute,utc,committedDatePrecision:'market_minute' as const},
     marketDate:`${minute.slice(0,4)}-${minute.slice(4,6)}-${minute.slice(6,8)}`}
 }
