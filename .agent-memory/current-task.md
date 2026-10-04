@@ -1,6 +1,11 @@
 ## ENV-03 + IMP-04 — 2026-10-04 (claude/env-03-imp-04)
 
 - Godkända (+AT). GOV-03 i #505, OPS-02 i #507. Nästa lediga: DB-01 fp-check (kolla #491).
+## Aktuellt läge — 2026-10-04 kväll (gäller före allt nedan)
+
+- GOV-03 (+AT) godkänd på `claude/dazzling-dijkstra-vyyw0g`. Godkända totalt: 57. ENV-01 ägs av #504 (Codex).
+- Pågår i andra PR:er (rör ej): #491 TEN/ESCO/ACK/P/U (session cool-tesla), #497 TEN-07/ESCO-10/11, #498/#500/#501 TR-01..04.
+- Nästa lediga: F-OPS-02 (OPS-02); fp-check ENV-02, ENV-03, IMP-04, DB-01.
 
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 
