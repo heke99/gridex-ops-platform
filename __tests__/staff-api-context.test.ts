@@ -1,6 +1,6 @@
 import { generateKeyPairSync, sign, constants, randomUUID, type KeyObject } from 'node:crypto'
 import { NextRequest } from 'next/server'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('@/lib/supabase/tenantQuery', () => ({ tenantSelect: vi.fn(), tenantInsert: vi.fn() }))
 vi.mock('@/lib/supabase/tenantDb', () => ({ tenantDb: vi.fn() }))
 vi.mock('@/lib/integrations/apiAuth', () => ({ requireIntegrationApiAccess: vi.fn() }))
@@ -126,6 +126,73 @@ describe('staff API trust boundary', () => {
     expect(staffPermissions({ user_id: actor, role_key, membership_role: 'admin', status: 'active', is_active: true }, [
       { permission_key: 'users.write', effect: 'allow', status: 'active', is_active: true },
     ])).toEqual([])
+  })
+})
+
+describe('staff API signed assertion time boundary', () => {
+  const nowSeconds = Date.parse('2026-10-04T12:00:00Z') / 1000
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(nowSeconds * 1000)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  it.each([0, -60])('rejects future iat even when nbf is %s seconds from now', async nbfOffset => {
+    const { call, ports } = setup()
+    await expect(call(token({ iat: nowSeconds + 86400, nbf: nowSeconds + nbfOffset, exp: nowSeconds + 87300 })))
+      .rejects.toMatchObject({ status: 401, code: 'staff_assertion_not_yet_valid' })
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { iat: 61, nbf: 0, exp: 961 },
+    { iat: 61, nbf: undefined, exp: 961 },
+    { iat: 0, nbf: 61, exp: 900 },
+  ])('rejects iat/nbf beyond the 60-second skew: %j', async offsets => {
+    const { call, ports } = setup()
+    await expect(call(token({ iat: nowSeconds + offsets.iat, nbf: offsets.nbf === undefined ? undefined : nowSeconds + offsets.nbf, exp: nowSeconds + offsets.exp })))
+      .rejects.toMatchObject({ status: 401, code: 'staff_assertion_not_yet_valid' })
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { iat: 60, nbf: 0, exp: 960 },
+    { iat: 0, nbf: -1, exp: 900 },
+    { iat: 0, nbf: -86400, exp: 900 },
+    { iat: 0, nbf: undefined, exp: 901 },
+  ])('rejects more than 900 seconds from the earliest iat/nbf: %j', async offsets => {
+    const { call, ports } = setup()
+    await expect(call(token({ iat: nowSeconds + offsets.iat, nbf: offsets.nbf === undefined ? undefined : nowSeconds + offsets.nbf, exp: nowSeconds + offsets.exp })))
+      .rejects.toMatchObject({ status: 401, code: 'staff_assertion_lifetime_too_long' })
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.loadMembership).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    { iat: 0, nbf: undefined, exp: 900 },
+    { iat: 0, nbf: 0, exp: 900 },
+    { iat: 60, nbf: undefined, exp: 960 },
+    { iat: 60, nbf: 60, exp: 960 },
+    { iat: 60, nbf: 0, exp: 900 },
+    { iat: 0, nbf: 60, exp: 900 },
+    { iat: -959, nbf: undefined, exp: -59 },
+  ])('accepts a 900-second validity window within skew and retains jti through expiry skew: %j', async offsets => {
+    const { call, ports } = setup()
+    const jti = randomUUID()
+    const proof = token({ iat: nowSeconds + offsets.iat, nbf: offsets.nbf === undefined ? undefined : nowSeconds + offsets.nbf, exp: nowSeconds + offsets.exp, jti })
+    expect(await call(proof)).toMatchObject({ companyId: company, actorUserId: actor })
+    expect(ports.consumeJti).toHaveBeenCalledWith(company, jti, new Date((nowSeconds + offsets.exp + 60) * 1000))
+    await expect(call(proof)).rejects.toMatchObject({ status: 401, code: 'staff_assertion_replayed' })
+  })
+
+  it('rejects expiry at the 60-second skew boundary before consuming jti', async () => {
+    const { call, ports } = setup()
+    await expect(call(token({ iat: nowSeconds - 960, exp: nowSeconds - 60 })))
+      .rejects.toMatchObject({ status: 401, code: 'staff_assertion_expired' })
+    expect(ports.consumeJti).not.toHaveBeenCalled()
+    expect(ports.loadMembership).not.toHaveBeenCalled()
   })
 })
 

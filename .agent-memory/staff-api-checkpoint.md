@@ -137,3 +137,15 @@ Next: root integrates this bounded source commit into new isolated S2/S3/S4 stag
 - Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
 
 - Post-import S2-02: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
+## Staff assertion timing security repair (2026-10-04)
+
+- VERIFIED locally on S1 base `78278742`: staff `iat` is checked independently against
+  the 60-second clock skew, and the 900-second lifetime begins at the earlier of
+  `iat`/`nbf`. Customer defaults and replay expiry behavior are preserved.
+- Real signed regressions: RED 6 failed/53 passed before the fix, GREEN 59/59 after;
+  app TypeScript, scoped lint and diff check PASS. Original reproduction now rejects
+  the 87,300-second assertion before consuming `jti`, and accepts a normal 900-second token.
+- Evidence: `quality/staff-api/S1-assertion-time-boundary-20261004.md`.
+  No SQL, schema, dependency, remote or hosted database changes.
+- Next: root propagates this isolated source/test/evidence commit through S1–S5 and
+  runs final composed-PR exact-head CI; those release gates remain pending.
