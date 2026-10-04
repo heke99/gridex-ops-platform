@@ -5,8 +5,8 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37207708487",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
   "latest_migration": "20261004170000_ediel_service_resolve_permission_request_timing.sql",
-  "latest_migration_schema_effect": "Body/ACL-only forward: public.ediel_resolve_service_permission_command_v1 keeps its OID, signature and grants; its previous body moves to private gridex_service_permission.resolve_before_request_timing_v1. Public generated types are unchanged by construction; schema.sql and fingerprint still carry the prior authentic S4-03 capture and need a fresh own-prefix capture.",
-  "composition_capture_pending": true,
+  "latest_migration_schema_effect": "Body/ACL-only forward: public.ediel_resolve_service_permission_command_v1 keeps OID/signature/grants; previous body moved to private gridex_service_permission.resolve_before_request_timing_v1. Types byte-identical; schema.sql and fingerprint imported byte-for-byte from the authentic clean-replay capture of c5671635.",
+  "composition_capture_pending": false,
   "capture": {
     "workflow_run": 37207708487,
     "workflow_run_attempt": 1,
@@ -52,16 +52,6 @@
     "independent_review": "PASS",
     "db_migrations_check_log_sha256": "a4c2d15088ba87357b7ad83b85f3b46301bbe78d7ef352a92f589d42311c68d1",
     "independent_reviewer": "s1_schema_ui"
-  },
-  "pending_forward_capture": {
-    "forwards": [
-      {
-        "migration": "20261004170000_ediel_service_resolve_permission_request_timing.sql",
-        "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8"
-      }
-    ],
-    "generated_artifacts_modified": false,
-    "qualification": "PGlite regression scripts/ediel-ten-09-resolve-timing-sql-regression.mjs only; native PostgreSQL capture and exact-head full CI pending."
   },
   "superseded_provenance": {
     "prior_manifest_sha256": "331f2e22c63adfa8010bdedb1fe55793c788f652af43c7c65005a2d6722a4516",
@@ -375,5 +365,20 @@
       }
     },
     "reason": "Prior current manifest preserved unchanged; this branch appends one body/ACL-only forward pending capture."
+  },
+  "capture_for_latest": {
+    "workflow_run": 37220554643,
+    "actual_checkout_commit": "c5671635f48365b1f2d1109a795c5a45ef75001d",
+    "actual_checkout_tree": "7adfe9b10e61f0dd28d86b5055e87e4e9c2eb4e4",
+    "receipt": "quality/audits/ediel-masterplan-v2/captures/ten-09-resolver-capture-receipt-20261004.json",
+    "artifact_sha256": {
+      "database.types.ts": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "schema.sql": "ed529f341c4d631b60d08016c18b4e2584ea592c2144f4f74d8735c0dfc6984d",
+      "schema.fingerprint.json": "e2c54e777d31fee4f3566aed9e66f123908fc481cc4026f31cbfc036a1c0c28a"
+    },
+    "purpose": "capture_only",
+    "native_tests": "NOT_RUN",
+    "upgrade_parity": "NOT_RUN",
+    "qualification": "Capture only; exact-head full CI (clean/upgrade replay, native) remains mandatory."
   }
 }
