@@ -79,7 +79,7 @@ describe('ENV-07 physical PRODAT function batching at actual encode and send pre
     const first = message('M1', 'Z03', ['NAD+UD+CUSTOMER-A::89', 'LIN+2++POINT-B:::89', 'NAD+UD+CUSTOMER-B::89'])
     const second = message('M2', 'Z03', ['NAD+UD+CUSTOMER-C::89'])
     // Header-party order has no bearing on the common actor/role identity.
-    second.businessSegments.splice(3, 2, 'NAD+DO+22222:160:SVK', 'NAD+FR+11111:160:SVK')
+    second.businessSegments = [...second.businessSegments.slice(0, 3), 'NAD+DO+22222:160:SVK', 'NAD+FR+11111:160:SVK', ...second.businessSegments.slice(5)]
     const input = structuredClone([first, second])
     const raw = encode(input)
     const tokens = tokenizeEdifact(raw)

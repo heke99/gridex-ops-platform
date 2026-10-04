@@ -57,7 +57,7 @@ beforeEach(() => {
     return port.messages.get(id) ?? null
   })
   port.send.mockImplementation(async (message: EdielMessageRow) => {
-    port.submitted.push({ company: message.company_id, raw: message.raw_payload })
+    port.submitted.push({ company: message.company_id ?? null, raw: message.raw_payload ?? null })
     const observed = '2026-10-04T20:00:00Z'
     port.messages.set(message.id, { ...message, status: 'sent', message_sent_at: observed })
     return { messageId: `<${message.id}@example.test>`, dispatchObservedAt: observed }
