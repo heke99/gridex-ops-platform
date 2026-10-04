@@ -1114,3 +1114,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: P-11 (+AT) godkänd (ny scripts/test-ediel-p-11-z04-order.cjs: Z04 före positiv APERAK, sen negativ ACK backar inte).
 - 2026-10-04 #491: P-10 (+AT) godkänd (ny scripts/test-ediel-p-10-z02-correlation.cjs).
 - 2026-10-04 #491: P-12 (+AT) godkänd (ny scripts/test-ediel-p-12-z04ad-scope.cjs).
+- 2026-10-04 #491: P-12, P-13 (+AT) godkända (nya runners p-12-z04ad-scope, p-13-end-preserves). Kvar P: P-15 (öppen), P-06/P-08 PARTIAL.

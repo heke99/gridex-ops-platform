@@ -486,8 +486,17 @@
     {
       "id": "P-13",
       "acceptance_id": "AT-P-13",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+        "scripts/ediel-national-supply-rescission-atomic-sql-regression.mjs",
+        "scripts/ediel-p-13-end-preserves-sql-regression.mjs",
+        "scripts/test-ediel-p-13-end-preserves.cjs",
+        "__tests__/ediel-supply-end-followup.test.ts",
+        "__tests__/ediel-bilateral-prodat-closure-operation.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "P-14",
@@ -1980,8 +1989,14 @@
     },
     {
       "id": "AT-P-13",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-p-13-end-preserves.cjs",
+        "__tests__/ediel-supply-end-followup.test.ts",
+        "__tests__/ediel-bilateral-prodat-closure-operation.test.ts",
+        "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "AT-P-14",
