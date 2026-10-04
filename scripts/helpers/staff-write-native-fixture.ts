@@ -15,8 +15,8 @@ export function staffWriteNativeFixture() {
     INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
       SELECT '${actorId}','${companyId}',id,key FROM public.permissions WHERE key IN('masterdata.write','customers.write','cases.write');
     INSERT INTO public.integration_api_clients(id,company_id,name,key_prefix,secret_hash,scopes)
-      VALUES('${clientId}','${companyId}','Synthetic staff key','synthetic','synthetic-no-real-key',ARRAY['staff_cases.write','staff_customers.write']),
-      ('${foreignClientId}','${foreignCompanyId}','Synthetic foreign key','synthetic','synthetic-no-real-key',ARRAY['staff_cases.write']);
+      VALUES('${clientId}','${companyId}','Synthetic staff key','synthetic-${clientId}','synthetic-no-real-key',ARRAY['staff_cases.write','staff_customers.write']),
+      ('${foreignClientId}','${foreignCompanyId}','Synthetic foreign key','synthetic-${foreignClientId}','synthetic-no-real-key',ARRAY['staff_cases.write']);
     INSERT INTO public.customers(id,company_id,full_name,status,email,created_at)
       VALUES('${customerId}','${companyId}','Synthetic special % search','active','${customerId}@example.invalid',now()-interval '2 days'),
       ('${foreignCustomerId}','${foreignCompanyId}','Synthetic special % foreign','active','${foreignCustomerId}@example.invalid',now());
@@ -28,5 +28,5 @@ export function staffWriteNativeFixture() {
       input:`BEGIN;${seed}\n${body}\nROLLBACK;`,encoding:'utf8',timeout:30000,maxBuffer:2_000_000,
     })
   }
-  return {companyId,foreignCompanyId,actorId,foreignActorId,clientId,foreignClientId,customerId,foreignCustomerId,caseId,run}
+  return {companyId,foreignCompanyId,actorId,foreignActorId,clientId,foreignClientId,customerId,foreignCustomerId,caseId,seed,run}
 }
