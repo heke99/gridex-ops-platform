@@ -121,7 +121,7 @@ function effects(f: Fixture) {
   return sql(`SELECT jsonb_build_object('operations',(SELECT count(*) FROM gridex_received_sources.prodat_recovery_operations WHERE company_id=${literal(f.companyId)}),'messages',(SELECT count(*) FROM public.ediel_messages WHERE company_id=${literal(f.companyId)}),'outboxes',(SELECT count(*) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)}),'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE company_id=${literal(f.companyId)}))`)
 }
 for (const kind of ['contrl','aperak27','aperak34'] as const) {
-  it(`received ${kind} drives actual recovery, fresh intent/BGM/LI and queue with the sent original unchanged`,async () => {
+  it(`received ${kind} drives actual recovery, fresh intent/BGM and queue with the existing object LI and sent original unchanged`,async () => {
     const f = await seed(), before = originals(f), ack = await receiveAck(f,externalAck(f,kind)), operationId = randomUUID()
     expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_message_payloads WHERE ediel_message_id=${literal(f.originalZ03.id)} AND payload_kind='raw_mime'`)).toBeGreaterThan(0)
     const input = {companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId,correctedRawPayload:correction(f)}
@@ -138,8 +138,12 @@ for (const kind of ['contrl','aperak27','aperak34'] as const) {
     expect(fresh.outbound_request_id).not.toBe(f.originalZ03.outbound_request_id)
     expect(fresh.external_reference).not.toBe(f.originalZ03.external_reference)
     const ownWire = tokenizeEdifact(fresh.raw_payload!), li = ownWire.segments.find(s => s.tag === 'RFF' && segmentComposite(s,1,ownWire.una)[0] === 'LI')!
-    expect(segmentComposite(li,1,ownWire.una)[1]).toMatch(/^[A-Z0-9]{35}$/)
-    expect(segmentComposite(li,1,ownWire.una)[1]).not.toBe(f.caseReference)
+    // P RFF C506/1154 is an..35, not fixed-width. An existing valid object
+    // LI is preserved; the protected missing-LI repair owner is separate.
+    const lineItemReference=segmentComposite(li,1,ownWire.una)[1]
+    expect(lineItemReference).toBe(f.caseReference)
+    expect(lineItemReference.length).toBeGreaterThan(0)
+    expect(lineItemReference.length).toBeLessThanOrEqual(35)
     expect(await queuePersistedProdatRecovery({companyId:f.companyId,actorUserId:f.actorUserId,messageId:fresh.id})).toMatchObject({status:'queued',messageId:fresh.id,operationId})
     const queued = (await getEdielMessageById(fresh.id))!
     expect(queued.status).toBe('queued'); expect(queued.raw_payload).toBe(fresh.raw_payload)
@@ -210,13 +214,25 @@ it('a queued definite-loss retry rechecks actual revoked network-source authorit
   expect({...current,archives:current.archives.filter(p=>retained.archives.some(old=>old.id===p.id))}).toEqual(retained)
   expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.prodat_recovery_attempts WHERE operation_id IN(SELECT id FROM gridex_received_sources.prodat_recovery_operations WHERE company_id=${literal(f.companyId)})`)).toBe(0)
 },120000)
-it('fresh correction finalization rechecks the actual current network source after a qualified negative ACK',async () => {
+it('a prepared correction cannot queue after its actual current network source is withdrawn',async () => {
   const f = await seed(), ack = await receiveAck(f,externalAck(f,'contrl')), registry = normalSwitchNetworkRegistry(f.companyId)!
   expect(registry).toBeTruthy()
-  const before = effects(f) as {messages:number;outboxes:number;attempts:number}, archive = originals(f)
-  expect(await revokeNetworkRegistrySource({...registry.artifact,companyId:f.companyId,actorUserId:registry.reviewerId,reason:'Synthetic actual source withdrawal before fresh finalization'})).toMatchObject({status:'held'})
-  await expect(prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f)})).rejects.toThrow()
-  expect(effects(f)).toMatchObject({messages:before.messages,outboxes:before.outboxes,attempts:before.attempts})
+  const operationId=randomUUID()
+  const prepared=await prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId,correctedRawPayload:correction(f)})
+  expect(prepared).toMatchObject({status:'prepared',kind:'contrl_correction',operationId})
+  if(!('messageId' in prepared))throw Error('actual_correction_not_prepared')
+  const draft=await getEdielMessageById(prepared.messageId)
+  expect(draft).toMatchObject({status:'draft',source_operation_id:operationId,original_message_id:f.originalZ03.id})
+  const before=effects(f),archive=originals(f)
+  const switchBefore=sql(`SELECT to_jsonb(r) FROM public.supplier_switch_requests r WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)}`)
+  expect(await revokeNetworkRegistrySource({...registry.artifact,companyId:f.companyId,actorUserId:registry.reviewerId,reason:'Synthetic actual source withdrawal before correction queue'})).toMatchObject({status:'held'})
+  // A retained draft is not SEND authority. The actual switch correction
+  // binder must reread its current network/contract source before queueing.
+  await expect(queuePersistedProdatRecovery({companyId:f.companyId,actorUserId:f.actorUserId,messageId:prepared.messageId})).rejects.toMatchObject({code:'P0001',message:'switch_signed_new_agreement_requested_method_required'})
+  expect(effects(f)).toEqual(before)
+  expect(sql(`SELECT to_jsonb(count(*)) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(prepared.messageId)}`)).toBe(0)
+  expect(await getEdielMessageById(prepared.messageId)).toEqual(draft)
+  expect(sql(`SELECT to_jsonb(r) FROM public.supplier_switch_requests r WHERE id=${literal(f.switchId)} AND company_id=${literal(f.companyId)}`)).toEqual(switchBefore)
   expect(originals(f)).toEqual(archive); expect(smtp).toHaveBeenCalledTimes(1)
 },120000)
 it('fresh correction finalization denies a retired actual guide activation after a qualified negative ACK',async () => {

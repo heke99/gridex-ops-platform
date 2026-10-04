@@ -1,5 +1,70 @@
 # Codex — masterplan v2, TR-05/TR-10
 
+Current2026-10-04T23:39Z (supersedes pending954 findings below):
+- Exact954e57fb2bb5cc2afb719298e8b626210c1fd277/tree0486b6647eed92c33c701086166935de797ec3ef
+  genuine28 run37242322595/job111553337157/artifact11318736222 verified by
+  root+independentten07: ZIP91baa90d983ac4b2a85199c7e4835c376a703c0bf9c72ec217963d294d374ae4,
+  exactcheckout/tree/all9Git inputs/raw3outputs. 28TOTAL24PASS4FAIL0ERROR0SKIP.
+  TR10all9, genuineleasefence, denial, after-preparationPOA nowPASS. Fresh
+  gatewayaddress/actualinvoicee correction reaches true prepared positives.
+- Three positives stop at incorrect fixture LI assertions: P field1154 is
+  an..35 maximum, and healthy existing object LI is explicitly preserved by
+  actual missing-LI owner. No new LI is required here; changing production
+  allocation would violate existing-case lineage. Fixture now asserts exact
+  retained LI/nonempty/max35, still fresh BGM/message/intent/request and all
+  queue/replay/original/archive/SMTP assertions. No allocation/source change.
+- Fourth test expected network withdrawal to prevent retaining a draft;
+  frozen TR05 forbids sending without current source. Actual queue binder
+  already rereads real contract-request/network source, atomically rejects
+  held source before queue. Fixture now prepares valid correction, withdraws
+  the real archived source, demands exact P0001
+  switch_signed_new_agreement_requested_method_required, unchanged effects/
+  exactdraft/operativeswitch/originalarchives/SMTP1 and zero newoutbox. Static
+  failure reason is not yet observed by genuine replay; do not broaden it.
+- Independent two-hunk review no blocker. Scoped scriptsTS/lint/diff PASS.
+  No production/SQL/coverage/frozen source change; priorfull9984+calendar9
+  retain their true source scope, no repeated heavyfull/new28 claim.
+  TR05/ATTR05/SC040 remain unapproved until genuine full positivequeue/replay
+  and strict denial proof. TR10/AT+SC063 prior approvals retained (root172).
+- Genuine current954 capture37242322548/artifact11318366511 ZIP
+  b3ee8aabff8b768729370ae91f6ddce29e6736ed4cad8b8bfa5dcd918c917d2c
+  exacttree/8inputs/latest220migration/3outputs verified; all3 output bytes
+  equal authentic05c6220capture. No regenerated/synthetic schema/types needed.
+  Capture alone does not run native/browser/upgrade/parity; finalmain/P08
+  actualunioncapture and all mandatory currentcandidate gates stay required.
+- SC008/SC017 independently wholeAPPROVED, onlytwo own rows PASSED published
+  #541fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c/ready; branch76approved,
+  notmain. NextunownedSC007/SC066 reserved4915985559317, technicalowner ten06
+  published draft#547dc3b733562ec36d0d94458247f3546b3ca5bdc94. Newindependent
+  reviewer sc007_sc066_review judges entireliterals/actual export+AI source
+  reconciliation/fullsix-table unchanged snapshots and native-qualified
+  sameGSRN no-grant case; no selfapproval or duplicate implementation.
+- Separate#545b167 genuine13=4PASS9FAIL0ERROR0SKIP/artifact11318456369 ZIP
+  aa98e614a32ff9d96cfee0b901dbb476a2037aab564e1bbfdbb228c43ad06623
+  root+owner verified9inputs/tree/rawJUnit. Eightfixture failures use retired
+  rendered_payload; actualseal immutable_rendered_at. Ninth wrongly demands
+  OpenSSL invalidCRL throw; runner may report verifyfailure with exit0.
+  Potential actual previousCrl.ts exit-only verifier flaw needs directactual
+  consumerRED. Owner-alone fixture correction+rawREDreceipt published545
+  1c6a5decf726d87d6d0070d3a1a37abd85b73414; genuine13run37244105508 pending,
+  production crypto unchanged. No TR09 acceptance from original4 PASS.
+- Independent TR08 inventory: no authenticated Strato policy/laterhop/receiver
+  SPF consumer; actualResend webhook separateapplicationlane, DSN explicitly
+  unverified. Actual firsthop20 independentlyPASS childb167, notallhops or CA
+  revocation. User asked asynchronously for actual accessible policy/log/
+  recipient sources, no secrets; continue allindependent work whilemissing.
+  Do not invent sourcepublisher/attestation or trust arbitraryheader prose.
+- Root current source, receipts and memory remain published onGitHub in
+  completepackets; interimprogress via491comments avoids status-onlyCI
+  restarts. Primary4919433 verify/quality/upgradeSUCCESS, cleanpending; hold
+  order491→500→501→publishedClaudeP08→503, preserveSC036both ACKpaths and all
+  tag/approval unions. Primarymemory/frozenmasterplan untouched.
+Next: publish these two fixtures, authentic954 receipts/rawZIP and independent
+review/memory together; inspect new genuine28 and545genuine13. Approve only
+complete source-proven cards immediately, compose actualcurrentmain/P08,
+capture trueunion, requiremandatoryallgreen thenmerge to main. Continue two
+unowned cards pertechnicalowner across352 IDs, no stalehead/main count claims.
+
 Current2026-10-04T22:58Z (supersedes earlier pending findings):
 - Published05c6e8b7e8a4399ec0e5e50358eb6d9e2231f72e genuine native
   run37239978374/job111546581471/artifact11317501378, ZIP

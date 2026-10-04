@@ -1189,3 +1189,38 @@ P/U/ACK/DB/GOV/IMP overlap. Complete detailsrootretrycheckpoint/currentaudit.
 calendar9433 cherry-picked a7633802; all3blobsidentical/calendar9PASS, no second
 variant and no fabricated fullnewhead result. Freshactual28/native and ordinary
 currentheadallgreen/mainunion stillpending. Functionalpublication next.
+
+
+## Codex TR05/TR10 — 2026-10-04T23:39Z published-packet handover
+
+Actual95428 run37242322595/artifact11318736222 is24PASS4FAIL0ERROR0SKIP;
+root+ten07 verified exacttree/9inputs/rawZIP91baa90d983ac4b2a85199c7e4835c376a703c0bf9c72ec217963d294d374ae4.
+Fresh customer/address/invoicee gateway now reaches prepared corrections;
+remaining failures are incorrect existing-LI length/newness and network draft-
+stage fixture expectations. Minimal two-fixture correction is independently
+reviewed: preserve valid oldLI (P an..35), retain freshBGM/intent/request/
+message and fullqueue/replay/history assertions; actual source withdrawal now
+practised between prepare and queue, demanding exact P0001/currentcontract-
+network failure, stabledraft/switch/effects/originals,0newoutbox/SMTP1. Scoped
+TS/lint/diffPASS; no source/SQL/coverage/frozen changes. TR05/AT/SC040 pending
+newgenuine28, TR10/AT/SC063 approved172onroot only. Rawreceipt/nativeZIP and
+independent quality/audits/ediel-masterplan-v2/tr-05-current-queue-boundary-review-954-20261004.md published together.
+Actual954220 capture37242322548/artifact11318366511 has all3 outputs byte-
+identical authentic05c6; exacttree/8inputs/latestmigration checked. Finalmain/
+P08 actualunioncapture/mandatorygates stillrequired; no newheavyfull claim.
+
+Separate541fbd SC00817 independentlyAPPROVED76branch approved, ready; next
+SC007/066 owner ten06 claimed4915985559317, draft547dc3 technicalpacket,
+sc007_sc066_review independent fullcard reviewer. Native497sameGSRN reuse
+sourcequalified; actualhistory→intent→CSV and realreconcileSQL preserve all
+six masterdata tables and source/investigation provenance, declaredports.
+Separate5451c6a genuine13 rerun37244105508 pending after authenticatedb167
+13=4PASS9FAIL testfixture/schema/OpenSSL fixes. Root/ten08 reserve onlyexact
+previousCrl.ts read-only portability diagnosis pendingdirectconsumerRED, no
+duplicatecertificateowner orcryptoedit. FullTR08 missingactualStrato policy/
+authenticatedlaterhop/receiverSPF; useraskedforsources async, no secrets.
+Continue independent lanes. Primary4919433 freeze+cleanpending/order preserved;
+source/tag/approval unions and SC036 canonical+legacy bothrequired. No meaningful
+work left onlylocal: publishcompletepackets/ownmemory via trustedGitHub,
+comments forinterimstatus. Nextgenuine28/13→wholecardreview→currentmain
+composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
