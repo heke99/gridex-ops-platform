@@ -1089,3 +1089,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 RESERVATION: TEN-08+TEN-10 pågår i session_01RxmpLE5UfwVEetssVwdAWs på `claude/cool-tesla-2pmyua` (#491). Annan agent: börja på ESCO-kluster, se current-task.md.
 - 2026-10-04 #491: TEN-08, AT-TEN-08, TEN-10, AT-TEN-10 godkända (`scripts/test-ediel-ten-08-10-grants.cjs`); reservation släppt. Nästa enligt prioritet: ESCO-kluster (kolla om annan agent tagit det).
 - 2026-10-04 RESERVATION: ESCO-04/06/07 pågår (Claude, #491, claim-kommentar postad). Övriga ESCO lediga.
+- 2026-10-04 #491: ESCO-04, AT-ESCO-04, ESCO-07, AT-ESCO-07 godkända (`scripts/test-ediel-esco-04-07-permissions.cjs`). ESCO-06 fortfarande reserverat (Claude); kartläggning: ingen Z13-upprepningskoordinering finns i koden.

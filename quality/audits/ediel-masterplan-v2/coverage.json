@@ -461,8 +461,14 @@
     {
       "id": "ESCO-04",
       "acceptance_id": "AT-ESCO-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+        "scripts/test-ediel-esco-04-07-permissions.cjs"
+      ]
     },
     {
       "id": "ESCO-05",
@@ -479,8 +485,14 @@
     {
       "id": "ESCO-07",
       "acceptance_id": "AT-ESCO-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+        "scripts/test-ediel-esco-04-07-permissions.cjs"
+      ]
     },
     {
       "id": "ESCO-08",
@@ -1775,8 +1787,10 @@
     },
     {
       "id": "AT-ESCO-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-04-07-permissions.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-05",
@@ -1790,8 +1804,10 @@
     },
     {
       "id": "AT-ESCO-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-04-07-permissions.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-08",

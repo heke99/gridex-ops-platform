@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04T16:00:00Z",
+  "updated_at": "2026-10-04T16:40:00Z",
   "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
   "paused": true,
   "branch": "claude/cool-tesla-2pmyua",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "#491: ESCO-04/06/07 pågår (reserverat)",
+  "active_item": "#491: ESCO-06 pågår; ESCO-04/07 godkända",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Kartlägg ESCO-06/07 kod (Z13-upprepning, Z15 VH), skriv beteendetester per effekt.",
+  "next_action": "ESCO-06: verifiera att Z13-upprepning inte har generellt 21-dagarsförbud och om spårbar koppling till tidigare förlopp saknas (kandidatlucka) — beslut kan krävas.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1494,8 +1494,6 @@
     "TR-09/E6 needs source T §3.1"
   ],
   "reserved_by_session": {
-    "ESCO-04": "session_01RxmpLE5UfwVEetssVwdAWs",
-    "ESCO-06": "session_01RxmpLE5UfwVEetssVwdAWs",
-    "ESCO-07": "session_01RxmpLE5UfwVEetssVwdAWs"
+    "ESCO-06": "session_01RxmpLE5UfwVEetssVwdAWs"
   }
 }
