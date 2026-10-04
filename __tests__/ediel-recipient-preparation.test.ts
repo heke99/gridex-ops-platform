@@ -1,10 +1,7 @@
 // masterplan: TR-06, AT-TR-06
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { execFileSync } from 'node:child_process'
-import { X509Certificate } from 'node:crypto'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import type { X509Certificate } from 'node:crypto'
+import { createSyntheticEdielRecipientFixture } from './helpers/syntheticEdielRecipientFixture'
 import type { EdielCertificateTrustAuthority } from '@/lib/ediel/security/certificateTrust'
 import type { ExpisoftCertificateLookupResult } from '@/lib/ediel/security/expisoftCertificateDirectory'
 
@@ -113,7 +110,7 @@ const companyId = '10000000-0000-4000-8000-000000000001'
 const otherCompanyId = '20000000-0000-4000-8000-000000000002'
 const receiverEdielId = '91100'
 const portalEmail = 'synthetic-receiver@example.invalid'
-let directory: string
+let fixture: ReturnType<typeof createSyntheticEdielRecipientFixture>
 let leaf: X509Certificate
 let leafPem: string
 let anchorPem: string
@@ -122,27 +119,10 @@ let revokedCrl: string
 let fingerprint: string
 
 beforeAll(() => {
-  directory = mkdtempSync(join(tmpdir(), 'ediel-preparation-unit-'))
-  const path = (name: string) => join(directory, name)
-  const openssl = (args: string[]) => execFileSync('openssl', args, { stdio: ['ignore', 'pipe', 'pipe'] })
-  openssl(['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', path('ca.key'), '-out', path('ca.pem'), '-days', '365', '-subj', '/CN=Synthetic preparation CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign'])
-  openssl(['req', '-new', '-newkey', 'rsa:2048', '-nodes', '-keyout', path('leaf.key'), '-out', path('leaf.csr'), '-subj', '/CN=Synthetic preparation recipient'])
-  writeFileSync(path('index.txt'), '')
-  writeFileSync(path('serial'), '1000')
-  writeFileSync(path('crlnumber'), '1000')
-  writeFileSync(path('ca.cnf'), `[ca]\ndefault_ca=main\n[main]\ndatabase=${path('index.txt')}\nnew_certs_dir=${directory}\ncertificate=${path('ca.pem')}\nprivate_key=${path('ca.key')}\nserial=${path('serial')}\ncrlnumber=${path('crlnumber')}\ndefault_days=365\ndefault_crl_days=1\ndefault_md=sha256\npolicy=policy\nx509_extensions=recipient\n[policy]\ncommonName=supplied\n[recipient]\nbasicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=emailProtection\n`)
-  openssl(['ca', '-config', path('ca.cnf'), '-batch', '-in', path('leaf.csr'), '-out', path('leaf.pem')])
-  openssl(['ca', '-config', path('ca.cnf'), '-gencrl', '-out', path('clean.crl')])
-  openssl(['ca', '-config', path('ca.cnf'), '-revoke', path('leaf.pem')])
-  openssl(['ca', '-config', path('ca.cnf'), '-gencrl', '-out', path('revoked.crl')])
-  leafPem = readFileSync(path('leaf.pem'), 'utf8')
-  leaf = new X509Certificate(leafPem)
-  anchorPem = readFileSync(path('ca.pem'), 'utf8')
-  cleanCrl = readFileSync(path('clean.crl'), 'utf8')
-  revokedCrl = readFileSync(path('revoked.crl'), 'utf8')
-  fingerprint = leaf.fingerprint256.replaceAll(':', '').toLowerCase()
+  fixture = createSyntheticEdielRecipientFixture()
+  ;({ leaf, leafPem, anchorPem, cleanCrl, revokedCrl, fingerprint } = fixture)
 })
-afterAll(() => { if (directory) rmSync(directory, { recursive: true, force: true }) })
+afterAll(() => { fixture?.dispose() })
 
 function authority(environment: 'test' | 'production'): EdielCertificateTrustAuthority {
   return {
