@@ -59834,6 +59834,7 @@ BEGIN
   -- Staff: the canonical resolver grants masterdata.write in exactly this company (active member
   -- with the permission) or to an active platform superadmin; disabled/banned users never pass.
   IF p_actor_kind='staff'
+     AND p_channel <> 'staff_api'
      AND NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write'),false) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
@@ -88301,35 +88302,49 @@ DECLARE
   v_is_platform boolean;
   v_now timestamptz := clock_timestamp();
 BEGIN
+  -- Staff authorization owns the entire staff lane, including direct internal
+  -- calls to this shared core. Take company/actor/client locks before the case
+  -- row and never fall back to the legacy OPS permission catalogue.
+  IF p_channel='staff_api' THEN
+    PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  END IF;
+
   SELECT * INTO v_case FROM public.customer_cases
     WHERE id=p_case_id AND company_id=p_company_id
       AND (p_expected_source IS NULL OR source=p_expected_source)
+      AND (p_channel IS DISTINCT FROM 'staff_api' OR (
+        metadata->>'support_case'='true' AND case_type='other'
+        AND strpos(source,'tenant_support_')=1
+        AND NOT billing_blocked AND NOT billing_manual_review AND NOT cancellation_required
+      ))
     FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='customer_case_not_found_in_scope';
   END IF;
 
-  v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
-  -- Ediel's operational view is tenant-write only, even when the optional
-  -- expected-source argument is omitted. Support retains its platform actor
-  -- behavior, still subject to real selected-company membership below.
-  IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
-    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
-  END IF;
+  IF p_channel IS DISTINCT FROM 'staff_api' THEN
+    v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
+    -- Ediel's operational view is tenant-write only, even when the optional
+    -- expected-source argument is omitted. Support retains its platform actor
+    -- behavior, still subject to real selected-company membership below.
+    IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
+    END IF;
 
-  -- The existing scoped permission resolver checks the auth user for deletion
-  -- and bans inside its established definer boundary; do not grant this
-  -- invoker direct access to auth.users.
-  IF NOT EXISTS (
-    SELECT 1 FROM public.user_profiles up
-    JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
-    JOIN public.companies c ON c.id=cm.company_id
-    WHERE up.id=p_actor_user_id AND up.user_status='active'
-      AND cm.status='active' AND coalesce(cm.is_active,true)
-      AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
-  ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
-  THEN
-    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+    -- The existing scoped permission resolver checks the auth user for deletion
+    -- and bans inside its established definer boundary; do not grant this
+    -- invoker direct access to auth.users.
+    IF NOT EXISTS (
+      SELECT 1 FROM public.user_profiles up
+      JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
+      JOIN public.companies c ON c.id=cm.company_id
+      WHERE up.id=p_actor_user_id AND up.user_status='active'
+        AND cm.status='active' AND coalesce(cm.is_active,true)
+        AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
+    ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
+    THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+    END IF;
   END IF;
 
   v_old_status := v_case.status;
@@ -88345,7 +88360,9 @@ BEGIN
     v_case.company_id,v_case.id,v_case.customer_id,'status_changed',
     CASE WHEN p_status IN ('closed','resolved') THEN 'success' ELSE 'info' END,
     coalesce(nullif(btrim(p_message),''),'Ärendet uppdaterades till '||p_status||'.'),
-    jsonb_build_object('status',p_status,'channel',p_channel,'api_client_id',p_api_client_id,'actor_user_id',p_actor_user_id),p_actor_user_id
+    CASE WHEN p_channel='staff_api' THEN
+      jsonb_build_object('status',p_status,'channel',p_channel,'api_client_id',p_api_client_id,'actor_user_id',p_actor_user_id)
+    ELSE jsonb_build_object('status',p_status) END,p_actor_user_id
   );
   -- The canonical audit trigger fills required actor/request/resource context.
   -- Neither an event error nor an audit error is swallowed: all three writes
@@ -88356,7 +88373,9 @@ BEGIN
     v_case.company_id,p_actor_user_id,'customer_case',v_case.id::text,'customer_case_status_changed',
     jsonb_build_object('status',v_old_status),
     jsonb_build_object('status',p_status,'message',p_message),
-    jsonb_build_object('customer_id',v_case.customer_id,'channel',p_channel,'api_client_id',p_api_client_id)
+    CASE WHEN p_channel='staff_api' THEN
+      jsonb_build_object('customer_id',v_case.customer_id,'channel',p_channel,'api_client_id',p_api_client_id)
+    ELSE jsonb_build_object('customer_id',v_case.customer_id) END
   );
   RETURN to_jsonb(v_case);
 END
