@@ -80,7 +80,7 @@ beforeAll(async () => {
     'canonical_change_tenant_user_access_v2_unmapped', 'canonical_change_tenant_user_access_pre_staff_v1',
     'canonical_change_tenant_user_access', 'canonical_create_tenant_invitation_pre_staff_v1', 'canonical_create_tenant_invitation',
     'canonical_accept_tenant_invitation', 'canonical_enqueue_invitation_delivery_job', 'guard_tenant_invitation_acceptance',
-    'guard_last_functioning_tenant_admin',
+    'guard_last_functioning_tenant_admin', 'canonical_guard_global_platform_role_scope', 'gridex_assert_role_scope_is_consistent',
   ]
   for (const name of functions) await db.exec(actualFunction(name))
   for (const name of functions) {
@@ -91,6 +91,11 @@ beforeAll(async () => {
     CREATE TRIGGER canonical_enqueue_invitation_delivery_job AFTER INSERT ON company_invitations FOR EACH ROW EXECUTE FUNCTION canonical_enqueue_invitation_delivery_job();
     CREATE TRIGGER company_invitations_tenant_accept_guard BEFORE INSERT OR UPDATE ON company_invitations FOR EACH ROW EXECUTE FUNCTION guard_tenant_invitation_acceptance();
     CREATE TRIGGER guard_last_functioning_tenant_admin AFTER UPDATE OR DELETE ON company_memberships FOR EACH ROW EXECUTE FUNCTION guard_last_functioning_tenant_admin();
+    CREATE TRIGGER gridex_user_roles_scope_consistent BEFORE INSERT OR UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION gridex_assert_role_scope_is_consistent();
+    CREATE TRIGGER user_roles_global_platform_scope_guard BEFORE INSERT OR UPDATE OF company_id,role,role_id ON user_roles FOR EACH ROW EXECUTE FUNCTION canonical_guard_global_platform_role_scope();
+    ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
+    GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE ON user_roles TO authenticated;
+    GRANT ALL ON user_roles TO service_role;
     GRANT SELECT,INSERT,UPDATE ON company_invitations TO service_role;
     CREATE POLICY fixture_preserved_policy ON company_invitations FOR SELECT TO authenticated USING(status='pending');`)
   await db.exec("INSERT INTO roles(key,name) VALUES('company_admin','company_admin'),('customer_service_agent','customer_service_agent')")

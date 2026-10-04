@@ -23,6 +23,15 @@ DECLARE
   acceptance_command jsonb;
   acceptance_result jsonb;
 BEGIN
+  IF NOT EXISTS(SELECT FROM pg_catalog.pg_attribute WHERE attrelid='public.user_roles'::regclass
+    AND attname='role_id' AND atttypid='uuid'::regtype AND NOT attnotnull AND NOT attisdropped)
+  THEN RAISE EXCEPTION 'staff nullable role reference normalization missing'; END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_catalog.pg_class WHERE oid='public.user_roles'::regclass)
+    OR has_table_privilege('authenticated','public.user_roles','INSERT')
+    OR has_any_column_privilege('authenticated','public.user_roles','INSERT')
+    OR has_table_privilege('authenticated','public.user_roles','UPDATE')
+    OR has_any_column_privilege('authenticated','public.user_roles','UPDATE')
+  THEN RAISE EXCEPTION 'staff role reference normalization weakened RLS or authenticated write ACL'; END IF;
   INSERT INTO auth.users(id,email,email_confirmed_at) VALUES
     (actor,'staff-actor@example.invalid',now()),(colleague,'staff-colleague@example.invalid',now()),(foreign_user,'staff-foreign@example.invalid',now()),(invitee,'staff-invitee@example.invalid',now());
   INSERT INTO public.user_profiles(id,email,user_status) VALUES
@@ -51,6 +60,17 @@ BEGIN
   IF NOT EXISTS(SELECT FROM public.company_memberships WHERE company_id=company_a AND user_id=colleague AND membership_role='operations' AND role_key='operations_agent') THEN
     RAISE EXCEPTION 'staff role command did not persist membership role key';
   END IF;
+  IF NOT EXISTS(SELECT FROM public.user_roles ur JOIN public.roles r ON r.id=ur.role_id
+    WHERE ur.company_id=company_a AND ur.user_id=colleague AND ur.role='operations_agent'
+      AND r.key='operations_agent' AND ur.status='active' AND ur.is_active)
+  THEN RAISE EXCEPTION 'staff role command did not retain final mapped role reference'; END IF;
+  BEGIN
+    INSERT INTO public.user_roles(company_id,user_id,role,status,is_active)
+    VALUES(company_a,foreign_user,'super_admin','active',true);
+    RAISE EXCEPTION 'tenant-bound platform role with null role_id accepted';
+  EXCEPTION WHEN check_violation THEN
+    IF SQLERRM<>'tenant_bound_global_platform_role_forbidden' THEN RAISE; END IF;
+  END;
   repeated := public.canonical_change_tenant_user_access(command);
   IF repeated IS DISTINCT FROM result THEN RAISE EXCEPTION 'staff role replay changed result'; END IF;
   SELECT count(*) INTO audit_count FROM public.audit_logs WHERE company_id=company_a AND actor_user_id=actor AND metadata->>'channel'='staff_api' AND metadata->>'api_client_id'=client::text AND action='STAFF_CHANGE_ROLE';
@@ -96,6 +116,10 @@ BEGIN
   command := (command-'role_key'-'membership_role')||jsonb_build_object('staff_operation','enable','action','upsert','idempotency_key','staff-native-enable');
   result := public.canonical_change_tenant_user_access(command);
   IF result->>'status'<>'active' OR result->>'role_key'<>'operations_agent' THEN RAISE EXCEPTION 'staff enable did not restore same role'; END IF;
+  IF NOT EXISTS(SELECT FROM public.user_roles ur JOIN public.roles r ON r.id=ur.role_id
+    WHERE ur.company_id=company_a AND ur.user_id=colleague AND ur.role='operations_agent'
+      AND r.key='operations_agent' AND ur.status='active' AND ur.is_active)
+  THEN RAISE EXCEPTION 'staff enable did not retain final mapped role reference'; END IF;
   repeated := public.canonical_change_tenant_user_access(command);
   IF repeated IS DISTINCT FROM result THEN RAISE EXCEPTION 'staff enable replay changed result'; END IF;
 
