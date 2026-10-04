@@ -1,0 +1,59 @@
+{
+  "purpose": "bounded_local_real_first_hop_mechanics",
+  "product_base_commit": "05c6e8b7e8a4399ec0e5e50358eb6d9e2231f72e",
+  "new_test_executed_from_working_tree": true,
+  "timestamp": "2026-10-04T22:38:47.905Z",
+  "input_sha256": {
+    "__tests__/ediel-tr-08-first-hop-tls.test.ts": "22110408a3521b25ba9a5704ab57098e2b1dc7e3c3371ca2f0fcacdd3361a5cf",
+    "lib/email/sendEdielEmail.ts": "8a2850527daa3f8f95671860150d47b1268467911fe7791fc250c812aed3011b",
+    "lib/ediel/mailReadiness.ts": "6f8a9dba125fb3f52df0f289542007a3fafd736481cadae99bfc40f7f06e9453",
+    "vitest.config.ts": "5745fb70262f40a2a1a6b00223cf112f2696c7253c9387ef5a641b3c2790ae64",
+    "scripts/lib/unit-loopback-network-boundary.cjs": "4c0e36a6317453093a604a2c14eeed5bfc22b14ec02b65c25d5d3572521ecad9"
+  },
+  "runtime": {
+    "node": "v22.23.3",
+    "nodemailer": "10.0.13",
+    "openssl": "3.5.8"
+  },
+  "verification": {
+    "tests": 20,
+    "passed": 20,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "owned_file_eslint": "PASS",
+    "owned_file_types": "PASS"
+  },
+  "artifact_sha256": {
+    "junit.xml": "b8c1cefb32d7209da18d5d9347d0880f91352b3fcbd0dc0df4eb7a47f7aecc01",
+    "run.log": "ace6aba0e99bfdd861961b185cb055b574734503e8923e0d9f69e14d010c8599"
+  },
+  "actual_ports": [
+    "sendEdielEmail",
+    "edielSmtpConfig",
+    "Nodemailer SMTP client",
+    "Node net/tls on owned 127.0.0.1 ephemeral peer"
+  ],
+  "finite_ports": [
+    "archiveTransportRawMime persistence/readback replaced with byte-recording fixture",
+    "provider-entry authority callback replaced with asserting fixture",
+    "synthetic local CA/leaf keys and SMTP peer/credentials"
+  ],
+  "positive_effects": [
+    "raw and attachment archived bytes/hash/wire RFC ID preserved over STARTTLS and implicit TLS1.2"
+  ],
+  "negative_effects": [
+    "missing/rejected/plaintext STARTTLS, untrusted/wrong-host certificates, TLS1.1-only peer refused without AUTH/MAIL/RCPT/DATA or fallback"
+  ],
+  "provider_policy_and_subsequent_hops": "UNPROVEN_NO_CURRENT_CALLER_CONSUMER_FOUND",
+  "receiver_spf_outcome": "UNPROVEN",
+  "whole_TR08_card": "UNPROVEN",
+  "native_database_archive": "NOT_RUN",
+  "authentic_market_evidence": "NOT_PROVIDED",
+  "ordinary_required_gates": "NOT_REPLACED",
+  "normative_source": {
+    "url": "https://www.ediel.se/Portal/Document/3314",
+    "pdf_sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+    "sections": "3.1 p20-21 and A.2 p42"
+  }
+}
