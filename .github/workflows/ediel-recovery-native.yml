@@ -6,6 +6,9 @@ on:
       - 'scripts/ediel-tr-05-recovery-native.test.ts'
       - 'scripts/ediel-tr-10-reconciliation-native.test.ts'
       - 'scripts/ediel-ack-first-reception-native.test.ts'
+      - 'scripts/ediel-transport-exception-native.test.ts'
+      - 'scripts/ediel-tr-09-reserve-source-native.test.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
       - 'lib/inbound-mail/inboundStatusUpdater.ts'
       - 'lib/ediel/outbox/**'
       - 'supabase/migrations/*ediel_worker_lease*.sql'
@@ -51,21 +54,31 @@ jobs:
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/recovery-replay.log" 2>&1
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/recovery-native-status.json"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_tests=(
+            scripts/ediel-tr-05-recovery-native.test.ts
+            scripts/ediel-tr-10-reconciliation-native.test.ts
+            scripts/ediel-ack-first-reception-native.test.ts
+          )
+          if [[ -f scripts/ediel-tr-09-reserve-source-native.test.ts ]]; then
+            native_tests=(
+              scripts/ediel-transport-exception-native.test.ts
+              scripts/ediel-tr-09-reserve-source-native.test.ts
+            )
+          fi
+          export RECOVERY_NATIVE_TEST_SCOPE
+          RECOVERY_NATIVE_TEST_SCOPE="$(printf '%s\n' "${native_tests[@]}")"
           native_exit=0
           GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
             --config scripts/ediel-source-owner-native.config.ts \
-            scripts/ediel-tr-05-recovery-native.test.ts \
-            scripts/ediel-tr-10-reconciliation-native.test.ts \
-            scripts/ediel-ack-first-reception-native.test.ts \
+            "${native_tests[@]}" \
             --reporter=default --reporter=junit \
             --outputFile=recovery-native-working/native-junit.xml \
             > recovery-native-working/native.log 2>&1 || native_exit=$?
           export RECOVERY_NATIVE_EXIT="$native_exit"
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
-          paths = ['scripts/ediel-tr-05-recovery-native.test.ts',
-                   'scripts/ediel-tr-10-reconciliation-native.test.ts',
-                   'scripts/ediel-ack-first-reception-native.test.ts',
+          test_scope = os.environ['RECOVERY_NATIVE_TEST_SCOPE'].splitlines()
+          paths = test_scope + ['.github/workflows/ediel-recovery-native.yml',
                    'lib/inbound-mail/inboundStatusUpdater.ts',
                    'scripts/ediel-source-owner-native.config.ts',
                    'scripts/gridex-aud-003-clean-replay.sh',
@@ -79,9 +92,7 @@ jobs:
               'workflow_run_id': os.environ['GITHUB_RUN_ID'],
               'native_exit_code': int(os.environ['RECOVERY_NATIVE_EXIT']),
               'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
-              'test_scope': ['scripts/ediel-tr-05-recovery-native.test.ts',
-                             'scripts/ediel-tr-10-reconciliation-native.test.ts',
-                             'scripts/ediel-ack-first-reception-native.test.ts'],
+              'test_scope': test_scope,
               'ordinary_required_gates': 'NOT_REPLACED',
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
               'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',

@@ -86,6 +86,41 @@ cannot establish that authority. No intake format, publisher, signature
 scheme or production source owner is invented in this packet. Root must
 coordinate actual source/caller contract before that implementation.
 
-Next: publish this concrete bounded packet on GitHub, root attaches genuine
-TR09 execution and whole-card independent reviews before promoting any row.
-TR08 full-card status stays UNPROVEN. No next rule implementation started.
+Published bounded packet HEAD `528c355f1fd74bef47f00637623fc6fd50e184fe` is
+retained on this isolated branch. Parent cleared only the existing supplemental
+feedback workflow for the next commit; do not cherry-pick into shared503.
+The same Bash array now selects existing transport-exception4 plus new TR09
+reserve9 when the new file exists, or preserves the three prior recovery files
+and28 cases when absent. The actual array is passed to Vitest and exported to
+the receipt; selected test hashes plus workflow/config/owner/manifests are
+recorded. Path triggers add TR09/config. The single clean replay owner/trap,
+private replay/status output, redactor before artifact move, head checkout,
+permissions/concurrency/30-minute timeout and ordinary mandatory gates remain
+unchanged. No second harness or production/native config change in this step.
+
+Reused sole P-owner calendar commit
+`9433d04bfc037fae0f61710c73a5ac85eeef443d` as cherry-pick `ec574fae` after
+explicit owner/root approval (#4915985309415/5985322120). All three resulting
+file blobs exactly match the original commit: wire grammar `d746c7bb`, native
+fixture `342080e0`, native wire helper `7bb066f9`; no date variant is introduced.
+Fresh actual calendar execution2026-10-04T23:02:08Z:9/9 PASS, failure0/error0/
+skip0, Node22.23.3 and the existing loopback boundary. YAML structure/bash
+syntax and both presence/absence selection plus the actual embedded Python
+receipt/hash mechanics PASS (explicit synthetic run/exit inputs; no native
+execution). Scoped types for the six source/config/calendar files and calendar
+ESLint exit0; diff check PASS. Local receipts/logs are in
+`/tmp/masterplan-tr08-tr09-ci-feedback/`. An initial validation-only Node24
+child spawn was denied by the sandbox; direct input extraction and the scoped
+mechanics probe completed without production or permission changes.
+
+Skill routing for this review follow-up: receiving-code-review and
+verification-before-completion apply to the bounded feedback change and fresh
+checks. No product/DB/UI/security/performance redesign or repository audit is
+in scope; their broader skill groups remain inactive. Authorized existing
+TR09 child independently reviewed the workflow read-only and found no
+actionable flaw. Source declaration count13 is not an execution receipt.
+
+Next: commit/push the workflow and this checkpoint; root opens the stacked
+PR and owns genuine CI execution. Supplemental native13 remains NOT_RUN,
+ordinary required gates remain pending, and TR08 full-card stays UNPROVEN.
+No whole-card approval/coverage promotion or next rule implementation started.
