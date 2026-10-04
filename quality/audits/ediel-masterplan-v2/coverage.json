@@ -1661,8 +1661,12 @@
     },
     {
       "id": "SC-052",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+        "__tests__/ediel-u-06-request-application-reference.test.ts",
+        "lib/ediel/rulebook/utiltsApplicationReference.ts"
+      ]
     },
     {
       "id": "SC-053",
