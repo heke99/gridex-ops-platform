@@ -15,7 +15,7 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | P-12 | VERIFIED | p-12-z04ad-scope (held without supplier role, signed contract, grid area, matching capability or source reference), regulated-supply-ground (production link, current ground), supply-market-consumers (no ordinary Z03) | — |
 | P-13 | VERIFIED | p-13-end-preserves (matched end versioned on its period; customers, sites, points, other periods, grants unchanged), supply-end-followup, bilateral closure/supply consumers, supply-market-consumers (final billing task once) | — |
 | P-14 | VERIFIED | switch-cancellation-sql-regression, switch-cancellation-source, prodat-prior-flow, prodat-subtypes (no Z13C/Z14C) , supply-market-consumers ("does not reaccept an ordinary start already cancelled") | — |
-| P-15 | PARTIAL | received-structure-reader(-boundaries), prodat-registers | GAP: future supplier structure before start; history not overwritten in one global row |
+| P-15 | VERIFIED | structural-source-selection (validity selected independent of receipt order; Z06/Z10 per period; meter exchange keeps both states, no global overwrite; old/new source exactly at boundary; future supplier structure received before start valid only from start), received-structure-reader(-boundaries), utilts-structural-comparison (two registers counted once) | — |
 | P-16 | VERIFIED | prodat-subtypes (explicit capability), bilateral-prodat-profile-native/intake, bilateral-prodat-supply-consumer, prodat-bilateral-source-capability , bilateral-prodat-profile-intake (other company/agreement/environment scope rejected) | — |
 
 ## U cards (2026-10-04)
