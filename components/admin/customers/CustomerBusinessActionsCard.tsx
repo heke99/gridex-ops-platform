@@ -21,6 +21,7 @@ import { meteringPointIdentityLabel } from '@/lib/customers/meteringIdentity'
 import { buildCustomerCardWorkflow, type CustomerWorkflowStep } from '@/lib/customer-operations/customerCardWorkflow'
 import { buildTenantCustomerCardView } from '@/lib/customer-operations/customerCardTenantView'
 import type { EdielDispatchStateResult } from '@/lib/ediel/intent/dispatchState'
+import type { EdielProcessNextAction } from '@/lib/ediel/operations/processNextAction'
 import {
   buildCustomerBusinessActionPlan,
   buildCustomerBusinessStatusCards,
@@ -51,6 +52,7 @@ type Props = {
   isPlatformAdmin?: boolean
   z01RepairEvents?: Z01RepairEvent[]
   dispatchState?: EdielDispatchStateResult | null
+  processDecisions?: ReadonlyMap<string, EdielProcessNextAction> | null
   manualRequests?: ManualRequestSummary[]
   billingUnderlays?: Array<Record<string, unknown>>
   isTestData?: boolean
@@ -159,6 +161,7 @@ export default function CustomerBusinessActionsCard({
   isPlatformAdmin = false,
   z01RepairEvents = [],
   dispatchState = null,
+  processDecisions = null,
   manualRequests = [],
   billingUnderlays = [],
   isTestData = false,
@@ -187,6 +190,7 @@ export default function CustomerBusinessActionsCard({
     manualRequests,
     isPlatformAdmin,
     dispatchState,
+    processDecisions,
   })
 
   const actions = buildCustomerBusinessActionPlan({

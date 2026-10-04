@@ -9,7 +9,7 @@
 | F-U-04 | U-04 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | sen äldre version tränger ej undan nyare |
 | F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | received-ERR-dispatcher återställd |
 | F-SRC-01 | (källregister) | hög | ✅ rättad 161b9bae (migr. 20261003150300) | validering av kvarhållen källhistorik efter operativ radering gav no_data_found; läser nu hash-bundna bytes ur gridex_received_sources.sources |
-| F-OPS-02 | OPS-02 | medel | öppen | kundkort ska läsa processprojektionen |
+| F-OPS-02 | OPS-02 | medel | ✅ rättad 2026-10-04 (#507), OPS-02 VERIFIED | kundkort och arbetskö styrs av `readEdielProcessNextActions` (orsak, tidsgrund, ansvar, blockerare, tillåtna åtgärder) och hålls när beslut saknas; begärandetabellens badge påstår inte längre väntan. fp-check: `automation.part-2.ts:248` och `actions.part-1.ts:185` (`normalizeSimpleRequestStatus`) registrerar status vid själva utskicket och används för jobbets livscykel/idempotens, inte för nästa steg = FALSKLARM; `pendingCustomerInfoRequests` (page.part-4) är oanvänd |
 | F-ENV-01 | ENV-01 | medel | öppen — ägs av #504 (Codex) | UNOC-repertoar för alla utgående segment |
 | F-GOV-03 | GOV-03 | låg | FALSKLARM (fp-check 2026-10-04) | härledningen i validator.ts:315 är bara förval; på kvalificerad sändning styr originalets fysiska familj (`sourceBoundAckCanonicalPolicy`) och fel profil ger `ACK_APERAK_PROFILE_INVALID`; utan original stoppas sändning. Bevisat i `ediel-gov-03-aperak-source-family.test.ts` |
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |

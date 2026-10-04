@@ -1,3 +1,6 @@
+## OPS-02 — 2026-10-04 (claude/ops-02-process-next-action)
+
+- OPS-02/AT-OPS-02 godkänd i #507 (kundkort, arbetskö, badge). GOV-03 ligger i #505. Nästa lediga: fp-check ENV-03, IMP-04, DB-01 (kolla #491 först).
 ## Aktuellt läge — 2026-10-04 kväll (gäller före allt nedan)
 
 - GOV-03 (+AT) godkänd på `claude/dazzling-dijkstra-vyyw0g`. Godkända totalt: 57. ENV-01 ägs av #504 (Codex).
