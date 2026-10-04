@@ -626,14 +626,30 @@
     {
       "id": "ACK-06",
       "acceptance_id": "AT-ACK-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/ack/sourceCorrelation.ts",
+        "lib/inbound-mail/inboundMatcher.ts",
+        "supabase/migrations/20260930170932_ediel_inbound_ack_source_atomic_authority.sql",
+        "scripts/ediel-ack-source-sql-regression.mjs",
+        "__tests__/ediel-ack-06-family-binding.test.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+      ]
     },
     {
       "id": "ACK-07",
       "acceptance_id": "AT-ACK-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/ackDraftSource.ts",
+        "lib/ediel/ack/prepareSourceAckDraft.ts",
+        "supabase/migrations/20261001023824_ediel_fresh_business_incident_immutable_ack_origin.sql",
+        "__tests__/ediel-outbound-ack-protected-replay.test.ts",
+        "__tests__/ediel-prodat-structural-ack-retained-first.test.ts",
+        "__tests__/ediel-ack-outbox-retry-safety.test.ts",
+        "__tests__/ediel-fresh-business-incident.test.ts"
+      ]
     },
     {
       "id": "ACK-08",
@@ -1960,13 +1976,22 @@
     },
     {
       "id": "AT-ACK-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ack-06-family-binding.test.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        "__tests__/ediel-prodat-aperak-acw-match.test.ts"
+      ]
     },
     {
       "id": "AT-ACK-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-outbound-ack-protected-replay.test.ts",
+        "__tests__/ediel-prodat-structural-ack-retained-first.test.ts",
+        "__tests__/ediel-ack-outbox-retry-safety.test.ts",
+        "__tests__/ediel-fresh-business-incident.test.ts"
+      ]
     },
     {
       "id": "AT-ACK-08",
