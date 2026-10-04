@@ -18,14 +18,16 @@ export function compactProdatReference(value: string, maxLength: number): string
 }
 
 function partyText(value: string | null | undefined, max: number): string {
-  const text = String(value ?? '').trim()
-  if (text.length > max || /[\x00-\x1f\x7f]/.test(text)) throw new Error('prodat_party_field_invalid')
+  const original = String(value ?? '')
+  if (/[\x00-\x1f\x7f-\x9f]/.test(original)) throw new Error('prodat_party_field_invalid')
+  const text = original.trim()
+  if (text.length > max) throw new Error('prodat_party_field_invalid')
   return text
 }
 
 function partyLiteralText(value: string | null | undefined, max: number): string {
   const text=String(value ?? '')
-  if(text.length>max||/[\x00-\x1f\x7f]/.test(text))throw new Error('prodat_party_field_invalid')
+  if(text.length>max||/[\x00-\x1f\x7f-\x9f]/.test(text))throw new Error('prodat_party_field_invalid')
   return text
 }
 

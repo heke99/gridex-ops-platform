@@ -207,8 +207,20 @@
     {
       "id": "ENV-01",
       "acceptance_id": "AT-ENV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-02",
@@ -741,8 +753,15 @@
     {
       "id": "TR-06",
       "acceptance_id": "AT-TR-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "TR-07",
@@ -895,8 +914,18 @@
     {
       "id": "OPS-02",
       "acceptance_id": "AT-OPS-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
+        "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
+        "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
+        "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
+        "__tests__/ediel-process-next-action.test.ts"
+      ]
     },
     {
       "id": "OPS-03",
@@ -1336,8 +1365,15 @@
     },
     {
       "id": "SC-060",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "SC-061",
@@ -1602,8 +1638,20 @@
     },
     {
       "id": "AT-ENV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-02",
@@ -2056,8 +2104,15 @@
     },
     {
       "id": "AT-TR-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "AT-TR-07",
@@ -2192,8 +2247,18 @@
     },
     {
       "id": "AT-OPS-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
+        "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
+        "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
+        "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
+        "__tests__/ediel-process-next-action.test.ts"
+      ]
     },
     {
       "id": "AT-OPS-03",

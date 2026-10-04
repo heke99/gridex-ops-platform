@@ -301,10 +301,12 @@ export async function prepareEdielTestRunTransportMetadata(input: {
   const effectiveCertificateId = String(routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? '') || null
   const certificate = effectiveEncryption === 'smime'
     ? await resolveOutboundRecipientCertificate({
+        companyId: input.companyId,
         certificateId: effectiveCertificateId,
         receiverEdielId: String(routeProfile?.receiver_ediel_id ?? ''),
         receiverSubaddress: routeReceiverSubaddress(routeProfile),
         messageType: messageFamily,
+        businessCode,
         environment,
         certificateEnvironment: routeCertificateEnvironment(routeProfile, environment),
         routeProfileId: String(routeProfile?.id ?? '') || null,
