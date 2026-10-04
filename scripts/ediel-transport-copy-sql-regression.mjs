@@ -29,6 +29,13 @@ try {
  assert.equal((await read()).status,'held');checks++
  await db.exec(`INSERT INTO ediel_message_payloads VALUES('${uid(5)}','${uid(1)}','${uid(3)}','${binding.mimeArchiveRef}','raw_mime','${JSON.stringify({archive_verified:true,archived_mime_sha256:binding.mimeSha256,archived_mime_bytes:binding.mimeLength,archived_rfc_message_id:binding.rfcMessageId})}')`)
  const available=await read();assert.equal(available.status,'available');assert.equal(available.copies[0].mimePayloadSnapshotId,uid(5));assert.equal(available.copies[0].archiveReadbackRequired,true);assert.equal(available.authorizesResend,false);assert.equal(available.deliveryProven,false);assert.ok(!JSON.stringify(available).includes('MUST_NOT_LEAK'));assert.ok(!JSON.stringify(available).includes('PRIVATE_MAIL'));checks++
+ // TEN-07: membership in a beneficiary company cannot expose another legal
+ // owner's complete original, even with communication.read and a known ID.
+ await db.query("INSERT INTO company_memberships VALUES($1,$2,'active',true,now())",[uid(8),uid(2)])
+ await assert.rejects(db.query('SELECT public.gridex_ediel_transport_copy_v1($1,$2,$3)',[uid(8),uid(2),uid(3)]),/ediel_transport_copy_message_unavailable/);checks++
+ await db.query("INSERT INTO ediel_messages VALUES($1,$2,'inbound','test')",[uid(7),uid(1)])
+ await assert.rejects(db.query('SELECT public.gridex_ediel_transport_copy_v1($1,$2,$3)',[uid(1),uid(2),uid(7)]),/ediel_transport_copy_message_unavailable/);checks++
+ assert.deepEqual(await read(),available);checks++
  await db.exec(`UPDATE ediel_message_payloads SET company_id='${uid(9)}'`);assert.equal((await read()).status,'held');checks++
  await db.exec(`UPDATE ediel_message_payloads SET company_id='${uid(1)}',metadata=jsonb_set(metadata,'{archived_mime_sha256}','"wrong"')`);assert.equal((await read()).status,'held');checks++
  await db.exec(`UPDATE ediel_message_payloads SET metadata=jsonb_set(metadata,'{archived_mime_sha256}','"${binding.mimeSha256}"');INSERT INTO gridex_outbound_dispatch.attempts VALUES('${uid(6)}','${uid(1)}','${uid(3)}','test','${JSON.stringify(binding)}');INSERT INTO gridex_outbound_dispatch.events VALUES('${uid(6)}','${uid(1)}','${uid(3)}','test','provider_call_entered',now(),'{}')`)

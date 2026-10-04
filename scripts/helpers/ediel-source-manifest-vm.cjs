@@ -39,6 +39,9 @@ function sourceRuntimeBoundary(request, modules, parent) {
   // though current Ediel modules statically import their server adapters.
   const exports = {
     'node:async_hooks': {AsyncLocalStorage: require('node:async_hooks').AsyncLocalStorage},
+    // routeRegistry uses the installed pure RFC address parser. This bridge
+    // permits its actual parsing while all provider and I/O ports stay denied.
+    'nodemailer/lib/addressparser': {default: require('nodemailer/lib/addressparser')},
     'fast-xml-parser': {
       XMLParser: require('fast-xml-parser').XMLParser,
       XMLValidator: require('fast-xml-parser').XMLValidator,

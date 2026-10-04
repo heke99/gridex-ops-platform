@@ -1,4 +1,4 @@
-// masterplan: ENV-01, AT-ENV-01
+// masterplan: ENV-01, AT-ENV-01, TR-01, AT-TR-01
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 

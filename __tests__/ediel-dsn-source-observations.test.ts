@@ -1,3 +1,4 @@
+// masterplan: TR-02, AT-TR-02
 // masterplan: TR-04, AT-TR-04, SC-062
 import {beforeEach,expect,it,vi} from 'vitest'
 import {createHash} from 'node:crypto'
