@@ -140,8 +140,14 @@
     {
       "id": "TEN-08",
       "acceptance_id": "AT-TEN-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_projection_read_before_write_replay.sql",
+        "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "TEN-09",
@@ -152,8 +158,14 @@
     {
       "id": "TEN-10",
       "acceptance_id": "AT-TEN-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_projection_read_before_write_replay.sql",
+        "scripts/ediel-ten-08-10-grant-sql-regression.mjs",
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "TEN-11",
@@ -1506,8 +1518,10 @@
     },
     {
       "id": "AT-TEN-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "AT-TEN-09",
@@ -1516,8 +1530,10 @@
     },
     {
       "id": "AT-TEN-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "AT-TEN-11",

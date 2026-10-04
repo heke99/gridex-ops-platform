@@ -1087,3 +1087,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: applied-TXT branch-history-scenariot (c8f666d9/#424-bas) pensionerat (ägarbeslut H1); upgrade-replay + clean replay täcker uppgradering.
 - 2026-10-04 #491: U-04, AT-U-04, U-14, AT-U-14 godkända (`scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs` via `scripts/test-ediel-utilts-series-and-err-ack.cjs`; PGlite-mekanik, positiv lagringsauktoritet kvar i native replay). Negativkontroll: utan U-04-fixen faller testet.
 - 2026-10-04 RESERVATION: TEN-08+TEN-10 pågår i session_01RxmpLE5UfwVEetssVwdAWs på `claude/cool-tesla-2pmyua` (#491). Annan agent: börja på ESCO-kluster, se current-task.md.
+- 2026-10-04 #491: TEN-08, AT-TEN-08, TEN-10, AT-TEN-10 godkända (`scripts/test-ediel-ten-08-10-grants.cjs`); reservation släppt. Nästa enligt prioritet: ESCO-kluster (kolla om annan agent tagit det).
