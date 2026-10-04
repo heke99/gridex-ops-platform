@@ -187,6 +187,68 @@ approval precedes only the two own coverage rows. No local full-suite retry
 after the earlier auto-review rejection; actual-head required GitHub gates
 provide that qualification. DB-02 and AT-DB-02 remain unapproved.
 
+## Authentic capture import — 2026-10-04
+
+Draft [#535](https://github.com/heke99/gridex-ops-platform/pull/535) froze at
+`6bda67d7d3f7c1c38979f121f84450eda8063cfc`, tree
+`f736f47c835f2b11c04fb4b9c5ebe54bdb5cb4aa`. Root directed exact reuse of the
+primary owner's pure calendar fixture correction
+`9433d04bfc037fae0f61710c73a5ac85eeef443d`; its 3 files are byte-identical to
+that correction and its 9 unit cases PASS. The DB-02 production migration and
+six native tests remain byte-identical to source freeze `c40cc2a2`.
+Independent source/native-design review:
+[491/5985330137](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985330137),
+fresh 70/70 plus 48 finite commands PASS, no blocking source/design finding;
+whole-card approval still awaits genuine native behavior. Tagged gate remains
+74 existing approved / 82 green / 0 failing; own coverage is unchanged.
+
+Capture-only run **37241338925**, job **111550506410**, artifact
+**11317019099**, is SUCCESS on that exact 6bda source/tree. Downloaded ZIP
+SHA256 and published artifact digest both equal
+`30aab743fa6ccfcd9d4db71efc02de77d11cdf63732d3c2b47f51873d7bf5df0`.
+All four members pass CRC; all eight captured input hashes match the frozen
+Git blobs, all three output hashes match their bytes, and canonical fingerprint
+recalculation matches the receipt. Producer used PostgreSQL **17.6**, CLI
+**2.101.0**, with actual replay tail
+`20261004223219_ediel_tenant_profile_interval_guard.sql`, SHA256
+`8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0`.
+
+Captured bytes are imported unchanged into the three generated paths:
+
+| Output | SHA256 |
+| --- | --- |
+| `supabase/database.types.ts` | `4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4` |
+| `supabase/schema.sql` | `bbcdb02901e684b23f384fb96489413fa6d2b1c707b0c6ea5ce2a2a83b218d80` |
+| `supabase/schema.fingerprint.json` | `3583cfcaf7caf0523cb4fbd324ffd452ef8e23e0a953fcc302a37b7eb345bd4b` |
+
+Canonical fingerprint:
+`8c8185324f6b11a1cb286a300b34c118291d87deb7db00c649cc4b3461f9ed87`.
+Types remain byte-identical. Actual schema diff is only the profile CHECK and
+EXCLUDE. Fingerprint sections add 2 constraints, 1 index and 1 extension;
+application function/grant and other sections remain unchanged. No manual
+schema, fingerprint, generated-type or migration-tail editing occurred.
+Raw receipt is byte-identical at
+`quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261004.json`.
+The current type manifest takes its tail/hashes/provenance from the genuine
+receipt and preserves the complete original manifest under historical
+provenance, including the original capture/package attribution.
+Import checks PASS: full `db:migrations:check` (integrity, public-contract
+legal migration, database contract hardening, generated types), specification
+33/121/231, diff and explicit captured-output/product/test/config/coverage
+byte equality. No generated-type declaration changed, so previous source type
+checks retain their exact declaration scope; mandatory final-head CI remains.
+
+The capture producer explicitly records native/browser/type-schema comparison
+and upgrade parity **NOT_RUN**. It is a baseline receipt, not whole-card or
+production approval. Separate old-head OPS quality/upgrade jobs are green,
+while its clean/native job remains in progress; they do not qualify the new
+import head. No DB-02 production/native test or coverage bytes change in this
+import. Next: publish the checked import, independent provenance review and
+mandatory actual-head gates; retain all six native expectations and wait for
+their genuine results before approval. Cancel only superseded own queued runs
+after replacement producers exist; do not cancel active native evidence or
+other owners' runs. #491 merge pause remains in force.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.
