@@ -256,3 +256,8 @@ GAS240 Task3 builder scope: root inspected profileRenderer existing sharedGASpol
 regler åt gången; båda ska vara korrekt byggda, ha märkta gröna beteendetester och
 vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras för nästa agent.
 2026-10-03 Customer portfolio: customer counts (active/new/churned) come only from customer_supply_periods; white-label access is read-only and assignment is superadmin-only via gridex_assign_company_to_whitelabel; analytics consumption is read from metering_point_monthly_consumption (never hourly values on page views) and monthly analytics are rebuilt set-based in SQL, never summed client-side.
+
+## 2026-10-04 — Split av #426 och godkännandegrind
+- #426 delas i staplade PR:er per regelområde (#483–#489); bara toppen bevisas grön, merge i ordning (användarbeslut 2026-10-03).
+- Ett masterplan-ID godkänns först när varje condition/on_pass/on_failure och AT expected/prohibited har asserterande test; kärnbeteende räcker inte (TEN-01/02/05/06, U-04, U-14 lämnade ogodkända 2026-10-04).
+- Användaren: stanna före fasen "två regler i taget" och lämna över till nästa agent med prompt.

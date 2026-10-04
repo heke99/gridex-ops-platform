@@ -1,3 +1,13 @@
+## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
+
+- #426 (`claude/zealous-rubin-6axb91`) **helt grön** på `f32e40b5` (alla 10 CI-jobb). Senare commits är bara agent-memory.
+- Split publicerad som staplade utkast-PR:er (merge i ordning, lägre ej självständigt gröna): #483 2a core → #484 TEN/ESCO/AI → #485 ACK → #486 UTILTS → #487 PRODAT → #488 retention+schema/typer/manifest → #489 UI/browser/workflows (träd == gröna #426).
+- Godkända i coverage.json: 55. Kandidater TEN-01/02/05/06, U-04, U-14 granskade 2026-10-04 och **ej godkända** (luckor per effekt i `quality/audits/ediel-masterplan-v2/pr426-rule-review/candidates-2026-10-04.md`).
+- Produktion `piidsfebjqjmnepdpnas`: ingen av grenens migrationer applicerad (363 st + 20261003150300). Dry-run BEGIN/ROLLBACK först.
+- Öppna defekter: F-OPS-02, F-ENV-01, F-GOV-03. fp-check kvar: ENV-02, ENV-03, IMP-04, DB-01.
+- Arbetssätt framåt (användarbeslut): två regler i taget, test per effekt, godkänn i samma PR, dokumentera i handover.
+- Lokal harness: `supabase stop --no-backup` före `REF=HEAD HARNESS_HOLD=1 bash /tmp/claude-0/replay-only.sh`; pg_dump 17 via db-container; seed `20260522_customer_flow_access_repair.sql` lokalt; SQL-regressioner med fasta id:n kräver ren DB.
+
 ## Aktuell arbetsgren — 2026-10-03 03:00 (gäller före allt nedan)
 
 Pushat a3b01fe6: migration 20261002235200 (meddelandescopad U-APERAK utan ACW godtas i historisk matchare; header-avvisning SC-045 gick ej att skapa). err-gateway native 8/8 lokalt. Lärdom: källor mottagna 2026-10-01..14 får 25-A-3-fallback (graceperiod, messagePolicy) — native-fixturer som kräver 25-A-4-regler ska ha message_received_at efter 2026-10-14. Syntaxavvisad källa: affärsdispatchern kastar (utilts_initial_canonical_owner_context_mismatch, enhetstester kräver det); negativ CONTRL skapas av processInboundEdielMessage (mottagning). DB atomic ACK lagrar ackScope endast för 'transaction'.

@@ -1,3 +1,23 @@
+## Prompt till nästa agent — Ediel masterplan v2 efter #426 (2026-10-04)
+
+Du fortsätter Ediel masterplan v2 i heke99/gridex-ops-platform. Svara på svenska.
+
+**Läs först (AGENTS.md-kontraktet):** `.agent-memory/README.md`, `current-state.md`, `current-task.md` (översta avsnittet 2026-10-04), `checkpoint.json`, `handover.md` (sista raderna), `open-blockers.md`, `decisions.md` (2026-10-04), samt `quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md` och `candidates-2026-10-04.md`. Kör `git status`. Skriv en kort skill-routing-notering (aktiverade/villkorade/överhoppade skills ur `.agents/skills/` och varför) innan du börjar.
+
+**Läge:** #426 (`claude/zealous-rubin-6axb91`) är helt grön på `f32e40b5`. Den är delad i staplade utkast-PR:er #483 → #484 → #485 → #486 → #487 → #488 → #489. Toppen (#489) är byte-identisk med den gröna trädet. Lägre PR:er är inte självständigt gröna (schema/typer/manifest ligger i #488). 55 ID:n är godkända i `quality/audits/ediel-masterplan-v2/coverage.json`.
+
+**Arbetsordning:**
+1. **Två regler i taget, till klart** (leveranskontraktet i AGENTS.md): för varje par, bygg ett asserterande beteendetest för *varje* condition/on_pass/on_failure och AT expected/prohibited (anropa koden, ingen strängmatchning av källkod), tagga `// masterplan: <ID>, AT-<ID>`, kör `npm run ediel:masterplan-v2:test-coverage`, godkänn i `coverage.json` (regel `VERIFIED`, kontrakt `PASSED`) i samma PR, och kör `-- --check`. Börja med luckorna i `candidates-2026-10-04.md`, i ordningen: (a) TEN-01 + TEN-02, (b) TEN-05 + TEN-06, (c) U-04 + U-14. Därefter prioritet ESCO → ACK → resterande delvisa kort.
+2. Om ett test avslöjar ett kodfel: `systematic-debugging` → `test-driven-development` (rött test först) → minsta rättning; databasändringar endast som forward migration (registrera med `node scripts/register-migration-checksum.cjs <fil>`, uppdatera `scripts/supabase-types-manifest.json`, regenerera `supabase/schema.sql`+fingerprint från en ren lokal replay).
+3. **Öppna defekter**, också två i taget: F-OPS-02 (kundkort ska läsa processprojektionen), F-ENV-01 (UNOC-repertoar, inga C0/C1-kontrolltecken i utgående segment), F-GOV-03 (APERAK-källfamilj från korrelerat original, fail closed). `fp-check` på ENV-02, ENV-03, IMP-04, DB-01 innan någon rättning.
+4. **Produktion** (`piidsfebjqjmnepdpnas`, auktoriserat): ingen av stackens migrationer är applicerad (363 filer 20260928130148…20261003150200 + 20261003150300; produktionens senaste är 20261003152539). Kör dem först som en enda BEGIN/ROLLBACK-dry-run i filordning och rapportera resultatet. Applicera först när stacken är mergad och CI grön, och fråga användaren innan.
+5. Small PRs: en regelpar-PR åt gången mot main (efter att stacken #483–#489 är mergad), merge samma dag CI är grön.
+
+**Gränser:** ingen riktig kundkommunikation, ingen Ediel/motparts/TGT/AGT-trafik; #310 orörd; skriv aldrig om registrerade migrationer; skippa eller försvaga aldrig tester; inga modell-ID i commits; commits avslutas med Co-Authored-By/Claude-Session-raderna.
+
+**Verktyg/lokalt:** `supabase stop --no-backup`, sedan `REF=HEAD HARNESS_HOLD=1 bash /tmp/claude-0/replay-only.sh` (om /tmp saknas: se `scripts/gridex-aud-003-clean-replay.sh`); pg_dump 17 via db-containern; lokal seed `supabase/migrations/20260522_customer_flow_access_repair.sql`; SQL-regressioner med fasta id:n kräver ren DB; CI-workflowen skriver `::error::... set at step line N` för varje felflagga.
+
+**Dokumentation efter varje steg:** en rad i `.agent-memory/handover.md`, uppdatera `checkpoint.json` och `current-task.md`, fynd i `FINDINGS.md`. Stanna och rapportera efter varje regelpar.
 ## Active — 2026-10-01 full Ediel masterplan v2 code phase (IN_PROGRESS)
 
 Root is sole integration owner/publisher for draft #421, with six isolated package owners. Current coherent local checkpoint `eb39806406c8b0620e3019e54ad61a5277bc2f79` includes full own supply/permission coordination `96f9f5c6`, actual identityless negative ACK `4a2d449b`, registry AI leaf `e009561e`, and guarded register typing `56b7389e`. Actual remote remains `8052ebff1dd3746d0b4664b5f2533164a3497ae7`, exact tree-equivalent to local `66a66666aa1b8b28315ca7840ab07424da360a81`. Later commits remain preserved. API objects/individual commit staging for the next publication are in progress; this does not mean the branch ref has been updated. Baseline `885137de838481be6cda58f9af45df6c1655edfe` remains intact.
