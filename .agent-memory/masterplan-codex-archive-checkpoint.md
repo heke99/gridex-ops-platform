@@ -51,3 +51,38 @@ publication and gated main integration. No production storage/mail/database use.
 Next: publish this work as a draft stacked PR, finish TR-03 full-card review,
 applicable tests/types/gates and then approval, before implementing TR-04.
 Continue integrating exact-green #497/#498 into main while Claude does his cards.
+
+## Final TR-03 review and full suite
+
+- Draft PR #500 published, 7ae35783cce9ad6069ca191160495b1939ec1961.
+  Every implementation, test and resumable work record is on GitHub.
+- Full suite 9862/9862 tests in 759 files PASS (220.21 seconds).
+  Targeted 61/61; actual SQL qualification/copy wrapper 2/2 (including
+  14 transport-copy checks); final tests typecheck and owned ESLint exit 0.
+- Independent full TR-03/AT-TR-03 reviewer confirms implemented: no remaining
+  card-effect blocker; shared generic error/entry/observe/release rules and
+  sealed-H witness/replay/clock paths retain their behaviour. Approval is
+  implementation/finite behavior evidence, not native SMTP/storage acceptance.
+- App/scripts typechecks and tagged approval gate are pending before publication
+  of approval. TR-04 inventory remains separate: encoded delivery-status may
+  parse correctly yet fail the raw-literal source binding in record_dsn_v1.
+  No SQL edit made; reproduce actual source owner before choosing a forward fix.
+
+Next: finish TR-03 gates and approve only TR-03/AT-TR-03, publish ready #500;
+continue TR-04 on a separate branch to keep existing CI heads stable.
+
+## Approval/publication checkpoint
+
+- App/scripts typechecks exit 0. Tagged approval gate PASS: 352 IDs,
+  63 approved, zero tagged failures. Approve only TR-03/AT-TR-03; TR-04
+  remains NOT_VERIFIED/NOT_EXECUTED while reproductions and owner tests continue.
+- #500 ready publication follows independent complete-card review and full
+  green 9862-test validation. No broadened native/storage/market claim.
+- TR-04 reviewer additionally requires valid attributed processor fixtures,
+  exact SQL stored report/attempt/message bindings, final mailbox qualifier,
+  wrong RFC/recipient denial, sealed-H success and unchanged authority state.
+  Encoded-field and RFC2231 parser differentials are candidate defects until
+  actual parser/owner reproduction; no business-ingestion defect inferred.
+
+Next: publish final #500 coverage/memory; continue TR-04 from this explicit
+gap list on its own branch, keeping existing CI heads stable for main merge.
