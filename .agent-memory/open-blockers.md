@@ -873,3 +873,7 @@ The late-LOC+175 physical IDE correction has only local RED/GREEN and static ver
 On published `97342339` native 393/394, first failure is test-only forbidden positive technical CONTRL assertion; service SQL refusals and held row passed. Corrected test awaits new-head CI to establish no business effects and stable retry, plus replay/types/schema. External records above remain absent.
 
 Older Current sections above are historical and SUPERSEDED.
+
+## 2026-10-04
+- Produktionsmigrationer för #426-stacken ej applicerade (363 + 20261003150300); kräver dry-run och grön stack.
+- Odefinierat: U-1 (TEN-04 mandat i verify-RPC), U-2 (end_assignment LIMIT 1), TR-09/E6 (kräver källa T §3.1) — ägarbeslut.

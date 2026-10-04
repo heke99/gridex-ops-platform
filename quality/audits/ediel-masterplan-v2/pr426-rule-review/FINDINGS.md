@@ -6,8 +6,9 @@
 | F-TEN-02 | TEN-01 | låg | ✅ rättad a7ad87a9 | ingen tenantlös global aktör |
 | F-TEN-03 | TEN-02 | medel | ✅ rättad a7ad87a9 | rollbundna aktörsprofiler |
 | F-TEN-04 | TEN-06 | medel | ✅ rättad 2c78bede | juridisk mottagare endast DO/MR |
-| F-U-04 | U-04 | hög | ✅ rättad 102fe9b1 (migr. 20261003150000) | sen äldre version tränger ej undan nyare |
-| F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150000) | received-ERR-dispatcher återställd |
+| F-U-04 | U-04 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | sen äldre version tränger ej undan nyare |
+| F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | received-ERR-dispatcher återställd |
+| F-SRC-01 | (källregister) | hög | ✅ rättad 161b9bae (migr. 20261003150300) | validering av kvarhållen källhistorik efter operativ radering gav no_data_found; läser nu hash-bundna bytes ur gridex_received_sources.sources |
 | F-OPS-02 | OPS-02 | medel | öppen | kundkort ska läsa processprojektionen |
 | F-ENV-01 | ENV-01 | medel | öppen | UNOC-repertoar för alla utgående segment |
 | F-GOV-03 | GOV-03 | låg | öppen | sätt källfamilj från korrelerat original; fail closed |
@@ -31,3 +32,12 @@ Falsklarm (fp-check): D4, D5, D6, D8, D9, D11–D15 (TEN), A1–A3 (ACK), C1–C
 | FIX-02 | — | nätregistrets webbläsarfixtur hårdkodade registerversion 2 som redan använts | versionsräknaren tilldelar |
 | FIX-03 | — | ärendets läsanvändare saknade customers.read men specen förväntade kundlänk | fixturen ger customers.read (ingen skrivrätt) |
 Lokalt (full replay + dev-server): alla 8 tidigare röda specar gröna: customer-record 3/3, decision-evidence 3/3, finance 3/3, message-content 3/3, process-journal 3/3, network-registry 2/2, requested-change 3/3, case 3/3.
+
+## SQL-regressionskedjan (manual-inbound-tenant-graph) — 2026-10-03/04
+Kedjan stoppade tidigare vid F-SRC-01 och dolde sex föråldrade regressioner. Uppdaterade till grenens kontrakt utan försvagning:
+register-validation (evidensform version+snapshot), source-object-decisions (+exakt FK-TRUNCATE-avslag), z04-ack-durable
+(grammatik, produktionsägarens validering, V2-portar, owner witness, källa utan fält 213), utilts-committed-retry
+(UNB-testindikator, exekveringsaktör, ägarfacet, issuer-registrering), source-validation-concurrency, source-object-concurrency.
+CI-workflowen namnger nu varje felflagga med radnummer. #426 helt grön på f32e40b5.
+
+Godkännandekandidater 2026-10-04: se `candidates-2026-10-04.md` (inga godkända; luckor per effekt listade).
