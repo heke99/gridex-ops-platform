@@ -1,3 +1,4 @@
+// masterplan: U-16, AT-U-16, U-15
 import { describe, expect, it } from 'vitest'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { preflightEdielPayload, edielPayloadSizeRecommendation } from '@/lib/ediel/core/messageBuilder/payloadPreflight'

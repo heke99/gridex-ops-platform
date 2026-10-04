@@ -790,23 +790,35 @@
     {
       "id": "U-01",
       "acceptance_id": "AT-U-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/utilts-aperak-contrl-central-engine.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts"
+      ]
     },
     {
       "id": "U-02",
       "acceptance_id": "AT-U-02",
       "status": "PARTIAL",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md",
+        "__tests__/ediel-utilts-canonical-observation-scope.test.ts",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
       ]
     },
     {
       "id": "U-03",
       "acceptance_id": "AT-U-03",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md",
+        "__tests__/ediel-utilts-guide-execution-order.test.ts",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "__tests__/ediel-utilts-quantity-precision.test.ts",
+        "__tests__/ediel-received-utilts-header-validation.test.ts"
       ]
     },
     {
@@ -836,50 +848,70 @@
     {
       "id": "U-06",
       "acceptance_id": "AT-U-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/utilts-aperak-contrl-central-engine.test.ts"
+      ]
     },
     {
       "id": "U-07",
       "acceptance_id": "AT-U-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-utilts-effective-date.test.ts"
+      ]
     },
     {
       "id": "U-08",
       "acceptance_id": "AT-U-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-structural-comparison.test.ts"
+      ]
     },
     {
       "id": "U-09",
       "acceptance_id": "AT-U-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-consumption-contract.test.ts",
+        "__tests__/ediel-utilts-quantity-precision.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts"
+      ]
     },
     {
       "id": "U-10",
       "acceptance_id": "AT-U-10",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
+        "__tests__/ediel-u-10-interval-count.test.ts"
+      ]
     },
     {
       "id": "U-11",
       "acceptance_id": "AT-U-11",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "__tests__/ediel-utilts-effective-date.test.ts"
+      ]
     },
     {
       "id": "U-12",
       "acceptance_id": "AT-U-12",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-observation-order-guide.test.ts"
+      ]
     },
     {
       "id": "U-13",
       "acceptance_id": "AT-U-13",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-err-canonical-guide.test.ts"
+      ]
     },
     {
       "id": "U-14",
@@ -1137,26 +1169,36 @@
     {
       "id": "U-15",
       "acceptance_id": "AT-U-15",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-observation-order-guide.test.ts",
+        "__tests__/ediel-packing-limit-authority.test.ts"
+      ]
     },
     {
       "id": "U-16",
       "acceptance_id": "AT-U-16",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-packing-limit-authority.test.ts"
+      ]
     },
     {
       "id": "U-17",
       "acceptance_id": "AT-U-17",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-utilts-aperak-physical-scope.test.ts"
+      ]
     },
     {
       "id": "U-18",
       "acceptance_id": "AT-U-18",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-utilts-observation-order-guide.test.ts",
+        "__tests__/ediel-utilts-canonical-observation-scope.test.ts"
+      ]
     },
     {
       "id": "U-19",
@@ -2201,8 +2243,11 @@
     },
     {
       "id": "AT-U-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/utilts-aperak-contrl-central-engine.test.ts",
+        "__tests__/ediel-utilts-profile-own-scope.test.ts"
+      ]
     },
     {
       "id": "AT-U-02",
@@ -2213,9 +2258,15 @@
     },
     {
       "id": "AT-U-03",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md",
+        "__tests__/ediel-utilts-guide-execution-order.test.ts",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "__tests__/ediel-utilts-quantity-precision.test.ts",
+        "__tests__/ediel-received-utilts-header-validation.test.ts"
       ]
     },
     {
@@ -2244,8 +2295,10 @@
     },
     {
       "id": "AT-U-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-utilts-effective-date.test.ts"
+      ]
     },
     {
       "id": "AT-U-08",
@@ -2259,8 +2312,11 @@
     },
     {
       "id": "AT-U-10",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-e66-monthly-billing-resolution.test.ts",
+        "__tests__/ediel-u-10-interval-count.test.ts"
+      ]
     },
     {
       "id": "AT-U-11",
@@ -2502,8 +2558,10 @@
     },
     {
       "id": "AT-U-16",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-packing-limit-authority.test.ts"
+      ]
     },
     {
       "id": "AT-U-17",
@@ -2512,8 +2570,11 @@
     },
     {
       "id": "AT-U-18",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-utilts-observation-order-guide.test.ts",
+        "__tests__/ediel-utilts-canonical-observation-scope.test.ts"
+      ]
     },
     {
       "id": "AT-U-19",
