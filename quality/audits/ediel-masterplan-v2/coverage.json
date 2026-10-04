@@ -1616,8 +1616,12 @@
     },
     {
       "id": "SC-043",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-prodat-field-identity-owners.test.ts",
+        "__tests__/ediel-sc-043-utilts-field-512.test.ts",
+        "lib/ediel/ack.ts"
+      ]
     },
     {
       "id": "SC-044",
