@@ -3,9 +3,10 @@
 Branch: `codex/ediel-sc008-sc017-proof-20261004`, isolated checkout
 `/workspace/gridex-masterplan-sc008-sc017`, base main
 `56192d16d1eac7fb0e716a3e2770bac8e58be115`.
-Owner claim: #491 comment5985236532. Status: implemented and locally verified;
-independent complete-scenario approval is pending. No coverage or common memory
-rows were changed. Root owns promotion after independent review.
+Owner claim: #491 comment5985236532. Status: independently approved for both
+complete bounded code-behavior criteria at reviewed head `d1f7d5e5`. Only
+SC-008/SC-017 coverage rows are promoted after root authorized publication of
+the independent verdict. Common memory is untouched; root owns final CI/merge.
 
 Skill routing: spec-to-code-compliance for the complete frozen scenarios;
 using-git-worktrees for isolation; verification-before-completion for current
@@ -35,7 +36,7 @@ Source-qualified native reuse, not a fresh current-main native claim:
   selected ESCO projection3/3 and service-evidence29/29 have zero skips/errors.
 - Fourteen relevant native test/fixture/service/storage/projection/consumer and
   receipt-owner blobs are byte-identical between that source and base561.
-  This packet changes only the ESCO native file's first tag comment; its entire
+The technical packet changes only the ESCO native file's first tag comment; its entire
   asserting body is unchanged. Exact hashes and selected case names are in
   `verification-receipt.json`.
 
@@ -48,13 +49,13 @@ network permission; no product/test code was changed to obtain that result.
 
 External issuer, legal and SMTP facts remain synthetic fixture inputs. Neither
 this packet nor its reused native results establish authentic external market
-approval. Next: publish this exact bounded packet to the trusted origin, send
-the commit/PR to root, and await independently assigned complete SC-008/SC-017
-review before any coverage promotion or merge.
+approval. Independently assigned complete SC-008/SC-017 review is now published
+alongside this checkpoint. Exact-head mandatory CI and parent merge gates remain
+required; no fresh native run or external market qualification is inferred.
 
 Published packet: draft PR #541, initial exact head
-`a6a991cd26887c8a0006f4465354dc666ddd829f`. Root has assigned independent
-whole-scenario review; this owner has not promoted coverage or self-approved.
+`a6a991cd26887c8a0006f4465354dc666ddd829f`. Independent whole-scenario review
+was performed by `/root/ten07_rule_review`; this owner does not self-approve.
 
 Calendar-only integration follow-up: cherry-picked existing P-owner commit
 `9433d04bfc037fae0f61710c73a5ac85eeef443d` as `ea6ff48c`. Its exact three
@@ -73,3 +74,27 @@ fourteen source-qualified SC-008/SC-017 native/production/SQL blobs remain
 byte-identical to the initial packet head, as do its asserting test files and
 verification receipt. Only this checkpoint records the follow-up; no heavy
 suite was rerun and no coverage, common memory or production source changed.
+
+Independent final verdict: `independent-review.md`, copied byte-identically
+from the separately assigned reviewer's record, SHA256
+`e56c65fb579ef78099a20e3ed52e8404edf88129a39a776230e3302003fe3a94`.
+It approves both complete frozen expected/prohibited contracts at exact head
+`d1f7d5e53af120211c59f062e7b2f26e6243182e` / tree
+`ed19b9cb038af93ab8bc633ec725debefeaa6fc5`. The reviewer independently executed
+35 TS cases and 2 supported wrappers, checked all14 relevant source blobs and
+all4 input hashes, and verified qualified historical native32 with zero skips.
+Root authorized only SC-008/SC-017 PASSED publication; the other350 coverage
+rows remain exactly unchanged. All asserting tests, relevant production/native
+blobs and migrations remain unchanged after review. The original qualified
+native receipt remains intact; its publication status now cites that verdict.
+
+Independent GitHub approval publication:
+https://github.com/heke99/gridex-ops-platform/pull/541#issuecomment-5985513661.
+Final supported tagged gate PASS: 352 IDs /76 approved /82 tagged green /
+0 tagged failing, with the CI unit loopback preload and declared child network
+permission. Frozen specification integrity PASS:33 originals /121 rules /
+231 acceptance contracts and all evidence references. Exact two-row coverage
+delta, unchanged other350 rows, unchanged14 source blobs/all4 inputs, unchanged
+production/app/migrations/tests/scripts since reviewed d1 and byte-identical
+independent review were checked again before commit. Final log hash is retained
+in the adjacent receipt. Parent retains required actual-head CI and merge.

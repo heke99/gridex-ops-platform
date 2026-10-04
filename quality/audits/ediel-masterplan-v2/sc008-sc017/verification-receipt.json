@@ -191,9 +191,25 @@
     "tests_typecheck": "PASS; final run after all source assertions completed with exit0",
     "eslint": "PASS, zero diagnostics on changed TS files",
     "diff_check": "PASS",
-    "initial_wrapper_attempt": "Default restricted sandbox invocation terminated without subtest diagnostics. Same unchanged wrapper rerun with child network permission completed 2/2 PASS; no production/test implementation changed to obtain that pass."
+    "initial_wrapper_attempt": "Default restricted sandbox invocation terminated without subtest diagnostics. Same unchanged wrapper rerun with child network permission completed 2/2 PASS; no production/test implementation changed to obtain that pass.",
+    "supported_tag_gate": "PASS after two independently approved promotions: 352 IDs /76 approved /82 tagged green /0 tagged failing; NODE_OPTIONS uses CI unit loopback preload, child network permission declared",
+    "spec_integrity": "PASS: frozen33 original files /121 rules /231 acceptance contracts, all evidence references exist",
+    "tag_gate_log_sha256": "aa8f5b83bb8e6e64d2371170ff56dc1b1c5a21750e73650a60dcec263f589995"
   },
-  "approval": "PENDING INDEPENDENT COMPLETE-SCENARIO REVIEW; no coverage mutation",
+  "approval": {
+    "status": "APPROVED_BY_INDEPENDENT_COMPLETE_SCENARIO_REVIEW",
+    "reviewer": "/root/ten07_rule_review",
+    "reviewed_head": "d1f7d5e53af120211c59f062e7b2f26e6243182e",
+    "reviewed_tree": "ed19b9cb038af93ab8bc633ec725debefeaa6fc5",
+    "review_path": "quality/audits/ediel-masterplan-v2/sc008-sc017/independent-review.md",
+    "review_sha256": "e56c65fb579ef78099a20e3ed52e8404edf88129a39a776230e3302003fe3a94",
+    "promoted_ids": [
+      "SC-008",
+      "SC-017"
+    ],
+    "qualification": "complete bounded code-behavior criteria; exact-head mandatory CI and parent merge gates remain required",
+    "github_review_url": "https://github.com/heke99/gridex-ops-platform/pull/541#issuecomment-5985513661"
+  },
   "fixture_boundaries": [
     "Native issuer/legal/SMTP facts are explicit synthetic external inputs",
     "Mixed object PostgreSQL consumer uses declared finite source/accepted-storage/legal-review dependencies",
@@ -205,7 +221,6 @@
     "SQL/migrations",
     "helper/source-authority changes",
     "shared memory",
-    "coverage approval",
     "merge"
   ],
   "packet_input_sha256": {
@@ -213,5 +228,12 @@
     "__tests__/ediel-beneficiary-projection-api.test.ts": "2f1ddd9b14a84ff58aeb0bf5e9841dccf232c272d6a5f639c24e7a68059f04a3",
     "scripts/ediel-esco-10-11-projection-native.test.ts": "a61dd471b9ba86887a72d8c076fe49d956f652ad762726c14acfdf3b7813521c",
     "scripts/test-ediel-ten-07-scoped-projection.cjs": "ed9f045afe3f9c2bb965b152976cda265bc79da49f244f11a3152507803551f8"
+  },
+  "publication": {
+    "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/541",
+    "status": "independent review published and only two authorized scenario rows promoted",
+    "calendar_owner_source_commit": "9433d04bfc037fae0f61710c73a5ac85eeef443d",
+    "calendar_suite": "9/9 PASS; exact three owner Git blobs preserved",
+    "fresh_native_execution": false
   }
 }
