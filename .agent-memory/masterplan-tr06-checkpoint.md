@@ -99,9 +99,14 @@ SC-041 is independently approved in #513 and awaits its own gates and merge wind
 
 Hold #513 and this documentation-only branch outside main until the integrator
 releases the shared-file merge window; #513 also requires its own complete gates.
-One handover line per #506/#510/#511 merge is retained. Next isolated card is
-OPS-05 actual failure disposition and caller effects. DB-01 read-only inventory
-remains NOT_VERIFIED; existing partial guards do not prove its full design card.
+One handover line per #506/#510/#511 merge is retained. OPS05 is now whole-card
+approved in frozen #524; bounded IMP05 and OPS03 components are published in
+#539/#546 without whole-card promotion. Current two technical lanes are SC058
+and SC069, new owned tests/checkpoints only; SC066 was stopped/released to its
+earlier owner before any duplicate task file was created. See the owned
+masterplan-parallel-coordination.md for exact claims, failed #4919433 native
+gate and source-owner correction custody. DB01 remains with its retained
+primary owner; our old read-only inventory does not approve its full card.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
 continuation; spec-to-code-compliance + independent read-only reviewer for the
