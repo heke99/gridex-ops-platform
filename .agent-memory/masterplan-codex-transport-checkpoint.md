@@ -95,3 +95,40 @@ unclaimed cards while native CI runs. Keep every work result on GitHub.
 
 Next: publish as a draft PR, complete the new full suite/types/lint and final
 independent review, approve only proven IDs, then merge after exact-head CI.
+
+## Final rule verification on current main
+
+- Published draft PR #498, initial head 2e813850; own code/tests/checkpoint
+  are on GitHub. Parent #497 main merge was integrated here as b64990b5.
+- Independent reviewer review_ten06 approves complete TR-01/AT-TR-01;
+  ten08_rule_review approves complete TR-02/AT-TR-02 after all gap closures.
+  No open actionable code or expected/prohibited effect findings. Queue IDs
+  outside the single recognized label format remain null with raw response;
+  aperak_due_at is fixture-only, not a native deadline claim.
+- The next full suite had 9537 passes / one failure: the older FTX VM loaders
+  rejected the newly imported package. Both loaders now bridge the real
+  installed pure addressparser, without mocking its decision or granting
+  database/network operations. The affected wrapper passes separately.
+- Latest-main complete suite: 9856/9856 tests, 758 files PASS (299.45 seconds).
+  Application/tests/scripts typechecks all exit 0; owned-file ESLint and
+  git diff --check PASS. Masterplan integrity: 121 rules / 231 contracts;
+  migration integrity: 1058 files / 961 groups, checksums PASS; generated types
+  3679044 bytes, hash 4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4;
+  service-role ratchet 2251 callsites, below main baseline 2353, PASS.
+- The mistaken standalone checksum filename does not exist; no proof is
+  claimed from that command. The actual migration-integrity gate above
+  verifies historical checksums, and no SQL/schema/generated files were edited.
+- Approve only TR-01, AT-TR-01, TR-02, AT-TR-02 in coverage.json. This is
+  implementation and bounded behavior evidence, not real SMTP delivery,
+  external market qualification or native sealed-H replay.
+- Superseded #497 a01e8dfc run 37216925130 cancelled to release runners;
+  current f4a0fb43 native replay continues, ESCO still unapproved. The app
+  attachment attempt for #498 returned a closed connection; PR itself exists
+  and is linked above. Retry attachment when the app endpoint is available.
+- Next cards TR-03/AT-TR-03 then TR-04/AT-TR-04 claimed in #491 5982461436.
+  Independent TR-03 inventory is read-only while current CI finishes. Claude
+  continues his own cards; no duplicate implementation or coverage edits.
+
+Next: run tagged approval gate, publish final coverage/loader closure and
+verification record, make #498 ready, and integrate each exact-green head to
+main. Continue TR-03 from the recorded archive identity/retrieval gaps.

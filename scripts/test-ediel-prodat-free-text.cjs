@@ -27,6 +27,8 @@ async function loadRuntime() {
     for (const [name, value] of Object.entries(exports)) this.setExport(name, value)
   }, { context })
   const boundaries = new Map([
+    // Actual installed pure SMTP parser; not a fake recipient classifier.
+    ['nodemailer/lib/addressparser', synthetic({ default: require('nodemailer/lib/addressparser') })],
     ['@/lib/supabase/service', synthetic({ supabaseService: { from: deny('db'), rpc: deny('rpc') } })],
     ['@/lib/customers/canonicalOnboarding', synthetic({ canonicalIdempotencyKey: deny('idempotency'), onboardCustomerGraph: deny('onboarding') })],
     ['@/lib/tenant/context', synthetic({ createTenantContext: deny('tenant-context') })],
