@@ -1030,8 +1030,18 @@
     },
     {
       "id": "SC-009",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/normalizeActor.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "lib/ediel/tenant/tenantEdielIdentityEvidence.ts",
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "__tests__/tenant-ediel-identity-completeness.test.ts",
+        "__tests__/tenant-ediel-identity-evidence.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts",
+        ".agent-memory/masterplan-sc009-sc019-checkpoint.md"
+      ]
     },
     {
       "id": "SC-010",
@@ -1080,8 +1090,22 @@
     },
     {
       "id": "SC-019",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/services/projection.ts",
+        "lib/ediel/services/projectionRequest.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/sourceBasis.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "__tests__/billing-canonical-gate.test.ts",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        ".agent-memory/masterplan-sc009-sc019-checkpoint.md"
+      ]
     },
     {
       "id": "SC-020",
