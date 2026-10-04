@@ -69,6 +69,9 @@ generate_upgrade_artifacts() {
  done < "$UPGRADE_WORK/plan/upgrade-inputs.list"
  mkdir -p "$UPGRADE_OUT/upgraded"
  supabase status -o json > "$UPGRADE_WORK/native-status.json"
+ # The OID-preservation proof spans 20261001110500 only. When that migration is
+ # already in the base, no pre-actor catalog exists and the proof does not apply.
+ if [[ -f "$UPGRADE_OUT/utilts-pre110500.json" ]]; then
  (
   cd "$CANDIDATE_ROOT"
   GRIDEX_NATIVE_STATUS="$UPGRADE_WORK/native-status.json" \
@@ -80,6 +83,11 @@ generate_upgrade_artifacts() {
    -t 'native catalog binds preserved UTILTS OIDs to the only actor-protected callable chain' \
    --reporter=default --reporter=junit --outputFile="$UPGRADE_OUT/utilts-catalog-upgrade-junit.xml"
  )
+ elif grep -q '/20261001110500_ediel_utilts_current_execution_actor\.sql$' "$UPGRADE_WORK/plan/upgrade-inputs.list"; then
+  echo 'pre110500_original_public6_missing' >&2; exit 1
+ else
+  echo 'UPGRADE_CATALOG: 20261001110500 is in the base; UTILTS OID-preservation proof not applicable'
+ fi
  psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -f "$CANDIDATE_ROOT/scripts/sql/gridex-ediel-upgrade-fixture-observe.sql" > "$UPGRADE_OUT/retained-after.json"
  cmp "$UPGRADE_OUT/retained-before.json" "$UPGRADE_OUT/retained-after.json"
  # An old original acquires no prospective legal approval as a side effect.
