@@ -163,7 +163,7 @@
     {
       "id": "TEN-09",
       "acceptance_id": "AT-TEN-09",
-      "status": "VERIFIED",
+      "status": "PARTIAL",
       "evidence": [
         "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
         "scripts/ediel-esco-06-request-coordination-sql-regression.mjs",
@@ -1795,7 +1795,7 @@
     },
     {
       "id": "AT-TEN-09",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "scripts/test-ediel-esco-06-request-coordination.cjs",
         "scripts/test-ediel-esco-08-09-shared-permission.cjs"

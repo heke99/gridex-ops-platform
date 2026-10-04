@@ -1118,3 +1118,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: P-15 PARTIAL (taggad; lucka: framtida leverantörs struktur före start). P-kort klara utom PARTIAL P-06/08/15. Nästa: U-kort.
 - 2026-10-04 #491: U-01/03/07/10/16/18 (+AT) godkända; nio U PARTIAL taggade; U-19 saknar implementation. Gap-register uppdaterat (P+U). Coverage 147.
 - 2026-10-04 #491: U-13 (+AT) godkänd (utgående ERR 9/AB i utilts-err-gateway).
+- 2026-10-04 #491: TEN-09 (+AT) nedgraderad till PARTIAL efter Codex-repro: reuse_permission-grenen (ediel_resolve_service_permission_command_v1) bortser från signerad DSO networkStart; produktfix + beteendetest kvar (Claude äger). Codex tar TR-01/02.
