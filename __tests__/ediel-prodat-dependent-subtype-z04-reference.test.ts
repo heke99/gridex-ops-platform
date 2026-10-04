@@ -24,7 +24,7 @@ function message(body: Parts[], environment: 'test' | 'production', alphabet: re
     facts:{market:'electricity',registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount,meterReadingsSentInUtilts:false}]}})
   const row: Partial<EdielMessageRow> = {
     message_family:'PRODAT',message_code:'Z04',message_version:'26A',direction:'outbound',environment,
-    message_standard:'edifact',application_reference:'23-DDQ-PRODAT',company_id:'synthetic-company',
+    message_standard:'edifact',application_reference:'23-DDQ-PRODAT',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic-company',
     raw_payload:payload,mime_type:'application/EDIFACT',validation_report:{systemTestAckSend:true},
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence,dependentConditionStatuses:[
       {...resolveProdatDependentCondition({messageCode:'Z04',fieldNumber:'319',facts:{canonicalSubtype:'L'}}),status:'not_required'},

@@ -25,10 +25,18 @@ it('SQL holds malformed raw Z08 before an outbound attempt despite stale row cod
     SELECT to_jsonb(count(*)) FROM public.ediel_messages WHERE id=${literal(message)};`)
   // The absent actor is the next gate only when SQL classifies this wire as scoped.
   // Before the forward migration the same call returned scoped:false instead.
-  const identity={companyId:company,environment:'test',messageId:message,actorUserId:actor,attemptId:randomUUID(),action:'prepare'}
-  expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.gridex_outbound_dispatch_v1(${literal(identity)}::jsonb); COMMIT;`))
-    .toThrow('outbound_dispatch_actor_unavailable')
-  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(message)}`)).toBe(0)
+  try{
+    const identity={companyId:company,environment:'test',messageId:message,actorUserId:actor,attemptId:randomUUID(),action:'prepare'}
+    expect(()=>sql(`BEGIN; SET LOCAL ROLE service_role; SELECT public.gridex_outbound_dispatch_v1(${literal(identity)}::jsonb); COMMIT;`))
+      .toThrow('outbound_dispatch_actor_unavailable')
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_outbound_dispatch.originals WHERE message_id=${literal(message)}`)).toBe(0)
+  }finally{
+    // The malformed row was force-inserted around every trigger. Remove it the
+    // same way: as an uncovered unparseable outbound original it would
+    // otherwise (correctly) fail closed every later wire-reference allocation
+    // in this shared environment.
+    sql(`BEGIN; SET LOCAL session_replication_role=replica; DELETE FROM public.ediel_messages WHERE id=${literal(message)}; COMMIT; SELECT to_jsonb(true);`)
+  }
 })
 
 it('SQL names the canonical LK exemption without relaxing the malformed-wire hold',()=>{

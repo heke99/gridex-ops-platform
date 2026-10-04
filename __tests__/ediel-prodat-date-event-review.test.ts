@@ -4,7 +4,7 @@ import type {EdielMessageRow} from '@/lib/ediel/types'
 const raw=(reason:string,dates:string[])=>"UNA:+.? 'UNB+UNOC:3+12345:ZZ+54321:ZZ+260919:1200+I++23-DDQ-PRODAT'"+[
  'UNH+M+PRODAT:D:97A:UN:E2SE6A','BGM+Z09+DOC+9+AB','DTM+137:202609191200:203','DTM+ZZZ:1:805','NAD+FR+12345:160:SVK+++++++SE','NAD+DO+54321:160:SVK+++++++SE','LIN+1++A:::89',...dates,'CCI++Z13',`CAV+${reason}`,'RFF+LI:CASE','RFF+Z05:TES','NAD+Z02+11111:160:SVK',`UNT+${13+dates.length}+M`,'UNZ+1+I'].join("'")+"'"
 function check(body:string,row:boolean,mode:'parse'|'send'='parse'){
- const message:Partial<EdielMessageRow>={company_id:'tenant',direction:mode==='parse'?'inbound':'outbound',environment:'test',message_family:'PRODAT',message_code:'Z09',raw_payload:body,message_standard:'edifact',parsed_payload:{rulebookAllowInvalidSend:true}}
+ const message:Partial<EdielMessageRow>={message_received_at:'2026-09-19T12:00:00.000Z',company_id:'tenant',direction:mode==='parse'?'inbound':'outbound',environment:'test',message_family:'PRODAT',message_code:'Z09',raw_payload:body,message_standard:'edifact',parsed_payload:{rulebookAllowInvalidSend:true}}
  return row?preflightEdielMessageRow(message as EdielMessageRow,mode):preflightEdielPayload({rawPayload:body,messageStandard:'edifact',mode})
 }
 const dateIssues=(result:ReturnType<typeof check>)=>result.issues.filter(i=>i.code.includes('DATE_EVENT')||/DTM\+(92|93)|Fält (210|211)/.test(i.description??''))

@@ -33,11 +33,13 @@ export function assertReportingAuthority(input: {
         return invalid();
     }
     const row = input.row;
-    if (evidence.source.kind !== 'tgt' || !expected || !row || row.direction !== 'outbound' || row.environment !== 'test')
+    if (evidence.source.kind === 'caller_selection' || !expected || !row || row.direction !== 'outbound')
         return invalid('PRODAT_REPORTING_SOURCE_UNQUALIFIED');
-    const source = evidence.source, scope = source.scope;
-    if (input.code !== 'Z13' || row.message_code !== input.code || scope.code !== input.code || row.company_id !== scope.companyId || input.runId !== scope.runId || input.stepNo !== scope.stepNo)
-        return invalid('PRODAT_REPORTING_SCOPE_MISMATCH');
+    const source = evidence.source;
+    if (source.kind === 'tgt') {
+        const scope = source.scope;
+        if (row.environment !== 'test' || input.code !== 'Z13' || row.message_code !== input.code || scope.code !== input.code || row.company_id !== scope.companyId || input.runId !== scope.runId || input.stepNo !== scope.stepNo) return invalid('PRODAT_REPORTING_SCOPE_MISMATCH');
+    } else if (input.code !== 'Z13' || row.message_code !== 'Z13' || row.company_id !== source.companyId || row.environment !== source.environment) return invalid('PRODAT_REPORTING_SCOPE_MISMATCH');
     if (JSON.stringify(source) !== JSON.stringify(expected.source) || JSON.stringify(evidence.objects) !== JSON.stringify(expected.objects))
         return invalid();
     const route = source.route, una = input.una ?? parseUna(null), tokens = prodatRegisterTokens(input.rawSegments, una);

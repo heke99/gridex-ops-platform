@@ -5,17 +5,22 @@ import { assertProdatFreeTextSendBoundary, prodatFreeTextSendIssues } from '@/li
 import { alphabets, line, raw, type Parts } from './fixtures/prodat-register'
 import { head } from './fixtures/prodat-identity'
 
-const io = vi.hoisted(() => ({ effects: [] as string[] }))
+const io = vi.hoisted(() => ({ effects: [] as string[],acceptedReads:vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
   from: () => { io.effects.push('db'); throw new Error('UNEXPECTED_DATABASE_BOUNDARY') },
-  rpc: () => { io.effects.push('rpc'); throw new Error('UNEXPECTED_RPC_BOUNDARY') },
+  rpc: async(name:string,args:unknown)=>{
+    if(name!=='gridex_ediel_accepted_transport_projection_v1'){io.effects.push('rpc');throw new Error('UNEXPECTED_RPC_BOUNDARY')}
+    expect(args).toEqual({p_company_id:'00000000-0000-4000-8000-000000000002',p_environment:'test',p_actor_user_id:'00000000-0000-4000-8000-000000000004',p_message_id:'00000000-0000-4000-8000-000000000001'})
+    io.acceptedReads(name,args)
+    return {data:null,error:null}
+  },
 } }))
 vi.mock('@/lib/email/sendEdielEmail', () => ({ sendEdielEmail: () => {
   io.effects.push('provider'); throw new Error('UNEXPECTED_PROVIDER_BOUNDARY')
 } }))
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 
-beforeEach(() => { io.effects = [] })
+beforeEach(() => { io.effects = [];io.acceptedReads.mockClear() })
 
 // Preserve the two existing regression suites unchanged. Exercise their actual
 // FTX entry point as well: a tag-looking list column is not an EDIFACT header.
@@ -63,7 +68,10 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const result = preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send', parsedPayload: row.parsed_payload })
     expect(result.blocking).toBe(true)
     expect(result.issues.some(issue => issue.code.includes('PRODAT_FTX_SEND_CONFORMANCE'))).toBe(true)
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
+    // Physical EDIFACT mislabeled as XML/list is held before content admission.
+    // The direct checks above still prove the independently invalid FTX field.
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.acceptedReads).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:row.company_id,p_environment:'test',p_actor_user_id:actorUserId,p_message_id:row.id})
     expect(io.effects).toEqual([])
     expect(row.raw_payload).toBe(rawPayload)
   })
@@ -72,7 +80,8 @@ for (const alphabet of alphabets) for (const standard of ['xml', 'ai_list'] as c
     const row = message(rawPayload, standard)
     expect(() => prodatFreeTextSendIssues(row)).toThrow('edifact_dangling_release_character')
     expect(() => preflightEdielPayload({ rawPayload, messageStandard: standard, mode: 'send' })).toThrow('edifact_dangling_release_character')
-    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('edifact_dangling_release_character')
+    await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.acceptedReads).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:row.company_id,p_environment:'test',p_actor_user_id:actorUserId,p_message_id:row.id})
     expect(io.effects).toEqual([])
     expect(row.raw_payload).toBe(rawPayload)
   })
@@ -82,7 +91,8 @@ for (const standard of ['xml', 'ai_list'] as const) it(`default EDIFACT without 
   expect(rawPayload.startsWith('UNB+')).toBe(true)
   const row = message(rawPayload, standard)
   expect(prodatFreeTextSendIssues(row).map(issue => issue.code)).toContain('PRODAT_FTX_SEND_CONFORMANCE')
-  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('PRODAT_FTX_SEND_CONFORMANCE')
+  await expect(sendEdielMessageViaSmtp(row, { actorUserId })).rejects.toThrow('EDIEL_WIRE_FORMAT_IDENTITY_MISMATCH')
+    expect(io.acceptedReads).toHaveBeenCalledExactlyOnceWith('gridex_ediel_accepted_transport_projection_v1',{p_company_id:row.company_id,p_environment:'test',p_actor_user_id:actorUserId,p_message_id:row.id})
   expect(io.effects).toEqual([])
   expect(row.raw_payload).toBe(rawPayload)
 })

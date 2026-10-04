@@ -39,6 +39,7 @@ function validateVersion(version: string) {
     mode: 'test',
     environment: 'test',
     businessDate: '2026-09-03',
+    admissionAt: '2026-09-03T10:00:00Z',
     applicationReference: '23-DDQ-PRODAT',
     version,
   })

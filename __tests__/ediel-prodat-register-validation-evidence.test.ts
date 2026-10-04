@@ -68,7 +68,7 @@ describe('actual canonical register validation evidence', () => {
 
 it('actual runtime exposes the direct facet and leaves syntax-rejected runs without it', () => {
   const message = {direction:'inbound',message_standard:'edifact',message_family:'PRODAT',message_code:'Z04',
-    raw_payload:raw([line('1','A'),...reason,qty('10')]),created_at:'2026-09-17T12:00:00Z',
+    raw_payload:raw([line('1','A'),qty('10'),...reason]),created_at:'2026-09-17T12:00:00Z',
     parsed_payload:{prodatDependentFacts:{meterReadingsSentInUtilts:false}},validation_report:{}} as unknown as EdielMessageRow
   const decision = resolveCanonicalRuntimeDecision(message)
   expect(decision.applicationDecision).toBe('rejected')

@@ -1,3 +1,6 @@
+import {prodatCharacteristicValues} from '@/lib/ediel/prodat/prodatCharacteristicFields'
+import {findProdatSubtypeRule} from '@/lib/ediel/rulebook/prodatSubtypeRegistry'
+import {resolveProdatSourceSubtypeRequirement} from '@/lib/ediel/prodat/prodatSubtypeRequirement'
 import {prodatTokenFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import { segmentComposite } from '@/lib/ediel/core/edifactTokenizer'
 import { parseUna } from '@/lib/ediel/core/una'
@@ -31,6 +34,14 @@ export function validateProdatDependentReferenceScope(input: FieldMatrixEvaluati
     if (token.tag !== 'RFF') return []
     const parts = segmentComposite(token, 1, una)
     if (parts[0]?.trim().toUpperCase() !== 'Z07') return []
+    const own = scopes.find(scope => scope.some(row => row.index === token.index))
+    const reasons = own ? prodatCharacteristicValues('223', own, una) : []
+    const reason = reasons.length === 1 ? reasons[0] : null
+    const subtype = reason ? findProdatSubtypeRule(reason, input.code)?.subtype : null
+    // P119 exclusion precedes the field319 national content/placement check.
+    if (input.direction === 'inbound' && own && resolveProdatSourceSubtypeRequirement({
+      messageCode: input.code ?? '', fieldNumber:'319', subtype,
+    }) === 'forbidden') return []
     const misplaced = !permitted.has(token.index)
     const malformed = (parts[1]?.length ?? 0) > 25 || parts.slice(2).some(part => part.trim().length > 0)
     if (!misplaced && !malformed) return []

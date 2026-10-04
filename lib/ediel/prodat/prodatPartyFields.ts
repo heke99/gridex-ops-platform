@@ -79,7 +79,7 @@ export function prodatPartyRuleScopes(
   return starts.map((start, index) => rows.slice(start, starts[index + 1]))
 }
 
-function text(parts: readonly string[]): string | null {
+export function prodatPartyText(parts: readonly string[]): string | null {
   // Preserve inner spaces and component positions; trailing unused positions
   // are not text. A released colon is content, not a new name/address line.
   const values = parts.map(value => value.trim())
@@ -100,7 +100,7 @@ export function prodatPartyState(field: string, segments: readonly Segment[], un
   const capacity = descriptor.partyComponents ?? 1
   const values = index === 2 ? parts.slice(0, 1) : parts.slice(0, capacity)
   const firstRequired = index === 2 || index === 4 || (index === 5 && descriptor.partyQualifier !== 'UD')
-  const value = firstRequired && !values[0] ? null : text(values)
+  const value = firstRequired && !values[0] ? null : prodatPartyText(values)
   const failed: number[] = []
   let malformed = index === 2 ? parts.slice(3).some(Boolean) : parts.slice(capacity).some(Boolean)
   if (present && firstRequired && !values[0]) malformed = true
@@ -151,8 +151,8 @@ export function readProdatParty(role: ProdatPartyQualifier, segments: readonly S
   return {
     identityValid: Boolean(state?.value && !state.malformed && !state.tooLong),
     id: identity[0]?.trim() || null, idQualifier: identity[1]?.trim() || null, agency: identity[2]?.trim() || null,
-    name: nameLines[0] ? text(nameLines) : null, nameLines,
-    address: addressable ? text(addressLines) : null, addressLines,
+    name: nameLines[0] ? prodatPartyText(nameLines) : null, nameLines,
+    address: addressable ? prodatPartyText(addressLines) : null, addressLines,
     city: addressable ? flat(6) : null, postalCode: addressable ? flat(8) : null,
     country: role === 'Z02' ? null : flat(9), raw: row?.raw ?? null,
   }

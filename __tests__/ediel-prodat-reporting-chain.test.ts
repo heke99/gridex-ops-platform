@@ -1,9 +1,14 @@
 // masterplan: SC-025, SC-027
+import {transportJournalFixture} from './fixtures/ediel-transport-journal';
 import { beforeEach, it, expect, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';
 import { reportingId, reportingNow, reportingPrepared } from './fixtures/prodat-reporting-permission';
-const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), send: vi.fn(), archive: vi.fn(), authorize: vi.fn(), operational: vi.fn(), company: vi.fn() }));
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from } }));
+import {pinnedProdatReadBoundary,expectedTgtCounterVariants} from './fixtures/ediel-pinned-prodat-read-boundary';
+import {buildEdielTgtDraft} from '@/lib/ediel/testing/tgtEdifact.part-4';
+const io = vi.hoisted(() => ({ from: vi.fn(), runtime: vi.fn(), send: vi.fn(), archive: vi.fn(), authorize: vi.fn(), operational: vi.fn(), company: vi.fn(),rpc:vi.fn() }));
+// The tenant's test actor profile for the process role, same identity as the TGT runtime fixture (TEN-01/TEN-02 gate).
+vi.mock('@/lib/ediel/core/actorRegistry',()=>({resolveCanonicalActorContext:async(_environment:string,_company:string,role:string)=>({actor:{id:'ACTORSETTING'},actorRole:role,senderEdielId:'12345',legalActorEdielId:'12345',transportActorEdielId:'12345',marketRoles:[role==='supplier'?'electricity_supplier':'energy_service_company']})}))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: io.from,rpc:io.rpc } }));
 vi.mock('@/lib/admin/guards', () => ({ requirePlatformAdminActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }), requireCompanyScopedActionAccess: io.authorize, isPlatformAdminContext: () => true }));
 vi.mock('@/lib/ediel/actionAccess', () => ({ requireEdielWriteActionAccess: async () => ({ userId: '00000000-0000-4000-8000-000000000012' }) }));
 vi.mock('@/lib/tenant/scope', () => ({ assertUserCanOperateCompany: io.company }));
@@ -19,7 +24,8 @@ import { createAndSendSystemTestOutboundForRunAction, sendSystemTestOutboundMess
 import { runTgtAutopilotForRun } from '@/lib/ediel/testing/tgtAutopilot';
 import { loadTgtReportingValidationContext } from '@/lib/ediel/testing/tgtReportingPermissionContext';
 import type { EdielMessageRow } from '@/lib/ediel/types';
-type Row = Record<string, unknown>;
+type Row = Record<string, unknown>;let journal:ReturnType<typeof transportJournalFixture>;
+let original:ReturnType<typeof pinnedProdatReadBoundary>;
 let db: Record<string, Row[]>, reads: Array<{
     table: string;
     filters: Array<[
@@ -40,6 +46,7 @@ function from(table: string) {
         const all = db[table] ??= [], found = all.filter(r => predicates.every(p => p(r))).slice(0, cap);
         let result = found;
         if (operation === 'insert') {
+            if(table==='ediel_messages')values.forEach(original.consume);
             result = values.map(v => ({ id: reportingId(seq++), created_at: new Date(reportingNow).toISOString(), updated_at: new Date(reportingNow).toISOString(), ...v }));
             db[table] = [...all, ...result];
         }
@@ -74,9 +81,33 @@ async function saveFromActiveForm(overrides:Record<string,string>={}) {
     expect(db.ediel_messages).toHaveLength(0);
     expect(db.ediel_test_run_messages).toHaveLength(0);
     expect(io.send).not.toHaveBeenCalled();
+    // Prepare a finite immutable source fixture BEFORE the actual autopilot.
+    // These synthetic notes/profile rows prove association mechanics only.
+    const build=await resolveTgtReportingBuildContext({run:db.ediel_test_runs[0] as unknown as typeof run,stepNo:1,runtime:await io.runtime()});
+    const expected=buildEdielTgtDraft({actorUserId:reportingId(12),testSuite:run.test_suite,roleCode:run.role_code,testCaseCode:run.test_case_code,stepNo:1,testRunId:run.id,importedTestData:build.testData,registerFacts:build.facts,reportingContext:build.context,systemTestContext:await io.runtime()});
+    original=pinnedProdatReadBoundary({companyId:reportingId(10),actorUserId:reportingId(12),runId:reportingId(11),caseCode:run.test_case_code,revision:'1',code:'Z13',subtype:run.test_case_code==='8.1.3'?'VH':'V',reason:run.test_case_code==='8.1.3'?'S18':'S17',rows:()=>db.ediel_messages,run:()=>db.ediel_test_runs[0]});
+    original.installExpectedOriginals(expectedTgtCounterVariants(expected.rawPayload));
+    io.rpc.mockImplementation(async(name:string,args:Record<string,unknown>)=>await original.rpc(name,args)??journal.rpc(name,args));
     return data;
 }
-beforeEach(() => { vi.clearAllMocks(); vi.spyOn(Date, 'now').mockReturnValue(reportingNow); seq = 100; reads = []; const p = reportingPrepared(); db = { ediel_test_runs: [{ ...p.run, notes: null, status: 'in_progress', started_at: '2026-09-01T00:00:00.000Z', encryption_mode: 'none' }], ediel_messages: [], ediel_test_run_messages: [] }; io.from.mockImplementation(from); p.runtime.settings!.routeProfileId = reportingId(80); db.ediel_test_runs[0].route_profile_id = reportingId(80); db.ediel_route_profiles = [{ id: reportingId(80), company_id: reportingId(10), environment: 'test', is_enabled: true, is_active: true, communication_route_id: reportingId(81), transport_security_mode: 'unencrypted', encryption_mode: 'none', mailbox: 'tgt-file-engine' }]; io.runtime.mockResolvedValue(p.runtime); io.send.mockResolvedValue({ accepted: ['portal@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' }); io.archive.mockResolvedValue(undefined); });
+beforeEach(() => { vi.clearAllMocks();journal=transportJournalFixture();io.rpc.mockImplementation(journal.rpc); vi.spyOn(Date, 'now').mockReturnValue(reportingNow); seq = 100; reads = []; const p = reportingPrepared(); db = { ediel_test_runs: [{ ...p.run, notes: null, environment: 'test', status: 'running', approval_version: '1', started_at: '2026-09-01T00:00:00.000Z', encryption_mode: 'none' }], ediel_messages: [], ediel_test_run_messages: [],user_profiles:[{id:reportingId(12),user_status:'active'}],company_memberships:[{company_id:reportingId(10),user_id:reportingId(12),status:'active',is_active:true,accepted_at:'2026-01-01T00:00:00Z'}] }; io.from.mockImplementation(from); p.runtime.settings!.routeProfileId = reportingId(80); db.ediel_test_runs[0].route_profile_id = reportingId(80); db.ediel_route_profiles = [{ id: reportingId(80), company_id: reportingId(10), environment: 'test', is_enabled: true, is_active: true, communication_route_id: reportingId(81), transport_security_mode: 'unencrypted', encryption_mode: 'none', mailbox: 'tgt-file-engine' }]; io.runtime.mockResolvedValue(p.runtime); io.send.mockImplementation(async(input,entry)=>{await journal.beforeProvider(input,entry);return{ accepted: ['portal@example.invalid'], rejected: [], messageId: 'synthetic-provider-id' };}); io.archive.mockResolvedValue(undefined); });
+it('a reporting assessment cannot replace a missing source-qualified positive original', async () => {
+    await saveFromActiveForm(); original.clearOriginals();
+    await expect(runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) })).rejects.toThrow('ediel_positive_fixture_original_required');
+    expect(db.ediel_messages).toHaveLength(0); expect(db.ediel_test_run_messages).toHaveLength(0);
+    expect(io.archive).not.toHaveBeenCalled(); expect(io.send).not.toHaveBeenCalled();
+});
+it('the actual opaque adapter rejects a private-original response for different bytes before insert', async () => {
+    await saveFromActiveForm();
+    io.rpc.mockImplementation(async (name: string, args: Row) => {
+        const result = await original.rpc(name, args) ?? await journal.rpc(name,args);
+        return name === 'gridex_ediel_positive_fixture_read_v1' && result.data && typeof result.data === 'object'
+            ? { ...result, data: { ...result.data, wireSha256: 'b'.repeat(64) } } : result;
+    });
+    await expect(runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) })).rejects.toThrow('ediel_positive_fixture_authority_scope_invalid');
+    expect(db.ediel_messages).toHaveLength(0); expect(db.ediel_test_run_messages).toHaveLength(0);
+    expect(io.archive).not.toHaveBeenCalled(); expect(io.send).not.toHaveBeenCalled();
+});
 it('active form/action saves notes then actual create-send chain keeps one exact association and reaches mocked provider', async () => { await saveFromActiveForm(); const form = new FormData(); form.set('testRunId', String(db.ediel_test_runs[0].id)); form.set('testCaseCode', '8.1.3'); await expect(createAndSendSystemTestOutboundForRunAction(form)).rejects.toThrow(/REDIRECT:.*ackStatus=sent/); expect(db.ediel_test_run_messages).toHaveLength(1); expect(db.ediel_test_run_messages[0].step_no).toBe(1); expect(io.send).toHaveBeenCalledTimes(1); });
 it('real autopilot association supports direct-send with omitted step and no reattachment', async () => { await saveFromActiveForm(); const draft = await runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) }); expect(draft.action).toBe('created_gridex_draft'); const form = new FormData(); form.set('edielMessageId', draft.messageId!); form.set('testRunId', reportingId(11)); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/REDIRECT:.*ackStatus=sent/); expect(db.ediel_test_run_messages).toHaveLength(1); expect(io.send).toHaveBeenCalledTimes(1); });
 it('owner reload checks tenant-filtered exact link before run filtering', async () => { await saveFromActiveForm(); const draft = await runTgtAutopilotForRun({ actorUserId: reportingId(12), companyId: reportingId(10), testRunId: reportingId(11) }); expect(draft.action).toBe('created_gridex_draft'); await loadTgtReportingValidationContext(db.ediel_messages[0] as unknown as EdielMessageRow); expect(reads.some(r => r.table === 'ediel_test_run_messages' && r.filters.some(([k, v]) => k === 'company_id' && v === reportingId(10)) && r.filters.some(([k, v]) => k === 'ediel_message_id' && v === draft.messageId) && !r.filters.some(([k]) => k === 'test_run_id' || k === 'step_no'))).toBe(true); });
@@ -135,7 +166,20 @@ for (const action of ['create', 'direct'] as const)
             expect(db.ediel_test_run_messages).toHaveLength(before);
             expect(io.send).not.toHaveBeenCalled();
         });
-it('repeat active direct action does not duplicate a successful send or association', async () => { const message = await prepareRealDraft(), form = new FormData(); form.set('edielMessageId', message.id); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/ackStatus=sent/); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/oskickat/); expect(io.send).toHaveBeenCalledTimes(1); expect(db.ediel_test_run_messages).toHaveLength(1); });
+it('repeat active direct action does not duplicate a successful send or association', async () => { const message = await prepareRealDraft(), form = new FormData(); form.set('edielMessageId', message.id); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/ackStatus=sent/); await expect(sendSystemTestOutboundMessageAction(form)).rejects.toThrow(/ackStatus=sent/); expect(io.send).toHaveBeenCalledTimes(1); expect(db.ediel_test_run_messages).toHaveLength(1); });
+for(const change of ['missingOriginal','runCompany','runEnvironment','runStatus','runRevision','runRole','runCase'] as const)
+ it(`independently pinned source rejects ${change} before draft insert/archive/provider`,async()=>{
+  await saveFromActiveForm();
+  if(change==='missingOriginal')original.clearOriginals();
+  if(change==='runCompany')db.ediel_test_runs[0].company_id=reportingId(99);
+  if(change==='runEnvironment')db.ediel_test_runs[0].environment='production';
+  if(change==='runStatus')db.ediel_test_runs[0].status='completed';
+  if(change==='runRevision')db.ediel_test_runs[0].approval_version='2';
+  if(change==='runRole')db.ediel_test_runs[0].role_code='supplier';
+  if(change==='runCase')db.ediel_test_runs[0].test_case_code='8.1.2';
+  const attempt=await runTgtAutopilotForRun({actorUserId:reportingId(12),companyId:reportingId(10),testRunId:reportingId(11)}).then(result=>({result}),error=>({error}));if(change==='runRole'||change==='runCase')expect(attempt).toMatchObject({result:{action:'blocked'}});else expect(attempt).toHaveProperty('error');
+  expect(db.ediel_messages).toHaveLength(0);expect(db.ediel_test_run_messages).toHaveLength(0);expect(io.archive).not.toHaveBeenCalled();expect(io.send).not.toHaveBeenCalled();
+ });
 it('stale form CAS cannot overwrite saved notes', async () => { const form = await saveFromActiveForm(), before = db.ediel_test_runs[0].notes; await expect(saveEdielTgtReportingPermissionAction(form)).rejects.toThrow(/CONCURRENT_UPDATE/); expect(db.ediel_test_runs[0].notes).toBe(before); });
 it('active clear action leaves a tombstone and never creates or sends', async () => { await saveFromActiveForm(); const form = new FormData(); form.set('testRunId', reportingId(11)); form.set('stepNo', '1'); form.set('expectedRunUpdatedAt', String(db.ediel_test_runs[0].updated_at)); form.set('operation', 'clear'); form.set('sourceNote', 'Revoked synthetic scenario'); await saveEdielTgtReportingPermissionAction(form); expect(JSON.parse(String(db.ediel_test_runs[0].notes)).prodatReportingPermission.steps['1'].state).toBe('cleared'); expect(db.ediel_messages).toHaveLength(0); expect(io.send).not.toHaveBeenCalled(); });
 it('actual post-autopilot route attachment is checked again before message insert', async () => { await saveFromActiveForm(); let routeReads = 0; io.from.mockImplementation((table: string) => { if (table === 'ediel_route_profiles' && ++routeReads === 2)

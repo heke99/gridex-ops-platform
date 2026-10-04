@@ -1,6 +1,6 @@
 import {prodatRegisterFieldState} from '@/lib/ediel/prodat/prodatRegisterFields'
 import {prodatFieldDiagnostic,prodatLocalDiagnostic,prodatErrorOccurrence,type ProdatDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
-import type { TgtDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority';
+import type { ProdatDateEventValidationContext } from '@/lib/ediel/prodat/prodatDateEventAuthority';
 import { segmentComposite, segmentElementCount } from '@/lib/ediel/core/edifactTokenizer';
 import { parseUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una';
 import { prodatRegisterGroups, prodatRegisterMessageSegments } from '@/lib/ediel/prodat/prodatRegisterGroups';
@@ -16,7 +16,7 @@ export type ProdatDatePolicyInput = {
     facts?: ProdatDependentConditionFacts | null;
     direction?: 'inbound' | 'outbound';
     requireAuthority?: boolean;
-    dateEventContext?: TgtDateEventValidationContext;
+    dateEventContext?: ProdatDateEventValidationContext;
 };
 export function validateProdatDateEvents(input: ProdatDatePolicyInput) { return evaluateProdatDateEvents(input).issues; }
 export function evaluateProdatDateEvents(input: ProdatDatePolicyInput) {
@@ -68,7 +68,7 @@ export function evaluateProdatDateEvents(input: ProdatDatePolicyInput) {
             fail('EVIDENCE_INVALID', 'egen transaktionsorsak saknas/är tvetydig');
             continue;
         }
-        if (input.requireAuthority && !(input.code === 'Z09' && !ownD) && (!input.dateEventContext || input.facts?.dateEventSource?.kind !== 'tgt'))
+        if (input.requireAuthority && !(input.code === 'Z09' && !ownD) && (!input.dateEventContext || !['tgt', 'production_contract'].includes(input.facts?.dateEventSource?.kind ?? '')))
             fail('SOURCE_UNQUALIFIED', 'saknar auktoriserad källa för leveranshändelsen');
         const fact = facts.find(f => f.meteringPointId === group.itemId && f.identityAgency === group.identityAgency);
         if (input.facts?.market !== 'electricity' && !(input.code === 'Z09' && !ownD))

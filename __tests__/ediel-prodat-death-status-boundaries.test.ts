@@ -7,7 +7,7 @@ import {deathStatusSendIssue} from '@/lib/ediel/prodat/prodatDeathStatusAuthorit
 import type {EdielMessageRow} from '@/lib/ediel/types'
 import {deathRaw,deathBody} from './fixtures/prodat-death-status'
 import {alphabets,characteristic} from './fixtures/prodat-register'
-const row=(payload:string,code='Z06',parsed:Record<string,unknown>={})=>({id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction:'outbound',environment:'test',message_family:'PRODAT',message_code:code,message_standard:'edifact',raw_payload:payload,parsed_payload:{rulebookAllowInvalidSend:true,...parsed}} as unknown as EdielMessageRow)
+const row=(payload:string,code='Z06',parsed:Record<string,unknown>={})=>({id:'00000000-0000-4000-8000-000000000001',company_id:'00000000-0000-4000-8000-000000000002',direction:'outbound',environment:'test',message_created_at:'2026-09-30T12:00:00.000Z',created_at:'2026-09-30T12:00:00.000Z',message_family:'PRODAT',message_code:code,message_standard:'edifact',raw_payload:payload,parsed_payload:{rulebookAllowInvalidSend:true,...parsed}} as unknown as EdielMessageRow)
 for(const alphabet of alphabets)for(const code of ['Z05','Z06','Z09'])it(`actual raw/row/sync/registry/guards protect eligible ${code} ${alphabet.join('')}`,async()=>{
  const payload=deathRaw(code,deathBody(code==='Z05'?'Z23':'E34'),alphabet)
  for(const message of [row(payload,code),row(payload,'Z04'),row(deathRaw('Z04',deathBody('Z22'),alphabet),code,{transactionSubtype:code==='Z05'?'LK':'E'})]){
