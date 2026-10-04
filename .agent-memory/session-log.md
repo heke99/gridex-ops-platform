@@ -669,3 +669,4 @@ Side track, separate from the Ediel campaign.
 Side track, separate from the Ediel campaign.
 - #474 merged (squash `b1c79ae`): Kundportfölj, forecast, read-only white-label overview, superadmin-only white-label assignment, one supply-period customer definition. Migrations applied to `piidsfebjqjmnepdpnas` and verified read-only.
 - Performance pass on `claude/portfolio-market-whitelabel-r8rn05`: monthly consumption rollup and set-based analytics month (`20261003150000`).
+- 2026-10-04 session: #426 grön (f32e40b5); F-SRC-01 rättad (20261003150300); sex SQL/Python-regressioner uppdaterade; split #483–#489; kandidatgranskning (0 nya godkännanden); överlämning.

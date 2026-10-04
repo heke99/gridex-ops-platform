@@ -1,8 +1,8 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-02T12:00:39.687848Z",
-  "status": "IN_PROGRESS_CI_RED_NATIVE",
-  "paused": false,
+  "updated_at": "2026-10-04T08:08:30.390607Z",
+  "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
+  "paused": true,
   "branch": "claude/zealous-rubin-6axb91",
   "active_pr": 426,
   "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "Drive #426 CI green (native suite), then merge per user decision and continue masterplan v2",
+  "active_item": "Handover: #426 green; split stack #483-#489 published (draft); next agent: approve TEN/U candidates two rules at a time, production migration dry-run, open defects",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -1455,5 +1455,42 @@
     "NATIVE-BLOCKED-BILATERAL-H-PROFILES",
     "NATIVE-OPEN-RECEIVER-208-REPLY",
     "PREEXISTING-INBOUND-CASES-SCHEMA-DRIFT"
+  ],
+  "green_head_sha": "f32e40b50299c7fbc6d939cd67f887b963fc0504",
+  "split_stack": {
+    "order": [
+      483,
+      484,
+      485,
+      486,
+      487,
+      488,
+      489
+    ],
+    "top_equals_green_tree": true,
+    "note": "merge in order; lower PRs not independently green"
+  },
+  "approved_ids": 55,
+  "candidate_review": "quality/audits/ediel-masterplan-v2/pr426-rule-review/candidates-2026-10-04.md",
+  "production": {
+    "project": "piidsfebjqjmnepdpnas",
+    "pending_migrations": "363 branch files 20260928130148..20261003150200 + 20261003150300, none applied; out-of-order apply; dry-run BEGIN/ROLLBACK first",
+    "applied_latest": "20261003152539_portfolio_analytics_rollups_performance"
+  },
+  "open_defects": [
+    "F-OPS-02",
+    "F-ENV-01",
+    "F-GOV-03"
+  ],
+  "fp_check_pending": [
+    "ENV-02",
+    "ENV-03",
+    "IMP-04",
+    "DB-01"
+  ],
+  "undecided": [
+    "U-1 TEN-04 mandate",
+    "U-2 end_assignment LIMIT 1",
+    "TR-09/E6 needs source T §3.1"
   ]
 }
