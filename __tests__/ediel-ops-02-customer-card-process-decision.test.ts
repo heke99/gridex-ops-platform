@@ -61,3 +61,38 @@ describe('OPS-02: the customer card shows the next action from the process decis
     expect(step(w, 'waiting_response')?.status).not.toBe('waiting')
   })
 })
+
+import { infoRequestProcessQueueState } from '@/lib/customer-operations/infoRequestProcessQueue'
+describe('OPS-02: the work queue follows the process decision, not the static status', () => {
+  it('a pending decision is shown as waiting on the counterparty with the decision summary', () => {
+    expect(infoRequestProcessQueueState({ status: 'waiting_for_contrl', edielMessageId: 'source', processDecisions: map(decide()) }))
+      .toEqual({ status: 'process_waiting', title: 'Väntar på motpart', description: decide().summary, priority: 'normal' })
+  })
+  it('an overdue or rejected decision requires action with high priority', () => {
+    for (const d of [decide(watch(), message, '2026-10-01T12:40:00Z'), decide(watch({ status: 'rejected' }))])
+      expect(infoRequestProcessQueueState({ status: 'waiting_for_z02', edielMessageId: 'source', processDecisions: map(d) })).toMatchObject({ status: 'action_required', priority: 'high', description: d.summary })
+  })
+  it('a received business response ends waiting although the static status still says waiting_for_contrl', () => {
+    expect(infoRequestProcessQueueState({ status: 'waiting_for_contrl', edielMessageId: 'source', processDecisions: map(decide(watch({ status: 'fulfilled' }))) })?.status).toBe('process_response_received')
+  })
+  it('prohibited: a static waiting_for_contrl without a decision is held for review, never shown as waiting', () => {
+    const state = infoRequestProcessQueueState({ status: 'waiting_for_contrl', edielMessageId: 'source', processDecisions: new Map() })
+    expect(state).toMatchObject({ status: 'process_decision_missing', priority: 'high' })
+    expect(state?.title).not.toMatch(/Väntar/)
+    expect(infoRequestProcessQueueState({ status: 'waiting_for_contrl', edielMessageId: null, processDecisions: map(decide()) })?.status).toBe('process_decision_missing')
+  })
+  it('non-waiting statuses without a decision keep their existing handling', () => {
+    expect(infoRequestProcessQueueState({ status: 'missing_authorization', edielMessageId: null, processDecisions: new Map() })).toBeNull()
+    expect(infoRequestProcessQueueState({ status: 'draft', edielMessageId: 'source', processDecisions: new Map() })).toBeNull()
+  })
+})
+
+import { simpleStatus } from '@/components/admin/customers/CustomerDataRequestsCard'
+describe('OPS-02: the request table shows the recorded status without claiming what the process waits for', () => {
+  it.each(['waiting_for_contrl', 'waiting_for_aperak', 'waiting_for_z02'])('%s is labelled as recorded, pointing to the process decision', status => {
+    const badge = simpleStatus({ id: 'request', status, verified_payload: {} } as CustomerInfoRequestRow)
+    expect(badge.label).toBe('Registrerad som skickad')
+    expect(badge.description).toContain('processbeslutet')
+    expect(`${badge.label} ${badge.description}`).not.toMatch(/väntar på svar/i)
+  })
+})

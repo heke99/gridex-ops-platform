@@ -1,6 +1,6 @@
 ## OPS-02 — 2026-10-04 (claude/ops-02-process-next-action)
 
-- F-OPS-02 rättad: kundkortet styrs av processbeslutet; OPS-02/AT-OPS-02 PARTIAL. Kvar för full godkänning: arbetskö, automationens waiting_response, CustomerDataRequestsCard-badge. GOV-03 ligger i #505.
+- OPS-02/AT-OPS-02 godkänd i #507 (kundkort, arbetskö, badge). GOV-03 ligger i #505. Nästa lediga: fp-check ENV-03, IMP-04, DB-01 (kolla #491 först).
 
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 

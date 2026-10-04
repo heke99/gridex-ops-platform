@@ -9,7 +9,7 @@
 | F-U-04 | U-04 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | sen äldre version tränger ej undan nyare |
 | F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | received-ERR-dispatcher återställd |
 | F-SRC-01 | (källregister) | hög | ✅ rättad 161b9bae (migr. 20261003150300) | validering av kvarhållen källhistorik efter operativ radering gav no_data_found; läser nu hash-bundna bytes ur gridex_received_sources.sources |
-| F-OPS-02 | OPS-02 | medel | ✅ rättad 2026-10-04 (kundkort); OPS-02 PARTIAL | kundkortet läser `readEdielProcessNextActions`; processbeslutet styr väntan/svar/blockerare; utan beslut hålls kortet i stället för att visa väntan från statisk status. Kvar: arbetskön (`app/admin/work-queue/page.tsx:51-58`) sorterar på statisk status; automationens jobbstatus `waiting_response` sätts från dispatch-status (`automation.part-2.ts:248`); `CustomerDataRequestsCard.tsx:111` badge |
+| F-OPS-02 | OPS-02 | medel | ✅ rättad 2026-10-04 (#507), OPS-02 VERIFIED | kundkort och arbetskö styrs av `readEdielProcessNextActions` (orsak, tidsgrund, ansvar, blockerare, tillåtna åtgärder) och hålls när beslut saknas; begärandetabellens badge påstår inte längre väntan. fp-check: `automation.part-2.ts:248` och `actions.part-1.ts:185` (`normalizeSimpleRequestStatus`) registrerar status vid själva utskicket och används för jobbets livscykel/idempotens, inte för nästa steg = FALSKLARM; `pendingCustomerInfoRequests` (page.part-4) är oanvänd |
 | F-ENV-01 | ENV-01 | medel | öppen | UNOC-repertoar för alla utgående segment |
 | F-GOV-03 | GOV-03 | låg | öppen | sätt källfamilj från korrelerat original; fail closed |
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |

@@ -881,12 +881,15 @@
     {
       "id": "OPS-02",
       "acceptance_id": "AT-OPS-02",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "lib/ediel/operations/processNextAction.ts",
         "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
         "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
         "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
         "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
         "__tests__/ediel-process-next-action.test.ts"
       ]
@@ -2171,12 +2174,15 @@
     },
     {
       "id": "AT-OPS-02",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "lib/ediel/operations/processNextAction.ts",
         "lib/customer-operations/customerCardWorkflow.ts",
+        "lib/customer-operations/infoRequestProcessQueue.ts",
         "app/admin/customers/[id]/page.part-4.tsx",
+        "app/admin/work-queue/page.tsx",
         "components/admin/customers/CustomerBusinessActionsCard.tsx",
+        "components/admin/customers/CustomerDataRequestsCard.tsx",
         "__tests__/ediel-ops-02-customer-card-process-decision.test.ts",
         "__tests__/ediel-process-next-action.test.ts"
       ]
