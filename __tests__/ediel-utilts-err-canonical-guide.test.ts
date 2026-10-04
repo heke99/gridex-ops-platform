@@ -1,4 +1,4 @@
-// masterplan: U-13
+// masterplan: ACK-05, AT-ACK-05, U-13, AT-U-13
 // masterplan: ACK-05, AT-ACK-05
 import {describe,expect,it} from 'vitest'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'

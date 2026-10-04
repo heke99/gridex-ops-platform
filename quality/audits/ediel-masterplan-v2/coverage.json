@@ -908,9 +908,12 @@
     {
       "id": "U-13",
       "acceptance_id": "AT-U-13",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "__tests__/ediel-utilts-err-canonical-guide.test.ts"
+        "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "__tests__/ediel-utilts-err-gateway.test.ts"
       ]
     },
     {
@@ -2330,8 +2333,11 @@
     },
     {
       "id": "AT-U-13",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+        "__tests__/ediel-utilts-err-gateway.test.ts"
+      ]
     },
     {
       "id": "AT-U-14",

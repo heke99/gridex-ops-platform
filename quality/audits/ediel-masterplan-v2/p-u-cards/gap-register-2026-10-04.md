@@ -34,7 +34,7 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | U-09 | PARTIAL | consumption-contract, quantity-precision, s02-required-scope | annual forecast never used as actual quarter energy |
 | U-11 | PARTIAL | utilts-runtime-cutoff, effective-date (E19 removed in 25-A-4) | E87 + mandatory fields kept after cutoff; incomplete quarter still rejected; E97/E98/E90 limited to E30/aggregates (no implementation found) |
 | U-12 | PARTIAL | observation-order-guide (no E23/E88 mix) | outbound splitting into compatible groups (no implementation found) |
-| U-13 | PARTIAL | utilts-err-canonical-guide (received 5/NA accepted) | outgoing 9/AB asserted |
+| U-13 | VERIFIED | utilts-err-canonical-guide (received 5/NA accepted), utilts-err-gateway (outgoing ERR BGM 9/AB) | — |
 | U-15 | PARTIAL | observation-order-guide, packing-limit-authority | packaging to one legal receiver |
 | U-17 | PARTIAL | utilts-aperak-physical-scope (17-char element fallback) | numeric field never guessed from qualifier |
 | U-19 | NOT_VERIFIED | — | no UTILTS code consumes a PRODAT case reference for correlation |
