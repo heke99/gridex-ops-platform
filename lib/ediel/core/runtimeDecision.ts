@@ -15,6 +15,7 @@ import type {ProdatAperakText} from '@/lib/ediel/prodat/prodatAperakText'
 import {projectProdatDiagnostics,isQualifiedProdatApplicationError} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
 import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 import {prodatHeaderFieldRejection} from '@/lib/ediel/prodat/prodatHeaderDateRejection'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
 import type {ProdatDiagnostic, ProdatProcessingDisposition} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
 // lib/ediel/core/runtimeDecision.ts
@@ -499,6 +500,20 @@ function resolveCanonicalRuntimeDecisionCore(message:EdielMessageRow,facts:Canon
     // this one physical header error before code-specific policy selection;
     // an unlisted code is invalid field content, not ERC40/100 "unimplemented".
     const sourceWire=canonical.family==='PRODAT' && message.raw_payload ? tokenizeEdifact(message.raw_payload) : null
+    const reason223=sourceWire&&/^prodat_subtype_(unknown|not_allowed):/.test(description)
+      ? evaluateProdatTransactionReason({rawSegments:canonical.rawSegments,una:canonical.una,code:canonical.messageCode}) : null
+    if(reason223?.issues.length){
+      sourceRules.push(...reason223.issues.map(finding=>finding.prodatDiagnostic!.sourceRule))
+      issues.push(...reason223.observations.map(finding=>issue({layer:'application',severity:finding.severity,
+        code:finding.code,title:finding.title,description:finding.description,source:'P26.A §2.6 pp64–65 / annex4 p122',
+        prodatDiagnostic:finding.prodatDiagnostic,prodatAperakText:finding.prodatAperakText})))
+      if(reason223.applicationErrors.length)addNegativeAperakIfAllowed({family:'PRODAT',code:canonical.messageCode,responsePlan,
+        reason:'Fysisk transaktionstyp saknas eller är otillåten för meddelandets BGM.',applicationErrors:reason223.applicationErrors})
+      return buildResult({canonical,policy:null,prodatProcessingDisposition:reason223.disposition,utiltsBusinessOutcome:null,
+        syntaxDecision:'accepted',applicationDecision:reason223.applicationErrors.length?'rejected':'manual_review',
+        functionalDecision:'not_applicable',responsePlan,issues,sourceRules,
+        decisionTrace:[...decisionTrace,'Nationellt fält223 prövades från egen fysisk SG14 före undertypspolicy.'],syntax})
+    }
     const field202=sourceWire && /^(canonical_policy_message_code_missing|canonical_ediel_prodat_code_unsupported):/.test(description)
       ? prodatHeaderFieldRejection({field:'202',sourceWire,errors:[]}) : null
     const diagnostic=field202?.defect ? prodatFieldDiagnostic('202',field202.defect,
