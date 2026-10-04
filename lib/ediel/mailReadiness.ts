@@ -1,5 +1,6 @@
 import { promises as dns } from 'dns'
 import net from 'net'
+import { relayTraceReadiness, type RelayTraceRecord } from '@/lib/ediel/transport/relayTrace'
 
 export type MailReadinessRecord = {
   type: 'MX' | 'TXT' | 'CNAME'
@@ -164,7 +165,7 @@ export function resendEventsConfig() {
   }
 }
 
-export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; events: MailLaneReadiness }> {
+export async function getMailReadiness(options: { relayTrace?: RelayTraceRecord | null; now?: Date } = {}): Promise<{ ediel: MailLaneReadiness; events: MailLaneReadiness }> {
   const checkedAt = new Date().toISOString()
   const edielConfig = edielSmtpConfig()
   const resendConfig = resendEventsConfig()
@@ -219,9 +220,14 @@ export async function getMailReadiness(): Promise<{ ediel: MailLaneReadiness; ev
     {
       key: 'smtp_tcp',
       status: tcp.ok ? 'ok' : 'warning',
-      message: tcp.ok ? 'SMTP-host kan nås via TCP.' : `SMTP TCP kunde inte verifieras: ${tcp.error ?? 'okänt fel'}`,
+      // TR-08: reachability is never transport verification.
+      message: tcp.ok ? 'SMTP-host kan nås via TCP (endast nåbarhet; bevisar inte TLS i reläkedjan).' : `SMTP TCP kunde inte verifieras: ${tcp.error ?? 'okänt fel'}`,
       diagnostics: tcp,
     },
+    (() => {
+      const relay = relayTraceReadiness(options.relayTrace ?? null, { now: options.now, smtpPortReachable: tcp.ok })
+      return { key: relay.key, status: relay.status, message: relay.message, diagnostics: { allRelayHopsVerified: relay.allRelayHopsVerified, reasons: relay.reasons } }
+    })(),
   ]
 
   return {

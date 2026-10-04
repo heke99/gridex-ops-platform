@@ -8,6 +8,7 @@ import {seedNormalSwitchNativeFixture,nativeSql,literal} from './helpers/ediel-n
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {getEdielMessageById} from '@/lib/ediel/db'
+import {verifyRelayTrace} from '@/lib/ediel/transport/relayTrace'
 const sha=(s:string)=>createHash('sha256').update(s).digest('hex')
 const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>
 afterEach(()=>{smtp.send.mockReset();smtp.options.mockReset();smtp.beforeSend=undefined;vi.unstubAllEnvs()})
@@ -27,11 +28,17 @@ async function seed(){
  VALUES(${literal(f.companyId)},${literal(reviewer)},'member','active',now(),'{}','member',true,now(),'member');
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(reviewer)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.write';`)
+ // TR-08: allRelayHopsVerified must name a verified, persisted read-back trace (synthetic headers only).
+ const probe='probe-'+randomUUID(),traceHeaders=['Received: from relay.example.invalid (relay.example.invalid [192.0.2.20]) by mx.example.invalid with ESMTPS id b (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384); Sun, 4 Oct 2026 12:00:02 +0200',
+  'Received: from app.example.invalid ([198.51.100.5]) by smtp.own.example.invalid with ESMTPSA id d (TLSv1.2:ECDHE-RSA-AES256-GCM-SHA384); Sun, 4 Oct 2026 12:00:00 +0200',
+  'Authentication-Results: mx.example.invalid; spf=pass','X-Gridex-Relay-Probe: '+probe,''].join('\r\n')
+ const trace=verifyRelayTrace({rawHeaders:traceHeaders,probeId:probe,ownHosts:['smtp.own.example.invalid']})
+ nativeSql(`SELECT to_jsonb(public.ediel_record_relay_trace_v1(${literal(f.companyId)},'test',${literal(reviewer)},convert_to(${literal(traceHeaders)},'UTF8'),${literal(JSON.stringify(trace))}::jsonb));`)
  const now=Date.now(),from=new Date(now-60000).toISOString(),to=new Date(now+600000).toISOString()
  const source={schema:'gridex_transport_exception_incident_v1',normativeSha256:'5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951',
   companyId:f.companyId,messageId:m.id,environment:'test',originalHash:sha(m.raw_payload!),routeId:m.communication_route_id,
   senderEdielId:m.sender_ediel_id,receiverEdielId:m.receiver_ediel_id,receiverEmail:m.receiver_email,case:'temporary_encryption_failure',
-  tls:{required:true,allRelayHopsVerified:true,certificateVerified:true,minimumVersion:'TLS1.2',originalReference:'synthetic://native-mechanics-tls-only',originalSha256:'a'.repeat(64),validFrom:from,validTo:to},
+  tls:{required:true,allRelayHopsVerified:true,relayTraceSha256:trace.rawHeadersSha256,certificateVerified:true,minimumVersion:'TLS1.2',originalReference:'synthetic://native-mechanics-tls-only',originalSha256:'a'.repeat(64),validFrom:from,validTo:to},
   counterparty:{receiverEdielId:m.receiver_ediel_id,temporaryReserveConfirmed:true,originalReference:'synthetic://native-mechanics-counterparty-only',originalSha256:'b'.repeat(64),validFrom:from,validTo:to},
   incident:{temporaryOnly:true,failureCode:'cms_encryption_failed',originalSha256:'c'.repeat(64),observedAt:from}}
  const approval={schema:'gridex_transport_exception_approval_v1',sourceDigest:sha(JSON.stringify(source)),companyId:f.companyId,messageId:m.id,case:source.case,
