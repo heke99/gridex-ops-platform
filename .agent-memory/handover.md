@@ -1106,3 +1106,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: TEN-09/11 (+AT) godkända. Nästa Claude: TEN-12/13/14.
 - 2026-10-04 #491: TEN-12/13/14 (+AT) godkända. TEN/ESCO/ACK klart i #491 (förutom Codex TEN-07, ESCO-10/11). Coverage 119.
 - 2026-10-04 #491: Claude claimar återstående P/U-kort (27), två i taget, P först.
+- 2026-10-04 Codex försökte claima TEN-09 (redan klar i #491) — svarat 5981753458+; Codex PR #497 (TEN-07, ESCO-10/11 overifierade tills CI).
