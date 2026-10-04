@@ -143,11 +143,13 @@ function routeAllowsNonProdatSmime(routeProfile: EdielRouteProfileRow | null): b
 
 function applyMessageFamilyEncryptionPolicy(params: {
   messageFamily?: string | null
+  environment?: string | null
   encryptionMode: 'none' | 'smime'
   routeProfile: EdielRouteProfileRow | null
 }): 'none' | 'smime' {
   const family = String(params.messageFamily ?? '').toUpperCase()
-  if (family === 'PRODAT') return params.encryptionMode
+  // TR-09: production never downgrades S/MIME for any family.
+  if (family === 'PRODAT' || params.environment === 'production') return params.encryptionMode
   if (params.encryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) return 'none'
   return params.encryptionMode
 }
@@ -170,6 +172,7 @@ export async function validateEdielSendContext(params: {
   const resolvedSmtpMimeMode = resolveSmtpMimeMode(resolvedEncryptionMode, params.smtpMimeModeOverride)
   const finalEncryptionMode: 'none' | 'smime' = applyMessageFamilyEncryptionPolicy({
     messageFamily: params.message.message_family,
+    environment: params.message.environment,
     encryptionMode: resolvedSmtpMimeMode === 'ediel-smime-enveloped' ? 'smime' : 'none',
     routeProfile,
   })
@@ -241,13 +244,10 @@ export async function validateEdielSendContext(params: {
   if (routeTransportSecurityMode === 'unencrypted' && finalEncryptionMode === 'smime') {
     addIssue(blockingIssues, 'unencrypted_route_mismatch', 'Sending blocked: this route is explicitly unencrypted but the message is configured as S/MIME.')
   }
-  if (
-    params.message.environment === 'production' &&
-    String(params.message.message_family ?? '').toUpperCase() === 'PRODAT' &&
-    finalEncryptionMode !== 'smime' &&
-    routeProfile?.allow_unencrypted_production !== true
-  ) {
-    addIssue(blockingIssues, 'production_prodat_requires_smime', 'Sending blocked: real grid owner PRODAT requires required_encrypted/S/MIME.')
+  // TR-09: S/MIME for every production family; a legacy route flag is no
+  // exception source (only the journaled transport exception is, at send time).
+  if (params.message.environment === 'production' && finalEncryptionMode !== 'smime') {
+    addIssue(blockingIssues, 'production_requires_smime', 'Sending blocked: production Ediel traffic requires S/MIME for every message family; plaintext needs an approved, journaled transport exception.')
   }
 
   return {

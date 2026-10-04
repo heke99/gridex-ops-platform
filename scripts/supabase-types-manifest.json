@@ -4,9 +4,9 @@
   "generated_at": "2026-10-04T17:22:30.389365+00:00",
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37219877261",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261004165620_staff_user_role_id_nullability.sql",
-  "latest_migration_schema_effect": "Authentic current-prefix PostgreSQL 17 clean capture includes guarded legacy role_id nullability normalization. Clean schema already has nullable UUID, so the three generated artifacts remain byte-identical. Native SQL/browser tests and upgrade parity are separate mandatory final-head CI gates.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261004180000_ediel_tr09_production_smime_all_families.sql",
+  "latest_migration_schema_effect": "TR-09 forward replaces the function body of gridex_transport_exception.stage_v1 only (production plaintext refused for every outbound family without a journaled exception). No table, column, signature or type change, so generated types stay byte-identical; schema.sql updated by hand for that one body line and must be confirmed by authentic clean-replay capture.",
+  "composition_capture_pending": true,
   "capture": {
     "workflow_run": 37219877261,
     "workflow_run_attempt": 1,

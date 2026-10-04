@@ -589,11 +589,13 @@ export function routeAllowsNonProdatSmime(routeProfile: Awaited<ReturnType<typeo
 
 export function applyMessageFamilyEncryptionPolicy(params: {
   messageFamily?: string | null
+  environment?: string | null
   requestedEncryptionMode: string | null
   routeProfile: Awaited<ReturnType<typeof getEdielRouteProfileByCommunicationRouteId>> | null
 }): 'none' | 'smime' | 'pgp' | string | null {
   const family = String(params.messageFamily ?? '').toUpperCase()
-  if (family === 'PRODAT') return params.requestedEncryptionMode
+  // TR-09: production never downgrades S/MIME for any family.
+  if (family === 'PRODAT' || params.environment === 'production') return params.requestedEncryptionMode
   if (params.requestedEncryptionMode === 'smime' && !routeAllowsNonProdatSmime(params.routeProfile)) {
     return 'none'
   }

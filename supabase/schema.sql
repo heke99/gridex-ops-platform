@@ -30962,7 +30962,7 @@ BEGIN
  IF action='prepare' AND r->>'proceed'='true' THEN
   SELECT * INTO STRICT m FROM public.ediel_messages WHERE id=mid AND company_id=c FOR SHARE;
   IF b IS NULL OR b='null'::jsonb THEN
-   IF m.direction='outbound' AND m.message_standard='edifact' AND m.message_family='PRODAT' AND m.environment='production'
+   IF m.direction='outbound' AND m.environment='production'
     AND i#>>'{binding,mimeMode}' IS DISTINCT FROM 'ediel-smime-enveloped' THEN RAISE EXCEPTION 'transport_exception_actual_approved_plaintext_source_required';END IF;
    RETURN;
   END IF;

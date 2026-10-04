@@ -59,6 +59,7 @@ import { sendCorrectionFencedEmail, type OutboundDispatchOwner } from '@/lib/edi
 import { SmtpDeliveryUncertainError } from './smtpOutcome'
 
 import type { EdielSmtpMimeMode, SmtpSendResult } from './index.part-1'
+import { assertPlaintextExceptionKeepsTls, assertProductionTransportEncrypted } from './exception/productionEncryption'
 import { applyMessageFamilyEncryptionPolicy, assertRouteTransportSecurity, assertTransportFamily, buildInnerEdifactMimeForSmime, buildMultipartValidationBase64Mime, buildOuterSmimeMime, buildSinglePartEdielBase64Mime, buildSinglePartEdielMime, encodeBase64Mime, encryptSmimeEnvelopedData, encryptionModeFromMimeMode, extractEdielSubjectFromPayload, findRelatedOutboundForInboundAck, inferAckOutcomeFromPayload, inferAttachmentExtension, inferBodyText, inferMimeType, inspectCmsRecipientInfo, isEdifactMessage, parseEdifactEnvelope, requireActorUserId, resolveSmtpMimeMode, routeCertificateEnvironment, safePreview, sanitizeMimeToken, sha256, storeTransportPayloadSnapshot } from './index.part-1'
 
 export function buildInboundProdatMessageInput(params: {
@@ -463,6 +464,7 @@ export async function sendEdielMessageViaSmtp(
     'none'
   const effectiveEncryptionMode = plaintextException?'none':applyMessageFamilyEncryptionPolicy({
     messageFamily: message.message_family,
+    environment: message.environment,
     requestedEncryptionMode,
     routeProfile,
   })
@@ -472,12 +474,10 @@ export async function sendEdielMessageViaSmtp(
   const effectiveCertificateId = routeProfile?.receiver_certificate_id ?? routeProfile?.certificate_id ?? null
   // Legacy route-level "allow unencrypted production" is never an incident
   // source. Only an exact private current capability can reserve plaintext.
-  if(message.message_family==='PRODAT'&&message.environment==='production'&&effectiveEncryptionMode!=='smime'&&!plaintextException)
-    throw new Error('transport_exception_actual_approved_plaintext_source_required')
-  if(plaintextException){
-    if(!routeProfile||routeProfile.tls_required!==true||routeProfile.transport_security_mode==='needs_verification')
-      throw new Error('transport_exception_current_verified_tls_route_required')
-  }else await assertRouteTransportSecurity({
+  // TR-09: every production family needs S/MIME unless an approved exception applies.
+  assertProductionTransportEncrypted({environment:message.environment,wireEncrypted:effectiveEncryptionMode==='smime',plaintextException})
+  if(plaintextException) assertPlaintextExceptionKeepsTls(routeProfile)
+  else await assertRouteTransportSecurity({
     message,
     routeProfile,
     effectiveEncryptionMode,
@@ -500,6 +500,7 @@ export async function sendEdielMessageViaSmtp(
     })
   const routeEncryptionMode = effectiveEncryptionMode
   const mimeMode = resolveSmtpMimeMode(plaintextException?'ediel-singlepart-base64':params?.smtpMimeMode, routeEncryptionMode)
+  assertProductionTransportEncrypted({environment:message.environment,wireEncrypted:mimeMode==='ediel-smime-enveloped',plaintextException})
   const normalizedPayload = isEdifactMessage(message) || message.message_standard === 'ai_list'
     ? message.raw_payload ?? ''
     : bodyText.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n/g, '\r\n')

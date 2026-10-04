@@ -776,8 +776,16 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/exception/productionEncryption.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/sendContextConsistency.ts",
+        "supabase/migrations/20261004180000_ediel_tr09_production_smime_all_families.sql",
+        "__tests__/ediel-tr-09-production-smime-all-families.test.ts",
+        "__tests__/ediel-tr-09-transport-exception-stage-db.test.ts"
+      ]
     },
     {
       "id": "TR-10",
@@ -2115,8 +2123,16 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/exception/productionEncryption.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/sendContextConsistency.ts",
+        "supabase/migrations/20261004180000_ediel_tr09_production_smime_all_families.sql",
+        "__tests__/ediel-tr-09-production-smime-all-families.test.ts",
+        "__tests__/ediel-tr-09-transport-exception-stage-db.test.ts"
+      ]
     },
     {
       "id": "AT-TR-10",

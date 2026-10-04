@@ -14,7 +14,7 @@
 | F-GOV-03 | GOV-03 | låg | FALSKLARM (fp-check 2026-10-04) | härledningen i validator.ts:315 är bara förval; på kvalificerad sändning styr originalets fysiska familj (`sourceBoundAckCanonicalPolicy`) och fel profil ger `ACK_APERAK_PROFILE_INVALID`; utan original stoppas sändning. Bevisat i `ediel-gov-03-aperak-source-family.test.ts` |
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |
 | U-2 | TEN-09 | låg | ej avgjord | end_assignment LIMIT 1 |
-| TR-09/E6 | TR-09 | medel | ej avgjord | kräver källa T §3.1 |
+| TR-09/E6 | TR-09 | medel | ✅ löst 2026-10-04 (ägarbeslut), TR-09 VERIFIED | S/MIME krävs för alla familjer i produktion; klartext endast via journalfört, avgränsat undantag (fail closed) i TS-sändväg, preflight och `stage_v1` (migr. 20261004180000). Bevisat i `ediel-tr-09-*.test.ts` |
 | ENV-02, ENV-03, IMP-04, DB-01 | — | — | CONTRADICTED i granskning, fp-check återstår | se batch-7 |
 | PGLITE-CI | alla | medel | ✅ delvis | PGlite-regressioner kördes inte i CI; 0.3.14 nu devDependency, U-04/U-14 körs via test-ediel-wrapper |
 
