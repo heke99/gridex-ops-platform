@@ -3,7 +3,7 @@
 **Parallella agenter: läs detta och `.agent-memory/handover.md` innan du väljer kluster.**
 
 ARBETSFÖRDELNING (GitHub #491, kommentarer 5981383983 + 5981418363; samordning sker ENDAST via #491-kommentarer):
-- Claude: #491 (`claude/cool-tesla-2pmyua`): TEN-01/02/05/06/08/10, U-04/U-14, ESCO-04/06/07 klara; **pågår nu ESCO-03 + ESCO-05**; därefter ESCO-08 + ESCO-09 om ej claimade av Codex.
+- Claude: #491 (`claude/cool-tesla-2pmyua`): TEN-01/02/05/06/08/10, U-04/U-14, ESCO-04/06/07 klara; ESCO-03 + ESCO-05 KLARA (`__tests__/ediel-esco-03-05-permission-responses.test.ts` 5 PASS + A76 SQL-fall i `scripts/ediel-esco-04-07-permission-sql-regression.mjs`, 16 PASS; coverage 81). Observation: A76 ger status `rejected_passive_timeout`, A13 `rejected_active`; Z14N klassas `reject_permission` med manuell granskning när Z13-koppling saknas, aldrig vald negativ APERAK. **Nästa: ESCO-08 + ESCO-09** (claim postas på #491 först).
 - Codex: TEN-07 (endast; TEN-08 redan klar i #491) på `codex/ediel-ten07-ten08-20261004`, checkpoint `.agent-memory/masterplan-codex-checkpoint.md` på sin gren.
 - Regel: claim postas på #491 före start; coverage-konflikt löses genom att bevara båda sidors verifierade rader.
 

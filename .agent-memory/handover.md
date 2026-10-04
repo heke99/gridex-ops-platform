@@ -1092,3 +1092,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: ESCO-04, AT-ESCO-04, ESCO-07, AT-ESCO-07 godkända (`scripts/test-ediel-esco-04-07-permissions.cjs`). ESCO-06 fortfarande reserverat (Claude); kartläggning: ingen Z13-upprepningskoordinering finns i koden.
 - 2026-10-04 #491: ESCO-06, AT-ESCO-06 godkända (`scripts/test-ediel-esco-06-request-coordination.cjs`); tolkning av spårbarhet dokumenterad i current-task.md. ESCO-reservation släppt. Lediga: ESCO-01/02/03/05/08/09/10/11, ACK-01..09, TEN-03/04/07/09/11-14.
 - 2026-10-04 Samordning: Codex tar TEN-07 (egen gren); Claude tar ESCO-03+05 (claim 5981418363), sedan ESCO-08+09.
+- 2026-10-04 #491: ESCO-03, AT-ESCO-03, ESCO-05, AT-ESCO-05 godkända (`__tests__/ediel-esco-03-05-permission-responses.test.ts`). Nästa Claude: ESCO-08+09.

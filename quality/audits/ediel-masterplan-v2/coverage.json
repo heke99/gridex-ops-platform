@@ -455,8 +455,14 @@
     {
       "id": "ESCO-03",
       "acceptance_id": "AT-ESCO-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/permissions/permissionEngine.ts",
+        "lib/ediel/permissions/permissionStateMachine.ts",
+        "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+      ]
     },
     {
       "id": "ESCO-04",
@@ -473,8 +479,15 @@
     {
       "id": "ESCO-05",
       "acceptance_id": "AT-ESCO-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/permissions/z14HandleResponse.ts",
+        "lib/ediel/permissions/permissionStateMachine.ts",
+        "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "scripts/ediel-esco-04-07-permission-sql-regression.mjs",
+        "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+      ]
     },
     {
       "id": "ESCO-06",
@@ -1788,8 +1801,10 @@
     },
     {
       "id": "AT-ESCO-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+      ]
     },
     {
       "id": "AT-ESCO-04",
@@ -1800,8 +1815,10 @@
     },
     {
       "id": "AT-ESCO-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-esco-03-05-permission-responses.test.ts"
+      ]
     },
     {
       "id": "AT-ESCO-06",

@@ -1,4 +1,4 @@
-// masterplan: ESCO-04, AT-ESCO-04, ESCO-07, AT-ESCO-07
+// masterplan: ESCO-04, AT-ESCO-04, ESCO-07, AT-ESCO-07 (also ESCO-05 A76 SQL side)
 // Extends the partial-permission source regression (real lexer, permission
 // executor, ledgers and Z15 path from 20261001044351) with the ESCO-04 scoped
 // approval and ESCO-07 separate V/VH termination effects. Same declared
@@ -57,6 +57,11 @@ const extension=String.raw`
  // Prohibited: the separate V permission and its site are byte-identical; other tenants untouched.
  esco(await snapshot(id(910)),vBefore)
  esco(await snapshot(id(9901)),foreignBefore)
+ // ESCO-05 (SQL side): a passive A76 denial is applied as a business answer with no market permission site.
+ await permission(990,[{point:'735123456789019049',li:'LI-P'}])
+ await incoming(991,'Z14',[{point:null,agency:null,li:'LI-P',reason:'Z96',status:'A76',omitCustomer:true}])
+ const passive=await apply(id(991))
+ esco(passive.applied,true);esco(passive.status,'rejected_passive_timeout');esco((await sites(id(990))).length,0)
  console.log('ESCO-04/ESCO-07 permission SQL: '+escoChecks+' PASS; declared external ports, NOT native/legal approval proof')
 `
 const modified=original.replace(marker,()=>extension+marker)
