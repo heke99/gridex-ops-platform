@@ -5,7 +5,7 @@ Branch: `codex/ediel-tr06-certificate-20261004`; initial base `cbefde67712a7ad4e
 Main integration `33aeb7f7` retains the existing TR-01/02 source, tests and coverage rows;
 the only conflict was the crypto test header, resolved by preserving both ID tags and lifecycle imports.
 Coordination: https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5983511741
-Status: VERIFIED_CODE_SCOPE (TR-06, AT-TR-06, SC-060 approved; GitHub merge gates pending).
+Status: MERGED (#506, merge e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f; TR-06, AT-TR-06, SC-060 approved).
 
 ## Scope and ownership
 
@@ -43,34 +43,34 @@ Route-profile rereads require the own company. No SQL/schema/transport files cha
 - App/tests/scripts typechecks, owned lint, tagged-approval check (352 IDs, no tagged failures),
   spec integrity (33 originals/121 rules/231 contracts), service-role ratchet and diff whitespace checks PASS.
 - Independent full-criterion review APPROVE; independent 139/139 targeted tests PASS.
-- Integrated full suite: 9950/9953 PASS without concurrent typechecking; the same
-  three UTILTS projection tests hit their 5-second timeouts on unmodified main
-  `33aeb7f7` (9864/9867 PASS) and in an isolated network-enabled run. They pass
-  3/3 when placeholder Supabase I/O is rejected immediately by the sandbox.
-  The fixture omits the issuer/periodic-reason read ports invoked by the real
-  runtime. The initial CPU hypothesis is disproved. ENV-01/#504 owns the fixture
-  repair; this packet neither duplicates it nor weakens timeouts/assertions.
-  No full-green claim; exact-head GitHub coverage/smoke/browser-public are green.
+- Integrated full suite: 9953/9953 PASS with the repository's existing CI unit
+  network boundary. Earlier unbounded-network runs hit the same three UTILTS
+  fixture timeouts on unmodified main; the fixture repair belonged to ENV-01/#504
+  and is now merged separately. No timeout or assertion was weakened here.
+- All nine applicable exact-head GitHub gates PASS on bfd5bc8e: verify, quality,
+  clean/upgrade migration replay, smoke, coverage, browser-public, targeted
+  regressions and PR certificate. #506 merged after reviewing intervening
+  #502/#504/#505 changes and preserving their approval rows.
 
 Synthetic source registration proves guarded code behavior and cryptography;
 it does not prove a live issuer registration, database RLS or market activation.
 
-## Separate observed caller gap
+## Separate follow-up packets
 
-Existing `testing/testRunTransportMetadata.ts` and system-test certificate setup
-omit `companyId` despite the resolver already requiring it; metadata also omits
-its computed business code. A separate reserved preparation packet will repair
-these positive flows with actual-resolver tests. Actual SMTP send supplies
-`message.company_id`. Route readiness additionally selects weakly matched rows
-before/after the resolver and can approve untrusted material; that distinct
-defect requires its own ownership check and behavioral proof before repair.
+Preparation #510 supplies companyId at all four callers and the already computed
+businessCode in transport metadata; 14 real-resolver/crypto/AGT behavior tests.
+Readiness #511 uses the sole validated resolver and its actual PEM fingerprint;
+18 behavior tests prove successful own-company readiness and rejection effects.
+Together: independent parent 199/199 in nine security suites, full 9985/9985,
+types/lint/architecture checks PASS. Both source heads are published and retained;
+merge follows their own CI gates, #510 then #511. SC-041-only #513 is independent.
+These packets do not add further TR rule approvals or database/market claims.
 
 ## Next action
 
-Inspect exact-head GitHub CI and merge #506 when all applicable gates are green.
-ENV-01 owns the inherited UTILTS fixture fix. The separately reserved preparation
-packet covers only the system-test helper and transport metadata callers with
-genuine positive/negative behavior tests; no readiness/ENV/P/U/worker overlap.
+Merge #510 after its own clean replay passes, then retarget #511 to main and
+merge after its own gates pass. Merge independent #513 only after its own gates.
+Record one handover line per actual merge; keep shared campaign memory intact.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
 continuation; spec-to-code-compliance + independent read-only reviewer for the
