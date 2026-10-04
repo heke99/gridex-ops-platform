@@ -132,3 +132,15 @@ independent review, approve only proven IDs, then merge after exact-head CI.
 Next: run tagged approval gate, publish final coverage/loader closure and
 verification record, make #498 ready, and integrate each exact-green head to
 main. Continue TR-03 from the recorded archive identity/retrieval gaps.
+## Standalone CI loader correction
+
+- Exact-head child #500 masterplan regression failed because the remaining
+  standalone PRODAT VM loaders rejected nodemailer/lib/addressparser imported
+  by real routeRegistry. The FTX-specific bridges were insufficient.
+- Shared sourceRuntimeBoundary now bridges only that installed pure parser;
+  all provider/process/filesystem/customer-data ports stay denied. No product
+  code or transport approval changes. All eight affected standalone suites
+  PASS 1012/1012 with Node22 and real VM modules, zero skipped/failures.
+- Publish correction on parent #498, merge it into #500, then rerun exact-head
+  checks. Previously green complete unit verification remains documented;
+  this loader-only correction does not claim broader native verification.
