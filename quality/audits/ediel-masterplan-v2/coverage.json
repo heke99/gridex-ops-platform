@@ -1646,8 +1646,12 @@
     },
     {
       "id": "SC-049",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-08-esco-partial-structure.test.ts",
+        "__tests__/ediel-utilts-structural-comparison.test.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ]
     },
     {
       "id": "SC-050",

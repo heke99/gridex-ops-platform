@@ -1,4 +1,4 @@
-// masterplan: U-08, AT-U-08
+// masterplan: U-08, AT-U-08, SC-049
 import {describe,expect,it} from 'vitest'
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'

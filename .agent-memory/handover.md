@@ -1134,3 +1134,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
 - 2026-10-04 OPS-02 (+AT) godkänd i #507: kundkort + arbetskö styrs av processbeslutet och hålls utan beslut; badge rättad; automation/normalizeSimpleRequestStatus falsklarm (registrering vid utskick).
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
+- 2026-10-04 SC-049 PASSED (wip): E61/E62 bara vid verklig avvikelse mot erhållen struktur; ESCO utan struktur får inga.
