@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {"noEmit": true, "incremental": false},
+  "include": [
+    "lib/ediel/retention/decisionEvidenceClasses.ts",
+    "app/retention/decision-evidence/workspace.tsx",
+    "__tests__/ediel-decision-evidence-retention-port.test.ts",
+    "scripts/ediel-classification-copy-retention-native.test.ts"
+  ],
+  "exclude": ["node_modules"]
+}
