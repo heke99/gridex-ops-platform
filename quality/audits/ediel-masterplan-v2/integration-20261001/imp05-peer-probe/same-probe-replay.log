@@ -1,0 +1,50 @@
+
+ RUN  v4.1.9 /tmp/gridex-imp05-smtp-probe
+
+stdout | smtp-readiness.test.ts > IMP05 SMTP identity boundary inventory > must hold a changed target when the identical prior recipient leaf only proves the old address
+{"probe":"IMP05 changed target with old email leaf","ready":true,"status":"ready","actualCertificateEmail":"email:old-recipient@example.invalid","databasePort":"synthetic","sends":0}
+
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > approves only the actually trusted own recipient and records its fingerprint
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > records the verified PEM fingerprint instead of a forged stored label without changing the row
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks 'foreign company' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks 'wrong business code' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks 'wrong receiver message subaddress' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks missing authority and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks unregistered leaf and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > blocks revoked leaf and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via explicit > reports held trust during read-only checks without writing the profile
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > approves only the actually trusted own recipient and records its fingerprint
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > records the verified PEM fingerprint instead of a forged stored label without changing the row
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks 'foreign company' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks 'wrong business code' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks 'wrong receiver message subaddress' and withdraws cached security approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks missing authority and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks unregistered leaf and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > blocks revoked leaf and cannot persist cached certificate approval
+ ↓ smtp-readiness.test.ts > production recipient readiness via candidate > reports held trust during read-only checks without writing the profile
+ ✓ smtp-readiness.test.ts > IMP05 SMTP identity boundary inventory > observes registered old address readiness with a leaf bound to that email 15ms
+ × smtp-readiness.test.ts > IMP05 SMTP identity boundary inventory > must hold a changed target when the identical prior recipient leaf only proves the old address 14ms
+   → expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  smtp-readiness.test.ts > IMP05 SMTP identity boundary inventory > must hold a changed target when the identical prior recipient leaf only proves the old address
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ smtp-readiness.test.ts:216:26
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed | 18 skipped (20)
+   Start at  22:18:49
+   Duration  467ms (transform 129ms, setup 18ms, import 142ms, tests 204ms, environment 0ms)
+
