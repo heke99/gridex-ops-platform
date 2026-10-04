@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { vi } from 'vitest'
 import { resolveCanonicalAckMatrixRule } from '@/lib/ediel/ack/canonicalAckEngine'
 import { classifyCanonicalInboundAck } from '@/lib/ediel/ack/inboundAckOutcome'
 
@@ -28,6 +29,70 @@ function aperak(input: {
 }
 
 describe('canonical ACK matrix', () => {
+  it('keeps actual pending CONTRL defaults after an attempted published Z01 rule change', async () => {
+    vi.resetModules()
+    const { resolveCanonicalAckMatrixRule } = await import('@/lib/ediel/ack/canonicalAckEngine')
+    const { deriveEdielAckDefaults } = await import('@/lib/ediel/core/ackPolicy')
+    const input = { family: 'PRODAT', code: 'Z01' }
+    const source = resolveCanonicalAckMatrixRule(input)
+    const changed = Reflect.set(source, 'technicalAck', 'none')
+    try {
+      expect(deriveEdielAckDefaults(input)).toMatchObject({ requiresContrl: true, contrlStatus: 'pending' })
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(source, 'technicalAck', 'CONTRL')
+      vi.resetModules()
+    }
+  })
+
+  it('retains the published Z02 business response in the actual canonical requirement projection', async () => {
+    vi.resetModules()
+    const { resolveCanonicalAckMatrixRule } = await import('@/lib/ediel/ack/canonicalAckEngine')
+    const { canonicalAckRequirementsForFamilyCode } = await import('@/lib/ediel/rulebook/canonicalEdielFacade')
+    const input = { family: 'PRODAT', code: 'Z01' }
+    const source = resolveCanonicalAckMatrixRule(input).businessResponses
+    const changed = Reflect.set(source, '0', 'Z99')
+    try {
+      expect(canonicalAckRequirementsForFamilyCode(input).businessResponses).toEqual(['Z02'])
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(source, '0', 'Z02')
+      vi.resetModules()
+    }
+  })
+
+  it('retains the published acknowledgement chain after an attempted nested array change', async () => {
+    vi.resetModules()
+    const { resolveCanonicalAckMatrixRule } = await import('@/lib/ediel/ack/canonicalAckEngine')
+    const { canonicalAckRuleForFamilyCode } = await import('@/lib/ediel/rulebook/canonicalEdielFacade')
+    const input = { family: 'UTILTS_ERR', code: 'ERR' }
+    const source = resolveCanonicalAckMatrixRule(input).acknowledgeIncomingMessageWith
+    const changed = Reflect.set(source, '0', 'UTILTS_ERR')
+    try {
+      expect(canonicalAckRuleForFamilyCode(input).acknowledgeIncomingMessageWith).toEqual(['CONTRL', 'APERAK'])
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(source, '0', 'CONTRL')
+      vi.resetModules()
+    }
+  })
+
+  it('holds an unsupported family after an attempted published matrix row replacement', async () => {
+    vi.resetModules()
+    const { listCanonicalAckMatrix } = await import('@/lib/ediel/ack/canonicalAckEngine')
+    const { deriveEdielAckDefaults } = await import('@/lib/ediel/core/ackPolicy')
+    const matrix = listCanonicalAckMatrix()
+    const original = matrix[0]
+    const changed = Reflect.set(matrix, '0', { ...original, family: 'UNQUALIFIED', technicalAck: 'CONTRL' })
+    try {
+      expect(() => deriveEdielAckDefaults({ family: 'UNQUALIFIED', code: original.code })).toThrow('ediel_ack_family_unsupported')
+      expect(changed).toBe(false)
+    } finally {
+      if (changed) Reflect.set(matrix, '0', original)
+      vi.resetModules()
+    }
+  })
+
   it.each([
     ['CONTRL', null, []],
     ['APERAK', null, ['CONTRL']],
