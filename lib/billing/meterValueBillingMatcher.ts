@@ -3,6 +3,7 @@ import type { MeteringValueRow } from '@/lib/cis/types'
 import { assertPlatformSchemaReady } from '@/lib/platform/schemaReadiness'
 import { stockholmDateForInstant } from '@/lib/time/stockholm'
 import { evaluateBillingGate, type BillingGateStatus } from '@/lib/billing/billingGate'
+import { loadQualifiedBillingValues } from './sourceBasis'
 
 type CanonicalBillingStatus = 'pending_match' | 'billable' | 'blocked' | 'conflict'
 
@@ -95,7 +96,7 @@ export async function updateMeterValueBillingReadiness(params: {
   if (normalizedResponse.error) throw normalizedResponse.error
   const normalizedRows = (normalizedResponse.data ?? []) as Array<Record<string, unknown>>
   if (normalizedRows.length !== 1) throw new Error(normalizedRows.length > 1 ? 'normalized_metering_current_revision_conflict' : 'normalized_metering_current_revision_missing')
-  const normalizedValue = normalizedRows[0]
+  const normalizedValue = (await loadQualifiedBillingValues(companyId, [String(normalizedRows[0].id)])).get(String(normalizedRows[0].id))!
   const normalizedValueId = String(normalizedValue.id)
 
   if (!meteringPointId || !periodStartRaw || !periodEndRaw) {
@@ -145,17 +146,7 @@ export async function updateMeterValueBillingReadiness(params: {
   }
 
   const sourceMessageId = params.sourceMessageId ?? params.meterValue.source_ediel_message_id ?? (typeof normalizedValue.source_message_id === 'string' ? normalizedValue.source_message_id : null)
-  let sourceMessage: Record<string, unknown> | null = null
-  if (sourceMessageId) {
-    const sourceResponse = await supabaseService
-      .from('ediel_messages')
-      .select('id,company_id,message_family,message_code,status,validated_at,processing_status')
-      .eq('id', sourceMessageId)
-      .eq('company_id', companyId)
-      .maybeSingle()
-    if (sourceResponse.error) throw sourceResponse.error
-    sourceMessage = (sourceResponse.data as Record<string, unknown> | null) ?? null
-  }
+  const sourceMessage = normalizedValue.billing_source_message as Record<string, unknown> | null;
 
   const gate = evaluateBillingGate({
     normalizedValue: { ...normalizedValue, source_message_id: sourceMessageId },

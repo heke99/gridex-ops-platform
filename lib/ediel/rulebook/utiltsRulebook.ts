@@ -134,20 +134,32 @@ const OPERATIONAL_REQUIREMENTS: Record<UtiltsCanonicalMessageCode, {
   unit: boolean
   quantities: boolean
 }> = {
-  E30: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: false, quantities: true },
-  E31: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
-  E66: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  E30: { meteringPoint: true,  gridArea: false, period: true,  resolution: true,  unit: false, quantities: true },
+  E31: { meteringPoint: false, gridArea: false, period: true,  resolution: true,  unit: true,  quantities: true },
+  E66: { meteringPoint: true,  gridArea: false, period: true,  resolution: true,  unit: true,  quantities: true },
   E72: { meteringPoint: true,  gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
   E73: { meteringPoint: true,  gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
-  E74: { meteringPoint: false, gridArea: true,  period: true,  resolution: false, unit: false, quantities: false },
-  S01: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
+  E74: { meteringPoint: false, gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
+  S01: { meteringPoint: false, gridArea: false, period: true,  resolution: true,  unit: false, quantities: true },
   S02: { meteringPoint: true,  gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
   S03: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
   S04: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
-  S05: { meteringPoint: false, gridArea: true,  period: true,  resolution: true,  unit: true,  quantities: true },
-  S06: { meteringPoint: false, gridArea: true,  period: true,  resolution: false, unit: false, quantities: false },
+  S05: { meteringPoint: false, gridArea: false, period: true,  resolution: true,  unit: false, quantities: true },
+  S06: { meteringPoint: false, gridArea: false, period: true,  resolution: false, unit: false, quantities: false },
   S07: { meteringPoint: true,  gridArea: false, period: true,  resolution: true,  unit: true,  quantities: true },
   ERR: { meteringPoint: false, gridArea: false, period: false, resolution: false, unit: false, quantities: false },
+}
+
+/** These are own transaction branches of the existing frozen field matrix.
+ * Conditional area/product authority is never promoted to a universal R. */
+export function canonicalUtiltsObservationRequirements(messageCode:string,input:{quantityCount:number;hasAmountOrPrice:boolean}) {
+  const code=messageCode as UtiltsCanonicalMessageCode
+  const unit=getUtiltsFieldRequirement(code,'264','unit')
+  const monetaryAllowed=['522','523'].some(field=>getUtiltsFieldRequirement(code,field)==='D')
+  return {
+    unitRequired:unit==='R' || (unit==='D' && input.quantityCount>0),
+    quantitiesRequired:Boolean(OPERATIONAL_REQUIREMENTS[code]?.quantities && !(monetaryAllowed && input.hasAmountOrPrice)),
+  }
 }
 
 function location172Requirement(code: UtiltsCanonicalMessageCode): UtiltsLocation172Requirement {
