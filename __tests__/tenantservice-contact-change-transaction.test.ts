@@ -23,6 +23,26 @@ describe('applyCustomerContactChange (P2b adapter)', () => {
     expect(result).toMatchObject({ changed: true, domainEventId: 'e1', changes: { phone: { to: '070' } } })
   })
 
+  it('passes both staff actor and API client for staff API writes', async () => {
+    rpc.mockResolvedValue({ data: { replayed: false, changed: true }, error: null })
+    const { applyCustomerContactChange } = await import('@/lib/customer-service/contactChangeTransaction')
+    await applyCustomerContactChange({
+      companyId: COMPANY, customerId: CUSTOMER,
+      actor: { kind: 'staff', userId: 'u1', apiClientId: 'client-1' },
+      channel: 'staff_api', expectedUpdatedAt: '2026-10-04T10:00:00Z', customerPatch: { phone: '0701234567' }, contactPatch: {},
+    })
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_actor_kind: 'staff', p_actor_user_id: 'u1', p_api_client_id: 'client-1', p_channel: 'staff_api', p_portal_identity_id: null })
+  })
+
+  it('refuses the sequential deploy fallback for staff API when the transactional RPC is unavailable', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Could not find the function public.gridex_customer_contact_change_v1' } })
+    const { applyCustomerContactChange } = await import('@/lib/customer-service/contactChangeTransaction')
+    await expect(applyCustomerContactChange({
+      companyId: COMPANY, customerId: CUSTOMER, actor: { kind: 'staff', userId: 'u1', apiClientId: 'client-1' },
+      channel: 'staff_api', expectedUpdatedAt: '2026-10-04T10:00:00Z', customerPatch: { phone: '0701234567' }, contactPatch: {},
+    })).rejects.toMatchObject({ code: 'contact_change_unavailable', status: 503 })
+  })
+
   it('passes the API client and portal identity for customer API writes, with no staff user', async () => {
     rpc.mockResolvedValue({ data: { replayed: false, changed: false }, error: null })
     const { applyCustomerContactChange } = await import('@/lib/customer-service/contactChangeTransaction')

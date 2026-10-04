@@ -138,6 +138,14 @@ describe('F12 identity change', () => {
     expect(JSON.stringify(db.customer_identity_change_events)).not.toContain('19811218')
   })
 
+  it('retains durable staff API origin and client attribution without exposing identity values in events', async () => {
+    const { requestCustomerIdentityChange } = await import('@/lib/customer-service/identityChange')
+    await requestCustomerIdentityChange({ ...base, newValue: '811218-9876', channel: 'staff_api', apiClientId: 'client-1' })
+    expect(db.customer_identity_change_requests[0]).toMatchObject({ source_channel: 'staff_api', api_client_id: 'client-1', requested_by: STAFF })
+    expect(db.customer_identity_change_events[0]).toMatchObject({ actor_user_id: STAFF, detail: expect.objectContaining({ channel: 'staff_api', api_client_id: 'client-1' }) })
+    expect(JSON.stringify(db.customer_identity_change_events)).not.toContain('19811218')
+  })
+
   it('with contracts: nothing changes until the customer approves via the e-mailed single-use link', async () => {
     db.customer_contracts = [{ id: 'k1', company_id: A, customer_id: CUSTOMER, status: 'active' }]
     const mod = await import('@/lib/customer-service/identityChange')

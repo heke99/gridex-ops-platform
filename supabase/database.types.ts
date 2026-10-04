@@ -20844,6 +20844,7 @@ export type Database = {
         Row: {
           acceptance_evidence: Json | null
           affected_contract_count: number
+          api_client_id: string | null
           approval_required: boolean
           company_id: string
           customer_id: string
@@ -20859,6 +20860,7 @@ export type Database = {
           recipient_email: string | null
           requested_at: string
           requested_by: string
+          source_channel: string
           status: string
           takeover_required: boolean
           takeover_snapshot: Json | null
@@ -20868,6 +20870,7 @@ export type Database = {
         Insert: {
           acceptance_evidence?: Json | null
           affected_contract_count?: number
+          api_client_id?: string | null
           approval_required: boolean
           company_id: string
           customer_id: string
@@ -20883,6 +20886,7 @@ export type Database = {
           recipient_email?: string | null
           requested_at?: string
           requested_by: string
+          source_channel?: string
           status: string
           takeover_required?: boolean
           takeover_snapshot?: Json | null
@@ -20892,6 +20896,7 @@ export type Database = {
         Update: {
           acceptance_evidence?: Json | null
           affected_contract_count?: number
+          api_client_id?: string | null
           approval_required?: boolean
           company_id?: string
           customer_id?: string
@@ -20907,6 +20912,7 @@ export type Database = {
           recipient_email?: string | null
           requested_at?: string
           requested_by?: string
+          source_channel?: string
           status?: string
           takeover_required?: boolean
           takeover_snapshot?: Json | null
@@ -20914,6 +20920,27 @@ export type Database = {
           token_hash?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_identity_change_requests_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
           {
             foreignKeyName: "customer_identity_change_requests_company_customer_fkey"
             columns: ["company_id", "customer_id"]
@@ -99920,6 +99947,30 @@ export type Database = {
           p_company_id: string
         }
         Returns: string[]
+      }
+      gridex_staff_assert_write_actor_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_company_id: string
+          p_permission: string
+        }
+        Returns: undefined
+      }
+      gridex_staff_customer_id_for_reference_v1: {
+        Args: { p_company_id: string; p_reference: string }
+        Returns: string
+      }
+      gridex_staff_customer_search_v1: {
+        Args: {
+          p_company_id: string
+          p_customer_type: string
+          p_page: number
+          p_page_size: number
+          p_query: string
+          p_status: string
+        }
+        Returns: Json
       }
       gridex_staff_normalize_role_v1: {
         Args: { p_role_key: string }

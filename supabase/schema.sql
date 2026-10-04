@@ -50983,6 +50983,26 @@ BEGIN IF TG_OP='UPDATE' AND public.ediel_is_qualified_finance_retention_transiti
 end $$;
 
 --
+-- Name: gridex_audit_staff_identity_request_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_audit_staff_identity_request_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  IF NEW.source_channel='staff_api' THEN
+    PERFORM public.gridex_staff_assert_write_actor_v1(NEW.company_id,NEW.requested_by,NEW.api_client_id,'customers.write');
+    INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata)
+    VALUES(NEW.company_id,NEW.requested_by,'customer',NEW.customer_id::text,'customer_identity_change_requested',
+      jsonb_build_object(NEW.field,public.gridex_mask_identity_number(NEW.previous_value)),
+      jsonb_build_object(NEW.field,public.gridex_mask_identity_number(NEW.new_value)),
+      jsonb_build_object('channel','staff_api','api_client_id',NEW.api_client_id,'identity_change_request_id',NEW.id));
+  END IF;
+  RETURN NEW;
+END$$;
+
+--
 -- Name: gridex_backfill_contract_lifecycle(uuid); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -59618,6 +59638,7 @@ DECLARE
   v_key text;
   v_event_id uuid;
   v_now timestamptz := clock_timestamp();
+  v_idempotency_key text;
 BEGIN
   IF p_actor_kind NOT IN ('staff','customer_portal') THEN
     RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='contact_change_actor_kind_invalid';
@@ -59627,6 +59648,15 @@ BEGIN
   END IF;
   IF p_actor_kind='customer_portal' AND p_api_client_id IS NULL THEN
     RAISE EXCEPTION USING ERRCODE='22023', MESSAGE='contact_change_api_client_required';
+  END IF;
+  IF p_channel NOT IN ('ops','customer_api','phone','staff_api') OR p_channel IS NULL THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='contact_change_channel_invalid';
+  END IF;
+  IF p_channel='staff_api' THEN
+    IF p_actor_kind IS DISTINCT FROM 'staff' THEN
+      RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='contact_change_staff_api_actor_invalid';
+    END IF;
+    PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'masterdata.write');
   END IF;
   FOR v_key IN SELECT jsonb_object_keys(coalesce(p_customer_patch,'{}'::jsonb)) LOOP
     IF NOT v_key = ANY(v_allowed_customer) THEN
@@ -59639,10 +59669,14 @@ BEGIN
     END IF;
   END LOOP;
 
+  v_idempotency_key := CASE WHEN p_idempotency_key IS NULL THEN NULL
+    WHEN p_channel='staff_api' THEN 'customer.contact_changed:'||p_company_id||':staff_api:'||p_api_client_id||':'||p_customer_id||':'||p_idempotency_key
+    ELSE 'customer.contact_changed:'||p_company_id||':'||p_idempotency_key END;
+
   -- Idempotent replay: the same key returns the recorded result without writing again.
   IF p_idempotency_key IS NOT NULL THEN
     SELECT id INTO v_event_id FROM public.domain_events
-      WHERE idempotency_key = 'customer.contact_changed:'||p_company_id||':'||p_idempotency_key;
+      WHERE company_id=p_company_id AND idempotency_key=v_idempotency_key;
     IF FOUND THEN
       RETURN jsonb_build_object('replayed',true,'domain_event_id',v_event_id);
     END IF;
@@ -59657,6 +59691,7 @@ BEGIN
   -- Staff: the canonical resolver grants masterdata.write in exactly this company (active member
   -- with the permission) or to an active platform superadmin; disabled/banned users never pass.
   IF p_actor_kind='staff'
+     AND p_channel <> 'staff_api'
      AND NOT coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,p_company_id,'masterdata.write'),false) THEN
     RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='contact_change_actor_not_authorized';
   END IF;
@@ -59751,11 +59786,14 @@ BEGIN
   INSERT INTO public.domain_events(company_id,event_type,aggregate_type,aggregate_id,subject_customer_id,actor_user_id,source,idempotency_key,payload)
   VALUES (
     p_company_id, 'customer.contact_changed', 'customer', p_customer_id::text, p_customer_id, p_actor_user_id,
-    CASE WHEN p_actor_kind='staff' THEN 'ops' ELSE 'customer_api' END,
-    CASE WHEN p_idempotency_key IS NULL THEN NULL ELSE 'customer.contact_changed:'||p_company_id||':'||p_idempotency_key END,
+    CASE WHEN p_channel='staff_api' THEN 'staff_api' WHEN p_actor_kind='staff' THEN 'ops' ELSE 'customer_api' END,
+    v_idempotency_key,
     jsonb_build_object(
       'changed_fields', (SELECT coalesce(jsonb_agg(k ORDER BY k),'[]'::jsonb) FROM jsonb_object_keys(v_changes) k),
       'primary_contact_changed', v_contact_changes <> '{}'::jsonb,
+      'channel',p_channel,
+      'api_client_id',p_api_client_id,
+      'actor_user_id',p_actor_user_id,
       'customer_version', v_customer.updated_at
     )
   ) RETURNING id INTO v_event_id;
@@ -60967,6 +61005,9 @@ BEGIN
    FOR UPDATE;
   IF r.id IS NULL THEN RAISE EXCEPTION 'identity_change_not_found' USING ERRCODE = 'P0002'; END IF;
 
+  IF r.source_channel='staff_api' AND p_decided_by='staff' THEN
+    PERFORM public.gridex_staff_assert_write_actor_v1(r.company_id,p_actor_user_id,r.api_client_id,'customers.write');
+  END IF;
   IF r.status <> 'pending_customer_approval' THEN
     RAISE EXCEPTION 'identity_change_not_pending' USING ERRCODE = '55000';
   END IF;
@@ -61024,7 +61065,9 @@ BEGIN
           public.gridex_mask_identity_number(r.previous_value), public.gridex_mask_identity_number(r.new_value),
           jsonb_build_object('affected_contract_count', r.affected_contract_count, 'approval_required', r.approval_required,
                              'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
-                             'document_sha256', r.document_sha256));
+                             'document_sha256', r.document_sha256,
+                             'channel',r.source_channel,'api_client_id',r.api_client_id,
+                             'originating_staff_actor_user_id',r.requested_by));
 
   INSERT INTO public.audit_logs (company_id, actor_user_id, actor_type, system_actor, entity_type, entity_id, action,
                                  old_values, new_values, metadata, request_id, correlation_id, resource_type, resource_id)
@@ -61037,7 +61080,9 @@ BEGIN
           jsonb_build_object('identity_change_request_id', r.id, 'decided_by', p_decided_by,
                              'approval_required', r.approval_required, 'affected_contract_count', r.affected_contract_count,
                              'takeover_required', r.takeover_required, 'takeover_snapshot_sha256', r.takeover_snapshot_sha256,
-                             'document_sha256', r.document_sha256),
+                             'document_sha256', r.document_sha256,
+                             'channel',r.source_channel,'api_client_id',r.api_client_id,
+                             'originating_staff_actor_user_id',r.requested_by),
           r.id::text, r.id::text, 'customer_identity_change_request', r.id::text);
 
   RETURN jsonb_build_object('status', p_outcome, 'request_id', r.id, 'customer_id', r.customer_id, 'field', r.field);
@@ -68273,6 +68318,22 @@ $$;
 --
 
 COMMENT ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) IS 'F-2: use this in RLS policies. gridex_has_permission(uid, perm) carries no tenant binding.';
+
+--
+-- Name: gridex_identity_request_staff_origin_immutable_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_identity_request_staff_origin_immutable_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  IF NEW.source_channel IS DISTINCT FROM OLD.source_channel OR NEW.api_client_id IS DISTINCT FROM OLD.api_client_id
+    OR NEW.requested_by IS DISTINCT FROM OLD.requested_by THEN
+    RAISE EXCEPTION 'identity_request_origin_immutable' USING ERRCODE='42501';
+  END IF;
+  RETURN NEW;
+END$$;
 
 --
 -- Name: gridex_import_billing_underlays_v1(uuid, uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -85390,6 +85451,128 @@ BEGIN
   RETURN v_permissions;
 END;
 $$;
+
+--
+-- Name: gridex_staff_assert_write_actor_v1(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_required_scope text;
+  v_permissions text[];
+BEGIN
+  v_required_scope := CASE p_permission
+    WHEN 'masterdata.write' THEN 'staff_customers.write'
+    WHEN 'customers.write' THEN 'staff_customers.write'
+    WHEN 'cases.write' THEN 'staff_cases.write'
+    ELSE NULL
+  END;
+  IF v_required_scope IS NULL THEN
+    RAISE EXCEPTION 'staff_api_actor_not_authorized' USING ERRCODE='42501';
+  END IF;
+
+  -- Match S2's company -> membership order. All locks are held until the
+  -- enclosing business mutation commits; Auth row locks need this narrow
+  -- service-only definer instead of granting access to the whole Auth table.
+  PERFORM 1 FROM public.companies c WHERE c.id=p_company_id FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'staff_api_actor_inactive' USING ERRCODE='42501'; END IF;
+  PERFORM 1 FROM public.company_memberships cm
+    JOIN public.user_profiles profile ON profile.id=cm.user_id
+    JOIN auth.users account ON account.id=cm.user_id
+    WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id
+    FOR SHARE OF cm,profile,account;
+  IF NOT FOUND THEN RAISE EXCEPTION 'staff_api_actor_inactive' USING ERRCODE='42501'; END IF;
+  PERFORM 1 FROM public.integration_api_clients client
+    WHERE client.id=p_api_client_id AND client.company_id=p_company_id FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'staff_api_client_not_in_scope' USING ERRCODE='42501'; END IF;
+
+  -- Read eligibility again only after every potentially blocking lock. In
+  -- particular, scope removal/revocation while the client lock is pending must
+  -- fail before the caller performs a write.
+  IF NOT EXISTS (
+    SELECT FROM public.company_memberships cm
+      JOIN public.user_profiles profile ON profile.id=cm.user_id
+      JOIN auth.users account ON account.id=cm.user_id
+      JOIN public.companies c ON c.id=cm.company_id
+    WHERE cm.company_id=p_company_id AND cm.user_id=p_actor_user_id
+      AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+      AND profile.user_status='active'
+      AND account.deleted_at IS NULL
+      AND (account.banned_until IS NULL OR account.banned_until<=clock_timestamp())
+      AND c.status IN ('active','onboarding') AND c.is_active
+  ) THEN RAISE EXCEPTION 'staff_api_actor_inactive' USING ERRCODE='42501'; END IF;
+  IF NOT EXISTS (
+    SELECT FROM public.integration_api_clients client
+    WHERE client.id=p_api_client_id AND client.company_id=p_company_id
+      AND client.status='active' AND client.deleted_at IS NULL AND client.revoked_at IS NULL
+      AND (client.expires_at IS NULL OR client.expires_at>clock_timestamp())
+      AND v_required_scope=ANY(client.scopes)
+  ) THEN RAISE EXCEPTION 'staff_api_client_not_in_scope' USING ERRCODE='42501'; END IF;
+  v_permissions := public.gridex_staff_actor_permissions_v1(p_company_id,p_actor_user_id,false);
+  IF NOT coalesce(p_permission=ANY(v_permissions),false) THEN
+    RAISE EXCEPTION 'staff_api_actor_not_authorized' USING ERRCODE='42501';
+  END IF;
+END$$;
+
+--
+-- Name: FUNCTION gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text) IS 'Service-only staff write guard: locked exact-company accepted membership, active profile/Auth/company/client, explicit staff scope and shared role profile plus company-only permission overrides.';
+
+--
+-- Name: gridex_staff_customer_id_for_reference_v1(uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_customer_id_for_reference_v1(p_company_id uuid, p_reference text) RETURNS uuid
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  SELECT c.id FROM public.customers c WHERE c.company_id=p_company_id
+    AND 'customer_' || substr(translate(rtrim(encode(extensions.digest(
+      'gridex-public-reference:v1:'||c.company_id::text||':customer:'||c.id::text,'sha256'),'base64'),'='),'+/','-_'),1,32)=p_reference
+$$;
+
+--
+-- Name: gridex_staff_customer_search_v1(uuid, text, integer, integer, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text) RETURNS jsonb
+    LANGUAGE plpgsql STABLE
+    SET search_path TO ''
+    AS $$
+DECLARE v_result jsonb;
+BEGIN
+  IF p_page IS NULL OR p_page NOT BETWEEN 1 AND 1000000 OR p_page_size IS NULL OR p_page_size NOT BETWEEN 1 AND 100
+    OR p_query IS NULL OR length(p_query)>200 THEN
+    RAISE EXCEPTION 'staff_customer_search_invalid' USING ERRCODE='22023';
+  END IF;
+  WITH filtered AS MATERIALIZED(
+    SELECT c.id,c.created_at FROM public.customers c WHERE c.company_id=p_company_id
+      AND (c.source IS NULL OR c.source<>'ediel_portal_test')
+      AND (p_status='archived' OR c.status IS NULL OR c.status NOT IN('archived','deleted','deleted_test_only','pending_deletion'))
+      AND (p_status IS NULL OR p_status='all' OR c.status=p_status)
+      AND (p_customer_type IS NULL OR p_customer_type='all' OR c.customer_type=p_customer_type
+        OR (p_customer_type='private' AND c.customer_type IS NULL))
+      AND (strpos(lower(coalesce(c.full_name,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.company_name,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.email,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.phone,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.personal_number,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.org_number,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.customer_number,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.first_name,'')),lower(p_query))>0
+        OR strpos(lower(coalesce(c.last_name,'')),lower(p_query))>0)
+  ), page AS(
+    SELECT id,created_at FROM filtered ORDER BY created_at DESC,id DESC
+    LIMIT p_page_size OFFSET (p_page-1)*p_page_size
+  ) SELECT jsonb_build_object('customer_ids',coalesce((SELECT jsonb_agg(id ORDER BY created_at DESC,id DESC) FROM page),'[]'::jsonb),
+    'total',(SELECT count(*) FROM filtered)) INTO v_result;
+  RETURN v_result;
+END$$;
 
 --
 -- Name: gridex_staff_normalize_role_v1(text); Type: FUNCTION; Schema: public; Owner: -
@@ -104748,6 +104931,8 @@ CREATE TABLE public.customer_identity_change_requests (
     takeover_snapshot_sha256 text,
     document_sha256 text,
     acceptance_evidence jsonb,
+    source_channel text DEFAULT 'ops'::text NOT NULL,
+    api_client_id uuid,
     CONSTRAINT customer_identity_change_request_takeover_snapshot_sha256_check CHECK (((takeover_snapshot_sha256 IS NULL) OR (takeover_snapshot_sha256 ~ '^[0-9a-f]{64}$'::text))),
     CONSTRAINT customer_identity_change_requests_affected_contract_count_check CHECK ((affected_contract_count >= 0)),
     CONSTRAINT customer_identity_change_requests_approval_shape CHECK (((approval_required AND (recipient_email IS NOT NULL) AND (token_hash IS NOT NULL) AND (expires_at IS NOT NULL)) OR ((NOT approval_required) AND (token_hash IS NULL)))),
@@ -104756,6 +104941,8 @@ CREATE TABLE public.customer_identity_change_requests (
     CONSTRAINT customer_identity_change_requests_field_check CHECK ((field = ANY (ARRAY['personal_number'::text, 'org_number'::text]))),
     CONSTRAINT customer_identity_change_requests_new_value_check CHECK (((length(new_value) >= 1) AND (length(new_value) <= 40))),
     CONSTRAINT customer_identity_change_requests_reason_check CHECK (((length(btrim(reason)) >= 3) AND (length(btrim(reason)) <= 500))),
+    CONSTRAINT customer_identity_change_requests_source_channel_check CHECK ((source_channel = ANY (ARRAY['ops'::text, 'staff_api'::text]))),
+    CONSTRAINT customer_identity_change_requests_staff_client_check CHECK (((source_channel <> 'staff_api'::text) OR (api_client_id IS NOT NULL))),
     CONSTRAINT customer_identity_change_requests_status_check CHECK ((status = ANY (ARRAY['pending_customer_approval'::text, 'applied'::text, 'rejected'::text, 'expired'::text, 'cancelled'::text]))),
     CONSTRAINT customer_identity_change_requests_takeover_shape CHECK (((NOT takeover_required) OR (approval_required AND (takeover_snapshot IS NOT NULL) AND (takeover_snapshot_sha256 IS NOT NULL)))),
     CONSTRAINT customer_identity_change_requests_token_hash_check CHECK (((token_hash IS NULL) OR (token_hash ~ '^[0-9a-f]{64}$'::text)))
@@ -128925,6 +129112,12 @@ CREATE INDEX customers_company_moved_out_idx ON public.customers USING btree (co
 CREATE INDEX customers_onboarding_company_status_idx ON public.customers USING btree (company_id, onboarding_status, created_at DESC);
 
 --
+-- Name: customers_staff_public_reference_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customers_staff_public_reference_idx ON public.customers USING btree (company_id, (('customer_'::text || substr(translate(rtrim(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':customer:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '='::text), '+/'::text, '-_'::text), 1, 32))));
+
+--
 -- Name: customers_test_data_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -142194,6 +142387,18 @@ CREATE TRIGGER customer_identity_change_events_no_truncate BEFORE TRUNCATE ON pu
 CREATE TRIGGER customer_identity_change_events_no_update BEFORE DELETE OR UPDATE ON public.customer_identity_change_events FOR EACH ROW EXECUTE FUNCTION public.gridex_customer_identity_events_append_only();
 
 --
+-- Name: customer_identity_change_requests customer_identity_change_requests_origin_immutable; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_identity_change_requests_origin_immutable BEFORE UPDATE ON public.customer_identity_change_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_identity_request_staff_origin_immutable_v1();
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_staff_audit; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_identity_change_requests_staff_audit AFTER INSERT ON public.customer_identity_change_requests FOR EACH ROW EXECUTE FUNCTION public.gridex_audit_staff_identity_request_v1();
+
+--
 -- Name: customer_info_requests customer_info_requests_normalize_blocker_details; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -151526,6 +151731,13 @@ ALTER TABLE ONLY public.customer_identity_change_events
 
 ALTER TABLE ONLY public.customer_identity_change_events
     ADD CONSTRAINT customer_identity_change_events_request_id_fkey FOREIGN KEY (request_id) REFERENCES public.customer_identity_change_requests(id);
+
+--
+-- Name: customer_identity_change_requests customer_identity_change_requests_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customer_identity_change_requests
+    ADD CONSTRAINT customer_identity_change_requests_api_client_id_fkey FOREIGN KEY (api_client_id) REFERENCES public.integration_api_clients(id);
 
 --
 -- Name: customer_identity_change_requests customer_identity_change_requests_company_customer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -187301,6 +187513,13 @@ REVOKE ALL ON FUNCTION public.gridex_audit_portfolio_settlement_write() FROM PUB
 GRANT ALL ON FUNCTION public.gridex_audit_portfolio_settlement_write() TO service_role;
 
 --
+-- Name: FUNCTION gridex_audit_staff_identity_request_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_audit_staff_identity_request_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_audit_staff_identity_request_v1() TO service_role;
+
+--
 -- Name: FUNCTION gridex_backfill_contract_lifecycle(p_company_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
@@ -189022,6 +189241,13 @@ GRANT ALL ON FUNCTION public.gridex_has_permission(p_user_id uuid, p_permission 
 REVOKE ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) TO service_role;
 GRANT ALL ON FUNCTION public.gridex_has_permission_in_company(p_company_id uuid, p_permission text) TO authenticated;
+
+--
+-- Name: FUNCTION gridex_identity_request_staff_origin_immutable_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_identity_request_staff_origin_immutable_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_identity_request_staff_origin_immutable_v1() TO service_role;
 
 --
 -- Name: FUNCTION gridex_import_billing_underlays_v1(p_company_id uuid, p_actor_user_id uuid, p_batch jsonb, p_rows jsonb); Type: ACL; Schema: public; Owner: -
@@ -190853,6 +191079,27 @@ GRANT ALL ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid
 
 REVOKE ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_staff_actor_permissions_v1(p_company_id uuid, p_actor_user_id uuid, p_allow_platform boolean) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_assert_write_actor_v1(p_company_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_permission text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_customer_id_for_reference_v1(p_company_id uuid, p_reference text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_customer_id_for_reference_v1(p_company_id uuid, p_reference text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_customer_id_for_reference_v1(p_company_id uuid, p_reference text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_customer_search_v1(p_company_id uuid, p_query text, p_page integer, p_page_size integer, p_status text, p_customer_type text) TO service_role;
 
 --
 -- Name: FUNCTION gridex_staff_normalize_role_v1(p_role_key text); Type: ACL; Schema: public; Owner: -
