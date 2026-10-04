@@ -1,5 +1,5 @@
 export type PublicApiRouteContract = {
-  method: 'GET' | 'POST'
+  method: 'GET' | 'POST' | 'PATCH'
   path: string
   publicPath?: string
   scopes: string[]
@@ -10,7 +10,7 @@ export type PublicApiRouteContract = {
   responseSchema: string
   scopeMode: 'all' | 'any'
   cachePolicy: 'no-store' | 'private-revalidate' | 'public-immutable'
-  publicIdPolicy: 'none' | 'opaque-references'
+  publicIdPolicy: 'none' | 'opaque-references' | 'staff-identities-and-opaque-references'
 }
 
 type PublicApiRouteDefinition = Omit<
@@ -34,6 +34,11 @@ const CUSTOMER_PORTAL_READ_SCOPES = [
 
 /** Canonical source for the public V1 endpoint catalogue and developer documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
+  { method: 'GET', path: '/api/v1/openapi/staff-v1.json', scopes: [], description: 'Current OpenAPI specification for staff integrations.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/staff-v1.json', scopes: [], description: 'Immutable Staff OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
+
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Machine-readable release manifest containing versions and SHA-256 digests for the public OpenAPI contracts.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Current OpenAPI specification for website integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-02.1.', rateLimitClass: 'read' },
@@ -121,6 +126,28 @@ const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
   { method: 'POST', path: '/api/v1/customer/support/cases/[reference]/attachments', scopes: ['customer_support.write'], description: 'Upload a customer attachment (raw PDF, PNG or JPEG body) to an open support case; content-checked before release.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/customer/support/cases/[reference]/attachments/[attachmentReference]', scopes: ['customer_support.read'], description: 'Download a released, customer-visible attachment; the SHA-256 is re-verified on every download.', rateLimitClass: 'read' },
   { method: 'POST', path: '/api/v1/customer/move-out', scopes: ['customer_facility_data.write'], description: 'Submit a customer move-out request.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/users', scopes: ['staff_users.read'], description: 'List staff accounts with their membership status.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/staff/users', scopes: ['staff_users.write'], description: 'Invite staff to the organization within the acting staff role ceiling.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'PATCH', path: '/api/v1/staff/users/[id]', scopes: ['staff_users.write'], description: 'Change a staff role while preserving the final active administrator.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'POST', path: '/api/v1/staff/users/[id]/disable', scopes: ['staff_users.write'], description: 'Disable staff while preventing self disable and loss of the final administrator.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'POST', path: '/api/v1/staff/users/[id]/enable', scopes: ['staff_users.write'], description: 'Reactivate a disabled staff membership.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/roles', scopes: ['staff_users.read'], description: 'List staff roles and whether the acting staff can assign each role.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/staff/customers', scopes: ['staff_customers.read'], description: 'Search and page customers belonging to the authenticated organization.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/staff/customers/[ref]', scopes: ['staff_customers.read'], description: 'Retrieve a customer with masked identity numbers and explicit public fields.', rateLimitClass: 'read' },
+  { method: 'PATCH', path: '/api/v1/staff/customers/[ref]/contact', scopes: ['staff_customers.write'], description: 'Update customer contact fields using an expected version.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'POST', path: '/api/v1/staff/customers/[ref]/identity-change', scopes: ['staff_customers.write'], description: 'Request a customer identity change with customer approval when required.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/cases', scopes: ['staff_cases.read'], description: 'List customer cases available to staff in the authenticated organization.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/staff/cases', scopes: ['staff_cases.write'], description: 'Create a customer support case as the acting staff.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/cases/[reference]', scopes: ['staff_cases.read'], description: 'Retrieve a customer case including staff visible events and attachments.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/staff/cases/[reference]/messages', scopes: ['staff_cases.write'], description: 'Reply to a customer through the existing support conversation.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'POST', path: '/api/v1/staff/cases/[reference]/notes', scopes: ['staff_cases.write'], description: 'Add an internal staff note to a customer case.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'POST', path: '/api/v1/staff/cases/[reference]/phone-interactions', scopes: ['staff_cases.write'], description: 'Record a phone interaction and its customer verification evidence.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'PATCH', path: '/api/v1/staff/cases/[reference]/status', scopes: ['staff_cases.write'], description: 'Change the status of a customer case.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'PATCH', path: '/api/v1/staff/cases/[reference]/assignee', scopes: ['staff_cases.write'], description: 'Assign a customer case to active staff in the same organization.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/cases/[reference]/events', scopes: ['staff_cases.read'], description: 'List staff visible case events with a case bound continuation cursor.', rateLimitClass: 'read' },
+  { method: 'GET', path: '/api/v1/staff/cases/[reference]/attachments', scopes: ['staff_cases.read'], description: 'List staff visible attachments of a customer case.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/staff/cases/[reference]/attachments', scopes: ['staff_cases.write'], description: 'Upload a staff attachment for content inspection before release.', idempotencyRequired: true, rateLimitClass: 'write' },
+  { method: 'GET', path: '/api/v1/staff/cases/[reference]/attachments/[attachmentReference]/file', scopes: ['staff_cases.read'], description: 'Download a released staff visible attachment with its hash verified.', rateLimitClass: 'read' },
 ]
 
 function operationIdFor(route: PublicApiRouteDefinition): string {
@@ -158,7 +185,7 @@ export const PUBLIC_API_ROUTES: PublicApiRouteContract[] = RAW_PUBLIC_API_ROUTES
     responseSchema: `${operationId}Response`,
     scopeMode: scopeModeFor(route),
     cachePolicy: cachePolicyFor(route),
-    publicIdPolicy: route.path.includes('/openapi/') ? 'none' : 'opaque-references',
+    publicIdPolicy: route.path.includes('/openapi/') ? 'none' : route.path.startsWith('/api/v1/staff/') ? 'staff-identities-and-opaque-references' : 'opaque-references',
   }
 })
 

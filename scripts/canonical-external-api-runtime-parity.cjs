@@ -21,6 +21,7 @@ function check(condition, message) {
 const version = currentContractVersion
 const website = json('docs/openapi/website-integration-v1.json')
 const portal = json('docs/openapi/customer-portal-v1.json')
+const staff = json('docs/openapi/staff-v1.json')
 const appStatus = read('lib/website/customerApplicationStatus.ts')
 const appStatusRoute = read('app/api/v1/website/customer-applications/[applicationId]/route.ts')
 const appPublicDto = read('lib/website/publicCustomerApplication.ts')
@@ -186,7 +187,7 @@ check(
   'legal bundle runtime accepts either documented read scope',
 )
 
-for (const [documentName, document] of [['website', website], ['customer portal', portal]]) {
+for (const [documentName, document] of [['website', website], ['customer portal', portal], ['staff', staff]]) {
   for (const [route, item] of Object.entries(document.paths ?? {})) {
     for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
       const operation = item?.[method]

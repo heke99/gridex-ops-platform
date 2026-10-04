@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 const fs = require('node:fs')
 
-const legacyExpected = '2026-10-02.4'
+const { currentContractVersion: legacyExpected } = require('./lib/current-api-contract.cjs')
 const partnerExpected = '2026-08-17.1'
 const legacyFiles = [
   'lib/integrations/websiteIntegrationContract.ts',
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
+  'docs/openapi/staff-v1.json',
+  'docs/gridex-staff-api.md',
   'docs/external-website-api-integration-guide.md',
   'docs/gridex-customer-portal-api.md',
   'docs/single-api-key-tenant-integration.md',
@@ -27,7 +29,7 @@ if (/API_CONTRACT_RESPONSE_SCHEMA_VERSION\s*=\s*['"]/.test(mapperSource)) {
   failures.push('API public-contract mapper must not hardcode a second contract version')
 }
 
-for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json']) {
+for (const file of ['docs/openapi/website-integration-v1.json', 'docs/openapi/customer-portal-v1.json', 'docs/openapi/staff-v1.json']) {
   const spec = JSON.parse(fs.readFileSync(file, 'utf8'))
   if (spec.info?.version !== legacyExpected) failures.push(`${file} info.version mismatch`)
   if (spec['x-contract-schema-version'] !== legacyExpected) failures.push(`${file} x-contract-schema-version mismatch`)

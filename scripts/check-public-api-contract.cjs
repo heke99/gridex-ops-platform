@@ -3,6 +3,7 @@ const path = require('node:path')
 
 const root = process.cwd()
 const registry = fs.readFileSync(path.join(root, 'lib/api/publicRouteRegistry.ts'), 'utf8')
+const registeredMethods = new Set([...registry.matchAll(/method: '(GET|POST|PATCH)', path: '([^']+)'/g)].map(match => `${match[1]} ${match[2]}`))
 const routeFiles = []
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -17,9 +18,9 @@ const missing = []
 for (const file of routeFiles) {
   const rel = '/' + path.relative(path.join(root, 'app'), file).replaceAll(path.sep, '/').replace(/\/route\.ts$/, '')
   const source = fs.readFileSync(file, 'utf8')
-  for (const method of ['GET', 'POST']) {
-    if (new RegExp(`export\\s+async\\s+function\\s+${method}\\b`).test(source)) {
-      if (!registry.includes(`path: '${rel}'`) || !registry.includes(`method: '${method}'`)) missing.push(`${method} ${rel}`)
+  for (const method of ['GET', 'POST', 'PATCH']) {
+    if (new RegExp(`export\\s+(?:async\\s+)?function\\s+${method}\\b`).test(source)) {
+      if (!registeredMethods.has(`${method} ${rel}`)) missing.push(`${method} ${rel}`)
     }
   }
 }

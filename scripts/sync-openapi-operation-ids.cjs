@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require('node:fs')
 
-const files = [
+const files = process.argv.length > 2 ? process.argv.slice(2) : [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
+  'docs/openapi/staff-v1.json',
 ]
 
 const registrySource = fs.readFileSync('lib/api/publicRouteRegistry.ts', 'utf8')
@@ -24,7 +25,7 @@ function parseScopeExpression(expression) {
   }
   return scopes
 }
-const routePattern = /{ method: '(GET|POST)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\], description: '([^']*)'(?:, idempotencyRequired: true)?, rateLimitClass: '(read|write|expensive)' }/g
+const routePattern = /{ method: '(GET|POST|PATCH)', path: '([^']+)'(?:, publicPath: '([^']+)')?, scopes: \[([^\]]*)\], description: '([^']*)'(?:, idempotencyRequired: true)?, rateLimitClass: '(read|write|expensive)' }/g
 const registry = []
 let registryMatch
 while ((registryMatch = routePattern.exec(registrySource))) {
@@ -85,7 +86,7 @@ for (const file of files) {
       operation['x-cache-policy'] = contract.path.includes('/openapi/')
         ? contract.path.includes('/2026-') ? 'public-immutable' : 'private-revalidate'
         : 'no-store'
-      operation['x-public-id-policy'] = contract.path.includes('/openapi/') ? 'none' : 'opaque-references'
+      operation['x-public-id-policy'] = contract.path.includes('/openapi/') ? 'none' : contract.path.startsWith('/api/v1/staff/') ? 'staff-identities-and-opaque-references' : 'opaque-references'
       seen.add(id)
     }
   }

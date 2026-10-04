@@ -1,8 +1,8 @@
 # Gridex Customer Portal API
 
-Current contract: **2026-10-02.4**
+Current contract: **2026-10-04.1**
 
-Release 2026-10-02.4 corrects the closed support-case detail schema so its existing `messages` field validates, and aligns the closed release-manifest schema with its response. Request requirements and business response fields are unchanged; version metadata advances to 2026-10-02.4. Integrations using 2026-10-02.3 remain supported; advance strict schema snapshots to 2026-10-02.4 before validating support-case details. Earlier immutable specifications retain their original bytes and document-version headers.
+Release 2026-10-04.1 corrects the closed support-case detail schema so its existing `messages` field validates, and aligns the closed release-manifest schema with its response. Request requirements and business response fields are unchanged; version metadata advances to 2026-10-04.1. Integrations using 2026-10-02.3 remain supported; advance strict schema snapshots to 2026-10-04.1 before validating support-case details. Earlier immutable specifications retain their original bytes and document-version headers.
 
 The attachment download headers introduced by 2026-10-02.3 are retained: binary responses send `X-Gridex-Contract-Version` and `X-Request-ID`. Both the 2026-10-02.2 and 2026-10-02.3 immutable releases remain unchanged.
 
