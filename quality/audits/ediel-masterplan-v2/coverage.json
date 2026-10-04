@@ -1603,8 +1603,11 @@
     },
     {
       "id": "SC-045",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ]
     },
     {
       "id": "SC-046",
@@ -1622,8 +1625,11 @@
     },
     {
       "id": "SC-048",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ]
     },
     {
       "id": "SC-049",
