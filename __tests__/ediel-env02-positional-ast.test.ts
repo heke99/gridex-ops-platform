@@ -1,6 +1,7 @@
 // masterplan: ENV-02, AT-ENV-02
 import { describe, expect, it } from 'vitest'
 import { canonicalMessageFacts, parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
+import { parseCanonicalEdielPayload } from '@/lib/ediel/core/canonicalMessage'
 import { segmentComposite, segmentOriginalRaw, segmentSourceSpan, tokenizeEdifact } from '@/lib/ediel/core/edifactTokenizer'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
 import { validateEdifactEnvelope } from '@/lib/ediel/core/edifactValidation'
@@ -63,6 +64,17 @@ for (const alphabet of alphabets) describe(`ENV-02 ${alphabet.component}${alphab
     const value = `OWN${alphabet.component}${alphabet.element}${alphabet.release}${alphabet.terminator}`
     const raw = payload([['LIN', '1', '', 'OBJECT'], ['CCI', '', 'Z13'], ['CAV', [value, '', 'SECOND']]], alphabet)
     expect(canonicalMessageFacts(raw).cciCavCodes.Z13).toEqual([value])
+  })
+
+  it.each(['DELFOR', 'QUOTES', 'MSCONS'])('keeps a missing first CAV slot absent in the actual %s canonical message projection', family => {
+    const raw = payload([['CCI', '', 'Z13'], ['CAV', ['', '', '', '9', 'VALUE']]], alphabet, family)
+    expect(parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })).toMatchObject({ family, subtype: null })
+  })
+
+  it.each(['DELFOR', 'QUOTES', 'MSCONS'])('preserves the literal first CAV slot instead of searching later code-shaped values for %s', family => {
+    const value = `OWN${alphabet.component}${alphabet.element}${alphabet.release}${alphabet.terminator}`
+    const raw = payload([['CCI', '', 'Z13'], ['CAV', [value, '', 'SECOND']]], alphabet, family)
+    expect(parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })).toMatchObject({ family, subtype: value })
   })
 
   it('preserves physical PRODAT objects/registers and original spans without relabelling later registers', () => {

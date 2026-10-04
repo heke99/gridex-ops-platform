@@ -75,10 +75,6 @@ function splitComposite(value: string | null | undefined): string[] {
   return splitEdifactComponents(value).map((part) => part.trim())
 }
 
-function firstComponent(value: string | null | undefined): string | null {
-  return cleanString(splitComposite(value)[0] ?? null)
-}
-
 function element(rawSegment: string | null | undefined, index: number): string | null {
   const value = splitEdifactElements(rawSegment)[index]?.trim() ?? ''
   return value.length > 0 ? value : null
@@ -161,15 +157,16 @@ function dtmValue(rawSegments: readonly string[], qualifier: string): string | n
   return cleanString(parts[1] ?? null)
 }
 
-function cciCavSubtype(rawSegments: readonly string[]): string | null {
-  for (let index = 0; index < rawSegments.length; index += 1) {
-    const segment = rawSegments[index]
-    if (!segment?.toUpperCase().startsWith('CCI++')) continue
-    const cciCode = firstComponent(element(segment, 2))
-    const next = rawSegments[index + 1]
-    if (!next?.toUpperCase().startsWith('CAV+')) continue
-    const cavParts = splitComposite(element(next, 1))
-    const value = cleanString(cavParts.find((part) => /^[A-Z0-9]{1,8}$/.test(part)) ?? cavParts[0] ?? null)
+function cciCavSubtype(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): string | null {
+  for (let index = 0; index < segments.length; index += 1) {
+    const segment = segments[index]
+    if (segment.tag !== 'CCI') continue
+    const cciCode = cleanString(segmentComposite(segment, 2, una)[0])
+    const next = segments[index + 1]
+    if (next?.tag !== 'CAV') continue
+    // Read the physical value slot once. Other C889 components cannot supply
+    // a missing subtype or replace literal separator/release data in that slot.
+    const value = cleanString(segmentComposite(next, 1, una)[0])
     if (cciCode && value) return value.toUpperCase()
   }
   return null
@@ -267,7 +264,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d
     messageCode,
     subtype: family === 'PRODAT'
       ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null
-      : cciCavSubtype(rawSegments),
+      : cciCavSubtype(facts.segments, una),
     direction,
     version: cleanString(segmentComposite(facts.unh, 2, una)[4]),
     applicationReference: sourceApplication.length === 1 ? cleanString(sourceApplication[0]) : null,
