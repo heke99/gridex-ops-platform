@@ -1,4 +1,4 @@
-// masterplan: P-06
+// masterplan: P-06, AT-P-06
 // Z13 never carries a date of birth (field 249) as customer identity; the
 // inbound side reports the forbidden qualifier (ediel-prodat-aperak-text-evidence).
 import {expect,it} from 'vitest'

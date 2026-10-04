@@ -415,13 +415,15 @@
     {
       "id": "P-06",
       "acceptance_id": "AT-P-06",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-prodat-identity-li-compliance.test.ts",
         "__tests__/ediel-prodat-aperak-text-evidence.test.ts",
         "__tests__/ediel-p-06-z13-birth-date.test.ts",
         "lib/energy/facilityDataErrors.ts",
-        "lib/website/applicationReview.ts"
+        "lib/website/applicationReview.ts",
+        "__tests__/ediel-prodat-register-compat-outbound.test.ts",
+        "lib/ediel/prodat/compatAdapter.ts"
       ]
     },
     {
@@ -943,11 +945,12 @@
     {
       "id": "U-11",
       "acceptance_id": "AT-U-11",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-utilts-runtime-cutoff.test.ts",
         "__tests__/ediel-utilts-effective-date.test.ts",
-        "lib/ediel/utiltsEngine.part-1.ts"
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/utiltsEngine.ts"
       ]
     },
     {
@@ -2083,11 +2086,14 @@
     },
     {
       "id": "AT-P-06",
-      "status": "NOT_EXECUTED",
+      "status": "PASSED",
       "evidence": [
         "lib/energy/facilityDataErrors.ts",
         "lib/website/applicationReview.ts",
-        "__tests__/ediel-p-06-z13-birth-date.test.ts"
+        "__tests__/ediel-p-06-z13-birth-date.test.ts",
+        "__tests__/ediel-prodat-identity-li-compliance.test.ts",
+        "__tests__/ediel-prodat-register-compat-outbound.test.ts",
+        "lib/ediel/prodat/compatAdapter.ts"
       ]
     },
     {
@@ -2465,9 +2471,10 @@
     },
     {
       "id": "AT-U-11",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "__tests__/ediel-utilts-runtime-cutoff.test.ts"
+        "__tests__/ediel-utilts-runtime-cutoff.test.ts",
+        "lib/ediel/utiltsEngine.ts"
       ]
     },
     {

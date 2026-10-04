@@ -745,6 +745,13 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     expect(runUtiltsRuntimeForMessage(negative,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).not.toContain('E98')
     expect(runUtiltsRuntimeForMessage(aggregate,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).toContain('E98')
   })
+  it('U-11 keeps the October E90 missing-status control for an aggregate while an individual point loses it', () => {
+    const source = energyHandoffMessage('2026-09-30')
+    const missing = {...source, raw_payload:source.raw_payload!.replace("STS+7++21::260'","STS+7++46::260'")}
+    const aggregate = {...missing, raw_payload:missing.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')}
+    expect(runUtiltsRuntimeForMessage(missing,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).not.toContain('E90')
+    expect(runUtiltsRuntimeForMessage(aggregate,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).toContain('E90')
+  })
   it('U-11 keeps E87 after the E19 cutoff: an incomplete quarter series is still rejected', () => {
     const source = energyHandoffMessage('2026-10-01')
     // The period now spans two quarters but only one observation is supplied.
