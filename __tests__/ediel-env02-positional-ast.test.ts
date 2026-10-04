@@ -77,6 +77,15 @@ for (const alphabet of alphabets) describe(`ENV-02 ${alphabet.component}${alphab
     expect(parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' })).toMatchObject({ family, subtype: value })
   })
 
+  it.each([
+    { name: 'populated class', classification: 'OTHER' },
+    { name: 'whitespace class', classification: ' ' },
+    { name: 'structured empty class', classification: ['', ''] },
+  ])('preserves the subtype reader\'s existing empty CCI class boundary ($name)', ({ classification }) => {
+    const raw = payload([['CCI', classification, 'Z13'], ['CAV', 'FIRST']], alphabet, 'DELFOR')
+    expect(parseCanonicalEdielPayload({ rawPayload: raw, standardHint: 'edifact' }).subtype).toBeNull()
+  })
+
   it('preserves physical PRODAT objects/registers and original spans without relabelling later registers', () => {
     const body: Parts[] = [
       ['LIN', '1', '', ['A:local', '', '', '89'], ['1', '1']], ['QTY', ['31', '10', 'KWH']],

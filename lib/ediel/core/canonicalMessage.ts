@@ -160,7 +160,7 @@ function dtmValue(rawSegments: readonly string[], qualifier: string): string | n
 function cciCavSubtype(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): string | null {
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index]
-    if (segment.tag !== 'CCI') continue
+    if (segment.tag !== 'CCI' || segment.elements[1] !== '') continue
     const cciCode = cleanString(segmentComposite(segment, 2, una)[0])
     const next = segments[index + 1]
     if (next?.tag !== 'CAV') continue
