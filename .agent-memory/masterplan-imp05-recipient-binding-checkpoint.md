@@ -1,0 +1,73 @@
+# IMP-05 recipient SMTP binding component
+
+Owner: retained TR-06 technical agent `/root/ack01_precheck`.
+Branch: `codex/ediel-imp05-recipient-address-binding-20261004`, base main `56192d16d1eac7fb0e716a3e2770bac8e58be115`.
+Reservation: https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985118233
+Status: ready for independent recipient/address component review; source/test bytes frozen. No whole IMP-05/AT-IMP-05 approval.
+
+Scope is only actual recipient resolver/mandatory-leaf SMTP binding, needed signed test fixtures/behavior tests, and this owned checkpoint. Root owns publication, coverage, shared memory and final review. Other IMP-05 owner retains history, invalidation, materializer and return path. No SQL/schema, live DB/SMTP/market traffic or commits/push.
+
+Skills: systematic-debugging (trace ignored supplied target), fp-check (distinguish synthetic overgrant from live bypass), spec-to-code-compliance (literal IMP-05 and exact T), TDD (actual signed RED before fix), verification-before-completion (fresh executed checks). Supabase guidance applies to finite read-port boundary; no API/schema change. Broad audit/scanners, UI/performance, branch publishing and additional delegation skipped because root explicitly bounded this part.
+
+Source: freshly downloaded read-only official https://www.ediel.se/Portal/Document/3314 to `/tmp/masterplan-imp05-T24A6-original.pdf`, 1,124,807 bytes/60 pages, SHA256 `5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951`. Direct A.1.4 p40–41, A.3.3 p46, A.3.4 p47–48 and A.4.2 p52. A.4.2 requires a certificate already bound to the new SMTP address or a new certificate. SAN-only equality is not imposed; signed Subject email and literal signed SAN RFC822 aliases can bind.
+
+Frozen IMP-05/AT: joint security identity+registered address verification; old version history; affected actor/tenant readiness invalidation and return-path verification; prohibit new target with indeterminate old certificate scope. This packet proves only recipient/address component.
+
+Confirmed static split: all six actual callsites supply `smtpTo`, but resolver ignores it. Private trust_v1 owns tenant/environment/Ediel ID/fingerprints+PKIX originals and opaque references, with no consumable SMTP fact. A synthetic authority may overgrant; readiness acceptance alone never proves live-send bypass. Existing registered-route native guards remain separate and imported changed-route bypass was REFUTED by its owner. Mutable `lookupMail`/row Subject/SAN labels and opaque refs cannot qualify contradictory signed bytes. Certificate-only low-level `verifyEdielCertificateTrust` remains separate.
+
+Producer change: only `outboundRecipientCertificate.ts` passes the already supplied `smtpTo` into the existing required-set scope. After each existing PKIX/issuer-signed fresh CRL check, each mandatory leaf must match the trimmed/lowercased target via actual `X509Certificate.checkEmail(..., { subject: 'always' })`. This reads signed Subject email and SAN RFC822, never row labels, CN/DNS/domain/wildcard inference or opaque reference strings. Missing target is `receiver_certificate_smtp_target_missing`; absent/mismatched signed mailbox is `receiver_certificate_smtp_identity_unqualified`, both through the existing typed security-quarantine held path. Every required leaf remains mandatory in source order. Certificate-only low-level trust, source/tenant/scope/status/time/revocation guards, route/materializer, historical/return-path code and all six callsites remain unchanged.
+
+All six existing invocations already supply the actual target: readiness, SMTP transport, test-run metadata and explicit/local/directory system-test setup. Actual readiness and all three actual system-test setup branches plus test-run preparation are exercised. A changed mailbox holds before actual test-run locks/snapshots/run writes. No actual provider SMTP traffic is exercised or authorized.
+
+Compatibility fixture changes are limited to these actual recipient consumers: existing readiness/preparation fixtures now sign their supplied mailbox as Subject email; the existing crypto suite's two recipient leaves now have signed literal SAN email, and required-set/resolver calls supply that mailbox. Signing-only crypto refusal remains unchanged. The shared throwaway helper now supports declared signed Subject email/SAN emails and optional distinct CA CN; its default remains CN-only. Mutable labels are deliberately forged in the new suite, and opaque synthetic source references deliberately contain the target string: neither bypasses signed proof. Signed SAN alias and Subject-only positive controls pass; CN-only/wildcard/old-only identities hold. Every source-required matching leaf is retained; one old-only nonprimary leaf holds the complete set.
+
+RED evidence: unchanged main producer SHA256 `9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f`; fresh new suite gave **17 failed / 7 passed / 24**, all failed expectations caused by the resolver accepting unsupported/missing SMTP bindings or readiness approving the changed mailbox. Initial **19/5** was not genuine product RED: four multi-CA assertions were affected by independent keys sharing the same CA DN, causing PKIX/CRL ambiguity. Distinct declared fixture CA names made both complete-set positives pass and exposed the two intended old-leaf failures. No crypto guard was changed. The omitted-target candidate case was subsequently corrected to actually use candidate selection rather than explicit ID; both candidate null/blank controls had already been genuine RED.
+
+Fresh verification commands (working directory is this worktree, Node22.23.3/Vitest4.1.9):
+
+```sh
+export PATH=/tmp/masterplan-tr06-node-cache/_npx/d18f28baf1132559/node_modules/node/bin:$PATH
+export NODE_OPTIONS='--max-old-space-size=6144 --require=./scripts/lib/unit-loopback-network-boundary.cjs'
+node node_modules/vitest/vitest.mjs run __tests__/ediel-recipient-address-binding.test.ts --reporter=verbose
+node node_modules/vitest/vitest.mjs run __tests__/ediel-recipient-address-binding.test.ts __tests__/ediel-certificate-trust-crypto.test.ts __tests__/ediel-recipient-preparation.test.ts __tests__/ediel-recipient-readiness.test.ts --reporter=verbose
+node node_modules/vitest/vitest.mjs run __tests__/ediel-recipient-certificate-scope.test.ts __tests__/ediel-cms-recipient-set.test.ts __tests__/ediel-tr-01-production-recipient.test.ts --reporter=verbose
+node node_modules/eslint/bin/eslint.js lib/ediel/security/outboundRecipientCertificate.ts __tests__/helpers/syntheticEdielRecipientFixture.ts __tests__/ediel-recipient-address-binding.test.ts __tests__/ediel-recipient-preparation.test.ts __tests__/ediel-recipient-readiness.test.ts __tests__/ediel-certificate-trust-crypto.test.ts
+node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json --incremental false
+node --max-old-space-size=6144 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json --incremental false
+git diff --check
+```
+
+Outcomes: new suite **24/24 PASS**; four actual resolver/readiness/preparation suites **161/161 PASS**; three scope/CMS/production-recipient guard suites **33/33 PASS** (total seven distinct suites **194/194**); scoped lint has zero errors/warnings; app and tests typecheck exit0; diff-check exit0. Vitest/OpenSSL ran in permitted network execution context with the existing CI loopback boundary preload, without weakening tests. No repeat whole-unit/native claim.
+
+Frozen byte SHA256:
+
+| File | SHA256 |
+| --- | --- |
+| `lib/ediel/security/outboundRecipientCertificate.ts` | `b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7` |
+| `__tests__/helpers/syntheticEdielRecipientFixture.ts` | `496ce7af32f171725dfd610be261e72b3c8b26c53b767e16b43cb0eec0a2d4c8` |
+| `__tests__/ediel-recipient-address-binding.test.ts` | `bb4775b5df6e7b8548ada99de2102867bc87958f01992ec384d34b976f3f5ae9` |
+| `__tests__/ediel-recipient-preparation.test.ts` | `3b096a20584c9dff526799f81f54bb7a0e88a43f8504117e2c15798d6202fb77` |
+| `__tests__/ediel-recipient-readiness.test.ts` | `d4c7bba8352e7b1cecb97465e2c2666f243df643a03a665462a09b4cf365b7d7` |
+| `__tests__/ediel-certificate-trust-crypto.test.ts` | `4a8b7e585e49830934dd0713e1227d89bdbd5c05aeb241c8225bcfff296a0680` |
+
+Local logs and SHA256: `/tmp/masterplan-imp05-address-fixture-red.log` `1891022765db8f9b167d10c22522e26081b75f47ba4c949a9e1f98c4959a04a4` (fixture false RED); `/tmp/masterplan-imp05-address-red.log` `c866ed131e6cf1d87cf14f492da9e65e5ae6ac6f5715a7d94f8fcd9821b7113f` (genuine17/7); `/tmp/masterplan-imp05-address-green.log` `7cf2ff62161886180f8ee2f8d4bbc449b53fd05df063df10ffdf57c70ab0275e`; `/tmp/masterplan-imp05-recipient-combined.log` `467c906802206fbe5374c3f000c69a8ce6c449e5f60d48dd7ee8e98292d4b240`; `/tmp/masterplan-imp05-recipient-guards.log` `c83269470ae387ed093f28c59296a68d9656172b197ce5cb897d72f6bacb0882`. Lint/app-types/test-types logs are empty exit0 (SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
+
+Next action: root independently reviews/publishes only this bounded recipient fix and coordinates remaining IMP05 effects before any whole-card approval/coverage promotion. No tags, coverage, shared memory, Git commits/push or remote comments were changed by this agent. Read-only next-card inventory fetched current main561, all open PRs, full #491 history (304 comments through5985222443) and #530 body/comments. #530 explicitly preserves prior exact claims and states **no free IDs**; remaining named rules are retained, active or blocked. No genuinely unowned next rule can be claimed without an exact owner release/coordination. Do not duplicate a PARTIAL card or the other IMP05 return-path/history owner.
+
+## Retained whole-card boundary review
+
+Root carried the two existing technical lanes forward on #5305985281037. No new rule was claimed. The complete frozen IMP05 condition/pass/failure and AT expected/prohibited clauses were reread directly with original T A.4.2 p52 at the manifest's exact hash. PR wording must say **supplied SMTP target**, rather than infer a currently registered portal address from a signed certificate.
+
+| Frozen obligation | This packet / remaining separate proof |
+| --- | --- |
+| Security identity and registered address together | Existing protected owner/tenant/environment/Ediel-ID/fingerprint grant and actual PKIX/CRL are retained. This change binds every mandatory leaf to the actual supplied target via signed mail. Current registered-route address authority is separate, unchanged, and not established by certificate email, a mutable profile or opaque trust references. |
+| Preserve old version for history | No history/certificate/registry version writer changes. Co-owner must qualify old route/cert/source versions and prior message-bound decisions through an actual replacement and replay. Existing history behavior is not called defective merely because this packet does not execute it. |
+| Invalidate affected actors/tenants readiness | Actual readiness rerun with a changed target clears the tested profile's production readiness/mode and blocks its certificate policy. Existing materializer calls `applySafeRouteProfileReadiness` after profile upsert, with `applyFixes:true/approveProduction:false`; no claim here that a new registry version triggers complete actor/tenant fanout. Co-owner must qualify that trigger, all affected consumers and unaffected scope controls. |
+| Verify return path | No reverse acknowledgement route/correlation/SMTP receiver/own identity implementation or new effect test. Co-owner retains actual new-address return-path and refusal proof before whole-card promotion. |
+| Prohibit new mailbox with old indeterminate cert scope | New resolver and actual readiness/setup/test-run controls hold missing/unbound/old-only/wildcard targets and any bad mandatory leaf. Crypto-only verification remains a distinct operation; synthetic source receipts authorize no live send. |
+
+Suggested PR lead: When the SMTP mailbox changes, recipient resolution now holds unless every mandatory trusted leaf already binds the actual mailbox. Signed Subject email and SAN RFC822 aliases remain valid. This verifies only the recipient/address component of IMP05; historical versions, full readiness invalidation and return-path verification remain separately owned.
+
+Parent review: independently read the complete seven-file packet, frozen IMP05/AT, actual required-set/resolver and all six caller paths, and original T A.4.2 p52. APPROVE only recipient/address component at producer SHA256 b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7; no whole-card or registered-address-source promotion. Parent fresh 161/161 in four actual suites PASS with maxWorkers1/Node22/CI boundary; log `/tmp/masterplan-imp05-parent-161.log`, SHA256 c212dc6042c27c772bfede4f9615ce5899f96a525913a59d8f985a3deae10aba. Full unit verification is running because this changes a shared production resolver. Coverage and shared memory remain unchanged.
+
+Independent OPS03 read-only review in `/workspace/gridex-masterplan-ops03-inventory-56192d16`: main561 baseline ordinary runner produces real `gridex-e2e-report.json`, redacted per-step logs and JUnit, but the report has no source head. Existing PR/nightly certificate copies `needs.*` statuses into GREEN without downloading those artifacts; coverage uploads summary/LCOV only. The initial proposed optional custom receipt is exercised only through finite FS/git/child/declarative assembly tests, with no actual CI producer/input/download and no authority to promote supplied DDQ/DGI/cross-tenant case declarations into executed cases. **No whole OPS03 approval.** Owner agrees with root REQUEST_CHANGES and is implementing actual produced-artifact/head wiring. Await revised freeze; source/read-only review only, no edits to the OPS03 owner's files. Integration/transport/TGT/business scopes stay missing unless actual executed producer evidence qualifies them; no external or formal Ediel approval inferred from spec JSON, command labels, successful skipped steps or unit assembly positives.
