@@ -1,3 +1,5 @@
+import { STAFF_API_ROUTE_DEFINITIONS } from '@/lib/staff-api/routeRegistry'
+
 export type PublicApiRouteContract = {
   method: 'GET' | 'POST'
   path: string
@@ -34,6 +36,7 @@ const CUSTOMER_PORTAL_READ_SCOPES = [
 
 /** Canonical source for the public V1 endpoint catalogue and developer documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
+  ...STAFF_API_ROUTE_DEFINITIONS,
   { method: 'GET', path: '/api/v1/openapi/release-manifest.json', scopes: [], description: 'Machine-readable release manifest containing versions and SHA-256 digests for the public OpenAPI contracts.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/website-integration-v1.json', scopes: [], description: 'Current OpenAPI specification for website integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-08-02.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-08-02.1.', rateLimitClass: 'read' },

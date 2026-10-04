@@ -1,0 +1,50 @@
+name: Staff API native database
+on:
+  pull_request:
+    paths:
+      - 'lib/staff-api/**'
+      - 'lib/integrations/apiAuth.ts'
+      - 'lib/integrations/staffClientCreation.ts'
+      - 'app/admin/platform/api-clients/**'
+      - 'app/api/v1/staff/**'
+      - 'supabase/**'
+      - 'scripts/staff-api-*'
+      - 'scripts/lib/staff-sql-fixture.cjs'
+      - '.github/workflows/staff-api-native.yml'
+  workflow_dispatch:
+jobs:
+  staff-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16.15', '17.6']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: gridex_staff_api_synthetic
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: synthetic_fixture_password
+        ports: ['55438:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gridex_staff_api_synthetic"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      GRIDEX_STAFF_API_NATIVE_TEST: '1'
+      GRIDEX_STAFF_NATIVE_VERSION: ${{ matrix.postgres }}
+      PGHOST: 127.0.0.1
+      PGPORT: '55438'
+      PGDATABASE: gridex_staff_api_synthetic
+      PGUSER: postgres
+      PGPASSWORD: synthetic_fixture_password
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install native PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Execute staff migrations, actual SQL behavior and concurrent requests
+        run: python3 scripts/staff-api-native-regression.py

@@ -95,7 +95,8 @@ assert(
     apiAuth.includes("code: 'organization_paused'") &&
     apiAuth.includes("status === 'suspended'") &&
     apiAuth.includes("code: 'organization_suspended'") &&
-    apiAuth.includes("supabaseService.rpc('authenticate_integration_request_v1'"),
+    apiAuth.includes("kind: 'integration' | 'staff' = 'integration'") &&
+    apiAuth.includes("supabaseService.rpc(kind === 'staff' ? 'authenticate_staff_integration_request_v1' : 'authenticate_integration_request_v1'"),
   'integration API centrally rejects suspended/paused tenants and uses atomic DB authentication'
 )
 assert(

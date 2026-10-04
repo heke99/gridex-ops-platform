@@ -312,6 +312,7 @@ function authenticationStatus(code: string, tenantStatus: string | null): number
 async function resolveIntegrationApiAccess(
   request: NextRequest,
   requiredScopes: IntegrationScopeRequirement,
+  kind: 'integration' | 'staff' = 'integration',
 ): Promise<IntegrationApiAuthResult> {
   // Reject unauthenticated traffic before touching Supabase. Besides being the
   // correct security boundary, this keeps public 401 responses deterministic
@@ -321,6 +322,9 @@ async function resolveIntegrationApiAccess(
     status: 401,
     code: credential.malformedAuthorization ? 'malformed_authorization' : 'missing_api_token',
     message: credential.malformedAuthorization ? 'Authorization must use the Bearer token format.' : 'API token is missing.',
+  })
+  if (kind === 'staff' && credential.legacyApiKey) return publicError({
+    status: 401, code: 'missing_api_token', message: 'API token is missing.',
   })
   const token = credential.token
 
@@ -335,7 +339,7 @@ async function resolveIntegrationApiAccess(
   const scopes = splitScopeRequirement(requiredScopes)
   const route = request.nextUrl.pathname
   const routeCost = publicRouteCost(request.method, route)
-  const { data, error } = await supabaseService.rpc('authenticate_integration_request_v1', {
+  const { data, error } = await supabaseService.rpc(kind === 'staff' ? 'authenticate_staff_integration_request_v1' : 'authenticate_integration_request_v1', {
     p_key_prefix: keyPrefix,
     p_secret_hash: secretHash,
     p_route: route,
@@ -345,6 +349,7 @@ async function resolveIntegrationApiAccess(
     p_origin: requestOrigin(request),
     p_rate_limit_cost: routeCost,
     p_window_seconds: 60,
+    ...(kind === 'staff' ? { p_method: request.method } : {}),
   })
   if (error) {
     return publicError({ status: 503, code: 'api_auth_unavailable', message: 'API access and traffic protection could not be verified.' })
@@ -434,6 +439,19 @@ export async function requireIntegrationApiAccess(
   requiredScopes: IntegrationScopeRequirement,
 ): Promise<IntegrationApiAuthResult> {
   const result = await resolveIntegrationApiAccess(request, requiredScopes)
+  integrationApiResponseContext.enterWith({
+    rateLimit: result.rateLimit,
+    retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,
+  })
+  return result
+}
+
+/** Staff credentials use native policy without Website receipt/api_sales gates. */
+export async function requireStaffIntegrationApiAccess(
+  request: NextRequest,
+  requiredScopes: IntegrationScopeRequirement,
+): Promise<IntegrationApiAuthResult> {
+  const result = await resolveIntegrationApiAccess(request, requiredScopes, 'staff')
   integrationApiResponseContext.enterWith({
     rateLimit: result.rateLimit,
     retryAfterSeconds: result.ok ? undefined : result.retryAfterSeconds,

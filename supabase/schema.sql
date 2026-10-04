@@ -3092,6 +3092,84 @@ CREATE FUNCTION public.authenticate_provisioning_smoke_request_v1(p_key_prefix t
 $$;
 
 --
+-- Name: authenticate_staff_integration_request_v1(text, text, text, text, text[], text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[] DEFAULT ARRAY[]::text[], p_required_any text[] DEFAULT ARRAY[]::text[], p_client_ip text DEFAULT NULL::text, p_origin text DEFAULT NULL::text, p_rate_limit_cost integer DEFAULT 1, p_window_seconds integer DEFAULT 60) RETURNS TABLE(auth_outcome text, error_code text, tenant_status text, client_id uuid, company_id uuid, client_name text, client_status text, key_prefix text, scopes text[], allowed_ips text[], allowed_origins text[], metadata jsonb, rate_limit_per_minute integer, expires_at timestamp with time zone, request_count integer, route_limit integer, reset_at timestamp with time zone)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
+DECLARE
+  v_scope text;
+  v_cost integer;
+  v_client public.integration_api_clients%rowtype;
+BEGIN
+  -- Exact method/path pairs and bounded opaque references. Neither an empty
+  -- caller scope array nor a cheaper supplied cost can weaken this matrix.
+  IF p_method = 'POST' AND p_route IN (
+    '/api/v1/staff/sessions', '/api/v1/staff/sessions/refresh',
+    '/api/v1/staff/sessions/logout', '/api/v1/staff/sessions/mfa/challenge',
+    '/api/v1/staff/sessions/mfa/verify', '/api/v1/staff/sessions/password',
+    '/api/v1/staff/sessions/recovery', '/api/v1/staff/sessions/recovery/verify'
+  ) THEN v_scope := 'staff_sessions.write';
+  ELSIF p_method = 'GET' AND p_route = '/api/v1/staff/me' THEN
+    v_scope := 'staff_context.read';
+  ELSIF p_method = 'GET' AND (
+    p_route = '/api/v1/staff/customers' OR
+    p_route ~ '^/api/v1/staff/customers/customer_[A-Za-z0-9_-]{20,64}(/(contacts|addresses|facilities))?$'
+  ) THEN v_scope := 'staff_customers.read';
+  ELSIF p_method = 'GET' AND (
+    p_route IN ('/api/v1/staff/support/cases', '/api/v1/staff/support/assignees') OR
+    p_route ~ '^/api/v1/staff/support/cases/support_case_[A-Za-z0-9_-]{20,64}(/(entries|attachments))?$' OR
+    p_route ~ '^/api/v1/staff/support/cases/support_case_[A-Za-z0-9_-]{20,64}/attachments/support_attachment_[A-Za-z0-9_-]{20,64}$'
+  ) THEN v_scope := 'staff_support.read';
+  ELSIF p_method = 'POST' AND (
+    p_route = '/api/v1/staff/support/cases' OR
+    p_route ~ '^/api/v1/staff/support/cases/support_case_[A-Za-z0-9_-]{20,64}/(replies|internal-notes|status|assignment|attachments)$'
+  ) THEN v_scope := 'staff_support.write';
+  END IF;
+  IF v_scope IS NULL THEN
+    RETURN QUERY SELECT 'denied'::text, 'api_scope_missing'::text, NULL::text,
+      NULL::uuid, NULL::uuid, NULL::text, NULL::text, NULL::text,
+      NULL::text[], NULL::text[], NULL::text[], NULL::jsonb, NULL::integer,
+      NULL::timestamptz, NULL::integer, NULL::integer, NULL::timestamptz;
+    RETURN;
+  END IF;
+  v_cost := CASE WHEN p_method = 'POST' THEN 3 ELSE 1 END;
+
+  -- Hold native client/tenant policy stable while the authoritative core
+  -- authenticates and consumes its atomic route bucket. No stored hash leaves
+  -- this SECURITY DEFINER boundary, including denied requests.
+  SELECT c.* INTO v_client FROM public.integration_api_clients c
+    WHERE c.key_prefix = p_key_prefix AND c.secret_hash = p_secret_hash
+      AND c.deleted_at IS NULL FOR SHARE;
+  IF v_client.id IS NOT NULL THEN
+    PERFORM 1 FROM public.companies c WHERE c.id = v_client.company_id FOR SHARE;
+    IF v_client.profile_key IS DISTINCT FROM 'custom'
+       OR (v_client.metadata->>'integration_kind') IS DISTINCT FROM 'staff_support_v1' THEN
+      RETURN QUERY SELECT 'denied'::text, 'api_client_inactive'::text, NULL::text,
+        NULL::uuid, NULL::uuid, NULL::text, NULL::text, NULL::text,
+        NULL::text[], NULL::text[], NULL::text[], NULL::jsonb, NULL::integer,
+        NULL::timestamptz, NULL::integer, NULL::integer, NULL::timestamptz;
+      RETURN;
+    END IF;
+  END IF;
+  RETURN QUERY SELECT a.*
+    FROM public.authenticate_integration_request_v1_credential_core(
+      p_key_prefix, p_secret_hash, p_route,
+      coalesce(p_required_all, ARRAY[]::text[]) || ARRAY[v_scope],
+      coalesce(p_required_any, ARRAY[]::text[]), p_client_ip, p_origin,
+      v_cost, 60
+    ) a;
+END $_$;
+
+--
+-- Name: FUNCTION authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) IS 'Service-only staff_support_v1 custom-profile machine auth: pinned staff method/path/scope/cost matrix, native credentials, tenant lifecycle, IP/origin and atomic minute limits. Website provisioning policy remains unchanged.';
+
+--
 -- Name: backfill_companies(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -54563,6 +54641,854 @@ end;
 $$;
 
 --
+-- Name: staff_api_acquire_session_operation(uuid, uuid, uuid, text, text, text, bigint, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_acquire_session_operation(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_command text, p_request_hash text, p_revision bigint DEFAULT NULL::bigint, p_refresh_hash text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $_$
+declare s public.staff_api_sessions; o public.staff_api_session_operations; lease uuid:=gen_random_uuid(); v_now timestamptz;
+begin
+  select * into s from public.staff_api_sessions where id=p_session_id for update;
+  v_now:=clock_timestamp();
+  if not found or s.api_client_id<>p_client_id or s.company_id<>p_company_id or s.expires_at<=v_now then return jsonb_build_object('state','invalid'); end if;
+  if p_command not in ('validate','logout') and not public.staff_api_client_policy_allowed(p_client_id,p_company_id,'staff_sessions.write') then
+    raise exception using errcode='42501',message='Staff integration client is not authorized';
+  end if;
+  v_now:=clock_timestamp();
+  if s.expires_at<=v_now then return jsonb_build_object('state','invalid'); end if;
+  select * into o from public.staff_api_session_operations where session_id=s.id and operation_key=p_operation_key;
+  if found then
+    if o.command<>p_command or o.request_hash<>p_request_hash then return jsonb_build_object('state','conflict'); end if;
+    if o.status='completed' and (o.command='logout' or (s.status='active' and o.completed_revision=s.revision)) then
+      return jsonb_build_object('state','replay','session',to_jsonb(s),'receipt',o.encrypted_receipt);
+    end if;
+    if o.status<>'pending' then return jsonb_build_object('state','conflict'); end if;
+  end if;
+  if s.status<>'active' then return jsonb_build_object('state','invalid'); end if;
+  if s.lease_id is not null then
+    if s.lease_expires_at>v_now then return jsonb_build_object('state','busy'); end if;
+    update public.staff_api_sessions set status='blocked',updated_at=now() where id=s.id;
+    update public.staff_api_session_operations set status='blocked' where session_id=s.id and status='pending';
+    return jsonb_build_object('state','uncertain');
+  end if;
+  if (p_revision is not null and p_revision<>s.revision) or (p_refresh_hash is not null and p_refresh_hash<>s.refresh_hash) then return jsonb_build_object('state','invalid'); end if;
+  if p_command not in ('validate','refresh','logout','mfa_challenge','mfa_verify','password') or length(p_request_hash)<>64 or p_operation_key !~ '^[A-Za-z0-9._:-]{16,128}$' then raise exception 'Invalid session operation'; end if;
+  insert into public.staff_api_session_operations(session_id,operation_key,command,request_hash,status,lease_id) values(s.id,p_operation_key,p_command,p_request_hash,'pending',lease);
+  update public.staff_api_sessions set lease_id=lease,lease_expires_at=clock_timestamp()+interval '45 seconds',updated_at=clock_timestamp() where id=s.id returning * into s;
+  return jsonb_build_object('state','acquired','session',to_jsonb(s),'lease_id',lease);
+end $_$;
+
+--
+-- Name: staff_api_actor_is_eligible_assignee(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_actor_is_eligible_assignee(p_user_id uuid, p_company_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+  select public.staff_api_is_tenant_staff(p_user_id,p_company_id)
+    and not public.staff_api_is_platform_admin(p_user_id)
+    and 'cases.write'=any(public.staff_api_current_permissions(p_user_id,p_company_id))
+    and exists(select 1 from auth.users u where u.id=p_user_id and u.deleted_at is null and (u.banned_until is null or u.banned_until<=clock_timestamp()) and u.email_confirmed_at is not null)
+    and exists(select 1 from public.user_profiles p where p.id=p_user_id and p.user_status='active' and to_jsonb(p)->>'disabled_at' is null and to_jsonb(p)->>'must_change_password'='false')
+    and exists(select 1 from public.companies c where c.id=p_company_id and c.status='active' and coalesce(c.is_active,true));
+$$;
+
+--
+-- Name: staff_api_assert_command_actor(uuid, bigint, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_assert_command_actor(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_permission text) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare s public.staff_api_sessions; a jsonb; c jsonb; perms text[]; v_now timestamptz;
+begin
+  select * into s from public.staff_api_sessions where id=p_session_id for share;
+  if not found or s.status<>'active' or s.stage<>'authenticated' or s.revision<>p_revision or s.user_id<>p_user_id or s.native_session_id<>p_native_session_id or s.api_client_id<>p_client_id or s.company_id<>p_company_id then raise exception using errcode='42501',message='Staff command is not authorized'; end if;
+  if s.lease_id is not null then raise exception using errcode='55P03',message='staff_session_busy'; end if;
+  -- Hold the contributing authorization rows through audit/mutation commit.
+  -- Decisions are evaluated after lock waits, never from the Web guard snapshot.
+  perform 1 from auth.users x where x.id=p_user_id for share;
+  perform 1 from public.user_profiles x where x.id=p_user_id for share;
+  perform 1 from auth.sessions x where x.id=p_native_session_id and x.user_id=p_user_id for share;
+  perform 1 from public.integration_api_clients x where x.id=p_client_id and x.company_id=p_company_id for share;
+  perform 1 from public.companies x where x.id=p_company_id for share;
+  perform 1 from public.company_memberships x where x.user_id=p_user_id and x.company_id=p_company_id for share;
+  perform 1 from public.user_roles x where x.user_id=p_user_id and (x.company_id=p_company_id or x.company_id is null) for share;
+  perform 1 from public.roles x where x.id in(select ur.role_id from public.user_roles ur where ur.user_id=p_user_id and (ur.company_id=p_company_id or ur.company_id is null)) for share;
+  perform 1 from public.role_permissions x where x.role_id in(select ur.role_id from public.user_roles ur where ur.user_id=p_user_id and (ur.company_id=p_company_id or ur.company_id is null)) for share;
+  perform 1 from public.user_permissions x where x.user_id=p_user_id and (x.company_id=p_company_id or x.company_id is null) for share;
+  perform 1 from public.permissions x where coalesce(x.key,x.name)=p_permission for share;
+  perform 1 from public.admin_users x where x.user_id=p_user_id for share;
+  perform 1 from auth.mfa_factors x where x.user_id=p_user_id for share;
+  v_now:=clock_timestamp();
+  if s.expires_at<=v_now then raise exception using errcode='42501',message='Staff command is not authorized'; end if;
+  a:=public.staff_api_native_account_state(p_user_id,p_native_session_id);
+  if a->>'eligible'<>'true' or a->>'password_change_required'='true'
+    or exists(select 1 from jsonb_array_elements(a->'factors') f where f->>'method'<>'totp')
+    or (jsonb_array_length(a->'factors')>0 and (s.native_aal<>'aal2' or a->>'aal'<>'aal2'))
+    or public.staff_api_is_platform_admin(p_user_id) then raise exception using errcode='42501',message='Staff command is not authorized'; end if;
+  select to_jsonb(x) into c from public.integration_api_clients x where x.id=p_client_id and x.company_id=p_company_id for share;
+  if c is null or c->>'profile_key' is distinct from 'custom' or c->'metadata'->>'integration_kind' is distinct from 'staff_support_v1'
+    or c->>'status'<>'active' or c->>'revoked_at' is not null or c->>'deleted_at' is not null
+    or (c->>'expires_at' is not null and (c->>'expires_at')::timestamptz<=clock_timestamp())
+    or not (coalesce(c->'scopes','[]'::jsonb) ? 'staff_support.write' or coalesce(c->'scopes','[]'::jsonb) ? '*')
+    or not exists(select 1 from public.companies x where x.id=p_company_id and x.status='active' and coalesce(x.is_active,true))
+    or not public.staff_api_is_tenant_staff(p_user_id,p_company_id) then raise exception using errcode='42501',message='Staff command is not authorized'; end if;
+  perms:=public.staff_api_current_permissions(p_user_id,p_company_id);
+  if p_permission is null or not p_permission=any(perms) then raise exception using errcode='42501',message='Staff command is not authorized'; end if;
+end $$;
+
+--
+-- Name: staff_api_attachment_finalize(uuid, bigint, uuid, uuid, uuid, uuid, text, text, text, text, uuid, text, integer, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_attachment_finalize(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid, p_verified_sha256 text, p_verified_byte_size integer, p_scan_status text, p_detected_mime text, p_scan_reason text, p_file_name text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_receipt public.staff_api_attachment_receipts%ROWTYPE;
+  v_attachment public.customer_case_attachments%ROWTYPE;
+  v_now timestamptz;
+BEGIN
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    concat_ws(':','staff-attachment',p_company_id,p_client_id,p_user_id,p_case_reference,p_idempotency_key),0));
+  SELECT * INTO v_case FROM public.customer_cases c WHERE c.company_id=p_company_id
+    AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_case_reference
+    AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_') FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+  SELECT * INTO v_receipt FROM public.staff_api_attachment_receipts r WHERE r.company_id=p_company_id
+    AND r.api_client_id=p_client_id AND r.actor_user_id=p_user_id AND r.resource_reference=p_case_reference
+    AND r.idempotency_key=p_idempotency_key FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='attachment_not_found'; END IF;
+  SELECT * INTO v_attachment FROM public.customer_case_attachments a WHERE a.company_id=p_company_id
+    AND a.id=v_receipt.attachment_id AND a.customer_case_id=v_case.id AND a.customer_id=v_case.customer_id
+    AND a.public_reference=p_attachment_reference FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='attachment_not_found'; END IF;
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  v_now:=clock_timestamp();
+  IF v_receipt.request_hash IS DISTINCT FROM p_request_hash OR v_attachment.sha256 IS DISTINCT FROM p_verified_sha256
+    OR v_attachment.byte_size IS DISTINCT FROM p_verified_byte_size THEN
+    RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='idempotency_conflict';
+  END IF;
+  IF v_receipt.completed_at IS NOT NULL THEN
+    RETURN jsonb_build_object('row',to_jsonb(v_attachment),'replayed',true);
+  END IF;
+  IF v_case.status IN ('resolved','closed','cancelled') THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='support_case_closed'; END IF;
+  IF v_receipt.lease_id IS DISTINCT FROM p_lease_id OR v_receipt.lease_expires_at<=v_now THEN
+    RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='idempotency_in_progress';
+  END IF;
+  IF coalesce(p_scan_status,'') NOT IN ('released','rejected') OR length(coalesce(p_file_name,'')) NOT BETWEEN 1 AND 124
+    OR (p_scan_status='released' AND (coalesce(p_detected_mime,'') NOT IN ('application/pdf','image/png','image/jpeg') OR p_scan_reason IS NOT NULL))
+    OR (p_scan_status='rejected' AND (p_detected_mime IS NOT NULL OR coalesce(p_scan_reason,'') NOT IN ('empty','too_large','type_not_allowed','pdf_active_content','pdf_truncated','pdf_encoded_content'))) THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+  END IF;
+  UPDATE public.customer_case_attachments SET scan_status=p_scan_status,detected_mime_type=p_detected_mime,
+    scan_reason=p_scan_reason,file_name=p_file_name,scanned_at=v_now WHERE id=v_attachment.id AND company_id=p_company_id
+    AND customer_case_id=v_case.id AND customer_id=v_case.customer_id RETURNING * INTO v_attachment;
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata)
+  VALUES(p_company_id,p_user_id,'customer_case_attachment',v_attachment.id::text,'staff_support_attachment_'||p_scan_status,
+    jsonb_build_object('scan_status','quarantined'),jsonb_build_object('scan_status',p_scan_status,'mime_type',p_detected_mime,'scan_reason',p_scan_reason,'sha256',p_verified_sha256),
+    jsonb_build_object('customer_case_id',v_case.id,'customer_id',v_case.customer_id,'api_client_id',p_client_id,'staff_session_id',p_session_id));
+  UPDATE public.staff_api_attachment_receipts SET completed_at=v_now WHERE id=v_receipt.id AND company_id=p_company_id;
+  RETURN jsonb_build_object('row',to_jsonb(v_attachment),'replayed',false);
+END $$;
+
+--
+-- Name: staff_api_attachment_quota_guard(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_attachment_quota_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    concat_ws(':','support-attachment-quota',NEW.company_id,NEW.customer_id),0));
+  IF (SELECT count(*) FROM public.customer_case_attachments a WHERE a.company_id=NEW.company_id
+    AND a.customer_id=NEW.customer_id AND a.created_at>=clock_timestamp()-interval '24 hours')>=20 THEN
+    RAISE EXCEPTION USING ERRCODE='P0001',MESSAGE='attachment_quota_exceeded';
+  END IF;
+  RETURN NEW;
+END $$;
+
+--
+-- Name: staff_api_attachment_release(uuid, bigint, uuid, uuid, uuid, uuid, text, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_attachment_release(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid) RETURNS void
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE v_case public.customer_cases%ROWTYPE; v_receipt public.staff_api_attachment_receipts%ROWTYPE;
+BEGIN
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    concat_ws(':','staff-attachment',p_company_id,p_client_id,p_user_id,p_case_reference,p_idempotency_key),0));
+  SELECT * INTO v_case FROM public.customer_cases c WHERE c.company_id=p_company_id
+    AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_case_reference
+    AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_') FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+  SELECT r.* INTO v_receipt FROM public.staff_api_attachment_receipts r
+    JOIN public.customer_case_attachments a ON a.company_id=r.company_id AND a.id=r.attachment_id
+    WHERE r.company_id=p_company_id AND r.api_client_id=p_client_id AND r.actor_user_id=p_user_id
+    AND r.resource_reference=p_case_reference AND r.idempotency_key=p_idempotency_key
+    AND a.public_reference=p_attachment_reference AND a.customer_case_id=v_case.id AND a.customer_id=v_case.customer_id FOR UPDATE OF r;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='attachment_not_found'; END IF;
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  IF v_receipt.request_hash IS DISTINCT FROM p_request_hash THEN RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='idempotency_conflict'; END IF;
+  IF v_receipt.completed_at IS NULL AND v_receipt.lease_id=p_lease_id THEN
+    UPDATE public.staff_api_attachment_receipts SET lease_expires_at=clock_timestamp() WHERE id=v_receipt.id AND company_id=p_company_id;
+  END IF;
+END $$;
+
+--
+-- Name: staff_api_attachment_reserve(uuid, bigint, uuid, uuid, uuid, uuid, text, text, text, text, text, integer, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_attachment_reserve(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_file_name text, p_declared_mime text, p_byte_size integer, p_sha256 text, p_visibility text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $_$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_observed_case_id uuid;
+  v_observed_customer_id uuid;
+  v_receipt public.staff_api_attachment_receipts%ROWTYPE;
+  v_attachment public.customer_case_attachments%ROWTYPE;
+  v_now timestamptz;
+  v_lease uuid;
+  v_reference text;
+BEGIN
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  IF coalesce(p_case_reference,'')!~'^support_case_[A-Za-z0-9_-]{20,64}$'
+    OR length(coalesce(p_idempotency_key,'')) NOT BETWEEN 8 AND 200
+    OR coalesce(p_request_hash,'')!~'^[0-9a-f]{64}$' OR coalesce(p_sha256,'')!~'^[0-9a-f]{64}$'
+    OR length(coalesce(p_file_name,'')) NOT BETWEEN 1 AND 124
+    OR coalesce(p_declared_mime,'') NOT IN ('application/pdf','image/png','image/jpeg')
+    OR coalesce(p_byte_size,0) NOT BETWEEN 1 AND 4194304
+    OR coalesce(p_visibility,'') NOT IN ('internal','customer') THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+  END IF;
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    concat_ws(':','staff-attachment',p_company_id,p_client_id,p_user_id,p_case_reference,p_idempotency_key),0));
+  -- The same idempotency lock is taken by reserve/finalize/release. Inspect
+  -- whether this is genuinely new without taking a receipt/content row lock.
+  -- Core support commands acquire this shared actor budget before their case
+  -- lock, so new attachment reservations must do that too. Replay/resume do
+  -- not spend another slot; any failed reservation rolls its budget back.
+  SELECT * INTO v_receipt FROM public.staff_api_attachment_receipts r WHERE r.company_id=p_company_id
+    AND r.api_client_id=p_client_id AND r.actor_user_id=p_user_id AND r.resource_reference=p_case_reference
+    AND r.idempotency_key=p_idempotency_key;
+  IF v_receipt.id IS NULL THEN
+    IF NOT public.staff_api_consume_auth_budget(encode(extensions.digest(
+      concat_ws(':','staff-mutation',p_company_id,p_client_id,p_user_id),'sha256'),'hex'),20,60) THEN
+      RAISE EXCEPTION USING ERRCODE='P0001',MESSAGE='staff_rate_limited';
+    END IF;
+    PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  END IF;
+  -- Native/customer INSERTs acquire the quota advisory lock in their BEFORE
+  -- trigger, then a case KEY SHARE lock for the attachment foreign key. Acquire
+  -- that same quota lock before any staff case/receipt/content row lock.
+  SELECT c.id,c.customer_id INTO v_observed_case_id,v_observed_customer_id
+    FROM public.customer_cases c WHERE c.company_id=p_company_id
+    AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_case_reference
+    AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_');
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(
+    concat_ws(':','support-attachment-quota',p_company_id,v_observed_customer_id),0));
+  -- Re-read under the row lock after the quota wait. Never reserve under the
+  -- observed customer's quota if the current case now belongs to another one.
+  SELECT * INTO v_case FROM public.customer_cases c WHERE c.company_id=p_company_id
+    AND c.id=v_observed_case_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+  IF v_case.customer_id IS DISTINCT FROM v_observed_customer_id THEN
+    RAISE EXCEPTION USING ERRCODE='40001',MESSAGE='support_case_version_conflict';
+  END IF;
+  IF NOT coalesce(v_case.metadata->>'support_case'='true' OR left(v_case.source,15)='tenant_support_',false) THEN
+    RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found';
+  END IF;
+  SELECT * INTO v_receipt FROM public.staff_api_attachment_receipts r WHERE r.company_id=p_company_id
+    AND r.api_client_id=p_client_id AND r.actor_user_id=p_user_id AND r.resource_reference=p_case_reference
+    AND r.idempotency_key=p_idempotency_key FOR UPDATE;
+  IF v_receipt.id IS NOT NULL THEN
+    SELECT * INTO v_attachment FROM public.customer_case_attachments a WHERE a.company_id=p_company_id
+      AND a.id=v_receipt.attachment_id AND a.customer_case_id=v_case.id AND a.customer_id=v_case.customer_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='attachment_not_found'; END IF;
+  END IF;
+  -- Reauthorize after all quota/case/receipt/content waits before replay or mutation.
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  v_now:=clock_timestamp();
+  IF v_receipt.id IS NOT NULL THEN
+    IF v_receipt.request_hash<>p_request_hash THEN RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='idempotency_conflict'; END IF;
+    IF v_attachment.sha256<>p_sha256 OR v_attachment.byte_size<>p_byte_size THEN
+      RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='idempotency_conflict';
+    END IF;
+    IF v_receipt.completed_at IS NOT NULL THEN
+      IF v_attachment.scan_status NOT IN ('released','rejected') THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='attachment_unavailable'; END IF;
+      RETURN jsonb_build_object('state','replay','row',to_jsonb(v_attachment));
+    END IF;
+    IF v_case.status IN ('resolved','closed','cancelled') THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='support_case_closed'; END IF;
+    IF v_receipt.lease_expires_at>v_now THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='idempotency_in_progress'; END IF;
+    v_lease:=gen_random_uuid();
+    UPDATE public.staff_api_attachment_receipts SET lease_id=v_lease,lease_expires_at=v_now+interval '2 minutes'
+      WHERE id=v_receipt.id AND company_id=p_company_id;
+    RETURN jsonb_build_object('state','acquired','lease_id',v_lease,'row',to_jsonb(v_attachment));
+  END IF;
+  IF v_case.status IN ('resolved','closed','cancelled') THEN RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='support_case_closed'; END IF;
+  v_reference:='support_attachment_'||replace(gen_random_uuid()::text,'-','');
+  v_lease:=gen_random_uuid();
+  INSERT INTO public.customer_case_attachments(company_id,customer_id,customer_case_id,public_reference,file_name,
+    declared_mime_type,byte_size,sha256,storage_path,visibility,uploaded_by_kind,uploaded_by_user_id,api_client_id,scan_status,created_at)
+  VALUES(p_company_id,v_case.customer_id,v_case.id,v_reference,p_file_name,p_declared_mime,p_byte_size,p_sha256,
+    p_company_id::text||'/'||v_case.id::text||'/'||v_reference,p_visibility,'staff',p_user_id,p_client_id,'quarantined',v_now)
+  RETURNING * INTO v_attachment;
+  INSERT INTO public.staff_api_attachment_receipts(company_id,api_client_id,actor_user_id,resource_reference,idempotency_key,
+    request_hash,attachment_id,lease_id,lease_expires_at)
+  VALUES(p_company_id,p_client_id,p_user_id,p_case_reference,p_idempotency_key,p_request_hash,v_attachment.id,v_lease,v_now+interval '2 minutes');
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata)
+  VALUES(p_company_id,p_user_id,'customer_case_attachment',v_attachment.id::text,'staff_support_attachment_reserved','{}'::jsonb,
+    jsonb_build_object('scan_status','quarantined','visibility',p_visibility,'byte_size',p_byte_size,'sha256',p_sha256),
+    jsonb_build_object('customer_case_id',v_case.id,'customer_id',v_case.customer_id,'api_client_id',p_client_id,'staff_session_id',p_session_id));
+  RETURN jsonb_build_object('state','acquired','lease_id',v_lease,'row',to_jsonb(v_attachment));
+END $_$;
+
+--
+-- Name: staff_api_check_session_bootstrap(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_check_session_bootstrap() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  if not public.staff_api_client_policy_allowed(new.api_client_id,new.company_id,'staff_sessions.write') then
+    raise exception using errcode='42501',message='Staff integration client is not authorized';
+  end if;
+  return new;
+end $$;
+
+--
+-- Name: staff_api_cleanup(integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_cleanup(p_limit integer DEFAULT 200) RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  if p_limit not between 1 and 500 then raise exception 'Invalid cleanup limit'; end if;
+  delete from public.staff_api_sessions where id in(select id from public.staff_api_sessions where expires_at<=now() order by expires_at,id limit p_limit for update skip locked);
+  delete from public.staff_api_session_operations where (session_id,operation_key) in(select session_id,operation_key from public.staff_api_session_operations where command='validate' and status='completed' and created_at<now()-interval '10 minutes' order by created_at limit p_limit for update skip locked);
+  delete from public.staff_api_auth_budgets where budget_key in(select budget_key from public.staff_api_auth_budgets where window_start<now()-interval '1 hour' order by window_start limit p_limit for update skip locked);
+end $$;
+
+--
+-- Name: staff_api_client_policy_allowed(uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_client_policy_allowed(p_client_id uuid, p_company_id uuid, p_scope text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare c jsonb; company jsonb; v_now timestamptz;
+begin
+  if p_scope not in ('staff_sessions.write','staff_support.write') then return false; end if;
+  select to_jsonb(x) into c from public.integration_api_clients x where x.id=p_client_id and x.company_id=p_company_id for share;
+  select to_jsonb(x) into company from public.companies x where x.id=p_company_id for share;
+  v_now:=clock_timestamp();
+  return coalesce(c is not null and company is not null
+    and c->>'profile_key'='custom' and c->'metadata'->>'integration_kind'='staff_support_v1'
+    and c->>'status'='active' and c->>'revoked_at' is null and c->>'deleted_at' is null
+    and (c->>'expires_at' is null or (c->>'expires_at')::timestamptz>v_now)
+    and (coalesce(c->'scopes','[]'::jsonb) ? p_scope or coalesce(c->'scopes','[]'::jsonb) ? '*')
+    and company->>'status'='active' and coalesce((company->>'is_active')::boolean,true),false);
+end $$;
+
+--
+-- Name: staff_api_complete_session_operation(uuid, uuid, text, uuid, text, text, text, text, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_complete_session_operation(p_session_id uuid, p_lease_id uuid, p_encrypted_payload text, p_native_session_id uuid, p_stage text, p_native_aal text, p_refresh_hash text, p_encrypted_receipt text, p_advance_revision boolean) RETURNS bigint
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare s public.staff_api_sessions; o public.staff_api_session_operations; v bigint; v_now timestamptz; policy_allowed boolean;
+begin
+  select * into s from public.staff_api_sessions where id=p_session_id for update;
+  v_now:=clock_timestamp();
+  if not found or s.status<>'active' or s.lease_id is distinct from p_lease_id or s.lease_expires_at<=v_now or s.expires_at<=v_now then raise exception using errcode='42501',message='Session operation no longer authorized'; end if;
+  select * into o from public.staff_api_session_operations where session_id=s.id and lease_id=p_lease_id and status='pending';
+  if not found then raise exception using errcode='42501',message='Session operation no longer authorized'; end if;
+  if o.command not in ('validate','logout') then
+    policy_allowed:=public.staff_api_client_policy_allowed(s.api_client_id,s.company_id,'staff_sessions.write');
+    v_now:=clock_timestamp();
+    if not policy_allowed or s.lease_expires_at<=v_now or s.expires_at<=v_now then
+      -- Do not RAISE after blocking: an exception would roll the durable block
+      -- back while a consuming native Auth call may already have succeeded.
+      update public.staff_api_sessions set status='blocked',lease_id=null,lease_expires_at=null,updated_at=v_now where id=s.id;
+      update public.staff_api_session_operations set status='blocked' where session_id=s.id and status='pending';
+      -- Revisions are strictly positive. Zero is a private failure sentinel;
+      -- the service bridge rejects it and never emits a successful receipt.
+      return 0;
+    end if;
+  end if;
+  if p_stage not in ('authenticated','mfa_required','password_change_required') or p_native_aal not in ('aal1','aal2') then raise exception 'Invalid authentication stage'; end if;
+  v:=s.revision+case when p_advance_revision then 1 else 0 end;
+  update public.staff_api_sessions set encrypted_payload=p_encrypted_payload,native_session_id=p_native_session_id,stage=p_stage,native_aal=p_native_aal,
+    previous_refresh_hash=case when p_refresh_hash is not null then refresh_hash else previous_refresh_hash end,
+    refresh_hash=coalesce(p_refresh_hash,refresh_hash),revision=v,lease_id=null,lease_expires_at=null,updated_at=now() where id=s.id;
+  update public.staff_api_session_operations set status='completed',encrypted_receipt=p_encrypted_receipt,completed_revision=v where session_id=s.id and lease_id=p_lease_id and status='pending';
+  return v;
+end $$;
+
+--
+-- Name: staff_api_consume_auth_budget(text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_consume_auth_budget(p_budget_key text, p_limit integer, p_window_seconds integer) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare v integer;
+begin
+  if length(p_budget_key)<>64 or p_limit not between 1 and 1000 or p_window_seconds not between 30 and 3600 then raise exception 'Invalid auth budget'; end if;
+  perform public.staff_api_cleanup(50);
+  insert into public.staff_api_auth_budgets(budget_key,window_start,attempts) values(p_budget_key,now(),1)
+  on conflict(budget_key) do update set
+    attempts=case when staff_api_auth_budgets.window_start<=now()-make_interval(secs=>p_window_seconds) then 1 else staff_api_auth_budgets.attempts+1 end,
+    window_start=case when staff_api_auth_budgets.window_start<=now()-make_interval(secs=>p_window_seconds) then now() else staff_api_auth_budgets.window_start end
+  returning attempts into v;
+  return v<=p_limit;
+end $$;
+
+--
+-- Name: staff_api_current_permissions(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_current_permissions(p_user_id uuid, p_company_id uuid) RETURNS text[]
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+  select coalesce(array_agg(distinct coalesce(p.key,p.name) order by coalesce(p.key,p.name)), '{}'::text[])
+  from public.permissions p where coalesce(p.is_active,true)
+    and coalesce(p.key,p.name)=any(public.gridex_get_user_permissions_in_company(p_user_id,p_company_id))
+    and (
+      exists(select 1 from public.user_roles ur join public.roles r on r.id=ur.role_id join public.role_permissions rp on rp.role_id=r.id
+        where ur.user_id=p_user_id and rp.permission_id=p.id and coalesce(r.is_active,true) and coalesce(ur.is_active,true) and coalesce(ur.status,'active')='active' and coalesce(rp.effect,'allow')='allow'
+          and ((to_jsonb(ur)->>'expires_at') is null or (to_jsonb(ur)->>'expires_at')::timestamptz>clock_timestamp())
+          and ((ur.company_id is null and public.gridex_normalize_platform_role(coalesce(r.key,r.name)) in ('super_admin','platform_admin'))
+            or (ur.company_id=p_company_id and exists(select 1 from public.company_memberships m where m.user_id=p_user_id and m.company_id=p_company_id and m.status='active' and coalesce(m.is_active,true)))))
+      or exists(select 1 from public.user_permissions up where up.user_id=p_user_id and up.permission_id=p.id and coalesce(up.status,'active')='active' and coalesce(up.is_active,true) and coalesce(up.effect,'allow')='allow'
+        and (up.company_id is null or (up.company_id=p_company_id and exists(select 1 from public.company_memberships m where m.user_id=p_user_id and m.company_id=p_company_id and m.status='active' and coalesce(m.is_active,true)))))
+      or (coalesce(p.key,p.name)='admin.access' and exists(select 1 from public.admin_users a where a.user_id=p_user_id and coalesce(a.is_active,true) and public.gridex_normalize_platform_role(a.role) in ('super_admin','platform_admin')))
+    );
+$$;
+
+--
+-- Name: staff_api_is_platform_admin(uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_is_platform_admin(p_user_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+  select public.canonical_actor_is_platform_admin(p_user_id) and (
+    exists(select 1 from public.admin_users a where a.user_id=p_user_id and coalesce(a.is_active,true) and public.gridex_normalize_platform_role(a.role) in ('super_admin','platform_admin'))
+    or exists(select 1 from public.user_roles ur join public.roles r on r.id=ur.role_id
+      where ur.user_id=p_user_id and ur.company_id is null and coalesce(ur.is_active,true) and coalesce(ur.status,'active')='active' and coalesce(r.is_active,true)
+        and public.gridex_normalize_platform_role(coalesce(r.key,r.name)) in ('super_admin','platform_admin')
+        and ((to_jsonb(ur)->>'expires_at') is null or (to_jsonb(ur)->>'expires_at')::timestamptz>clock_timestamp()))
+  );
+$$;
+
+--
+-- Name: staff_api_is_tenant_staff(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_is_tenant_staff(p_user_id uuid, p_company_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+  select exists(select 1 from public.company_memberships m where m.user_id=p_user_id and m.company_id=p_company_id and m.status='active' and coalesce(m.is_active,true))
+    and exists(select 1 from public.user_roles ur join public.roles r on r.id=ur.role_id
+      where ur.user_id=p_user_id and ur.company_id=p_company_id and coalesce(ur.is_active,true) and coalesce(ur.status,'active')='active'
+        and coalesce(r.is_active,true) and lower(coalesce(r.key,r.name,'')) not in ('','customer','kund')
+        and ((to_jsonb(ur)->>'expires_at') is null or (to_jsonb(ur)->>'expires_at')::timestamptz>clock_timestamp()));
+$$;
+
+--
+-- Name: staff_api_logout_session(uuid, uuid, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_logout_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_request_hash text, p_receipt text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare s public.staff_api_sessions; o public.staff_api_session_operations;
+begin
+  select * into s from public.staff_api_sessions where id=p_session_id for update;
+  if not found or s.api_client_id<>p_client_id or s.company_id<>p_company_id then return jsonb_build_object('state','invalid'); end if;
+  select * into o from public.staff_api_session_operations where session_id=s.id and operation_key=p_operation_key;
+  if found and (o.command<>'logout' or o.request_hash<>p_request_hash) then return jsonb_build_object('state','conflict'); end if;
+  update public.staff_api_sessions set status='revoked',lease_id=null,lease_expires_at=null,updated_at=now() where id=s.id;
+  update public.staff_api_session_operations set status='blocked' where session_id=s.id and status='pending';
+  insert into public.staff_api_session_operations(session_id,operation_key,command,request_hash,status,lease_id,encrypted_receipt,completed_revision)
+    values(s.id,p_operation_key,'logout',p_request_hash,'completed',gen_random_uuid(),p_receipt,s.revision)
+    on conflict(session_id,operation_key) do nothing;
+  return jsonb_build_object('state','revoked','session',to_jsonb(s));
+end $$;
+
+--
+-- Name: staff_api_native_account_state(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_native_account_state(p_user_id uuid, p_native_session_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare u jsonb; p jsonb; s jsonb; factors jsonb;
+begin
+  select to_jsonb(x) into u from auth.users x where x.id=p_user_id;
+  select to_jsonb(x) into p from public.user_profiles x where x.id=p_user_id;
+  select to_jsonb(x) into s from auth.sessions x where x.id=p_native_session_id and x.user_id=p_user_id;
+  if u is null or p is null or s is null or not(p ? 'must_change_password') then return jsonb_build_object('eligible',false,'reason','staff_session_invalid'); end if;
+  if u->>'deleted_at' is not null or (u->>'banned_until' is not null and (u->>'banned_until')::timestamptz>clock_timestamp())
+    or u->>'email_confirmed_at' is null or (p->>'user_status') is distinct from 'active' or p->>'disabled_at' is not null
+    or (s->>'not_after' is not null and (s->>'not_after')::timestamptz<=clock_timestamp()) then
+    return jsonb_build_object('eligible',false,'reason','staff_account_ineligible');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id',f.id,'method',f.factor_type,'friendly_name',f.friendly_name)), '[]'::jsonb)
+    into factors from auth.mfa_factors f where f.user_id=p_user_id and f.status='verified';
+  return jsonb_build_object('eligible',true,'password_change_required',coalesce((p->>'must_change_password')::boolean,false),'aal',coalesce(s->>'aal','aal1'),'factors',factors);
+end $$;
+
+--
+-- Name: staff_api_protect_account_policy(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_protect_account_policy() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+declare k text;
+begin
+  -- Authorized SECURITY DEFINER account commands and service-role writes retain
+  -- their existing authority; direct Data API self updates do not gain it.
+  if auth.role()='authenticated' and current_user='authenticated' then
+    foreach k in array array['must_change_password','password_changed_at','temporary_password_set_at','temporary_password_expires_at','temporary_password_set_by','temporary_password_company_id','temporary_password_company_name','user_status','disabled_at','disabled_by','disabled_reason'] loop
+      if (to_jsonb(new)->k) is distinct from (to_jsonb(old)->k) then
+        raise exception using errcode='42501',message='Account authentication policy is server managed';
+      end if;
+    end loop;
+  end if;
+  return new;
+end $$;
+
+--
+-- Name: staff_api_public_reference(text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_public_reference(p_kind text, p_company_id uuid, p_id uuid) RETURNS text
+    LANGUAGE sql IMMUTABLE STRICT
+    SET search_path TO ''
+    AS $$
+  SELECT p_kind || '_' || substr(translate(encode(extensions.digest(
+    'gridex-public-reference:v1:' || p_company_id::text || ':' || p_kind || ':' || p_id::text,
+    'sha256'), 'base64'), '+/=', '-_'), 1, 32)
+$$;
+
+--
+-- Name: staff_api_read_resources(uuid, text, text, jsonb, jsonb, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_read_resources(p_company_id uuid, p_operation text, p_reference text DEFAULT NULL::text, p_filters jsonb DEFAULT '{}'::jsonb, p_after jsonb DEFAULT NULL::jsonb, p_limit integer DEFAULT 51) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_customer public.customers%ROWTYPE;
+  v_case public.customer_cases%ROWTYPE;
+  v_rows jsonb;
+  v_q text := lower(coalesce(p_filters->>'q',''));
+  v_time timestamptz := (p_after->>'created_at')::timestamptz;
+  v_id uuid := (p_after->>'id')::uuid;
+BEGIN
+  IF p_company_id IS NULL OR p_limit NOT BETWEEN 1 AND 101 OR jsonb_typeof(p_filters)<>'object' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+  END IF;
+  IF p_operation IN ('customer','contacts','addresses','facilities') THEN
+    SELECT * INTO v_customer FROM public.customers c WHERE c.company_id=p_company_id
+      AND ('customer_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':customer:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_reference;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='customer_not_found'; END IF;
+  END IF;
+  IF p_operation IN ('case','entries','attachments') THEN
+    SELECT * INTO v_case FROM public.customer_cases c WHERE c.company_id=p_company_id
+      AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_reference
+      AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_');
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+  END IF;
+  IF p_operation IN ('customers','customer') THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT c.id,c.customer_number,c.customer_type,c.status,c.full_name,c.first_name,c.last_name,c.company_name,
+        c.email,c.phone,c.created_at,c.updated_at,c.personal_number,c.org_number,c.apartment_number,
+        c.preferred_language,c.moved_out_at,c.lifecycle_closed_at
+      FROM public.customers c WHERE c.company_id=p_company_id
+        AND (p_operation='customers' OR c.id=v_customer.id)
+        AND (p_operation='customer' OR (coalesce(c.status,'draft') NOT IN ('deleted','deleted_test_only','pending_deletion') AND (coalesce(c.status,'draft')<>'archived' OR p_filters->>'status'='archived') AND coalesce(c.is_test_data,false)=false AND coalesce(c.source,'') NOT ILIKE '%test%'))
+        AND (NOT p_filters ? 'status' OR c.status=p_filters->>'status')
+        AND (NOT p_filters ? 'customer_type' OR coalesce(c.customer_type,'private')=p_filters->>'customer_type')
+        AND (v_q='' OR strpos(lower(concat_ws(' ',c.full_name,c.first_name,c.last_name,c.company_name,c.customer_number,c.email,c.phone)),v_q)>0)
+        AND (v_time IS NULL OR (c.created_at,c.id)<(v_time,v_id))
+      ORDER BY c.created_at DESC,c.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='contacts' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT c.id,c.type,c.name,c.email,c.phone,c.title,c.is_primary,c.created_at FROM public.customer_contacts c
+      WHERE c.company_id=p_company_id AND c.customer_id=v_customer.id
+        AND (v_time IS NULL OR (c.created_at,c.id)<(v_time,v_id)) ORDER BY c.created_at DESC,c.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='addresses' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT c.id,c.type,c.street_1,c.street_2,c.postal_code,c.city,c.country,c.municipality,c.moved_in_at,c.moved_out_at,c.is_active,c.created_at FROM public.customer_addresses c
+      WHERE c.company_id=p_company_id AND c.customer_id=v_customer.id
+        AND (v_time IS NULL OR (c.created_at,c.id)<(v_time,v_id)) ORDER BY c.created_at DESC,c.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='facilities' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT c.id,c.site_name,c.facility_id,c.site_type,c.status,c.street,c.care_of,c.postal_code,c.city,c.country,c.grid_area_code,c.price_area_code,c.move_in_date,c.move_out_date,c.created_at,c.updated_at FROM public.customer_sites c
+      WHERE c.company_id=p_company_id AND c.customer_id=v_customer.id
+        AND (v_time IS NULL OR (c.created_at,c.id)<(v_time,v_id)) ORDER BY c.created_at DESC,c.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation IN ('cases','case') THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT c.id,c.customer_id,c.site_id,c.title,c.description,c.reason_category,c.status,c.priority,c.next_action,c.next_action_due_at,
+        c.created_at,c.updated_at,c.resolved_at,c.closed_at,CASE WHEN u.id IS NULL THEN NULL ELSE c.assigned_to END AS assigned_to,u.full_name AS assignee_name,
+        c.metadata->>'description_visibility' AS description_visibility,c.metadata->>'support_channel' AS support_channel,
+        customer.customer_number,coalesce(nullif(customer.full_name,''),nullif(customer.company_name,''),nullif(concat_ws(' ',customer.first_name,customer.last_name),'')) AS customer_display_name
+      FROM public.customer_cases c JOIN public.customers customer ON customer.id=c.customer_id AND customer.company_id=c.company_id
+      LEFT JOIN public.user_profiles u ON u.id=c.assigned_to AND EXISTS(SELECT 1 FROM public.company_memberships m WHERE m.user_id=u.id AND m.company_id=p_company_id)
+      WHERE c.company_id=p_company_id AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_')
+        AND (p_operation='cases' OR c.id=v_case.id)
+        AND (NOT p_filters ? 'status' OR c.status=p_filters->>'status')
+        AND (NOT p_filters ? 'priority' OR c.priority=p_filters->>'priority')
+        AND (NOT p_filters ? 'customer_reference' OR public.staff_api_public_reference('customer',c.company_id,c.customer_id)=p_filters->>'customer_reference')
+        AND (NOT p_filters ? 'assignee_reference' OR public.staff_api_public_reference('staff',c.company_id,c.assigned_to)=p_filters->>'assignee_reference')
+        AND (v_q='' OR strpos(lower(concat_ws(' ',c.title,c.reason_category)),v_q)>0)
+        AND (v_time IS NULL OR (c.created_at,c.id)<(v_time,v_id)) ORDER BY c.created_at DESC,c.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='entries' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT e.id,e.customer_case_id,e.event_type,e.message,e.payload,CASE WHEN u.id IS NULL THEN NULL ELSE e.created_by END AS created_by,e.created_at,u.full_name AS author_name
+      FROM public.customer_case_events e LEFT JOIN public.user_profiles u ON u.id=e.created_by AND EXISTS(SELECT 1 FROM public.company_memberships m WHERE m.user_id=u.id AND m.company_id=p_company_id)
+      WHERE e.company_id=p_company_id AND e.customer_id=v_case.customer_id AND e.customer_case_id=v_case.id
+        AND e.event_type IN ('support_customer_message','support_staff_reply','support_internal_note','support_phone_interaction','created','status_changed','assignment_changed')
+        AND (v_time IS NULL OR (e.created_at,e.id)<(v_time,v_id)) ORDER BY e.created_at DESC,e.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='attachments' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT a.id,a.public_reference,a.file_name,a.detected_mime_type,a.byte_size,a.sha256,a.visibility,a.uploaded_by_kind,a.scan_status,a.scan_reason,a.created_at
+      FROM public.customer_case_attachments a WHERE a.company_id=p_company_id AND a.customer_id=v_case.customer_id AND a.customer_case_id=v_case.id
+        AND (v_time IS NULL OR (a.created_at,a.id)<(v_time,v_id)) ORDER BY a.created_at DESC,a.id DESC LIMIT p_limit
+    ) r;
+  ELSIF p_operation='assignees' THEN
+    SELECT coalesce(jsonb_agg(to_jsonb(r)),'[]'::jsonb) INTO v_rows FROM (
+      SELECT u.id,u.full_name,u.created_at FROM public.user_profiles u
+      WHERE public.staff_api_actor_is_eligible_assignee(u.id,p_company_id)
+        AND (v_q='' OR strpos(lower(coalesce(u.full_name,'')),v_q)>0)
+        AND (v_time IS NULL OR (u.created_at,u.id)<(v_time,v_id)) ORDER BY u.created_at DESC,u.id DESC LIMIT p_limit
+    ) r;
+  ELSE RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+  END IF;
+  RETURN jsonb_build_object('rows',v_rows);
+END $$;
+
+--
+-- Name: staff_api_recovery_identity(text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_recovery_identity(p_email text, p_company_id uuid) RETURNS uuid
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+  select u.id from auth.users u join public.user_profiles p on p.id=u.id
+  where lower(btrim(u.email))=lower(btrim(p_email)) and u.deleted_at is null and (u.banned_until is null or u.banned_until<=clock_timestamp()) and u.email_confirmed_at is not null
+    and p.user_status='active' and to_jsonb(p)->>'disabled_at' is null
+    and exists(select 1 from public.companies c where c.id=p_company_id and c.status='active' and coalesce(c.is_active,true))
+    and (public.staff_api_is_platform_admin(u.id) or (public.staff_api_is_tenant_staff(u.id,p_company_id) and cardinality(public.staff_api_current_permissions(u.id,p_company_id))>0))
+  order by u.id limit 1;
+$$;
+
+--
+-- Name: staff_api_revoke_session(uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_revoke_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_status text DEFAULT 'revoked'::text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog', 'public', 'auth', 'pg_temp'
+    AS $$
+begin
+  if p_status not in ('revoked','blocked') then raise exception 'Invalid session revocation'; end if;
+  update public.staff_api_sessions set status=p_status,lease_id=null,lease_expires_at=null,updated_at=now() where id=p_session_id and api_client_id=p_client_id and company_id=p_company_id and (p_status='revoked' or status='active');
+  return found;
+end $$;
+
+--
+-- Name: staff_api_support_command(uuid, bigint, uuid, uuid, uuid, uuid, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.staff_api_support_command(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation text, p_reference text, p_idempotency_key text, p_request_hash text, p_payload jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $_$
+DECLARE
+  v_receipt public.staff_api_support_receipts%ROWTYPE;
+  v_case public.customer_cases%ROWTYPE;
+  v_customer public.customers%ROWTYPE;
+  v_event public.customer_case_events%ROWTYPE;
+  v_site_id uuid;
+  v_assignee uuid;
+  v_before jsonb;
+  v_response jsonb;
+  v_now timestamptz;
+  v_kind text;
+  v_visibility text;
+  v_message text;
+  v_prior_status_events uuid[];
+BEGIN
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  IF coalesce(p_operation,'') NOT IN ('create','reply','note','status','assignment') OR coalesce(p_request_hash,'') !~ '^[0-9a-f]{64}$'
+     OR length(coalesce(p_idempotency_key,'')) NOT BETWEEN 8 AND 200 OR p_idempotency_key !~ '^[A-Za-z0-9._:+~-]+$'
+     OR coalesce(jsonb_typeof(p_payload),'')<>'object' THEN
+    RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+  END IF;
+  -- Serializes matching operations across instances; hash collisions only serialize unrelated work.
+  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(concat_ws(':',p_company_id,p_client_id,p_user_id,p_operation,coalesce(p_reference,''),p_idempotency_key),0));
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  SELECT * INTO v_receipt FROM public.staff_api_support_receipts WHERE company_id=p_company_id AND api_client_id=p_client_id
+    AND actor_user_id=p_user_id AND operation=p_operation AND resource_reference=coalesce(p_reference,'') AND idempotency_key=p_idempotency_key FOR UPDATE;
+  IF FOUND THEN
+    IF v_receipt.request_hash<>p_request_hash THEN RAISE EXCEPTION USING ERRCODE='23505',MESSAGE='idempotency_conflict'; END IF;
+    IF v_receipt.response IS NULL THEN RAISE EXCEPTION USING ERRCODE='55000',MESSAGE='idempotency_in_progress'; END IF;
+    -- Check current target after authorization and before disclosing an old receipt.
+    IF NOT EXISTS(SELECT 1 FROM public.customer_cases c WHERE c.company_id=p_company_id
+      AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=v_receipt.response->>'case_reference'
+      AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_')) THEN
+      RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found';
+    END IF;
+    RETURN jsonb_build_object('data',v_receipt.response,'replayed',true);
+  END IF;
+  -- Shared across all staff mutations. An authorized exact replay does not
+  -- consume another mutation; a rolled-back command does not spend a slot.
+  IF NOT public.staff_api_consume_auth_budget(
+    encode(extensions.digest(concat_ws(':','staff-mutation',p_company_id,p_client_id,p_user_id),'sha256'),'hex'),20,60
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE='P0001',MESSAGE='staff_rate_limited';
+  END IF;
+  PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+  INSERT INTO public.staff_api_support_receipts(company_id,api_client_id,actor_user_id,operation,resource_reference,idempotency_key,request_hash)
+    VALUES(p_company_id,p_client_id,p_user_id,p_operation,coalesce(p_reference,''),p_idempotency_key,p_request_hash) RETURNING * INTO v_receipt;
+  IF p_operation='create' THEN
+    SELECT * INTO v_customer FROM public.customers c WHERE c.company_id=p_company_id
+      AND ('customer_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':customer:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_payload->>'customer_reference' FOR SHARE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='customer_not_found'; END IF;
+    IF coalesce(v_customer.status,'') IN ('merged','deleted','pending_deletion','deleted_test_only') OR v_customer.merged_into_customer_id IS NOT NULL THEN
+      RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='customer_not_found';
+    END IF;
+    IF p_payload->>'facility_reference' IS NOT NULL THEN
+      SELECT s.id INTO v_site_id FROM public.customer_sites s WHERE s.company_id=p_company_id AND s.customer_id=v_customer.id
+        AND ('facility_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || s.company_id::text || ':facility:' || s.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_payload->>'facility_reference' FOR SHARE;
+      IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='customer_not_found'; END IF;
+    END IF;
+    PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+    v_now:=clock_timestamp();
+    IF length(coalesce(p_payload->>'title','')) NOT BETWEEN 1 AND 180 OR length(coalesce(p_payload->>'description',''))>8000
+      OR length(coalesce(p_payload->>'category',''))>120 OR p_payload->>'priority' NOT IN ('low','normal','high','urgent') THEN
+      RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+    END IF;
+    INSERT INTO public.customer_cases(company_id,customer_id,site_id,case_type,status,priority,title,description,reason_category,source,metadata,created_by,updated_by,created_at,updated_at)
+      VALUES(p_company_id,v_customer.id,v_site_id,'other','open',p_payload->>'priority',p_payload->>'title',p_payload->>'description',p_payload->>'category','tenant_support_admin',
+        jsonb_build_object('support_case',true,'support_channel','admin','opened_by','staff','description_visibility','internal'),p_user_id,p_user_id,v_now,v_now) RETURNING * INTO v_case;
+    UPDATE public.customer_cases SET metadata=metadata||jsonb_build_object('support_public_reference',public.staff_api_public_reference('support_case',p_company_id,id)) WHERE id=v_case.id;
+    v_kind:='created'; v_visibility:='internal'; v_message:='Supportärende registrerat.';
+  ELSE
+    SELECT * INTO v_case FROM public.customer_cases c WHERE c.company_id=p_company_id
+      AND ('support_case_' || substr(translate(encode(extensions.digest('gridex-public-reference:v1:' || c.company_id::text || ':support_case:' || c.id::text,'sha256'),'base64'),'+/=','-_'),1,32))=p_reference
+      AND (c.metadata->>'support_case'='true' OR left(c.source,15)='tenant_support_') FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='P0002',MESSAGE='support_case_not_found'; END IF;
+    PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+    v_now:=clock_timestamp();
+    v_before:=jsonb_build_object('status',v_case.status,'assigned_to',v_case.assigned_to);
+    IF p_operation IN ('reply','note') AND v_case.status IN ('resolved','closed','cancelled') THEN
+      RAISE EXCEPTION USING ERRCODE='23514',MESSAGE='support_case_closed';
+    END IF;
+    IF p_operation IN ('status','assignment') AND (p_payload->>'expected_updated_at')::timestamptz IS DISTINCT FROM v_case.updated_at THEN
+      RAISE EXCEPTION USING ERRCODE='40001',MESSAGE='support_case_version_conflict';
+    END IF;
+    IF p_operation IN ('reply','note') THEN
+      IF length(coalesce(p_payload->>'message','')) NOT BETWEEN 1 AND 8000 THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request'; END IF;
+      IF p_operation='reply' AND p_payload->>'kind' NOT IN ('message','phone_summary') THEN RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request'; END IF;
+      v_kind:=CASE WHEN p_operation='reply' THEN 'support_staff_reply' ELSE 'support_internal_note' END;
+      v_visibility:=CASE WHEN p_operation='reply' THEN 'customer' ELSE 'internal' END; v_message:=p_payload->>'message';
+    ELSIF p_operation='status' THEN
+      IF p_payload->>'status' NOT IN ('open','action_required','awaiting_external_response','manual_follow_up','resolved','closed') THEN
+        RAISE EXCEPTION USING ERRCODE='22023',MESSAGE='invalid_request';
+      END IF;
+      -- Existing native RPC preserves its own actor gate and atomic case/event/audit semantics.
+      SELECT coalesce(array_agg(id),'{}'::uuid[]) INTO v_prior_status_events FROM public.customer_case_events
+        WHERE customer_case_id=v_case.id AND company_id=p_company_id AND event_type='status_changed';
+      PERFORM public.gridex_update_customer_case_status(v_case.id,p_company_id,p_payload->>'status',p_user_id,NULL,p_payload->>'message');
+      SELECT * INTO v_case FROM public.customer_cases WHERE id=v_case.id AND company_id=p_company_id;
+      SELECT * INTO v_event FROM public.customer_case_events WHERE customer_case_id=v_case.id AND company_id=p_company_id
+        AND event_type='status_changed' AND NOT(id=ANY(v_prior_status_events));
+      IF NOT FOUND THEN RAISE EXCEPTION 'Staff status event missing'; END IF;
+    ELSE
+      IF p_payload->>'assignee_reference' IS NOT NULL THEN
+        SELECT u.id INTO v_assignee FROM public.user_profiles u JOIN public.company_memberships m ON m.user_id=u.id AND m.company_id=p_company_id
+          WHERE public.staff_api_public_reference('staff',p_company_id,u.id)=p_payload->>'assignee_reference'
+          AND public.staff_api_actor_is_eligible_assignee(u.id,p_company_id)
+          FOR SHARE OF u,m;
+        IF NOT FOUND THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='support_assignee_ineligible'; END IF;
+      END IF;
+      PERFORM public.staff_api_assert_command_actor(p_session_id,p_revision,p_user_id,p_native_session_id,p_client_id,p_company_id,'cases.write');
+      v_now:=clock_timestamp();
+      UPDATE public.customer_cases SET assigned_to=v_assignee,updated_by=p_user_id,updated_at=v_now WHERE id=v_case.id AND company_id=p_company_id RETURNING * INTO v_case;
+      v_kind:='assignment_changed'; v_visibility:='internal'; v_message:='Handläggare uppdaterad.';
+    END IF;
+  END IF;
+  IF p_operation<>'status' THEN
+    IF p_operation IN ('reply','note') THEN
+      UPDATE public.customer_cases SET updated_by=p_user_id,updated_at=v_now WHERE id=v_case.id AND company_id=p_company_id RETURNING * INTO v_case;
+    END IF;
+    INSERT INTO public.customer_case_events(company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by,created_at)
+      VALUES(p_company_id,v_case.id,v_case.customer_id,v_kind,'info',v_message,
+        jsonb_build_object('visibility',v_visibility,'author_type','staff','channel','ops','kind',CASE WHEN p_operation='reply' THEN p_payload->>'kind' ELSE NULL END,'assigned_to',v_case.assigned_to),p_user_id,v_now) RETURNING * INTO v_event;
+  END IF;
+  -- Native status keeps its own domain audit; this staff boundary audit binds every command to its client/session.
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata)
+    VALUES(p_company_id,p_user_id,'customer_case',v_case.id::text,'staff_support_'||p_operation,coalesce(v_before,'{}'::jsonb),
+      jsonb_build_object('status',v_case.status,'assigned_to',v_case.assigned_to,'entry_id',v_event.id),
+      jsonb_build_object('customer_id',v_case.customer_id,'api_client_id',p_client_id,'staff_session_id',p_session_id));
+  IF p_operation IN ('reply','note') THEN
+    v_response:=jsonb_build_object('entry_reference',public.staff_api_public_reference('support_message',p_company_id,v_event.id),
+      'case_reference',public.staff_api_public_reference('support_case',p_company_id,v_case.id),'kind',CASE WHEN p_operation='reply' THEN 'staff_reply' ELSE 'internal_note' END,
+      'visibility',v_visibility,'author_type','staff','author',jsonb_build_object('staff_reference',public.staff_api_public_reference('staff',p_company_id,p_user_id),'display_name',(SELECT coalesce(nullif(full_name,''),'Personal') FROM public.user_profiles WHERE id=p_user_id)),
+      'body',v_message,'created_at',v_event.created_at);
+    IF p_operation='reply' THEN v_response:=v_response||jsonb_build_object('reply_kind',p_payload->>'kind'); END IF;
+  ELSE
+    v_response:=jsonb_build_object('case_reference',public.staff_api_public_reference('support_case',p_company_id,v_case.id),'status',v_case.status,'updated_at',v_case.updated_at);
+    IF p_operation='create' THEN v_response:=v_response||jsonb_build_object('customer_reference',public.staff_api_public_reference('customer',p_company_id,v_case.customer_id),'priority',v_case.priority,'created_at',v_case.created_at);
+    ELSE v_response:=v_response||jsonb_build_object('assigned_to',public.staff_api_public_reference('staff',p_company_id,v_case.assigned_to),'entry_reference',public.staff_api_public_reference('support_message',p_company_id,v_event.id)); END IF;
+  END IF;
+  UPDATE public.staff_api_support_receipts SET response=v_response,completed_at=clock_timestamp() WHERE id=v_receipt.id AND company_id=p_company_id;
+  RETURN jsonb_build_object('data',v_response,'replayed',false);
+END $_$;
+
+--
 -- Name: store_website_public_contract_snapshot(text, text, text, bigint, text, text, text, text, jsonb, integer, integer, integer, text, jsonb, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -73677,6 +74603,106 @@ CREATE TABLE public.spot_price_sources (
 );
 
 --
+-- Name: staff_api_attachment_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_api_attachment_receipts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    resource_reference text NOT NULL,
+    idempotency_key text NOT NULL,
+    request_hash text NOT NULL,
+    attachment_id uuid NOT NULL,
+    lease_id uuid NOT NULL,
+    lease_expires_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    completed_at timestamp with time zone,
+    CONSTRAINT staff_api_attachment_receipts_idempotency_key_check CHECK (((length(idempotency_key) >= 8) AND (length(idempotency_key) <= 200))),
+    CONSTRAINT staff_api_attachment_receipts_request_hash_check CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT staff_api_attachment_receipts_resource_reference_check CHECK ((resource_reference ~ '^support_case_[A-Za-z0-9_-]{20,64}$'::text))
+);
+
+--
+-- Name: staff_api_auth_budgets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_api_auth_budgets (
+    budget_key text NOT NULL,
+    window_start timestamp with time zone NOT NULL,
+    attempts integer NOT NULL,
+    CONSTRAINT staff_api_auth_budgets_attempts_check CHECK ((attempts > 0))
+);
+
+--
+-- Name: staff_api_session_operations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_api_session_operations (
+    session_id uuid NOT NULL,
+    operation_key text NOT NULL,
+    command text NOT NULL,
+    request_hash text NOT NULL,
+    status text NOT NULL,
+    lease_id uuid NOT NULL,
+    encrypted_receipt text,
+    completed_revision bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT staff_api_session_operations_operation_key_check CHECK (((length(operation_key) >= 16) AND (length(operation_key) <= 128))),
+    CONSTRAINT staff_api_session_operations_request_hash_check CHECK ((length(request_hash) = 64)),
+    CONSTRAINT staff_api_session_operations_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'completed'::text, 'blocked'::text])))
+);
+
+--
+-- Name: staff_api_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_api_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid NOT NULL,
+    native_session_id uuid NOT NULL,
+    encrypted_payload text NOT NULL,
+    refresh_hash text NOT NULL,
+    previous_refresh_hash text,
+    revision bigint DEFAULT 1 NOT NULL,
+    stage text NOT NULL,
+    native_aal text NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    lease_id uuid,
+    lease_expires_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT staff_api_sessions_native_aal_check CHECK ((native_aal = ANY (ARRAY['aal1'::text, 'aal2'::text]))),
+    CONSTRAINT staff_api_sessions_refresh_hash_check CHECK ((length(refresh_hash) = 64)),
+    CONSTRAINT staff_api_sessions_revision_check CHECK ((revision > 0)),
+    CONSTRAINT staff_api_sessions_stage_check CHECK ((stage = ANY (ARRAY['authenticated'::text, 'mfa_required'::text, 'password_change_required'::text]))),
+    CONSTRAINT staff_api_sessions_status_check CHECK ((status = ANY (ARRAY['active'::text, 'revoked'::text, 'blocked'::text])))
+);
+
+--
+-- Name: staff_api_support_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.staff_api_support_receipts (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    company_id uuid NOT NULL,
+    api_client_id uuid NOT NULL,
+    actor_user_id uuid NOT NULL,
+    operation text NOT NULL,
+    resource_reference text DEFAULT ''::text NOT NULL,
+    idempotency_key text NOT NULL,
+    request_hash text NOT NULL,
+    response jsonb,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    completed_at timestamp with time zone,
+    CONSTRAINT staff_api_support_receipts_request_hash_check CHECK ((request_hash ~ '^[0-9a-f]{64}$'::text))
+);
+
+--
 -- Name: supplier_switch_events; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -74933,6 +75959,13 @@ CREATE TABLE public.user_profiles (
     last_auth_email_action_at timestamp with time zone,
     last_auth_email_action_by uuid,
     last_auth_email_message text,
+    must_change_password boolean DEFAULT false NOT NULL,
+    temporary_password_set_at timestamp with time zone,
+    temporary_password_expires_at timestamp with time zone,
+    password_changed_at timestamp with time zone,
+    temporary_password_set_by uuid,
+    temporary_password_company_id uuid,
+    temporary_password_company_name text,
     CONSTRAINT user_profiles_last_auth_email_action_check CHECK (((last_auth_email_action IS NULL) OR (last_auth_email_action = ANY (ARRAY['invite_sent'::text, 'password_reset_sent'::text, 'confirmation_sent'::text, 'email_confirmed'::text, 'password_updated'::text, 'auth_callback_completed'::text, 'auth_callback_failed'::text]))))
 );
 
@@ -74949,7 +75982,8 @@ CREATE TABLE public.user_roles (
     status text DEFAULT 'active'::text NOT NULL,
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone
 );
 
 --
@@ -79117,6 +80151,69 @@ ALTER TABLE ONLY public.spot_price_sources
 
 ALTER TABLE ONLY public.spot_price_sources
     ADD CONSTRAINT spot_price_sources_source_key_key UNIQUE (source_key);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_company_id_api_client_id_acto_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_company_id_api_client_id_acto_key UNIQUE (company_id, api_client_id, actor_user_id, resource_reference, idempotency_key);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_company_id_attachment_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_company_id_attachment_id_key UNIQUE (company_id, attachment_id);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_pkey PRIMARY KEY (id);
+
+--
+-- Name: staff_api_auth_budgets staff_api_auth_budgets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_auth_budgets
+    ADD CONSTRAINT staff_api_auth_budgets_pkey PRIMARY KEY (budget_key);
+
+--
+-- Name: staff_api_session_operations staff_api_session_operations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_session_operations
+    ADD CONSTRAINT staff_api_session_operations_pkey PRIMARY KEY (session_id, operation_key);
+
+--
+-- Name: staff_api_sessions staff_api_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_pkey PRIMARY KEY (id);
+
+--
+-- Name: staff_api_sessions staff_api_sessions_refresh_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_refresh_hash_key UNIQUE (refresh_hash);
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_company_id_api_client_id_actor_u_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_company_id_api_client_id_actor_u_key UNIQUE (company_id, api_client_id, actor_user_id, operation, resource_reference, idempotency_key);
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_pkey PRIMARY KEY (id);
 
 --
 -- Name: supplier_switch_events supplier_switch_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -89196,6 +90293,72 @@ CREATE INDEX spot_price_import_jobs_due_idx ON public.spot_price_import_jobs USI
 CREATE INDEX spot_price_import_jobs_running_idx ON public.spot_price_import_jobs USING btree (started_at) WHERE (status = 'running'::text);
 
 --
+-- Name: staff_api_attachment_company_id_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX staff_api_attachment_company_id_key ON public.customer_case_attachments USING btree (company_id, id);
+
+--
+-- Name: staff_api_attachment_keyset_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_attachment_keyset_idx ON public.customer_case_attachments USING btree (company_id, customer_case_id, created_at DESC, id DESC);
+
+--
+-- Name: staff_api_case_keyset_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_case_keyset_idx ON public.customer_cases USING btree (company_id, created_at DESC, id DESC);
+
+--
+-- Name: staff_api_cases_reference_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_cases_reference_idx ON public.customer_cases USING btree (company_id, (('support_case_'::text || substr(translate(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':support_case:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '+/='::text, '-_'::text), 1, 32))));
+
+--
+-- Name: staff_api_customers_reference_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_customers_reference_idx ON public.customers USING btree (company_id, (('customer_'::text || substr(translate(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':customer:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '+/='::text, '-_'::text), 1, 32))));
+
+--
+-- Name: staff_api_entry_keyset_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_entry_keyset_idx ON public.customer_case_events USING btree (company_id, customer_case_id, created_at DESC, id DESC);
+
+--
+-- Name: staff_api_facilities_reference_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_facilities_reference_idx ON public.customer_sites USING btree (company_id, (('facility_'::text || substr(translate(encode(extensions.digest(((('gridex-public-reference:v1:'::text || (company_id)::text) || ':facility:'::text) || (id)::text), 'sha256'::text), 'base64'::text), '+/='::text, '-_'::text), 1, 32))));
+
+--
+-- Name: staff_api_session_validation_retention; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_session_validation_retention ON public.staff_api_session_operations USING btree (created_at, session_id) WHERE ((command = 'validate'::text) AND (status = 'completed'::text));
+
+--
+-- Name: staff_api_sessions_expiry; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_sessions_expiry ON public.staff_api_sessions USING btree (expires_at, id);
+
+--
+-- Name: staff_api_sessions_previous_refresh; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_sessions_previous_refresh ON public.staff_api_sessions USING btree (previous_refresh_hash) WHERE (previous_refresh_hash IS NOT NULL);
+
+--
+-- Name: staff_api_sessions_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX staff_api_sessions_user ON public.staff_api_sessions USING btree (user_id, company_id, api_client_id);
+
+--
 -- Name: supplier_switch_requests_application_contract_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -91587,6 +92750,24 @@ CREATE TRIGGER spot_price_monthly_locked_immutable BEFORE DELETE OR UPDATE ON pu
 --
 
 CREATE TRIGGER spot_price_monthly_server_aggregate_v1 BEFORE INSERT OR UPDATE ON public.spot_price_monthly_summaries FOR EACH ROW WHEN ((pg_trigger_depth() = 0)) EXECUTE FUNCTION public.gridex_enforce_spot_price_month_server_aggregate_v1();
+
+--
+-- Name: customer_case_attachments staff_api_attachment_quota_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_api_attachment_quota_guard BEFORE INSERT ON public.customer_case_attachments FOR EACH ROW EXECUTE FUNCTION public.staff_api_attachment_quota_guard();
+
+--
+-- Name: user_profiles staff_api_protected_account_policy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_api_protected_account_policy BEFORE UPDATE ON public.user_profiles FOR EACH ROW EXECUTE FUNCTION public.staff_api_protect_account_policy();
+
+--
+-- Name: staff_api_sessions staff_api_session_bootstrap_policy; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER staff_api_session_bootstrap_policy BEFORE INSERT ON public.staff_api_sessions FOR EACH ROW EXECUTE FUNCTION public.staff_api_check_session_bootstrap();
 
 --
 -- Name: supplier_switch_requests supplier_switch_requests_customer_archived_guard_trg; Type: TRIGGER; Schema: public; Owner: -
@@ -98907,6 +100088,104 @@ ALTER TABLE ONLY public.route_decision_logs
 
 ALTER TABLE ONLY public.spot_price_import_jobs
     ADD CONSTRAINT spot_price_import_jobs_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_api_client_id_fkey FOREIGN KEY (api_client_id) REFERENCES public.integration_api_clients(id);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_company_client_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_company_client_fkey FOREIGN KEY (company_id, api_client_id) REFERENCES public.integration_api_clients(company_id, id);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_company_id_attachment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_company_id_attachment_id_fkey FOREIGN KEY (company_id, attachment_id) REFERENCES public.customer_case_attachments(company_id, id);
+
+--
+-- Name: staff_api_attachment_receipts staff_api_attachment_receipts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_attachment_receipts
+    ADD CONSTRAINT staff_api_attachment_receipts_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: staff_api_session_operations staff_api_session_operations_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_session_operations
+    ADD CONSTRAINT staff_api_session_operations_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.staff_api_sessions(id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_sessions staff_api_sessions_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_api_client_id_fkey FOREIGN KEY (api_client_id) REFERENCES public.integration_api_clients(id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_sessions staff_api_sessions_company_client_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_company_client_fkey FOREIGN KEY (company_id, api_client_id) REFERENCES public.integration_api_clients(company_id, id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_sessions staff_api_sessions_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_sessions staff_api_sessions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_sessions
+    ADD CONSTRAINT staff_api_sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES auth.users(id);
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_api_client_id_fkey FOREIGN KEY (api_client_id) REFERENCES public.integration_api_clients(id);
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_company_client_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_company_client_fkey FOREIGN KEY (company_id, api_client_id) REFERENCES public.integration_api_clients(company_id, id);
+
+--
+-- Name: staff_api_support_receipts staff_api_support_receipts_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.staff_api_support_receipts
+    ADD CONSTRAINT staff_api_support_receipts_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
 
 --
 -- Name: supplier_switch_events supplier_switch_events_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -110808,6 +112087,36 @@ ALTER TABLE public.spot_price_monthly_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.spot_price_sources ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: staff_api_attachment_receipts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_api_attachment_receipts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: staff_api_auth_budgets; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_api_auth_budgets ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: staff_api_session_operations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_api_session_operations ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: staff_api_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_api_sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: staff_api_support_receipts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.staff_api_support_receipts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: supplier_switch_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -118385,6 +119694,13 @@ REVOKE ALL ON FUNCTION public.authenticate_provisioning_smoke_request_v1(p_key_p
 GRANT ALL ON FUNCTION public.authenticate_provisioning_smoke_request_v1(p_key_prefix text, p_secret_hash text, p_receipt_id uuid, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) TO service_role;
 
 --
+-- Name: FUNCTION authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.authenticate_staff_integration_request_v1(p_key_prefix text, p_secret_hash text, p_method text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) TO service_role;
+
+--
 -- Name: FUNCTION backfill_companies(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -123294,6 +124610,167 @@ GRANT ALL ON FUNCTION public.set_updated_at_timestamp() TO authenticated;
 GRANT ALL ON FUNCTION public.set_updated_at_timestamp() TO service_role;
 
 --
+-- Name: FUNCTION staff_api_acquire_session_operation(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_command text, p_request_hash text, p_revision bigint, p_refresh_hash text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_acquire_session_operation(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_command text, p_request_hash text, p_revision bigint, p_refresh_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_acquire_session_operation(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_command text, p_request_hash text, p_revision bigint, p_refresh_hash text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_actor_is_eligible_assignee(p_user_id uuid, p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_actor_is_eligible_assignee(p_user_id uuid, p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_actor_is_eligible_assignee(p_user_id uuid, p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_assert_command_actor(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_permission text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_assert_command_actor(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_permission text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_assert_command_actor(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_permission text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_attachment_finalize(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid, p_verified_sha256 text, p_verified_byte_size integer, p_scan_status text, p_detected_mime text, p_scan_reason text, p_file_name text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_attachment_finalize(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid, p_verified_sha256 text, p_verified_byte_size integer, p_scan_status text, p_detected_mime text, p_scan_reason text, p_file_name text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_attachment_finalize(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid, p_verified_sha256 text, p_verified_byte_size integer, p_scan_status text, p_detected_mime text, p_scan_reason text, p_file_name text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_attachment_quota_guard(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_attachment_quota_guard() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_attachment_quota_guard() TO service_role;
+
+--
+-- Name: FUNCTION staff_api_attachment_release(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_attachment_release(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_attachment_release(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_attachment_reference text, p_lease_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_attachment_reserve(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_file_name text, p_declared_mime text, p_byte_size integer, p_sha256 text, p_visibility text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_attachment_reserve(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_file_name text, p_declared_mime text, p_byte_size integer, p_sha256 text, p_visibility text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_attachment_reserve(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_case_reference text, p_idempotency_key text, p_request_hash text, p_file_name text, p_declared_mime text, p_byte_size integer, p_sha256 text, p_visibility text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_check_session_bootstrap(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_check_session_bootstrap() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_check_session_bootstrap() TO service_role;
+
+--
+-- Name: FUNCTION staff_api_cleanup(p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_cleanup(p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_cleanup(p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_client_policy_allowed(p_client_id uuid, p_company_id uuid, p_scope text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_client_policy_allowed(p_client_id uuid, p_company_id uuid, p_scope text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_client_policy_allowed(p_client_id uuid, p_company_id uuid, p_scope text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_complete_session_operation(p_session_id uuid, p_lease_id uuid, p_encrypted_payload text, p_native_session_id uuid, p_stage text, p_native_aal text, p_refresh_hash text, p_encrypted_receipt text, p_advance_revision boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_complete_session_operation(p_session_id uuid, p_lease_id uuid, p_encrypted_payload text, p_native_session_id uuid, p_stage text, p_native_aal text, p_refresh_hash text, p_encrypted_receipt text, p_advance_revision boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_complete_session_operation(p_session_id uuid, p_lease_id uuid, p_encrypted_payload text, p_native_session_id uuid, p_stage text, p_native_aal text, p_refresh_hash text, p_encrypted_receipt text, p_advance_revision boolean) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_consume_auth_budget(p_budget_key text, p_limit integer, p_window_seconds integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_consume_auth_budget(p_budget_key text, p_limit integer, p_window_seconds integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_consume_auth_budget(p_budget_key text, p_limit integer, p_window_seconds integer) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_current_permissions(p_user_id uuid, p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_current_permissions(p_user_id uuid, p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_current_permissions(p_user_id uuid, p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_is_platform_admin(p_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_is_platform_admin(p_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_is_platform_admin(p_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_is_tenant_staff(p_user_id uuid, p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_is_tenant_staff(p_user_id uuid, p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_is_tenant_staff(p_user_id uuid, p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_logout_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_request_hash text, p_receipt text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_logout_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_request_hash text, p_receipt text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_logout_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation_key text, p_request_hash text, p_receipt text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_native_account_state(p_user_id uuid, p_native_session_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_native_account_state(p_user_id uuid, p_native_session_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_native_account_state(p_user_id uuid, p_native_session_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_protect_account_policy(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_protect_account_policy() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_protect_account_policy() TO service_role;
+
+--
+-- Name: FUNCTION staff_api_public_reference(p_kind text, p_company_id uuid, p_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_public_reference(p_kind text, p_company_id uuid, p_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_public_reference(p_kind text, p_company_id uuid, p_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_read_resources(p_company_id uuid, p_operation text, p_reference text, p_filters jsonb, p_after jsonb, p_limit integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_read_resources(p_company_id uuid, p_operation text, p_reference text, p_filters jsonb, p_after jsonb, p_limit integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_read_resources(p_company_id uuid, p_operation text, p_reference text, p_filters jsonb, p_after jsonb, p_limit integer) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_recovery_identity(p_email text, p_company_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_recovery_identity(p_email text, p_company_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_recovery_identity(p_email text, p_company_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_revoke_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_status text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_revoke_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_status text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_revoke_session(p_session_id uuid, p_client_id uuid, p_company_id uuid, p_status text) TO service_role;
+
+--
+-- Name: FUNCTION staff_api_support_command(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation text, p_reference text, p_idempotency_key text, p_request_hash text, p_payload jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.staff_api_support_command(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation text, p_reference text, p_idempotency_key text, p_request_hash text, p_payload jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.staff_api_support_command(p_session_id uuid, p_revision bigint, p_user_id uuid, p_native_session_id uuid, p_client_id uuid, p_company_id uuid, p_operation text, p_reference text, p_idempotency_key text, p_request_hash text, p_payload jsonb) TO service_role;
+
+--
 -- Name: FUNCTION store_website_public_contract_snapshot(p_cache_key text, p_tenant_reference text, p_customer_type text, p_publication_revision bigint, p_contract_version text, p_parser_version text, p_schema_sha256 text, p_etag text, p_snapshot jsonb, p_accepted_count integer, p_blocked_count integer, p_upstream_count integer, p_feed_state text, p_empty_feed_authorization jsonb, p_fetched_at timestamp with time zone); Type: ACL; Schema: public; Owner: -
 --
 
@@ -126918,6 +128395,36 @@ GRANT ALL ON TABLE public.spot_price_import_runs TO service_role;
 
 GRANT ALL ON TABLE public.spot_price_sources TO authenticated;
 GRANT ALL ON TABLE public.spot_price_sources TO service_role;
+
+--
+-- Name: TABLE staff_api_attachment_receipts; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.staff_api_attachment_receipts TO service_role;
+
+--
+-- Name: TABLE staff_api_auth_budgets; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.staff_api_auth_budgets TO service_role;
+
+--
+-- Name: TABLE staff_api_session_operations; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.staff_api_session_operations TO service_role;
+
+--
+-- Name: TABLE staff_api_sessions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.staff_api_sessions TO service_role;
+
+--
+-- Name: TABLE staff_api_support_receipts; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.staff_api_support_receipts TO service_role;
 
 --
 -- Name: TABLE supplier_switch_events; Type: ACL; Schema: public; Owner: -

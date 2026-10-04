@@ -1,5 +1,37 @@
 # Tenantservice side track: checkpoint
 
+## Separate staff API workstream — 2026-10-03
+
+User requires staff-only `support123.gridex.se` and API-only OPS staff Auth,
+customer/support data. OPS source baseline2c8e283e; Ediel memory is unchanged.
+Standalone staff2026-10-03.1 raw SHA
+cf524f691b2ebd37ef8dfcc4b898c55fc74a99c930a59089235adbfda2752d71;
+legacy .4 unchanged. All8 forward migrations are checksum-registered; first4
+published bytes remain immutable. Real native deadlock, clean-replay policy gap,
+Website-only machine auth and current-client commit authority are corrected.
+Final local OPS443 files/6707 tests and app/test/script TypeScript, API/RBAC,
+performance/service-role gates pass. All8 actual selected SQL/machine core pass
+single-connection PG17.5 diagnostic. Source322f9c7 actual PG17.6 passes20
+concurrency programs (run37162609294/job111318986161). PG16 fixture now strips
+only four unsupported PG17 MAINTAIN table ACL tokens; final rerun pending.
+Authentic all8 capture11288273001/run37162609263/job111318986144 imported
+exact types/schema/fingerprint; manifest binds observed ZIP/checkout/tree hashes.
+Types64584abb..., schema cba8c513..., fingerprint9c3acdc5...; local migration
+checks/new-schema SQL diagnostics pass. Full replay later parity stages pending.
+
+Web PR43 f640d29028199006623ac3e3888170e0fbe1b90e tree4f8ce40d88a5e2f2ba69fb7d6533e52f9c7b2786:
+quality37161878576, OpenAPI37161878579, native16/17 37161878583 all SUCCESS.
+Previewdpl_8EQuim2JX1S5K8dZAdN6mNhVvBnv READY. Fixed all-path NextAction
+host bypass, with compiled actual14-path denials plus main/asset controls.
+Provider/two-company authenticated production is not established by these gates.
+
+Evidence: quality/tenantservice/staff-api-verification-2026-10-03.md.
+Next: publish final OPS corrections and authentic capture import; run
+native16.15/17.6/full replay and qualify exact head; then
+coordinate secure keys/settings/migrations/cutover and real provider/Storage/RBAC.
+OPS dashboard access remains unavailable to the logged-in Web Supabase account.
+No production activation is claimed. Preserve every non-staff checkpoint section.
+
 Status: #425 MERGED (squash `d548e23`). Follow-up in progress. Last updated 2026-10-01 ~20:40 UTC.
 
 Separate from the Ediel checkpoint (`checkpoint.json`). Do not overwrite that file.

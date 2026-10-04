@@ -3,6 +3,7 @@ const path = require('node:path')
 
 const root = process.cwd()
 const registry = fs.readFileSync(path.join(root, 'lib/api/publicRouteRegistry.ts'), 'utf8')
+const staffRegistry = fs.readFileSync(path.join(root, 'lib/staff-api/routeRegistry.ts'), 'utf8')
 const routeFiles = []
 function walk(dir) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -19,7 +20,8 @@ for (const file of routeFiles) {
   const source = fs.readFileSync(file, 'utf8')
   for (const method of ['GET', 'POST']) {
     if (new RegExp(`export\\s+async\\s+function\\s+${method}\\b`).test(source)) {
-      if (!registry.includes(`path: '${rel}'`) || !registry.includes(`method: '${method}'`)) missing.push(`${method} ${rel}`)
+      const staffPath = new RegExp(`"path"\\s*:\\s*${JSON.stringify(rel).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(staffRegistry)
+      if ((!registry.includes(`path: '${rel}'`) || !registry.includes(`method: '${method}'`)) && !staffPath) missing.push(`${method} ${rel}`)
     }
   }
 }

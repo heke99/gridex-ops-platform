@@ -21,7 +21,7 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function CustomerCasesPage({ searchParams }: { searchParams: Promise<{ customer?: string; channel?: string }> }) {
-  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const context = await requireAdminPageKeyAccess('customer.cases')
   const query = await searchParams
   const scope = await resolveAdminTenantReadScope(context)
   const [allCases, customers] = await Promise.all([

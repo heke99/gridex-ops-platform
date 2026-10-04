@@ -13,6 +13,7 @@ import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
 import { provisionTenantWebsiteIntegration } from '@/lib/integrations/tenantWebsiteProvisioning'
 import { reconcileTenantWebsiteCapabilities } from '@/lib/integrations/tenantWebsiteReadiness'
 import { isTenantWebsiteIntegrationClient } from '@/lib/integrations/tenantWebsiteClient'
+import { requireCurrentStaffClientAdministrator } from '@/lib/integrations/staffClientCreation'
 import {
   WEBSITE_APPLICATION_REFERENCE_LOCATION,
   WEBSITE_INTEGRATION_BASE_URL,
@@ -265,12 +266,13 @@ export async function setIntegrationApiClientStatusAction(formData: FormData) {
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,status,profile_key,scopes')
+    .select('id,company_id,status,profile_key,scopes,metadata')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
+  await requireCurrentStaffClientAdministrator(context.userId, current)
 
   if (status === 'active' && isTenantWebsiteIntegrationClient(current)) {
     throw new Error(
@@ -356,6 +358,9 @@ export async function updateIntegrationApiClientPermissionsAction(formData: Form
   const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
     ? current.metadata as Record<string, unknown>
     : {}
+  if (current.profile_key === 'custom' && metadata.integration_kind === 'staff_support_v1') {
+    throw new Error('Staff-klientens fasta behörigheter får inte ändras genom hemsidans go-live-flöde.')
+  }
   const hasCanonicalGoLive =
     metadata.go_live_flow === 'canonical_tenant_website_v2'
     && typeof metadata.provisioning_receipt_id === 'string'
@@ -432,12 +437,13 @@ export async function rotateIntegrationApiClientTokenAction(formData: FormData) 
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,metadata')
+    .select('id,company_id,name,status,key_prefix,metadata,profile_key')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
+  await requireCurrentStaffClientAdministrator(context.userId, current)
   if (current.status !== 'active' && current.status !== 'paused') throw new Error('Endast aktiva eller pausade API-klienter kan roteras.')
 
   const metadata = current.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
@@ -481,12 +487,13 @@ export async function deleteIntegrationApiClientAction(formData: FormData) {
 
   const { data: current, error: currentError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,scopes,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata')
+    .select('id,company_id,name,status,key_prefix,scopes,allowed_origins,allowed_ips,rate_limit_per_minute,last_used_at,expires_at,created_at,metadata,profile_key')
     .eq('id', clientId)
     .maybeSingle()
 
   if (currentError) throw currentError
   if (!current) throw new Error('API-klienten hittades inte.')
+  await requireCurrentStaffClientAdministrator(context.userId, current)
   if (current.status === 'active') {
     throw new Error('Aktiva API-nycklar måste återkallas innan de kan raderas.')
   }

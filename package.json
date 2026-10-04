@@ -236,7 +236,7 @@
     "api:docs-version": "node scripts/check-api-documentation-version.cjs",
     "api:docs-examples": "node scripts/check-api-documentation-examples.cjs",
     "api:shared-components": "node scripts/check-shared-openapi-components.cjs",
-    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi && npm run api:contract-corrections",
+    "api:docs": "npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi && npm run api:contract-corrections && npm run api:staff:check",
     "gridex:market-price-api-regression": "node scripts/gridex-market-price-api-regression.cjs",
     "verify:market-price-api:static": "npm run db:migrations:check && npm run gridex:market-price-api-regression && npm run gridex:canonical-market-flow-regression && npm run gridex:single-api-key-integration-regression && npm run api:docs",
     "verify:market-price-api": "npm run verify:market-price-api:static && npm run typecheck && npm run test:canonical-market-flow && npm run build",
@@ -297,7 +297,11 @@
     "tenant:invariants": "node scripts/run-tenant-sql.mjs scripts/sql/tenant-isolation-invariants.sql",
     "tenant:service-role-ratchet": "node scripts/check-service-role-tenant-ratchet.cjs",
     "ediel:masterplan-v2:integrity": "node scripts/check-ediel-masterplan-v2.cjs",
-    "ediel:masterplan-v2:test-coverage": "node scripts/ediel-masterplan-test-coverage.cjs"
+    "ediel:masterplan-v2:test-coverage": "node scripts/ediel-masterplan-test-coverage.cjs",
+    "api:staff:generate": "node scripts/generate-staff-openapi.cjs",
+    "api:staff:materialize": "node scripts/materialize-staff-openapi-release.cjs",
+    "api:staff:check": "node scripts/check-staff-api-contract.cjs",
+    "api:staff:release:verify": "node scripts/verify-staff-openapi-release.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.9.0",

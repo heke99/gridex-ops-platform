@@ -71756,6 +71756,687 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_api_attachment_receipts: {
+        Row: {
+          actor_user_id: string
+          api_client_id: string
+          attachment_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          lease_expires_at: string
+          lease_id: string
+          request_hash: string
+          resource_reference: string
+        }
+        Insert: {
+          actor_user_id: string
+          api_client_id: string
+          attachment_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          lease_expires_at: string
+          lease_id: string
+          request_hash: string
+          resource_reference: string
+        }
+        Update: {
+          actor_user_id?: string
+          api_client_id?: string
+          attachment_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          lease_expires_at?: string
+          lease_id?: string
+          request_hash?: string
+          resource_reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_api_attachment_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_attachment_id_fkey"
+            columns: ["company_id", "attachment_id"]
+            isOneToOne: true
+            referencedRelation: "customer_case_attachments"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_attachment_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      staff_api_auth_budgets: {
+        Row: {
+          attempts: number
+          budget_key: string
+          window_start: string
+        }
+        Insert: {
+          attempts: number
+          budget_key: string
+          window_start: string
+        }
+        Update: {
+          attempts?: number
+          budget_key?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      staff_api_session_operations: {
+        Row: {
+          command: string
+          completed_revision: number | null
+          created_at: string
+          encrypted_receipt: string | null
+          lease_id: string
+          operation_key: string
+          request_hash: string
+          session_id: string
+          status: string
+        }
+        Insert: {
+          command: string
+          completed_revision?: number | null
+          created_at?: string
+          encrypted_receipt?: string | null
+          lease_id: string
+          operation_key: string
+          request_hash: string
+          session_id: string
+          status: string
+        }
+        Update: {
+          command?: string
+          completed_revision?: number | null
+          created_at?: string
+          encrypted_receipt?: string | null
+          lease_id?: string
+          operation_key?: string
+          request_hash?: string
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_api_session_operations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "staff_api_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_api_sessions: {
+        Row: {
+          api_client_id: string
+          company_id: string
+          created_at: string
+          encrypted_payload: string
+          expires_at: string
+          id: string
+          lease_expires_at: string | null
+          lease_id: string | null
+          native_aal: string
+          native_session_id: string
+          previous_refresh_hash: string | null
+          refresh_hash: string
+          revision: number
+          stage: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_client_id: string
+          company_id: string
+          created_at?: string
+          encrypted_payload: string
+          expires_at: string
+          id?: string
+          lease_expires_at?: string | null
+          lease_id?: string | null
+          native_aal: string
+          native_session_id: string
+          previous_refresh_hash?: string | null
+          refresh_hash: string
+          revision?: number
+          stage: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_client_id?: string
+          company_id?: string
+          created_at?: string
+          encrypted_payload?: string
+          expires_at?: string
+          id?: string
+          lease_expires_at?: string | null
+          lease_id?: string | null
+          native_aal?: string
+          native_session_id?: string
+          previous_refresh_hash?: string | null
+          refresh_hash?: string
+          revision?: number
+          stage?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_api_sessions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      staff_api_support_receipts: {
+        Row: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          resource_reference: string
+          response: Json | null
+        }
+        Insert: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          resource_reference?: string
+          response?: Json | null
+        }
+        Update: {
+          actor_user_id?: string
+          api_client_id?: string
+          company_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          operation?: string
+          request_hash?: string
+          resource_reference?: string
+          response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_api_support_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_api_client_id_fkey"
+            columns: ["api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["company_id", "id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_client_fkey"
+            columns: ["company_id", "api_client_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["company_id", "api_client_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "staff_api_support_receipts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       supplier_switch_events: {
         Row: {
           archive_reason: string | null
@@ -77310,6 +77991,13 @@ export type Database = {
           last_confirmation_email_sent_at: string | null
           last_invite_sent_at: string | null
           last_password_reset_sent_at: string | null
+          must_change_password: boolean
+          password_changed_at: string | null
+          temporary_password_company_id: string | null
+          temporary_password_company_name: string | null
+          temporary_password_expires_at: string | null
+          temporary_password_set_at: string | null
+          temporary_password_set_by: string | null
           updated_at: string
           user_status: string
         }
@@ -77328,6 +78016,13 @@ export type Database = {
           last_confirmation_email_sent_at?: string | null
           last_invite_sent_at?: string | null
           last_password_reset_sent_at?: string | null
+          must_change_password?: boolean
+          password_changed_at?: string | null
+          temporary_password_company_id?: string | null
+          temporary_password_company_name?: string | null
+          temporary_password_expires_at?: string | null
+          temporary_password_set_at?: string | null
+          temporary_password_set_by?: string | null
           updated_at?: string
           user_status?: string
         }
@@ -77346,6 +78041,13 @@ export type Database = {
           last_confirmation_email_sent_at?: string | null
           last_invite_sent_at?: string | null
           last_password_reset_sent_at?: string | null
+          must_change_password?: boolean
+          password_changed_at?: string | null
+          temporary_password_company_id?: string | null
+          temporary_password_company_name?: string | null
+          temporary_password_expires_at?: string | null
+          temporary_password_set_at?: string | null
+          temporary_password_set_by?: string | null
           updated_at?: string
           user_status?: string
         }
@@ -77355,6 +78057,7 @@ export type Database = {
         Row: {
           company_id: string | null
           created_at: string
+          expires_at: string | null
           id: string
           is_active: boolean
           role: string | null
@@ -77366,6 +78069,7 @@ export type Database = {
         Insert: {
           company_id?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean
           role?: string | null
@@ -77377,6 +78081,7 @@ export type Database = {
         Update: {
           company_id?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
           is_active?: boolean
           role?: string | null
@@ -91768,6 +92473,39 @@ export type Database = {
           tenant_status: string
         }[]
       }
+      authenticate_staff_integration_request_v1: {
+        Args: {
+          p_client_ip?: string
+          p_key_prefix: string
+          p_method: string
+          p_origin?: string
+          p_rate_limit_cost?: number
+          p_required_all?: string[]
+          p_required_any?: string[]
+          p_route: string
+          p_secret_hash: string
+          p_window_seconds?: number
+        }
+        Returns: {
+          allowed_ips: string[]
+          allowed_origins: string[]
+          auth_outcome: string
+          client_id: string
+          client_name: string
+          client_status: string
+          company_id: string
+          error_code: string
+          expires_at: string
+          key_prefix: string
+          metadata: Json
+          rate_limit_per_minute: number
+          request_count: number
+          reset_at: string
+          route_limit: number
+          scopes: string[]
+          tenant_status: string
+        }[]
+      }
       backfill_companies: { Args: never; Returns: Json }
       backfill_poa_scopes: { Args: never; Returns: Json }
       canonical_accept_tenant_invitation: {
@@ -96168,6 +96906,190 @@ export type Database = {
           p_company_id?: string
           p_requested_by?: string
           p_scope?: string
+        }
+        Returns: Json
+      }
+      staff_api_acquire_session_operation: {
+        Args: {
+          p_client_id: string
+          p_command: string
+          p_company_id: string
+          p_operation_key: string
+          p_refresh_hash?: string
+          p_request_hash: string
+          p_revision?: number
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      staff_api_actor_is_eligible_assignee: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      staff_api_assert_command_actor: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_native_session_id: string
+          p_permission: string
+          p_revision: number
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      staff_api_attachment_finalize: {
+        Args: {
+          p_attachment_reference: string
+          p_case_reference: string
+          p_client_id: string
+          p_company_id: string
+          p_detected_mime: string
+          p_file_name: string
+          p_idempotency_key: string
+          p_lease_id: string
+          p_native_session_id: string
+          p_request_hash: string
+          p_revision: number
+          p_scan_reason: string
+          p_scan_status: string
+          p_session_id: string
+          p_user_id: string
+          p_verified_byte_size: number
+          p_verified_sha256: string
+        }
+        Returns: Json
+      }
+      staff_api_attachment_release: {
+        Args: {
+          p_attachment_reference: string
+          p_case_reference: string
+          p_client_id: string
+          p_company_id: string
+          p_idempotency_key: string
+          p_lease_id: string
+          p_native_session_id: string
+          p_request_hash: string
+          p_revision: number
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      staff_api_attachment_reserve: {
+        Args: {
+          p_byte_size: number
+          p_case_reference: string
+          p_client_id: string
+          p_company_id: string
+          p_declared_mime: string
+          p_file_name: string
+          p_idempotency_key: string
+          p_native_session_id: string
+          p_request_hash: string
+          p_revision: number
+          p_session_id: string
+          p_sha256: string
+          p_user_id: string
+          p_visibility: string
+        }
+        Returns: Json
+      }
+      staff_api_cleanup: { Args: { p_limit?: number }; Returns: undefined }
+      staff_api_client_policy_allowed: {
+        Args: { p_client_id: string; p_company_id: string; p_scope: string }
+        Returns: boolean
+      }
+      staff_api_complete_session_operation: {
+        Args: {
+          p_advance_revision: boolean
+          p_encrypted_payload: string
+          p_encrypted_receipt: string
+          p_lease_id: string
+          p_native_aal: string
+          p_native_session_id: string
+          p_refresh_hash: string
+          p_session_id: string
+          p_stage: string
+        }
+        Returns: number
+      }
+      staff_api_consume_auth_budget: {
+        Args: {
+          p_budget_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
+      staff_api_current_permissions: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: string[]
+      }
+      staff_api_is_platform_admin: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      staff_api_is_tenant_staff: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      staff_api_logout_session: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_operation_key: string
+          p_receipt: string
+          p_request_hash: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      staff_api_native_account_state: {
+        Args: { p_native_session_id: string; p_user_id: string }
+        Returns: Json
+      }
+      staff_api_public_reference: {
+        Args: { p_company_id: string; p_id: string; p_kind: string }
+        Returns: string
+      }
+      staff_api_read_resources: {
+        Args: {
+          p_after?: Json
+          p_company_id: string
+          p_filters?: Json
+          p_limit?: number
+          p_operation: string
+          p_reference?: string
+        }
+        Returns: Json
+      }
+      staff_api_recovery_identity: {
+        Args: { p_company_id: string; p_email: string }
+        Returns: string
+      }
+      staff_api_revoke_session: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_session_id: string
+          p_status?: string
+        }
+        Returns: boolean
+      }
+      staff_api_support_command: {
+        Args: {
+          p_client_id: string
+          p_company_id: string
+          p_idempotency_key: string
+          p_native_session_id: string
+          p_operation: string
+          p_payload: Json
+          p_reference: string
+          p_request_hash: string
+          p_revision: number
+          p_session_id: string
+          p_user_id: string
         }
         Returns: Json
       }

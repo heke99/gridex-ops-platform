@@ -96,7 +96,8 @@ describe('Gridex remediation confirmed regressions', () => {
 
   it('BUG-010: regression_bug_010_auth_uses_route_cost_rpc', () => {
     const auth = source('lib/integrations/apiAuth.ts')
-    expect(auth).toContain("rpc('authenticate_integration_request_v1'")
+    expect(auth).toContain("kind: 'integration' | 'staff' = 'integration'")
+    expect(auth).toContain("rpc(kind === 'staff' ? 'authenticate_staff_integration_request_v1' : 'authenticate_integration_request_v1'")
     expect(auth).toMatch(/rateLimitClass|routeCost/)
     expect(auth).not.toContain("rpc('check_and_increment_integration_api_rate_limit'")
   })

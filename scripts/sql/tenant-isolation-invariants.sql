@@ -143,6 +143,10 @@ begin
         'ediel_messages_mailbox_message_unique',
         -- storage paths embed generated ids and are unique by construction
         'customer_contract_documents_storage_uidx'
+        -- Staff refresh credentials are random secrets, looked up by their hash
+        -- before verifying the stored client/company. Global uniqueness prevents
+        -- ambiguous credential lookup; this is not a tenant business key.
+        ,'staff_api_sessions_refresh_hash_key'
       )
       and pg_get_indexdef(x.indexrelid) !~ '\((customer_id|contract_id|customer_contract_id|contract_offer_id|price_plan_id|price_plan_version_id|contract_product_version_id|contract_publication_version_id|invoice_id|series_id|session_id|test_run_id|run_id|campaign_id|billing_underlay_id|pricing_run_id|domain_event_id|ediel_message_id|source_message_id|message_id|inbound_email_message_id|mailbox_id|attempt_id|import_id|import_run_id|import_batch_id|webhook_subscription_id|api_client_id|onboarding_operation_id|portfolio_price_id|forecast_run_id|communication_route_id|route_profile_id|certificate_id|email_setting_id|contract_price_option_id|outbound_request_id|related_message_id|profile_id|rule_profile_id|user_id|source_type|source_id|source_table|legacy_legal_bundle_id|repair_key|remediation_type|conflict_fingerprint|source_hash|lock_key|idempotency_key|accept_token_hash|token|token_hash|key_prefix|quote_reference|reference|batch_key|profile_key|upload_idempotency_key|automation_key|case_reference|platform_grid_owner_id|provider|environment|message_family|test_suite|smtp_email)'
   loop

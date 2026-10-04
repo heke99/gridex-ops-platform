@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { CopyCodeBlock } from '@/components/developers/CopyCodeBlock'
 import { PUBLIC_API_ENDPOINT_ROWS } from '@/lib/api/publicRouteRegistry'
+import { STAFF_API_CONTRACT_VERSION, STAFF_OPENAPI_ORIGIN, STAFF_OPENAPI_PATH, STAFF_RELEASE_MANIFEST_PATH } from '@/lib/staff-api/openApiContract'
 import {
   CUSTOMER_PORTAL_OPENAPI_URL,
   WEBSITE_INTEGRATION_BASE_URL,
@@ -15,9 +16,9 @@ import {
 } from '@/lib/partner-api/openApi'
 
 export const metadata: Metadata = {
-  title: 'Gridex API Documentation | Website, Customer Portal & Webhooks',
+  title: 'Gridex API Documentation | Website, Customer Portal, Staff & Webhooks',
   description:
-    'Production integration guide for the Gridex Website API, Customer Portal API, Partner API and signed webhooks.',
+    'Integration guide for the Gridex Website API, Customer Portal API, Staff Support API, Partner API and signed webhooks.',
 }
 
 export const revalidate = 3600
@@ -285,10 +286,13 @@ export default function CustomerPortalApiDocumentationPage() {
   const websiteRows = currentRows.filter(([, path]) =>
     !path.startsWith('/api/v1/customer/') &&
     !path.startsWith('/api/v1/customer-portal/') &&
+    !path.startsWith('/api/v1/staff/') &&
+    !path.includes('/staff-') &&
     !path.includes('/diagnostics') &&
     path !== '/api/v1/contracts',
   )
   const partnerEndpointRows = partnerRows()
+  const staffRows = currentRows.filter(([, path]) => path.startsWith('/api/v1/staff/'))
 
   return (
     <main lang="en" className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
@@ -301,6 +305,7 @@ export default function CustomerPortalApiDocumentationPage() {
             <a className="block hover:text-slate-950" href="#checkout">Website checkout</a>
             <a className="block hover:text-slate-950" href="#status">Status & lifecycle</a>
             <a className="block hover:text-slate-950" href="#customer-portal">Customer Portal</a>
+            <a className="block hover:text-slate-950" href="#staff-support">Staff Support API</a>
             <a className="block hover:text-slate-950" href="#partner-api">Partner API</a>
             <a className="block hover:text-slate-950" href="#webhooks">Webhooks</a>
             <a className="block hover:text-slate-950" href="#reliability">Reliability</a>
@@ -419,6 +424,16 @@ export default function CustomerPortalApiDocumentationPage() {
               Agreement state and message-delivery state are separate. A confirmation email can still be queued while the agreement is already validly signed.
               Treat the documented delivery status as authoritative instead of assuming that an email was delivered because the agreement succeeded.
             </p>
+          </Section>
+
+          <Section id="staff-support" title="Staff Support API">
+            <p>Independent contract <code>{STAFF_API_CONTRACT_VERSION}</code>. This family serves the staff frontend through OPS APIs. Website and Customer Portal contracts keep their existing versions.</p>
+            <p>A trusted server sends its organization&apos;s dedicated integration key and a separate OPS-issued staff proof. Both are required for resource access. OPS checks current native permissions on every operation; customer credentials cannot authorize staff.</p>
+            <p>Customer reads require <code>customers.read</code>; support reads require <code>cases.read</code>. Writes require <code>cases.write</code> and active staff in that organization. Platform administration permits reads within that organization but grants no staff write exception.</p>
+            <p>Permission revocation applies on the next request. Reads already authorized before revocation may finish; writes recheck native authority in their transaction.</p>
+            <p>Protocol capabilities in the public manifest describe implemented methods. The authenticated <code>/api/v1/staff/me</code> response describes the actor’s current permissions. A protocol capability is never an actor grant.</p>
+            <p><a href={`${STAFF_OPENAPI_ORIGIN}${STAFF_OPENAPI_PATH}`}>Staff OpenAPI</a> · <a href={`${STAFF_OPENAPI_ORIGIN}${STAFF_RELEASE_MANIFEST_PATH}`}>Staff release manifest</a>. Verify the immutable document’s exact SHA-256 before enabling the staff integration.</p>
+            <EndpointTable rows={staffRows} />
           </Section>
 
           <Section id="customer-portal" title="5. Customer Portal API">
