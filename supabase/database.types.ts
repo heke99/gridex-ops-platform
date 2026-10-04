@@ -93270,6 +93270,10 @@ export type Database = {
         Args: { p_command: Json }
         Returns: Json
       }
+      canonical_change_tenant_user_access_pre_staff_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       canonical_change_tenant_user_access_v1_unchecked: {
         Args: { p_command: Json }
         Returns: Json
@@ -93331,6 +93335,10 @@ export type Database = {
         Returns: Json
       }
       canonical_create_tenant_invitation: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
+      canonical_create_tenant_invitation_pre_staff_v1: {
         Args: { p_command: Json }
         Returns: Json
       }
@@ -96497,6 +96505,10 @@ export type Database = {
           p_permission: string
           p_portfolio_id?: string
         }
+        Returns: undefined
+      }
+      gridex_assert_staff_command_v1: {
+        Args: { p_command: Json; p_replay?: boolean }
         Returns: undefined
       }
       gridex_assert_supplier_switch_ready: {
@@ -99874,6 +99886,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      gridex_staff_actor_permissions_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_allow_platform?: boolean
+          p_company_id: string
+        }
+        Returns: string[]
+      }
+      gridex_staff_normalize_role_v1: {
+        Args: { p_role_key: string }
+        Returns: string
+      }
       gridex_staff_permission_overrides_v1: {
         Args: { p_company_id: string; p_user_id: string }
         Returns: {
@@ -99882,6 +99906,10 @@ export type Database = {
           permission_key: string
           status: string
         }[]
+      }
+      gridex_staff_role_profile_v1: {
+        Args: { p_role_key: string }
+        Returns: string[]
       }
       gridex_stage_energy_geodata_feature: {
         Args: {
