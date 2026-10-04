@@ -1,6 +1,6 @@
 # GOV-05 / AT-GOV-05: coherent inbound guide evidence
 
-Reviewed base: `643ea134788e96fe9c6782b43730d6e0671fd98f` (tree `599119e71c25b9f5921c2c404d1c8a07ef291d0a`). Inventory/ownership: GitHub #491 comments 5984623767 and 5984720533. Actual main later advanced to `56192d16`; integration against an advanced base requires its own review. This packet changes no product, source authority, database, shared handover or coverage.
+Inventory base: `643ea134788e96fe9c6782b43730d6e0671fd98f` (tree `599119e71c25b9f5921c2c404d1c8a07ef291d0a`). Inventory/ownership: GitHub #491 comments 5984623767 and 5984720533. The candidate incorporates actual main `56192d16d1eac7fb0e716a3e2770bac8e58be115` (#507), preserving its product, OPS-02 coverage and shared-memory changes without conflict. The final packet diff against that main remains exactly three test files and this checkpoint; no product, source authority, database, shared handover or coverage delta. Any later main advance requires its own integration review.
 
 ## Complete card and executed evidence
 
@@ -23,4 +23,4 @@ Inventory on the exact base passed 66 cases in eight guide/time/package/identity
 
 Own verification uses Node 22 and the repository's CI loopback-network preload. Scoped tests, test TypeScript, lint, frozen-spec integrity and the supported tag gate are the relevant packet checks. Full-card independent review remains required before GOV-05 and AT-GOV-05 coverage promotion. No GOV-04 approval is implied: its actual sender boundary/history proof and any source-qualified bilateral exception remain separately coordinated.
 
-Executed candidate checks: 23/23 owned cases in the three files above; `npx tsc --noEmit -p tsconfig.tests.json` PASS; scoped ESLint PASS; `node scripts/check-ediel-masterplan-v2.cjs` PASS (33 original files, 121 rules, 231 contracts); `node scripts/ediel-masterplan-test-coverage.cjs` PASS (72 approved IDs, 80 tagged green, zero tagged failing; GOV-05/AT remain unapproved); `git diff --check` PASS. No coverage is promoted by these green checks alone.
+Executed candidate checks after incorporating actual main `56192d16`: 23/23 owned cases in the three files above; `npx tsc --noEmit -p tsconfig.tests.json` PASS; scoped ESLint PASS; `node scripts/check-ediel-masterplan-v2.cjs` PASS (33 original files, 121 rules, 231 contracts); `node scripts/ediel-masterplan-test-coverage.cjs` PASS (74 approved IDs, 82 tagged green, zero tagged failing; GOV-05/AT remain unapproved); `git diff --check` PASS. Main coverage is byte-identical (`122aea1dbac878f2cf65616f785612074ed58a1b8a89cfcc03bc3834582e9c92`). No coverage is promoted by these green checks alone.
