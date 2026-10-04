@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04T12:00:00Z",
+  "updated_at": "2026-10-04T15:10:00Z",
   "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
   "paused": true,
   "branch": "claude/cool-tesla-2pmyua",
@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "#491: TEN-01/02/05/06 godkända; driv CI grönt",
+  "active_item": "#491: TEN-08+TEN-10 pågår (reserverat); TEN-01/02/05/06,U-04/U-14 godkända",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Läs #491 CI (upgrade replay bas 2bc65ea, parity-only); sedan U-04+U-14; prod-dry-run kräver PROD_DB_READONLY_URL (pooler) som env i ny session",
+  "next_action": "TEN-08/TEN-10 PGlite-regression på ediel-service-grant-set-mönstret; sedan driv #491 grön (läs CI på 23b28318+).",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1492,5 +1492,9 @@
     "U-1 TEN-04 mandate",
     "U-2 end_assignment LIMIT 1",
     "TR-09/E6 needs source T §3.1"
-  ]
+  ],
+  "reserved_by_session": {
+    "TEN-08": "session_01RxmpLE5UfwVEetssVwdAWs",
+    "TEN-10": "session_01RxmpLE5UfwVEetssVwdAWs"
+  }
 }

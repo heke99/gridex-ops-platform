@@ -1,3 +1,17 @@
+## Aktuellt läge — 2026-10-04 eftermiddag (gäller före allt nedan)
+
+**Parallella agenter: läs detta och `.agent-memory/handover.md` innan du väljer kluster.**
+
+Gren `claude/cool-tesla-2pmyua`, PR heke99/gridex-ops-platform#491 (ägs av session_01RxmpLE5UfwVEetssVwdAWs).
+- Godkända i #491: TEN-01/02 (tidigare), TEN-05/06, U-04/U-14 (coverage 67 godkända).
+- TEN-06-defekt åtgärdad: PRODAT/UTILTS utan exakt en NAD+DO/MR föll tillbaka på UNB-mottagaren → nu olöst (`inboundLegalReceiverEdielId`, lib/ediel/tenant/resolveInboundTenant.ts).
+- Ägarbeslut: **A1** upgrade-replay-bas = #489:s merge `2bc65ea` + parity-only replay utan nya migrationer; UTILTS OID-bevis körs bara när 20261001110500 replayas. **H1** applied-TXT-historiescenariot (c8f666d9/#424) pensionerat och borttaget.
+- CI: senaste head 23b28318 körs; upgrade-migration-replay ej ännu bekräftad grön efter H1.
+- **Pågår (reserverat, rör ej):** TEN-08 (grantstyrd fan-out) + TEN-10 (återkallelse). Plan: PGlite-regression byggd på `scripts/ediel-service-grant-set-sql-regression.mjs`: två tenants med grant på samma GSRN + en utan grant → exakt per-grant scopes, inget kvitto till tenant utan grant; intern återkallelse → Z15 → Z15C → `ediel_grant_not_current`/`ediel_revoked_grant_requires_new_basis`. Kända luckor att pröva: grant återskapas bara via ny grantrad (ingen kommandobindning), `expired` sätts aldrig automatiskt.
+- Lediga för annan agent (enligt prioritet): ESCO-01..11 (Z13 21-dagars repeat, Z15VH, scoped market permission), därefter ACK-01..09. TEN-03/04/07/09/11–14 lediga men ta dem efter att ha kollat handover.
+- Blockerat: prod-dry-run (pg_dump av piidsfebjqjmnepdpnas) kräver `PROD_DB_READONLY_URL` (pooler/IPv4) som env i en ny session. Inget skrivs till prod utan ägarens ja.
+- Lokalt i ny container: `npm ci`; dockerd startas med `(nohup dockerd >/tmp/dockerd.log 2>&1 &)`; Supabase CLI saknas. PGlite-tester: `EDIEL_PGLITE_MODULE=$(node -p "require.resolve('@electric-sql/pglite')") node scripts/<fil>.mjs`; täckning: `npm run ediel:masterplan-v2:test-coverage -- --check`.
+
 ## Regelpar två i taget — 2026-10-04 (gäller före allt nedan)
 
 Skill-routing: aktiva — spec-to-code-compliance (kort mot kod per effekt), fp-check (varje misstänkt defekt), test-driven-development (rött test först vid kodbrist), systematic-debugging (kodfel), verification-before-completion (coverage --check, integrity, typecheck, eslint, riktad vitest). Villkorliga: supabase + supabase-postgres-best-practices (endast vid forward-migration). Överhoppade: UI/prestanda/säkerhetsskanning/skill-författande — ingen sådan ändring i scope.
