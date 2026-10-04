@@ -199,20 +199,35 @@
     {
       "id": "TEN-12",
       "acceptance_id": "AT-TEN-12",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+        "lib/ediel/ack/committedInboundAck.ts",
+        "__tests__/ediel-committed-inbound-ack.test.ts",
+        "__tests__/ediel-fresh-business-incident.test.ts",
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "TEN-13",
       "acceptance_id": "AT-TEN-13",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/ack/sourceCorrelation.ts",
+        "lib/ediel/core/referenceGenerator.ts",
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        "__tests__/ediel-source-producer-reference.test.ts"
+      ]
     },
     {
       "id": "TEN-14",
       "acceptance_id": "AT-TEN-14",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "scripts/ediel-esco-01-02-request-basis-sql-regression.mjs",
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "IMP-01",
@@ -1689,18 +1704,27 @@
     },
     {
       "id": "AT-TEN-12",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-committed-inbound-ack.test.ts",
+        "__tests__/ediel-fresh-business-incident.test.ts",
+        "scripts/test-ediel-ten-08-10-grants.cjs"
+      ]
     },
     {
       "id": "AT-TEN-13",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ack-source-correlation.test.ts",
+        "__tests__/ediel-source-producer-reference.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-14",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "AT-IMP-01",

@@ -1,4 +1,5 @@
 // masterplan: TEN-08, AT-TEN-08, TEN-10, AT-TEN-10
+// masterplan: TEN-12, AT-TEN-12
 // Runs the focused PGlite grant fan-out/revocation regression over the real
 // service administration, positive-ACK service scope and grant-set SQL.
 // Mechanics only; native replay remains the clean-replay job.
