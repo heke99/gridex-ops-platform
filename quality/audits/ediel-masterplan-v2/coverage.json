@@ -204,8 +204,20 @@
     {
       "id": "ENV-01",
       "acceptance_id": "AT-ENV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-02",
@@ -1590,8 +1602,20 @@
     },
     {
       "id": "AT-ENV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/smime.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "__tests__/ediel-env01-unoc-text.test.ts",
+        "__tests__/ediel-transport-byte-integrity.test.ts",
+        "__tests__/ediel-envelope-byte-integrity.test.ts",
+        ".agent-memory/masterplan-env01-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-02",
