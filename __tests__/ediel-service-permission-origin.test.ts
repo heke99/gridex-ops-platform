@@ -1,3 +1,4 @@
+// masterplan: TEN-03, AT-TEN-03
 import { describe, it, expect, vi } from 'vitest'
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:vi.fn()}}))
 vi.mock('@/lib/ediel/core/versionRegistry',()=>({resolveCanonicalOutboundVersion:vi.fn(async()=> '26.A')}))
