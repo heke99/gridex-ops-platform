@@ -1,3 +1,78 @@
+# Codex — masterplan v2, TR-05/TR-10
+
+Current2026-10-04T22:58Z (supersedes earlier pending findings):
+- Published05c6e8b7e8a4399ec0e5e50358eb6d9e2231f72e genuine native
+  run37239978374/job111546581471/artifact11317501378, ZIP
+  94fd879e312d78853dba28c65803d02b142a4a849f6b0d61c94c697dbd8e26e1:
+  28TOTAL23PASS5FAIL0ERROR0SKIP. Root+reviewer verified exacttree/source/all9
+  inputs and byte-identical raw outputs. Receipt SHA b0bd24325729750acac96c9d63e81fd91b744d5ef0588fb7fb5a13b73ca05023.
+- First actual reception2/2 PASS (WRITE+SEND+READ); TR10cases9/9PASS;
+  actual lockwait/current→expired/P0001fence nowPASS (6.908sec), no timeout
+  accepted,0SMTP/case/privateentry. Guard220429 actual ACK pointerlink nowPASS.
+- Independentreview_ten06 COMPLETE TR10/AT APPROVE at05c6, all literal
+  effects/ST-T02/T04/T05 and shared retry/lease/timer/unknown/history/ACL/
+  archive/rollback/generic+sealed witnesses PASS. ONLY TR10→VERIFIED and
+  ATTR10→PASSED promoted in this functional packet; other350rows unchanged.
+  SC063 previous complete approval stays; TR05/AT/SC040 remain unapproved.
+- FiveTR05 failures:4 current customer context prepared correctly but gateway
+  discards independently selected per-object address+invoicee facts before
+  canonical field229/policy;1 correct exact-scope held result asserted as throw.
+  Independentten07 confirms real producer handoff defect, not missing private
+  admission or canonical-source defect. Denialfixture now exact held reason
+  +unchanged effects/original/SMTP1, own TS/lintPASS.
+- Bounded gateway handoff uses fresh opaque native-qualified projection and
+  existing createCustomerMasterdataAddressFacts per actual own LIN point/agency.
+  Existing readContractInvoicee reads same intent/draft switch and tenant/
+  customer/coherent contract; facts rebuilt only from current protected customer,
+  typed date/reporting contexts and independent actual contract source. No copy
+  of old body-bound facts, raw UD inference, validator/source/privateSQL bypass.
+  Independentten07 minimum hunk review no blocker; fullcard stillpendingactual
+  fresh correction/queue/actor/POA native positives. Actual finite gatewayRED
+  2FAIL7PASS→GREEN;6 relevant suites284/284PASS (before additional4 contract
+  denials), new gateway13cases. AppTS/targeted gateway+native testTS/ownedlint/ratchet2251/diff PASS. Full unit9984/9984PASS in779files (396.09sec), then supported-tag
+  172approved/186green/0failing PASS. Full unit precedes sole calendar fixture
+  reuse; calendar9/9 separatelyPASS. Actual code/type/source unchanged by
+  calendar-only merge, no repeated fullnewhead claim. Genuine native new28
+  notrun yet. Finite native/contract/invoicee/finalizer ports declared.
+- Authentic05c6 prefix220429 capture run37239978364/artifact11316782152,
+  ZIP f3b7101c3ff0543662e4606fa0b551dfc65f43a455994d4266a54c36c0c98592:
+  source/tree/all8inputs/3outputs/latestmigration verified. Imported unchanged
+  schema117ced74ea6228814b246c9b19ecc672520055ded4886bbf1e0ea7a22ed35d6f,
+  fingerprintfiled401087fdd50e8f37de85d8946017f7546352b6974a6e62da061be3fba80f517,
+  schemafingerprintdc144e708063131be437ac82ad9730f86a971ee182f9c3874ed57cfcd4a9c08a,
+  types4f5713d6 unchanged; rawreceipta883795e4cdb188847c5c55b84978f72199eed85f862b81aa5a56072316bd6f8.
+  Capture alone native/browser/upgrade/parity NOT_RUN; finalactualmain/P08union
+  capture stillmandatory. No newSQL since authentic220429 capture.
+- Actualmain561 approved74, root05 approved170, readonly491812+05 coverage
+  union183; proposed TR10/AT packet root172 only. Do not call branch approvals
+  main. Readonlymergetree491812+root05 onlyhandover conflict; no code/coverage
+  conflict, primarycurrent-task/checkpoint retained. No merge performed.
+- Primary491812 OPS37237320439 cleanFAILURE (artifact11317216732), verify/
+  quality/upgradeSUCCESS. SoleP-owner calendarfixture9433d04bfc037fae0f61710c73a5ac85eeef443d
+  cherry-picked a7633802 with verified exact3 blobs; calendar9/9PASS; never
+  secondfix in consumptionPreparation. Original window still respected.
+  SC036 ACK owner edits legacyoutbound_requests995/1032 disjointrootbirthscope;
+  no parallelACKfix. Frozen500858/5016bb keep authentic allgreen receipts.
+- Retainedten06 nexttwoSC008/SC017 onisolatedmainbranch: existing consumer/tag/
+  actual serverrawscope assertions only, no product/helper/SQL edits; checkpoint/
+  receipts published, independent whole-scenario review beforepromotion.
+- Retainedten08+child published TR08/TR09 packet528c355f onownbranch (7files):
+  actual realNodemailer/ownedloopbackTLS20PASS; TR09newnative9 NOT_RUN plus
+  existingfiniteowner23PASS; owntypes/lintPASS, no product/schema/coverage
+  changes. TR08wholecardUNPROVEN absent providerpolicy/authenticated laterhop/
+  receiverSPF consumer. Root cleared onlyexistingfastworkflow subset13 for that
+  childbranch, exact calendar reuse, no mandatorygate waiver; separatePR next.
+- User two simultaneous cards pertechnicalowner and continuous nextunowned
+  item remain active. Current491 reservations checked beforeeachclaim; own
+  checkpoints/receipts/commits published, commonmemory appendedonlybyroot,
+  no duplicate TEN/P/U/GOV/DB/IMP/OPS source edits.
+Next: exact calendar reuse, publish gateway+denialfixture+authentic220capture+
+TR10/AT approval+actualreceipts/memory; genuine28 and independent TR05/AT/SC040
+review. Open separate TR08/TR09 evidence PR with actual13 feedback. Preserve
+491→500→501→ClaudeP08→503 chronology and actualfinalunioncapture/gates, then
+merge authorized green work to main and continue all352 IDs.
+
+
 # Codex — masterplan v2, TR-05
 
 Current2026-10-04T22:25Z (supersedes earlier pending findings):
@@ -54,6 +129,7 @@ Never promote duplicate rows or merge held heads into primary merge window.
 Next: publish220429+fixturecorrections+ONLYSC063approval+authenticreceipts/memory,
 run genuine28/capture, fix anyactualremainingchain defect, complete TR05/TR10
 cards independently andmerge exactallgreen in agreed mainorder. Continue352plan.
+
 
 
 Current2026-10-04T21:48Z (supersedes earlier pending findings):
