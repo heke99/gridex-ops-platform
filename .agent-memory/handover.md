@@ -1152,3 +1152,23 @@ root actualforeignmixedunknown/intervalspacing/ledgerdiagnostic: no duplicate
 producer/auth bypass. Capture39bytes imported unchanged; new214144 capturepending.
 Parent500/501 all-green/frozen; respect491 prioritywindow and P08union capture.
 See own masterplan-codex-retry-checkpoint.md and GitHub491comments5984651618/5984680584.
+
+
+Codex TR05/TR10 update2026-10-04T22:18Z (#503 rootexclusive):
+Actual0c28native18PASS10FAIL; all9casePASS. IndependentcompleteSC063 APPROVE
+on verified0c rawproof→onlySC063PASSED samePR, all351otherrows unchanged.
+Later incomingACKpointer-link fails existingINVoker immutableguard privateREAD;
+CLI220429 ONLYSECURITYDEFINER, finite44PASS+independentreview no blocker, original
+18fields/retention/callerRLS/privateACL/body preserved. Sourcefixture grantsboth
+WRITE+SEND+READ; rowlocktest targetsactualentry and2s DBexpiry, no prodtimeouts.
+0ccapturebytes+rawreceipts importedexact;220429 capturepending. Finite9/9PASS,
+1066/969 migrations/fullcontracts/typeschecksPASS. Rootparent500/501 unchanged;
+primary491812 window respected after507. Allsource/evidence/ownmemory publish
+together, no fullTR05/TR10 approval untilgenuine required effects.
+
+2026-10-04T22:25Z Codex TR05/TR10 two-rule lanes: postSC063 supported-tag gate
+170approved/186tagged-green/0failing out of352 PASS. OnlySC063 is newly approved;
+other351 coverage rows unchanged. Retained reviewers own disjoint fixture/role
+checks; current Claude reservations remain authoritative in491 comments. Root
+publishes functional220429+actualreceipts+fixtures+this approval together; no
+status-only push and no merge during the renewed491/812 priority window.

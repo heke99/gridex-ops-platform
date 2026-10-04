@@ -1,5 +1,61 @@
 # Codex — masterplan v2, TR-05
 
+Current2026-10-04T22:25Z (supersedes earlier pending findings):
+- Exact0c526deaa1209c0f0ae5c32d10ff909a4a710a83 genuine native
+  run37237701663/artifact11315843488 ZIP
+  5258af504678d635e7841a2ae45532b30dbdc0092e0408848746953fd09eb9e9:
+  28TOTAL18PASS10FAIL0ERROR0SKIP. All9 uncertaintycase tests PASS.
+  Independentreview verifies actualcheckout/tree/all9inputhashes+rawbytes.
+- SC063 ONLY complete-code-behavior APPROVE: real entered after-DATA unknown,
+  actual worker restart suppressed/SMTPcount1, bound needs_tracking case before
+  recovery assessment, late sameattempt derived outcome/history unchanged,
+  copy/API authorizesResend=false/deliveryProven=false. SamePR promotes ONLY
+  SC063→PASSED with explicit actual0c proof and declared remote/upstream ports.
+  Remaining351rows preserved; TR05/AT/TR10/AT/SC040 still unapproved/partial.
+- Actual214144 bridge fixed ledger; sevenACKcases now hit later linkEdielMessage
+  pointer UPDATE and42501 switch_originals. Independent capturedtrigger RED:
+  status-only UPDATE can short-circuit PASS; pointerlink forces private lookup
+  in INVOKER guard, rollsback. Do not grant privateSELECT or directEXEC.
+- CLI220429 SHA2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad
+  changes ONLY existingtrigger SECURITYDEFINER. Pin invoker/0argtrigger/plpgsql,
+  exactsafe path/owner=privatetableowner/prosrcSHAea25f87b…e8a840; allothercatalog
+  metadata/body/ACL unchanged. Independentten07 no blocker. Actual3 captured
+  functions finite44PASS: pointerRED→GREEN/all18immutablefields/actualretention
+  qualifier+no-tombstone refusal/callerRLS/privateaccess/catalog preserved.
+- ten06 fixture ONLY grants/asserts actual WRITE+SEND+READ: creation requires
+  WRITE, reception requiresSEND, read requiresREAD. Later103735 restoresWRITE;
+  previous registryabsence explanation REFUTED, no publisher/TR06 bug.
+- ten08 ONLYrowlock fixture now waits at actual SDK entry after actualprepare/
+  archive/publicupdates; declared2sec remaininglease/ownedrowlock provesblocked
+  whilecurrent then realDBexpiry thenP0001fencelost. Not a57014 timeout; no prod
+  timeout change. Worker conservativeuncertain while privateentry/cases/SMTP0.
+- Authentic0c214144capture37237701675/artifact11316138246 ZIP
+  1f087bf06c379f7f014e1de083fda7e712ede02b635e381995e9465fcae1b551
+  verified8inputs/3outputs/source/tree/latestmigration. Importedbyteidentical
+  schemaee1daf18…bc8a41e/fingerprintfilea5f0fa71…7c5ef1/types4f5713d6 unchanged;
+  rawreceipt89e4ac85f32f0f2650fd979e27733e515e890b7cefee2a394a7851bd93201fe7.
+  New220429 genuinecapturepending; capturedprefix itself no native/browser/
+  upgrade/parity claim. Prior39full9979unit stays tied toactual39source.
+- Currentvalidation finite9/9PASS; new44+priorrole28; migration1066files/969groups,
+  databasecontracts/generatedtypechecksum, scriptsTS/ownedlint/diffPASS.
+  PostSC063 supported-tag gate170approved/186green/0FAIL/352IDs PASS;
+  remaining tagged-green cards still require whole-card expected/prohibited review.
+- Actualmain56192d16 after507 restartedprimary491 at812f044a; current812verify/
+  quality/upgradeGREEN, cleanstillrunning22:15. Root500858/5016bb allgreen/frozen
+  and nevermerged into prioritywindow. Order491→500→501→ClaudeP08→503; authentic
+  finalunioncapture/currentallgreenmandatory. Do not repeat old2b allgreen as812.
+- Readonlynextinventories TR07(existingVERIFIED) no productiondefect/duplicate
+  code, smallesttwocert publicproducer proof; TR08 onlyrealfirsthop design,
+  allrelay/SPF evidence stillmissing; TR09 other2reservecases stillmissing.
+User2026-10-04T22:24Z: two simultaneous rule lanes; root owns TR05 and TR10.
+Retained Codex reviewers own separate assertion/fixture scopes; Claude owns
+its published GitHub claims. Check current491 ownership before each next card.
+Never promote duplicate rows or merge held heads into primary merge window.
+Next: publish220429+fixturecorrections+ONLYSC063approval+authenticreceipts/memory,
+run genuine28/capture, fix anyactualremainingchain defect, complete TR05/TR10
+cards independently andmerge exactallgreen in agreed mainorder. Continue352plan.
+
+
 Current2026-10-04T21:48Z (supersedes earlier pending findings):
 - Published39af9fdb51ea1eaf4c0a779d52749d630054b0f1 genuine native
   run37235628015/artifact11315134887 ZIPSHA256

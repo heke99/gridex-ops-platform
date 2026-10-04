@@ -6,7 +6,7 @@ const {test} = require('node:test')
 const assert = require('node:assert/strict')
 const {spawnSync} = require('node:child_process')
 const path = require('node:path')
-for (const [file, checks] of [['ediel-prodat-recovery-cursor-sql-regression.mjs',36],['ediel-prodat-recovery-phase-regression.mjs',41],['ediel-recovery-physical-negative-scope-sql-regression.mjs',97],['ediel-ack-validation-private-original-sql-regression.mjs',28]]) {
+for (const [file, checks] of [['ediel-prodat-recovery-cursor-sql-regression.mjs',36],['ediel-prodat-recovery-phase-regression.mjs',41],['ediel-recovery-physical-negative-scope-sql-regression.mjs',97],['ediel-ack-validation-private-original-sql-regression.mjs',28],['ediel-switch-original-guard-owner-sql-regression.mjs',44]]) {
   test(`retained actual recovery owner assertions: ${file}`,() => {
     const root = path.resolve(__dirname,'..')
     const run = spawnSync(process.execPath,[path.join(__dirname,file)],{cwd:root,encoding:'utf8',env:{...process.env,EDIEL_PGLITE_MODULE:require.resolve('@electric-sql/pglite')}})

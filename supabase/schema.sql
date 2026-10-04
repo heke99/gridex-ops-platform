@@ -22479,8 +22479,10 @@ BEGIN
     IF actual_message.message_family IN ('APERAK','CONTRL','UTILTS_ERR') THEN
       -- An ACK inherits the protected original's immutable witness. A later
       -- edit of activation rows never replaces its historic guide authority.
-      original_ack:=public.gridex_read_inbound_ack_source_v1(p_company_id,p_environment,src.source_message_id);
-      original_ack:=original_ack->'sourceRulePackEvidence';
+      original_ack:=gridex_ediel_source_rules.read_ack_source_before_basis_v1(p_company_id,p_environment,src.source_message_id);
+      IF original_ack IS NOT NULL THEN
+        original_ack:=gridex_ediel_source_rules.require_v1(p_company_id,(original_ack#>>'{sourceMessage,id}')::uuid);
+      END IF;
       IF original_ack IS NULL OR pack IS DISTINCT FROM jsonb_build_object('profileKey',original_ack->'profileKey',
         'messageProfileId',original_ack->'messageProfileId','rulePackId',original_ack->'rulePackId','sourceHash',original_ack->'sourceHash',
         'version',original_ack->'version','snapshot',jsonb_build_object('rulePack',original_ack#>'{snapshot,rulePack}',

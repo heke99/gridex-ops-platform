@@ -423,42 +423,88 @@ it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease
   const f=await seed(false),id=outboxId(f),workerId=`synthetic-lock-wait-${randomUUID()}`
   const claim=await claimEdielOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId})
   expect(claim).toMatchObject({status:'sending',current_send_attempt_id:expect.any(String)})
-  // Leave20s on the real public claim, then hold its identity-qualified row
-  // for24s in a second genuine PostgreSQL session. These are clock/lock inputs.
-  sql(`UPDATE public.ediel_outbox SET locked_at=clock_timestamp()-interval '9 minutes 40 seconds' WHERE id=${literal(id)};SELECT to_jsonb(true)`)
-  const holder=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
-  let output='',holderError=''
-  holder.stderr.on('data',chunk=>{holderError+=String(chunk)})
-  const done=new Promise<void>((resolve,reject)=>{holder.once('error',reject);holder.once('exit',code=>code===0?resolve():reject(Error(`synthetic_lock_holder_failed:${code}:${holderError}`)))})
-  // Attach a rejection observer immediately, including during early failures.
-  void done.catch(()=>undefined)
-  const ready=new Promise<void>((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(Error('synthetic_lock_holder_not_ready')),5000)
-    holder.stdout.on('data',chunk=>{output+=String(chunk);if(output.includes('LOCK_READY')){clearTimeout(timer);resolve()}})
-    holder.once('error',error=>{clearTimeout(timer);reject(error)})
-    holder.once('exit',()=>{clearTimeout(timer);if(!output.includes('LOCK_READY'))reject(Error('synthetic_lock_holder_exited_early'))})
+  const {nativeLockProcess,nativeLockProcessEnv}=await import('./helpers/native-lock-process')
+  // This timing-only barrier forwards the unchanged SDK request/result. The
+  // real worker must finish its public updates, archive and private prepare
+  // before the row is locked; otherwise a queue UPDATE could be the waiter.
+  let entryReady!: (input:Record<string,unknown>)=>void,releaseEntry!: ()=>void
+  const entryReached=new Promise<Record<string,unknown>>(resolve=>{entryReady=resolve})
+  const entryBarrier=new Promise<void>(resolve=>{releaseEntry=resolve})
+  const originalRpc=supabaseService.rpc.bind(supabaseService)
+  let entryCalls=0,entryError:{code:string;message:string}|null|undefined
+  const observe=vi.spyOn(supabaseService,'rpc').mockImplementation((name,args,options)=>{
+    const input=(args as {p_input?:Record<string,unknown>}|undefined)?.p_input
+    const request=originalRpc(name,args,options)
+    if(name==='gridex_ediel_transport_attempt_v1'&&input?.action==='enter'&&input.messageId===f.originalZ03.id){
+      entryCalls++
+      const then=request.then.bind(request)
+      request.then=((resolve,reject)=>entryBarrier.then(()=>then(response=>{
+        entryError=response.error
+        return response
+      })).then(resolve,reject)) as typeof request.then
+      entryReady(input)
+    }
+    return request
   })
-  holder.stdin.end(`SELECT pg_backend_pid();\nBEGIN;\nSELECT id FROM public.ediel_outbox WHERE id=${literal(id)} FOR UPDATE;\n\\echo LOCK_READY\nSELECT pg_sleep(24);\nCOMMIT;\n`)
+  let lock:ReturnType<typeof nativeLockProcess>|undefined,setupTimer:ReturnType<typeof setTimeout>|undefined
   let sending:ReturnType<typeof sendOutboxItem>|undefined
   try {
-    await ready
-    const holderPid=Number(output.split('\n')[0]);expect(Number.isInteger(holderPid)).toBe(true)
     smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
     sending=sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId,sendAttemptId:claim!.current_send_attempt_id,alreadyClaimed:true})
+    // Observe rejection immediately, also while the owned lock is outstanding.
+    void sending.catch(()=>undefined)
+    const identity=await Promise.race([entryReached,sending.then(()=>{throw Error('native_worker_did_not_reach_entry')}),new Promise<never>((_,reject)=>{setupTimer=setTimeout(()=>reject(Error('native_worker_entry_barrier_timeout')),30000)})])
+    clearTimeout(setupTimer)
+    expect(identity).toMatchObject({companyId:f.companyId,environment:'test',messageId:f.originalZ03.id,actorUserId:f.actorUserId,attemptId:expect.any(String)})
+    const prepared=sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(identity.attemptId)}`)
+    expect(prepared).toMatchObject({entered_at:null,observed_at:null,owner:{kind:'worker',outboxId:id,sendAttemptId:claim!.current_send_attempt_id,workerId}})
+    const queueIdentity=`id=${literal(id)} AND company_id=${literal(f.companyId)} AND environment='test' AND ediel_message_id=${literal(f.originalZ03.id)} AND status='sending' AND current_send_attempt_id=${literal(claim!.current_send_attempt_id)} AND locked_by=${literal(workerId)}`
+    // A committed public clock input leaves two seconds only after all real
+    // front-door work has finished. No production role/request timeout changes.
+    expect(sql(`WITH updated AS(UPDATE public.ediel_outbox SET locked_at=clock_timestamp()-interval '9 minutes 58 seconds' WHERE ${queueIdentity} RETURNING id) SELECT to_jsonb(count(*)) FROM updated`)).toBe(1)
+    const holder=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+    let output=''
+    holder.stdout.on('data',chunk=>{output=(output+String(chunk)).slice(-4096)})
+    lock=nativeLockProcess(holder,{marker:'LOCK_READY',markerError:'synthetic_lock_holder_not_ready',markerTimeoutMs:5000,lifetimeMs:15000})
+    holder.stdin.write(`SELECT pg_backend_pid();\nBEGIN;\nSELECT id FROM public.ediel_outbox WHERE ${queueIdentity} FOR UPDATE;\n\\echo LOCK_READY\n`)
+    await lock.ready
+    const holderPid=Number(output.split('\n')[0]);expect(Number.isInteger(holderPid)&&holderPid>0).toBe(true)
+    const probe=()=>sql<{blocked:boolean;current:boolean;expired:boolean}>(`WITH observed_clock AS MATERIALIZED(SELECT clock_timestamp() AS observed_at) SELECT jsonb_build_object('blocked',EXISTS(SELECT FROM pg_stat_activity a WHERE a.wait_event_type='Lock' AND a.query LIKE '%gridex_ediel_transport_attempt_v1%' AND ${holderPid}=ANY(pg_blocking_pids(a.pid))),'current',EXISTS(SELECT FROM public.ediel_outbox,observed_clock WHERE ${queueIdentity} AND locked_at<=observed_at AND locked_at>observed_at-interval '10 minutes'),'expired',EXISTS(SELECT FROM public.ediel_outbox,observed_clock WHERE ${queueIdentity} AND locked_at<=observed_at-interval '10 minutes'))`)
+    releaseEntry()
     let blocked=false
-    for(let i=0;i<100&&!blocked;i++){
-      const observed=sql<{blocked:boolean;current:boolean}>(`SELECT jsonb_build_object('blocked',EXISTS(SELECT FROM pg_stat_activity a WHERE ${holderPid}=ANY(pg_blocking_pids(a.pid))),'current',EXISTS(SELECT FROM public.ediel_outbox WHERE id=${literal(id)} AND locked_at>clock_timestamp()-interval '10 minutes'))`)
+    for(let i=0;i<30&&!blocked;i++){
+      const observed=probe()
       if(observed.blocked){expect(observed.current).toBe(true);blocked=true;break}
-      await new Promise(resolve=>setTimeout(resolve,100))
+      await new Promise(resolve=>setTimeout(resolve,50))
     }
-    expect(blocked,'real sender must wait on the row before lease expiry').toBe(true)
-    await done
-    expect(await sending).toMatchObject({status:'failed',error:expect.stringContaining('ediel_transport_worker_fence_lost')})
+    expect(blocked,'real provider-entry RPC must wait on the row while its lease is current').toBe(true)
+    let expired=false
+    for(let i=0;i<50&&!expired;i++){
+      const observed=probe()
+      expect(observed.blocked,'entry must still be waiting until the DB clock expires the lease').toBe(true)
+      expect(observed.current||observed.expired,'the exact worker claim must remain present with a valid lease clock').toBe(true)
+      expired=observed.expired
+      if(!expired)await new Promise(resolve=>setTimeout(resolve,50))
+    }
+    expect(expired,'release must follow actual DB-clock lease expiry').toBe(true)
+    expect(smtp).not.toHaveBeenCalled()
+    await lock.release('COMMIT')
+    // Entry response loss is conservatively public-uncertain; only the actual
+    // native refusal proves this race. A 57014 timeout cannot satisfy it.
+    expect(await sending).toMatchObject({status:'delivery_uncertain'})
+    expect(entryCalls).toBe(1)
+    expect(entryError).toMatchObject({code:'P0001',message:expect.stringContaining('ediel_transport_worker_fence_lost')})
+    expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(identity.attemptId)}`)).toEqual(prepared)
     expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)} AND entered_at IS NOT NULL`)).toBe(0)
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.reconciliation_cases WHERE message_id=${literal(f.originalZ03.id)}`)).toBe(0)
     expect(smtp).not.toHaveBeenCalled()
   } finally {
-    if(holder.exitCode===null)holder.kill()
-    await done.catch(()=>undefined)
-    if(sending)await sending.catch(()=>undefined)
+    clearTimeout(setupTimer)
+    try {await lock?.dispose()}
+    finally {
+      releaseEntry()
+      try {if(sending)await sending.catch(()=>undefined)}
+      finally {observe.mockRestore()}
+    }
   }
 },120000)

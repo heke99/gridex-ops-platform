@@ -1712,8 +1712,16 @@
     },
     {
       "id": "SC-063",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/tr-10-sc-063-native-approval-20261004.md",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/test-ediel-tr-10-reconciliation.cjs",
+        "scripts/test-ediel-tr-10-worker-source.cjs",
+        "__tests__/ediel-tr-10-reconciliation-copy.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-0c526-receipt.json"
+      ]
     },
     {
       "id": "SC-064",
