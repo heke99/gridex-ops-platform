@@ -33075,9 +33075,28 @@ $_$;
 
 CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[] DEFAULT ARRAY[]::text[], p_required_any text[] DEFAULT ARRAY[]::text[], p_client_ip text DEFAULT NULL::text, p_origin text DEFAULT NULL::text, p_rate_limit_cost integer DEFAULT 1, p_window_seconds integer DEFAULT 60) RETURNS TABLE(auth_outcome text, error_code text, tenant_status text, client_id uuid, company_id uuid, client_name text, client_status text, key_prefix text, scopes text[], allowed_ips text[], allowed_origins text[], metadata jsonb, rate_limit_per_minute integer, expires_at timestamp with time zone, request_count integer, route_limit integer, reset_at timestamp with time zone)
     LANGUAGE sql SECURITY DEFINER
-    SET search_path TO 'public', 'pg_temp'
-    AS $$
-  with auth as (
+    SET search_path TO 'pg_catalog', 'public', 'pg_temp'
+    AS $_$
+  -- Existing callers pass the requested route's exact scopes. Staff opt-in is
+  -- explicit: neither legacy wildcard nor website/customer permission groups
+  -- may grant this new family. Unknown staff paths fail closed.
+  with staff_policy as (
+    select
+      p_route ~ '^/api/v1/staff(/|$)' as is_staff_route,
+      case
+        when p_route='/api/v1/staff/users' then array['staff_users.read','staff_users.write']::text[]
+        when p_route='/api/v1/staff/roles' then array['staff_users.read']::text[]
+        when p_route ~ '^/api/v1/staff/users/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(/(disable|enable))?$' then array['staff_users.write']::text[]
+        when p_route='/api/v1/staff/customers' or p_route ~ '^/api/v1/staff/customers/customer_[A-Za-z0-9_-]{32}$' then array['staff_customers.read']::text[]
+        when p_route ~ '^/api/v1/staff/customers/customer_[A-Za-z0-9_-]{32}/(contact|identity-change)$' then array['staff_customers.write']::text[]
+        when p_route='/api/v1/staff/cases' then array['staff_cases.read','staff_cases.write']::text[]
+        when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}$' then array['staff_cases.read']::text[]
+        when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/(messages|notes|phone-interactions|status|assignee)$' then array['staff_cases.write']::text[]
+        when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/attachments$' then array['staff_cases.read','staff_cases.write']::text[]
+        when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/attachments/support_attachment_[A-Za-z0-9_-]{24}/file$' then array['staff_cases.read']::text[]
+        else array[]::text[]
+      end as allowed_scopes
+  ), auth as (
     select *
     from public.authenticate_integration_request_v1_credential_core(
       p_key_prefix,p_secret_hash,p_route,p_required_all,p_required_any,
@@ -33086,6 +33105,20 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
   ), readiness as (
     select
       auth.*,
+      staff_policy.is_staff_route,
+      coalesce(
+        cardinality(p_required_all)>0
+        and cardinality(coalesce(p_required_any,array[]::text[]))=0
+        and p_required_all <@ staff_policy.allowed_scopes
+        and p_required_all <@ coalesce(auth.scopes,array[]::text[])
+        and array_position(p_required_all,null) is null,
+        false
+      ) as staff_scopes_ready,
+      exists (
+        select 1 from public.companies company
+        where company.id=auth.company_id and company.status='active'
+          and company.is_active is true
+      ) as staff_company_ready,
       exists (
         select 1
         from public.integration_api_clients client
@@ -33131,11 +33164,13 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
             'client_ready','credential_created','preflight_passed','feed_verified','failed'
           )
       ) as provisioning_smoke_ready
-    from auth
+    from auth cross join staff_policy
   )
   select
     case
       when readiness.auth_outcome<>'allowed' then readiness.auth_outcome
+      when readiness.is_staff_route and readiness.staff_scopes_ready and readiness.staff_company_ready then 'allowed'
+      when readiness.is_staff_route then 'denied'
       when p_route like 'provisioning-smoke:%' and readiness.provisioning_smoke_ready then 'allowed'
       when p_route like 'provisioning-smoke:%' then 'denied'
       when readiness.client_ready and readiness.receipt_ready and readiness.capability_ready then 'allowed'
@@ -33143,6 +33178,9 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
     end,
     case
       when readiness.auth_outcome<>'allowed' then readiness.error_code
+      when readiness.is_staff_route and not readiness.staff_scopes_ready then 'api_scope_missing'
+      when readiness.is_staff_route and not readiness.staff_company_ready then 'tenant_inactive'
+      when readiness.is_staff_route then null
       when p_route like 'provisioning-smoke:%' and not readiness.provisioning_smoke_ready then 'provisioning_smoke_receipt_invalid'
       when p_route like 'provisioning-smoke:%' then null
       when not readiness.client_ready then 'api_client_not_launch_ready'
@@ -33166,13 +33204,13 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
     readiness.route_limit,
     readiness.reset_at
   from readiness
-$$;
+$_$;
 
 --
 -- Name: FUNCTION authenticate_integration_request_v1(p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) IS 'Atomic integration auth. Normal traffic requires launch readiness, the metadata-linked completed receipt when present (else a legacy completed receipt) and api_sales; bounded provisioning-smoke routes require the exact in-progress receipt.';
+COMMENT ON FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_secret_hash text, p_route text, p_required_all text[], p_required_any text[], p_client_ip text, p_origin text, p_rate_limit_cost integer, p_window_seconds integer) IS 'Atomic integration auth. Exact staff paths require explicit matching staff scopes and active company; staff traffic does not require Website sales provisioning. Existing Website/customer traffic retains current launch, linked completed receipt and api_sales readiness; bounded provisioning smoke requires the exact in-progress receipt.';
 
 --
 -- Name: authenticate_integration_request_v1_credential_core(text, text, text, text[], text[], text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
@@ -85047,6 +85085,48 @@ CREATE FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_env
 END $$;
 
 --
+-- Name: gridex_staff_active_membership_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) RETURNS TABLE(user_id uuid, role_key text, membership_role text, status text, is_active boolean)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+  SELECT membership.user_id,membership.role_key,membership.membership_role,
+    membership.status,membership.is_active
+  FROM public.company_memberships membership
+  JOIN public.user_profiles profile ON profile.id=membership.user_id AND profile.user_status='active'
+  JOIN auth.users account ON account.id=membership.user_id
+  WHERE membership.company_id=p_company_id AND membership.user_id=p_user_id
+    AND membership.status='active' AND membership.is_active
+    AND membership.accepted_at IS NOT NULL
+    AND account.deleted_at IS NULL
+    AND (account.banned_until IS NULL OR account.banned_until<=clock_timestamp())
+$$;
+
+--
+-- Name: FUNCTION gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) IS 'Service-only exact-company staff membership lookup with accepted membership, active global profile and nondeleted/nonbanned Auth account; no OPS session is required.';
+
+--
+-- Name: gridex_staff_permission_overrides_v1(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) RETURNS TABLE(permission_key text, effect text, status text, is_active boolean)
+    LANGUAGE sql STABLE
+    SET search_path TO ''
+    AS $$
+  SELECT coalesce(nullif(up.permission_key,''),p.key,p.name),up.effect,up.status,up.is_active
+  FROM public.user_permissions up
+  LEFT JOIN public.permissions p ON p.id=up.permission_id AND p.is_active
+  WHERE up.company_id=p_company_id AND up.user_id=p_user_id
+    AND up.status='active' AND up.is_active
+    AND coalesce(nullif(up.permission_key,''),p.key,p.name) IS NOT NULL
+$$;
+
+--
 -- Name: gridex_stage_energy_geodata_feature(uuid, text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -117053,6 +117133,7 @@ CREATE TABLE public.tenant_customer_identity_providers (
     updated_by uuid,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    purpose text DEFAULT 'customer'::text NOT NULL,
     CONSTRAINT tenant_customer_identity_providers_audience_check CHECK (((length(audience) >= 1) AND (length(audience) <= 200))),
     CONSTRAINT tenant_customer_identity_providers_display_name_check CHECK (((length(btrim(display_name)) >= 1) AND (length(btrim(display_name)) <= 120))),
     CONSTRAINT tenant_customer_identity_providers_enforcement_check CHECK ((enforcement = ANY (ARRAY['report'::text, 'enforce'::text]))),
@@ -117061,6 +117142,8 @@ CREATE TABLE public.tenant_customer_identity_providers (
     CONSTRAINT tenant_customer_identity_providers_key_material CHECK ((((kind = 'oidc'::text) AND (jwks_uri IS NOT NULL) AND (public_jwk IS NULL)) OR ((kind = 'tenant_key'::text) AND (public_jwk IS NOT NULL) AND (jwks_uri IS NULL)))),
     CONSTRAINT tenant_customer_identity_providers_kind_check CHECK ((kind = ANY (ARRAY['oidc'::text, 'tenant_key'::text]))),
     CONSTRAINT tenant_customer_identity_providers_public_jwk_check CHECK (((public_jwk IS NULL) OR ((jsonb_typeof(public_jwk) = 'object'::text) AND (NOT (public_jwk ? 'd'::text))))),
+    CONSTRAINT tenant_customer_identity_providers_purpose_check CHECK ((purpose = ANY (ARRAY['customer'::text, 'staff'::text]))),
+    CONSTRAINT tenant_customer_identity_providers_staff_shape_check CHECK (((purpose <> 'staff'::text) OR ((subject_claim = 'sub'::text) AND (enforcement = 'enforce'::text)))),
     CONSTRAINT tenant_customer_identity_providers_subject_claim_check CHECK ((subject_claim ~ '^[A-Za-z0-9_.:-]{1,64}$'::text))
 );
 
@@ -117069,6 +117152,12 @@ CREATE TABLE public.tenant_customer_identity_providers (
 --
 
 COMMENT ON TABLE public.tenant_customer_identity_providers IS 'Tenantservice P1c: per-tenant end-customer login verification. Public key material only; a private JWK (with "d") is rejected.';
+
+--
+-- Name: COLUMN tenant_customer_identity_providers.purpose; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.tenant_customer_identity_providers.purpose IS 'customer for Mina sidor; staff for signed staff assertions with sub=Gridex user id and mandatory enforcement.';
 
 --
 -- Name: website_customer_applications; Type: TABLE; Schema: public; Owner: -
@@ -117721,6 +117810,24 @@ CREATE TABLE public.tenant_portal_customer_links (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT tenant_portal_customer_links_status_check CHECK ((status = ANY (ARRAY['active'::text, 'pending_review'::text, 'revoked'::text, 'disabled'::text])))
 );
+
+--
+-- Name: tenant_staff_assertion_replays; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.tenant_staff_assertion_replays (
+    company_id uuid NOT NULL,
+    jti text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    seen_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT tenant_staff_assertion_replays_jti_check CHECK (((length(jti) >= 8) AND (length(jti) <= 200)))
+);
+
+--
+-- Name: TABLE tenant_staff_assertion_replays; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.tenant_staff_assertion_replays IS 'Staff API replay protection; customer and staff jti namespaces are intentionally separate.';
 
 --
 -- Name: tenant_website_installation_receipts; Type: TABLE; Schema: public; Owner: -
@@ -125965,6 +126072,13 @@ ALTER TABLE ONLY public.tenant_message_capabilities
 
 ALTER TABLE ONLY public.tenant_portal_customer_links
     ADD CONSTRAINT tenant_portal_customer_links_pkey PRIMARY KEY (id);
+
+--
+-- Name: tenant_staff_assertion_replays tenant_staff_assertion_replays_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_assertion_replays
+    ADD CONSTRAINT tenant_staff_assertion_replays_pkey PRIMARY KEY (company_id, jti);
 
 --
 -- Name: tenant_website_installation_receipts tenant_website_installation_r_company_id_environment_profil_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -136012,7 +136126,7 @@ CREATE INDEX tenant_customer_assertion_replays_expiry_idx ON public.tenant_custo
 -- Name: tenant_customer_identity_providers_active_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX tenant_customer_identity_providers_active_uidx ON public.tenant_customer_identity_providers USING btree (company_id) WHERE is_active;
+CREATE UNIQUE INDEX tenant_customer_identity_providers_active_uidx ON public.tenant_customer_identity_providers USING btree (company_id, purpose) WHERE is_active;
 
 --
 -- Name: tenant_customer_sync_requests_company_idempotency_uidx; Type: INDEX; Schema: public; Owner: -
@@ -136151,6 +136265,12 @@ CREATE INDEX tenant_portal_customer_links_company_customer_idx ON public.tenant_
 --
 
 CREATE UNIQUE INDEX tenant_portal_customer_links_company_provider_external_uidx ON public.tenant_portal_customer_links USING btree (company_id, provider, external_customer_id) WHERE (external_customer_id IS NOT NULL);
+
+--
+-- Name: tenant_staff_assertion_replays_expiry_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX tenant_staff_assertion_replays_expiry_idx ON public.tenant_staff_assertion_replays USING btree (expires_at);
 
 --
 -- Name: tenant_website_installation_receipts_auth_ready_idx; Type: INDEX; Schema: public; Owner: -
@@ -156349,6 +156469,13 @@ ALTER TABLE ONLY public.tenant_message_capabilities
 
 ALTER TABLE ONLY public.tenant_portal_customer_links
     ADD CONSTRAINT tenant_portal_customer_links_customer_company_fk FOREIGN KEY (customer_id, company_id) REFERENCES public.customers(id, company_id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+--
+-- Name: tenant_staff_assertion_replays tenant_staff_assertion_replays_company_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_staff_assertion_replays
+    ADD CONSTRAINT tenant_staff_assertion_replays_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id) ON DELETE CASCADE;
 
 --
 -- Name: tenant_website_installation_receipts tenant_website_installation_receipts_api_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -176992,6 +177119,12 @@ ALTER TABLE public.tenant_portal_customer_links ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_portal_customer_links_service_role_all ON public.tenant_portal_customer_links TO service_role USING (true) WITH CHECK (true);
 
 --
+-- Name: tenant_staff_assertion_replays; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.tenant_staff_assertion_replays ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: tenant_website_installation_receipts; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -190362,6 +190495,20 @@ REVOKE ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid
 GRANT ALL ON FUNCTION public.gridex_source_object_snapshot_v1(p_company_id uuid, p_environment text, p_cutoff timestamp with time zone) TO service_role;
 
 --
+-- Name: FUNCTION gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_active_membership_v1(p_company_id uuid, p_user_id uuid) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_permission_overrides_v1(p_company_id uuid, p_user_id uuid) TO service_role;
+
+--
 -- Name: FUNCTION gridex_stage_energy_geodata_feature(p_geodata_version_id uuid, p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -195115,6 +195262,12 @@ GRANT ALL ON TABLE public.tenant_message_capabilities TO service_role;
 
 GRANT ALL ON TABLE public.tenant_portal_customer_links TO authenticated;
 GRANT ALL ON TABLE public.tenant_portal_customer_links TO service_role;
+
+--
+-- Name: TABLE tenant_staff_assertion_replays; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.tenant_staff_assertion_replays TO service_role;
 
 --
 -- Name: TABLE tenant_website_installation_receipts; Type: ACL; Schema: public; Owner: -
