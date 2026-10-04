@@ -4,7 +4,7 @@ import {assertRequestedChangeSendSource} from '@/lib/ediel/production/requestedC
 import {assertBrpChangeSendSource} from '@/lib/ediel/production/brpChangeSource'
 import {assertMeteringMethodChangeSendSource} from '@/lib/ediel/production/meteringMethodChangeSource'
 import { assertProdatFreeTextSendBoundary } from '@/lib/ediel/prodat/prodatFreeText'
-import { assertEdifactLatin1Representable, encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
+import { assertEdifactLatin1Representable, assertEdifactUnocRepertoire, encodeOutboundEdifactInterchange } from '@/lib/ediel/core/edifactEncoding'
 import { assertUtiltsPositiveAckAuthorityForSend } from '@/lib/ediel/utilts/positiveAckAuthority'
 import { wireFormatIdentityIssue } from '@/lib/ediel/core/messageWireFormat'
 import { assertAiListOutboundMessage } from '@/lib/ediel/aiListFormat'
@@ -370,7 +370,7 @@ export async function sendEdielMessageViaSmtp(
   const plaintextException=transportException?plaintextTransportException(transportException,message,actorUserId):false
   const formatIssue = wireFormatIdentityIssue({ rawPayload: message.raw_payload, messageStandard: message.message_standard, mimeType: message.mime_type })
   if (formatIssue) throw new Error(`${formatIssue.code}: ${formatIssue.description}`)
-  if (isEdifactMessage(message)) assertEdifactLatin1Representable(message.raw_payload ?? '')
+  if (isEdifactMessage(message)) { assertEdifactLatin1Representable(message.raw_payload ?? ''); assertEdifactUnocRepertoire(message.raw_payload ?? '') }
   const {deathStatusContext,customerMasterdataContext,ackSourceQualification,prodatCommonHeaderRejectionEvidence:commonHeaderEvidence}=await readFreshEdielSendValidationSources(message,actorUserId)
   await assertBrpChangeSendSource(message, actorUserId)
   const requestedChangeBasis = isEdifactMessage(message) ? await assertRequestedChangeSendSource(message, actorUserId) : null
@@ -501,7 +501,7 @@ export async function sendEdielMessageViaSmtp(
       : inferMimeType(message)
   const mimeEncoding: BufferEncoding = isEdifactMessage(message) ? 'latin1' : 'utf8'
   const payloadBytes = isEdifactMessage(message)
-    ? encodeEdifactLatin1(normalizedPayload)
+    ? encodeOutboundEdifactInterchange(normalizedPayload)
     : Buffer.from(normalizedPayload, mimeEncoding)
   const contentTransferEncoding =
     mimeMode === 'nodemailer-attachment'

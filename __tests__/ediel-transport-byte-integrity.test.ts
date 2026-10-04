@@ -1,3 +1,4 @@
+// masterplan: ENV-01, AT-ENV-01
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
@@ -70,6 +71,26 @@ describe('ENV-01 lossless bytes at every SMTP packaging boundary', () => {
   it('the direct S/MIME adapter rejects before certificate work or temporary files', async () => {
     await expect(createSmimeEncryptedPayloadReference({ rawEdifact: "FTX+AAO+++€'", publicCertificatePem: '' }))
       .rejects.toThrow('edifact_character_not_iso8859_1')
+    expect(io.effects).toEqual([])
+  })
+
+  it('ENV-01: the actual send path rejects C0/C1 controls in segment data before any effect', async () => {
+    const message = {
+      id: '00000000-0000-4000-8000-000000000001', company_id: '00000000-0000-4000-8000-000000000002',
+      direction: 'outbound', environment: 'test', message_standard: 'edifact',
+      message_family: 'CONTRL', message_code: 'CONTRL',
+      communication_route_id: '00000000-0000-4000-8000-000000000003',
+      receiver_email: headers.to, raw_payload: "UNB+UNOC:3+S+R+260930:1200+I'FTX+AAO+++A\u0085B'UNZ+1+I'",
+      parsed_payload: {},
+    } as unknown as EdielMessageRow
+    await expect(sendEdielMessageViaSmtp(message, { actorUserId: 'synthetic-operator' }))
+      .rejects.toThrow('edifact_character_not_unoc:40:U+0085')
+    expect(io.effects).toEqual([])
+  })
+
+  it('ENV-01: the direct S/MIME adapter rejects control characters before certificate work', async () => {
+    await expect(createSmimeEncryptedPayloadReference({ rawEdifact: "FTX+AAO+++A\u0007B'", publicCertificatePem: '' }))
+      .rejects.toThrow('edifact_character_not_unoc:11:U+0007')
     expect(io.effects).toEqual([])
   })
 
