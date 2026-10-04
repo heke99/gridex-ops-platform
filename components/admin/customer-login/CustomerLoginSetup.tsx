@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/customer-login/actions";
 
 export type CustomerLoginProviderView = {
+  purpose: "customer" | "staff";
   kind: "oidc" | "tenant_key";
   display_name: string;
   issuer: string;
@@ -77,11 +78,12 @@ function download(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-export default function CustomerLoginSetup({
-  companyId, provider, tenantKeyIssuer, tenantKeyAudience,
+function ProviderSetup({
+  companyId, provider, purpose, tenantKeyIssuer, tenantKeyAudience,
 }: {
   companyId: string;
   provider: CustomerLoginProviderView | null;
+  purpose: "customer" | "staff";
   tenantKeyIssuer: string;
   tenantKeyAudience: string;
 }) {
@@ -94,7 +96,8 @@ export default function CustomerLoginSetup({
   const [removeState, removeAction, removePending] = useActionState(removeProviderAction, initial);
   const [publicJwk, setPublicJwk] = useState("");
   const [keyReady, setKeyReady] = useState(false);
-  const hidden = <input type="hidden" name="expected_company_id" value={companyId} />;
+  const isStaff = purpose === "staff";
+  const hidden = <><input type="hidden" name="expected_company_id" value={companyId} /><input type="hidden" name="purpose" value={purpose} /></>;
 
   return (
     <div className="grid gap-6 lg:max-w-3xl">
@@ -102,7 +105,7 @@ export default function CustomerLoginSetup({
         <section className={card}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-emerald-700">✓ Kundinloggning är inställd</p>
+              <p className="text-sm font-medium text-emerald-700">✓ {isStaff ? "Personalinloggning" : "Kundinloggning"} är inställd</p>
               <h2 className="mt-1 text-lg font-semibold text-slate-950">{provider.display_name}</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {provider.kind === "oidc" ? `Leverantör: ${provider.issuer}` : "Egen inloggning med er nyckel"}
@@ -116,7 +119,7 @@ export default function CustomerLoginSetup({
           </div>
           <Message state={testState} />
 
-          <form action={enforceAction} className="mt-6 rounded-2xl bg-slate-50 p-4">
+          {isStaff ? <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-sm text-slate-700">Personal kräver alltid ett giltigt personalbevis. <code>sub</code> ska vara personalens Gridex-användar-id.</div> : <form action={enforceAction} className="mt-6 rounded-2xl bg-slate-50 p-4">
             {hidden}
             <p className="text-sm font-semibold text-slate-900">Kräv verifierad kund</p>
             <p className="mt-1 text-sm text-slate-600">
@@ -129,13 +132,13 @@ export default function CustomerLoginSetup({
                 className={provider.enforcement === "enforce" ? primary : secondary}>Kräv verifierad kund</button>
             </div>
             <Message state={enforceState} />
-          </form>
+          </form>}
 
           <form action={removeAction} className="mt-4">
             {hidden}
             <button className="text-sm text-red-700 underline" disabled={removePending}
-              onClick={(event) => { if (!confirm("Ta bort kundinloggningen? API:t fungerar då som tidigare.")) event.preventDefault(); }}>
-              Ta bort kundinloggning
+              onClick={(event) => { if (!confirm(isStaff ? "Ta bort personalinloggningen? Personal-API:t nekar då anrop tills en leverantör har kopplats." : "Ta bort kundinloggningen? Kund-API:t fungerar då som tidigare.")) event.preventDefault(); }}>
+              Ta bort {isStaff ? "personalinloggning" : "kundinloggning"}
             </button>
             <Message state={removeState} />
           </form>
@@ -144,7 +147,7 @@ export default function CustomerLoginSetup({
 
       {editing && (
         <section className={card}>
-          <h2 className="text-lg font-semibold text-slate-950">1. Hur loggar era kunder in?</h2>
+          <h2 className="text-lg font-semibold text-slate-950">1. Hur loggar {isStaff ? "er personal" : "era kunder"} in?</h2>
           <p className="mt-1 text-sm text-slate-600">Ni lämnar aldrig lösenord, hemliga nycklar eller BankID-avtal till oss.</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {([
@@ -168,8 +171,9 @@ export default function CustomerLoginSetup({
                 <input name="issuer" required placeholder="https://er-inloggning.leverantor.se" className={input} />
               </label>
               <label className="grid gap-2 text-sm">
-                <span className="font-medium text-slate-700">Client-ID</span>
-                <input name="client_id" required placeholder="Det ID ni fick av leverantören" className={input} />
+                <span className="font-medium text-slate-700">{isStaff ? "Personal-API:s mottagare (aud)" : "Client-ID"}</span>
+                <input name="client_id" required readOnly={isStaff} value={isStaff ? tenantKeyAudience : undefined} placeholder="Det ID ni fick av leverantören" className={input} />
+                {isStaff && <span className="text-slate-600">Leverantören måste utfärda personalbevis med denna mottagare och Gridex-användar-id i sub.</span>}
               </label>
               <label className="grid gap-2 text-sm">
                 <span className="font-medium text-slate-700">Namn (valfritt)</span>
@@ -184,18 +188,18 @@ export default function CustomerLoginSetup({
               <input type="hidden" name="public_jwk" value={publicJwk} />
               <h3 className="text-base font-semibold text-slate-900">2. Skapa er nyckel</h3>
               <p className="text-sm text-slate-600">
-                Nyckeln skapas i er webbläsare. Den privata delen laddas ner till er dator och lämnar den aldrig mot Gridex. Ge filen till den som bygger er Mina sidor.
+                Nyckeln skapas i er webbläsare. Den privata delen laddas ner till er dator och lämnar den aldrig mot Gridex. Ge filen till den som bygger {isStaff ? "ert personalsystem" : "er Mina sidor"}.
               </p>
               <div>
                 <button type="button" className={secondary} disabled={keyReady} onClick={async () => {
                   const pair = await generateKeyPair();
-                  download(`gridex-kundintyg-${pair.kid}.pem`, pair.privatePem);
+                  download(`gridex-${isStaff ? "personalbevis" : "kundintyg"}-${pair.kid}.pem`, pair.privatePem);
                   setPublicJwk(pair.publicJwk);
                   setKeyReady(true);
                 }}>{keyReady ? "✓ Nyckel skapad och nedladdad" : "Skapa och ladda ner nyckel"}</button>
               </div>
               <div className="grid gap-3 rounded-2xl bg-slate-50 p-4">
-                <p className="text-sm font-medium text-slate-800">Värden er utvecklare ska använda i kundintyget:</p>
+                <p className="text-sm font-medium text-slate-800">Värden er utvecklare ska använda i {isStaff ? "personalbeviset" : "kundintyget"}:</p>
                 <Copy label="iss (utfärdare)" value={tenantKeyIssuer} />
                 <Copy label="aud (mottagare)" value={tenantKeyAudience} />
               </div>
@@ -210,11 +214,32 @@ export default function CustomerLoginSetup({
       <section className={`${card} text-sm text-slate-700`}>
         <h2 className="text-base font-semibold text-slate-950">Så fungerar det</h2>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>Er kund loggar in på er Mina sidor som vanligt.</li>
-          <li>Er server skickar med kundens inloggningsintyg i rubriken <code>x-gridex-customer-assertion</code>.</li>
-          <li>Gridex kontrollerar intyget själv. Med &quot;Kräv verifierad kund&quot; nekas anrop utan giltigt intyg.</li>
+          <li>{isStaff ? "Personalen loggar in i ert system som vanligt." : "Er kund loggar in på er Mina sidor som vanligt."}</li>
+          <li>Er server skickar med inloggningsintyget i rubriken <code>{isStaff ? "x-gridex-staff-assertion" : "x-gridex-customer-assertion"}</code>.</li>
+          <li>{isStaff ? "Gridex kräver giltigt personalbevis, aktivt bolagsmedlemskap och rätt behörighet för varje anrop." : "Gridex kontrollerar intyget själv. Med Kräv verifierad kund nekas anrop utan giltigt intyg."}</li>
         </ol>
       </section>
     </div>
   );
+}
+
+export default function CustomerLoginSetup({ companyId, providers, tenantKeyIssuer, tenantKeyAudience }: {
+  companyId: string;
+  providers: CustomerLoginProviderView[];
+  tenantKeyIssuer: string;
+  tenantKeyAudience: string;
+}) {
+  const [purpose, setPurpose] = useState<"customer" | "staff">("customer");
+  return <div className="space-y-6">
+    <label className="grid max-w-sm gap-2 text-sm font-medium text-slate-700">
+      Syfte
+      <select value={purpose} onChange={(event) => setPurpose(event.target.value as "customer" | "staff")} className={input}>
+        <option value="customer">Kund</option><option value="staff">Personal</option>
+      </select>
+    </label>
+    <ProviderSetup key={purpose} companyId={companyId} purpose={purpose}
+      provider={providers.find((provider) => provider.purpose === purpose) ?? null}
+      tenantKeyIssuer={tenantKeyIssuer}
+      tenantKeyAudience={purpose === "staff" ? `gridex-staff-api:${companyId}` : tenantKeyAudience} />
+  </div>;
 }
