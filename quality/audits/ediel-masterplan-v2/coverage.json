@@ -841,12 +841,16 @@
     {
       "id": "U-02",
       "acceptance_id": "AT-U-02",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md",
         "__tests__/ediel-utilts-canonical-observation-scope.test.ts",
         "__tests__/ediel-utilts-transaction-disposition.test.ts",
-        "__tests__/ediel-utilts-structural-comparison.test.ts"
+        "__tests__/ediel-utilts-structural-comparison.test.ts",
+        "__tests__/ediel-u-02-utilts-levels.test.ts",
+        "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts"
       ]
     },
     {
@@ -2403,9 +2407,13 @@
     },
     {
       "id": "AT-U-02",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md",
+        "__tests__/ediel-u-02-utilts-levels.test.ts",
+        "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts"
       ]
     },
     {

@@ -1135,3 +1135,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 U-19 (+AT) VERIFIED på wip/p08-p15: RFF+TN (fält 226) som valfri, tenant-scopad korrelationsnyckel i findMatchingGridOwnerDataRequest. Landar efter #491.
 - 2026-10-04 P-06 (+AT) och U-11 (+AT) VERIFIED på wip/p08-p15 efter genomläsning av masterplanen (E012 resp. §9/G02). Landar efter #491.
 - 2026-10-04 SC-050 + SC-053 PASSED på wip/p08-p15 (88/96 → E87 trots lika energisumma; NULL≠0 med kvalitet 46/21, QTY220≠136).
+- 2026-10-04 U-02 (+AT) VERIFIED på wip/p08-p15: två IDE behåller egen LOC/QTY och egen disposition.

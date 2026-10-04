@@ -28,7 +28,7 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | U-10 | VERIFIED | u-10-interval-count (96/92/100 by actual period), e66-monthly-billing-resolution | — |
 | U-16 | VERIFIED | packing-limit-authority (10 MB advisory, 1 MB / 999 conservative) | — |
 | U-18 | VERIFIED | utilts-observation-order-guide, canonical-observation-scope | — |
-| U-02 | PARTIAL | canonical-observation-scope, transaction-disposition, structural-comparison | contract matrix for other profiles' repeated groups (acceptance-utilts-package-20260930.md) |
+| U-02 | VERIFIED | canonical-observation-scope, transaction-disposition, structural-comparison, u-02-utilts-levels (two IDE keep own LOC+172/QTY, one disposition each), sc-050-053 (QTY220 vs 136) | — |
 | U-06 | VERIFIED | u-06-request-application-reference (generic 23-DGI-E73 refused, S02/E66 + S03/E31 resolved), u-06-request-mandate-scope (E73 requires customer/site/point/period and a qualified own structure for exactly that period with matching supplier/grid owner; E74 bilateral + manual review only) | — (earlier 'no mandate check' finding was wrong: the mandate is requireDataRequestStructure) |
 | U-08 | VERIFIED | utilts-structural-comparison (mismatch E61/E62 only against held structure; missing → unavailable), u-08-esco-partial-structure (DGI E66 without held structure: no ERR/APERAK, internal warning only) | — |
 | U-09 | VERIFIED | consumption-contract, quantity-precision, s02-required-scope, u-09-estimate-never-actual (annual-profile estimate lines: quality 'estimated', no metering source, method kept, zero intervals not filled, invoice basis preliminary with estimated/actual kWh apart) | — |
