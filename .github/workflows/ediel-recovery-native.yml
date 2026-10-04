@@ -41,7 +41,7 @@ jobs:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
         run: |
           set -euo pipefail
-          mkdir -p recovery-native-evidence
+          mkdir -p recovery-native-working
           # The existing owner keeps its EXIT cleanup trap. Replay/status
           # output can contain disposable credentials and is never uploaded.
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/recovery-replay.log" 2>&1
@@ -52,8 +52,8 @@ jobs:
             --config scripts/ediel-source-owner-native.config.ts \
             scripts/ediel-tr-05-recovery-native.test.ts \
             --reporter=default --reporter=junit \
-            --outputFile=recovery-native-evidence/native-junit.xml \
-            > recovery-native-evidence/native.log 2>&1 || native_exit=$?
+            --outputFile=recovery-native-working/native-junit.xml \
+            > recovery-native-working/native.log 2>&1 || native_exit=$?
           export RECOVERY_NATIVE_EXIT="$native_exit"
           python3 - <<'PY'
           import hashlib, json, os, pathlib, subprocess
@@ -75,10 +75,13 @@ jobs:
               'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
               'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
           }
-          pathlib.Path('recovery-native-evidence/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          pathlib.Path('recovery-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
           PY
           python3 scripts/gridex-redact-native-evidence.py \
-            --local-secrets "$GRIDEX_NATIVE_STATUS" --root recovery-native-evidence
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root recovery-native-working
+          # Only successfully redacted files enter the uploaded directory.
+          # Receipt/redaction failure leaves no artifact directory to upload.
+          mv recovery-native-working recovery-native-evidence
           cat recovery-native-evidence/native.log
           rm -f "$GRIDEX_NATIVE_STATUS"
           exit "$native_exit"

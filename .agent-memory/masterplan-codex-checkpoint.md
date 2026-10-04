@@ -157,3 +157,19 @@ coordinate remediation with Claude, preserving his single coverage row.
 
 Next: publish the main merge, inspect exact-head native results and integrate
 after required checks pass. Continue TR review closure and remaining cards.
+## ESCO-10/11 exact-head native approval
+
+- f4a0fb4398a79f5777824123142c82aeeb8338ec exact-head OPS run 37219122360:
+  verify/quality/upgrade/clean and all applicable auxiliary checks PASS.
+- Artifact 11310821113 SHA256
+  470c1eed5afd99678c2d5ab2c7fa108bc33384cc873fb5ecab5cf9cb4f820076,
+  rem002-native-junit.xml proves new ESCO projection suite 3/3 PASS and
+  existing service-evidence suite 29/29 PASS, zero errors/skips/failures.
+- Independent complete-card reviewer ten07_rule_review approves ESCO-10/11
+  and their contracts: exact permission-free reception, current owned grant/
+  object/product/window/role validation, authenticated current downstream-use
+  and privacy-role rechecks, revocation denial, unchanged originals/prior
+  receipts and no fabricated E66/ACK/business effects. Synthetic external
+  issuer inputs do not confer external market/legal or DB-06 approval.
+- Approval changes only the four coverage rows and this record. Publish in
+  #497 and wait for mandatory checks on the new exact head before main merge.
