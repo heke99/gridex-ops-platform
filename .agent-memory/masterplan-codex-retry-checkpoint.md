@@ -92,3 +92,34 @@ gates turn green, preserve Claude approvals/source captures, then continue TR05.
   cancel-in-progress, preserving every mandatory job/step/permission and
   independent PR/schema-capture runs. Shared workflow ownership reserved on
   #491 before editing. This is queue management, not a validation bypass.
+
+## 2026-10-04 — TR10 worker boundary proof, no premature approval
+
+- Exclusive TR10/ATTR10/SC063 reservation recorded on491; TR05/SC040
+  remains separate. Added five genuine normal-Z03 worker cases beside the
+  ten recovery cases: after-DATA unknown + exact scoped archive/attempt read;
+  stale pre-entry sweep + actual SQL worker fence; pending SMTP through
+  lease expiry + late same-attempt reconciliation; real scoped DB CHECK
+  failure after accepted observation + no-resend projection repair; unswept
+  expired claim boundary. Public locked_at ages are declared clock fixtures,
+  not fabricated entry/acceptance or retry authority.
+- Independent inventory found a suspected unswept lease gap: worker/core
+  checks status/worker/attempt but no lock timestamp. New native expectation
+  is a test-first candidate, NOT a confirmed product defect until execution.
+- SYS ST-T04 requires a tracking case for unknown submission; actual journal
+  and public uncertain queue are present, but no automatic case producer
+  found yet. TR10 remains PARTIAL and TR05 unapproved pending full proof.
+- Actual retained SQL journal wrapper1/1 PASS, owned lint and script types
+  PASS before final case additions; YAML and shell syntax PASS.
+- Supplemental recovery native workflow uses the unchanged actual clean
+  replay owner/native config on a disposable runner and only filters this
+  test file. Exact checkout/input receipt plus redacted logs/JUnit preserved.
+  All ordinary mandatory gates, schema parity, browser and upgrade remain.
+- Parent501 verified6c3/3 native, independent full-card refresh APPROVED;
+  now published98da39ab composes staff499/TEN09/Claudee07. Genuine combined
+  capture pending, old captured bytes explicitly marked pending. This
+  standalone native proof does not substitute for final composed gates.
+
+Next: execute fifteen genuine native cases quickly, inspect first actual RED,
+fix only proven issues, finish case tracing/lease proof and independent review,
+then approve appropriate cards and merge gated main in dependency order.

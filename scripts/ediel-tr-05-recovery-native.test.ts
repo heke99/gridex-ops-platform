@@ -1,4 +1,4 @@
-// masterplan: TR-05, AT-TR-05, SC-040
+// masterplan: TR-05, AT-TR-05, SC-040, TR-10, AT-TR-10, SC-063
 // Actual local owners; only counterparty reply bytes and the external SMTP
 // result are fixtures. No private admitted ACK, ready operation or attempt is
 // inserted. Sent production originals are singleton, so these tests do not
@@ -27,7 +27,10 @@ import {prepareAndQueueProdatRecovery, prepareProdatRecoveryDraft, queuePersiste
 import {sendEdielMessageViaSmtp} from '@/lib/ediel/transport'
 import {checkAckDeadlines} from '@/lib/ediel/sla/checkAckDeadlines'
 import {sendOutboxItem} from '@/lib/ediel/outbox/sendOutboxItem'
+import {claimEdielOutboxItem} from '@/lib/ediel/outbox/claimOutboxItems'
+import {processEdielOutbox} from '@/lib/ediel/outbox/processEdielOutbox'
 import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
+import {readEdielTransportCopies} from '@/lib/ediel/transport/copy'
 import {revokeNetworkRegistrySource} from '@/lib/ediel/production/networkRegistrySource'
 import {readEdielProcessNextActions} from '@/lib/ediel/operations/processNextAction'
 import type {EdielMessageRow} from '@/lib/ediel/types'
@@ -265,3 +268,108 @@ it('the actual sweep of a declared expired public SLA row cannot create recovery
     expect(effects(f)).toEqual(before); expect(smtp).toHaveBeenCalledTimes(calls)
   }
 },180000)
+
+function outboxId(f: Fixture) {
+  return sql<string>(`SELECT to_jsonb(id) FROM public.ediel_outbox WHERE company_id=${literal(f.companyId)} AND ediel_message_id=${literal(f.originalZ03.id)}`)
+}
+function workerState(id: string) {
+  return sql<Record<string,unknown>>(`SELECT to_jsonb(o) FROM public.ediel_outbox o WHERE id=${literal(id)}`)
+}
+function expireDeclaredWorkerLease(id: string) {
+  // A declared clock fixture on the genuinely claimed public queue row. This
+  // does not create transport entry, acceptance or retry authority.
+  sql(`UPDATE public.ediel_outbox SET locked_at=now()-interval '1 hour' WHERE id=${literal(id)}; SELECT to_jsonb(true)`)
+}
+it('a real after-DATA unknown worker result is retained and worker restart cannot resend or authorize recovery',async () => {
+  const f = await seed(false), id = outboxId(f)
+  smtp.mockRejectedValue(Object.assign(new Error('synthetic connection lost awaiting DATA response'),{code:'ETIMEDOUT',command:'DATA'}))
+  expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'delivery_uncertain'})
+  const attempt = sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)
+  expect(attempt).toMatchObject({company_id:f.companyId,message_id:f.originalZ03.id,entered_at:expect.any(String),observed_at:expect.any(String),classification:'unknown',provider_result:{error:{code:'ETIMEDOUT',command:'DATA'}}})
+  expect(workerState(id)).toMatchObject({status:'delivery_uncertain',locked_by:null,locked_at:null,last_error:expect.stringContaining('delivery_uncertain_after_smtp_send')})
+  const copies = await readEdielTransportCopies({companyId:f.companyId,actorUserId:f.actorUserId,messageId:f.originalZ03.id})
+  expect(copies).toMatchObject({status:'available',authorizesResend:false,deliveryProven:false})
+  expect(copies.copies).toEqual(expect.arrayContaining([expect.objectContaining({attemptId:attempt.id,smtpClassification:'unknown',rfcMessageId:expect.any(String),mimeArchiveRef:expect.any(String),mimeSha256:expect.stringMatching(/^[a-f0-9]{64}$/)})]))
+  const before = effects(f), original = originals(f), queue = workerState(id)
+  expect(await processEdielOutbox({actorUserId:f.actorUserId,companyId:f.companyId,environment:'test'})).toMatchObject({processed:0,deliveryUncertain:0})
+  expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'blocked'})
+  expect(await prepareAndQueueProdatRecovery({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,operationId:randomUUID(),previousAttemptId:String(attempt.id)})).toMatchObject({status:'held',reason:'verified_transfer_loss_required'})
+  expect(effects(f)).toEqual(before); expect(originals(f)).toEqual(original); expect(workerState(id)).toEqual(queue)
+  expect(smtp).toHaveBeenCalledTimes(1)
+},120000)
+it('an expired actual pre-entry worker lease is held and its stale identity cannot enter SMTP',async () => {
+  const f = await seed(false), id = outboxId(f), workerId = `synthetic-worker-${randomUUID()}`
+  const claim = await claimEdielOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId})
+  expect(claim).toMatchObject({id,status:'sending',locked_by:workerId,current_send_attempt_id:expect.any(String)})
+  expect(await claimEdielOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId:`other-${workerId}`})).toBeNull()
+  expireDeclaredWorkerLease(id)
+  expect(await processEdielOutbox({actorUserId:f.actorUserId,companyId:f.companyId,environment:'test'})).toMatchObject({processed:0})
+  expect(workerState(id)).toMatchObject({status:'delivery_uncertain',locked_by:null,current_send_attempt_id:claim!.current_send_attempt_id,last_error:'stale_sending_lock_requires_transport_reconciliation'})
+  expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId,sendAttemptId:claim!.current_send_attempt_id,alreadyClaimed:true})).toMatchObject({status:'blocked',error:'outbox_item_not_claimed_by_worker'})
+  // Exercise the actual SQL fence too, rather than relying on the worker's
+  // early public-row check or a fabricated private reservation.
+  await expect(sendEdielMessageViaSmtp(f.originalZ03,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment',dispatchOwner:{kind:'worker',outboxId:id,sendAttemptId:claim!.current_send_attempt_id!,workerId}})).rejects.toMatchObject({message:expect.stringContaining('ediel_transport_worker_fence_lost')})
+  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)}`)).toBe(0)
+  expect(smtp).not.toHaveBeenCalled()
+},120000)
+it('lease expiry while the real worker awaits SMTP cannot re-enter, and its late accepted receipt only reconciles the same original',async () => {
+  const f = await seed(false), id = outboxId(f)
+  let release: ((result: {accepted:string[];rejected:string[];messageId:string;response:string}) => void) | undefined
+  let entered: (() => void) | undefined
+  const entry = new Promise<void>(resolve => {entered=resolve})
+  const pending = new Promise<{accepted:string[];rejected:string[];messageId:string;response:string}>(resolve => {release=resolve})
+  smtp.mockImplementation(() => {entered!(); return pending})
+  const sending = sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})
+  try {
+    await Promise.race([entry,sending.then(() => {throw Error('provider_not_entered')})])
+    const attempt = sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)
+    expect(attempt).toMatchObject({entered_at:expect.any(String),observed_at:null,classification:null})
+    expireDeclaredWorkerLease(id)
+    expect(await processEdielOutbox({actorUserId:f.actorUserId,companyId:f.companyId,environment:'test'})).toMatchObject({processed:0})
+    expect(workerState(id)).toMatchObject({status:'delivery_uncertain',locked_by:null})
+    expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'blocked'})
+    expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE id=${literal(String(attempt.id))}`)).toEqual(attempt)
+    expect(smtp).toHaveBeenCalledTimes(1)
+  } finally {
+    release!({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic late acceptance'})
+    await sending
+  }
+  expect(await sending).toMatchObject({status:'sent'})
+  const observed = sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)
+  expect(observed).toMatchObject({classification:'accepted',observed_at:expect.any(String)})
+  const stable = originals(f)
+  expect(await processEdielOutbox({actorUserId:f.actorUserId,companyId:f.companyId,environment:'test'})).toMatchObject({processed:0})
+  expect(originals(f)).toEqual(stable); expect(smtp).toHaveBeenCalledTimes(1)
+},120000)
+it('an actual accepted journal survives failed DB projection and repairs with its frozen clock without another SMTP call',async () => {
+  const f = await seed(false), id = outboxId(f)
+  smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
+  // A declared, message-scoped DB fault. No private source/admission or
+  // accepted receipt is seeded; the real provider owner must establish it.
+  sql(`ALTER TABLE public.ediel_messages ADD CONSTRAINT tr10_native_projection_failure CHECK(id<>${literal(f.originalZ03.id)}::uuid OR message_sent_at IS NULL); SELECT to_jsonb(true)`)
+  try {
+    expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'delivery_uncertain'})
+    expect(sql(`SELECT to_jsonb(message_sent_at) FROM public.ediel_messages WHERE id=${literal(f.originalZ03.id)}`)).toBeNull()
+    expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)).toMatchObject({classification:'accepted',observed_at:expect.any(String)})
+    expect(workerState(id)).toMatchObject({status:'delivery_uncertain'})
+  } finally {
+    sql('ALTER TABLE public.ediel_messages DROP CONSTRAINT tr10_native_projection_failure; SELECT to_jsonb(true)')
+  }
+  const attempt = sql<{observed_at:string}>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)
+  const original = (await getEdielMessageById(f.originalZ03.id))!
+  const repaired = await sendEdielMessageViaSmtp(original,{actorUserId:f.actorUserId,smtpMimeMode:'nodemailer-attachment'})
+  expect(Date.parse(repaired.dispatchObservedAt!)).toBe(Date.parse(attempt.observed_at))
+  expect(Date.parse((await getEdielMessageById(original.id))!.message_sent_at!)).toBe(Date.parse(attempt.observed_at))
+  expect(await processEdielOutbox({actorUserId:f.actorUserId,companyId:f.companyId,environment:'test'})).toMatchObject({processed:0})
+  expect(smtp).toHaveBeenCalledTimes(1)
+},120000)
+it('an unswept expired genuine claim cannot reach the provider with its old worker identity',async () => {
+  const f = await seed(false), id = outboxId(f), workerId = `synthetic-expired-${randomUUID()}`
+  const claim = await claimEdielOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId})
+  expect(claim).toMatchObject({status:'sending',current_send_attempt_id:expect.any(String)})
+  expireDeclaredWorkerLease(id)
+  smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
+  const before = effects(f)
+  expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId,sendAttemptId:claim!.current_send_attempt_id,alreadyClaimed:true})).toMatchObject({status:'blocked'})
+  expect(effects(f)).toEqual(before); expect(smtp).not.toHaveBeenCalled()
+},120000)

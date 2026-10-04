@@ -1,0 +1,92 @@
+name: Ediel recovery native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-tr-05-recovery-native.test.ts'
+      - 'lib/ediel/outbox/**'
+      - 'supabase/migrations/*ediel_worker_lease*.sql'
+      - '.github/workflows/ediel-recovery-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-recovery-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental feedback only. All ordinary OPS clean/upgrade/native/browser
+# and parity gates remain mandatory; this does not approve any rule card.
+jobs:
+  recovery-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Execute the actual recovery owners after disposable clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p recovery-native-evidence
+          # The existing owner keeps its EXIT cleanup trap. Replay/status
+          # output can contain disposable credentials and is never uploaded.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/recovery-replay.log" 2>&1
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/recovery-native-status.json"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          native_exit=0
+          GRIDEX_NATIVE_STATUS="$GRIDEX_NATIVE_STATUS" npx vitest run \
+            --config scripts/ediel-source-owner-native.config.ts \
+            scripts/ediel-tr-05-recovery-native.test.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=recovery-native-evidence/native-junit.xml \
+            > recovery-native-evidence/native.log 2>&1 || native_exit=$?
+          export RECOVERY_NATIVE_EXIT="$native_exit"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess
+          paths = ['scripts/ediel-tr-05-recovery-native.test.ts',
+                   'scripts/ediel-source-owner-native.config.ts',
+                   'scripts/gridex-aud-003-clean-replay.sh',
+                   'scripts/migration-history-manifest.json',
+                   'scripts/migration-history-manifest.additions.json',
+                   'scripts/migration-history-manifest.runtime.additions.json']
+          receipt = {
+              'purpose': 'supplemental_actual_native_feedback',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'native_exit_code': int(os.environ['RECOVERY_NATIVE_EXIT']),
+              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths},
+              'test_scope': 'scripts/ediel-tr-05-recovery-native.test.ts',
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'schema_capture': 'NOT_RUN', 'browser_tests': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN', 'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('recovery-native-evidence/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          PY
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root recovery-native-evidence
+          cat recovery-native-evidence/native.log
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$native_exit"
+      - name: Upload redacted native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-recovery-native-${{ github.event.pull_request.head.sha }}
+          path: recovery-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14
