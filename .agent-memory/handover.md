@@ -1133,3 +1133,6 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 Codex #498 mergad 33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023: TR-01/02 mottagarguard och SMTP-bevis, independent full-card clear, exact648 alla CI-gates PASS; Claude behåller P/U/TEN och sina aktiva memory-filer.
 
 - 2026-10-04 Correction for merged#497: rawJUnit605TOTAL=604PASS+1unrelatedincidentSKIP,0FAIL/ERROR; ESCO3/3/service29/29 noSKIP and allrequiredjobsgreen. Earlier605/605 shorthand inaccurate; approvals/mergecbefde67 unchanged (GitHub4915983932824).
+- 2026-10-04 ÄGARBESLUT P-08: giltig mottagning = nätägarens positiva APERAK på vår bundna Z09D -> bekräfta egen produktionsavtalshändelse. Migration 20261004190000 (wip/p08-p15, pushas efter #491-merge).
+- 2026-10-04 (wip/p08-p15): P-15 (+AT) godkänd; U-09 (+AT) godkänd; P-08 implementerad (PARTIAL tills native).
+- 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
