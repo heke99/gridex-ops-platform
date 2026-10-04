@@ -1256,3 +1256,9 @@ Design A implemented (d1714807 + 20261003100100). Local native: prodat-mixed 6/6
 OPEN raw-scope "actual full mixed own ACK replays exact subsets": read_scope_v2 -> read_business_original_v1(...,'prepare') tries to INSERT gridex_ediel_ack_guide.outbound_prodat_scopes for a partition-path combined ACK (scopes already reserved: 2 rows). Investigate why the read path re-reserves (old mixed path short-circuited via mixed tables).
 OPEN: document-reference concurrent Z08 (needs Z08/Z25 rescission original), transport-data query-plan (post-main-merge), 5 Playwright specs + after-browser verifications.
 Local stack note: never start native tests before "[harness] holding stack" (fixture writes break 084343 replay).
+
+## 2026-10-04 (Claude, #491) — läge efter 22a45cca/8ecea64a/d9bcb0ff
+- Klart: U-13, U-17 VERIFIED. U-06, U-11, U-19 PARTIAL med smalare luckor (se gap-register-2026-10-04.md).
+- TEN-09: fix-migration 20261004120000 pushad; PARTIAL tills native CI kör riktiga resolvern bakom grinden. schema.sql + schema.fingerprint.json ska uppdateras från CI-artefakten rem002-schema-snapshot (ops-hardening) om db:schema:check fallerar.
+- Codex: TR-01/02 + #497 (TEN-07, ESCO-10/11). Rör inte deras filer.
+- Nästa exakta steg: 1) läs CI på 22a45cca+, åtgärda schema-baseline; 2) claima på #491 innan produktkod för U-12/U-15 (UTILTS batch planner), P-06, P-08, P-15, U-08; 3) U-09 kräver underlay-nivåtest.
