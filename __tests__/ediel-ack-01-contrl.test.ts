@@ -4,7 +4,7 @@ const io=vi.hoisted(()=>({writes:[] as {op:string;table:string;row:Record<string
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:(table:string)=>{
  const q:Record<string,unknown>={}
  const write=(op:string)=>(row:Record<string,unknown>|null=null)=>{io.writes.push({op,table,row});return q}
- Object.assign(q,{select:()=>q,eq:()=>q,is:()=>q,in:()=>q,limit:()=>q,order:()=>q,maybeSingle:()=>q,single:()=>q,
+ Object.assign(q,{select:()=>q,eq:()=>q,is:()=>q,in:()=>q,not:()=>q,limit:()=>q,order:()=>q,maybeSingle:()=>q,single:()=>q,
   insert:write('insert'),update:write('update'),upsert:write('upsert'),
   then:(resolve:(v:unknown)=>unknown)=>Promise.resolve({data:table==='ediel_messages'&&io.writes.at(-1)?.table==='ediel_messages'?{id:'inbound-ack'}:null,error:null}).then(resolve)})
  return q}}}))

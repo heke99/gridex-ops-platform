@@ -1569,8 +1569,13 @@
     },
     {
       "id": "SC-036",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "lib/inbound-mail/inboundStatusUpdater.ts",
+        "__tests__/supplier-switch-activation-sweep.test.ts"
+      ]
     },
     {
       "id": "SC-037",
@@ -1583,8 +1588,11 @@
     },
     {
       "id": "SC-038",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-p-12-z04ad-scope.cjs",
+        "__tests__/ediel-supply-market-consumers.test.ts"
+      ]
     },
     {
       "id": "SC-039",

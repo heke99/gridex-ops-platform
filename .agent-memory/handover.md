@@ -1141,3 +1141,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 SC-044 + SC-047 PASSED (wip).
 - 2026-10-04 SC-031 + SC-034 PASSED (wip): befintliga P-02/P-17-tester taggade.
 - 2026-10-04 SC-035 + SC-037 PASSED (wip).
+- 2026-10-04 SC-036 PASSED (fix): sen positiv APERAK/CONTRL efter Z04 backar inte längre outbound_requests.status=confirmed/response_payload (båda vägar). SC-038 PASSED (befintliga P-12/P-13-tester).
