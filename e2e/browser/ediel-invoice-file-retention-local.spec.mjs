@@ -1,0 +1,27 @@
+import {readFileSync} from 'node:fs'
+import {test,expect} from '@playwright/test'
+test.skip(!process.env.GRIDEX_INVOICE_FILE_RETENTION_FIXTURE_PATH||!process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD,'owned disposable actual invoice-file fixture required')
+const f=process.env.GRIDEX_INVOICE_FILE_RETENTION_FIXTURE_PATH?JSON.parse(readFileSync(process.env.GRIDEX_INVOICE_FILE_RETENTION_FIXTURE_PATH,'utf8')):null
+const labels={capture:'Arkivera faktisk PDF-källa',source:'Läs kopians arkivmetadata',basis:'Läs kopians källomfattning',submit:'Arkivera kopians juridiska beslut',review:'Registrera separat granskning',revoke:'Återkalla beslut',purge:'Gallra godkänd Storage-kopia'}
+const operation=(page,kind)=>page.locator('form').filter({has:page.getByRole('heading',{name:labels[kind],exact:true})})
+async function login(page,email){await page.goto('/login?next=%2Fretention%2Finvoice-files');await page.getByLabel('E-post').fill(email);await page.getByLabel('Lösenord').fill(process.env.GRIDEX_EDIEL_CASE_TEST_PASSWORD);await page.getByRole('button',{name:'Logga in',exact:true}).click();await page.waitForURL(url=>url.pathname==='/retention/invoice-files');await expect(page.getByRole('heading',{name:'Behörig gallring',exact:true})).toBeVisible()}
+async function choose(page,company){await page.getByLabel('Eget bolag för gallring',{exact:true}).selectOption(company);await page.getByRole('button',{name:'Välj eget bolag',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'Bolaget är valt'})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Faktura-PDF: separat källprövning och gallring',exact:true})).toBeVisible()}
+async function select(form){await form.getByLabel('Kopians klass',{exact:true}).selectOption(f.retentionClass);await form.getByLabel('Källpostens ID',{exact:true}).fill(f.targetId)}
+test('actual archived writer keyboard-replays exact server source capture and sees native missing billing authority held without approval or physical deletion',async({browser},info)=>{
+ const page=await browser.newPage();await login(page,f.actorEmail);await choose(page,f.companyId)
+ const capture=operation(page,'capture');await select(capture);await capture.getByLabel('Källpostens ID',{exact:true}).focus();await page.keyboard.press('Tab');await expect(capture.getByRole('button',{name:labels.capture,exact:true})).toBeFocused();await page.keyboard.press('Enter');await expect(capture.locator('pre')).toContainText(f.sourceHash)
+ const source=operation(page,'source');await select(source);await source.getByRole('button',{name:labels.source,exact:true}).click();await expect(source.locator('pre')).toContainText(f.sourceHash);await expect(source.locator('pre')).toContainText('"authority": "none"')
+ const basis=operation(page,'basis');await select(basis);await basis.getByRole('button',{name:labels.basis,exact:true}).click();await expect(basis.getByRole('status')).toContainText('Åtgärden är spärrad')
+ await page.reload();expect((await page.request.post('/api/ediel/invoice-file-retention',{data:{action:'source',retentionClass:f.retentionClass,targetId:f.targetId}})).status()).toBe(200)
+ await info.attach('invoice-file-actual-keyboard-source-held-billing',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});await page.getByRole('button',{name:'Logga ut',exact:true}).click();await page.waitForURL(url=>url.pathname==='/login');expect((await page.request.post('/api/ediel/invoice-file-retention',{data:{action:'source',retentionClass:f.retentionClass,targetId:f.targetId}})).status()).toBe(403);await page.close()
+})
+test('actual read-only archived member reads exact custody metadata at mobile375/zoom2 and every mutation remains denied',async({browser},info)=>{
+ const page=await browser.newPage({viewport:{width:375,height:812}});await login(page,f.readonlyEmail);await choose(page,f.companyId);const source=operation(page,'source');await select(source);await source.getByRole('button',{name:labels.source,exact:true}).click();await expect(source.locator('pre')).toContainText(f.sourceHash)
+ for(const kind of ['capture','submit','review','revoke','purge'])await expect(operation(page,kind).getByRole('button',{name:labels[kind],exact:true})).toBeDisabled()
+ expect((await page.request.post('/api/ediel/invoice-file-retention',{data:{action:'capture',retentionClass:f.retentionClass,targetId:f.targetId}})).status()).toBe(403);await page.addStyleTag({content:'html{zoom:2}'});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+2)).toBe(true);await info.attach('invoice-file-readonly-mobile-zoom2',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});await page.close()
+})
+test('actual foreign archived membership cannot select another company, read another captured copy or inject body company authority',async({browser})=>{
+ const page=await browser.newPage();await login(page,f.foreignEmail);expect(await page.locator(`select[name="company_id"] option[value="${f.companyId}"]`).count()).toBe(0);await choose(page,f.foreignCompanyId)
+ const response=await page.request.post('/api/ediel/invoice-file-retention',{data:{action:'source',retentionClass:f.retentionClass,targetId:f.targetId}});expect(response.status()).toBe(403);expect(await response.text()).not.toContain(f.sourceHash)
+ expect((await page.request.post('/api/ediel/invoice-file-retention',{data:{action:'source',retentionClass:f.retentionClass,targetId:f.targetId,companyId:f.companyId}})).status()).toBe(400);await page.close()
+})

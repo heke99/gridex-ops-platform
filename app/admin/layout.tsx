@@ -103,8 +103,8 @@ companyOptions={companyOptions}
  <div className="flex flex-col items-start justify-between gap-3 text-sm text-slate-700 sm:flex-row sm:items-center">
  <p>{isPlatformAdmin ? 'Gridex Energy Operations • Platform Control Center' : `${workspaceName} • Bolagsyta`}</p>
 
- <div className="flex items-center gap-3">
- <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+ <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
+ <span className="min-w-0 max-w-full break-all rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
  {admin.email ?? 'Användare'}
  </span>
 

@@ -203,6 +203,10 @@ export default async function PlatformGoLiveCompanyPage({
             <form action={approveCompanyProductionAction}>
               <input type="hidden" name="company_id" value={companyId} />
               <input type="hidden" name="redirect_to" value={`/admin/platform/go-live/${companyId}`} />
+              <label className="mb-3 block text-sm font-bold text-slate-950">
+                Sparat produktionsmeddelande för dry run
+                <input name="message_id" required autoComplete="off" placeholder="Meddelandets UUID" className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-normal" />
+              </label>
               <button
                 disabled={!readinessLoad.ok}
                 className="rounded-2xl bg-emerald-700 px-6 py-3 text-sm font-black text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"

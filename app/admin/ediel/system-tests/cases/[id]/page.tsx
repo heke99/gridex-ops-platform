@@ -1134,7 +1134,7 @@ export default async function SystemTestCasePage({
           />
           <label className="block text-sm font-medium text-slate-700">
             Mailbox-id eller tomt för aktiv testmailbox
-            <input
+            <input aria-label="Mailbox-id eller tomt för aktiv testmailbox"
               name="mailbox"
               placeholder="Lämna tomt för DB-konfigurerad testmailbox"
               className="mt-1 block w-full rounded-xl border border-blue-200 bg-white px-3 py-2 text-sm"
@@ -1142,7 +1142,7 @@ export default async function SystemTestCasePage({
           </label>
           <label className="block text-sm font-medium text-slate-700">
             Max antal
-            <input
+            <input aria-label="Max antal"
               name="limit"
               defaultValue="50"
               inputMode="numeric"
@@ -1198,7 +1198,7 @@ export default async function SystemTestCasePage({
           <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
             <label className="block text-sm font-medium text-slate-700">
               Eller ladda upp payloadfil
-              <input
+              <input aria-label="Eller ladda upp payloadfil"
                 type="file"
                 name="payloadFile"
                 className="mt-1 block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
