@@ -60,8 +60,7 @@ async function activeMembership(companyId: string, userId: string): Promise<Staf
   // The company membership alone cannot override a globally suspended, deleted
   // or banned account. This service-only lookup uses the same account predicate
   // as staff command authorization, without requiring an OPS login session.
-  const rpc = tenantDb(companyId).unscoped().rpc as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
-  const { data, error } = await rpc('gridex_staff_active_membership_v1', {
+  const { data, error } = await tenantDb(companyId).unscoped().rpc('gridex_staff_active_membership_v1', {
     p_company_id: companyId, p_user_id: userId,
   })
   if (error) throw error
@@ -70,9 +69,7 @@ async function activeMembership(companyId: string, userId: string): Promise<Staf
 }
 
 async function permissionOverrides(companyId: string, userId: string): Promise<StaffPermissionOverride[]> {
-  // Typed port for the additive RPC until the authentic clean-replay artifact is imported.
-  const rpc = tenantDb(companyId).unscoped().rpc as unknown as (name: string, args: Record<string, unknown>) => PromiseLike<{data: unknown; error: unknown}>
-  const { data, error } = await rpc('gridex_staff_permission_overrides_v1', {
+  const { data, error } = await tenantDb(companyId).unscoped().rpc('gridex_staff_permission_overrides_v1', {
     p_company_id: companyId, p_user_id: userId,
   })
   if (error) throw error

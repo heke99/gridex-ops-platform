@@ -26,8 +26,13 @@
     {
       "id": "GOV-03",
       "acceptance_id": "AT-GOV-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/versionSelector.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/core/ackSourceRulePackEvidence.ts",
+        "__tests__/ediel-gov-03-aperak-source-family.test.ts"
+      ]
     },
     {
       "id": "GOV-04",
@@ -1442,8 +1447,13 @@
     },
     {
       "id": "AT-GOV-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/versionSelector.ts",
+        "lib/ediel/rulebook/validator.ts",
+        "lib/ediel/core/ackSourceRulePackEvidence.ts",
+        "__tests__/ediel-gov-03-aperak-source-family.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-04",
