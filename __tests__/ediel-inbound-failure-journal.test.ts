@@ -1,3 +1,4 @@
+// masterplan: OPS-05, AT-OPS-05
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'

@@ -1,3 +1,4 @@
+// masterplan: OPS-05, AT-OPS-05
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { classifyEdielFailure, EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 const fault = vi.hoisted(() => ({ active: false }))
@@ -39,5 +40,18 @@ describe('local failures are not national field rejections', () => {
     expect(classifyEdielFailure(new EdielExecutionFailure({ kind: 'security_quarantine', code: 'ACTOR_UNTRUSTED' }, 'held')).kind).toBe('security_quarantine')
     expect(classifyEdielFailure(new EdielExecutionFailure({ kind: 'unsupported_capability', code: 'CAPABILITY_HELD' }, 'held')).kind).toBe('unsupported_capability')
     expect(classifyEdielFailure(new Error('42'))).toMatchObject({ kind: 'internal_failure' })
+  })
+})
+
+describe('OPS-05: an internal failure preserves the original and its acknowledgement status', () => {
+  it('leaves raw payload and CONTRL/APERAK status untouched and plans no external application response', () => {
+    fault.active = true
+    const row = { ...message, contrl_status: 'received', aperak_status: 'pending', requires_contrl: true, requires_aperak: true } as EdielMessageRow
+    const before = structuredClone(row)
+    const result = resolveCanonicalRuntimeDecision(row)
+    expect(row).toEqual(before)
+    expect(result.responsePlan.filter(item => item.family === 'APERAK' || item.family === 'UTILTS_ERR')).toEqual([])
+    expect(result.validationReport.failureDisposition).toMatchObject({ kind: 'internal_failure' })
+    expect(JSON.stringify(result.responsePlan)).not.toMatch(/"ercCode":"42"/)
   })
 })

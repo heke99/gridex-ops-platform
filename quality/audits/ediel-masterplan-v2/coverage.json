@@ -933,8 +933,14 @@
     {
       "id": "OPS-05",
       "acceptance_id": "AT-OPS-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/failureDisposition.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/inboundProcessor.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-inbound-failure-journal.test.ts"
+      ]
     },
     {
       "id": "ENV-10",
@@ -2254,8 +2260,14 @@
     },
     {
       "id": "AT-OPS-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/failureDisposition.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/inboundProcessor.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-inbound-failure-journal.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-10",
