@@ -1,3 +1,4 @@
+// masterplan: ACK-05, AT-ACK-05
 import {describe,expect,it} from 'vitest'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
