@@ -1,3 +1,4 @@
+// masterplan: DB-06, AT-DB-06
 import { describe, expect, it } from 'vitest'
 import { evaluateBillingGate } from '@/lib/billing/billingGate'
 
