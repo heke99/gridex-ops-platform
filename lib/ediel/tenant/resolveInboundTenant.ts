@@ -125,7 +125,10 @@ export function inboundLegalReceiverEdielId(rawPayload: string | null | undefine
 }
 
 function familyHasLegalReceiverQualifier(family: string | null | undefined): boolean {
-  return ['PRODAT', 'UTILTS'].includes(String(family ?? '').trim().toUpperCase())
+  // Normalized subfamilies (e.g. UTILTS_ERR for UNH UTILTS + BGM ERR) keep the
+  // physical family's NAD+DO/MR receiver qualifier.
+  const normalized = String(family ?? '').trim().toUpperCase()
+  return ['PRODAT', 'UTILTS'].some(base => normalized === base || normalized.startsWith(`${base}_`))
 }
 
 function normalizeInput(input: ResolveInboundTenantInput) {

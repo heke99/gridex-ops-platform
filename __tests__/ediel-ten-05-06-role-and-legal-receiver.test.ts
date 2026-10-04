@@ -92,6 +92,18 @@ describe('TEN-06 shared mailbox: legal receiver only from the family qualifier',
   // Families without a legal receiver qualifier (APERAK/CONTRL) keep the UNB receiver.
   expect(inboundLegalReceiverEdielId(edifact('APERAK','312','',`NAD+MS+${sender}::260'`),tenantA)).toBe(tenantA)
  })
+ it('the normalized UTILTS_ERR family (UNH UTILTS + BGM ERR) is held too, never attributed to the UNB receiver',async()=>{
+  io.rows.tenant_actor_identifiers=[{company_id:companyA,identifier_value:tenantA,...valid}]
+  io.identity.mockResolvedValue(identity(companyA,tenantA,['electricity_supplier','energy_service_company','grid_owner']))
+  for(const nads of [`NAD+MS+${sender}::260'`,`NAD+MR+${tenantA}::260'NAD+MR+${tenantB}::260'`]){
+   const raw=edifact('UTILTS','ERR','23-DDQ-UTILTS',nads)
+   expect(inboundLegalReceiverEdielId(raw,tenantA)).toBeNull()
+   const resolution=await resolveInboundTenantFromIdentifiers({environment:'test',messageFamily:'UTILTS_ERR',messageCode:'ERR',
+    senderEdielId:sender,receiverEdielId:tenantA,marketActorEdielId:inboundLegalReceiverEdielId(raw,tenantA)})
+   expect(resolution).toMatchObject({status:'unresolved',companyId:null,marketActorEdielId:null})
+  }
+  expect(io.identity).not.toHaveBeenCalled()
+ })
  it('unclear attribution is held unresolved and the tenant is never guessed from the UNB receiver or a customer id',async()=>{
   io.rows.tenant_actor_identifiers=[{company_id:companyA,identifier_value:tenantA,...valid}]
   io.identity.mockResolvedValue(identity(companyA,tenantA))

@@ -1095,3 +1095,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: ESCO-03, AT-ESCO-03, ESCO-05, AT-ESCO-05 godkända (`__tests__/ediel-esco-03-05-permission-responses.test.ts`). Nästa Claude: ESCO-08+09.
 - 2026-10-04 #491: ESCO-08, AT-ESCO-08, ESCO-09, AT-ESCO-09 godkända. Nästa Claude: ESCO-01+02.
 - 2026-10-04 #491: ESCO-01, AT-ESCO-01, ESCO-02, AT-ESCO-02 godkända. Nästa: ESCO-10+11 (fråga om överlapp med Codex TEN-07 postad).
+- 2026-10-04 #491: Codex TEN-06-fynd (UTILTS_ERR) åtgärdat + test. ESCO-01..09 klara (Claude). ESCO-10/11 erbjudna Codex. Claude nästa: ACK-01+02.
