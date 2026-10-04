@@ -126,7 +126,7 @@ export function validateCanonicalPolicyFields(input: {
     issues.push(...utiltsDecimalGuideViolations(wire.segments,wire.una).map(violation=>({severity:'error' as const,code:violation.code,title:'Felaktigt numeriskt fält',description:violation.description,fieldPath:violation.field,blocking:true})))
   }
   if (input.policy.family !== 'PRODAT') return issues
-  if(input.scope!=='dependent_only')issues.push(...evaluateProdatTransactionReason({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
+  if(input.scope!=='dependent_only'&&rules.some(rule=>rule.fieldNumber==='223'))issues.push(...evaluateProdatTransactionReason({...matrixInput,rawSegments:input.rawSegments??[]}).issues)
   if (input.policy.direction === 'outbound') issues.push(...validateProdatFreeText({ code: input.policy.code, rawSegments: input.rawSegments ?? [], una: input.una }))
   if (input.policy.direction === 'inbound') {
     const energy = evaluateIncomingProdatEnergyProduct({...matrixInput,rawSegments:input.rawSegments??[]})
