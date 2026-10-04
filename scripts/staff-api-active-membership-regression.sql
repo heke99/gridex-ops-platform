@@ -22,8 +22,8 @@ BEGIN
   UPDATE public.company_memberships SET accepted_at=now(),status='disabled',is_active=false WHERE company_id=a AND user_id=actor;
   IF EXISTS(SELECT FROM public.gridex_staff_active_membership_v1(a,actor)) THEN RAISE EXCEPTION 'disabled membership accepted'; END IF;
   UPDATE public.company_memberships SET status='active',is_active=true WHERE company_id=a AND user_id=actor;
-  UPDATE public.user_profiles SET user_status='suspended' WHERE id=actor;
-  IF EXISTS(SELECT FROM public.gridex_staff_active_membership_v1(a,actor)) THEN RAISE EXCEPTION 'suspended profile accepted'; END IF;
+  UPDATE public.user_profiles SET user_status='disabled' WHERE id=actor;
+  IF EXISTS(SELECT FROM public.gridex_staff_active_membership_v1(a,actor)) THEN RAISE EXCEPTION 'disabled profile accepted'; END IF;
   UPDATE public.user_profiles SET user_status='active' WHERE id=actor;
   UPDATE auth.users SET deleted_at=now() WHERE id=actor;
   IF EXISTS(SELECT FROM public.gridex_staff_active_membership_v1(a,actor)) THEN RAISE EXCEPTION 'deleted Auth account accepted'; END IF;
