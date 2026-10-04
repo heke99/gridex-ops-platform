@@ -1138,3 +1138,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 U-02 (+AT) VERIFIED på wip/p08-p15: två IDE behåller egen LOC/QTY och egen disposition.
 - 2026-10-04 SC-046 PASSED, SC-054 PARTIAL (wip): sen äldre version → positiv APERAK, ingen ERR, nyare current orörd; lagringsfel lämnar varken serie eller ACK-intent, köstatus ≠ lagring. Öppen SC-054: 'fel och tidsfrist bevakas' saknar test (ackSlaMonitor otestad).
 - 2026-10-04 SC-045 + SC-048 PASSED (wip). Observation: omvänd DTM+324-period accepteras positivt; bilaga2 s.130–131:s exakta E50-villkor finns inte i repo-källorna, så ingen gissad regel.
+- 2026-10-04 SC-044 + SC-047 PASSED (wip).

@@ -1598,8 +1598,12 @@
     },
     {
       "id": "SC-044",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "lib/ediel/utiltsEngine.ts"
+      ]
     },
     {
       "id": "SC-045",
@@ -1620,8 +1624,12 @@
     },
     {
       "id": "SC-047",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-044-047-utilts-scenarios.test.ts",
+        "lib/ediel/utiltsEngine.part-1.ts",
+        "lib/ediel/matching.ts"
+      ]
     },
     {
       "id": "SC-048",
