@@ -110,7 +110,27 @@ grants and unchanged market reception/ACK state.
   instruction to continue via GitHub; the already-authorized small-PR workflow
   is retained. No additional integration-choice question is needed.
 
-Next: rerun tagged coverage/integrity and inspect final bounded diff; commit
-/push/create and attach separate PR; post exact head/results to #491. Wait for
-ESCO native proof before its approval, while claiming the next free TEN card
-only after reading fresh GitHub ownership and shared handover.
+## 2026-10-04 — publication, CI and ownership refresh
+
+- PR #497 published and attached, initial head 5fdeaf6c8a39a7b2f0d6c2ccd3f5206f50e1d591.
+  Exact-head verify, targeted-regressions, coverage, smoke, browser-public and
+  pr-certificate PASS. Clean native replay still running; ESCO approvals pending.
+- Upgrade replay failed before database work: old d30fa02 is not an ancestor
+  after the split stack. Main remains fa4147b3; the initial guess that main
+  advanced was corrected publicly. Reuse Claude's A1/H1 CI fix, announced in
+  #491 comment 5981874579, rather than implement a parallel CI change.
+  Cherry-picked aa2b9d52 as a05c0fb4 and b46a4b60 as 38ebf103, preserving
+  authorship. The final upgrade script is byte-identical to 4e71907d; unrelated
+  historical helper-file removals and Claude's shared memory edits are excluded.
+  Upgrade input selftests 8/8 PASS, bash syntax PASS; no SQL replay claim yet.
+- A narrowly approved empty /home/agent/.supabase cache directory unblocks the
+  ordinary pinned CLI (2.101.0 --version PASS). The rejected broad helper
+  container remains unused. Native proof continues through existing GitHub CI.
+- Fresh #491 comment 5981759242 reports TEN-09 already approved by Claude.
+  Codex stopped the separate implementation/coverage before changes; comment
+  5981860401 records only complementary review of explicit permission reuse.
+  Claude now owns remaining P and U cards; no Codex claim on them.
+
+Next: publish the reused CI fixes, examine genuine native results and repair
+any failing assertions. Complete and share the bounded TEN-09 review probe;
+coordinate remediation with Claude, preserving his single coverage row.

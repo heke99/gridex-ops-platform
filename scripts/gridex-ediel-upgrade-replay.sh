@@ -117,6 +117,6 @@ ACTUAL_TYPES_HASH="$(sha256sum "$UPGRADE_OUT/clean/database.types.ts" | awk '{pr
 EXPECTED_TYPES_HASH="$(node -p 'require("./scripts/supabase-types-manifest.json").sha256')"
 [[ "$ACTUAL_TYPES_HASH" == "$EXPECTED_TYPES_HASH" ]] || { echo 'upgrade_generated_types_manifest_mismatch' >&2; exit 1; }
 echo 'UPGRADE_REPLAY: PASS; genuine ancestor -> forward-only checksummed upgrade == independent candidate clean schema/types; retained source unchanged'
-# A separate committed-history scenario proves an already-applied TXT importer
-# accepts only exact absent union inputs. It never weakens the strict old path.
-bash "$CANDIDATE_ROOT/scripts/gridex-ediel-applied-txt-branch-upgrade.sh"
+# The applied-TXT branch-history scenario (c8f666d9/#424) was retired after the
+# #426 split (owner decision H1): its bases are not in main and no environment
+# applied that branch history. This replay plus the clean replay cover upgrade.
