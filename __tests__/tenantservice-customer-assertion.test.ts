@@ -93,6 +93,23 @@ describe('verifyCustomerAssertion (P1c)', () => {
     expect(await verify(value)).toEqual({ ok: false, reason: 'replayed' })
   })
 
+  it('retains customer default iat/nbf handling and replay expiry without staff skew', async () => {
+    const { verifyCustomerAssertion } = await import('@/lib/customer-portal/customerAssertion')
+    const nowSeconds = now()
+    for (const temporal of [
+      { iat: undefined, nbf: nowSeconds, exp: nowSeconds + 900 },
+      { iat: nowSeconds + 60, nbf: nowSeconds, exp: nowSeconds + 960 },
+      { iat: nowSeconds + 86400, nbf: nowSeconds, exp: nowSeconds + 87300 },
+    ]) {
+      const consume = vi.fn(async () => true)
+      const jti = randomUUID()
+      expect(await verifyCustomerAssertion({ token: token('RS256', claims({ ...temporal, jti })), provider: tenantKeyProvider,
+        expectedSubject: PORTAL_USER, now: new Date(nowSeconds * 1000), consumeJti: consume }))
+        .toMatchObject({ ok: true })
+      expect(consume).toHaveBeenCalledWith(jti, new Date(temporal.exp * 1000))
+    }
+  })
+
   it('OIDC: picks the key by kid from the provider JWKS, never a private key', async () => {
     const jwks = { keys: [{ ...jwk(other.publicKey, 'old') }, { ...jwk(rsa.publicKey, 'k1') }] }
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify(jwks), { status: 200 })) as unknown as typeof fetch
