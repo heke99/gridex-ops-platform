@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process'
+import { nativeLockProcess, nativeLockProcessEnv } from './helpers/native-lock-process'
 import { createHash, randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -812,16 +813,12 @@ it.each(['metering', 'billing'] as const)('atomic %s writer refuses a mutated re
 })
 it.each(['metering', 'billing'] as const)('atomic %s writer waits for concurrent ownership edit then rejects changed tuple', async sink => {
   const f = await seed(), input = await f.prepare(); await persistUtiltsTransactionResults(input)
-  const editor = spawn('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { stdio: ['pipe', 'pipe', 'pipe'] })
-  const ready = new Promise<void>((resolve, reject) => {
-    editor.stdout.on('data', data => { if (String(data).includes('OWNERSHIP_LOCKED')) resolve() })
-    editor.once('error', reject); editor.once('exit', code => { if (code !== 0) reject(new Error(`ownership_editor_exit:${code}`)) })
-  })
-  editor.stdin.write(`BEGIN; UPDATE public.metering_points SET grid_owner_id=NULL WHERE id=${lit(f.ids.point)}; SELECT 'OWNERSHIP_LOCKED';\n`)
-  await ready
-  let pending: ReturnType<typeof sinkRpc> | undefined
+  const editor = spawn('psql', [DB, '-XAtq', '-v', 'ON_ERROR_STOP=1'], { stdio: ['pipe', 'pipe', 'pipe'], env: nativeLockProcessEnv() })
+  const lock = nativeLockProcess(editor, { marker: 'OWNERSHIP_LOCKED', markerError: 'native_ownership_lock_timeout' })
   try {
-    pending = sinkRpc(input, sink)
+    editor.stdin.write(`BEGIN; UPDATE public.metering_points SET grid_owner_id=NULL WHERE id=${lit(f.ids.point)}; SELECT 'OWNERSHIP_LOCKED';\n`)
+    await lock.ready
+    const pending = sinkRpc(input, sink)
     let waiting = false
     for (let attempt = 0; attempt < 40; attempt++) {
       waiting = sql<boolean>(`SELECT EXISTS(SELECT FROM pg_stat_activity WHERE wait_event_type='Lock' AND query LIKE '%gridex_consume_utilts_${sink}_v1%')`)
@@ -829,13 +826,12 @@ it.each(['metering', 'billing'] as const)('atomic %s writer waits for concurrent
       await new Promise(resolve => setTimeout(resolve, 50))
     }
     expect(waiting).toBe(true)
-    editor.stdin.end('COMMIT;\n')
+    await lock.release('COMMIT')
     const result = await pending
     expect(result.error?.message).toContain('utilts_consumption_point_ownership_changed')
     expect(consumedCount(f.ids.company)).toEqual({ meter: 0, billing: 0 })
   } finally {
-    if (!editor.stdin.writableEnded) editor.stdin.end('ROLLBACK;\n')
-    await pending
+    await lock.dispose()
   }
 })
 it.each(['direction', 'company_id', 'environment', 'message_code', 'sender_ediel_id'])('direct update cannot change sealed source %s', async field => {

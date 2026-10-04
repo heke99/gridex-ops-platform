@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 
 function sql(query: string): void {
@@ -49,6 +50,10 @@ it('native staff provider purpose, replay isolation, service-only ACL and scoped
         OR has_table_privilege('anon','public.tenant_staff_assertion_replays','SELECT')
         OR has_table_privilege('authenticated','public.tenant_staff_assertion_replays','INSERT')
         OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','UPDATE')
+        OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','TRUNCATE')
+        OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','REFERENCES')
+        OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','TRIGGER')
+        OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','MAINTAIN')
         OR NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','INSERT')
         OR has_function_privilege('anon','public.gridex_staff_permission_overrides_v1(uuid,uuid)','EXECUTE')
         OR has_function_privilege('authenticated','public.gridex_staff_permission_overrides_v1(uuid,uuid)','EXECUTE')
@@ -65,6 +70,34 @@ it('native staff provider purpose, replay isolation, service-only ACL and scoped
       IF (SELECT count(*) FROM public.gridex_staff_permission_overrides_v1('${a}','${user}')) <> 1
         OR NOT EXISTS(SELECT FROM public.gridex_staff_permission_overrides_v1('${a}','${user}') WHERE permission_key='staff-native.${permission}' AND effect='deny')
       THEN RAISE EXCEPTION 'staff_overrides_scope_invalid'; END IF;
+    END$$;
+    ROLLBACK;`)).not.toThrow()
+})
+
+it('native replay ACL forward migration clears inherited service ALL without changing RLS', () => {
+  // The sourced replay retains checksum-verified original SQL in HOLD. Test
+  // that actual forward SQL inside a rollback-only transaction after recreating
+  // the observed Supabase default-ALL grants, rather than copying its commands.
+  const migration = process.env.GRIDEX_STAFF_REPLAY_ACL_SQL
+  if (!migration) throw new Error('staff_replay_acl_original_sql_required')
+  const actualForwardSql = readFileSync(migration, 'utf8').replace(/^BEGIN;\r?$/m, '').replace(/^COMMIT;\r?$/m, '')
+  expect(() => sql(`BEGIN;
+    GRANT ALL ON TABLE public.tenant_staff_assertion_replays TO PUBLIC,anon,authenticated,service_role;
+    DO $$BEGIN
+      IF NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','UPDATE')
+        OR NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','TRUNCATE')
+      THEN RAISE EXCEPTION 'native_default_all_fixture_missing'; END IF;
+    END$$;
+    ${actualForwardSql}
+    DO $$BEGIN
+      IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.tenant_staff_assertion_replays'::regclass)
+        OR NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','SELECT')
+        OR NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','INSERT')
+        OR NOT has_table_privilege('service_role','public.tenant_staff_assertion_replays','DELETE')
+        OR has_table_privilege('service_role','public.tenant_staff_assertion_replays','UPDATE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+        OR has_table_privilege('anon','public.tenant_staff_assertion_replays','SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+        OR has_table_privilege('authenticated','public.tenant_staff_assertion_replays','SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN')
+      THEN RAISE EXCEPTION 'native_replay_acl_forward_did_not_close_default_grants'; END IF;
     END$$;
     ROLLBACK;`)).not.toThrow()
 })
