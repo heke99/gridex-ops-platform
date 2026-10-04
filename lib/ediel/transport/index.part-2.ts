@@ -1,4 +1,6 @@
 import {captureEdielSourceRulePackEvidence} from '@/lib/ediel/core/sourceRulePackEvidence'
+import {assertNoTgtLeakageInProductionMessage} from '@/lib/ediel/core/productionGuards'
+import {assertNoConfiguredPortalRecipient} from './productionRecipient'
 import {loadRecoveryReportingValidationContext} from '@/lib/ediel/recovery/reportingContext'
 import {assertRequestedChangeSendSource} from '@/lib/ediel/production/requestedChangeSource'
 import {assertBrpChangeSendSource} from '@/lib/ediel/production/brpChangeSource'
@@ -359,6 +361,8 @@ export async function sendEdielMessageViaSmtp(
   if (['provider_accepted','sent','delivered','acknowledged'].includes(String(message.status))) {
     throw new Error('ediel_historical_transport_receipt_unavailable')
   }
+  assertNoTgtLeakageInProductionMessage(message)
+  await assertNoConfiguredPortalRecipient(message)
   // Historical accepted-journal replay above never needs a new exception or
   // re-enters SMTP. A fresh selector supplies no approval or incident facts.
   let transportException:TransportExceptionAuthorization|null=null

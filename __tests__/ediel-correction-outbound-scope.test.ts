@@ -66,7 +66,7 @@ function sealedClockFixture(mode:'valid'|'missing'|'invalid'|'foreign-clock') {
       return{data:{scoped:true,proceed:true,eventId},error:null}
     }
     expect(action).toBe('result');expect(io.stage).toBe('entered');expect(io.provider).toHaveBeenCalledOnce()
-    expect(input.result).toEqual({accepted:['receiver@example.invalid'],rejected:[],messageId:'synthetic',response:null})
+    expect(input.result).toEqual({accepted:['receiver@example.invalid'],rejected:[],messageId:'synthetic',response:null,smtpCode:null,queueId:null})
     acceptedReceipt={...input.result as Record<string,unknown>,observedAt};io.stage='observed';events.set(eventId,action)
     return{data:{scoped:true,eventId,facts:{classification:'accepted'},
       ...(mode==='missing'?{}:{observedAt:mode==='invalid'?'not-a-clock':observedAt}),
