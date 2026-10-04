@@ -12,7 +12,7 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | P-06 | PARTIAL | identity-li-compliance (SE1/SE2/260, no guessing), aperak-text-evidence (inbound birth-date qualifier) , p-06-z13-birth-date (field 249 not in Z13/Z14/Z15/Z18) | GAP: protected-identity rules (no implementation found); ZZZ (field 206) not changed globally |
 | P-10 | VERIFIED | p-10-z02-correlation (LI and customer identity mismatch refused; Z02 creates no message/Z03/request), z02-core-embedded-check (tenant, object, actor fences) | — |
 | P-11 | VERIFIED | normal-switch-source-sql-regression, supply-market-consumers, supplier-switch-activation-sweep , p-11-z04-order (Z04 applies with Z03 only sent; late negative ACK keeps confirmation) | — |
-| P-12 | open | supply-market-consumers (assigned supply without own Z03; missing legal ground held) | GAP: role/contract/grid-area/production-link verification |
+| P-12 | VERIFIED | p-12-z04ad-scope (held without supplier role, signed contract, grid area, matching capability or source reference), regulated-supply-ground (production link, current ground), supply-market-consumers (no ordinary Z03) | — |
 | P-13 | open | supply-end-followup, bilateral-prodat-closure-operation, bilateral-prodat-supply-consumer | GAP: end versioned with history preserved; customer/other facilities/ESCO grants not deleted |
 | P-14 | VERIFIED | switch-cancellation-sql-regression, switch-cancellation-source, prodat-prior-flow, prodat-subtypes (no Z13C/Z14C) , supply-market-consumers ("does not reaccept an ordinary start already cancelled") | — |
 | P-15 | open | received-structure-reader(-boundaries), prodat-registers | GAP: future supplier structure before start; history not overwritten in one global row |

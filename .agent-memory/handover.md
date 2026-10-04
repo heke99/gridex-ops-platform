@@ -1113,3 +1113,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: P-02 (+AT) godkänd; P-06 PARTIAL (ny test field 249 ej i Z13; luckor: skyddad identitet, ZZZ).
 - 2026-10-04 #491: P-11 (+AT) godkänd (ny scripts/test-ediel-p-11-z04-order.cjs: Z04 före positiv APERAK, sen negativ ACK backar inte).
 - 2026-10-04 #491: P-10 (+AT) godkänd (ny scripts/test-ediel-p-10-z02-correlation.cjs).
+- 2026-10-04 #491: P-12 (+AT) godkänd (ny scripts/test-ediel-p-12-z04ad-scope.cjs).
