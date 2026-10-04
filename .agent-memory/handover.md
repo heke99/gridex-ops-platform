@@ -1100,3 +1100,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: ACK-04, AT-ACK-04, ACK-05, AT-ACK-05 godkända. Nästa Claude: ACK-03+10.
 - 2026-10-04 #491: ACK-03, AT-ACK-03 godkända; ACK-10 kompletterad. Coverage-regel: evidence slås ihop, skrivs aldrig över. Nästa Claude: ACK-06+07.
 - 2026-10-04 #491: ACK-06/07 (+AT) godkända. Nästa Claude: ACK-08+09.
+- 2026-10-04 #491: ACK-09 (+AT) godkänd, ACK-08 kompletterad. Alla ACK-regler klara. Nästa Claude: TEN-03+04.

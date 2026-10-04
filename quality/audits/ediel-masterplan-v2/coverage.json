@@ -661,14 +661,24 @@
         "lib/ediel/flows/utiltsDataRequest.part-1.ts",
         "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
         "scripts/ediel-utilts-err-gateway-native.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+        "__tests__/ediel-received-utilts-global-functional-validation.test.ts"
       ]
     },
     {
       "id": "ACK-09",
       "acceptance_id": "AT-ACK-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+        "__tests__/ediel-duplicate-103-orchestrator.test.ts",
+        "__tests__/ediel-inbound-duplicate-scope.test.ts",
+        "__tests__/ediel-committed-inbound-ack.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "scripts/ediel-duplicate-103-owner-sql-regression.mjs"
+      ]
     },
     {
       "id": "U-01",
@@ -2002,13 +2012,22 @@
         "lib/ediel/flows/utiltsDataRequest.part-1.ts",
         "__tests__/ediel-prodat-mixed-object-outcome.test.ts",
         "scripts/ediel-utilts-err-gateway-native.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+        "__tests__/ediel-utilts-transaction-disposition.test.ts",
+        "__tests__/ediel-utilts-aperak-physical-scope.test.ts",
+        "__tests__/ediel-received-utilts-global-functional-validation.test.ts"
       ]
     },
     {
       "id": "AT-ACK-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-genuine-duplicate-103-response.test.ts",
+        "__tests__/ediel-duplicate-103-orchestrator.test.ts",
+        "__tests__/ediel-inbound-duplicate-scope.test.ts",
+        "__tests__/ediel-committed-inbound-ack.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts"
+      ]
     },
     {
       "id": "AT-U-01",
