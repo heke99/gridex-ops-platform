@@ -22,7 +22,10 @@
     "errors": 0,
     "skipped": 0,
     "owned_file_eslint": "PASS",
-    "owned_file_types": "PASS"
+    "owned_file_types": "PASS",
+    "combined_tests_types": "PASS",
+    "combined_scripts_types": "PASS",
+    "all_changed_source_config_eslint": "PASS"
   },
   "artifact_sha256": {
     "junit.xml": "b8c1cefb32d7209da18d5d9347d0880f91352b3fcbd0dc0df4eb7a47f7aecc01",

@@ -1,0 +1,36 @@
+{
+  "purpose": "retained_finite_TR09_owner_sanity_and_new_native_registration",
+  "product_base_commit": "05c6e8b7e8a4399ec0e5e50358eb6d9e2231f72e",
+  "new_native_commit": "7af270d9bc6a3f0de5c5ef3fb382d7fb508e0468",
+  "finite_regression": {
+    "file": "scripts/ediel-transport-exception-sql-regression.mjs",
+    "sha256": "639e4524965e7a29182a8de8156a6328549695e8ffda6a5c0d604429ad773392",
+    "checks": 23,
+    "result": "PASS",
+    "stdout_sha256": "77b04fee679e8a664ed0646f71dc307f4ad02a3dbccedb00d8e93fd21d06e861"
+  },
+  "new_native_file": "scripts/ediel-tr-09-reserve-source-native.test.ts",
+  "new_native_sha256": "b2ed18ed2ad7e2d23bb48a35ace31b106ec7e081d61fa1274c0900381b5a9dd8",
+  "new_native_cases": 9,
+  "new_native_execution": "NOT_RUN_ROOT_CI_RESERVED",
+  "verification": {
+    "tests_types": "PASS",
+    "scripts_types": "PASS",
+    "source_config_eslint": "PASS",
+    "diff": "PASS"
+  },
+  "finite_boundaries": [
+    "predecessor/canonical/issuer ports declared by retained finite SQL fixture",
+    "upstream X500/CDP search results, relay/counterparty/issuer-source claims remain synthetic",
+    "SMTP port mocked in new native cases; no actual external mail"
+  ],
+  "actual_native_when_executed": [
+    "installed restricted publishers/current reads",
+    "production sender and reserve selector",
+    "real certificate PKIX/CRL/OpenSSL S/MIME consumer",
+    "exact private deviation/alarm and immutable originals"
+  ],
+  "whole_TR09_card": "UNRESOLVED_PENDING_GENUINE_NATIVE_AND_REVIEW",
+  "all_relay_hops_and_authentic_market_evidence": "NOT_PROVIDED",
+  "ordinary_required_gates": "NOT_REPLACED"
+}

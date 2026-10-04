@@ -55,19 +55,28 @@ SMTP wire RFC identity is checked separately. Initial receipt-ID expectation
 was corrected, with no production defect or product change inferred.
 
 Owned-file ESLint and TypeScript with temporary include narrowed to the new
-TR08 file PASS. Combined tests TypeScript awaits the child's final stable
-native file; a concurrent intermediate incident-shape type error was sent
-back and fixed by that owner. No full unit suite repeated. Native TR09 and
+TR08 file PASS. Fresh final combined tests and scripts TypeScript both exit0;
+all three changed source/config files lint with zero errors and diff checks
+pass. An intermediate concurrent incident-shape type error was fixed by its
+owner before those final checks. No full unit suite repeated. Native TR09 and
 all ordinary required OPS/upgrade/parity gates remain pending root/CI.
 
 TR09 exact frozen card A1525–1539 / AT D2176–2188 allows only named temporary
 cases with their conditions, separate deviation journal/limited operation,
 alarm and continued mandatory TLS; no generic unprotected-traffic switch.
 Existing actual exception publishers/certificate-cache/source/crypto owners
-are reused. New native9 source/cache/previous-CRL cases are being finalized;
+are reused. New native9 source/cache/previous-CRL cases are concrete in
+commit `7af270d9bc6a3f0de5c5ef3fb382d7fb508e0468` after TR08 commit
+`3141379d5e8ef849b13c2b68d578275539b810f2` (already published on GitHub);
 the retained finite owner regression23 checks PASS with explicitly synthetic
 predecessor/issuer ports, not proof that new native cases executed. Child's
-separate checkpoint retains details and genuine execution status.
+separate checkpoint retains details and genuine execution status. Independent
+source review confirms new native assertions cover exact immutable source/
+approval bytes, current cache and TLS route, revocation after real prepare,
+separate deviation/alarm, genuine encrypted/decrypted bytes, full actual leaf
+CDP set, parsed-but-invalid CRL signature and revoked leaf; qualified original
+and restricted owner membership remain preserved. Native9 remains NOT_RUN,
+so neither presence nor finite checks constitute TR09 acceptance.
 
 Remaining TR08 implementation boundary: a real configured provider policy
 source and authenticated delivery trace must bind exact attempt/RFC sender
