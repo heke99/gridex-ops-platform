@@ -92,4 +92,18 @@ with tempfile.TemporaryDirectory(prefix='gridex-upgrade-inputs-selftest-') as te
     except ValueError as error:
         assert 'no_forward_upgrade_migrations' in str(error)
     print('PASS: refuses empty upgrade claim')
-print('UPGRADE_INPUTS_SELFTEST: 7/7 PASS; provenance/control-plane only, no SQL replay claim')
+    # A divergent branch can contain the same historic SQL and manifests. Those
+    # matching bytes cannot make it an actual candidate ancestor.
+    write(root, {'divergent-branch.txt': b'authentic committed branch source\n'})
+    divergent_base = commit(root, 'divergent historical branch')
+    command(root, 'reset', '--hard', head)
+    divergent_out = Path(temp) / 'divergent-branch'
+    try:
+        module.prepare(root, divergent_base, divergent_out)
+        raise AssertionError('Divergent historical branch accepted as ancestor')
+    except subprocess.CalledProcessError as error:
+        assert error.returncode == 1
+        assert error.cmd[:3] == ['git', 'merge-base', '--is-ancestor']
+    assert not divergent_out.exists()
+    print('PASS: refuses divergent branch despite identical historical migration bytes')
+print('UPGRADE_INPUTS_SELFTEST: 8/8 PASS; provenance/control-plane only, no SQL replay claim')
