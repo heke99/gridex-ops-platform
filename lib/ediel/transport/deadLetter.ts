@@ -49,19 +49,19 @@ export async function createEdielDeadLetterItem(input: {
     .select('*')
     .single()
 
-  if (error) {
-    if (isSchemaCompatibilityError(error)) return null
-    throw error
-  }
+  if (error) throw error
+  if (!data) throw new Error('ediel_failure_journal_write_missing')
 
   return data
 }
 
 export async function markEdielDeadLetterResolved(input: {
+  companyId: string
   itemId: string
   actorUserId: string
   resolutionNotes?: string | null
 }) {
+  if (!input.companyId.trim()) throw new Error('ediel_failure_journal_company_required')
   const { error } = await supabaseService
     .from('ediel_dead_letter_items')
     .update({
@@ -74,6 +74,7 @@ export async function markEdielDeadLetterResolved(input: {
       },
     })
     .eq('id', input.itemId)
+    .eq('company_id', input.companyId)
 
   if (error && !isSchemaCompatibilityError(error)) throw error
 }

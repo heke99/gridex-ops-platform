@@ -1,3 +1,8 @@
+import {tokenizeEdifact} from '@/lib/ediel/core/edifactTokenizer'
+import {prodatRegisterGroups,prodatRegisterMessageSegments} from '@/lib/ediel/prodat/prodatRegisterGroups'
+import {prodatFieldDiagnostic} from '@/lib/ediel/prodat/prodatFieldDiagnostic'
+import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
+import {EdielExecutionFailure} from '@/lib/ediel/core/failureDisposition'
 import {selectedProdatAckRegistryIssues} from './prodatIncomingSelectedAckRegistry'
 import {permissionAckRegistryIssues,isLegacyPermissionFieldIssue,permissionRegistryRegisterFailures} from './prodatPermissionAckRegistry'
 import {assertIncomingProdatEnergyProductReview} from '@/lib/ediel/prodat/prodatEnergyProduct'
@@ -1522,6 +1527,28 @@ export async function attachAperakErrorDetailsToMessage(params: {
   if (error) throw error;
 }
 
+/** Legacy TGT's same-meter semantic finding still uses the canonical field
+ * text owner and its own physical occurrence. Registry prose and cached row
+ * references never provide received field content or sibling identity. */
+function sourceOwnedLegacyMeterNumberError(message: EdielMessageRow, item: EdielAperakValidationIssue): EdielAperakApplicationError | null {
+  if (item.ruleKey !== 'meter_number_invalid') return null;
+  const held = (): never => { throw new EdielExecutionFailure({kind:'internal_failure',code:'PRODAT_LEGACY_METER_ERROR_SOURCE_UNAVAILABLE'}, 'Det äldre mätarfelet saknar entydigt eget fysiskt underlag.'); };
+  if (message.direction !== 'inbound' || message.message_family !== 'PRODAT' || !message.raw_payload || !item.fieldValue) return held();
+  const wire = tokenizeEdifact(message.raw_payload), rawSegments = wire.segments.map(segment => segment.raw);
+  const groups = prodatRegisterGroups(prodatRegisterMessageSegments(rawSegments, wire.una), wire.una, message.message_code).groups;
+  const own = groups.filter(group => group.itemId === item.meteringPointId &&
+    prodatReferenceValues('226', group.segments.map(segment => segment.raw), wire.una).includes(item.transactionReference ?? '') &&
+    prodatReferenceValues('224', group.segments.map(segment => segment.raw), wire.una).includes(item.fieldValue!) &&
+    prodatReferenceValues('225', group.segments.map(segment => segment.raw), wire.una).includes(item.fieldValue!));
+  if (own.length !== 1) return held();
+  const diagnostic = prodatFieldDiagnostic('224', 'invalid', {rawSegments, una:wire.una, code:message.message_code},
+    own[0].segments.map(segment => segment.raw), 'PRODAT26.A:r3:field224/TGT:meter_number_invalid', own[0].lineIndex);
+  const projection = projectProdatDiagnostics([{code:'PRODAT_LEGACY_METER_NUMBER_INVALID',severity:'error',blocking:true,
+    title:'Felaktigt mätarnummer',description:item.fallbackText,prodatDiagnostic:diagnostic}]);
+  if (projection.disposition.kind !== 'continue' || projection.applicationErrors.length !== 1) return held();
+  return projection.applicationErrors[0];
+}
+
 export async function resolveAndStoreProdatAperakErrors(params: {
   message: EdielMessageRow;
   testData?: EdielTgtCaseTestData | null;
@@ -1555,7 +1582,7 @@ export async function resolveAndStoreProdatAperakErrors(params: {
       messageId: message.id,
       issue: item,
     });
-    const owned=item.selectedApplicationError??item.permissionApplicationError;
+    const owned=item.selectedApplicationError??item.permissionApplicationError??sourceOwnedLegacyMeterNumberError(message,item);
     const rule:EdielAperakErrorRuleRow|null = owned ? {
       id:null,message_family:'PRODAT',message_code:code,direction:'inbound',rule_key:item.ruleKey,
       rule_description:'Source-owned incoming national field',application_error:owned.ercCode,free_text_code:owned.fieldCode??null,

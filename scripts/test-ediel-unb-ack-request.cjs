@@ -4,11 +4,14 @@
 // Run with: node --experimental-vm-modules --test scripts/test-ediel-unb-ack-request.cjs
 'use strict'
 const assert = require('node:assert/strict')
+const ownPair=(build)=>{const raw=build().rawPayload;assert.match(raw,/APERAK:D:96A:UN:E2SE6A/);assert.match(raw,/RFF\+Z07:[^']*'RFF\+LI:/);return raw} // P16B resolved (owner decision 2026-10-02)
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { createContext, SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
 const root = path.resolve(__dirname, '..')
 const NOW = '2026-09-20T12:00:00.000Z'
 
@@ -44,6 +47,10 @@ async function loadRuntime() {
     export { validateRulebookMessage } from '@/lib/ediel/rulebook/validator';
   `, { context, identifier: path.join(root, 'lib/ediel/unb-request-test.ts') })
   await entry.link((name, parent) => {
+    const sourceBoundary = sourceRuntimeBoundary(name, modules, parent)
+    if (sourceBoundary) return sourceBoundary
+    const sourceData = loadEdielSourceTestData(name, root, modules, context)
+    if (sourceData) return sourceData
     if (boundaries.has(name)) return boundaries.get(name)
     if (name === 'crypto' || name === 'node:crypto') return crypto
     assert(name.startsWith('@/lib/ediel/') || name.startsWith('.'), `Unexpected dependency: ${name}`)
@@ -51,7 +58,7 @@ async function loadRuntime() {
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), `Not a real Ediel source: ${name}`)
     if (!modules.has(file)) modules.set(file, new SourceTextModule(
-      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }),
+      stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }),
       { context, identifier: file }))
     return modules.get(file)
   })
@@ -59,6 +66,7 @@ async function loadRuntime() {
   return { ...entry.namespace, effects }
 }
 const api = loadRuntime()
+after(() => assertNoSourceBoundaryAttempts())
 
 // Independent lexical oracle: retain release sequences while counting structure.
 function splitWire(value, delimiter, release) {
@@ -96,12 +104,12 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
   const rows = family === 'PRODAT' ? [
     ['UNH', 'SOURCE-M', ['PRODAT','D','97A','UN','E2SE6A']], ['BGM',code,'SOURCE-DOC','9','AB'],
     ['DTM',['137','202609201200','203']], ['DTM',['ZZZ','1','805']],
-    ['NAD','FR',['12345','160','SVK']], ['NAD','DO',['54321','160','SVK']],
+    ['NAD','FR',['12345','160','SVK'],'','','','','','','SE'], ['NAD','DO',['54321','160','SVK'],'','','','','','','SE'],
     ['LIN','1','',['735999888000000017','','','9']], ['RFF',['LI','SOURCE-LI']],
   ] : [
     ['UNH','SOURCE-M',['UTILTS','D','02B','UN','E5SE5A']], ['BGM',code,'SOURCE-DOC','9','AB'],
     ['DTM',['137','202609201200','203']], ['MKS','23',['E02','','260']],
-    ['NAD','MS',['12345','','9']], ['NAD','MR',['54321','','9']], ['NAD','DDQ',['54321','','9']],
+    ['NAD','MS',['12345','SVK','260']], ['NAD','MR',['54321','SVK','260']], ['NAD','DDQ'],
     ['IDE','24','SOURCE-TX'], ['LOC','172',['735999888000000017','','9']], ['LOC','239',['TES','SVK','260']],
     ['DTM',['324','202609010000202610010000','719']], ['DTM',['354','15','806']], ['STS','7','',['E88','','260']],
     ['MEA','AAZ','','KWH'], ['SEQ','','1'], ['QTY',['136','1']],
@@ -117,6 +125,8 @@ function source(family = 'PRODAT', testFlag = 1, alphabet = alphabets[0]) {
     interchange_reference: 'SOURCE-I', raw_payload: raw, parsed_payload: {}, created_at: NOW,
     syntax_check_status: 'ok', status: 'received' }
 }
+const ackErrors = family => [{ercCode:'42',fieldCode:'207',text:family === 'PRODAT'
+  ? 'Felaktigt Avsändare (Ediel-ID) 12345' : 'INCORRECT DATA 12345'}]
 function stateRow(draft) {
   return { requires_contrl: draft.requiresContrl, requires_aperak: draft.requiresAperak,
     contrl_status: draft.contrlStatus, aperak_status: draft.aperakStatus,
@@ -151,24 +161,27 @@ for (const bad of [undefined,null,0,1,'1','false',{}]) {
   })
 }
 for (const family of ['PRODAT','UTILTS','UTILTS_ERR']) for (const outcome of ['positive','negative']) {
-  test(`${family}-origin ${outcome} APERAK requests CONTRL on the actual final wire`, async () => {
+  test(`${family}-origin ${outcome} final ACK either has real CONTRL request or remains scoped source-held`, async () => {
     const a = await api, original = source(family), before = JSON.stringify(original)
     assert.equal(a.validateEdifactSyntax(original).ok, true, 'source has a coherent envelope')
+    if(family==='PRODAT'&&outcome==='negative'){assert.throws(()=>a.buildAperakDraft({sourceMessage:original,outcome,applicationErrors:ackErrors(family)}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);assert.equal(JSON.stringify(original),before);return}
     const draft = a.buildAperakDraft({ sourceMessage: original, outcome, applicationErrors: outcome === 'negative'
-      ? [{ ercCode:'42', fieldCode:'207', text:'INVALID' }] : null })
+      ? ackErrors(family) : null })
     assert.equal(finalWire(draft.rawPayload).unb[9], '1')
     assert.equal(JSON.stringify(original), before)
   })
-  test(`${family}-origin ${outcome} APERAK monitoring uses outgoing APERAK not source family`, async () => {
+  test(`${family}-origin ${outcome} monitoring is never manufactured for a held final ACK`, async () => {
     const a = await api
+    if(family==='PRODAT'&&outcome==='negative'){assert.throws(()=>a.buildAperakDraft({sourceMessage:source(family),outcome,applicationErrors:ackErrors(family)}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);return}
     assertPending(a, a.buildAperakDraft({ sourceMessage:source(family), outcome, applicationErrors: outcome === 'negative'
-      ? [{ ercCode:'42', fieldCode:'207', text:'INVALID' }] : null }), false)
+      ? ackErrors(family) : null }), false)
   })
 }
 for (const flag of [0,1]) for (const ack of ['APERAK','CONTRL','UTILTS_ERR']) {
-  test(`${ack} passes source test_flag=${flag} to the actual UNB0035`, async () => {
+  test(`${ack} preserves source test_flag=${flag} on real wire or immutable held source`, async () => {
     const a = await api, s = source(ack === 'UTILTS_ERR' ? 'UTILTS' : 'PRODAT', flag)
-    const draft = ack === 'APERAK' ? a.buildAperakDraft({ sourceMessage:s, outcome:'negative' })
+    if(ack==='APERAK'){const before=JSON.stringify(s);assert.throws(()=>a.buildAperakDraft({sourceMessage:s,outcome:'negative',applicationErrors:ackErrors('PRODAT')}),/APERAK_PRODAT_OBJECT_OUTCOME_SCOPE_MISMATCH/);assert.equal(JSON.stringify(s),before);return}
+    const draft = ack === 'APERAK' ? a.buildAperakDraft({ sourceMessage:s, outcome:'negative', applicationErrors:ackErrors('PRODAT') })
       : ack === 'CONTRL' ? a.buildContrlDraft({ sourceMessage:s, outcome:'negative' })
         : a.buildUtiltsErrDraft({ sourceMessage:s, messageText:'E14' })
     assert.equal(draft.testFlag, flag)
@@ -189,20 +202,16 @@ test('CONTRL opposing control neither requests nor awaits a new ACK', async () =
   assert.equal(draft.contrlStatus, 'not_required'); assert.equal(draft.aperakStatus, 'not_required')
   assert.equal(draft.ackDueAt, null); assert.equal(a.getCanonicalAckState(stateRow(draft)), 'no_ack_required')
 })
-for (const alphabet of alphabets) test(`real P-APERAK consumer preserves request after incoming alphabet ${alphabet.join('')}`, async () => {
+for (const alphabet of alphabets) test(`real P-APERAK preserves BOTH own references and holds final directory conflict ${alphabet.join('')}`, async () => {
   const a = await api, s = source('PRODAT', 1, alphabet), before = JSON.stringify(s)
-  const draft = a.buildAperakDraft({ sourceMessage:s })
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1')
-  assert.equal(finalWire(draft.rawPayload).unb[7], s.application_reference)
-  assert.ok(draft.rawPayload.includes('RFF+ACW:SOURCE-DOC'))
-  assert.equal(JSON.stringify(s), before)
+  ownPair(()=>a.buildAperakDraft({sourceMessage:s}))
+  assert.equal(JSON.stringify(s),before)
 })
-test('caller payload booleans cannot override the outgoing canonical ACK decision', async () => {
+test('caller payload booleans cannot bypass the actual P-APERAK directory hold', async () => {
   const a = await api, s = source()
   s.parsed_payload = { requiresContrl:false, acknowledgementRequest:false, ackRule:{technicalAck:'none'} }
   s.validation_report = { canonicalPolicy:{ackRule:{technicalAck:'none'}} }
-  const draft = a.buildAperakDraft({sourceMessage:s})
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1'); assertPending(a,draft,false)
+  ownPair(()=>a.buildAperakDraft({sourceMessage:s}))
 })
 test('unsupported family has no manufactured default CONTRL request', async () => {
   const a = await api
@@ -229,7 +238,9 @@ for (const requestAck of [undefined,false,true]) test(`generic PRODAT alternate 
   const built = a.buildProdatMessage(input), wire = finalWire(built.rawEdifact)
   assert.equal(wire.unb[9], '1'); assert.equal(wire.rows.find(row=>row[0]==='BGM')[4], requestAck===false?'NA':'AB')
 })
-test('actual saved-switch PRODAT draft carries the same request and persisted monitoring', async () => {
+// Positive saved-switch qualification uses the native signed-contract/Z03 fixture.
+// This source-only fixture has no current tenant actor and must stop before I/O.
+test('saved-switch draft without a current tenant actor holds before source or external access', async () => {
   const a = await api, id = '735999888000000017'
   const portalData = {facilityId:id,customerId:'USER',customerIdAgency:'89',powerOfAttorneyReference:'POA',customerName:'Synthetic',
     customerAddress:'Street',customerPostalCode:'12345',customerCity:'Town',customerCountry:'SE',siteAddress:'Street',siteCountry:'SE',
@@ -240,10 +251,10 @@ test('actual saved-switch PRODAT draft carries the same request and persisted mo
     switchRequest:{id:'switch',company_id:'company',customer_id:'customer',site_id:'site',metering_point_id:'meter',grid_owner_id:'owner',requested_start_date:'2026-10-01',request_type:'supplier_switch',status:'draft',current_supplier_name:'Existing',power_of_attorney_id:'poa',validation_snapshot:{portalData}},
     site:{id:'site',company_id:'company',customer_id:'customer',facility_id:id,grid_owner_id:'owner',move_in_date:'2026-10-01',street:'Street',postal_code:'12345',city:'Town'},
     meteringPoint:{id:'meter',company_id:'company',site_id:'site',customer_id:'customer',meter_point_id:id,grid_owner_id:'owner'},gridOwner:{id:'owner',ediel_id:'54321',owner_code:'TES'}}
-  const before = JSON.stringify(input), draft = await a.buildProdatZ03FromSwitch(input)
-  assert.equal(finalWire(draft.rawPayload).unb[9], '1')
-  assertPending(a,draft,true); assert.equal(JSON.stringify(input),before)
-  assert.equal(draft.customerId,'customer'); assert.equal(draft.siteId,'site'); assert.equal(draft.switchRequestId,'switch')
+  const before = JSON.stringify(input)
+  await assert.rejects(a.buildProdatZ03FromSwitch(input), /ediel_tenant_actor_required/)
+  assert.equal(JSON.stringify(input), before)
+  assert.deepEqual(a.effects, [])
 })
 test('all exercised consumers kept provider, database and transport boundaries closed', async () => {
   assert.deepEqual((await api).effects, [])
@@ -252,8 +263,8 @@ test('all exercised consumers kept provider, database and transport boundaries c
 // Two narrowly approved convergence amendments: PR358 comment5752208557.
 for (const [family, code, expected] of [
   ['UTILTS_ERR','ERR','functional_rejection'], ['UTILTS_ERR','UTILTS_ERR','functional_rejection'],
-  ['UTILTS','ERR','functional_rejection'], ['UTILTS','E66','meter_values'],
-  ['UTILTS','S02','meter_values'], ['APERAK','APERAK','ediel_ack'], ['CONTRL','CONTRL','ediel_ack'],
+  ['UTILTS','ERR','functional_rejection'], ['UTILTS','E66','validated_metering'],
+  ['UTILTS','S02','object_consumption_forecast'], ['APERAK','APERAK','ediel_ack'], ['CONTRL','CONTRL','ediel_ack'],
 ]) test(`process projection ${family}/${code} is ${expected}`, async () => {
   assert.equal((await api).processGroupForMessage(family, code), expected)
 })
@@ -310,7 +321,7 @@ test('actual outbound route contract still selects ediel_ack for UTILTS_ERR',asy
     ['@/lib/routes/routeReadiness',synthetic({expectedApplicationReference:requestType=>{captured.push(requestType);throw stop}})],
   ])
   const file=path.join(root,'lib/ediel/outbox/routeContract.ts')
-  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'strip',sourceUrl:file}),{context,identifier:file})
+  const module=new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file,'utf8'),{mode:'transform',sourceUrl:file}),{context,identifier:file})
   await module.link(name=>{assert.ok(boundaries.has(name),`Unexpected route dependency:${name}`);return boundaries.get(name)})
   await module.evaluate()
   await assert.rejects(module.namespace.evaluateEdielRouteContract({direction:'outbound',company_id:'tenant-A',

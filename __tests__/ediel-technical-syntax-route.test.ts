@@ -1,0 +1,25 @@
+import {beforeEach,describe,expect,it,vi} from 'vitest'
+const {rpc,assertActor,smtp}=vi.hoisted(()=>({rpc:vi.fn(),assertActor:vi.fn(),smtp:vi.fn()}))
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc}}))
+vi.mock('@/lib/ediel/services/authorization',()=>({assertEdielTenantActor:assertActor}))
+vi.mock('@/lib/ediel/mailReadiness',()=>({assertEdielSmtpReadiness:smtp}))
+import {requireEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
+import {readTechnicalSyntaxAckRoute,technicalSyntaxAckRouteQualification} from '@/lib/ediel/ack/technicalSyntaxRoute'
+const basis={kind:'technical_syntax_ack',version:1,companyId:'company',environment:'test',sourceMessageId:'source',sourceHash:'a'.repeat(64),observedAt:'2026-09-30T12:00:00Z',syntaxAssessmentId:'assessment',syntaxDecision:'rejected',transportActorId:'transport',transportEdielId:'LOCAL',originalUNB:{sender:['REMOTE','14','R'],receiver:['LOCAL','14','L'],interchangeReference:'ORIGINAL',uciReference:'ORIGINAL',applicationReference:'',testIndicator:'1'}}
+const route=()=>({kind:'technical_syntax_ack_route',companyId:'company',environment:'test',sourceMessageId:'source',sourceHash:'a'.repeat(64),route:{id:'route',company_id:'company',is_active:true},routeRuntime:{company_id:'company',communication_route_id:'route',environment:'test',is_enabled:true},senderEdielId:'LOCAL',senderQualifier:'14',senderSubAddress:'L',receiverEdielId:'REMOTE',receiverQualifier:'14',receiverSubAddress:'R',receiverMessageSubAddress:'R',applicationReference:'',senderEmail:'configured@example.test',receiverEmail:'counterparty@example.test',mailbox:'configured@example.test',routeKey:'actual-route',smtpHost:'smtp.example.test',smtpPort:465,authorizesBusinessEffect:false})
+async function source(){rpc.mockResolvedValueOnce({data:structuredClone(basis),error:null});return requireEdielTechnicalSyntaxAckEvidence('company','source',{actorUserId:'user',phase:'prepare'})}
+describe('source-only technical syntax reply transport route',()=>{
+ beforeEach(()=>{rpc.mockReset();assertActor.mockReset();assertActor.mockResolvedValue(undefined);smtp.mockReset();smtp.mockReturnValue({from:'configured@example.test',host:'smtp.example.test',port:465})})
+ it('uses actual current SMTP owner and exact physical parties without a business profile',async()=>{
+  const evidence=await source();rpc.mockResolvedValueOnce({data:route(),error:null});const result=await readTechnicalSyntaxAckRoute({evidence,actorUserId:'user'})
+  expect(assertActor).toHaveBeenCalledWith({companyId:'company',actorUserId:'user',permissionAnyOf:['communication.write','ediel_testing.write']})
+  expect(rpc.mock.calls[1]).toEqual(['ediel_read_technical_syntax_ack_route_v1',{p_company_id:'company',p_actor_user_id:'user',p_source_message_id:'source',p_smtp_from:'configured@example.test',p_smtp_host:'smtp.example.test',p_smtp_port:465}])
+  expect(result.applicationReference).toBe('');expect(result.authorizesBusinessEffect).toBe(false)
+  expect(technicalSyntaxAckRouteQualification(result,evidence)).toBe(result);expect(technicalSyntaxAckRouteQualification({...result},evidence)).toBeNull()
+  expect(technicalSyntaxAckRouteQualification(result,{...evidence})).toBeNull();expect(Object.isFrozen(result.routeRuntime)).toBe(true)
+ })
+ it('rejects caller-copied syntax basis before actor or route reads',async()=>{const evidence=await source();await expect(readTechnicalSyntaxAckRoute({evidence:{...evidence},actorUserId:'user'})).rejects.toThrow('ediel_technical_ack_basis_required');expect(assertActor).not.toHaveBeenCalled();expect(rpc).toHaveBeenCalledTimes(1)})
+ it('checks actual tenant permission before reading fresh technical route',async()=>{const evidence=await source();assertActor.mockRejectedValueOnce(Error('denied'));await expect(readTechnicalSyntaxAckRoute({evidence,actorUserId:'user'})).rejects.toThrow('denied');expect(rpc).toHaveBeenCalledTimes(1);expect(smtp).not.toHaveBeenCalled()})
+ it.each([{environment:'production'},{companyId:'other'},{sourceMessageId:'other'},{sourceHash:'b'.repeat(64)},{applicationReference:'DEFAULT'},{senderSubAddress:'wrong'},{receiverQualifier:'wrong'},{senderEmail:'old@example.test'},{mailbox:'old@example.test'},{receiverEmail:'two@example.test,three@example.test'},{authorizesBusinessEffect:true},{routeRuntime:{company_id:'company',communication_route_id:'different',environment:'test',is_enabled:true}}])('rejects scope or account drift %j',async patch=>{const evidence=await source();rpc.mockResolvedValueOnce({data:{...route(),...patch},error:null});await expect(readTechnicalSyntaxAckRoute({evidence,actorUserId:'user'})).rejects.toThrow('ediel_technical_ack_route_scope_mismatch')})
+ it('holds ambiguous/unavailable configuration without old email fallback',async()=>{const evidence=await source();rpc.mockResolvedValueOnce({data:null,error:{message:'ediel_technical_ack_route_count:2'}});await expect(readTechnicalSyntaxAckRoute({evidence,actorUserId:'user'})).rejects.toThrow('ediel_technical_ack_route_unavailable')})
+})
