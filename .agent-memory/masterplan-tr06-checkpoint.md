@@ -43,26 +43,34 @@ Route-profile rereads require the own company. No SQL/schema/transport files cha
 - App/tests/scripts typechecks, owned lint, tagged-approval check (352 IDs, no tagged failures),
   spec integrity (33 originals/121 rules/231 contracts), service-role ratchet and diff whitespace checks PASS.
 - Independent full-criterion review APPROVE; independent 139/139 targeted tests PASS.
-- Full suite: 9914/9917 PASS; three unrelated UTILTS projection tests hit their 5-second
-  timeouts while first application typecheck competed for CPU. Their isolated diagnostic
-  run passes 3/3; a sequential full run at two workers is pending. No full-green claim.
+- Integrated full suite: 9950/9953 PASS without concurrent typechecking; the same
+  three UTILTS projection tests hit their 5-second timeouts on unmodified main
+  `33aeb7f7` (9864/9867 PASS) and in an isolated network-enabled run. They pass
+  3/3 when placeholder Supabase I/O is rejected immediately by the sandbox.
+  The fixture omits the issuer/periodic-reason read ports invoked by the real
+  runtime. The initial CPU hypothesis is disproved. ENV-01/#504 owns the fixture
+  repair; this packet neither duplicates it nor weakens timeouts/assertions.
+  No full-green claim; exact-head GitHub coverage/smoke/browser-public are green.
 
 Synthetic source registration proves guarded code behavior and cryptography;
 it does not prove a live issuer registration, database RLS or market activation.
 
 ## Separate observed caller gap
 
-Existing `testing/testRunTransportMetadata.ts`, system-test certificate setup and
-route readiness omit `companyId` despite the resolver already requiring it.
-Actual SMTP send supplies `message.company_id`. These positive preparation/readiness
-flows remain a separate narrow follow-up; no claimed send bypass or repeated owner work.
+Existing `testing/testRunTransportMetadata.ts` and system-test certificate setup
+omit `companyId` despite the resolver already requiring it; metadata also omits
+its computed business code. A separate reserved preparation packet will repair
+these positive flows with actual-resolver tests. Actual SMTP send supplies
+`message.company_id`. Route readiness additionally selects weakly matched rows
+before/after the resolver and can approve untrusted material; that distinct
+defect requires its own ownership check and behavioral proof before repair.
 
 ## Next action
 
-Publish the code/test/approval packet, sync current main while preserving the union
-of approvals, run the sequential full suite, inspect exact-head GitHub CI and merge when
-green. Then reserve and fix the missing-tenant preparation callers with genuine
-positive/negative behavior tests in a separate small packet.
+Inspect exact-head GitHub CI and merge #506 when all applicable gates are green.
+ENV-01 owns the inherited UTILTS fixture fix. The separately reserved preparation
+packet covers only the system-test helper and transport metadata callers with
+genuine positive/negative behavior tests; no readiness/ENV/P/U/worker overlap.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
 continuation; spec-to-code-compliance + independent read-only reviewer for the
