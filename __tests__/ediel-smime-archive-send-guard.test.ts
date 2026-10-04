@@ -1,3 +1,4 @@
+// masterplan: TR-01, AT-TR-01
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
