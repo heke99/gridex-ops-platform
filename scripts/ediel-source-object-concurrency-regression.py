@@ -158,7 +158,13 @@ END $test$; ROLLBACK;""")
             denied(f'SET ROLE {role}; DELETE FROM {qualified};', '42501')
         denied(f'UPDATE {qualified} SET id=id;', '23514')
         denied(f'DELETE FROM {qualified};', '23514')
-        denied(f'TRUNCATE {qualified};', '23514')
+        # TRUNCATE is refused by the immutability trigger, or earlier and as
+        # firmly by an immutable referencing ledger (e.g. outbound_origins).
+        truncated = _db.execute(f'TRUNCATE {qualified};')
+        assert truncated.returncode != 0, 'Unexpected successful prohibited operation'
+        assert re.search(r'ERROR:\s+23514:', truncated.stderr) or (
+            re.search(r'ERROR:\s+0A000:', truncated.stderr)
+            and 'cannot truncate a table referenced in a foreign key constraint' in truncated.stderr), truncated.stderr
     denied(f"UPDATE {TABLE} SET facts_text=facts_text WHERE source_message_id='{SOURCE}';", '23514')
     assert json.loads(checked(chain_query)) == rows
 
