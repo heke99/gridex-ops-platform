@@ -887,8 +887,21 @@
     {
       "id": "DB-06",
       "acceptance_id": "AT-DB-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
     },
     {
       "id": "OPS-01",
@@ -2213,8 +2226,21 @@
     },
     {
       "id": "AT-DB-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
     },
     {
       "id": "AT-OPS-01",
