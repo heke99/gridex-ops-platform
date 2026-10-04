@@ -29,7 +29,7 @@ import { isAgtPortalProdatAddress, resolveRouteTransportSecurityMode } from '@/l
 
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import { encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
+import { assertEdifactUnocText, encodeEdifactLatin1, encodeEdifactUnoc } from '@/lib/ediel/core/edifactEncoding'
 
 export const execFileAsync = promisify(execFile)
 
@@ -207,10 +207,18 @@ export function encodeBase64Mime(buffer: Buffer, lineLength = 76): string {
   return chunks.join('\r\n')
 }
 
-function encodeMimePayload(value: string, encoding: BufferEncoding): Buffer {
+function encodeMimePayload(value: string, encoding: BufferEncoding, edifact: boolean): Buffer {
+  if (edifact) {
+    if (encoding !== 'latin1' && encoding !== 'binary') throw new Error('edifact_mime_encoding_invalid')
+    return encodeEdifactUnoc(value)
+  }
   return encoding === 'latin1' || encoding === 'binary'
     ? encodeEdifactLatin1(value)
     : Buffer.from(value, encoding)
+}
+
+function isEdifactMimeContent(contentType: string): boolean {
+  return /^application\/edifact(?:\s*;|\s*$)/i.test(contentType.trim())
 }
 
 export function sanitizeMimeToken(value: string | null | undefined, fallback = 'edifact'): string {
@@ -223,7 +231,7 @@ export function buildInnerEdifactMimeForSmime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding, true)
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     'Content-Type: application/EDIFACT',
@@ -244,7 +252,7 @@ export function buildSinglePartEdielBase64Mime(params: {
   decodedPayload: string
   encoding: BufferEncoding
 }): Buffer {
-  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding)
+  const payloadBuffer = encodeMimePayload(params.decodedPayload, params.encoding, isEdifactMimeContent(params.contentType))
   const payloadBase64 = encodeBase64Mime(payloadBuffer)
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
@@ -276,7 +284,7 @@ export function buildMultipartValidationBase64Mime(params: {
   encoding: BufferEncoding
 }): Buffer {
   const boundary = `gridex_ediel_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`
-  const payloadBase64 = encodeBase64Mime(encodeMimePayload(params.decodedPayload, params.encoding))
+  const payloadBase64 = encodeBase64Mime(encodeMimePayload(params.decodedPayload, params.encoding, isEdifactMimeContent(params.contentType)))
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
@@ -750,6 +758,7 @@ export function buildSinglePartEdielMime(params: {
   rawPayload: string
   encoding: BufferEncoding
 }): Buffer {
+  if (isEdifactMimeContent(params.contentType)) encodeMimePayload(params.rawPayload, params.encoding, true)
   const headers = [
     `From: ${sanitizeMimeHeader(params.from)}`,
     `To: ${sanitizeMimeHeader(params.to)}`,
@@ -766,7 +775,9 @@ export function buildSinglePartEdielMime(params: {
     headers.splice(2, 0, `Reply-To: ${sanitizeMimeHeader(params.replyTo)}`)
   }
 
-  return encodeMimePayload(`${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`, params.encoding)
+  const mime = `${headers.join('\r\n')}\r\n\r\n${params.rawPayload}\r\n`
+  return params.encoding === 'latin1' || params.encoding === 'binary'
+    ? encodeEdifactLatin1(mime) : Buffer.from(mime, params.encoding)
 }
 
 export function safePreview(value: string, maxLength = 600): string {
