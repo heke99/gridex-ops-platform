@@ -146,3 +146,33 @@ The actual captured canonical create/access/accept functions and producer/hash/a
 Evidence: quality/staff-api/S2-invitation-domain-schema-closure-20261004.json. Only the new checksum line is inserted in historical manifest order. Generated types/schema/fingerprint, prior capture evidence and Ediel memory are preserved. composition_capture_pending=true records that authentic new-prefix capture/full CI have not run.
 
 Next: root integrates this bounded source commit into new isolated S2/S3/S4 stages, obtains their authentic own-prefix captures, and runs fresh exact-head full clean/upgrade/native concurrency and application CI. No publication, production apply or native qualification is claimed by this repair.
+
+## S4-03 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37207708487, artifact 11305311966, checkout c47b6169673551c7dbb55fb300e3cb4269737554, tree f9abf375535f15cb737606819d9717877a6f7670, frozen source e78e51d0c01bd0bf70dada25c3062181d011cff9.
+- ZIP SHA256 `ab5c7503b93c4b0b5778627db2ef144e642f42e774d09275725a7aa6a22e3d78` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 16 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S4-03-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S4-03-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+- Post-import S4-03: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
+
+## S2-02 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37207667011, artifact 11305945778, checkout 04517cd52af1ae5b66313794e99e988b5f766fcd, tree b235a1fa43817ce5151a34c9e4eafdc60b5408ab, frozen source 7da2e38c31d1a17981681f21508cf5f7781f62e6.
+- ZIP SHA256 `6670f06ce43a19051733226e19c271ef3cdfccbebd4798c580bf8fcee1af9219` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 6 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S2-02-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S2-02-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+- Post-import S2-02: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
+
+## S3-03 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37207685431, artifact 11304983843, checkout b6335782da29c3785b08bc296f6012f4f42af4b7, tree 4f038da127283df6fe235dfda6f451328b5bed2c, frozen source 6264becb0493442d612eb7a12d5063519d0e877a.
+- ZIP SHA256 `d5dd159d700cbcb0d8da84f87e8949d47984c800a6adacf3c0e659af9c819da3` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 10 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S3-03-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S3-03-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+- Post-import S3-03: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
