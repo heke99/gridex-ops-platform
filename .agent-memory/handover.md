@@ -1127,3 +1127,5 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491 (lokalt, pushas efter merge): U-08 (+AT) godkänd.
 - 2026-10-04 #491 (lokalt): U-11 aggregat-E98 efter cutoff bevisat; kvar: inga E30-energikontroller implementerade.
 - 2026-10-04 #491: U-06 (+AT) godkänd; mandatgrinden = requireDataRequestStructure (tidigare 'saknas'-fynd var fel).
+- 2026-10-04 #491: U-12 (+AT) godkänd.
+- 2026-10-04 Samordning: Claude-session_01JdTfHD (claude/dazzling-dijkstra-vyyw0g) har GOV-03+ENV-01; ny Codex-session claimade också ENV-01 -> flaggat på #491 (förslag: Codex tar ENV-02).

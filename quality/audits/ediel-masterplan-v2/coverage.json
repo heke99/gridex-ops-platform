@@ -913,10 +913,13 @@
     {
       "id": "U-12",
       "acceptance_id": "AT-U-12",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-utilts-observation-order-guide.test.ts",
-        "__tests__/ediel-packing-limit-authority.test.ts"
+        "__tests__/ediel-packing-limit-authority.test.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/utilts/packagingGuide.ts",
+        "__tests__/ediel-u-12-outbound-single-transaction.test.ts"
       ]
     },
     {
@@ -2359,8 +2362,12 @@
     },
     {
       "id": "AT-U-12",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-12-outbound-single-transaction.test.ts",
+        "__tests__/ediel-packing-limit-authority.test.ts",
+        "__tests__/ediel-utilts-observation-order-guide.test.ts"
+      ]
     },
     {
       "id": "AT-U-13",
