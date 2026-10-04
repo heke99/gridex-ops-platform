@@ -46,6 +46,7 @@ export default defineConfig({
     'scripts/ediel-service-evidence-native.test.ts',
     'scripts/ediel-esco-10-11-projection-native.test.ts',
     'scripts/ediel-dsn-source-native.test.ts',
+    'scripts/ediel-tr-05-recovery-native.test.ts',
     'scripts/ediel-regulated-supply-ground-native.test.ts',
     'scripts/ediel-blob-retention-native.test.ts',
     'scripts/ediel-confirmed-customer-bilateral-native.test.ts',
