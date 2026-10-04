@@ -10,9 +10,9 @@
     "stdout_sha256": "77b04fee679e8a664ed0646f71dc307f4ad02a3dbccedb00d8e93fd21d06e861"
   },
   "new_native_file": "scripts/ediel-tr-09-reserve-source-native.test.ts",
-  "new_native_sha256": "b2ed18ed2ad7e2d23bb48a35ace31b106ec7e081d61fa1274c0900381b5a9dd8",
+  "new_native_sha256": "2966985a4fd998b42cd4dab3cc3e30fb373f403d3a985d4c320658875654d000",
   "new_native_cases": 9,
-  "new_native_execution": "NOT_RUN_ROOT_CI_RESERVED",
+  "new_native_execution": "GENUINE_RED_B167_FIXTURE_CORRECTION_AWAITS_CI",
   "verification": {
     "tests_types": "PASS",
     "scripts_types": "PASS",
@@ -30,7 +30,58 @@
     "real certificate PKIX/CRL/OpenSSL S/MIME consumer",
     "exact private deviation/alarm and immutable originals"
   ],
-  "whole_TR09_card": "UNRESOLVED_PENDING_GENUINE_NATIVE_AND_REVIEW",
+  "whole_TR09_card": "UNRESOLVED_PENDING_CORRECTED_GENUINE_NATIVE_AND_REVIEW",
   "all_relay_hops_and_authentic_market_evidence": "NOT_PROVIDED",
-  "ordinary_required_gates": "NOT_REPLACED"
+  "ordinary_required_gates": "NOT_REPLACED",
+  "genuine_native_runs": [
+    {
+      "checkout_sha": "b1679d5888d2cd9fe80e3893682c60410005b390",
+      "checkout_tree": "dfdec302e4595b437cd5913a2b4b55aebbea5eb0",
+      "run_id": 37243058821,
+      "job_id": 111555478289,
+      "artifact_id": 11318456369,
+      "artifact_sha256": "aa98e614a32ff9d96cfee0b901dbb476a2037aab564e1bbfdbb228c43ad06623",
+      "receipt_head_tree_scope_all_input_hashes": "MATCH",
+      "native_exit_code": 1,
+      "total": 13,
+      "passed": 4,
+      "failed": 9,
+      "errors": 0,
+      "skipped": 0,
+      "existing_native_passed": 4,
+      "new_native_passed": 0,
+      "failure_boundaries": [
+        "8 nonexistent fixture rendered_payload references, actual field immutable_rendered_at",
+        "1 fixture exit-code assumption, actual bad signature command returned normally"
+      ],
+      "input_receipt": {
+        "purpose": "supplemental_actual_native_feedback",
+        "checkout_sha": "b1679d5888d2cd9fe80e3893682c60410005b390",
+        "checkout_tree": "dfdec302e4595b437cd5913a2b4b55aebbea5eb0",
+        "workflow_run_id": "37243058821",
+        "native_exit_code": 1,
+        "input_sha256": {
+          "scripts/ediel-transport-exception-native.test.ts": "9d7a33e0a8b40d7a0af53b28c828d51429d4c4d1b38fe193622ee777afc08882",
+          "scripts/ediel-tr-09-reserve-source-native.test.ts": "b2ed18ed2ad7e2d23bb48a35ace31b106ec7e081d61fa1274c0900381b5a9dd8",
+          ".github/workflows/ediel-recovery-native.yml": "f7009661c7db0988fff3f4446b148997c2038e0a0213a58d4813374611d8282f",
+          "lib/inbound-mail/inboundStatusUpdater.ts": "aabdd68ad40d93a26c28e2306cf128a5ad29d9939e9442a605b8c864904c1657",
+          "scripts/ediel-source-owner-native.config.ts": "563d0ede9aca30fdd83cf4a94f212777ea000a407a5a63fb6a86d53c6b5e4065",
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "c96bcd39b28ab6d8f9fd44cb9e0bd2da5dd717d19c77e175588f008cd09b1332",
+          "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+          "scripts/migration-history-manifest.runtime.additions.json": "a30e2dd5e2a6fc60b0136750591548abc9a0e17be4b459022506f1f3936a962d"
+        },
+        "test_scope": [
+          "scripts/ediel-transport-exception-native.test.ts",
+          "scripts/ediel-tr-09-reserve-source-native.test.ts"
+        ],
+        "ordinary_required_gates": "NOT_REPLACED",
+        "schema_capture": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "authentic_market_evidence": "NOT_PROVIDED"
+      },
+      "junit_sha256": "2aad2f21ff321b6817c67a4d4bf1fc6b6c772750f1282c3ba9c65769cd9becc7"
+    }
+  ]
 }

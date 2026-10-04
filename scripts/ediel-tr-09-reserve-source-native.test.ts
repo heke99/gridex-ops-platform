@@ -2,7 +2,7 @@
 // Native owner/send mechanics over owned synthetic tenants. X.500 results,
 // relay policy, counterparty approval and certificate issuer/register are
 // explicit synthetic inputs, never authentic market or all-hop TLS evidence.
-import {execFileSync} from 'node:child_process'
+import {execFileSync,spawnSync} from 'node:child_process'
 import {createHash,randomUUID,X509Certificate} from 'node:crypto'
 import {mkdtempSync,readFileSync,rmSync,writeFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -20,6 +20,13 @@ const rpc=supabaseService.rpc.bind(supabaseService) as unknown as (name:string,a
 let directory:string,leafPem:string,anchor:string,expiredCrl:string,revokedCrl:string
 const cdps=['https://synthetic.example.invalid/first.crl','https://synthetic.example.invalid/second.crl']
 const openssl=(args:string[])=>execFileSync('openssl',args,{cwd:directory,encoding:'utf8',timeout:10000,maxBuffer:65536,stdio:['ignore','pipe','pipe']})
+const crlVerification=(file:string)=>{
+ const result=spawnSync('openssl',['crl','-in',file,'-noout','-verify','-CAfile','ca.pem'],{
+  cwd:directory,encoding:'utf8',timeout:10000,maxBuffer:65536,stdio:['ignore','pipe','pipe']})
+ expect(result.error).toBeUndefined();expect(result.signal).toBeNull()
+ expect([0,1]).toContain(result.status)
+ return result
+}
 beforeAll(()=>{
  directory=mkdtempSync(join(tmpdir(),'ediel-tr09-native-pki-'))
  try{
@@ -88,8 +95,23 @@ const effects=(s:Seed)=>sql<{approvals:number;operations:number;alarms:number;at
  'alarms',(SELECT count(*) FROM gridex_transport_exception.alarms WHERE message_id=${literal(s.m.id)}),
  'attempts',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(s.m.id)}),
  'entries',(SELECT count(*) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(s.m.id)} AND entered_at IS NOT NULL));`)
-const original=(s:Seed)=>sql(`SELECT jsonb_build_object('raw',raw_payload,'hash',immutable_payload_hash,'rendered',rendered_payload)
- FROM public.ediel_messages WHERE id=${literal(s.m.id)} AND company_id=${literal(s.f.companyId)}`)
+type Original={raw:string;hash:string;rendered:string;archives:Array<Record<string,unknown>&{id:string}>}
+const original=(s:Seed)=>{
+ const value=sql<Original>(`SELECT jsonb_build_object('raw',m.raw_payload,'hash',m.immutable_payload_hash,'rendered',m.immutable_rendered_at,
+ 'archives',(SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id),'[]') FROM public.ediel_message_payloads p
+ WHERE p.ediel_message_id=m.id AND p.company_id=m.company_id)) FROM public.ediel_messages m
+ WHERE m.id=${literal(s.m.id)} AND m.company_id=${literal(s.f.companyId)}`)
+ expect(value).toMatchObject({raw:s.m.raw_payload,hash:sha(s.m.raw_payload!)})
+ expect(value.rendered).not.toBeNull()
+ return value
+}
+const originalUnchanged=(s:Seed,before:Original)=>{
+ const after=original(s)
+ expect({raw:after.raw,hash:after.hash,rendered:after.rendered}).toEqual({raw:before.raw,hash:before.hash,rendered:before.rendered})
+ // The actual send owner archives fresh MIME before provider entry. Every old
+ // archived row stays identical; additional pre-send archives are permitted.
+ for(const retained of before.archives)expect(after.archives.find(row=>row.id===retained.id)).toEqual(retained)
+}
 const exactSourceCustody=(s:Seed,id:string)=>sql(`SELECT to_jsonb(source_original=convert_to(${literal(JSON.stringify(s.source))},'UTF8')
  AND approval_original=convert_to(${literal(JSON.stringify(s.approval))},'UTF8')
  AND source_digest=encode(sha256(source_original),'hex') AND approval_digest=encode(sha256(approval_original),'hex')
@@ -151,7 +173,7 @@ it('native completed empty X.500 source permits only its exact plaintext origina
  const encoded=raw.toString('ascii').split('\r\n\r\n').slice(1).join('\r\n\r\n').replace(/\s/g,'')
  expect(Buffer.from(encoded,'base64')).toEqual(Buffer.from(s.m.raw_payload!,'latin1'))
  expect(effects(s)).toEqual({approvals:1,operations:1,alarms:1,attempts:1,entries:1})
- expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true});expect(original(s)).toEqual(before)
+ expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true});originalUnchanged(s,before)
  const alarms=await rpc('ediel_transport_exception_alarms_v1',{p_company_id:s.f.companyId,p_actor_user_id:s.reviewer})
  expect(alarms).toMatchObject({error:null,data:[expect.objectContaining({messageId:s.m.id,responsibleUserId:s.reviewer,facts:expect.objectContaining({case:s.source.case,mandatoryTls:true,administratorAlarm:true})})]})
 },120000)
@@ -175,7 +197,7 @@ it('native reserve publisher rejects incomplete directory search, invented cases
  for(const source of invalid)expect(()=>publish(s,source)).toThrow(/transport_exception_/)
  for(const approval of [{...s.approval,maximumAttempts:4},{...s.approval,validTo:new Date(Date.now()+25*3600000).toISOString()},
   {...s.approval,validTo:new Date(Date.now()-1000).toISOString()},{...s.approval,sourceDigest:'f'.repeat(64)}])expect(()=>publish(s,s.source,approval)).toThrow(/transport_exception_exact_current_bounded_approval_required/)
- expect(effects(s)).toEqual(before);expect(original(s)).toEqual(wire);expect(ownerMembers()).toBe(0);expect(smtp.send).not.toHaveBeenCalled()
+ expect(effects(s)).toEqual(before);originalUnchanged(s,wire);expect(ownerMembers()).toBe(0);expect(smtp.send).not.toHaveBeenCalled()
 },120000)
 
 it('native no-certificate approval rechecks its current TLS route and the actual owner recipient cache',async()=>{
@@ -187,7 +209,7 @@ it('native no-certificate approval rechecks its current TLS route and the actual
  }finally{sql(`UPDATE public.ediel_route_profiles SET tls_required=true WHERE id=${literal(s.f.routeProfileId)} AND company_id=${literal(s.f.companyId)}`)}
  publishCache(s)
  await expect(sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id})).rejects.toMatchObject({message:expect.stringContaining('transport_exception_completed_no_certificate_search_required')})
- expect(effects(s)).toEqual(before);expect(original(s)).toEqual(wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
+ expect(effects(s)).toEqual(before);originalUnchanged(s,wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
 },120000)
 
 it('native source revoked after actual prepare is reread at entry and refuses SMTP while retaining the separate prepared deviation',async()=>{
@@ -207,7 +229,7 @@ it('native source revoked after actual prepare is reread at entry and refuses SM
   cause:expect.objectContaining({message:expect.stringContaining('transport_exception_fresh_entry_authority_required')})})
  expect(revoked).toBe(true);expect(effects(s)).toEqual({approvals:1,operations:1,alarms:1,attempts:1,entries:0})
  expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_transport_exception.events WHERE message_id=${literal(s.m.id)} AND kind IN('entered','observed')`)).toBe(0)
- expect(original(s)).toEqual(wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
+ originalUnchanged(s,wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
 },120000)
 
 it('native all actual certificate CDPs failing permits the exact expired signed cached CRL for encrypted S/MIME only, with an administrator alarm',async()=>{
@@ -239,7 +261,7 @@ it('native all actual certificate CDPs failing permits the exact expired signed 
  expect(journal(s)).toEqual({events:['prepared','entered','observed'],exact:true,alarm:true})
  expect(sql(`SELECT to_jsonb(bool_and(binding->'priorCrlSha256'=${literal([sha(expiredCrl)])}::jsonb AND binding->>'certificateAuthorityId'=${literal(s.cache.registrationId)}
  AND binding->'cdpLocations'=${literal(cdps)}::jsonb)) FROM gridex_transport_exception.operations WHERE message_id=${literal(s.m.id)}`)).toBe(true)
- expect(original(s)).toEqual(wire);expect(ownerMembers()).toBe(0)
+ originalUnchanged(s,wire);expect(ownerMembers()).toBe(0)
  // The issued capability is scoped to the real consumer, not a global switch.
  await expect(resolveCache(s,s.cache.certificateId)).rejects.toMatchObject({message:expect.stringContaining('certificate_trust_pkix_or_fresh_authenticated_crl_failed')})
 },120000)
@@ -257,7 +279,11 @@ it.each(['omitted_actual_cdp','corrupt_signature','revoked_recipient'] as const)
   writeFileSync(join(directory,'corrupt-signature.crl'),crl)
   const fields=['-noout','-issuer','-lastupdate','-nextupdate']
   expect(openssl(['crl','-in','corrupt-signature.crl',...fields])).toEqual(openssl(['crl','-in','previous.crl',...fields]))
-  expect(()=>openssl(['crl','-in','corrupt-signature.crl','-noout','-verify','-CAfile','ca.pem'])).toThrow(/verify failure/)
+  const valid=crlVerification('previous.crl'),invalid=crlVerification('corrupt-signature.crl')
+  expect(valid.status).toBe(0);expect(valid.stderr).toMatch(/verify OK/);expect(valid.stderr).not.toMatch(/verify failure/)
+  // OpenSSL versions differ on exit status for a parsed bad signature. The
+  // actual CLI diagnostic establishes this fixture's failure on either build.
+  expect(invalid.stderr).toMatch(/verify failure/);expect(invalid.stderr).not.toMatch(/verify OK/)
  }
  const s=await crlSeed(crl)
  if(failure==='omitted_actual_cdp'){
@@ -266,7 +292,7 @@ it.each(['omitted_actual_cdp','corrupt_signature','revoked_recipient'] as const)
  }
  const id=publish(s,s.source,s.approval),before=effects(s),wire=original(s)
  await expect(sendEdielMessageViaSmtp(s.m,{actorUserId:s.f.actorUserId,temporarySecurityExceptionId:id,smtpMimeMode:'ediel-smime-enveloped'})).rejects.toMatchObject({message:expect.stringContaining('transport_exception_previous_crl_crypto_held')})
- expect(effects(s)).toEqual(before);expect(original(s)).toEqual(wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
+ expect(effects(s)).toEqual(before);originalUnchanged(s,wire);expect(smtp.send).not.toHaveBeenCalled();expect(ownerMembers()).toBe(0)
 },120000)
 
 it('native CRL publisher rejects a succeeded CDP, a different cached original and a foreign certificate owner atomically',async()=>{
@@ -278,5 +304,5 @@ it('native CRL publisher rejects a succeeded CDP, a different cached original an
   {...s.source.incident,priorCrlSha256:['f'.repeat(64)]},
   {...s.source.incident,certificateAuthorityId:randomUUID()}
  ])expect(()=>publish(s,{...s.source,incident})).toThrow(/transport_exception_/)
- expect(effects(s)).toEqual(before);expect(original(s)).toEqual(wire);expect(ownerMembers()).toBe(0);expect(smtp.send).not.toHaveBeenCalled()
+ expect(effects(s)).toEqual(before);originalUnchanged(s,wire);expect(ownerMembers()).toBe(0);expect(smtp.send).not.toHaveBeenCalled()
 },120000)

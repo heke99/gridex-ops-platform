@@ -64,16 +64,31 @@ Verification actually executed:
   verification exited 1 with `verify failure`. This verifies the negative
   fixture's meaning, not the new native assertions or acceptance contract.
 
-New nine-case native suite: NOT_RUN. Genuine owned Supabase/PostgreSQL/native
-execution is reserved to root/CI. Whole TR09/AT-TR09 acceptance is unresolved;
-do not infer it from lint, types, finite SQL, synthetic issuer material or the
-presence of a test tag. Upstream X.500/CDP results, relay policy/all-hop TLS and
+Initial nine-case native registration was NOT_RUN. Genuine run37243058821 on
+`b1679d5888d2cd9fe80e3893682c60410005b390` now establishes13 total/4 PASS/
+9 FAIL/0 ERROR/0 SKIP: existing4 PASS, new9 FAIL. Receipt/head/tree/scope and
+every input hash match; artifact11318456369 ZIP digest
+`aa98e614a32ff9d96cfee0b901dbb476a2037aab564e1bbfdbb228c43ad06623` verified.
+Eight failures are my nonexistent `rendered_payload` fixture reference; one
+is the fixture's nonportable requirement that OpenSSL throw for a bad CRL
+signature. Local direct cryptography confirms valid signature before mutation
+and invalid after, with identical parsed issuer/dates. Root authorized owned
+fixture corrections only: actual immutable rendering timestamp/raw/hash,
+retained archive rows by ID and real good/bad CLI diagnostics with no timeout
+or signal counted as proof. The actual consumer held/zero-effects assertion
+is retained unchanged; production previousCrl.ts remains unchanged pending
+direct genuine RED of its exit-only check. Corrected native is PENDING_CI.
+
+Genuine owned Supabase/PostgreSQL/native execution stays reserved to root/CI.
+Whole TR09/AT-TR09 acceptance is unresolved; do not infer it from lint, types,
+finite SQL, synthetic issuer material or the presence of a test tag.
+Upstream X.500/CDP results, relay policy/all-hop TLS and
 counterparty/source authority remain synthetic boundaries in these cases.
 Nodemailer is the declared SMTP port; TLS assertions here prove actual sender
 settings, not a handshake or every relay hop. The parent's TR08 real first-hop
 suite has its own separate scope and receipt.
 
-Next action: parent reviews the exact file, integrates the additive config
-entry and obtains genuine CI results on the published combined candidate.
-If native is red, diagnose the actual installed error before changing a
-fixture or proposing any product correction. No approval status is promoted.
+Next action: publish the corrected owned fixture and authentic RED receipt;
+obtain genuine CI results on the next exact combined candidate. Any real
+consumer RED must be separately diagnosed/coordinated before product edits.
+No approval status is promoted.

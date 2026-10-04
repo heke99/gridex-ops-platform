@@ -134,9 +134,33 @@ owned source/config ESLint, YAML/bash, both13/28 selection and actual embedded
 receipt/hash mechanics all exit0; staged/working diff checks pass. No heavy
 full suite, local native execution or ordinary required-gate substitution.
 
-Next: publish the composition merge to activate PR545 CI, then inspect the
-genuine supplemental receipt/exact inputs/raw JUnit with no skips. Root owns
-whole-card independent review and ordinary mandatory gates. Supplemental
-native13 remains NOT_RUN until that evidence exists; ordinary required gates
+Published composition HEAD `b1679d5888d2cd9fe80e3893682c60410005b390`, tree
+`dfdec302e4595b437cd5913a2b4b55aebbea5eb0`; PR545 now mergeable. Genuine
+supplemental run37243058821/job111555478289/artifact11318456369 completed
+with native exit1:13 total,4 PASS,9 FAIL,0 ERROR,0 SKIP. Downloaded ZIP SHA256
+`aa98e614a32ff9d96cfee0b901dbb476a2037aab564e1bbfdbb228c43ad06623` matches
+GitHub's artifact digest; receipt exact head/tree/selected two files/all nine
+input hashes match. Raw JUnit/log extracted `/tmp/masterplan-tr09-native-b167`.
+Existing transport-exception4 PASS; every new case FAIL. Eight stop at my
+fixture's nonexistent public `rendered_payload`; actual original fields are
+`raw_payload`/`immutable_payload_hash`/`immutable_rendered_at`. One stops at an
+invalid assumption that `openssl crl -verify` must throw on a bad signature.
+Genuine runner returned normally; local OpenSSL3.5.7 returned1 and printed
+`verify failure`. No production defect is established by these fixture failures.
+
+Root authorized only owned fixture corrections: actual raw/hash/rendering
+seal projection, independently checked original hash, every retained archive
+row compared by ID while permitting fresh pre-send MIME, real CLI good/bad
+signature diagnostics with bounded process error/signal/status checks and
+unchanged parse/issuer/date contrast. Actual consumer negative still demands
+`transport_exception_previous_crl_crypto_held` and zero operations/alarm/entry/
+SMTP. `previousCrl.ts` remains unchanged: it currently ignores CLI stderr;
+direct genuine consumer RED is needed before classifying or fixing that
+potential portability gap. The separate reserve receipt records genuine RED
+and exact inputs rather than treating finite23 or fixture correction as PASS.
+
+Next: publish fixture correction plus truthful receipt/checkpoint for fresh
+genuine13 CI. Root owns whole-card independent review and ordinary mandatory
+gates. Corrected native execution remains PENDING; ordinary required gates
 remain pending and TR08 full-card stays UNPROVEN. No whole-card approval/
 coverage promotion or next rule implementation started.
