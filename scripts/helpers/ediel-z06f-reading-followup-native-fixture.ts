@@ -6,7 +6,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {nativeSql as sql,literal,futureNativeSupplyDate} from './ediel-normal-switch-native-fixture'
 import {createRequestedChangeSupplyFixture} from './ediel-requested-change-native-fixture'
 import {createBilateralSourceOperator} from './ediel-bilateral-customer-native-fixture'
-import {z06fNativeStructureWire,z06fNativeReadingWire,type Z06fNativeReadingOptions} from './ediel-z06f-reading-followup-native-wire'
+import {z06fNativeStructureWire,z06fNativeReadingWire,z06fNativeRequestedStartDate,type Z06fNativeReadingOptions} from './ediel-z06f-reading-followup-native-wire'
 import {utiltsNativeSourceFixture} from '../../__tests__/helpers/utiltsNativeSourceFixture'
 import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './utiltsConsumptionParties'
 import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
@@ -33,7 +33,7 @@ function stampTest(raw:string,reference:string){
 export async function createZ06fReadingNativeFixture(provider:(email:string)=>void){
  // Future supply is original declared source valid time; every source admission
  // remains its real native clock_timestamp(), never the UNB or selected date.
- const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:futureNativeSupplyDate()})
+ const f=await createRequestedChangeSupplyFixture(provider,{requestedStartDate:z06fNativeRequestedStartDate(futureNativeSupplyDate(0))})
  const operator=await createBilateralSourceOperator(f.companyId,['communication.read','communication.write','communication.send','customers.read','metering.read','metering.write','ediel_testing.write'])
  expect(sql(`SELECT to_jsonb(EXISTS(SELECT FROM public.admin_users WHERE user_id IN(${literal(f.actorUserId)},${literal(operator.id)})))`)).toBe(false)
  expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:f.source,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
