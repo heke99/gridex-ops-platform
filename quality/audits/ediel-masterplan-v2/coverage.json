@@ -566,14 +566,26 @@
     {
       "id": "ACK-01",
       "acceptance_id": "AT-ACK-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/ack.ts",
+        "lib/ediel/ack/inboundAckOutcome.ts",
+        "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+        "__tests__/ediel-ack-01-contrl.test.ts"
+      ]
     },
     {
       "id": "ACK-02",
       "acceptance_id": "AT-ACK-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/ack.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/prodat/prodatAckMessageFunction.ts",
+        "lib/ediel/ack/prodatCommonHeaderNegativeAckRoute.ts",
+        "__tests__/ediel-ack-02-prodat-aperak.test.ts",
+        "__tests__/ediel-prodat-common-header-rejection.test.ts"
+      ]
     },
     {
       "id": "ACK-03",
@@ -1891,13 +1903,18 @@
     },
     {
       "id": "AT-ACK-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ack-01-contrl.test.ts"
+      ]
     },
     {
       "id": "AT-ACK-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ack-02-prodat-aperak.test.ts",
+        "__tests__/ediel-prodat-common-header-rejection.test.ts"
+      ]
     },
     {
       "id": "AT-ACK-03",
