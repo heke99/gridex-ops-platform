@@ -69,14 +69,30 @@
     {
       "id": "TEN-01",
       "acceptance_id": "AT-TEN-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/outboundExecutionContext.ts",
+        "lib/ediel/core/actorRegistry.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+        "__tests__/ediel-outbound-execution-context.test.ts",
+        "__tests__/ediel-actor-role-profiles.test.ts"
+      ]
     },
     {
       "id": "TEN-02",
       "acceptance_id": "AT-TEN-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/outboundExecutionContext.ts",
+        "lib/ediel/core/actorRegistry.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+        "__tests__/ediel-outbound-execution-context.test.ts",
+        "__tests__/ediel-actor-role-profiles.test.ts"
+      ]
     },
     {
       "id": "TEN-03",
@@ -1413,13 +1429,29 @@
     },
     {
       "id": "AT-TEN-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/outboundExecutionContext.ts",
+        "lib/ediel/core/actorRegistry.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+        "__tests__/ediel-outbound-execution-context.test.ts",
+        "__tests__/ediel-actor-role-profiles.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/kernel.ts",
+        "lib/ediel/core/outboundExecutionContext.ts",
+        "lib/ediel/core/actorRegistry.ts",
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "__tests__/ediel-ten-01-02-identity-gate.test.ts",
+        "__tests__/ediel-outbound-execution-context.test.ts",
+        "__tests__/ediel-actor-role-profiles.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-03",

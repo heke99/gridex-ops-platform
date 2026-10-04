@@ -1,3 +1,8 @@
+## Regelpar två i taget — 2026-10-04 (gäller före allt nedan)
+
+Skill-routing: aktiva — spec-to-code-compliance (kort mot kod per effekt), fp-check (varje misstänkt defekt), test-driven-development (rött test först vid kodbrist), systematic-debugging (kodfel), verification-before-completion (coverage --check, integrity, typecheck, eslint, riktad vitest). Villkorliga: supabase + supabase-postgres-best-practices (endast vid forward-migration). Överhoppade: UI/prestanda/säkerhetsskanning/skill-författande — ingen sådan ändring i scope.
+Godkänt: TEN-01/02 (+AT) via __tests__/ediel-ten-01-02-identity-gate.test.ts. Nästa: TEN-05+TEN-06, sedan U-04+U-14. Ägarfrågor samlas: U-1, U-2, TR-09/E6.
+
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 
 - #426 (`claude/zealous-rubin-6axb91`) **helt grön** på `f32e40b5` (alla 10 CI-jobb). Senare commits är bara agent-memory.
