@@ -29,7 +29,7 @@ import { isAgtPortalProdatAddress, resolveRouteTransportSecurityMode } from '@/l
 
 
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
-import { assertEdifactUnocText, encodeEdifactLatin1, encodeEdifactUnoc } from '@/lib/ediel/core/edifactEncoding'
+import { encodeEdifactLatin1, encodeEdifactUnoc } from '@/lib/ediel/core/edifactEncoding'
 
 export const execFileAsync = promisify(execFile)
 
