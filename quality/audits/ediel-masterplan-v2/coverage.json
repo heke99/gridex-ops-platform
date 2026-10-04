@@ -914,11 +914,14 @@
     {
       "id": "U-09",
       "acceptance_id": "AT-U-09",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-utilts-consumption-contract.test.ts",
         "__tests__/ediel-utilts-quantity-precision.test.ts",
-        "__tests__/ediel-utilts-s02-required-scope.test.ts"
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/consumptionEstimate.ts",
+        "__tests__/ediel-u-09-estimate-never-actual.test.ts"
       ]
     },
     {
@@ -2432,8 +2435,10 @@
     },
     {
       "id": "AT-U-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-u-09-estimate-never-actual.test.ts"
+      ]
     },
     {
       "id": "AT-U-10",
