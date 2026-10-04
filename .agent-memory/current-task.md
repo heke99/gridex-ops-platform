@@ -24,6 +24,11 @@ Gren `claude/cool-tesla-2pmyua`, PR heke99/gridex-ops-platform#491 (ägs av sess
 
 Skill-routing: aktiva — spec-to-code-compliance (kort mot kod per effekt), fp-check (varje misstänkt defekt), test-driven-development (rött test först vid kodbrist), systematic-debugging (kodfel), verification-before-completion (coverage --check, integrity, typecheck, eslint, riktad vitest). Villkorliga: supabase + supabase-postgres-best-practices (endast vid forward-migration). Överhoppade: UI/prestanda/säkerhetsskanning/skill-författande — ingen sådan ändring i scope.
 Godkänt: TEN-01/02 (+AT) via __tests__/ediel-ten-01-02-identity-gate.test.ts. Nästa: TEN-05+TEN-06, sedan U-04+U-14. Ägarfrågor samlas: U-1, U-2, TR-09/E6.
+## Aktuellt läge — 2026-10-04 kväll (gäller före allt nedan)
+
+- GOV-03 (+AT) godkänd på `claude/dazzling-dijkstra-vyyw0g`. Godkända totalt: 57. ENV-01 ägs av #504 (Codex).
+- Pågår i andra PR:er (rör ej): #491 TEN/ESCO/ACK/P/U (session cool-tesla), #497 TEN-07/ESCO-10/11, #498/#500/#501 TR-01..04.
+- Nästa lediga: F-OPS-02 (OPS-02); fp-check ENV-02, ENV-03, IMP-04, DB-01.
 
 ## Aktuellt läge — 2026-10-04 (gäller före allt nedan)
 
