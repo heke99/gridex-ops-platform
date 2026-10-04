@@ -195267,7 +195267,7 @@ GRANT ALL ON TABLE public.tenant_portal_customer_links TO service_role;
 -- Name: TABLE tenant_staff_assertion_replays; Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON TABLE public.tenant_staff_assertion_replays TO service_role;
+GRANT SELECT,INSERT,DELETE ON TABLE public.tenant_staff_assertion_replays TO service_role;
 
 --
 -- Name: TABLE tenant_website_installation_receipts; Type: ACL; Schema: public; Owner: -
