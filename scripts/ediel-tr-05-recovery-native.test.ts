@@ -1,7 +1,8 @@
 // masterplan: TR-05, AT-TR-05, SC-040, TR-10, AT-TR-10, SC-063
-// Actual local owners; only counterparty reply bytes and the external SMTP
-// result are fixtures. No private admitted ACK, ready operation or attempt is
-// inserted. Sent production originals are singleton, so these tests do not
+// Actual local owners; synthetic upstream tenant/network/mail inputs,
+// public clock and DB-fault fixtures are declared below. Counterparty reply
+// bytes and external SMTP results are fixtures. No private admitted ACK,
+// ready operation or transport attempt is inserted. Sent production originals are singleton, so these tests do not
 // claim a genuine multi-object sent-original fixture or market certification.
 import {createHash, randomUUID} from 'node:crypto'
 import {afterEach, expect, it, vi} from 'vitest'
@@ -11,7 +12,7 @@ import {supabaseService} from '@/lib/supabase/service'
 import {seedNormalSwitchNativeFixture, futureNativeSupplyDate, normalSwitchNetworkRegistry, nativeSql as sql, literal} from './helpers/ediel-normal-switch-native-fixture'
 import {receiveUtiltsRetry} from './helpers/utiltsConsumptionParties'
 import {parseEdifactPayload} from '@/lib/inbound-mail/edielEmailParser'
-import {createInboundEdielMessage} from '@/lib/inbound-mail/inboundStatusUpdater'
+import {createInboundEdielMessage, createParseResult} from '@/lib/inbound-mail/inboundStatusUpdater'
 import {getEdielMessageById} from '@/lib/ediel/db'
 import {resolveCanonicalRuntimeDecisionWithRegistry} from '@/lib/ediel/core/runtimeDecision'
 import {recordReceivedSourceValidation} from '@/lib/ediel/core/receivedSourceValidationLedger'
@@ -77,7 +78,12 @@ function externalAck(f: Fixture, kind: 'contrl' | 'aperak27' | 'aperak34') {
 }
 async function receiveAck(f: Fixture, raw: string) {
   const parsed = parseEdifactPayload(raw)
-  const reception = receiveUtiltsRetry(sql,literal,{companyId:f.companyId,actorUserId:f.actorUserId,raw,parsed})
+  const {inboundEmailMessageId} = receiveUtiltsRetry(sql,literal,{companyId:f.companyId,actorUserId:f.actorUserId,raw,parsed})
+  // The retained mailbox/raw-mail input is declared; parse persistence and
+  // family/code normalization use the actual intake adapter. The helper's
+  // unused synthetic parse row cannot qualify this reception.
+  const parseResultId = await createParseResult({companyId:f.companyId,inboundEmailMessageId,parsed})
+  const reception = {inboundEmailMessageId,parseResultId}
   const id = await createInboundEdielMessage({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',...reception,parsed})
   expect(id).toBeTruthy()
   const message = (await getEdielMessageById(id!))!
@@ -283,10 +289,11 @@ function expireDeclaredWorkerLease(id: string) {
 it('a real after-DATA unknown worker result is retained and worker restart cannot resend or authorize recovery',async () => {
   const f = await seed(false), id = outboxId(f)
   smtp.mockRejectedValue(Object.assign(new Error('synthetic connection lost awaiting DATA response'),{code:'ETIMEDOUT',command:'DATA'}))
-  expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'delivery_uncertain'})
+  const outcome = await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})
+  expect(outcome).toMatchObject({status:'delivery_uncertain'})
   const attempt = sql<Record<string,unknown>>(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)
   expect(attempt).toMatchObject({company_id:f.companyId,message_id:f.originalZ03.id,entered_at:expect.any(String),observed_at:expect.any(String),classification:'unknown',provider_result:{error:{code:'ETIMEDOUT',command:'DATA'}}})
-  expect(workerState(id)).toMatchObject({status:'delivery_uncertain',locked_by:null,locked_at:null,last_error:expect.stringContaining('delivery_uncertain_after_smtp_send')})
+  expect(workerState(id),JSON.stringify(outcome)).toMatchObject({status:'delivery_uncertain',locked_by:null,locked_at:null,last_error:expect.stringContaining('delivery_uncertain_after_smtp_send')})
   const copies = await readEdielTransportCopies({companyId:f.companyId,actorUserId:f.actorUserId,messageId:f.originalZ03.id})
   expect(copies).toMatchObject({status:'available',authorizesResend:false,deliveryProven:false})
   expect(copies.copies).toEqual(expect.arrayContaining([expect.objectContaining({attemptId:attempt.id,smtpClassification:'unknown',rfcMessageId:expect.any(String),mimeArchiveRef:expect.any(String),mimeSha256:expect.stringMatching(/^[a-f0-9]{64}$/)})]))
@@ -349,7 +356,7 @@ it('an actual accepted journal survives failed DB projection and repairs with it
   sql(`ALTER TABLE public.ediel_messages ADD CONSTRAINT tr10_native_projection_failure CHECK(id<>${literal(f.originalZ03.id)}::uuid OR message_sent_at IS NULL); SELECT to_jsonb(true)`)
   try {
     expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id})).toMatchObject({status:'delivery_uncertain'})
-    expect(sql(`SELECT to_jsonb(message_sent_at) FROM public.ediel_messages WHERE id=${literal(f.originalZ03.id)}`)).toBeNull()
+    expect((await getEdielMessageById(f.originalZ03.id))!.message_sent_at).toBeNull()
     expect(sql(`SELECT to_jsonb(a) FROM gridex_ediel_transport.attempts a WHERE message_id=${literal(f.originalZ03.id)}`)).toMatchObject({classification:'accepted',observed_at:expect.any(String)})
     expect(workerState(id)).toMatchObject({status:'delivery_uncertain'})
   } finally {

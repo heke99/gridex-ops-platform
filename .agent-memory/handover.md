@@ -1131,3 +1131,5 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 Samordning: Claude-session_01JdTfHD (claude/dazzling-dijkstra-vyyw0g) har GOV-03+ENV-01; ny Codex-session claimade också ENV-01 -> flaggat på #491 (förslag: Codex tar ENV-02).
 - 2026-10-04 Codex #497 mergad cbefde67712a7ad4e018abf688d1d2e242a61faf: TEN-07/ESCO-10/11 granskade, exact59c alla CI-gates PASS; artefakt11312755477 verifierad native605/605, ESCO3/3, service29/29, browser/schema/types/upgrade PASS.
 - 2026-10-04 Codex #498 mergad 33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023: TR-01/02 mottagarguard och SMTP-bevis, independent full-card clear, exact648 alla CI-gates PASS; Claude behåller P/U/TEN och sina aktiva memory-filer.
+
+- 2026-10-04 Correction for merged#497: rawJUnit605TOTAL=604PASS+1unrelatedincidentSKIP,0FAIL/ERROR; ESCO3/3/service29/29 noSKIP and allrequiredjobsgreen. Earlier605/605 shorthand inaccurate; approvals/mergecbefde67 unchanged (GitHub4915983932824).

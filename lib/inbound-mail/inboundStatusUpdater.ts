@@ -109,7 +109,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'CONTRL') {
     return {
       contrl_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
-      syntax_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       syntax_check_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeContrL(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeContrL(parsed) ? nowIso() : null,
@@ -121,7 +120,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'APERAK') {
     return {
       aperak_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
-      application_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       functional_check_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeAperak(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeAperak(parsed) ? nowIso() : null,
@@ -133,7 +131,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'UTILTS_ERR') {
     return {
       utilts_err_status: 'received',
-      application_status: 'rejected',
       functional_check_status: 'rejected',
       ack_outcome: 'negative',
       failed_at: nowIso(),

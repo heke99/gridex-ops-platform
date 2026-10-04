@@ -1,5 +1,43 @@
 # Codex — masterplan v2, TR-05
 
+Current2026-10-04T20:31Z (supersedes older pending findings below):
+- Published d1d3701d genuine15-case native run37230522731/artifact11313871333
+  ZIPa513b17a336578f788797a776c446e93e42ac614654cb19910483e1feae84f71:
+  1PASS/14FAIL,0ERROR/0SKIP. TR05/AT/SC040 remain unapproved; TR10/AT/SC063
+  remain partial/unapproved. Actual failure does not certify external wires.
+- Confirmed intake PGRST204 retired syntax_status/application_status keys:
+  root removes3 redundant writes in inboundStatusUpdater only. Claude owns
+  canonicalInboundAckStatusUpdater variant and has acknowledged ACK01 PARTIAL
+  until its separate fix. Claims4915983964045/5983966945/5984026328.
+- Confirmed outbox writes absent smtp_message_id/transport_channel; remove
+  redundant keys and type every queue update against generated Update shape.
+  Genuine provider ID remains in actual journal and worker result, never a
+  new public queue column. Native uncertain-row persistence rerun pending.
+- Fixture parse normalization now uses actual createParseResult; synthetic
+  retained-mail helper parse is unused. SQLNULL assertion uses actual reader.
+- Actual public original_message_id TEXT was falsely UUID in finite phase
+  fixture. Corrected fixture reproduces42883 in actual bind trigger, checks3;
+  baseline option EDIEL_RECOVERY_REFERENCE_BASELINE=1 reproduces exactRED.
+- CLI forward20261004202548_ediel_recovery_text_original_reference_alignment
+  SHA35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1
+  patches exactly12 reviewed publicTEXT/UUID target comparisons; RHS::text
+  preserves historical nonUUID text. Exact1fragment/catalogmetadata checks
+  fail closed. PrivateUUID/UUID variants excluded. Independentten08 APPROVE
+  for bounded patch, not card. Actual finite five-target owner40PASS before
+  historical-reference denial; final actual phase41/physical94 PASS.
+- App/script types and scoped lint PASS; migrationintegrity1062files/965groups
+  PASS. Final finite wrapper4/4PASS (36cursor/41phase/94physical +worker);
+  current worker/recovery TS suite25/25PASS.
+- New prefix authentic schema/type/fingerprint capture pending; existing
+  artifacts unchanged and manifest explicitly composition_capture_pending.
+- #497 count correction: actual605TOTAL=604PASS+1unrelatedincidentSKIP,
+  0FAIL/ERROR; ESCO3/3 andservice29/29 zeroSKIP. Allrequiredgatesgreen and
+  mergecbefde67 unchanged. See4915983932824. No whole-plan approval.
+Next: publish this actual source correction with parent5016bb measured90min
+budget; get genuine prefix capture/fast15-case native feedback; compose only
+Claude's published actualACK fix, then prove lease/case behavior and complete
+cards before approval/green main merges. Do not weaken native assertions.
+
 Status: IN_PROGRESS; TR05/AT remain unverified. Exclusive claim in #491
 5983041014/5983071945, external Claude retains P/U/TEN. Isolated branch
 codex/ediel-tr05-recovery-20261004 from published #5016c5c28cc. Do not change

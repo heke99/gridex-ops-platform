@@ -3,9 +3,9 @@
   "generated_at": "2026-10-04T19:56:15.893941+00:00",
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37229361560",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
-  "latest_migration_schema_effect": "Actual composed staff499 + TEN09 + TR04 forward prefix captured in run37229361560 at98da39ab; all three generated artifacts imported byte-for-byte. Native/browser/upgrade/parity remain separate mandatory gates.",
-  "composition_capture_pending": false,
+  "latest_migration": "20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+  "latest_migration_schema_effect": "Bounded text/UUID lineage comparison alignment; new authentic prefix capture pending. Previously captured schema/types/fingerprint retained unchanged and remain proof only for their actual captured prefix.",
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-04T19:56:15.893941+00:00",

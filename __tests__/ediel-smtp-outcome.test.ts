@@ -52,10 +52,11 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     mocks.send.mockRejectedValue(new Error('Certificate not usable'))
     expect((await send()).status).toBe('failed')
   })
-  it('keeps the SMTP message ID when acceptance bookkeeping throws', async () => {
+  it('returns the retained SMTP ID and persists claim-scoped uncertainty when acceptance bookkeeping throws', async () => {
     mocks.send.mockRejectedValue(new SmtpDeliveryUncertainError(new Error('DB unavailable'), '<smtp1@example.test>'))
     expect(await send()).toMatchObject({ status: 'delivery_uncertain', messageId: '<smtp1@example.test>' })
-    expect(mocks.writes.at(-1)?.smtp_message_id).toBe('<smtp1@example.test>')
+    expect(mocks.writes.at(-1)).toMatchObject({status:'delivery_uncertain',last_error:expect.stringContaining('DB unavailable'),locked_at:null,locked_by:null})
+    expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id','attempt1'])
   })
   it('fails closed if the attempt fence rejects the uncertain-state write', async () => {
     mocks.claimLost = true
