@@ -24,6 +24,7 @@ export default defineConfig({
     'scripts/staff-customer-write-native.test.ts',
     'scripts/staff-identity-provider-native.test.ts',
     'scripts/staff-user-concurrency-native.test.ts',
+    'scripts/staff-user-client-concurrency-native.test.ts',
     'scripts/ediel-source-owner-native.test.ts',
     'scripts/ediel-closure-wire-native.test.ts',
     'scripts/ediel-utilts-consumption-native.test.ts',

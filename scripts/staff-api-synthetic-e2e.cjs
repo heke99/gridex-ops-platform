@@ -120,12 +120,15 @@ WHERE id IN (${ids(Object.values(s.keys).map(key => key.id))}) AND company_id=${
 UPDATE public.tenant_customer_identity_providers SET is_active=false,updated_at=now() WHERE id=${q(s.provider)}::uuid AND company_id=${q(s.companyA)}::uuid AND purpose='staff';
 UPDATE public.company_invitations SET status='invitation_revoked',revoked_at=coalesce(revoked_at,now()),updated_at=now()
 WHERE company_id=${q(s.companyA)}::uuid AND email=${q(s.inviteEmail)} AND status IN ('pending','sending','sent','delivery_uncertain');
+-- Revoke the exact synthetic accounts before their memberships. The unchanged
+-- native last-functioning-admin guard deliberately checks account eligibility;
+-- reversing this order rejects teardown and rolls back key/provider revocation.
+UPDATE public.user_profiles SET user_status='disabled',updated_at=now() WHERE id IN (${users}) AND email LIKE ${q(`staff-e2e-${s.runId}-%@example.invalid`)};
+UPDATE auth.users SET banned_until=now()+interval '100 years',updated_at=now() WHERE id IN (${users}) AND raw_app_meta_data->>'run_id'=${q(s.runId)};
 UPDATE public.company_memberships SET status='disabled',is_active=false,disabled_at=coalesce(disabled_at,now()),status_reason=${q(`Synthetic staff E2E ${s.runId} complete`)}
 WHERE company_id IN (${ids([s.companyA, s.companyB])}) AND user_id IN (${users});
 UPDATE public.user_roles SET status='disabled',is_active=false WHERE company_id IN (${ids([s.companyA, s.companyB])}) AND user_id IN (${users});
 UPDATE public.user_permissions SET status='disabled',is_active=false WHERE company_id=${q(s.companyA)}::uuid AND user_id=${q(s.users.governance)}::uuid;
-UPDATE public.user_profiles SET user_status='disabled',updated_at=now() WHERE id IN (${users}) AND email LIKE ${q(`staff-e2e-${s.runId}-%@example.invalid`)};
-UPDATE auth.users SET banned_until=now()+interval '100 years',updated_at=now() WHERE id IN (${users}) AND raw_app_meta_data->>'run_id'=${q(s.runId)};
 UPDATE public.companies SET metadata=metadata||jsonb_build_object('synthetic_e2e_finished_at',now(),'synthetic_e2e_access_revoked',true),outbound_frozen=true
 WHERE id IN (${ids([s.companyA, s.companyB])}) AND metadata->>'run_id'=${q(s.runId)};
 COMMIT;
