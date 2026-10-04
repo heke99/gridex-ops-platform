@@ -1,0 +1,66 @@
+{
+  "status": "BOUNDED_PREREQUISITE_IMPLEMENTED_LOCALLY",
+  "base_commit": "fce9adac4c9d87c9dc97760136602b00ab1019ec",
+  "cause": "Production has no gridex_ediel_retention namespace, owner, record_tombstones table or public.ediel_customer_record_tombstones_v1(uuid,uuid). The mandatory detail read propagates the missing RPC error and returns a safe internal_error 500.",
+  "catalog_provenance": "Root supplied read-only object and column metadata. All 17 customer projection fields and all requested child fields exist; no customer data was read for diagnosis.",
+  "application_changes": "NONE; the retention read remains mandatory and fail-closed.",
+  "defining_migration": {
+    "path": "supabase/migrations/20261001012305_ediel_customer_record_class_retention.sql",
+    "sha256": "b78d093f625a476a990b3786e8a02c87d41176586f673c172bf21a8830488db2",
+    "rpc_lines": "237-240",
+    "owner_and_revoke_lines": "309-310",
+    "service_execute_line": 317
+  },
+  "reproduction": {
+    "test": "__tests__/staff-customer-detail-retention-prerequisite.test.ts",
+    "method": "Mounted GET, actual detail/domain/retention code and installed Supabase SDK with controlled fetch; captured RPC body executes verbatim on finite PGlite supporting columns. API authentication is substituted.",
+    "red": "RPC-absent mode: 2 failed/2 passed; expected 200 receives 500 and PGRST202.",
+    "green": "Existing captured RPC: 37/37 in four focused suites. Positive detail masks identity and removes the actual tombstoned address; missing RPC remains a safe 500; other RPC errors propagate; wrong company is rejected by the actual SQL scope guard.",
+    "types": "Full test TypeScript PASS",
+    "lint": "Scoped ESLint PASS",
+    "native_qualification": "NOT_YET_VERIFIED; embedded reproduction is not full native PostgreSQL qualification."
+  },
+  "next_action": "Root combines this frozen forward with the attachment track, registers migration provenance, obtains fresh captures and exact-head CI/native qualification, and performs approved exact-byte hosted rehearsal/apply/live acceptance. This author performed no hosted operations.",
+  "implementation_timestamp_utc": "2026-10-04T21:35:39Z",
+  "structural_prerequisite": {
+    "status": "IMPLEMENTED_LOCALLY; the prior diagnosis commit contained the approved plan only",
+    "role_and_schema": "Exact canonical NOLOGIN NOINHERIT BYPASSRLS gridex_ediel_retention_owner and private gridex_ediel_retention schema from 20261001000500.",
+    "tables": [
+      "record_class_catalog",
+      "record_decisions",
+      "record_reviews",
+      "record_tombstones"
+    ],
+    "integrity": "Four CREATE TABLE declarations, every FK/default/check/PK/UNIQUE and the read CREATE FUNCTION are copied byte-for-byte from canonical capture. Private ownership, ENABLE/FORCE RLS, no direct application ACLs and immutable UPDATE/DELETE/TRUNCATE guards are retained. Existing canonical custody guards and stronger privileges are verified without replacement.",
+    "shared_guard": "Require and reuse the exact existing gridex_received_sources.reject_mutation(); absence or incompatible definition fails closed. No received-source schema/function is created.",
+    "read_capability": "Exact existing four-line RPC, owned definer with pg_catalog search path and service_role-only EXECUTE. Owner SELECT/UPDATE on customers supports the unchanged scoped FOR SHARE.",
+    "scope": "Empty private structural dependencies and one read capability; no retention workflows, erasers, schedulers, provider entry, customer changes or blanket historical migration apply."
+  },
+  "implemented_forward": {
+    "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+    "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+    "timestamp_provenance": "supabase migration new staff_customer_retention_read_prerequisite (CLI 2.101.0)",
+    "atomicity": "One DO statement; no top-level transaction control. Outer BEGIN/exact source/ROLLBACK removes all new structures, roles and grants.",
+    "existing_catalog": "Read-only verification and fail-closed incompatible partial/column/constraint/owner/ACL states; repeated source and existing canonical catalog preserve their snapshots.",
+    "privilege_transfers": "Nonsuper CREATEROLE/BYPASSRLS executor grants temporary database CREATE for schema owner transfer and public CREATE for function owner transfer; revokes only introduced grants. RPC ACLs execute as its non-inheriting private owner, then restore the migration caller.",
+    "scope": "Empty canonical private FK structures, 12 class descriptors and one company/customer-bound service-only reader. No operational writer, eraser, provider, scheduler or workflow; no application/customer mutation."
+  },
+  "forward_verification": {
+    "red": "Empty entire new source: 14 failed/1 passed; positive creation, ACL and integrity assertions fail, existing-catalog no-op remains unchanged.",
+    "green": "44/44 across four focused suites, including 17 entire-source SQL cases, at 21:35:39Z (9.37s).",
+    "sql_test": "__tests__/staff-customer-retention-read-prerequisite-sql.test.ts",
+    "sql_test_sha256": "7bd742c7569c1af9de0319a942bcc7a037ea8e5877b58493e43cff857066171d",
+    "embedded_engine": "PGlite: untouched initial snapshot reopened in postgres database to exercise database ACLs; nonsuper CREATEROLE/BYPASSRLS executor has explicit grants and no bootstrap-role inheritance.",
+    "native_guard": "scripts/staff-customer-retention-read-prerequisite-regression.sql",
+    "native_guard_sha256": "f046a9bef31474629842779939dd93b493964105ab7a7fccdcf2abc54ab32c93",
+    "native_guard_coverage": "Entire SQL script executed in embedded engine with both unchanged source includes. Savepoint temporarily renames canonical prerequisites, exercises whole absence under nonsuper executor, restores exact catalog, then checks scoped arrays, FK, immutable guards and actual app-role denials; final rollback removes synthetic rows.",
+    "required_native_configuration": "GRIDEX_STAFF_CUSTOMER_RETENTION_READ_SQL points to the unchanged migration; mandatory script emits STAFF_CUSTOMER_RETENTION_READ_PREREQUISITE_NATIVE_PASS only after all assertions.",
+    "test_types": "PASS",
+    "scoped_lint": "PASS",
+    "tenant_service_role_ratchet": "PASS",
+    "app_types": "PASS",
+    "full_native_postgresql_ci": "NOT_YET_VERIFIED",
+    "exact_hosted_rollback_rehearsal": "NOT_YET_VERIFIED",
+    "production_apply_and_live_api_acceptance": "NOT_YET_VERIFIED"
+  }
+}
