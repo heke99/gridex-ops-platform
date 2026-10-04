@@ -744,8 +744,15 @@
     {
       "id": "TR-06",
       "acceptance_id": "AT-TR-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "TR-07",
@@ -1339,8 +1346,15 @@
     },
     {
       "id": "SC-060",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "SC-061",
@@ -2062,8 +2076,15 @@
     },
     {
       "id": "AT-TR-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/security/certificateStatus.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "__tests__/ediel-certificate-validity-boundaries.test.ts",
+        "__tests__/ediel-recipient-certificate-scope.test.ts",
+        "__tests__/ediel-certificate-trust-crypto.test.ts"
+      ]
     },
     {
       "id": "AT-TR-07",
