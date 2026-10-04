@@ -97,14 +97,25 @@
     {
       "id": "TEN-03",
       "acceptance_id": "AT-TEN-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "lib/ediel/services/permissionOrigin.ts",
+        "__tests__/ediel-service-permission-origin.test.ts",
+        "__tests__/ediel-source-producer-reference.test.ts",
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "TEN-04",
       "acceptance_id": "AT-TEN-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/tenant/tenantEdielIdentity.ts",
+        "lib/ediel/tenant/resolveInboundTenant.ts",
+        "__tests__/tenant-ediel-identity-evidence.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+      ]
     },
     {
       "id": "TEN-05",
@@ -1600,13 +1611,20 @@
     },
     {
       "id": "AT-TEN-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-service-permission-origin.test.ts",
+        "__tests__/ediel-source-producer-reference.test.ts",
+        "scripts/test-ediel-esco-01-02-request-basis.cjs"
+      ]
     },
     {
       "id": "AT-TEN-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/tenant-ediel-identity-evidence.test.ts",
+        "__tests__/ediel-inbound-verified-tenant-context.test.ts"
+      ]
     },
     {
       "id": "AT-TEN-05",

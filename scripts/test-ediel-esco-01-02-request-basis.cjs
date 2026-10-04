@@ -1,4 +1,5 @@
 // masterplan: ESCO-01, AT-ESCO-01, ESCO-02, AT-ESCO-02
+// masterplan: TEN-03, AT-TEN-03
 // Runs the focused PGlite request-prerequisite and V/VH period regression over the real
 // service permission coordinator and request-timing consumer.
 // Mechanics only; native replay remains the clean-replay job.
