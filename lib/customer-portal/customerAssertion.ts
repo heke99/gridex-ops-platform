@@ -123,6 +123,8 @@ export async function verifyCustomerAssertion(input: {
   expectedSubject: string | null
   now?: Date
   fetchImpl?: typeof fetch
+  /** Staff proofs always require finite, ordered iat/exp; existing customer behaviour is retained. */
+  requireIssuedAt?: boolean
   consumeJti: (jti: string, expiresAt: Date) => Promise<boolean>
 }): Promise<AssertionResult> {
   const token = input.token?.trim()
@@ -172,9 +174,16 @@ export async function verifyCustomerAssertion(input: {
   const exp = typeof payload.exp === 'number' ? payload.exp : null
   const iat = typeof payload.iat === 'number' ? payload.iat : null
   const nbf = typeof payload.nbf === 'number' ? payload.nbf : null
+  if (input.requireIssuedAt && (
+    iat === null || exp === null || !Number.isSafeInteger(iat) || !Number.isSafeInteger(exp)
+    || exp <= iat || (nbf !== null && !Number.isSafeInteger(nbf))
+  )) return { ok: false, reason: 'malformed' }
   if (exp === null || exp <= nowSeconds - CLOCK_SKEW_SECONDS) return { ok: false, reason: 'expired' }
+  if (input.requireIssuedAt && iat !== null && iat > nowSeconds + CLOCK_SKEW_SECONDS) return { ok: false, reason: 'not_yet_valid' }
   if ((nbf ?? iat ?? nowSeconds) > nowSeconds + CLOCK_SKEW_SECONDS) return { ok: false, reason: 'not_yet_valid' }
-  if (exp - (iat ?? nbf ?? nowSeconds) > MAX_LIFETIME_SECONDS) return { ok: false, reason: 'lifetime_too_long' }
+  // A staff proof's nbf cannot hide future issuance or extend its short validity window.
+  const lifetimeStart = input.requireIssuedAt && iat !== null ? Math.min(iat, nbf ?? iat) : (iat ?? nbf ?? nowSeconds)
+  if (exp - lifetimeStart > MAX_LIFETIME_SECONDS) return { ok: false, reason: 'lifetime_too_long' }
 
   const subject = claimString(payload, input.provider.subject_claim)
   if (!subject) return { ok: false, reason: 'subject_missing' }
@@ -182,7 +191,7 @@ export async function verifyCustomerAssertion(input: {
 
   const jti = claimString(payload, 'jti')
   if (!jti || jti.length < 8 || jti.length > 200) return { ok: false, reason: 'jti_missing' }
-  const expiresAt = new Date(exp * 1000)
+  const expiresAt = new Date((exp + (input.requireIssuedAt ? CLOCK_SKEW_SECONDS : 0)) * 1000)
   if (!(await input.consumeJti(jti, expiresAt))) return { ok: false, reason: 'replayed' }
 
   const amr = Array.isArray(payload.amr) ? payload.amr.filter((v) => typeof v === 'string').join(',') : null
@@ -203,9 +212,19 @@ export function resetCustomerIdentityProviderCache(companyId?: string) {
 export async function loadActiveCustomerIdentityProvider(companyId: string): Promise<CustomerIdentityProvider | null> {
   const cached = providerCache.get(companyId)
   if (cached && Date.now() - cached.at < PROVIDER_CACHE_MS) return cached.provider
-  const { data, error } = await tenantSelect(companyId, 'tenant_customer_identity_providers', PROVIDER_COLUMNS)
+  let { data, error } = await tenantSelect(companyId, 'tenant_customer_identity_providers', PROVIDER_COLUMNS)
+    .eq('purpose', 'customer')
     .eq('is_active', true)
     .maybeSingle()
+  // During app-first additive rollout an old schema has customer providers only.
+  // Once purpose exists, never fall back from its company/customer predicate.
+  if (error && ['42703', 'PGRST204'].includes((error as { code?: string }).code ?? '')
+    && /purpose/.test((error as { message?: string }).message ?? '')) {
+    const legacy = await tenantSelect(companyId, 'tenant_customer_identity_providers', PROVIDER_COLUMNS)
+      .eq('is_active', true).maybeSingle()
+    data = legacy.data
+    error = legacy.error
+  }
   if (error) {
     // Before migration 20261002080000 is applied no tenant can have a provider: unchanged behaviour.
     const code = (error as { code?: string }).code

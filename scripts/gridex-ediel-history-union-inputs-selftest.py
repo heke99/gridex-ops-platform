@@ -149,3 +149,123 @@ with tempfile.TemporaryDirectory(prefix='gridex-union-inputs-selftest-') as temp
     checks += 1
     print('PASS: refuses unrelated source commit')
     print(f'HISTORY_UNION_INPUTS_SELFTEST: {checks}/{checks} PASS; Git/provenance mechanics only, no database or migration execution')
+
+# A miniature approved split models the real pinned port. Approval is replaced
+# only inside this test process; the CLI has no caller-supplied approval switch.
+with tempfile.TemporaryDirectory(prefix='gridex-union-bridge-selftest-') as temporary:
+    temp = Path(temporary)
+    root = temp / 'repo'
+    root.mkdir()
+    command(root, 'init')
+    foundation = {'20260901000000_foundation.sql': b'select 1;\n'}
+    manifests(root, foundation)
+    write(root, {'supabase/migrations/' + name: data for name, data in foundation.items()})
+    common = commit(root, 'genuine shared ancestor')
+    previous = {**foundation, txt: b'select 40446;\n', old: b'select 84343;\n'}
+    manifests(root, previous)
+    write(root, {'supabase/migrations/' + name: data for name, data in previous.items()})
+    base = commit(root, 'original already-applied TXT branch')
+    snapshot_files = {**previous, earlier: b'select 40159;\n', later: b'select 103439;\n'}
+    manifests(root, snapshot_files)
+    write(root, {'supabase/migrations/' + name: data for name, data in snapshot_files.items()})
+    snapshot = commit(root, 'original union snapshot')
+    late = '20261001110400_explicit_late_source.sql'
+    source_files = {**snapshot_files, late: b'select 110400;\n'}
+    manifests(root, source_files)
+    write(root, {'supabase/migrations/' + late: source_files[late]})
+    source = commit(root, 'explicit later source witness')
+    original = {
+        'format': module.FORMAT, 'baseSha': base, 'integratedParentSha': snapshot,
+        'generatedFromSha': snapshot, 'generatedFromTree': command(root, 'rev-parse', snapshot + '^{tree}'),
+        'baseTail': old[:14], 'alreadyAppliedTxtSource': {'name': txt, 'sha256': hashlib.sha256(previous[txt]).hexdigest()},
+        'requiredPendingOrder': [earlier, later],
+        'earlierAbsentInputs': [{'name': earlier, 'sha256': hashlib.sha256(snapshot_files[earlier]).hexdigest(), 'sourceCommit': source}],
+    }
+    original_bytes = json.dumps(original).encode()
+    command(root, 'reset', '--hard', common)
+    manifests(root, source_files)
+    write(root, {'supabase/migrations/' + name: data for name, data in source_files.items()})
+    write(root, {module.CONTRACT_REPOSITORY_PATH: original_bytes})
+    witness = commit(root, 'actual main split port preserves all original inputs')
+    head = commit(root, 'candidate descendant of actual main witness')
+    production_approval = module.APPROVED_SPLIT_SQUASH_BRIDGE
+    approved = {
+        'format': production_approval['format'],
+        'originalContractSha256': hashlib.sha256(original_bytes).hexdigest(),
+        'commonAncestorSha': common,
+        'sourceWitnessSha': source, 'sourceWitnessTree': command(root, 'rev-parse', source + '^{tree}'),
+        'mainWitnessSha': witness, 'mainWitnessTree': command(root, 'rev-parse', witness + '^{tree}'),
+    }
+    module.APPROVED_SPLIT_SQUASH_BRIDGE = approved
+    bridged = {**original, module.BRIDGE_KEY: approved}
+    contract_path = temp / 'contract.json'
+    contract_path.write_text(json.dumps(bridged))
+    result = module.prepare(root, temp / 'bridge-positive', contract_path)
+    assert result[module.BRIDGE_KEY]['originalSnapshotInputsPreserved'] == len(snapshot_files)
+    assert result[module.BRIDGE_KEY]['sourceWitnessInputsPreserved'] == len(source_files)
+    assert result[module.BRIDGE_KEY]['sourceWitnessSha'] == source
+    assert result[module.BRIDGE_KEY]['mainWitnessSha'] == witness
+    assert result['ledgerClaim'].startswith('NONE:')
+    print('PASS: explicit closed bridge preserves full original and late source snapshots through main witness')
+    bridge_checks = 1
+
+    def bridge_rejected(label, expected, files=None, altered=None, candidate=None, raw_files=None):
+        global bridge_checks
+        command(root, 'reset', '--hard', head)
+        command(root, 'clean', '-fd')
+        changed = files if files is not None else source_files
+        manifests(root, changed)
+        write(root, {'supabase/migrations/' + name: data for name, data in changed.items()})
+        if raw_files:
+            write(root, raw_files)
+        revision = candidate if candidate is not None else commit(root, label)
+        contract_path.write_text(json.dumps(altered if altered is not None else bridged))
+        output = temp / label
+        try:
+            module.prepare(root, output, contract_path, revision)
+            raise AssertionError('Unsafe split bridge was accepted: ' + label)
+        except ValueError as error:
+            assert expected in str(error), (label, str(error))
+        assert not output.exists()
+        bridge_checks += 1
+        print('PASS: refuses ' + label)
+
+    bridge_rejected('divergent-without-explicit-bridge', 'base_not_candidate_ancestor', altered=original)
+    broken = copy.deepcopy(bridged)
+    broken[module.BRIDGE_KEY]['mainWitnessSha'] = source
+    bridge_rejected('unapproved-divergent-witness', 'unapproved_split_squash_provenance_bridge', altered=broken)
+    bridge_rejected('witness-not-candidate-ancestor', 'split_squash_main_witness_not_candidate_ancestor', candidate=snapshot)
+    broken = copy.deepcopy(bridged)
+    broken[module.BRIDGE_KEY]['mainWitnessTree'] = '0' * 40
+    bridge_rejected('fake-main-witness-tree', 'unapproved_split_squash_provenance_bridge', altered=broken)
+    broken = copy.deepcopy(bridged)
+    broken[module.BRIDGE_KEY]['sourceWitnessTree'] = '0' * 40
+    bridge_rejected('fake-source-witness-tree', 'unapproved_split_squash_provenance_bridge', altered=broken)
+    bridge_rejected('removed-late-source-input', 'split_squash_source_witness_input_not_preserved',
+                    files={name: data for name, data in source_files.items() if name != late})
+    bridge_rejected('changed-late-source-input', 'split_squash_source_witness_input_not_preserved',
+                    files={**source_files, late: b'select 99;\n'})
+    bridge_rejected('changed-original-snapshot-input', 'split_squash_original_snapshot_input_not_preserved',
+                    files={**source_files, earlier: b'select 99;\n'})
+    bridge_rejected('undeclared-source-bytes', 'split_squash_source_witness_input_not_preserved:checksum',
+                    raw_files={'supabase/migrations/' + late: b'select 99;\n'})
+    broken = copy.deepcopy(bridged)
+    broken['generatedFromTree'] = '0' * 40
+    bridge_rejected('changed-original-contract', 'split_squash_original_contract_payload_mismatch', altered=broken)
+    # Even a test-approved contract/witness cannot use a source outside its
+    # pinned source history. This exercises ancestry beyond approval equality.
+    command(root, 'reset', '--hard', head)
+    outside = commit(root, 'source outside original branch and source witness')
+    broken_original = copy.deepcopy(original)
+    broken_original['earlierAbsentInputs'][0]['sourceCommit'] = outside
+    broken_bytes = json.dumps(broken_original).encode()
+    write(root, {module.CONTRACT_REPOSITORY_PATH: broken_bytes})
+    altered_witness = commit(root, 'test-approved witness with invalid outside source')
+    altered_approval = {**approved, 'mainWitnessSha': altered_witness,
+                        'mainWitnessTree': command(root, 'rev-parse', altered_witness + '^{tree}'),
+                        'originalContractSha256': hashlib.sha256(broken_bytes).hexdigest()}
+    module.APPROVED_SPLIT_SQUASH_BRIDGE = altered_approval
+    bridge_rejected('source-outside-original-witness', 'split_squash_earlier_source_not_source_witness_ancestor',
+                    altered={**broken_original, module.BRIDGE_KEY: altered_approval}, candidate=altered_witness)
+    module.APPROVED_SPLIT_SQUASH_BRIDGE = production_approval
+    print(f'HISTORY_UNION_BRIDGE_SELFTEST: {bridge_checks}/{bridge_checks} PASS; Git/provenance mechanics only, no database or migration execution')

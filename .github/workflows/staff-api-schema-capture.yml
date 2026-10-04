@@ -1,0 +1,152 @@
+name: Staff API schema capture (capture only)
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*staff*.sql'
+      - 'supabase/database.types.ts'
+      - 'supabase/schema.sql'
+      - 'supabase/schema.fingerprint.json'
+      - 'supabase/config.toml'
+      - 'scripts/supabase-types-manifest.json'
+      - 'scripts/migration-history-manifest*.json'
+      - 'scripts/gridex-aud-003-*.json'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/gridex-schema-snapshot.cjs'
+      - 'scripts/apply-supabase-types-nullability-overrides.cjs'
+      - '.github/workflows/staff-api-schema-capture.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staff-schema-capture-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# This artifact producer does not compare baselines or execute native/browser
+# tests. OPS hardening clean/upgrade replay and parity remain mandatory.
+jobs:
+  capture:
+    name: Capture disposable clean-replay types and schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install the matching PostgreSQL 17 client
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\\s*=\\s*(\\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          [[ "$server_major" == 17 ]]
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "GRIDEX_PG_DUMP=/usr/lib/postgresql/$server_major/bin/pg_dump" >> "$GITHUB_ENV"
+          "/usr/lib/postgresql/$server_major/bin/pg_dump" --version
+      - name: Capture authentic artifacts from the sourced clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          export CAPTURE_CHECKOUT_SHA="$(git rev-parse HEAD)"
+          export CAPTURE_CHECKOUT_TREE="$(git rev-parse 'HEAD^{tree}')"
+          unset GRIDEX_REPLAY_DB_URL
+          echo 'Running the existing local clean replay; raw output stays on the disposable runner.'
+          # Do not upload replay/status output: startup output can contain local
+          # credentials. Source the exact owner script so its EXIT trap keeps
+          # the database alive until capture finishes, then stops/restores it.
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/staff-schema-capture-replay.log" 2>&1
+          CAPTURE_DB_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+          export CAPTURE_LATEST_MIGRATION_VERSION="$REPLAY_MIGRATION_VERSION"
+          export CAPTURE_REPLAY_MIGRATIONS="$TIMESTAMP_EXEC"
+          export CAPTURE_SERVER_VERSION="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c 'show server_version;')"
+          GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS="$(psql "$CAPTURE_DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "select string_agg(nspname,',' order by nspname) from pg_namespace where nspname='public' or starts_with(nspname,'gridex_');")"
+          [[ -n "$GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS" ]]
+          export GRIDEX_SCHEMA_SNAPSHOT_SCHEMAS
+          mkdir -p staff-schema-capture
+          supabase gen types --help > /dev/null
+          supabase gen types typescript --local > staff-schema-capture/database.types.ts
+          node scripts/apply-supabase-types-nullability-overrides.cjs staff-schema-capture/database.types.ts
+          npm run db:schema:snapshot -- --url "$CAPTURE_DB_URL" --out-dir staff-schema-capture
+          python3 - <<'PY'
+          from datetime import datetime, timezone
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          output = Path('staff-schema-capture')
+          artifact_names = ['database.types.ts', 'schema.sql', 'schema.fingerprint.json']
+          replay_migrations = [Path(line) for line in Path(os.environ['CAPTURE_REPLAY_MIGRATIONS']).read_text().splitlines() if line]
+          latest = max(replay_migrations, key=lambda path: path.name)
+          assert latest.name[:14] == os.environ['CAPTURE_LATEST_MIGRATION_VERSION']
+          fingerprint = json.loads((output / 'schema.fingerprint.json').read_text())
+          receipt = {
+              'purpose': 'capture_only',
+              'captured_at': datetime.now(timezone.utc).isoformat(),
+              'checkout_sha': os.environ['CAPTURE_CHECKOUT_SHA'],
+              'checkout_tree': os.environ['CAPTURE_CHECKOUT_TREE'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'workflow_run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+              'supabase_cli_version': subprocess.check_output(['supabase', '--version'], text=True).strip(),
+              'postgres_server_version': os.environ['CAPTURE_SERVER_VERSION'],
+              'pg_dump_version': subprocess.check_output([os.environ['GRIDEX_PG_DUMP'], '--version'], text=True).strip(),
+              'latest_replay_migration': {'name': latest.name, 'sha256': digest(latest)},
+              'schema_names': fingerprint['schemas'],
+              'schema_fingerprint': fingerprint['sha256'],
+              'artifact_sha256': {name: digest(output / name) for name in artifact_names},
+              'input_sha256': {
+                  path: digest(path) for path in [
+                      'scripts/gridex-aud-003-clean-replay.sh',
+                      'scripts/migration-history-manifest.json',
+                      'scripts/migration-history-manifest.additions.json',
+                      'scripts/migration-history-manifest.runtime.additions.json',
+                      'scripts/supabase-types-manifest.json',
+                      'scripts/apply-supabase-types-nullability-overrides.cjs',
+                      'scripts/gridex-schema-snapshot.cjs',
+                      'supabase/config.toml',
+                  ]
+              },
+              'native_tests': 'NOT_RUN',
+              'browser_tests': 'NOT_RUN',
+              'type_schema_comparison': 'NOT_RUN',
+              'upgrade_parity': 'NOT_RUN',
+              'required_gate': 'OPS hardening clean/upgrade replay and parity remain mandatory',
+          }
+          (output / 'capture-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print('Capture-only artifacts and receipt written; native tests and parity were not run.')
+          PY
+      - name: Upload capture-only artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staff-schema-capture-${{ github.event.pull_request.head.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            staff-schema-capture/database.types.ts
+            staff-schema-capture/schema.sql
+            staff-schema-capture/schema.fingerprint.json
+            staff-schema-capture/capture-receipt.json

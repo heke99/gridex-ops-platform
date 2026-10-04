@@ -8,8 +8,9 @@ CANDIDATE_TREE="$(git -C "$CANDIDATE_ROOT" rev-parse 'HEAD^{tree}')"
 cd "$CANDIDATE_ROOT"
 [[ "${GITHUB_ACTIONS:-}" == true && -n "${RUNNER_TEMP:-}" ]] || { echo 'upgrade_disposable_ci_runner_required' >&2; exit 1; }
 [[ -z "${GRIDEX_REPLAY_DB_URL:-}" ]] || { echo 'upgrade_external_database_forbidden' >&2; exit 1; }
-# Last genuinely fully verified ancestor, not a reconstructed schema file.
-UPGRADE_BASE=d30fa0203f0499a8e15faeddda7676af81296c86
+# Verified main ancestor: #420 preserves its green head's replay inputs exactly.
+# The former d30 branch pin is not an ancestor after the #483–#489 split merges.
+UPGRADE_BASE=53bf989b0ad402bb2ce151c186eea31f1ec9cf03
 UPGRADE_WORK="$(mktemp -d "$RUNNER_TEMP/gridex-upgrade.XXXXXX")"
 UPGRADE_OUT="$CANDIDATE_ROOT/rem002-upgrade"
 mkdir -p "$UPGRADE_OUT"
