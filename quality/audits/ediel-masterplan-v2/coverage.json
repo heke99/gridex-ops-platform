@@ -590,8 +590,13 @@
     {
       "id": "ACK-03",
       "acceptance_id": "AT-ACK-03",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
+        "lib/ediel/rulebook/ackGuidePolicy.ts",
+        "lib/ediel/aperakEngine.ts",
+        "lib/ediel/core/receivedUtiltsHeaderValidation.ts",
+        "__tests__/ediel-ack-03-10-aperak-structure.test.ts",
+        "__tests__/ediel-received-utilts-header-validation.test.ts",
         "quality/audits/ediel-masterplan-v2/protocol.md",
         "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
@@ -614,7 +619,8 @@
         "lib/ediel/ack.ts",
         "lib/ediel/rulebook/ackGuidePolicy.ts",
         "__tests__/ediel-ack-04-05-utilts-ack.test.ts",
-        "__tests__/ediel-utilts-err-canonical-guide.test.ts"
+        "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+        "quality/audits/ediel-masterplan-v2/protocol.md"
       ]
     },
     {
@@ -751,7 +757,8 @@
         "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql",
         "scripts/ediel-utilts-err-ack-dispatcher-sql-regression.mjs",
         "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
-        "scripts/test-ediel-utilts-series-and-err-ack.cjs"
+        "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -989,7 +996,9 @@
         "__tests__/ediel-prodat-aperak-unused-document.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts",
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+        "lib/ediel/ack.ts",
+        "__tests__/ediel-ack-03-10-aperak-structure.test.ts"
       ]
     },
     {
@@ -1925,8 +1934,10 @@
     },
     {
       "id": "AT-ACK-03",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-ack-03-10-aperak-structure.test.ts",
+        "__tests__/ediel-received-utilts-header-validation.test.ts",
         "quality/audits/ediel-masterplan-v2/protocol.md",
         "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
@@ -1943,7 +1954,8 @@
       "status": "PASSED",
       "evidence": [
         "__tests__/ediel-ack-04-05-utilts-ack.test.ts",
-        "__tests__/ediel-utilts-err-canonical-guide.test.ts"
+        "__tests__/ediel-utilts-err-canonical-guide.test.ts",
+        "quality/audits/ediel-masterplan-v2/protocol.md"
       ]
     },
     {
@@ -2055,7 +2067,8 @@
       "id": "AT-U-14",
       "status": "PASSED",
       "evidence": [
-        "scripts/test-ediel-utilts-series-and-err-ack.cjs"
+        "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+        "quality/audits/ediel-masterplan-v2/acceptance-utilts-package-20260930.md"
       ]
     },
     {
@@ -2264,7 +2277,8 @@
         "__tests__/ediel-prodat-aperak-unused-document.test.ts",
         "__tests__/ediel-prodat-aperak-acw-match.test.ts",
         "__tests__/ediel-prodat-z04-persisted-ack.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-3-ACK.md",
+        "__tests__/ediel-ack-03-10-aperak-structure.test.ts"
       ]
     },
     {

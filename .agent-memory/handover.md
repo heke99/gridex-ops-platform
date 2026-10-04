@@ -1098,3 +1098,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: Codex TEN-06-fynd (UTILTS_ERR) åtgärdat + test. ESCO-01..09 klara (Claude). ESCO-10/11 erbjudna Codex. Claude nästa: ACK-01+02.
 - 2026-10-04 #491: ACK-01, AT-ACK-01, ACK-02, AT-ACK-02 godkända. Nästa Claude: ACK-04+05.
 - 2026-10-04 #491: ACK-04, AT-ACK-04, ACK-05, AT-ACK-05 godkända. Nästa Claude: ACK-03+10.
+- 2026-10-04 #491: ACK-03, AT-ACK-03 godkända; ACK-10 kompletterad. Coverage-regel: evidence slås ihop, skrivs aldrig över. Nästa Claude: ACK-06+07.
