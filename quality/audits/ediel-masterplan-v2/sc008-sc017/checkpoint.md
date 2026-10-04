@@ -51,3 +51,25 @@ this packet nor its reused native results establish authentic external market
 approval. Next: publish this exact bounded packet to the trusted origin, send
 the commit/PR to root, and await independently assigned complete SC-008/SC-017
 review before any coverage promotion or merge.
+
+Published packet: draft PR #541, initial exact head
+`a6a991cd26887c8a0006f4465354dc666ddd829f`. Root has assigned independent
+whole-scenario review; this owner has not promoted coverage or self-approved.
+
+Calendar-only integration follow-up: cherry-picked existing P-owner commit
+`9433d04bfc037fae0f61710c73a5ac85eeef443d` as `ea6ff48c`. Its exact three
+Git blobs match the original owner commit:
+
+- `__tests__/ediel-z06f-native-wire-grammar.test.ts`:
+  `d746c7bb74d86a9cdc2a543ac01db2254e3bc7e5`.
+- `scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts`:
+  `342080e0de09717717aaac01bbc1ed44c433bb1a`.
+- `scripts/helpers/ediel-z06f-reading-followup-native-wire.ts`:
+  `7bb066f9e34f481f3bc396f611f5bb3fd1423fb0`.
+
+The fixture avoids month-end rollover in its Z06 F reading contrast. The
+focused wire grammar/calendar suite passed 9/9 after this exact reuse. All
+fourteen source-qualified SC-008/SC-017 native/production/SQL blobs remain
+byte-identical to the initial packet head, as do its asserting test files and
+verification receipt. Only this checkpoint records the follow-up; no heavy
+suite was rerun and no coverage, common memory or production source changed.
