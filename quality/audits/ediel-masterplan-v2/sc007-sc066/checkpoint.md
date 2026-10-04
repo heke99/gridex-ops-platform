@@ -56,7 +56,13 @@ suite or native replay was repeated. The earlier new API expectation used an
 incorrect generic Forbidden string; it was corrected to the unchanged real
 public response. This was a test-author error, not a product RED or fix.
 
-Next: publish this exact packet as a stacked draft PR based on #541 and send
-its immutable head to root. Independent reviewer must assess both complete
+Published [stacked draft PR #547](https://github.com/heke99/gridex-ops-platform/pull/547)
+on #541. Technical freeze `c7121808bc2dbcbe3b63eff6ee68d4118b0b834e`, tree
+`7c9a220f2edd797b04069cd1ca175a217369b6b9`: exactly nine bounded test/evidence
+files, with all asserting inputs recorded in the receipt. GitHub head/base and
+file list were checked. This publication follow-up changes only this checkpoint
+and receipt; technical inputs and source/coverage remain unchanged.
+
+Next: root assigns the independent reviewer to assess both complete
 expected/prohibited contracts before only these two rows can be promoted.
 Root owns current mandatory CI, actual-main composition and merge window.

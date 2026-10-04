@@ -176,5 +176,12 @@
     "Native external issuer/legal/SMTP inputs are synthetic; no fresh native custody or real market acceptance claimed"
   ],
   "approval": "PENDING separate independent entire SC007/SC066 review; no selfapproval or coverage promotion",
-  "next_action": "Publish immutable stacked draft PR based on541 and request independent full-scenario review through root"
+  "next_action": "Root assigns independent full-scenario reviewer to the published technical freeze; no coverage promotion before separate approval",
+  "publication": {
+    "pull_request_url": "https://github.com/heke99/gridex-ops-platform/pull/547",
+    "base_pull_request": 541,
+    "technical_freeze_sha": "c7121808bc2dbcbe3b63eff6ee68d4118b0b834e",
+    "technical_freeze_tree": "7c9a220f2edd797b04069cd1ca175a217369b6b9",
+    "status": "PUBLISHED STACKED DRAFT; independent complete-scenario review pending"
+  }
 }
