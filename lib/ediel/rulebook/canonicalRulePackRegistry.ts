@@ -460,19 +460,3 @@ export async function resolveCanonicalRulePack(params: {
     profile: source.profile,
   }
 }
-
-export function assertLegacyRuleSnapshotMatchesCanonical(params: {
-  canonical: CanonicalRulePackResolution
-  legacyVersion: string | null | undefined
-  legacyProfileKey: string | null | undefined
-}) {
-  const expectedVersion = normalizeIdentifier(params.canonical.guideVersion)
-  const actualVersion = normalizeIdentifier(params.legacyVersion)
-  const expectedAssociation = normalizeIdentifier(params.canonical.unhAssociationCode)
-  if (!actualVersion || (actualVersion !== expectedVersion && actualVersion !== expectedAssociation)) {
-    throw new Error(`legacy_rule_snapshot_version_mismatch:${actualVersion || 'missing'}:${expectedVersion}`)
-  }
-  if (!String(params.legacyProfileKey ?? '').trim()) {
-    throw new Error('legacy_rule_snapshot_profile_key_missing')
-  }
-}

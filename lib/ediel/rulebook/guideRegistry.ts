@@ -1,3 +1,4 @@
+import type { NormativeRule } from '@/lib/ediel/rulebook/normativeRuleMetadata'
 /** P26.A §2.3 p35 defines future constraints, not operational authorization. */
 export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
   id: 'energy_sharing', effectiveFrom: '2027-01-01', activation: 'held',
@@ -9,6 +10,20 @@ export const EDIEL_ENERGY_SHARING_CAPABILITY = Object.freeze({
   requiredActivationEvidence: Object.freeze(['legal_authority_decision', 'process_authority_decision', 'versioned_capability_owner_register']),
 } as const)
 
+/** GOV-01 citation of the energy-sharing constraint, derived from its source. */
+export const EDIEL_ENERGY_SHARING_NORMATIVE_RULE: NormativeRule = Object.freeze({
+  ruleId: `P26A:${EDIEL_ENERGY_SHARING_CAPABILITY.id}:${EDIEL_ENERGY_SHARING_CAPABILITY.source.section}`,
+  source: Object.freeze({
+    document: EDIEL_ENERGY_SHARING_CAPABILITY.source.document,
+    sha256: EDIEL_ENERGY_SHARING_CAPABILITY.source.sha256,
+    version: '26-A',
+    page: EDIEL_ENERGY_SHARING_CAPABILITY.source.page,
+    section: EDIEL_ENERGY_SHARING_CAPABILITY.source.section,
+    validFrom: EDIEL_ENERGY_SHARING_CAPABILITY.effectiveFrom,
+    validTo: null,
+    scope: Object.freeze(EDIEL_ENERGY_SHARING_CAPABILITY.messageCodes.map(code => `PRODAT:${code}`)),
+  }),
+})
 
 export type EdielGuideFamily = 'PRODAT' | 'UTILTS' | 'APERAK' | 'CONTRL'
 
@@ -294,3 +309,26 @@ export const AUTHORITATIVE_AI_LIST_PROFILE = Object.freeze({
   sourceSha256:aiListSourceManifest.find(source=>source.id==='AI')!.sha256,
   validFrom:'2025-10-01',format:'CSV',supplierOutboundType:'AI',
 } as const)
+
+/**
+ * GOV-01 citation for a guide registry entry. Only repository-evidenced values
+ * are filled: the hash comes from the frozen source manifest (null when no
+ * hashed copy exists) and no page/section is cited for guide validity, so a
+ * guide entry is not a publishable normative rule on its own.
+ */
+export function authoritativeGuideNormativeRule(guide: AuthoritativeEdielGuide): NormativeRule {
+  const hashes = aiListSourceManifest.filter(source => source.filename.startsWith(guide.documentName))
+  return Object.freeze({
+    ruleId: `${guide.family}:${guide.guideRevision}:guide`,
+    source: Object.freeze({
+      document: guide.documentName,
+      sha256: hashes.length === 1 ? hashes[0].sha256 : null,
+      version: guide.guideRevision,
+      page: null,
+      section: null,
+      validFrom: guide.effectiveFrom,
+      validTo: guide.effectiveTo,
+      scope: Object.freeze([guide.associationAssignedCode ? `${guide.family}:${guide.associationAssignedCode}` : guide.family]),
+    }),
+  })
+}

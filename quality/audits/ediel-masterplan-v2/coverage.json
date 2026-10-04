@@ -7,8 +7,13 @@
     {
       "id": "GOV-01",
       "acceptance_id": "AT-GOV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/normativeRuleMetadata.ts",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "__tests__/ediel-gov-01-normative-rule-metadata.test.ts"
+      ]
     },
     {
       "id": "GOV-02",
@@ -1456,8 +1461,11 @@
     },
     {
       "id": "AT-GOV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/normativeRuleMetadata.ts",
+        "__tests__/ediel-gov-01-normative-rule-metadata.test.ts"
+      ]
     },
     {
       "id": "AT-GOV-02",
