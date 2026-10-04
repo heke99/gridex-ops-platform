@@ -75410,6 +75410,7 @@ export type Database = {
           last_test_result: Json | null
           last_tested_at: string | null
           public_jwk: Json | null
+          purpose: string
           subject_claim: string
           updated_at: string
           updated_by: string | null
@@ -75429,6 +75430,7 @@ export type Database = {
           last_test_result?: Json | null
           last_tested_at?: string | null
           public_jwk?: Json | null
+          purpose?: string
           subject_claim?: string
           updated_at?: string
           updated_by?: string | null
@@ -75448,6 +75450,7 @@ export type Database = {
           last_test_result?: Json | null
           last_tested_at?: string | null
           public_jwk?: Json | null
+          purpose?: string
           subject_claim?: string
           updated_at?: string
           updated_by?: string | null
@@ -77982,6 +77985,140 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gridex_data_cleanup_customer_candidates_v"
             referencedColumns: ["customer_id", "company_id"]
+          },
+        ]
+      }
+      tenant_staff_assertion_replays: {
+        Row: {
+          company_id: string
+          expires_at: string
+          jti: string
+          seen_at: string
+        }
+        Insert: {
+          company_id: string
+          expires_at: string
+          jti: string
+          seen_at?: string
+        }
+        Update: {
+          company_id?: string
+          expires_at?: string
+          jti?: string
+          seen_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_assertion_replays_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -99726,6 +99863,25 @@ export type Database = {
       gridex_source_object_snapshot_v1: {
         Args: { p_company_id: string; p_cutoff: string; p_environment: string }
         Returns: Json
+      }
+      gridex_staff_active_membership_v1: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: {
+          is_active: boolean
+          membership_role: string
+          role_key: string
+          status: string
+          user_id: string
+        }[]
+      }
+      gridex_staff_permission_overrides_v1: {
+        Args: { p_company_id: string; p_user_id: string }
+        Returns: {
+          effect: string
+          is_active: boolean
+          permission_key: string
+          status: string
+        }[]
       }
       gridex_stage_energy_geodata_feature: {
         Args: {
