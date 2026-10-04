@@ -3,7 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const VERSION = '2026-10-02.4'
+const { currentContractVersion: VERSION } = require('./lib/current-api-contract.cjs')
 const SPEC_FILES = [
   'docs/openapi/website-integration-v1.json',
   'docs/openapi/customer-portal-v1.json',
