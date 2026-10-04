@@ -5,7 +5,7 @@ Branch: `codex/ediel-tr06-certificate-20261004`; initial base `cbefde67712a7ad4e
 Main integration `33aeb7f7` retains the existing TR-01/02 source, tests and coverage rows;
 the only conflict was the crypto test header, resolved by preserving both ID tags and lifecycle imports.
 Coordination: https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5983511741
-Status: MERGED (#506, merge e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f; TR-06, AT-TR-06, SC-060 approved).
+Status: VERIFIED (#506, merge e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f; TR-06, AT-TR-06, SC-060 approved).
 
 ## Scope and ownership
 
@@ -59,18 +59,20 @@ it does not prove a live issuer registration, database RLS or market activation.
 
 Preparation #510 (merged a40b5732 after nine exact-head gates) supplies companyId at all four callers and the already computed
 businessCode in transport metadata; 14 real-resolver/crypto/AGT behavior tests.
-Readiness #511 uses the sole validated resolver and its actual PEM fingerprint;
+Readiness #511 (merged 643ea134 after nine exact-head gates) uses the sole validated resolver and its actual PEM fingerprint;
 18 behavior tests prove successful own-company readiness and rejection effects.
 Together: independent parent 199/199 in nine security suites, full 9985/9985,
-types/lint/architecture checks PASS. Both source heads are published and retained; #510 is merged and #511 now
-targets main after its own CI gates. SC-041-only #513 is independent.
+types/lint/architecture checks PASS. Both source heads are published and retained; #510/#511 are merged. Actual
+merge trees814fa01e/599119e7 exactly match the independently tested composition.
+SC-041-only #513 is independent and remains subject to its own gates.
 These packets do not add further TR rule approvals or database/market claims.
 
 ## Next action
 
-Merge retargeted #511 after its own gates pass. Hold independent #513 and this
-handover branch outside main until the integrator releases the shared-file merge
-window; #513 also requires its own complete gates.
+Hold independent #513 and this handover branch outside main until the
+integrator releases the shared-file merge window; #513 also requires its own
+complete gates. Next isolated rule work is OPS-05 actual failure disposition
+and caller effects; DB-01 inventory remains NOT_VERIFIED with no product finding.
 Record one handover line per actual merge; keep shared campaign memory intact.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated

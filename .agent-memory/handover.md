@@ -1087,3 +1087,5 @@ Older Current sections above are historical and SUPERSEDED.
 2026-10-04: #506 TR-06/AT-TR-06/SC-060 mergad som e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f efter nio gröna CI-grindar på bfd5bc8e; tenant-/krypto-evidens 151/151, full svit 9953/9953 med ordinarie CI-nätgräns; ingen schema- eller marknadsändring.
 
 2026-10-04: #510 certifikatförberedelse mergad som a40b5732cefcc781e737a6970f69681f77a74a03 efter nio gröna CI-grindar på d865f7ad; 14 verkliga resolver/krypto/AGT-prov, parent165/165 och ny-main-kombination123/123 PASS; egen checkpoint, inga delade coverage-/minnes-/schemaändringar.
+
+2026-10-04: #511 readiness mergad som 643ea134788e96fe9c6782b43730d6e0671fd98f efter nio gröna CI-grindar på db5d4d70; mergetree599119e7 matchar oberoende granskning123/123 +32 arkitekturassertions; helsvit9985/9985 på publicerad kod, inga nya regel-/schema-/marknadsgodkännanden.
