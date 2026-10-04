@@ -2,6 +2,11 @@
 
 **Parallella agenter: läs detta och `.agent-memory/handover.md` innan du väljer kluster.**
 
+ARBETSFÖRDELNING (GitHub #491, kommentarer 5981383983 + 5981418363; samordning sker ENDAST via #491-kommentarer):
+- Claude: #491 (`claude/cool-tesla-2pmyua`): TEN-01/02/05/06/08/10, U-04/U-14, ESCO-04/06/07 klara; **pågår nu ESCO-03 + ESCO-05**; därefter ESCO-08 + ESCO-09 om ej claimade av Codex.
+- Codex: TEN-07 (endast; TEN-08 redan klar i #491) på `codex/ediel-ten07-ten08-20261004`, checkpoint `.agent-memory/masterplan-codex-checkpoint.md` på sin gren.
+- Regel: claim postas på #491 före start; coverage-konflikt löses genom att bevara båda sidors verifierade rader.
+
 Gren `claude/cool-tesla-2pmyua`, PR heke99/gridex-ops-platform#491 (ägs av session_01RxmpLE5UfwVEetssVwdAWs).
 - Godkända i #491: TEN-01/02 (tidigare), TEN-05/06, U-04/U-14 (coverage 67 godkända).
 - TEN-06-defekt åtgärdad: PRODAT/UTILTS utan exakt en NAD+DO/MR föll tillbaka på UNB-mottagaren → nu olöst (`inboundLegalReceiverEdielId`, lib/ediel/tenant/resolveInboundTenant.ts).

@@ -10,7 +10,7 @@
   "last_merged_pr": 420,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "#491: ESCO-04/06/07 godkända; inget kluster reserverat",
+  "active_item": "#491: ESCO-03+05 pågår",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Driv #491 CI grön; posta claim på #491 före nästa kluster (förslag: ESCO-03+ESCO-05 eller ESCO-08+ESCO-09).",
+  "next_action": "Kartlägg ESCO-03 (APERAK på Z13 ≠ medgivande) och ESCO-05 (A13/A76 neka utan permission/negativ APERAK); testa per effekt.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1492,5 +1492,10 @@
     "U-1 TEN-04 mandate",
     "U-2 end_assignment LIMIT 1",
     "TR-09/E6 needs source T §3.1"
-  ]
+  ],
+  "reserved_by_session": {
+    "ESCO-03": "claude session_01RxmpLE5UfwVEetssVwdAWs",
+    "ESCO-05": "claude session_01RxmpLE5UfwVEetssVwdAWs",
+    "TEN-07": "codex codex/ediel-ten07-ten08-20261004"
+  }
 }
