@@ -188,15 +188,8 @@
     {
       "id": "ENV-01",
       "acceptance_id": "AT-ENV-01",
-      "status": "VERIFIED",
-      "evidence": [
-        "lib/ediel/core/edifactEncoding.ts",
-        "lib/ediel/core/edifactEnvelopeCodec.ts",
-        "lib/ediel/transport/index.part-2.ts",
-        "lib/ediel/transport/smime.ts",
-        "__tests__/ediel-env-01-unoc-repertoire.test.ts",
-        "__tests__/ediel-transport-byte-integrity.test.ts"
-      ]
+      "status": "NOT_VERIFIED",
+      "evidence": []
     },
     {
       "id": "ENV-02",
@@ -1525,15 +1518,8 @@
     },
     {
       "id": "AT-ENV-01",
-      "status": "PASSED",
-      "evidence": [
-        "lib/ediel/core/edifactEncoding.ts",
-        "lib/ediel/core/edifactEnvelopeCodec.ts",
-        "lib/ediel/transport/index.part-2.ts",
-        "lib/ediel/transport/smime.ts",
-        "__tests__/ediel-env-01-unoc-repertoire.test.ts",
-        "__tests__/ediel-transport-byte-integrity.test.ts"
-      ]
+      "status": "NOT_EXECUTED",
+      "evidence": []
     },
     {
       "id": "AT-ENV-02",

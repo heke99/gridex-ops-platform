@@ -10,7 +10,7 @@
 | F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | received-ERR-dispatcher återställd |
 | F-SRC-01 | (källregister) | hög | ✅ rättad 161b9bae (migr. 20261003150300) | validering av kvarhållen källhistorik efter operativ radering gav no_data_found; läser nu hash-bundna bytes ur gridex_received_sources.sources |
 | F-OPS-02 | OPS-02 | medel | öppen | kundkort ska läsa processprojektionen |
-| F-ENV-01 | ENV-01 | medel | ✅ rättad 2026-10-04 | C0/DEL/C1 når inte längre wire: `assertEdifactUnocRepertoire` i kodek, sändningsväg och S/MIME (CR/LF endast efter oreleasad segmentavslutare). Byte-kodaren `encodeEdifactLatin1` förblir ren byte-mappning. Observation: `sanitizeSegment` tar bort radbrytningar i byggarsegment (dokumenterad konvertering, nu asserterad) |
+| F-ENV-01 | ENV-01 | medel | öppen — ägs av #504 (Codex) | UNOC-repertoar för alla utgående segment |
 | F-GOV-03 | GOV-03 | låg | FALSKLARM (fp-check 2026-10-04) | härledningen i validator.ts:315 är bara förval; på kvalificerad sändning styr originalets fysiska familj (`sourceBoundAckCanonicalPolicy`) och fel profil ger `ACK_APERAK_PROFILE_INVALID`; utan original stoppas sändning. Bevisat i `ediel-gov-03-aperak-source-family.test.ts` |
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |
 | U-2 | TEN-09 | låg | ej avgjord | end_assignment LIMIT 1 |

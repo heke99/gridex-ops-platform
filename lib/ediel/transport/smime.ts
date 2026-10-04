@@ -6,7 +6,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
 import { formatErrorMessage } from '@/lib/errors'
-import { encodeOutboundEdifactInterchange } from '@/lib/ediel/core/edifactEncoding'
+import { encodeEdifactLatin1 } from '@/lib/ediel/core/edifactEncoding'
 import { loadInboundPrivateCertificates, type InboundPrivateCertificateProfile } from '@/lib/ediel/security/privateCertificateStore'
 
 const execFileAsync = promisify(execFile)
@@ -271,7 +271,7 @@ export async function createSmimeEncryptedPayloadReference(input: {
   encryptedPayloadSha256: string
   encryptedPayloadLength: number
 }> {
-  const payloadBytes = encodeOutboundEdifactInterchange(input.rawEdifact)
+  const payloadBytes = encodeEdifactLatin1(input.rawEdifact)
   if (!input.publicCertificatePem.includes('BEGIN CERTIFICATE')) {
     throw new Error('Publikt S/MIME-certifikat saknas eller är ogiltigt.')
   }

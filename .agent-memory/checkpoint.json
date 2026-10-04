@@ -1498,12 +1498,13 @@
     "branch": "claude/dazzling-dijkstra-vyyw0g",
     "approved": [
       "GOV-03",
-      "AT-GOV-03",
-      "ENV-01",
-      "AT-ENV-01"
+      "AT-GOV-03"
     ],
-    "approved_total": 59,
+    "approved_total": 57,
     "verification": "vitest 756 files/9842 tests PASS; typecheck app+tests PASS; ediel:masterplan-v2:test-coverage --check exit 0",
-    "next_action": "F-OPS-02 (OPS-02) or fp-check ENV-02/ENV-03; check open PRs and handover first"
+    "next_action": "F-OPS-02 (OPS-02) or fp-check ENV-02/ENV-03; check open PRs and handover first",
+    "handed_over": {
+      "ENV-01": "#504"
+    }
   }
 }

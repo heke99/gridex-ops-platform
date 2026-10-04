@@ -1,4 +1,4 @@
-import { assertEdifactLatin1Representable, assertEdifactUnocRepertoire } from '@/lib/ediel/core/edifactEncoding'
+import { assertEdifactLatin1Representable } from '@/lib/ediel/core/edifactEncoding'
 import { edifactMessageReferenceMaximum } from '@/lib/ediel/core/edifactReferenceConstraints'
 import { tokenizeEdifact, segmentComposite, segmentUntrimmedRaw, type EdifactTokenizedSegment } from '@/lib/ediel/core/edifactTokenizer'
 import { DEFAULT_UNA, escapeEdifactData, parseUna, serializeUna, type EdifactServiceStringAdvice } from '@/lib/ediel/core/una'
@@ -210,7 +210,6 @@ export class EdifactEnvelopeCodec {
     ]
     const payload = `${serializeUna(una)}${segments.map(segment => `${encodeCanonicalSegment(segment, una)}${una.segmentTerminator}`).join('')}`
     assertEdifactLatin1Representable(payload)
-    assertEdifactUnocRepertoire(payload)
     return payload
   }
 
