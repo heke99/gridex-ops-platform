@@ -908,7 +908,8 @@
       "acceptance_id": "AT-U-12",
       "status": "PARTIAL",
       "evidence": [
-        "__tests__/ediel-utilts-observation-order-guide.test.ts"
+        "__tests__/ediel-utilts-observation-order-guide.test.ts",
+        "__tests__/ediel-packing-limit-authority.test.ts"
       ]
     },
     {
@@ -1178,10 +1179,12 @@
     {
       "id": "U-15",
       "acceptance_id": "AT-U-15",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "__tests__/ediel-utilts-observation-order-guide.test.ts",
-        "__tests__/ediel-packing-limit-authority.test.ts"
+        "__tests__/ediel-packing-limit-authority.test.ts",
+        "lib/ediel/utilts/packagingGuide.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts"
       ]
     },
     {
@@ -2576,8 +2579,11 @@
     },
     {
       "id": "AT-U-15",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-packing-limit-authority.test.ts",
+        "__tests__/ediel-utilts-observation-order-guide.test.ts"
+      ]
     },
     {
       "id": "AT-U-16",

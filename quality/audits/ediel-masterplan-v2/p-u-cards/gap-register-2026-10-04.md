@@ -33,8 +33,8 @@ string-matching source does not count). "GAP" = no asserting test found; it need
 | U-08 | PARTIAL | utilts-structural-comparison | ESCO-Z14 partial structure (receiver not required to hold full supplier structure) |
 | U-09 | PARTIAL | consumption-contract, quantity-precision, s02-required-scope | annual forecast never used as actual quarter energy: lib/billing/consumptionEstimate.ts uses the intake annual consumption (method 3) for preliminary invoices; underlayEngine marks those items quality_code 'estimated', preliminary:true and reconciles them (credit_preliminary). No behaviour test drives underlayEngine; estimatedItems/estimatePayload are not exported. Needs an underlay-level test (or exported pure helper) |
 | U-11 | PARTIAL | utilts-runtime-cutoff (E19 removed in 25-A-4; E98/E90 removed for individual E66; E87 kept and incomplete quarter rejected after cutoff), effective-date | E97/E98/E90 still applied to E30/aggregates after cutoff: not asserted |
-| U-12 | PARTIAL | observation-order-guide (no E23/E88 mix) | outbound splitting into compatible groups (no implementation found) |
+| U-12 | PARTIAL | observation-order-guide, packing-limit-authority (E23/E88 mix blocked before send) | outbound splitting into compatible groups (no implementation found) |
 | U-13 | VERIFIED | utilts-err-canonical-guide (received 5/NA accepted), utilts-err-gateway (outgoing ERR BGM 9/AB) | — |
-| U-15 | PARTIAL | observation-order-guide, packing-limit-authority | packaging to one legal receiver |
+| U-15 | VERIFIED | observation-order-guide, packing-limit-authority (send preflight blocks >1 UNH, >1 NAD MR, mixed STS+7 reasons, quarter/month mix) | — |
 | U-17 | VERIFIED | utilts-aperak-physical-scope (17-char element fallback; no field number without source; >17 / invalid refused) | — |
 | U-19 | PARTIAL | u-19-prodat-reference (E66 without / unknown / non-TN field 226 gets identical validation and ACK outcome) | no UTILTS code consumes a PRODAT case reference for correlation |
