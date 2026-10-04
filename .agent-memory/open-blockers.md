@@ -877,3 +877,4 @@ Older Current sections above are historical and SUPERSEDED.
 ## 2026-10-04
 - Produktionsmigrationer för #426-stacken ej applicerade (363 + 20261003150300); kräver dry-run och grön stack.
 - Odefinierat: U-1 (TEN-04 mandat i verify-RPC), U-2 (end_assignment LIMIT 1), TR-09/E6 (kräver källa T §3.1) — ägarbeslut.
+- 2026-10-04 KÄLLA: ny UTILTS-anvisning U25-A-5 (ediel.se dok 3364, SHA b76a61b9…, gäller 2026-10-01) publicerad; masterplan/U-kort är frysta på U25-A-4. Ej bytt — ägarbeslut krävs.
