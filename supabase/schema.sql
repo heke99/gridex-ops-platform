@@ -33091,6 +33091,7 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
         when p_route ~ '^/api/v1/staff/customers/customer_[A-Za-z0-9_-]{32}/(contact|identity-change)$' then array['staff_customers.write']::text[]
         when p_route='/api/v1/staff/cases' then array['staff_cases.read','staff_cases.write']::text[]
         when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}$' then array['staff_cases.read']::text[]
+        when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/events$' then array['staff_cases.read']::text[]
         when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/(messages|notes|phone-interactions|status|assignee)$' then array['staff_cases.write']::text[]
         when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/attachments$' then array['staff_cases.read','staff_cases.write']::text[]
         when p_route ~ '^/api/v1/staff/cases/support_case_[A-Za-z0-9_-]{32}/attachments/support_attachment_[A-Za-z0-9_-]{24}/file$' then array['staff_cases.read']::text[]
@@ -50552,6 +50553,55 @@ end;
 $$;
 
 --
+-- Name: gridex_assign_customer_case(uuid, uuid, uuid, uuid, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_assign_customer_case(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_assignee_user_id uuid, p_api_client_id uuid, p_expected_source text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $$
+DECLARE v_case public.customer_cases%ROWTYPE; v_old_assignee uuid; v_now timestamptz:=clock_timestamp();
+BEGIN
+  PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  -- The shared actor guard holds company SHARE, actor and client locks. Target
+  -- SHARE locks permit opposing assignments while preventing membership/Auth
+  -- changes from committing between this check and the assignment/audit write.
+  IF p_assignee_user_id IS NOT NULL THEN
+    PERFORM 1 FROM public.company_memberships cm
+      JOIN public.user_profiles profile ON profile.id=cm.user_id
+      JOIN auth.users account ON account.id=cm.user_id
+      WHERE cm.company_id=p_company_id AND cm.user_id=p_assignee_user_id
+      FOR SHARE OF cm,profile,account;
+    IF NOT FOUND OR NOT EXISTS (
+      SELECT FROM public.company_memberships cm
+        JOIN public.user_profiles profile ON profile.id=cm.user_id
+        JOIN auth.users account ON account.id=cm.user_id
+      WHERE cm.company_id=p_company_id AND cm.user_id=p_assignee_user_id
+        AND cm.status='active' AND cm.is_active AND cm.accepted_at IS NOT NULL
+        AND profile.user_status='active' AND account.deleted_at IS NULL
+        AND (account.banned_until IS NULL OR account.banned_until<=clock_timestamp())
+        AND public.gridex_staff_normalize_role_v1(cm.role_key) NOT IN ('super_admin','platform_admin','white_label_platform_admin','customer')
+        AND cardinality(public.gridex_staff_role_profile_v1(public.gridex_staff_normalize_role_v1(cm.role_key)))>0
+    ) THEN RAISE EXCEPTION 'support_assignee_not_active_in_company' USING ERRCODE='42501'; END IF;
+  END IF;
+  SELECT * INTO v_case FROM public.customer_cases WHERE company_id=p_company_id AND id=p_case_id
+    AND metadata->>'support_case'='true' AND case_type='other' AND strpos(source,'tenant_support_')=1 AND NOT billing_blocked AND NOT billing_manual_review AND NOT cancellation_required AND (p_expected_source IS NULL OR source=p_expected_source) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'support_case_not_found' USING ERRCODE='P0002'; END IF;
+  v_old_assignee:=v_case.assigned_to;
+  UPDATE public.customer_cases SET assigned_to=p_assignee_user_id,updated_by=p_actor_user_id,updated_at=v_now
+    WHERE company_id=p_company_id AND id=p_case_id RETURNING * INTO v_case;
+  INSERT INTO public.customer_case_events(company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by)
+    VALUES(p_company_id,p_case_id,v_case.customer_id,'assigned','info','Ärendets tilldelning uppdaterades.',
+      jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'actor_user_id',p_actor_user_id,
+        'from',v_old_assignee,'to',p_assignee_user_id,'visibility','internal'),p_actor_user_id);
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,old_values,new_values,metadata)
+    VALUES(p_company_id,p_actor_user_id,'customer_case',p_case_id::text,'customer_case_assignee_changed',
+      jsonb_build_object('assigned_to',v_old_assignee),jsonb_build_object('assigned_to',p_assignee_user_id),
+      jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'customer_id',v_case.customer_id));
+  RETURN to_jsonb(v_case);
+END$$;
+
+--
 -- Name: gridex_assign_customer_contract_identity_v1(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -50998,6 +51048,31 @@ BEGIN
       jsonb_build_object(NEW.field,public.gridex_mask_identity_number(NEW.previous_value)),
       jsonb_build_object(NEW.field,public.gridex_mask_identity_number(NEW.new_value)),
       jsonb_build_object('channel','staff_api','api_client_id',NEW.api_client_id,'identity_change_request_id',NEW.id));
+  END IF;
+  RETURN NEW;
+END$$;
+
+--
+-- Name: gridex_audit_staff_support_attachment_v1(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_audit_staff_support_attachment_v1() RETURNS trigger
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  IF (NEW.uploaded_by_kind='staff' AND NEW.api_client_id IS NOT NULL)
+    OR (TG_OP='UPDATE' AND OLD.uploaded_by_kind='staff' AND OLD.api_client_id IS NOT NULL) THEN
+    PERFORM public.gridex_staff_assert_write_actor_v1(NEW.company_id,NEW.uploaded_by_user_id,NEW.api_client_id,'cases.write');
+    IF TG_OP='UPDATE' AND (NEW.uploaded_by_kind IS DISTINCT FROM OLD.uploaded_by_kind OR NEW.company_id IS DISTINCT FROM OLD.company_id OR NEW.customer_case_id IS DISTINCT FROM OLD.customer_case_id
+      OR NEW.customer_id IS DISTINCT FROM OLD.customer_id OR NEW.api_client_id IS DISTINCT FROM OLD.api_client_id
+      OR NEW.uploaded_by_user_id IS DISTINCT FROM OLD.uploaded_by_user_id) THEN
+      RAISE EXCEPTION 'staff_attachment_origin_immutable' USING ERRCODE='42501';
+    END IF;
+    INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,metadata)
+      VALUES(NEW.company_id,NEW.uploaded_by_user_id,'customer_case_attachment',NEW.id::text,
+        CASE WHEN TG_OP='INSERT' THEN 'support_attachment_uploaded' ELSE 'support_attachment_updated' END,
+        jsonb_build_object('channel','staff_api','api_client_id',NEW.api_client_id,'customer_case_id',NEW.customer_case_id,'scan_status',NEW.scan_status));
   END IF;
   RETURN NEW;
 END$$;
@@ -58996,6 +59071,74 @@ begin
   );
   return v_new_id;
 end $$;
+
+--
+-- Name: gridex_create_staff_support_case_v1(uuid, uuid, uuid, uuid, text, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_create_staff_support_case_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_title text, p_description text, p_category text, p_priority text, p_idempotency_key text, p_metadata jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE
+  v_case public.customer_cases%ROWTYPE;
+  v_case_id uuid:=gen_random_uuid();
+  v_request_hash text;
+  v_metadata jsonb;
+  v_category text:=coalesce(nullif(btrim(p_category),''),'support');
+  v_next_action text:='Supportärendet ska triageras inom tenantens ordinarie ärendeflöde.';
+BEGIN
+  PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  IF NOT EXISTS(SELECT FROM public.integration_api_clients WHERE id=p_api_client_id AND company_id=p_company_id AND 'staff_cases.write'=ANY(scopes))
+  THEN RAISE EXCEPTION 'staff_api_client_scope_missing' USING ERRCODE='42501'; END IF;
+  IF p_title IS NULL OR length(btrim(p_title)) NOT BETWEEN 1 AND 180
+    OR (p_description IS NOT NULL AND length(p_description)>8000)
+    OR length(v_category)>120 OR p_priority IS NULL OR p_priority NOT IN('low','normal','high','urgent')
+    OR p_idempotency_key IS NULL OR length(p_idempotency_key) NOT BETWEEN 1 AND 200
+    OR (p_metadata IS NOT NULL AND jsonb_typeof(p_metadata)<>'object')
+  THEN RAISE EXCEPTION 'staff_support_create_invalid' USING ERRCODE='22023'; END IF;
+
+  PERFORM 1 FROM public.customers WHERE id=p_customer_id AND company_id=p_company_id
+    AND merged_into_customer_id IS NULL FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'support_customer_not_found' USING ERRCODE='P0002'; END IF;
+  -- The existing support unique key is company + customer + support key. Serialize before the
+  -- lookup so a concurrent exact retry observes the committed row instead of failing midway.
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_company_id::text||':'||p_customer_id::text||':'||p_idempotency_key,0));
+  v_request_hash:=encode(extensions.digest(jsonb_build_object('customer_id',p_customer_id,'actor_user_id',p_actor_user_id,
+    'api_client_id',p_api_client_id,'title',btrim(p_title),'description',p_description,'category',v_category,
+    'priority',p_priority,'metadata',coalesce(p_metadata,'{}'::jsonb))::text,'sha256'),'hex');
+  SELECT * INTO v_case FROM public.customer_cases WHERE company_id=p_company_id AND customer_id=p_customer_id
+    AND metadata->>'support_idempotency_key'=p_idempotency_key FOR UPDATE;
+  IF FOUND THEN
+    IF v_case.source IS DISTINCT FROM 'tenant_support_staff_api' OR v_case.case_type<>'other'
+      OR v_case.metadata->>'support_case' IS DISTINCT FROM 'true'
+      OR v_case.metadata->>'staff_create_request_hash' IS DISTINCT FROM v_request_hash
+      OR v_case.billing_blocked OR v_case.billing_manual_review OR v_case.cancellation_required THEN
+      RAISE EXCEPTION 'staff_support_idempotency_conflict' USING ERRCODE='23505';
+    END IF;
+    RETURN jsonb_build_object('case',to_jsonb(v_case),'reused',true);
+  END IF;
+  v_metadata:=coalesce(p_metadata,'{}'::jsonb)||jsonb_build_object('support_case',true,'support_channel','staff_api',
+    'support_idempotency_key',p_idempotency_key,'staff_create_request_hash',v_request_hash,'opened_by','staff',
+    'actor_user_id',p_actor_user_id,'api_client_id',p_api_client_id,'description_visibility','internal',
+    'support_public_reference','support_case_'||substr(translate(rtrim(encode(extensions.digest(
+      'gridex-public-reference:v1:'||p_company_id::text||':support_case:'||v_case_id::text,'sha256'),'base64'),'='),'+/','-_'),1,32));
+  INSERT INTO public.customer_cases(id,company_id,customer_id,case_type,status,priority,title,description,reason_category,
+    source,metadata,next_action,billing_blocked,billing_manual_review,cancellation_required,cancellation_status,created_by,updated_by)
+  VALUES(v_case_id,p_company_id,p_customer_id,'other','open',p_priority,btrim(p_title),p_description,v_category,
+    'tenant_support_staff_api',v_metadata,v_next_action,false,false,false,'not_required',p_actor_user_id,p_actor_user_id)
+  RETURNING * INTO v_case;
+  INSERT INTO public.customer_case_events(company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by)
+  VALUES(p_company_id,v_case.id,p_customer_id,'created','info','Supportärende registrerat. '||v_next_action,
+    jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'actor_user_id',p_actor_user_id,
+      'visibility','internal','operational_impact','none'),p_actor_user_id);
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,new_values,metadata)
+  VALUES(p_company_id,p_actor_user_id,'customer_case',v_case.id::text,'customer_case_created',
+    jsonb_build_object('case_type',v_case.case_type,'status',v_case.status,'priority',v_case.priority),
+    jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'customer_id',p_customer_id,
+      'support_idempotency_key',p_idempotency_key));
+  RETURN jsonb_build_object('case',to_jsonb(v_case),'reused',false);
+END$$;
 
 --
 -- Name: gridex_create_supplier_switch_v1(uuid, jsonb, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -85615,6 +85758,53 @@ FROM jsonb_array_elements_text(coalesce(('{"super_admin":["audit.read","billing_
 $$;
 
 --
+-- Name: gridex_staff_support_event(uuid, uuid, uuid, uuid, uuid, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+DECLARE v_case public.customer_cases%ROWTYPE; v_event public.customer_case_events%ROWTYPE; v_payload jsonb;
+BEGIN
+  PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  SELECT * INTO v_case FROM public.customer_cases WHERE company_id=p_company_id AND id=p_case_id
+    AND customer_id=p_customer_id AND metadata->>'support_case'='true' AND case_type='other' AND strpos(source,'tenant_support_')=1 AND NOT billing_blocked AND NOT billing_manual_review AND NOT cancellation_required FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'support_case_not_found' USING ERRCODE='P0002'; END IF;
+  IF p_event_type NOT IN ('support_staff_reply','support_internal_note','support_phone_interaction') OR p_event_type IS NULL
+    OR p_message IS NULL OR length(btrim(p_message)) NOT BETWEEN 1 AND 20000 THEN
+    RAISE EXCEPTION 'support_event_invalid' USING ERRCODE='22023';
+  END IF;
+  v_payload:=coalesce(p_payload,'{}'::jsonb)||jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,
+    'actor_user_id',p_actor_user_id,'author_type','staff',
+    'visibility',CASE WHEN p_event_type='support_staff_reply' THEN 'customer' ELSE 'internal' END);
+  INSERT INTO public.customer_case_events(company_id,customer_case_id,customer_id,event_type,event_status,message,payload,created_by)
+    VALUES(p_company_id,p_case_id,p_customer_id,p_event_type,'info',p_message,v_payload,p_actor_user_id)
+    RETURNING * INTO v_event;
+  INSERT INTO public.audit_logs(company_id,actor_user_id,entity_type,entity_id,action,metadata)
+    VALUES(p_company_id,p_actor_user_id,'customer_case',p_case_id::text,'support_'||p_event_type,
+      jsonb_build_object('channel','staff_api','api_client_id',p_api_client_id,'customer_id',p_customer_id,'event_id',v_event.id));
+  RETURN to_jsonb(v_event);
+END$$;
+
+--
+-- Name: gridex_staff_update_customer_case_status(uuid, uuid, uuid, uuid, text, text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_staff_update_customer_case_status(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_status text, p_expected_source text DEFAULT NULL::text, p_message text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql
+    SET search_path TO ''
+    AS $$
+BEGIN
+  PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  PERFORM 1 FROM public.customer_cases WHERE company_id=p_company_id AND id=p_case_id
+    AND metadata->>'support_case'='true' AND case_type='other' AND strpos(source,'tenant_support_')=1 AND NOT billing_blocked AND NOT billing_manual_review AND NOT cancellation_required AND (p_expected_source IS NULL OR source=p_expected_source) FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'support_case_not_found' USING ERRCODE='P0002'; END IF;
+  RETURN public.gridex_update_customer_case_status_with_actor_v1(p_case_id,p_company_id,p_status,p_actor_user_id,
+    p_expected_source,p_message,'staff_api',p_api_client_id);
+END$$;
+
+--
 -- Name: gridex_stage_energy_geodata_feature(uuid, text, jsonb, jsonb, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -88086,6 +88276,23 @@ COMMENT ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_com
 --
 
 CREATE FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text DEFAULT NULL::text, p_message text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE sql
+    SET search_path TO ''
+    AS $$
+  SELECT public.gridex_update_customer_case_status_with_actor_v1(p_case_id,p_company_id,p_status,p_actor_user_id,p_expected_source,p_message,'ops',NULL)
+$$;
+
+--
+-- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) IS 'Server-only atomic operational status/event/audit update; no source approval, ACK or business side effects.';
+
+--
+-- Name: gridex_update_customer_case_status_with_actor_v1(uuid, uuid, text, uuid, text, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_update_customer_case_status_with_actor_v1(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text, p_channel text, p_api_client_id uuid) RETURNS jsonb
     LANGUAGE plpgsql
     SET search_path TO ''
     AS $$
@@ -88095,35 +88302,49 @@ DECLARE
   v_is_platform boolean;
   v_now timestamptz := clock_timestamp();
 BEGIN
+  -- Staff authorization owns the entire staff lane, including direct internal
+  -- calls to this shared core. Take company/actor/client locks before the case
+  -- row and never fall back to the legacy OPS permission catalogue.
+  IF p_channel='staff_api' THEN
+    PERFORM public.gridex_staff_assert_write_actor_v1(p_company_id,p_actor_user_id,p_api_client_id,'cases.write');
+  END IF;
+
   SELECT * INTO v_case FROM public.customer_cases
     WHERE id=p_case_id AND company_id=p_company_id
       AND (p_expected_source IS NULL OR source=p_expected_source)
+      AND (p_channel IS DISTINCT FROM 'staff_api' OR (
+        metadata->>'support_case'='true' AND case_type='other'
+        AND strpos(source,'tenant_support_')=1
+        AND NOT billing_blocked AND NOT billing_manual_review AND NOT cancellation_required
+      ))
     FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION USING ERRCODE='P0002', MESSAGE='customer_case_not_found_in_scope';
   END IF;
 
-  v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
-  -- Ediel's operational view is tenant-write only, even when the optional
-  -- expected-source argument is omitted. Support retains its platform actor
-  -- behavior, still subject to real selected-company membership below.
-  IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
-    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
-  END IF;
+  IF p_channel IS DISTINCT FROM 'staff_api' THEN
+    v_is_platform := public.canonical_actor_is_platform_admin(p_actor_user_id);
+    -- Ediel's operational view is tenant-write only, even when the optional
+    -- expected-source argument is omitted. Support retains its platform actor
+    -- behavior, still subject to real selected-company membership below.
+    IF v_case.source='ediel_inbound_state_machine' AND v_is_platform THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='ediel_case_status_requires_tenant_actor';
+    END IF;
 
-  -- The existing scoped permission resolver checks the auth user for deletion
-  -- and bans inside its established definer boundary; do not grant this
-  -- invoker direct access to auth.users.
-  IF NOT EXISTS (
-    SELECT 1 FROM public.user_profiles up
-    JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
-    JOIN public.companies c ON c.id=cm.company_id
-    WHERE up.id=p_actor_user_id AND up.user_status='active'
-      AND cm.status='active' AND coalesce(cm.is_active,true)
-      AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
-  ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
-  THEN
-    RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+    -- The existing scoped permission resolver checks the auth user for deletion
+    -- and bans inside its established definer boundary; do not grant this
+    -- invoker direct access to auth.users.
+    IF NOT EXISTS (
+      SELECT 1 FROM public.user_profiles up
+      JOIN public.company_memberships cm ON cm.user_id=up.id AND cm.company_id=v_case.company_id
+      JOIN public.companies c ON c.id=cm.company_id
+      WHERE up.id=p_actor_user_id AND up.user_status='active'
+        AND cm.status='active' AND coalesce(cm.is_active,true)
+        AND c.status IN ('active','onboarding') AND coalesce(c.is_active,true)
+    ) OR NOT (coalesce(v_is_platform,false) OR coalesce(public.gridex_actor_has_company_permission(p_actor_user_id,v_case.company_id,'cases.write'),false))
+    THEN
+      RAISE EXCEPTION USING ERRCODE='42501', MESSAGE='customer_case_status_actor_not_authorized';
+    END IF;
   END IF;
 
   v_old_status := v_case.status;
@@ -88139,7 +88360,9 @@ BEGIN
     v_case.company_id,v_case.id,v_case.customer_id,'status_changed',
     CASE WHEN p_status IN ('closed','resolved') THEN 'success' ELSE 'info' END,
     coalesce(nullif(btrim(p_message),''),'Ärendet uppdaterades till '||p_status||'.'),
-    jsonb_build_object('status',p_status),p_actor_user_id
+    CASE WHEN p_channel='staff_api' THEN
+      jsonb_build_object('status',p_status,'channel',p_channel,'api_client_id',p_api_client_id,'actor_user_id',p_actor_user_id)
+    ELSE jsonb_build_object('status',p_status) END,p_actor_user_id
   );
   -- The canonical audit trigger fills required actor/request/resource context.
   -- Neither an event error nor an audit error is swallowed: all three writes
@@ -88150,17 +88373,13 @@ BEGIN
     v_case.company_id,p_actor_user_id,'customer_case',v_case.id::text,'customer_case_status_changed',
     jsonb_build_object('status',v_old_status),
     jsonb_build_object('status',p_status,'message',p_message),
-    jsonb_build_object('customer_id',v_case.customer_id)
+    CASE WHEN p_channel='staff_api' THEN
+      jsonb_build_object('customer_id',v_case.customer_id,'channel',p_channel,'api_client_id',p_api_client_id)
+    ELSE jsonb_build_object('customer_id',v_case.customer_id) END
   );
   RETURN to_jsonb(v_case);
 END
 $$;
-
---
--- Name: FUNCTION gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text); Type: COMMENT; Schema: public; Owner: -
---
-
-COMMENT ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) IS 'Server-only atomic operational status/event/audit update; no source approval, ACK or business side effects.';
 
 --
 -- Name: gridex_update_draft_legal_template_version(uuid, text, text, uuid); Type: FUNCTION; Schema: public; Owner: -
@@ -127876,6 +128095,12 @@ CREATE UNIQUE INDEX customer_cases_support_idempotency_key_uidx ON public.custom
 COMMENT ON INDEX public.customer_cases_support_idempotency_key_uidx IS 'Tenantservice F9: one support case per company, customer and support idempotency key.';
 
 --
+-- Name: customer_cases_support_public_reference_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX customer_cases_support_public_reference_uidx ON public.customer_cases USING btree (company_id, ((metadata ->> 'support_public_reference'::text))) WHERE ((metadata ->> 'support_case'::text) = 'true'::text);
+
+--
 -- Name: customer_cases_switch_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -142289,6 +142514,12 @@ CREATE TRIGGER customer_authorization_documents_bind_poa_tg AFTER INSERT OR UPDA
 --
 
 CREATE TRIGGER customer_billing_profile_revisions_no_update BEFORE DELETE OR UPDATE ON public.customer_billing_profile_revisions FOR EACH ROW EXECUTE FUNCTION public.gridex_billing_profile_revisions_append_only();
+
+--
+-- Name: customer_case_attachments customer_case_attachments_staff_audit; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER customer_case_attachments_staff_audit AFTER INSERT OR UPDATE ON public.customer_case_attachments FOR EACH ROW EXECUTE FUNCTION public.gridex_audit_staff_support_attachment_v1();
 
 --
 -- Name: customer_contract_acceptances customer_contract_acceptances_immutable; Type: TRIGGER; Schema: public; Owner: -
@@ -187470,6 +187701,13 @@ GRANT ALL ON FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uu
 GRANT ALL ON FUNCTION public.gridex_assign_company_to_whitelabel(p_company_id uuid, p_white_label_platform_id uuid) TO authenticated;
 
 --
+-- Name: FUNCTION gridex_assign_customer_case(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_assignee_user_id uuid, p_api_client_id uuid, p_expected_source text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_assign_customer_case(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_assignee_user_id uuid, p_api_client_id uuid, p_expected_source text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_assign_customer_case(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_assignee_user_id uuid, p_api_client_id uuid, p_expected_source text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_assign_customer_contract_identity_v1(); Type: ACL; Schema: public; Owner: -
 --
 
@@ -187518,6 +187756,13 @@ GRANT ALL ON FUNCTION public.gridex_audit_portfolio_settlement_write() TO servic
 
 REVOKE ALL ON FUNCTION public.gridex_audit_staff_identity_request_v1() FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_audit_staff_identity_request_v1() TO service_role;
+
+--
+-- Name: FUNCTION gridex_audit_staff_support_attachment_v1(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_audit_staff_support_attachment_v1() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_audit_staff_support_attachment_v1() TO service_role;
 
 --
 -- Name: FUNCTION gridex_backfill_contract_lifecycle(p_company_id uuid); Type: ACL; Schema: public; Owner: -
@@ -188199,6 +188444,13 @@ GRANT ALL ON FUNCTION public.gridex_create_portfolio(p_actor_user_id uuid, p_com
 
 REVOKE ALL ON FUNCTION public.gridex_create_portfolio_settlement_correction(p_actor_user_id uuid, p_settlement_id uuid, p_reason text, p_idempotency_key text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_create_portfolio_settlement_correction(p_actor_user_id uuid, p_settlement_id uuid, p_reason text, p_idempotency_key text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_create_staff_support_case_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_title text, p_description text, p_category text, p_priority text, p_idempotency_key text, p_metadata jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_create_staff_support_case_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_title text, p_description text, p_category text, p_priority text, p_idempotency_key text, p_metadata jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_create_staff_support_case_v1(p_company_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_title text, p_description text, p_category text, p_priority text, p_idempotency_key text, p_metadata jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_create_supplier_switch_v1(p_company_id uuid, p_request jsonb, p_event jsonb); Type: ACL; Schema: public; Owner: -
@@ -191123,6 +191375,20 @@ REVOKE ALL ON FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) FROM
 GRANT ALL ON FUNCTION public.gridex_staff_role_profile_v1(p_role_key text) TO service_role;
 
 --
+-- Name: FUNCTION gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_support_event(p_company_id uuid, p_case_id uuid, p_customer_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_event_type text, p_message text, p_payload jsonb) TO service_role;
+
+--
+-- Name: FUNCTION gridex_staff_update_customer_case_status(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_status text, p_expected_source text, p_message text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_staff_update_customer_case_status(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_status text, p_expected_source text, p_message text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_staff_update_customer_case_status(p_company_id uuid, p_case_id uuid, p_actor_user_id uuid, p_api_client_id uuid, p_status text, p_expected_source text, p_message text) TO service_role;
+
+--
 -- Name: FUNCTION gridex_stage_energy_geodata_feature(p_geodata_version_id uuid, p_feature_id text, p_properties jsonb, p_geometry_geojson jsonb, p_source_url text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -191375,6 +191641,13 @@ GRANT ALL ON FUNCTION public.gridex_update_company_and_rebuild_legal_profile(p_c
 
 REVOKE ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.gridex_update_customer_case_status(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text) TO service_role;
+
+--
+-- Name: FUNCTION gridex_update_customer_case_status_with_actor_v1(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text, p_channel text, p_api_client_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_update_customer_case_status_with_actor_v1(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text, p_channel text, p_api_client_id uuid) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_update_customer_case_status_with_actor_v1(p_case_id uuid, p_company_id uuid, p_status text, p_actor_user_id uuid, p_expected_source text, p_message text, p_channel text, p_api_client_id uuid) TO service_role;
 
 --
 -- Name: FUNCTION gridex_update_draft_legal_template_version(p_version_id uuid, p_title text, p_body text, p_actor_user_id uuid); Type: ACL; Schema: public; Owner: -

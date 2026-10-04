@@ -2,7 +2,7 @@ import { supabaseService } from '@/lib/supabase/service'
 import { createCustomerCase, listCustomerCases } from '@/lib/customer-cases/db'
 import type { CustomerCaseListRow, CustomerCasePriority, CustomerCaseRow } from '@/lib/customer-cases/types'
 
-type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'phone' | 'operations_automation'
+type SupportChannel = 'api' | 'customer_portal' | 'admin' | 'phone' | 'operations_automation' | 'staff_api'
 
 export type TenantSupportCustomerOption = { id: string; label: string }
 
@@ -120,6 +120,26 @@ export async function createTenantSupportCase(input: CreateTenantSupportCaseInpu
     siteId: input.siteId ?? null,
     meteringPointId: input.meteringPointId ?? null,
   })
+
+  if (input.channel === 'staff_api') {
+    if (!input.actorUserId || typeof input.metadata?.api_client_id !== 'string' || !idempotencyKey) {
+      throw new Error('staff_support_actor_required')
+    }
+    if (input.siteId || input.meteringPointId) throw new Error('staff_support_site_fields_not_supported')
+    // Staff case + first event + audit + opaque reference commit together. The established
+    // command still owns validation; the SQL transaction rechecks the actor/customer graph.
+    type StaffCreateRpc = (name: 'gridex_create_staff_support_case_v1', args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }>
+    const { data, error } = await (supabaseService.rpc as unknown as StaffCreateRpc)('gridex_create_staff_support_case_v1', {
+      p_company_id: input.companyId, p_customer_id: input.customerId,
+      p_actor_user_id: input.actorUserId, p_api_client_id: input.metadata.api_client_id,
+      p_title: title, p_description: description, p_category: category, p_priority: input.priority ?? 'normal',
+      p_idempotency_key: idempotencyKey, p_metadata: input.metadata,
+    })
+    if (error) throw error
+    const result = data as { case?: CustomerCaseRow; reused?: boolean } | null
+    if (!result?.case?.id) throw new Error('staff_support_result_invalid')
+    return { case: result.case, reused: result.reused === true }
+  }
 
   if (idempotencyKey) {
     const existing = await findIdempotentSupportCase({ companyId: input.companyId, customerId: input.customerId, idempotencyKey })

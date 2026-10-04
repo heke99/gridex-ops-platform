@@ -96727,6 +96727,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      gridex_assign_customer_case: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_assignee_user_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_source?: string
+        }
+        Returns: Json
+      }
       gridex_attach_portfolio_settlement_to_invoice: {
         Args: {
           p_actor_user_id: string
@@ -97491,6 +97502,21 @@ export type Database = {
           p_settlement_id: string
         }
         Returns: string
+      }
+      gridex_create_staff_support_case_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_category: string
+          p_company_id: string
+          p_customer_id: string
+          p_description: string
+          p_idempotency_key: string
+          p_metadata: Json
+          p_priority: string
+          p_title: string
+        }
+        Returns: Json
       }
       gridex_create_supplier_switch_v1: {
         Args: { p_company_id: string; p_event: Json; p_request: Json }
@@ -99989,6 +100015,31 @@ export type Database = {
         Args: { p_role_key: string }
         Returns: string[]
       }
+      gridex_staff_support_event: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_customer_id: string
+          p_event_type: string
+          p_message: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
+      gridex_staff_update_customer_case_status: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_company_id: string
+          p_expected_source?: string
+          p_message?: string
+          p_status: string
+        }
+        Returns: Json
+      }
       gridex_stage_energy_geodata_feature: {
         Args: {
           p_feature_id: string
@@ -100149,6 +100200,19 @@ export type Database = {
           p_company_id: string
           p_expected_source?: string
           p_message?: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      gridex_update_customer_case_status_with_actor_v1: {
+        Args: {
+          p_actor_user_id: string
+          p_api_client_id: string
+          p_case_id: string
+          p_channel: string
+          p_company_id: string
+          p_expected_source: string
+          p_message: string
           p_status: string
         }
         Returns: Json

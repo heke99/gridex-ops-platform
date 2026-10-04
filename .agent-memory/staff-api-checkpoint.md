@@ -69,6 +69,16 @@ run all mandatory exact-head gates before merge/production migration.
 - Independent final artifact review PASS: nine captured S3 function bodies match frozen sources, seven callable RPCs are present in generated types, six S4-only functions and its support-reference index/four migrations are absent. No artifact/provenance/ACL blocker found; this bounded review does not qualify native execution or full CI.
 - Next: root publishes this S3 own-prefix artifact/provenance commit and requires fresh final published-head CI. Do not use an earlier capture or another package's generated files to qualify this prefix.
 
+## Staff API S4 final own-prefix capture 01 (2026-10-04)
+
+- Imported only S4 own-prefix generated types/schema/fingerprint byte-for-byte from successful PostgreSQL 17 capture workflow 37195224010, artifact 11301081507, checkout 8f29da0d41e5782f5547b5a2c156817f47aaf130/tree 4359741a42a84b774c661e84f4cd4d77c9b9d4e7. Frozen local source 3ea095564f54b672412401b90e3b2eec48504773 has the identical complete tree; all eight frozen replay-input hashes match. Published GitHub ZIP digest and local ZIP SHA256 both equal 256bd430ab67d14eab116718b6a427b8f97bb1819ddce9fee6e0f6c6cc35a98b. ZIP CRC and the exact four-member set are verified.
+- This prefix includes S1 identity/provider/replay ACL plus S2 account commands and actor/client/lock-order forwards, S3 customer operations and strict shared staff-write guard, S4 support creation/event/status/assignment and accepted recognized staff assignees. Latest replay migration 20261004100918_staff_user_lock_order.sql; SHA256 e90524bec4766b4eab68c0dc04836e95dc7e7bd8938ce7b602044c441b261e68. S2/S3 branches retain their own captures; no generated files from their artifact imports were copied here.
+- Types SHA256 e738c10a566b5ecaa14ac30f797d38f74382b6fc6b59fc2b6495591275d2c4ce; schema SHA256 c90f82239ad7bf260802eb97495a1472c3a05ca2e23b07adab5f0f52b42ab3d4; fingerprint-file SHA256 03c928c281b706e4f02481260306903a0f754aba3bb1ebd654826aa41dc41abb; canonical section fingerprint e5e70237ca3015ecc7da1350f59bac3064863c90170a3dc4eb66d260eee3a0de. All three generated destinations and the original raw receipt are byte-identical to the captured members. The canonical section fingerprint is independently recomputed, and prior S1 receipt bytes are preserved. The manifest truthfully describes this S4 prefix and retains superseded S1 provenance.
+- Durable numbered receipts: quality/staff-api/S4-01-final-prefix-capture-receipt-20261004.json (raw captured bytes, SHA256 6eefd0333c943bb9600d8d5b24876c482048fa85f9338317f5f5a9a4eb24cc52) and S4-01-final-prefix-capture-import-20261004.json. db:migrations:check PASS: 1055 migration files, 958 version groups/checksums, public-contract legal migration, database contract hardening, and generated types hash/nullability/latest migration.
+- Qualification is capture-only. Native tests, browser tests, type-schema comparison and upgrade parity were NOT_RUN in the capture. A successful capture workflow establishes artifact production; it does not establish those gates or full CI acceptance. Fresh final exact-head full CI/OPS clean and upgrade replay/parity remains mandatory. No source SQL, other stage worktree, Ediel memory, remote branch or production data was modified by this import.
+- Independent read-only artifact/provenance review PASS with zero Critical/Important findings: fresh GitHub digest/run/tree, exact imported bytes, eight frozen inputs, preserved receipts/manifest, canonical fingerprint and seven-file scope. Captured latest assignee source, S4 support objects, S1 replay direct ACL/RLS and S2 final lock statements also agree. This review does not execute native/browser/parity gates.
+- Next: commit only this S4 generated/provenance import, then root publishes the concrete S4 package and qualifies fresh exact-head full CI before merge or production work.
+
 ## Upstream package evidence retained (2026-10-04)
 
 The numbered upstream capture receipts and checkpoint sections are retained byte-for-byte for the stacked PR history. This package keeps its own generated artifacts and truthful original capture source/superseded-manifest provenance; retaining upstream evidence does not claim that it was an input to this package capture. Full exact-head native and CI qualification remains pending.
@@ -80,6 +90,13 @@ The full native qualification of remote c7e2b22825773f976293ccc8a2991fd5d7897d63
 Source repair f4e7b6c7656ec8ab55e34de0ced0de19cde6b69f adds ordinary company role reference rows inside each existing fixture transaction, using the real unique key and preserving existing rows. All five producers share this fixture; permissions, authority checks, race assertions and failure latches are unchanged. Six source-backed tests reproduce the actual missing-role seeds and verify the fix, existing-row preservation and uniqueness. Scoped lint and scripts/tests typechecks pass. No migration or generated schema bytes change.
 
 Next: publish this fixture repair and require a fresh exact-head full native clean replay, including both two-session races. Native qualification is pending. No production mutation has been performed.
+
+## Staff API S4 status compatibility/authority forward 02 (2026-10-04)
+
+- Isolated from frozen base 449f68a24/tree 2e201acd, the CLI-generated forward 20261004115007_staff_case_status_actor_compatibility.sql (SHA256 1a60f96140f8c8bc151d26b4cd6058b36f48b693ebc0ffbae75e72f1d57df492) repairs the confirmed OPS status payload regression and the staff core's second legacy permission resolver. Nonstaff event/audit business JSON restores the original shape; staff invokes the current profile/client/scope guard before the case lock and requires the exact support graph. Signatures, invoker/service-only ACL, wrappers, original nonstaff/platform/Ediel authorization and atomic audit writes remain unchanged. Historical migrations and the original OPS native oracle are untouched.
+- Actual-source test evidence: old source RED 12 failed/3 passed; repaired source GREEN 15/15, including the real canonical audit normalizer and both newly added native SQL assertion templates. Related strict guard/assignee/status adapter suites pass 58/58 across 4 files. Scoped ESLint, diffcheck and db:migrations:check PASS (1056 files/959 version groups/checksums plus legal contract, hardening and generated-type checks). Independent source/reproduction review PASS with no remaining blocker. Durable receipt: quality/staff-api/S4-02-status-compatibility-repair-20261004.json.
+- Native PostgreSQL 17, browser and full exact-head CI remain PENDING/NOT_RUN locally. The failed frozen OPS run 37196449791 is retained as failure evidence; no source test substitutes for native qualification. Both added native assertions are in the existing mandatory S4 suite and require fresh CI. Canonical audit context is asserted separately from exact business JSON; no production normalizer or existing OPS oracle was weakened.
+- All three prior authentic generated artifact bytes and earlier numbered receipts are retained. This body-only repair leaves the TypeScript function signature unchanged, but schema/fingerprint capture is now pending and the manifest states that explicitly. Next: root integrates this scoped commit, obtains a fresh exact-prefix capture/import and completes full native/browser/clean-upgrade parity. No frozen stage, Ediel memory, remote branch or production data was modified by this repair.
 
 ## S3 contact permission authority forward (2026-10-04)
 
@@ -98,6 +115,16 @@ Next: publish this fixture repair and require a fresh exact-head full native cle
 
 The two embedded PGlite consumers now inline the exact shared role SQL and extract the unchanged historical roles declaration with its real global UNIQUE(key). Source repair 0949ff91e3f563f0c1086e33f74e5358ef209d85 reproduces both prior 42601 errors and passes all 32 affected tests; independent exact-commit review also passes. Native scripts, guard assertions, role privileges and migrations are unchanged. The three test failures in quality job 111430198019 are now addressed by this repair and the deterministic JWT fixture. Fresh exact-head full CI, including native concurrency, remains required. No production mutation performed.
 
+## S4-02 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37201902766, artifact 11303725388, checkout a58985e862e8decd454777ba0639898f45e3bb86, tree ac069219bd11f3e58a2ae97a706b9695548a5632, frozen source e350f88cccb2460f342bfbfec3031c6383b0e0a2.
+- ZIP SHA256 `86a12ba863928bdfb70f09c020d9378fffac9e6af1ecb5f6dd6822fbc549b4c8` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 11 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S4-02-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S4-02-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent artifact/provenance review PASS. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+The original S4-02 repair receipt remains byte-identical. Its documentary timestamp timezone is corrected by the separate S4-02-status-compatibility-repair-timestamp-erratum-20261004.json; this changes no source, generated byte, capture input or verification result.
+
 ## S3-02 own-prefix capture import — 2026-10-04
 
 - Imported only three exact generated files and the raw capture receipt from run 37201895473, artifact 11302479567, checkout d6ced9ea67fdeb414428716191351eeb33b7b539, tree a530741fdf73da1aef9d01a039e82914cba3a629, frozen source 5d7523af676a0e4d8fa76b4b82db007283e3edc7.
@@ -105,6 +132,8 @@ The two embedded PGlite consumers now inline the exact shared role SQL and extra
 - Preserved 8 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
 - Raw receipt: `quality/staff-api/S3-02-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S3-02-final-prefix-capture-import-20261004.json`.
 - Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent artifact/provenance review PASS. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+Retained new S3 capture02 evidence for stack ancestry. This S4 manifest/generated bytes remain its own authenticated capture02; S3 evidence is not relabeled as an S4 capture input.
 
 ## Canonical invitation schema closure (2026-10-04)
 
@@ -118,15 +147,15 @@ Evidence: quality/staff-api/S2-invitation-domain-schema-closure-20261004.json. O
 
 Next: root integrates this bounded source commit into new isolated S2/S3/S4 stages, obtains their authentic own-prefix captures, and runs fresh exact-head full clean/upgrade/native concurrency and application CI. No publication, production apply or native qualification is claimed by this repair.
 
-## S3-03 own-prefix capture import — 2026-10-04
+## S4-03 own-prefix capture import — 2026-10-04
 
-- Imported only three exact generated files and the raw capture receipt from run 37207685431, artifact 11304983843, checkout b6335782da29c3785b08bc296f6012f4f42af4b7, tree 4f038da127283df6fe235dfda6f451328b5bed2c, frozen source 6264becb0493442d612eb7a12d5063519d0e877a.
-- ZIP SHA256 `d5dd159d700cbcb0d8da84f87e8949d47984c800a6adacf3c0e659af9c819da3` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
-- Preserved 10 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
-- Raw receipt: `quality/staff-api/S3-03-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S3-03-final-prefix-capture-import-20261004.json`.
+- Imported only three exact generated files and the raw capture receipt from run 37207708487, artifact 11305311966, checkout c47b6169673551c7dbb55fb300e3cb4269737554, tree f9abf375535f15cb737606819d9717877a6f7670, frozen source e78e51d0c01bd0bf70dada25c3062181d011cff9.
+- ZIP SHA256 `ab5c7503b93c4b0b5778627db2ef144e642f42e774d09275725a7aa6a22e3d78` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 16 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S4-03-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S4-03-final-prefix-capture-import-20261004.json`.
 - Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
 
-- Post-import S3-03: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
+- Post-import S4-03: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
 
 ## S2-02 own-prefix capture import — 2026-10-04
 
@@ -137,6 +166,16 @@ Next: root integrates this bounded source commit into new isolated S2/S3/S4 stag
 - Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
 
 - Post-import S2-02: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
+
+## S3-03 own-prefix capture import — 2026-10-04
+
+- Imported only three exact generated files and the raw capture receipt from run 37207685431, artifact 11304983843, checkout b6335782da29c3785b08bc296f6012f4f42af4b7, tree 4f038da127283df6fe235dfda6f451328b5bed2c, frozen source 6264becb0493442d612eb7a12d5063519d0e877a.
+- ZIP SHA256 `d5dd159d700cbcb0d8da84f87e8949d47984c800a6adacf3c0e659af9c819da3` matches the published GitHub digest. Exact member CRC/set, eight frozen inputs, three generated hashes, latest source SQL and canonical fingerprint verified.
+- Preserved 10 prior capture evidence files unchanged and the complete previous manifest without relabeling its package or capture. Source-only pending composition is now superseded by this authenticated capture; unchanged types are recorded without claiming a type change.
+- Raw receipt: `quality/staff-api/S3-03-final-prefix-capture-receipt-20261004.json`; import evidence: `quality/staff-api/S3-03-final-prefix-capture-import-20261004.json`.
+- Capture-only: native/browser tests, type-schema comparison and upgrade parity NOT_RUN. db:migrations:check and independent review PENDING. Fresh exact-head native/full CI qualification remains mandatory; no production action or qualification claim is implied.
+
+- Post-import S3-03: db:migrations:check PASS; independent raw-capture/import review by s1_schema_ui PASS. Only columns+9 and constraints+2 fingerprint sections change; whole remaining raw schema and TS are byte-identical to own prior capture after removing the documented additions. Native/browser/type-schema/upgrade gates are still NOT_RUN by capture; full exact-head CI remains mandatory.
 ## Staff assertion timing security repair (2026-10-04)
 
 - VERIFIED locally on S1 base `78278742`: staff `iat` is checked independently against
