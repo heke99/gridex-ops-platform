@@ -12,12 +12,13 @@ import type { EdielTgtCaseTestData } from '@/lib/ediel/testing/tgtTestData'
 import type { ProdatEngineProductionContext } from '@/lib/ediel/prodat/types'
 
 // Every DB boundary is explicit and in-memory. No market message is sent.
-const db = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), event: vi.fn(), link: vi.fn() }))
+const db = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn(), update: vi.fn(), event: vi.fn(), link: vi.fn() }))
 vi.mock('@/lib/supabase/service', () => ({ supabaseService: db }))
 vi.mock('@/lib/ediel/db', () => ({ createEdielMessageEvent: db.event, linkEdielMessage: db.link }))
 beforeEach(() => {
   vi.clearAllMocks()
   db.from.mockImplementation(() => { throw new Error('Unexpected DB request in DTM read test') })
+  db.rpc.mockResolvedValue({ data: { applied: true, permissionId: 'permission-row', status: 'active' }, error: null })
 })
 const point = '735999999999999999'
 function payload(code: string, body: string[], header = ['DTM+137:202609171200:203','DTM+ZZZ:1:805']): string {
@@ -121,18 +122,25 @@ describe('DTM Z15 persistence consumes permission end164, never contract/report 
       return q
     })
   }
-  it('persists permission end timestamp and explicit DATE projection', async () => {
+  it('delegates a source with end164 to the durable executor without direct date aliases', async () => {
     memoryPermission()
     const row = message(payload('Z15',['DTM+164:202610011230:203','RFF+Z09:PERMISSION','CCI++Z13','CAV+S17']),'Z15V')
     expect((await applyInboundZ15PermissionState({actorUserId:'actor',message:row})).applied).toBe(true)
-    expect(db.update).toHaveBeenCalledWith(expect.objectContaining({approved_end_date:'2026-10-01',metadata:expect.objectContaining({z15:expect.objectContaining({permissionEndTimestamp:'202610011230'})})}))
+    expect(parseProdatMessage(row).lineItems[0].permissionEndTimestamp).toBe('202610011230')
+    expect(db.update).not.toHaveBeenCalled()
+    expect(db.rpc).toHaveBeenCalledWith('ediel_apply_permission_source_v1', { p_company_id: 'tenant-A', p_source_message_id: 'message-id', p_actor_user_id: 'actor', p_expected_permission_id: null })
   })
   for(const dates of [[],['DTM+164:202602301230:203'],['DTM+93:202610011230:203'],['DTM+91:202610011230:203'],['DTM+164:20261001:102'],['DTM+164:202610011230:203','LIN+2','DTM+164:202611011230:203']]) {
     it(`cannot mutate permission state with unsupported date evidence ${JSON.stringify(dates)}`, async () => {
       memoryPermission()
+      // Date qualification belongs to the native source owner (one saved
+      // source, all physical scopes). TS never applies or aliases dates itself
+      // and never reports an effect the owner refused.
+      db.rpc.mockResolvedValueOnce({ data: { applied: false, permissionId: null, status: 'held', reason: 'permission_source_date_unqualified' }, error: null })
       const row = message(payload('Z15',[...dates,'RFF+Z09:PERMISSION','CCI++Z13','CAV+S17']),'Z15V')
-      expect((await applyInboundZ15PermissionState({actorUserId:'actor',message:row})).applied).toBe(false)
+      expect(await applyInboundZ15PermissionState({actorUserId:'actor',message:row})).toMatchObject({applied:false,status:'manual_review'})
       expect(db.update).not.toHaveBeenCalled()
+      expect(db.rpc).toHaveBeenCalledExactlyOnceWith('ediel_apply_permission_source_v1', { p_company_id: 'tenant-A', p_source_message_id: 'message-id', p_actor_user_id: 'actor', p_expected_permission_id: null })
     })
   }
 })

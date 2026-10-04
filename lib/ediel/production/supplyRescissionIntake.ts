@@ -1,0 +1,34 @@
+import {createHash} from 'node:crypto'
+import {createSupabaseServerClient} from '@/lib/supabase/server'
+import {isEvidenceUuid} from '@/lib/ediel/utilts/durableSourceDiscovery'
+export const SUPPLY_RESCISSION_SOURCE_MAX_BYTES=8*1024*1024
+export type SupplyRescissionSelector={environment:'test'|'production';supplyPeriodId:string;effectiveAt:string;rulePackId:string}
+export type SupplyRescissionSubmission=SupplyRescissionSelector&{source:{bytesBase64:string;mimeType:'application/pdf'|'text/plain';reference:string;version:string};issuerReceipt?:{keyId:string;representationId:string;payloadBase64:string;signatureHex:string}}
+export type SupplyRescissionReview={sourceHash:string;scopeHash:string;decision:'approve'|'hold'|'reject';reason:string;sourceClauseLocator?:string;sourceClauseQuote?:string}
+type Scope={companyId:string;actorUserId:string};type Artifact=Scope&{artifactId:string}
+// Narrow native boundary until authentic replay generates the added RPC types.
+// Every return retains explicit own-company/status/hash validation below.
+type RescissionRpcCalls={
+ ediel_supply_rescission_scope_v1:{p_company_id:string;p_actor_user_id:string;p_selector:SupplyRescissionSelector};
+ ediel_archive_supply_rescission_v1:{p_company_id:string;p_actor_user_id:string;p_submission:SupplyRescissionSubmission};
+ ediel_read_supply_rescission_artifact_v1:{p_company_id:string;p_actor_user_id:string;p_artifact_id:string;p_include_bytes:boolean};
+ ediel_review_supply_rescission_v1:{p_company_id:string;p_actor_user_id:string;p_artifact_id:string;p_review:SupplyRescissionReview};
+}
+async function supplyRescissionRpc<N extends keyof RescissionRpcCalls>(name:N,args:RescissionRpcCalls[N]){
+ const client=await createSupabaseServerClient(),{data,error}=await client.auth.getUser()
+ if(error||!isEvidenceUuid(args.p_company_id)||!isEvidenceUuid(args.p_actor_user_id)||!isEvidenceUuid(data.user?.id)||data.user.id!==args.p_actor_user_id)throw Error('supply_rescission_authenticated_session_required')
+ // The same verified session sends the native request. Native auth.uid and
+ // current phase checks bind the actor again before reads and every return.
+ const rpc=client.rpc.bind(client) as unknown as <K extends keyof RescissionRpcCalls>(rpcName:K,rpcArgs:RescissionRpcCalls[K])=>PromiseLike<{data:unknown;error:{message:string;code:string}|null}>
+ return rpc(name,args)
+}
+
+const hash=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v),object=(v:unknown):Record<string,unknown>|null=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record<string,unknown>:null
+function checked(value:unknown,statuses:string[],input:Scope,artifactId?:string){const r=object(value);if(!r||!statuses.includes(String(r.status))||r.companyId!==input.companyId||artifactId&&r.artifactId!==artifactId||!Array.isArray(r.missing)||r.missing.some(v=>typeof v!=='string'))throw Error('supply_rescission_intake_result_invalid');return r}
+/** Selector metadata does not establish legal prerequisites. The exact native
+ * scope, archived original, designated issuer and independent review own them. */
+export async function readSupplyRescissionScope(input:Scope&SupplyRescissionSelector){const{companyId,actorUserId,...selector}=input,{data,error}=await supplyRescissionRpc('ediel_supply_rescission_scope_v1',{p_company_id:companyId,p_actor_user_id:actorUserId,p_selector:selector});if(error)throw error;const r=checked(data,['scoped','held'],input),scope=object(r.scope);if(r.status==='scoped'&&(!hash(r.scopeHash)||!scope||scope.purpose!=='national_prodat_z08h_legal_rescission'||scope.companyId!==companyId||scope.environment!==input.environment||scope.periodId!==input.supplyPeriodId||scope.rulePackId!==input.rulePackId||typeof scope.effectiveAt!=='string'||Date.parse(scope.effectiveAt)!==Date.parse(input.effectiveAt)))throw Error('supply_rescission_scope_result_invalid');return r}
+export async function archiveSupplyRescission(input:Scope&SupplyRescissionSubmission){const bytes=Buffer.from(input.source.bytesBase64,'base64');if(!bytes.length||bytes.length>SUPPLY_RESCISSION_SOURCE_MAX_BYTES||bytes.toString('base64')!==input.source.bytesBase64)throw Error('supply_rescission_original_bytes_invalid');const{companyId,actorUserId,...submission}=input,{data,error}=await supplyRescissionRpc('ediel_archive_supply_rescission_v1',{p_company_id:companyId,p_actor_user_id:actorUserId,p_submission:submission});if(error)throw error;const r=checked(data,['archived','held'],input);if(r.status==='archived'&&(!isEvidenceUuid(r.artifactId)||r.sourceHash!==createHash('sha256').update(bytes).digest('hex')||!hash(r.scopeHash)))throw Error('supply_rescission_archive_result_invalid');return r}
+export async function readSupplyRescissionArtifact(input:Artifact){const{data,error}=await supplyRescissionRpc('ediel_read_supply_rescission_artifact_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_artifact_id:input.artifactId,p_include_bytes:false});if(error)throw error;const r=checked(data,['archived','held','rejected','authorized'],input,input.artifactId);if('bytesBase64'in r||!hash(r.sourceHash)||!hash(r.scopeHash))throw Error('supply_rescission_artifact_result_invalid');return r}
+export async function readSupplyRescissionBytes(input:Artifact){const{data,error}=await supplyRescissionRpc('ediel_read_supply_rescission_artifact_v1',{p_company_id:input.companyId,p_actor_user_id:input.actorUserId,p_artifact_id:input.artifactId,p_include_bytes:true});if(error)throw error;const r=checked(data,['archived','held','rejected','authorized'],input,input.artifactId);if(typeof r.bytesBase64!=='string'||!hash(r.scopeHash)||!hash(r.sourceHash)||!['application/pdf','text/plain'].includes(String(r.mimeType)))throw Error('supply_rescission_original_bytes_invalid');const bytes=Buffer.from(r.bytesBase64,'base64');if(!bytes.length||bytes.length>SUPPLY_RESCISSION_SOURCE_MAX_BYTES||bytes.toString('base64')!==r.bytesBase64.replaceAll('\n','')||bytes.length!==r.byteLength||createHash('sha256').update(bytes).digest('hex')!==r.sourceHash)throw Error('supply_rescission_original_bytes_invalid');return{bytes,mimeType:String(r.mimeType),sourceHash:r.sourceHash}}
+export async function reviewSupplyRescission(input:Artifact&SupplyRescissionReview){const{companyId,actorUserId,artifactId,...review}=input,{data,error}=await supplyRescissionRpc('ediel_review_supply_rescission_v1',{p_company_id:companyId,p_actor_user_id:actorUserId,p_artifact_id:artifactId,p_review:review});if(error)throw error;const r=checked(data,['authorized','held','rejected'],input,artifactId);if(r.status==='authorized'&&(!isEvidenceUuid(r.mandateId)||(r.missing as unknown[]).length!==0))throw Error('supply_rescission_review_result_invalid');return r}

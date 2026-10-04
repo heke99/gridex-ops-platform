@@ -59,7 +59,7 @@ export const PRODAT_SUBTYPE_RULES: readonly ProdatSubtypeRule[] = [
   { subtype: 'B',  transactionReasonCode: 'Z27', meaning: 'Change of balance responsible', allowedMessageCodes: ['Z09'], source },
   { subtype: 'N',  transactionReasonCode: 'Z96', meaning: 'Rejected reporting', allowedMessageCodes: ['Z14'], source },
   // E34 death is source-defined; bankruptcy alone does not establish death;
-  // Other Z06E use requires counterparty-specific bilateral capability; Z09E is death-only.
+  // Other E34 use requires the exact source-supported bilateral process.
   // That condition is evaluated by resolveProdatBusinessContext below rather
   // than by bilateralOnlyFor, because it cannot be decided from code alone.
   { subtype: 'E',  transactionReasonCode: 'E34', meaning: 'Customer/consumer masterdata update', allowedMessageCodes: ['Z06', 'Z09'], source },
@@ -148,7 +148,8 @@ export function resolveProdatSubtype(input: {
  * Evaluate business-context conditions that cannot be inferred from field 223.
  *
  * Handbook 26A chapter 4.4 and PRODAT 26.A p.65:
- * - Z09E is death-only (p112); Z06E permits other bilateral customer updates (p65/109).
+ * - Field310 is death-only; other E34 customer updates require their exact
+ *   source-supported process/agreement (masterplan P-09, PC-310-Z09).
  * - Other customer-identity/masterdata purposes require a bilateral agreement
  *   with the exact counterparty. A bilateral flag for one actor must never
  *   authorize another actor.
@@ -175,10 +176,6 @@ export function resolveProdatBusinessContext(input: {
     return { ...base, businessContext, customerStatusRequired: false, bilateralReason: null }
   }
 
-  if (code === 'Z09') {
-    const valid = businessContext == null || businessContext === 'unknown' || businessContext === 'death'
-    return {...base,ok:valid,businessContext,customerStatusRequired:valid,bilateralRequired:false,bilateralReason:null,reason:valid?null:'prodat_z09e_death_only'}
-  }
   if (input.allowUnknownContext && (businessContext == null || businessContext === 'unknown')) return {...base,businessContext,customerStatusRequired:false,bilateralReason:null}
   const normalDeathProcess = businessContext === 'death'
   if (normalDeathProcess) {

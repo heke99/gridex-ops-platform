@@ -71,9 +71,9 @@ function runtimeRequirements(code: ProdatMessageCode, subtype: ProdatSubtype): R
     case 'Z10':
       return { requiredContext: ['reasonForTransaction'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: false }
     case 'Z13':
-      return { requiredContext: ['reasonForTransaction', 'installationDirection', 'permissionPurpose', 'reportingFrequency', 'energyProductId', ...(subtype === 'VH' ? ['permissionEndDate' as const] : [])], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: true, requiresEndDate: subtype === 'VH' }
+      return { requiredContext: ['reasonForTransaction', 'installationDirection', 'permissionPurpose', 'reportingFrequency', 'energyProductId', ...(subtype === 'VH' ? ['permissionEndDate' as const] : [])], requiresCustomerIdentity: true, requiresMeterPoint: false, requiresStartDate: true, requiresEndDate: subtype === 'VH' }
     case 'Z14':
-      return { requiredContext: ['permissionStatus', ...(subtype === 'VH' ? ['permissionEndDate' as const] : [])], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: subtype === 'V' || subtype === 'VH', requiresEndDate: subtype === 'VH' }
+      return { requiredContext: ['permissionStatus', ...(subtype === 'VH' ? ['permissionEndDate' as const] : [])], requiresCustomerIdentity: subtype !== 'N', requiresMeterPoint: subtype !== 'N', requiresStartDate: subtype === 'V' || subtype === 'VH', requiresEndDate: subtype === 'VH' }
     case 'Z15':
       return { requiredContext: subtype === 'C' ? ['permissionStatus'] : ['permissionStatus', 'permissionEndReason', 'permissionEndDate'], requiresCustomerIdentity: true, requiresMeterPoint: true, requiresStartDate: false, requiresEndDate: subtype !== 'C' }
     case 'Z18':

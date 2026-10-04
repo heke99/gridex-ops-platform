@@ -1,4 +1,4 @@
-import {qualifyDateEventTestRow,changeDateFact} from './fixtures/prodat-date-events'
+import {qualifyDateEventTestRow} from './fixtures/prodat-date-events'
 import {evaluateEdielProductionSendLock} from '@/lib/ediel/core/productionGuards'
 import { ud, udInvoiceeFact, udAddressFact } from './fixtures/prodat-ud'
 import { readFileSync } from 'node:fs'
@@ -171,7 +171,7 @@ function row(body: Parts[], environment: 'test' | 'production', alphabet: readon
   const evidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.rawSegments,una:wire.una,facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],invoiceeObjects:[udInvoiceeFact()],
     registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const synthetic: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:'Z06',message_version:'26A',direction:'outbound',environment,message_standard:'edifact',
-    application_reference:'23-DDQ-PRODAT',company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
+    application_reference:'23-DDQ-PRODAT',message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence:evidence,dependentConditionStatuses:policy.prodatDependentConditions.map(c => ({...c,status:'not_required'}))}}}
   // Explicit partial persistence boundary: live-readiness fields are deliberately
   // absent, and the production positive control must remain blocked by that guard.
@@ -205,7 +205,8 @@ for (const environment of ['test','production'] as const) for (const alphabet of
         expect(blockers(result.issues).length).toBeGreaterThan(0)
         expect(() => assertRulebookAllowsSend(message)).toThrow(/Z06:242/)
         expect(blockers(preflightEdielMessageRow(message,'send').issues).length).toBeGreaterThan(0)
-        expect(() => assertEdielSendLock(message)).toThrow(/Z06:242/)
+        // E source qualification precedes transport's independent product check.
+        expect(() => assertEdielSendLock(message)).toThrow(['gas value on E','header product','party product'].includes(name)?'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED':/Z06:242/)
       }
     })
     it('stale persisted code/family cannot hide a missing product', () => {
@@ -215,7 +216,7 @@ for (const environment of ['test','production'] as const) for (const alphabet of
       expect(() => assertRulebookAllowsSend(message)).toThrow(/Z06:242/)
       expect(() => assertEdielSendLock(message)).toThrow(/Z06:242/)
     })
-    for (const code of ['E64','E32','E34']) it(`bounded positive ${code}`, () => {
+    for (const code of ['E64','E32','E34']) it(`bounded field242 positive ${code} retains independent full-message holds`, () => {
       const message = row([line('1','A'),...reason(code),...(code === 'E34' ? [ud()] : product())],environment,alphabet)
       const dateContext=environment==='test'?qualifyDateEventTestRow(message):undefined
       const result=validateEdielMessageRowWithRulebook(message,'send',dateContext)
@@ -229,12 +230,15 @@ for (const environment of ['test','production'] as const) for (const alphabet of
         expect(()=>assertEdielSendLock(message,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
       }else if(environment==='test'){
         expect(result.issues.filter(issue=>issue.scope==='prodat_dependent')).toEqual([])
-        expect(()=>assertRulebookAllowsSend(message,dateContext)).not.toThrow()
+        // This field242 fixture omits whole-message mandatory fields. The
+        // actual canonical guard may not be bypassed by caller override flags.
+        expect(result.issues.some(issue=>issue.code.startsWith('FIELD_')&&(issue.blocking||issue.severity==='error'))).toBe(true)
+        expect(()=>assertRulebookAllowsSend(message,dateContext)).toThrow('Rulebook blockerar skick: FIELD_')
         expect(()=>assertEdielSendLock(message,dateContext)).not.toThrow()
       }else{
         expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED',blocking:true}))
         expect(()=>assertRulebookAllowsSend(message)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
-        expect(()=>assertEdielSendLock(message)).toThrow('PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
+        expect(()=>assertEdielSendLock(message)).toThrow(code==='E34'?'PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED':'PRODAT_DATE_EVENT_SOURCE_UNQUALIFIED')
         expect(evaluateEdielProductionSendLock(message,preflight).issues.some(i=>i.message.includes('Produktionsmeddelande saknar'))).toBe(true)
       }
     })

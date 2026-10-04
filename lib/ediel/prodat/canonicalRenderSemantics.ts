@@ -43,10 +43,15 @@ export function resolveCanonicalProdatRenderSemantics(policy: CanonicalEdielPoli
       suppressAgreementReference: true,
       suppressEndUserParty: true,
       suppressInstallationParty: true,
-      requiredMeteringMethod: policy.subtype === 'F' ? 'Z04' : 'Z03',
+      requiredMeteringMethod: canonicalProdatRequestedMethod(policy.subtype),
       validityDateQualifier: '157',
     }
   }
 
   return base
+}
+
+/** Same source-owned F/G field217 projection used by canonical rendering. */
+export function canonicalProdatRequestedMethod(subtype:string|null|undefined):'Z04'|'Z03'|null {
+ return subtype==='F'?'Z04':subtype==='G'?'Z03':null
 }

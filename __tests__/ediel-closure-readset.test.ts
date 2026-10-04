@@ -3,6 +3,7 @@ import {inspectStructuralReadset} from '@/lib/ediel/sources/structuralSourceRead
 import {closureFixture} from './helpers/closureWireFixtures'
 import {timelineScope,timelineSource,timelineBody,timelineReceipt,timelineAssessment,timelineFacts} from './helpers/sourceDecisionTimelineFixtures'
 import {evidenceHash} from '@/lib/ediel/utilts/durableSourceDiscovery'
+import {utiltsStructureWire} from './helpers/structuralComparisonFixtures'
 function inspect(raw:string,rejected=false){
   const facts=timelineFacts(rejected?raw:closureFixture().wire)
   if(rejected)for(const object of facts.objects){object.disposition='rejected';object.reasons=['canonical_rejected']}
@@ -32,4 +33,15 @@ it('unbounded malformed/unknown object stays a global hold',()=>{
   const {wire}=closureFixture()
   expect(inspect(wire.replace('735123456789012345:::9',':::9')).unresolvedSources).toBe(true)
   expect(inspect(wire+'?').unresolvedSources).toBe(true)
+})
+it('a received UTILTS source carries no PRODAT structure and does not make the PRODAT universe incomplete',()=>{
+  const closure=closureFixture().wire,utilts=utiltsStructureWire({})
+  const read=(raw:string,code:string)=>inspectStructuralReadset(timelineScope,timelineReceipt(timelineBody([
+    timelineSource({messageCode:'Z05',rawPayload:closure,payloadHash:evidenceHash(closure),assessments:[]}),
+    timelineSource({sourceMessageId:'00000000-0000-4000-8000-0000000000e6',messageCode:code,rawPayload:raw,payloadHash:evidenceHash(raw),assessments:[]})])))
+  const result=read(utilts,'E66')
+  expect(result.timeline.status).toBe('inspected');expect(result.unresolvedSources).toBe(false)
+  expect(result.closureBlockers).toHaveLength(1);expect(result.versions).toEqual([])
+  // Unparseable bytes stay a global hold whatever code they claim.
+  expect(read(utilts+'?','E66').unresolvedSources).toBe(true)
 })

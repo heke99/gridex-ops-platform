@@ -6,13 +6,26 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const { stripTypeScriptTypes } = require('node:module')
+const { loadEdielSourceTestData } = require('./lib/ediel-source-test-data.cjs')
 const { SourceTextModule, SyntheticModule } = require('node:vm')
-const { test } = require('node:test')
+const { test, after } = require('node:test')
+const { sourceRuntimeBoundary, assertNoSourceBoundaryAttempts } = require('./helpers/ediel-source-manifest-vm.cjs')
+after(assertNoSourceBoundaryAttempts)
+const deniedTenantReads = []
+after(() => assert.deepEqual(deniedTenantReads, [], 'Source-only test attempted tenant database access'))
 const root = path.resolve(__dirname, '..')
 async function runtime() {
   const modules = new Map()
   const service = new SyntheticModule(['supabaseService'], function () {
     this.setExport('supabaseService', new Proxy({}, { get() { throw new Error('Unexpected database access in source-only test') } }))
+  })
+  // The actual TGT date-context reader imports this server adapter. These
+  // component tests load that reader unchanged and grant no tenant I/O.
+  const tenant = new SyntheticModule(['tenantDb'], function () {
+    this.setExport('tenantDb', () => {
+      deniedTenantReads.push('tenantDb')
+      throw new Error('Unexpected tenant database access in source-only test')
+    })
   })
   const entry = new SourceTextModule(`
     export { canonicalProdat26AFieldRules, PRODAT_26A_FIELD_MATRIX } from '@/lib/ediel/prodat/prodat26AFieldMatrix';
@@ -30,12 +43,17 @@ async function runtime() {
     export { preflightEdielPayload } from '@/lib/ediel/core/messageBuilder/payloadPreflight';
   `, { identifier: path.join(root, 'lib/ediel/characteristic-test.ts') })
   await entry.link((specifier, parent) => {
+    const boundary = sourceRuntimeBoundary(specifier, modules, parent)
+    if (boundary) return boundary
+    const sourceData = loadEdielSourceTestData(specifier, root, modules)
+    if (sourceData) return sourceData
     if (specifier === '@/lib/supabase/service') return service
+    if (specifier === '@/lib/supabase/tenantDb') return tenant
     assert(specifier.startsWith('@/lib/ediel/') || specifier.startsWith('.'), `Unexpected dependency ${specifier}`)
     const base = specifier.startsWith('@/') ? path.join(root, specifier.slice(2)) : path.resolve(path.dirname(parent.identifier), specifier)
     const file = ['.ts', '/index.ts'].map(suffix => base + suffix).find(fs.existsSync)
     assert(file && file.startsWith(path.join(root, 'lib/ediel/')), 'Load only real Ediel sources')
-    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'strip', sourceUrl: file }), { identifier: file }))
+    if (!modules.has(file)) modules.set(file, new SourceTextModule(stripTypeScriptTypes(fs.readFileSync(file, 'utf8'), { mode: 'transform', sourceUrl: file }), { identifier: file }))
     return modules.get(file)
   })
   await entry.evaluate()

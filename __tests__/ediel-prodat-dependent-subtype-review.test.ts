@@ -21,7 +21,7 @@ function message(body: Parts[], code = 'Z09', environment: 'test' | 'production'
     facts:{market:'electricity',endUserAddressObjects:[udAddressFact()],invoiceeObjects:[udInvoiceeFact()],registerObjects:[{meteringPointId:'A',identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const row: Partial<EdielMessageRow> = {message_family:'PRODAT',message_code:code,message_version:'26A',direction:'outbound',environment,
     message_standard:'edifact',application_reference:'23-DDQ-PRODAT',
-    company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',
+    message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic-company',raw_payload:payload,mime_type:'application/EDIFACT',
     parsed_payload:{rulebookAllowInvalidSend:true,prodatEngine:{registerEvidence,
       dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:code,facts:{canonicalSubtype:'F'}})
         .map(condition=>({...condition,status:'not_required'}))}},
@@ -49,7 +49,7 @@ describe('PR330 review: wire-specific D rules survive mismatched row metadata', 
           expect(() => assertRulebookAllowsSend(row)).toThrow(/D-villkor|PRODAT_DEPENDENT/)
           expect(preflightEdielMessageRow(row, 'send').issues.some(issue =>
             issue.code.startsWith('PRODAT_DEPENDENT_PREFLIGHT_') && issue.description.includes('Z09:216'))).toBe(true)
-          expect(() => assertEdielSendLock(row)).toThrow(/PRODAT_DEPENDENT_PREFLIGHT_/)
+          expect(() => assertEdielSendLock(row)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
         })
       }
     }
@@ -79,14 +79,15 @@ describe('PR330 review: wire-specific D rules survive mismatched row metadata', 
     expect(hasWire216(result.issues)).toBe(false)
     expect(result.issues).toContainEqual(expect.objectContaining({scope:'prodat_dependent',code:'PRODAT_DATE_EVENT_SCOPE_MISMATCH',blocking:true}))
     expect(() => assertRulebookAllowsSend(row,dateContext)).toThrow('PRODAT_DATE_EVENT_SCOPE_MISMATCH')
-    expect(() => assertEdielSendLock(row,dateContext)).toThrow('PRODAT_DATE_EVENT_SCOPE_MISMATCH')
+    // The existing source-specific producer guard precedes date transport.
+    expect(() => assertEdielSendLock(row,dateContext)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
   })
   it('cannot use the system-test ACK marker to bypass Z09:216', () => {
     const row = message(missingValidity(), 'Z09')
     row.message_code = 'Z06'
     row.parsed_payload = { ...row.parsed_payload, systemTestAckSend: true }
     expect(() => assertRulebookAllowsSend(row)).toThrow(/D-villkor|PRODAT_DEPENDENT/)
-    expect(() => assertEdielSendLock(row)).toThrow(/PRODAT_DEPENDENT_PREFLIGHT_/)
+    expect(() => assertEdielSendLock(row)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
   })
   it('leaves syntax-only inbound preflight without outbound D enforcement', () => {
     const row = { ...message(missingValidity()), direction: 'inbound' as const }

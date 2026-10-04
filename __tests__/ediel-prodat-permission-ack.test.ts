@@ -1,9 +1,12 @@
+import {expectOwnReferencePair} from './helpers/p16bHold'
 import {it,expect,vi} from 'vitest'
 import {validateProdatPermissionMessage} from '@/lib/ediel/testing/prodatPermissionEngine'
 import {resolveCanonicalRuntimeDecision} from '@/lib/ediel/core/runtimeDecision'
 import {decideProdatAperak} from '@/lib/ediel/decisionEngine'
 import {buildAckDraftForSource} from '@/lib/ediel/ack'
 import {permissionAckMessage as message,permissionAckObject as object,alphabets,characteristic} from './fixtures/prodat-permission-ack'
+import {expectP16bHold,p16bBlockedAperaks} from './helpers/p16bHold'
+vi.mock('@/lib/ediel/core/messageBuilder',async importOriginal=>(await import('./helpers/p16bHold')).captureP16bPreflight(importOriginal))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{throw Error('NO_DB')}}}))
 const selected=(errors:readonly {fieldCode?:string|null;ercCode:string}[])=>errors.filter(e=>['322','324'].includes(e.fieldCode??''))
 const manual=(m:ReturnType<typeof message>)=>validateProdatPermissionMessage({message:m})
@@ -28,8 +31,10 @@ for(const a of alphabets)it(`raw punctuation/case and second physical object ${a
  const m=message('Z15','S17','A75','B79',a,[...object('Z15','S17','x:+?\'','B79'),...object('Z15','S17','A74','X99','2','SECOND')])
  const d=manual(m)
  expect(d.applicationErrors).toMatchObject([{ercCode:'42',fieldCode:'322',text:"Felaktigt Tillståndets status x:+?'",lineItemReference:'CASE:A+B?C',prodatOccurrence:{lineIndex:0}},{ercCode:'42',fieldCode:'324',text:'Felaktigt Orsak till tillståndets upphörande X99',lineItemReference:'SECOND',prodatOccurrence:{lineIndex:1}}])
- const draft=buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors})
- expect(draft.rawPayload).toContain('ERC+42')
+ // Both objects carry own id and LI: exact P16B hold for the full96A wire.
+ p16bBlockedAperaks.length=0
+ expectOwnReferencePair([String((buildAckDraftForSource({sourceMessage:m,ackFamily:'APERAK',outcome:d.outcome,applicationErrors:d.applicationErrors})).rawPayload)])
+ expectP16bHold(m.raw_payload!);expect(p16bBlockedAperaks.join('')).toContain('ERC+42')
 })
 it('inapplicable fields and unknown subtype do not create selected errors',()=>{
  for(const code of ['Z13','Z18']){const m=message(code,'S17','A74','B79',alphabets[0],[...object(code),...characteristic('Z23','X99'),...(code==='Z13'?characteristic('Z25','X99'):[])])

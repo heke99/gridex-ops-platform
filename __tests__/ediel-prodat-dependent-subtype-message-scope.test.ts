@@ -37,7 +37,7 @@ function row(payload: string, environment: 'test' | 'production' = 'test', meter
   const registerEvidence = createProdatRegisterEvidence({code:'Z06',rawSegments:wire.segments.map(segment=>segment.raw),una:wire.una,
     facts:{market:'electricity',endUserAddressObjects:[udAddressFact(meteringPointId)],invoiceeObjects:[udInvoiceeFact(meteringPointId)],registerObjects:[{meteringPointId,identityAgency:'89',expectedRegisterCount:1,meterReadingsSentInUtilts:false}]}})
   const fixture: Partial<EdielMessageRow> = { message_family:'PRODAT', message_code:'Z06', message_version:'26A', direction:'outbound', environment,
-    message_standard:'edifact', application_reference:'23-DDQ-PRODAT', company_id:'synthetic-company', raw_payload:payload, mime_type:'application/EDIFACT',
+    message_standard:'edifact', application_reference:'23-DDQ-PRODAT', message_received_at:'2026-09-19T12:00:00.000Z',company_id:'synthetic-company', raw_payload:payload, mime_type:'application/EDIFACT',
     // Synthetic in-memory boundary; snapshot/markers may not certify another UNH.
     parsed_payload:{rulebookAllowInvalidSend:true, prodatEngine:{registerEvidence,dependentConditionStatuses:evaluateProdatDependentConditions({messageCode:'Z06',facts:{canonicalSubtype:'E'}}).map(c=>({...c,status:'not_required'}))}},
     validation_report:{systemTestAckSend:{enabled:true,source:'system_test_ack_action'}},
@@ -62,7 +62,9 @@ describe('PR330 rereview: never certify an unvalidated later PRODAT message', ()
       for (const override of [false,true]) {
         const candidate = {...r, parsed_payload:{...r.parsed_payload,rulebookAllowInvalidSend:override}}
         expect(()=>assertRulebookAllowsSend(candidate)).toThrow(scopeCode)
-        expect(()=>assertEdielSendLock(candidate)).toThrow(scopeCode)
+        // The final transport guard first requires an actual persisted E producer.
+        // The independent whole-message scope oracle above still blocks the raw.
+        expect(()=>assertEdielSendLock(candidate)).toThrow('PRODAT_DEATH_STATUS_SOURCE_UNQUALIFIED')
       }
       expect(preflightEdielMessageRow(r,'send').issues.some(i=>i.code === `PRODAT_DEPENDENT_PREFLIGHT_${scopeCode}` && i.severity === 'error')).toBe(true)
       // Supplying a parsed cache containing only the first message cannot hide
