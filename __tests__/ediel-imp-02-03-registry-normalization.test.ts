@@ -72,7 +72,8 @@ describe('IMP-02 EL consumers reject a GAS route (TypeScript consumer layer)', (
   })
 })
 
-type Ctx = { db: { query: (sql: string) => Promise<{ rows: Array<Record<string, any>> }>; exec: (sql: string) => Promise<unknown> }; apply: (bytes: string, records: unknown[]) => Promise<any>; actor: (ediel: string | null, name?: string, org?: string) => any; uid: (n: number) => string }
+type RegistryFixture = { routes: Array<Record<string, unknown>>; roles?: string[]; raw?: unknown; [key: string]: unknown }
+type Ctx = { db: { query: (sql: string) => Promise<{ rows: Array<Record<string, unknown>> }>; exec: (sql: string) => Promise<unknown> }; apply: (bytes: string, records: unknown[]) => Promise<Record<string, unknown>>; actor: (ediel: string | null, name?: string, org?: string) => RegistryFixture; uid: (n: number) => string }
 const results: Record<string, unknown> = {}
 
 describe('IMP-02 / IMP-03 actual SQL importer and market owner (embedded PostgreSQL)', () => {
@@ -84,7 +85,7 @@ describe('IMP-02 / IMP-03 actual SQL importer and market owner (embedded Postgre
       const one = async (sql: string) => (await db.query(sql)).rows[0]
       const counts = async () => one(`SELECT (SELECT count(*)::int FROM platform_market_actors) actors,(SELECT count(*)::int FROM platform_actor_routes) routes,(SELECT count(*)::int FROM actor_registry_import_runs) runs,(SELECT count(*)::int FROM gridex_registry_import.batches) batches,(SELECT count(*)::int FROM gridex_registry_import.market_records) market_records`)
       const asService = async <T>(fn: () => Promise<T>) => { await db.exec('SET ROLE service_role'); try { return await fn() } finally { await db.exec('RESET ROLE') } }
-      const readMarket = (rid: string) => asService(async () => (await one(`SELECT public.ediel_registry_route_source_v1('${rid}') q`)).q)
+      const readMarket = (rid: string) => asService(async () => (await one(`SELECT public.ediel_registry_route_source_v1('${rid}') q`)).q as Record<string, unknown>)
       const verify = (aid: string, rid: string | null) => asService(async () => (await one(`SELECT public.ediel_verify_registry_el_actor_v1('${uid(1)}','${aid}',${rid ? `'${rid}'` : 'NULL'}) q`)).q)
 
       // IMP-02 condition: one legal actor, EL (PRODAT with subaddress + distinct technical party, UTILTS) and GAS
@@ -100,7 +101,7 @@ describe('IMP-02 / IMP-03 actual SQL importer and market owner (embedded Postgre
       results.actor = await one(`SELECT country_code,org_number FROM platform_market_actors WHERE id='${aid}'`)
       results.roles = (await db.query(`SELECT actor_role,metadata->>'market' market FROM platform_actor_roles WHERE actor_id='${aid}'`)).rows
       results.marketRecords = (await db.query(`SELECT market,record->'raw' raw,record->>'countryCode' country FROM gridex_registry_import.market_records WHERE actor_id='${aid}' ORDER BY market`)).rows
-      const rows = results.routes as Array<Record<string, any>>
+      const rows = results.routes as Array<{ id: string; registry_market: string; message_family: string; [key: string]: unknown }>
       const elProdat = rows.find((r) => r.registry_market === 'EL' && r.message_family === 'PRODAT')!, gasRoute = rows.find((r) => r.registry_market === 'GAS')!
       results.elSource = await readMarket(elProdat.id); results.gasSource = await readMarket(gasRoute.id)
       results.verifyGas = await verify(aid, gasRoute.id).then(() => 'accepted', (e: Error) => e.message)
@@ -132,7 +133,7 @@ describe('IMP-02 / IMP-03 actual SQL importer and market owner (embedded Postgre
   }, 300000)
 
   it('IMP-02 condition: preserves market, country, roles, legal/technical identity, family, subaddress, transport and original codes', () => {
-    const rows = results.routes as Array<Record<string, unknown>>
+    const rows = results.routes as Array<{ id: string; registry_market: string; message_family: string; [key: string]: unknown }>
     expect(rows.map((r) => [r.registry_market, r.message_family, r.subaddress, r.communication_type, r.party_id, r.interchange_party_id])).toEqual([
       ['EL', 'PRODAT', 'imp-sub', 'smtp', 'IMP02-LEGAL', 'IMP02-TECH'],
       ['EL', 'UTILTS', null, 'smtp', 'IMP02-LEGAL', 'IMP02-TECH'],
