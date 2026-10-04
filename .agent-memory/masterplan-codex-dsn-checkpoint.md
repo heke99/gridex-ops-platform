@@ -1,6 +1,8 @@
 # Codex — masterplan v2, TR-04
 
-Status: IN_PROGRESS; TR-04/AT-TR-04 remain unapproved. Branch
+Status: IN_PROGRESS; TR-04/AT-TR-04 are VERIFIED/PASSED in the inherited
+PR426/main coverage. This session repairs newly reproduced gaps and refreshes
+their evidence; no new native approval is claimed before execution. Branch
 `codex/ediel-tr04-dsn-20261004` starts at published #500
 1187da94760b4e0a14e4a69dfca75bd4a5f9b9d5. User authorizes GitHub publication
 and gated main integration, requires collaboration with external Claude.
@@ -83,3 +85,18 @@ capture. Integrate already green PRs to main; preserve Claude coverage union.
 - Publish draft to trigger real schema capture. Generated types/schema/
   fingerprint and manifest remain the prior baseline until capture import;
   generated-tail/schema comparisons are expected pending, never called PASS.
+
+## Complete-card review and local verification
+
+- Full suite9870/9870 tests in760 files PASS314.35 seconds. App/tests/scripts
+  typechecks all exit0; owned lint zero errors. SQL checks27+32 PASS.
+- Independent full-card reviewer finds no remaining card effect or binding/
+  ACL/metadata defect atc3aeaefa. Actual native parity/ACL and mandatory
+  upgrade/CI remain merge gates; synthetic fixtures do not prove SC062
+  authentic delivery/E2E or production acceptance.
+- Correction: the earlier resumable summary incorrectly described TR04 as
+  unapproved. Inspection of the committed parent shows VERIFIED/PASSED inherited
+  from PR426. Preserve that existing approval and update its code/test evidence;
+  do not fabricate a new approval or edit another agent's coverage status.
+- Draft #501 published c3aeaefa; real schema-capture run37224099718 queued.
+  Initial generated-tail/schema checks remain pending artifact import.
