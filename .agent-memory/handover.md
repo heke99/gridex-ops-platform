@@ -1085,3 +1085,5 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
 
 2026-10-04: #506 TR-06/AT-TR-06/SC-060 mergad som e7cdcd8d756a3b8a1ec69c6e953115f2ce8df02f efter nio gröna CI-grindar på bfd5bc8e; tenant-/krypto-evidens 151/151, full svit 9953/9953 med ordinarie CI-nätgräns; ingen schema- eller marknadsändring.
+
+2026-10-04: #510 certifikatförberedelse mergad som a40b5732cefcc781e737a6970f69681f77a74a03 efter nio gröna CI-grindar på d865f7ad; 14 verkliga resolver/krypto/AGT-prov, parent165/165 och ny-main-kombination123/123 PASS; egen checkpoint, inga delade coverage-/minnes-/schemaändringar.

@@ -57,19 +57,20 @@ it does not prove a live issuer registration, database RLS or market activation.
 
 ## Separate follow-up packets
 
-Preparation #510 supplies companyId at all four callers and the already computed
+Preparation #510 (merged a40b5732 after nine exact-head gates) supplies companyId at all four callers and the already computed
 businessCode in transport metadata; 14 real-resolver/crypto/AGT behavior tests.
 Readiness #511 uses the sole validated resolver and its actual PEM fingerprint;
 18 behavior tests prove successful own-company readiness and rejection effects.
 Together: independent parent 199/199 in nine security suites, full 9985/9985,
-types/lint/architecture checks PASS. Both source heads are published and retained;
-merge follows their own CI gates, #510 then #511. SC-041-only #513 is independent.
+types/lint/architecture checks PASS. Both source heads are published and retained; #510 is merged and #511 now
+targets main after its own CI gates. SC-041-only #513 is independent.
 These packets do not add further TR rule approvals or database/market claims.
 
 ## Next action
 
-Merge #510 after its own clean replay passes, then retarget #511 to main and
-merge after its own gates pass. Merge independent #513 only after its own gates.
+Merge retargeted #511 after its own gates pass. Hold independent #513 and this
+handover branch outside main until the integrator releases the shared-file merge
+window; #513 also requires its own complete gates.
 Record one handover line per actual merge; keep shared campaign memory intact.
 
 Skill routing: using-superpowers/executing-plans/using-git-worktrees for isolated
