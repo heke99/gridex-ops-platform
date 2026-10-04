@@ -43,6 +43,7 @@ export default defineConfig({
     'scripts/ediel-artifact-retention-native.test.ts',
     'scripts/ediel-customer-retention-native.test.ts',
     'scripts/ediel-transport-exception-native.test.ts',
+    'scripts/ediel-tr-09-reserve-source-native.test.ts',
     'scripts/ediel-service-evidence-native.test.ts',
     'scripts/ediel-esco-10-11-projection-native.test.ts',
     'scripts/ediel-dsn-source-native.test.ts',
