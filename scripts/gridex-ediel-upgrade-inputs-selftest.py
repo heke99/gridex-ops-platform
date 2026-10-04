@@ -92,4 +92,10 @@ with tempfile.TemporaryDirectory(prefix='gridex-upgrade-inputs-selftest-') as te
     except ValueError as error:
         assert 'no_forward_upgrade_migrations' in str(error)
     print('PASS: refuses empty upgrade claim')
-print('UPGRADE_INPUTS_SELFTEST: 7/7 PASS; provenance/control-plane only, no SQL replay claim')
+    write(root, {'README.md': b'code-only change\n'})
+    commit(root, 'code only')
+    parity = module.prepare(root, base, Path(temp) / 'parity-only')
+    assert parity['forwardMigrations'] == [] and parity['parityOnly'] is True
+    assert (Path(temp) / 'parity-only' / 'upgrade-inputs.list').read_text() == ''
+    print('PASS: code-only candidate becomes parity-only replay')
+print('UPGRADE_INPUTS_SELFTEST: 8/8 PASS; provenance/control-plane only, no SQL replay claim')
