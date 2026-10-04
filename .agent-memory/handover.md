@@ -1084,3 +1084,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 Kandidatgranskning: TEN-01/02/05/06, U-04, U-14 ej godkända (effektluckor, se candidates-2026-10-04.md). Överlämning till nästa agent; prompt i chatten och i next-actions.md.
 - 2026-10-04 OPS-02 (+AT) godkänd i #507: kundkort + arbetskö styrs av processbeslutet och hålls utan beslut; badge rättad; automation/normalizeSimpleRequestStatus falsklarm (registrering vid utskick).
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
+- 2026-10-04 Claim-tavla för masterplan v2 införd: issue #530 (Claude + Codex), regel 8 i AGENTS.md. Läs/claima där innan kod.
