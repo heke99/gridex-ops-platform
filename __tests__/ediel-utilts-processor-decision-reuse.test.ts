@@ -52,6 +52,7 @@ describe('UTILTS metering processor retained decision', () => {
   })
 
   it.each([
+    ['missing time anchors', (policy: CanonicalEdielPolicy) => ({ ...policy, timeAnchors: undefined })],
     ['reference date', (policy: CanonicalEdielPolicy) => ({ ...policy, referenceDate: '2026-09-30' })],
     ['admission calendar date', (policy: CanonicalEdielPolicy) => ({ ...policy, timeAnchors: { ...policy.timeAnchors!, admissionDate: '2026-09-30' } })],
     ['invalid admission instant', (policy: CanonicalEdielPolicy) => ({ ...policy, timeAnchors: { ...policy.timeAnchors!, admissionAt: 'invalid' } })],

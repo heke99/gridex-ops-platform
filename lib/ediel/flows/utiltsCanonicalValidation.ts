@@ -12,6 +12,7 @@ export async function initialCanonicalUtiltsDecision(message:EdielMessageRow,ret
   const decision=retained ?? await resolveCanonicalRuntimeDecisionWithRegistry(message)
   if(!decision.policy || decision.policy.family!=='UTILTS' || decision.policy.direction!=='inbound' || decision.policy.code!==message.message_code
     || (retained && policy && policy!==decision.policy)) throw new Error('utilts_initial_canonical_owner_context_mismatch')
+  if (!decision.policy.timeAnchors) throw new Error('utilts_runtime_policy_time_context_mismatch')
   return decision as CanonicalRuntimeDecision & {policy:CanonicalEdielPolicy}
 }
 

@@ -843,24 +843,6 @@ function runUtiltsRuntimeForMessageCore(
   )) {
     throw new Error('utilts_runtime_policy_context_mismatch')
   }
-  if (canonicalPolicy?.timeAnchors) {
-    const retained = canonicalPolicy.timeAnchors
-    // Recheck source/time coherence with the retained explicit instants. This
-    // never selects a guide or substitutes the processing/replay clock.
-    try {
-      if (!retained.admissionAt) throw new Error('utilts_runtime_policy_time_context_mismatch')
-      const expected = resolveEdielMessageTimeAnchors(message, undefined, { admissionAt: retained.admissionAt, replayAt: retained.replayAt ?? undefined })
-      const fields = [...Object.keys(expected).filter(key => key !== 'admissionSource'), 'value', 'format', 'originalOffset', 'timeBasis', 'qualifier']
-      if (canonicalPolicy.referenceDate !== expected.admissionDate
-        || (retained.admissionSource === 'local_ingress' && retained.admissionAt !== expected.localIngressAt)
-        || JSON.stringify(retained, fields) !== JSON.stringify(expected, fields)) {
-        throw new Error('utilts_runtime_policy_time_context_mismatch')
-      }
-    } catch {
-      // Our own incoherent decision has no national field-error authority.
-      throw new Error('utilts_runtime_policy_time_context_mismatch')
-    }
-  }
   // The selected processability profile is part of the decision. Matching may
   // enrich tenant/object facts, but must not choose a new guide at receipt time.
   const validationMessage = runtimeValidationMessage(message)
@@ -902,6 +884,24 @@ function runUtiltsRuntimeForMessageCore(
         syntaxOk: false, transactions: facts.transactions, issues: syntaxIssues,
       }),
       ackPlan: decideUtiltsRuntimeAckPlan({ message, facts, validation }),
+    }
+  }
+  if (canonicalPolicy?.timeAnchors) {
+    const retained = canonicalPolicy.timeAnchors
+    // Recheck source/time coherence with the retained explicit instants. This
+    // never selects a guide or substitutes the processing/replay clock.
+    try {
+      if (!retained.admissionAt) throw new Error('utilts_runtime_policy_time_context_mismatch')
+      const expected = resolveEdielMessageTimeAnchors(message, undefined, { admissionAt: retained.admissionAt, replayAt: retained.replayAt ?? undefined })
+      const fields = [...Object.keys(expected).filter(key => key !== 'admissionSource'), 'value', 'format', 'originalOffset', 'timeBasis', 'qualifier']
+      if (canonicalPolicy.referenceDate !== expected.admissionDate
+        || (retained.admissionSource === 'local_ingress' && retained.admissionAt !== expected.localIngressAt)
+        || JSON.stringify(retained, fields) !== JSON.stringify(expected, fields)) {
+        throw new Error('utilts_runtime_policy_time_context_mismatch')
+      }
+    } catch {
+      // Our own incoherent decision has no national field-error authority.
+      throw new Error('utilts_runtime_policy_time_context_mismatch')
     }
   }
   // Shared admission selects one complete source guide package. Candidate
