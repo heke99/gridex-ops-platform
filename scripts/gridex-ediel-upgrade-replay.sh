@@ -8,8 +8,9 @@ CANDIDATE_TREE="$(git -C "$CANDIDATE_ROOT" rev-parse 'HEAD^{tree}')"
 cd "$CANDIDATE_ROOT"
 [[ "${GITHUB_ACTIONS:-}" == true && -n "${RUNNER_TEMP:-}" ]] || { echo 'upgrade_disposable_ci_runner_required' >&2; exit 1; }
 [[ -z "${GRIDEX_REPLAY_DB_URL:-}" ]] || { echo 'upgrade_external_database_forbidden' >&2; exit 1; }
-# Last genuinely fully verified ancestor, not a reconstructed schema file.
-UPGRADE_BASE=d30fa0203f0499a8e15faeddda7676af81296c86
+# Main after the #426 split stack (#483-#489 merged, PR #489 merge commit);
+# the old ancestor d30fa02 is not reachable from main. Owner decision A1.
+UPGRADE_BASE=2bc65eab67dfb45a61e192a3233ed16584fb5a2e
 UPGRADE_WORK="$(mktemp -d "$RUNNER_TEMP/gridex-upgrade.XXXXXX")"
 UPGRADE_OUT="$CANDIDATE_ROOT/rem002-upgrade"
 mkdir -p "$UPGRADE_OUT"
