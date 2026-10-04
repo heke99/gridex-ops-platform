@@ -514,8 +514,13 @@
     {
       "id": "P-15",
       "acceptance_id": "AT-P-15",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-received-structure-reader.test.ts",
+        "__tests__/ediel-received-structure-reader-boundaries.test.ts",
+        "__tests__/ediel-prodat-registers.test.ts",
+        "__tests__/ediel-structural-safe-apply-source.test.ts"
+      ]
     },
     {
       "id": "P-16",

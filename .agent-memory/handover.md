@@ -1115,3 +1115,4 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #491: P-10 (+AT) godkänd (ny scripts/test-ediel-p-10-z02-correlation.cjs).
 - 2026-10-04 #491: P-12 (+AT) godkänd (ny scripts/test-ediel-p-12-z04ad-scope.cjs).
 - 2026-10-04 #491: P-12, P-13 (+AT) godkända (nya runners p-12-z04ad-scope, p-13-end-preserves). Kvar P: P-15 (öppen), P-06/P-08 PARTIAL.
+- 2026-10-04 #491: P-15 PARTIAL (taggad; lucka: framtida leverantörs struktur före start). P-kort klara utom PARTIAL P-06/08/15. Nästa: U-kort.
