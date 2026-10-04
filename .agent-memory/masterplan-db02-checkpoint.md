@@ -1,14 +1,17 @@
 # DB-02 / AT-DB-02 independent Ediel inventory
 
-Status: PARTIAL; no implementation or approval. Source frozen at actual main
+Status: PARTIAL; bounded repair cleared by root; no implementation or approval.
+Inventory source frozen at actual main
 `56192d16d1eac7fb0e716a3e2770bac8e58be115`, 2026-10-04. Branch:
 `codex/ediel-db02-tenant-parent-inventory-20261004`.
 
 Root assigned a bounded whole-card review, not a general database audit. Scope
 registration: [491/5985015284](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985015284).
 Owner/file proposal: [491/5985115747](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985115747).
-Only this independent checkpoint is committed. No product, migration, test,
-tag, generated artifact, shared memory or coverage row changes.
+Initial inventory publication `31c600365ac8e27f173adc673179f40a81b101e8` contains
+only this checkpoint. The subsequent tests-first freeze adds the own tests,
+one additive native-config include and the empty CLI migration scaffold. No
+production guard, generated artifact, shared memory or coverage rows change.
 
 ## Exact frozen contract
 
@@ -105,7 +108,41 @@ and source-owned RPC guards above provide counterexamples. UUID FK is not by
 itself sufficient, but a UUID FK plus an actual parent-company trigger can be.
 This review does not weaken DB-01 #523 or claim that every UUID relation is safe.
 
-## Smallest next package, held for root/owner clearance
+## Bounded repair clearance and tests-first freeze
+
+Root cleared only the exact-profile exclusion and date-order CHECK, including
+the narrowly required `btree_gist` dependency. Public precise scope:
+[491/5985180650](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985180650).
+CLI 2.101.0 version/help/new created
+`20261004223219_ediel_tenant_profile_interval_guard.sql`, later than GOV-08
+221605 and latest queued #503 220429. It remains empty at the tests-first freeze.
+
+Own durable `__tests__/ediel-db02-profile-periods.test.ts` executes the actual
+immutable production profile DDL and real PGlite `btree_gist`, then the forward.
+The empty scaffold produces **16 RED / 9 PASS, 25 cases**. Positives retain real
+parent FK, disabled same-start uniqueness, adjacency, empty/disabled intervals,
+same-row update and tenant/environment separation. The intended write-denial
+and legacy-preflight assertions fail because enforcement is absent.
+
+The earlier outside-git proposed DDL passes **23 finite checks** on real
+PostgreSQL 17.5/PGlite with the bundled extension, including legacy rollback.
+Official [Supabase extension catalog](https://supabase.com/docs/guides/database/extensions)
+lists `btree_gist`; [PG17 btree_gist](https://www.postgresql.org/docs/17/btree-gist.html)
+supports UUID/text equality; [PG17 ranges](https://www.postgresql.org/docs/17/rangetypes.html)
+documents `tstzrange` for these actual timestamptz columns and the exclusion
+pattern. Current Supabase changelog was checked: the 17.11 btree_gist reindex
+notice concerns float/NaN indexes, not these UUID/text/range keys; no extension
+version pin is introduced.
+
+`scripts/ediel-db02-profile-periods-native.test.ts` is added to the existing
+mandatory native config. It asserts installed constraints, actual write and
+rollback boundaries, two real repeatable-read sessions with an observed
+transaction-ID lock (first commit denies the rival, first rollback permits it),
+and legacy preflight against an isolated exact-source profile table. Synthetic
+tenant/profile data is explicit. Genuine execution remains pending; local
+psql/Supabase is unavailable, so no local native or concurrent PASS is claimed.
+
+## Smallest authorized next package
 
 Only `tenant_ediel_profiles` write validity, plus durable actual-source SQL
 behavior evidence and this checkpoint. Use a CLI-created forward timestamp
@@ -123,19 +160,19 @@ reader, TEN-09 permission resolver, P-08, grants or unrelated schema owners.
 - Re-enable and INSERT/UPDATE of enabled state, bounds or scope must recheck;
   exclude the same physical row itself and do not borrow another tenant or
   environment. Market is currently constrained to electricity.
-- Concurrency must use a genuine serialized write invariant. A bare advisory
-  or company-row lock followed by SELECT has READ COMMITTED snapshot limits;
-  do not call it universal protection under repeatable-read. Exact-profile
-  exclusion could enforce competing writes directly but adds a `btree_gist`
-  dependency and cannot silently fix existing overlaps. No extension or
-  isolation-policy choice is approved by this inventory.
+- The exact-profile exclusion is the concurrency boundary, with `btree_gist`
+  UUID/text equality and `tstzrange('[)')` overlap. An ordered-date CHECK and
+  preflight run under a transactional profile-table lock. Genuine two-session
+  proof is required; a bare lock/count is not substituted.
 - Do not rewrite or close historical/current rows automatically. Existing
   contradictory intervals need an explicit source-owner migration policy.
 
-Next action: root reviews literal effects, ownership and serialized guard
-design before authorizing a repair. Persist RED behavior first; source/native
-qualification and independent complete-card approval precede only the two own
-coverage rows. DB-02 and AT-DB-02 remain unapproved.
+Next action: implement only the authorized forward after the frozen RED tests,
+run focused actual-source regressions and checks, then genuine source capture
+and mandatory native/concurrency/legacy proof. Independent complete-card
+approval precedes only the two own coverage rows. No local full-suite retry
+after the earlier auto-review rejection; actual-head required GitHub gates
+provide that qualification. DB-02 and AT-DB-02 remain unapproved.
 
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
