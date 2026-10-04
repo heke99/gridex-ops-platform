@@ -180,8 +180,19 @@
     {
       "id": "IMP-02",
       "acceptance_id": "AT-IMP-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "supabase/migrations/20260930153118_ediel_actor_legal_identity_name_search_v1.sql",
+        "__tests__/ediel-registry-market-source.test.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "scripts/ediel-registry-market-sql-regression.mjs",
+        "scripts/ediel-registry-txt-parity-sql-regression.mjs"
+      ]
     },
     {
       "id": "IMP-03",
@@ -1606,8 +1617,19 @@
     },
     {
       "id": "AT-IMP-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/actor-registry/parseActorRegistryXml.ts",
+        "lib/actor-registry/parseActorRegistryTxt.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "supabase/migrations/20260930153118_ediel_actor_legal_identity_name_search_v1.sql",
+        "__tests__/ediel-registry-market-source.test.ts",
+        "__tests__/ediel-actor-registry-source.test.ts",
+        "__tests__/ediel-actor-registry-txt-source.test.ts",
+        "scripts/ediel-registry-market-sql-regression.mjs",
+        "scripts/ediel-registry-txt-parity-sql-regression.mjs"
+      ]
     },
     {
       "id": "AT-IMP-03",
