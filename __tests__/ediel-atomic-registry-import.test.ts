@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto'
 const rpc=vi.hoisted(()=>vi.fn())
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc}}))
 import {applyActorRegistryRecords,decodeRegistryUpload,importActorRegistryXml} from '@/lib/actor-registry/importActorRegistry'
+import {parseActorRegistryTxt} from '@/lib/actor-registry/parseActorRegistryTxt'
 const actorUserId='00000000-0000-4000-8000-000000000001'
 const routedCompany='<Company><Name>Synthetic routed actor</Name><Identifiers><Key Type="EdielId">21660</Key></Identifiers><EDIFACTDetails Type="PRODAT"><PartyId>21660</PartyId><InterchangePartyId>21660</InterchangePartyId><CommunicationAddress Type="SMTP">synthetic@example.invalid</CommunicationAddress></EDIFACTDetails></Company>'
 const market=(companies:string)=>`<CompanyListMessage><Market Code="EL" Country="SE">${companies}</Market></CompanyListMessage>`
@@ -31,6 +32,20 @@ describe('actual atomic registry producer source boundary',()=>{
   expect(Buffer.from(args.p_source_base64,'base64')).toEqual(bytes)
   expect(args.p_source_sha256).toBe(createHash('sha256').update(bytes).digest('hex'))
   expect(args.p_records[0]).toMatchObject({name:'Å Synthetic',edielId:'21660',routes:[expect.objectContaining({messageFamily:'PRODAT',communicationAddress:'synthetic@example.invalid'})]})
+ })
+ it('passes the typed TXT family blocks through the same atomic core with their exact source bytes',async()=>{
+  const text='Market;CompanyName;SvkId;EdielId;Address1;Address2;PostCode;Place;CountryCode;WebSiteAddress;Type PRODAT;SubAddress;CommunicationAddress;InterchangePartyId;PartyId;Type UTILTS;SubAddress;CommunicationAddress;InterchangePartyId;PartyId\nEL;Synthetic TXT;SYN;21660;Street\nFloor 2;;12345;Town;SE;;PRODAT;;relay@example.invalid;99888;21660;UTILTS;;measure@example.invalid;99888;21660'
+  await applyActorRegistryRecords({sourceBytes:text,sourceKind:'companies_txt',actorUserId,actors:parseActorRegistryTxt(text)})
+  expect(rpc.mock.calls.map(([name])=>name)).toEqual(['ediel_read_actor_registry_batch_v1','ediel_apply_actor_registry_v1'])
+  const args=rpc.mock.calls[1][1]
+  expect(args.p_source_kind).toBe('companies_txt')
+  expect(Buffer.from(args.p_source_base64,'base64')).toEqual(Buffer.from(text,'utf8'))
+  expect(args.p_source_sha256).toBe(createHash('sha256').update(text).digest('hex'))
+  expect(args.p_records).toEqual([expect.objectContaining({name:'Synthetic TXT',market:'EL',countryCode:'SE',edielId:'21660',roles:[],
+   routes:[expect.objectContaining({messageFamily:'PRODAT',partyId:'21660',interchangePartyId:'99888',communicationAddress:'relay@example.invalid'}),
+    expect.objectContaining({messageFamily:'UTILTS',partyId:'21660',interchangePartyId:'99888',communicationAddress:'measure@example.invalid'})],
+   raw:expect.objectContaining({fields:expect.objectContaining({Address1:'Street\nFloor 2'})}),
+  })])
  })
  it('holds a text/byte mismatch before any native import',async()=>{
   const bytes=Buffer.from('<Root/>')
