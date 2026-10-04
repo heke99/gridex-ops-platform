@@ -29,6 +29,7 @@ import {checkAckDeadlines} from '@/lib/ediel/sla/checkAckDeadlines'
 import {sendOutboxItem} from '@/lib/ediel/outbox/sendOutboxItem'
 import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
 import {revokeNetworkRegistrySource} from '@/lib/ediel/production/networkRegistrySource'
+import {readEdielProcessNextActions} from '@/lib/ediel/operations/processNextAction'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>
@@ -232,6 +233,7 @@ it('an actual provider-entered unobserved attempt and expired timer cannot grant
 it('the actual sweep of a declared expired public SLA row cannot create recovery/outbox/provider effects for absent, accepted, partial or uncertain attempts',async () => {
   for (const kind of ['absent','accepted','partial','unknown'] as const) {
     const f = await seed(false)
+    let evaluatedAt: string | undefined
     if (kind !== 'absent') {
       if (kind === 'unknown') smtp.mockRejectedValue(Object.assign(new Error('synthetic provider timeout'),{code:'ETIMEDOUT',command:'DATA'}))
       else smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:kind === 'partial' ? ['other@example.invalid'] : [],messageId:randomUUID(),response:'250 synthetic accepted'})
@@ -243,11 +245,19 @@ it('the actual sweep of a declared expired public SLA row cannot create recovery
       // This deadline comes from the actual accepted transport owner, unlike
       // the explicitly declared public sweep input below.
       expect(Number.isFinite(Date.parse(original.contrl_due_at!))).toBe(true)
+      evaluatedAt = new Date(Date.parse(original.contrl_due_at!) + 86400000).toISOString()
+      const before = effects(f), calls = smtp.mock.calls.length
+      const actualWatch = await readEdielProcessNextActions({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',messageIds:[original.id],evaluatedAt,access:{canRead:true,canReview:true,canPrepare:true}})
+      const overdue = actualWatch.get(original.id)
+      expect(overdue).toMatchObject({sourceMessageId:original.id,automaticResendAllowed:false,authorizesProviderEntry:false})
+      expect(overdue!.blockers).toContain('technical_sender_watch_overdue')
+      expect(Date.parse(overdue!.timeBasis.technicalDueAt!)).toBe(Date.parse(original.contrl_due_at!))
+      expect(effects(f)).toEqual(before); expect(smtp).toHaveBeenCalledTimes(calls)
     }
     const timerId = randomUUID()
     sql(`INSERT INTO public.ediel_sla_timers(id,company_id,ediel_message_id,timer_type,due_at,status,created_by) VALUES(${literal(timerId)},${literal(f.companyId)},${literal(f.originalZ03.id)},'contrl_due',now()-interval '1 hour','open',${literal(f.actorUserId)})`)
     const before = effects(f), archive = originals(f), calls = smtp.mock.calls.length
-    expect(await checkAckDeadlines({companyId:f.companyId,actorUserId:f.actorUserId})).toMatchObject({expired:expect.any(Number)})
+    expect(await checkAckDeadlines({companyId:f.companyId,actorUserId:f.actorUserId,now:evaluatedAt})).toMatchObject({expired:expect.any(Number)})
     expect(sql(`SELECT to_jsonb(status) FROM public.ediel_sla_timers WHERE id=${literal(timerId)}`)).toBe('expired')
     expect(effects(f)).toEqual(before); expect(originals(f)).toEqual(archive); expect(smtp).toHaveBeenCalledTimes(calls)
     const attemptId = sql<string | null>(`SELECT (SELECT to_jsonb(id) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)})`)

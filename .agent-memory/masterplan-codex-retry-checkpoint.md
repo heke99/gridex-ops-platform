@@ -60,8 +60,11 @@ green effects. Publish test/memory in own small PR, continue gated main merges.
   that authority. Complete-card approval remains pending this exact limitation
   and independent actual effect evidence; no coverage promotion.
 - Timer sweep uses a declared public SLA fixture, labelled explicitly;
-  accepted original's contrl_due_at is independently read from the actual
-  accepted transport owner. No authentic outbound SLA emission is inferred.
+  accepted original's contrl_due_at is read from the actual accepted transport
+  owner, then its actual private-owner/process projection is evaluated beyond
+  that deadline: technical_sender_watch_overdue, no provider/retry authority,
+  no writes/provider calls. No authentic outbound SLA emission is inferred
+  from the separate declared public sweep row.
 - Script typecheck and owned TS lint PASS; existing recovery/gateway/timer
   behaviour tests26/26 PASS; finite SQL wrapper3/3 PASS. Ten new mandatory
   native cases remain NOT_RUN locally and are not covered by those results.
@@ -76,3 +79,11 @@ green effects. Publish test/memory in own small PR, continue gated main merges.
 Next: inspect exact native failures and correct only reproduced product or
 fixture defects; publish every delta. Merge small approved PRs as their exact
 gates turn green, preserve Claude approvals/source captures, then continue TR05.
+
+- Integration19:20 UTC: #497 merged cbefde67712a7ad4e018abf688d1d2e242a61faf,
+  exact59c required-gates allPASS, artifact11312755477 ZIP9118d3e5... native605,
+  ESCO3/service29 and after-browser/schema/types PASS. #498 merged
+  33aeb7f7311f97ac7aece0c6e2bdfc8cb0597023 after retargetmain, exact648 allPASS.
+  Actual main65 approvedIDs; TEN07/ESCO10/11/TR01/02 verified, TR03/TR05 still
+  pending. Main staff#499 capture retained unchanged; own handover lines
+  appended without changing Claude's active task/checkpoint.
