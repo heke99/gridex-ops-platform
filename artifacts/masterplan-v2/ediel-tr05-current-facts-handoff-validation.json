@@ -52,5 +52,16 @@
   "whole_TR05_approval": "PENDING",
   "whole_TR10_AT_approval": "independent_complete_05c6",
   "market_certification": "NOT_PROVIDED",
-  "targeted_gateway_native_test_types": "PASS"
+  "targeted_gateway_native_test_types": "PASS",
+  "verification_logs": {
+    "archive": "artifacts/masterplan-v2/ediel-tr05-current-facts-logs.zip",
+    "sha256": "fa50b6f8d8fe4d308c55fb82694531eea7b81f55f784e9130835102b61a01dff",
+    "member_sha256": {
+      "ediel-tr05-current-facts-calendar.log": "8aef9e8721836a4db1509297e10c25939a557fa753ebc3ae01c3fe0009be1ae5",
+      "ediel-tr05-current-facts-full-unit.log": "76365e9d2ae870b5dff4cc442d0dc55a206eb517ee3800f51ab34b0652684658",
+      "ediel-tr05-current-facts-red.log": "2464872854067a7dba102da6ed34974f5f5ecf5dd7285d216ddc3a10bee29116",
+      "ediel-tr05-current-facts-scope.log": "afe6efe09b45f2f682b2c9be399f76675875a6e7befa902cf8080b02e459beb8"
+    },
+    "members_byte_identical_to_raw_local_execution": true
+  }
 }
