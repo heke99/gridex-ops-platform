@@ -57,6 +57,8 @@ export async function GET(request: NextRequest, contextInput: { params: Promise<
       .order('created_at', { ascending: false })
 
     if (documentError && !isMissingSchemaError(documentError)) throw documentError
+    const {requireInvoiceFileCopyAvailable}=await import('@/lib/ediel/retention/invoiceFileRetention')
+    for(const document of documentError?[]:documents??[])await requireInvoiceFileCopyAvailable({companyId:context.client.company_id,retentionClass:'customer_invoice_document_pdf_bytes',targetId:document.id})
 
     await logCustomerPortalSuccess({ request, client: context.client, startedAt: context.startedAt, resultCount: 1, metadata: { invoice_reference: id } })
     return customerPortalJson({
