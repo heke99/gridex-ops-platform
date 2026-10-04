@@ -1,0 +1,20 @@
+{
+  "pr": 499,
+  "source_head": "5805638c705e23e024538499be1debe3fe21f094",
+  "local_source": "c31695783d9dbc3d041f3191fd8017c488675db0",
+  "tree": "8af085cfe16b7be0cdbed30492880c2c2b616575",
+  "workflow_run": 37219877261,
+  "artifact_id": 11309868056,
+  "zip_sha256": "9b8161238bfc4fcc40e653870ab2f23ab12331356814e9b1334d549dce078398",
+  "published_digest_verified": true,
+  "crc_and_exact_members_verified": true,
+  "all_eight_frozen_inputs_verified": true,
+  "latest_migration_verified": true,
+  "canonical_fingerprint_verified": true,
+  "generated_byte_identical_to_prior_clean_schema": {
+    "database.types.ts": true,
+    "schema.sql": true,
+    "schema.fingerprint.json": true
+  },
+  "qualification": "Capture-only, full exact-head native CI pending"
+}

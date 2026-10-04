@@ -56,9 +56,19 @@ beforeAll(async () => {
     const match = /ALTER TABLE ONLY public\.([a-z0-9_]+)\s+ADD CONSTRAINT/.exec(block)
     return match && names.includes(match[1]) && !block.includes('FOREIGN KEY') ? [block.slice(match.index).trim()] : []
   })
+  // The real account seed now verifies RLS and effective write privileges before
+  // its role lookup. Retain that preflight by loading the captured table security.
+  const roleSecurity = [
+    /^ALTER TABLE public\.user_roles ENABLE ROW LEVEL SECURITY;$/m,
+    /^GRANT [^\n;]+ ON TABLE public\.user_roles TO authenticated;$/m,
+  ].map(pattern => {
+    const statement = schema.match(pattern)?.[0]
+    if (!statement) throw new Error(`Missing captured user_roles security: ${pattern}`)
+    return statement
+  })
   // The compatibility bootstrap has a minimal Auth shape; genuine Supabase
   // adds is_sso_user, exercised successfully before the CI role-seed failures.
-  await db.exec(['CREATE SCHEMA auth;', auth, 'ALTER TABLE auth.users ADD COLUMN is_sso_user boolean NOT NULL DEFAULT false;', ...tables, ...constraints].join('\n'))
+  await db.exec(['CREATE SCHEMA auth;', auth, 'ALTER TABLE auth.users ADD COLUMN is_sso_user boolean NOT NULL DEFAULT false;', ...tables, ...constraints, ...roleSecurity].join('\n'))
 }, 20_000)
 afterAll(async () => { await db?.close() })
 
