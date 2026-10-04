@@ -10,5 +10,5 @@ test('actual parser and SQL owner bind encoded captured DSN fields without deliv
    EDIEL_DSN_FORWARD_MIGRATIONS: '20261004175536_ediel_dsn_encoded_source_identity.sql' },
  })
  assert.ifError(run.error); assert.equal(run.status, 0, run.stdout + run.stderr)
- assert.match(run.stdout, /^PASS \d+ TR-04 actual parser\/current qualifier\/encoded source-owner checks;/m)
+ assert.match(run.stdout, /^PASS 32 TR-04 actual parser\/current qualifier\/encoded source-owner checks;/m)
 })

@@ -100,3 +100,22 @@ capture. Integrate already green PRs to main; preserve Claude coverage union.
   do not fabricate a new approval or edit another agent's coverage status.
 - Draft #501 published c3aeaefa; real schema-capture run37224099718 queued.
   Initial generated-tail/schema checks remain pending artifact import.
+
+## Actual clean-replay capture import
+
+- Actual run37224418430, artifact11311563054 on frozen checkout5c938e71,
+  source tree d4142ca509edcb86450543716d3c8518111ed843. Pinned CLI2.101.0,
+  PostgreSQL17.6/pg_dump17.11. Verified all8 input hashes, exact source SHA/tree,
+  latest migration40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985,
+  archive SHA ca3054c9dfb1b6dc19cfb98664116e78df5972413e4e528c0a94b296aa4b5587.
+- Imported schema.sql/fingerprint bytes directly and identical3679044-byte
+  database.types.ts. Manifest generated from that actual capture, not assumed
+  body-only compatibility. Receipt committed under captures/tr-04-dsn-source-
+  capture-receipt-20261004.json. Generated-types check now PASS.
+- Refresh only inherited TR04/AT evidence with current MIME/owner/processor/
+  SQL/native paths. Native tests, browser tests, upgrade/parity remain NOT_RUN
+  in this capture receipt. Required exact-head OPS/native gates still pending.
+- Native/schema capture proves current branch source prefix; once Claude's
+  TEN09 migration reaches main, merge that main and capture the combined prefix
+  before claiming a composed schema. Do not use either standalone fingerprint
+  for a combined database or fabricate snapshots.

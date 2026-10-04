@@ -717,7 +717,13 @@
         "__tests__/ediel-dsn-disposition.test.ts",
         "__tests__/ediel-dsn-transport-candidates.test.ts",
         "__tests__/ediel-dsn-source-observations.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md",
+        "lib/inbound-mail/mimeStructure.ts",
+        "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+        "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+        "scripts/test-ediel-tr-04-dsn-source.cjs",
+        "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+        "scripts/ediel-dsn-source-native.test.ts"
       ]
     },
     {
@@ -2022,7 +2028,13 @@
         "__tests__/ediel-dsn-disposition.test.ts",
         "__tests__/ediel-dsn-transport-candidates.test.ts",
         "__tests__/ediel-dsn-source-observations.test.ts",
-        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md"
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/batch-6-TR-OPS.md",
+        "lib/inbound-mail/mimeStructure.ts",
+        "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+        "__tests__/ediel-tr-04-attributed-dsn.test.ts",
+        "scripts/test-ediel-tr-04-dsn-source.cjs",
+        "scripts/ediel-tr-04-encoded-dsn-sql-regression.mjs",
+        "scripts/ediel-dsn-source-native.test.ts"
       ]
     },
     {
