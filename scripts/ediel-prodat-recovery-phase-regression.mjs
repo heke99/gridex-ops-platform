@@ -15,7 +15,7 @@ try{
  CREATE FUNCTION public.canonical_tenant_operation_decision(uuid,text)RETURNS TABLE(allowed boolean)LANGUAGE sql AS $$SELECT true$$;
  CREATE FUNCTION public.ediel_require_scoped_capability_for_message_v1(uuid,uuid)RETURNS void LANGUAGE sql AS $$SELECT NULL::void$$;
  CREATE TABLE public.ediel_message_payloads(company_id uuid,ediel_message_id uuid,encrypted_payload_ref text,payload_kind text,metadata jsonb);
- CREATE TABLE public.ediel_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ediel_message_id uuid,company_id uuid,environment text,status text,current_send_attempt_id uuid,locked_by text,priority int,lock_key text UNIQUE,message_family text,message_code text,route_profile_id uuid,payload jsonb,queued_at timestamptz,created_by uuid,updated_by uuid);
+ CREATE TABLE public.ediel_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),ediel_message_id uuid,company_id uuid,environment text,status text,current_send_attempt_id uuid,locked_by text,locked_at timestamptz,priority int,lock_key text UNIQUE,message_family text,message_code text,route_profile_id uuid,payload jsonb,queued_at timestamptz,created_by uuid,updated_by uuid);
  CREATE TABLE public.ediel_mailboxes(id uuid,company_id uuid,environment text,is_active boolean,is_shared_platform_mailbox boolean);
  CREATE SCHEMA gridex_outbound_dispatch;CREATE FUNCTION gridex_outbound_dispatch.mutate_v1(i jsonb)RETURNS jsonb LANGUAGE sql AS $$SELECT '{"scoped":false}'::jsonb$$;
  CREATE SCHEMA gridex_received_sources;CREATE SCHEMA gridex_ack_authority;CREATE SCHEMA gridex_service_permission;
@@ -54,6 +54,9 @@ try{
   assert.notEqual(fixtureAlignment,alignment)
   await db.exec(fixtureAlignment)
  }
+ // The finite generic/retry fixture has no sealed owner; its separate
+ // actual-owner lease fixture exercises that lane. Native applies all five.
+ if(process.env.EDIEL_WORKER_LEASE_BASELINE!=='1') await db.exec(file('20261004204256_ediel_worker_lease_current_provider_entry.sql').replace(') AS patches(signature,old_fragment,new_fragment)',') AS patches(signature,old_fragment,new_fragment) WHERE to_regprocedure(signature) IS NOT NULL'))
  await db.query('INSERT INTO public.companies VALUES($1)',[id(1)])
  for(const actor of[2,3,4,5]){await db.query("INSERT INTO auth.users VALUES($1);",[id(actor)]);await db.query("INSERT INTO public.user_profiles VALUES($1,'active')",[id(actor)]);await db.query("INSERT INTO public.company_memberships VALUES($1,$2,'active',true,now())",[id(1),id(actor)])}
  for(const [actor,p]of[[2,'communication.write'],[2,'communication.send'],[3,'ediel.send'],[4,'communication.send'],[5,'communication.write']])await db.query('INSERT INTO public.declared_current_permissions VALUES($1,$2)',[id(actor),p])
@@ -105,7 +108,7 @@ try{
  assert.equal((await prepare(5,52,50,null,null,51)).rows[0].b.status,'authorized');checks++
  const queue=()=>db.query('SELECT public.ediel_queue_prodat_retry_v1($1,$2,$3,$4)b',[id(1),id(50),id(3),id(52)])
  const queued=(await queue()).rows[0].b;assert.equal(queued.status,'queued');checks++
- await db.query("UPDATE public.ediel_outbox SET status='sending',current_send_attempt_id=$2,locked_by='worker' WHERE id=$1",[queued.outboxId,id(54)])
+ await db.query("UPDATE public.ediel_outbox SET status='sending',locked_at=now(),current_send_attempt_id=$2,locked_by='worker' WHERE id=$1",[queued.outboxId,id(54)])
  const retryBasis=(await db.query('SELECT public.ediel_prodat_retry_outbox_basis_v1($1,$2,$3)b',[id(1),queued.outboxId,id(3)])).rows[0].b;assert.equal(retryBasis.previousAttemptId,id(51));checks++
  const owner={kind:'worker',outboxId:queued.outboxId,sendAttemptId:id(54),workerId:'worker'},retryBinding={...lostBinding,recoveryAuthorization:retryBasis}
  await assert.rejects(journal(50,3,53,'prepare',{owner,binding:{...retryBinding,mimeSha256:'c'.repeat(64)}}),/archive_not_qualified/);checks++

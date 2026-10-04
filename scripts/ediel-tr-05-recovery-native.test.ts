@@ -5,6 +5,7 @@
 // ready operation or transport attempt is inserted. Sent production originals are singleton, so these tests do not
 // claim a genuine multi-object sent-original fixture or market certification.
 import {createHash, randomUUID} from 'node:crypto'
+import {spawn} from 'node:child_process'
 import {afterEach, expect, it, vi} from 'vitest'
 const smtp = vi.hoisted(() => vi.fn())
 vi.mock('nodemailer', () => ({default: {createTransport: () => ({sendMail: smtp})}}))
@@ -33,7 +34,7 @@ import {processEdielOutbox} from '@/lib/ediel/outbox/processEdielOutbox'
 import {readVerifiedEdielTransportCopy} from '@/lib/ediel/transport/verifiedCopy'
 import {readEdielTransportCopies} from '@/lib/ediel/transport/copy'
 import {revokeNetworkRegistrySource} from '@/lib/ediel/production/networkRegistrySource'
-import {readEdielProcessNextActions} from '@/lib/ediel/operations/processNextAction'
+import {readAcceptedEdielTransportProjection} from '@/lib/ediel/transport/acceptedProjection'
 import type {EdielMessageRow} from '@/lib/ediel/types'
 
 type Fixture = Awaited<ReturnType<typeof seedNormalSwitchNativeFixture>>
@@ -191,7 +192,11 @@ it('a queued definite-loss retry rechecks actual revoked network-source authorit
   smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
   const result = await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:queued.outboxId,workerId:`native-tr05-${randomUUID()}`,smtpMimeMode:'nodemailer-attachment'})
   expect(result.status).not.toBe('sent'); expect(smtp).toHaveBeenCalledTimes(1)
-  expect(originals(f)).toEqual(archive)
+  // A new pre-send archive may be appended before current-authority refusal.
+  // Every pre-existing byte/hash/attempt must remain exactly unchanged.
+  const retained=archive as {raw:string;hash:string;rendered:string;archives:Array<{id:string}>;attempts:unknown[]}
+  const current=originals(f) as typeof retained
+  expect({...current,archives:current.archives.filter(p=>retained.archives.some(old=>old.id===p.id))}).toEqual(retained)
   expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_received_sources.prodat_recovery_attempts WHERE operation_id IN(SELECT id FROM gridex_received_sources.prodat_recovery_operations WHERE company_id=${literal(f.companyId)})`)).toBe(0)
 },120000)
 it('fresh correction finalization rechecks the actual current network source after a qualified negative ACK',async () => {
@@ -202,6 +207,24 @@ it('fresh correction finalization rechecks the actual current network source aft
   await expect(prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f)})).rejects.toThrow()
   expect(effects(f)).toMatchObject({messages:before.messages,outboxes:before.outboxes,attempts:before.attempts})
   expect(originals(f)).toEqual(archive); expect(smtp).toHaveBeenCalledTimes(1)
+},120000)
+it('fresh correction finalization denies a retired actual guide activation after a qualified negative ACK',async () => {
+  const f=await seed(),ack=await receiveAck(f,externalAck(f,'contrl'))
+  const packId=f.originalZ03.canonical_rule_pack_id
+  expect(packId).toBeTruthy()
+  const prior=sql<string>(`SELECT to_jsonb(status) FROM public.ediel_rule_packs WHERE id=${literal(packId!)}`)
+  expect(prior).toBe('active')
+  const before=effects(f) as {messages:number;outboxes:number;attempts:number},original=originals(f),calls=smtp.mock.calls.length
+  // A declared withdrawal of the actual persisted activation. No replacement
+  // guide edition, caller qualification or private admission is invented.
+  sql(`UPDATE public.ediel_rule_packs SET status='retired' WHERE id=${literal(packId!)};SELECT to_jsonb(true)`)
+  try {
+    await expect(prepareProdatRecoveryDraft({companyId:f.companyId,actorUserId:f.actorUserId,originalMessageId:f.originalZ03.id,sourceAckMessageId:ack.id,operationId:randomUUID(),correctedRawPayload:correction(f)})).rejects.toThrow()
+    expect(effects(f)).toMatchObject({messages:before.messages,outboxes:before.outboxes,attempts:before.attempts})
+    expect(originals(f)).toEqual(original);expect(smtp).toHaveBeenCalledTimes(calls)
+  } finally {
+    sql(`UPDATE public.ediel_rule_packs SET status=${literal(prior)} WHERE id=${literal(packId!)};SELECT to_jsonb(true)`)
+  }
 },120000)
 it('a prepared correction consumes current public mandate authority and cannot send after the actual POA is revoked',async () => {
   const f = await seed(), ack = await receiveAck(f,externalAck(f,'aperak34'))
@@ -256,11 +279,13 @@ it('the actual sweep of a declared expired public SLA row cannot create recovery
       expect(Number.isFinite(Date.parse(original.contrl_due_at!))).toBe(true)
       evaluatedAt = new Date(Date.parse(original.contrl_due_at!) + 86400000).toISOString()
       const before = effects(f), calls = smtp.mock.calls.length
-      const actualWatch = await readEdielProcessNextActions({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',messageIds:[original.id],evaluatedAt,access:{canRead:true,canReview:true,canPrepare:true}})
-      const overdue = actualWatch.get(original.id)
-      expect(overdue).toMatchObject({sourceMessageId:original.id,automaticResendAllowed:false,authorizesProviderEntry:false})
-      expect(overdue!.blockers).toContain('technical_sender_watch_overdue')
-      expect(Date.parse(overdue!.timeBasis.technicalDueAt!)).toBe(Date.parse(original.contrl_due_at!))
+      // Z03 has no business-expectation watch projection. Read its actual
+      // accepted transport owner, retain its deadline, and prove that moving
+      // beyond the deadline changes neither receipt nor resend authority.
+      const accepted=await readAcceptedEdielTransportProjection({companyId:f.companyId,actorUserId:f.actorUserId,environment:'test',messageId:original.id})
+      expect(accepted).toMatchObject({status:'accepted_projection',messageId:original.id,authorizesProviderEntry:false,deliveryProven:false})
+      expect(Date.parse(evaluatedAt)).toBeGreaterThan(Date.parse(original.contrl_due_at!))
+      expect(Date.parse(original.contrl_due_at!)).toBeGreaterThan(Date.parse(accepted!.observedAt))
       expect(effects(f)).toEqual(before); expect(smtp).toHaveBeenCalledTimes(calls)
     }
     const timerId = randomUUID()
@@ -379,4 +404,48 @@ it('an unswept expired genuine claim cannot reach the provider with its old work
   const before = effects(f)
   expect(await sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId,sendAttemptId:claim!.current_send_attempt_id,alreadyClaimed:true})).toMatchObject({status:'blocked'})
   expect(effects(f)).toEqual(before); expect(smtp).not.toHaveBeenCalled()
+},120000)
+it('a genuine worker blocked on its claimed row cannot enter SMTP when its lease expires during the lock wait',async () => {
+  if(process.env.NEXT_PUBLIC_SUPABASE_URL!=='http://127.0.0.1:54321')throw Error('owned_local_only')
+  const f=await seed(false),id=outboxId(f),workerId=`synthetic-lock-wait-${randomUUID()}`
+  const claim=await claimEdielOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId})
+  expect(claim).toMatchObject({status:'sending',current_send_attempt_id:expect.any(String)})
+  // Leave20s on the real public claim, then hold its identity-qualified row
+  // for24s in a second genuine PostgreSQL session. These are clock/lock inputs.
+  sql(`UPDATE public.ediel_outbox SET locked_at=clock_timestamp()-interval '9 minutes40 seconds' WHERE id=${literal(id)};SELECT to_jsonb(true)`)
+  const holder=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1'],{stdio:['pipe','pipe','pipe']})
+  let output='',holderError=''
+  holder.stderr.on('data',chunk=>{holderError+=String(chunk)})
+  const done=new Promise<void>((resolve,reject)=>{holder.once('error',reject);holder.once('exit',code=>code===0?resolve():reject(Error(`synthetic_lock_holder_failed:${code}:${holderError}`)))})
+  // Attach a rejection observer immediately, including during early failures.
+  void done.catch(()=>undefined)
+  const ready=new Promise<void>((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(Error('synthetic_lock_holder_not_ready')),5000)
+    holder.stdout.on('data',chunk=>{output+=String(chunk);if(output.includes('LOCK_READY')){clearTimeout(timer);resolve()}})
+    holder.once('error',error=>{clearTimeout(timer);reject(error)})
+    holder.once('exit',()=>{clearTimeout(timer);if(!output.includes('LOCK_READY'))reject(Error('synthetic_lock_holder_exited_early'))})
+  })
+  holder.stdin.end(`SELECT pg_backend_pid();\nBEGIN;\nSELECT id FROM public.ediel_outbox WHERE id=${literal(id)} FOR UPDATE;\n\\echo LOCK_READY\nSELECT pg_sleep(24);\nCOMMIT;\n`)
+  let sending:ReturnType<typeof sendOutboxItem>|undefined
+  try {
+    await ready
+    const holderPid=Number(output.split('\n')[0]);expect(Number.isInteger(holderPid)).toBe(true)
+    smtp.mockResolvedValue({accepted:['recipient@example.invalid'],rejected:[],messageId:randomUUID(),response:'250 synthetic accepted'})
+    sending=sendOutboxItem({actorUserId:f.actorUserId,outboxItemId:id,workerId,sendAttemptId:claim!.current_send_attempt_id,alreadyClaimed:true})
+    let blocked=false
+    for(let i=0;i<100&&!blocked;i++){
+      const observed=sql<{blocked:boolean;current:boolean}>(`SELECT jsonb_build_object('blocked',EXISTS(SELECT FROM pg_stat_activity a WHERE ${holderPid}=ANY(pg_blocking_pids(a.pid))),'current',EXISTS(SELECT FROM public.ediel_outbox WHERE id=${literal(id)} AND locked_at>clock_timestamp()-interval '10 minutes'))`)
+      if(observed.blocked){expect(observed.current).toBe(true);blocked=true;break}
+      await new Promise(resolve=>setTimeout(resolve,100))
+    }
+    expect(blocked,'real sender must wait on the row before lease expiry').toBe(true)
+    await done
+    expect(await sending).toMatchObject({status:'failed',error:expect.stringContaining('ediel_transport_worker_fence_lost')})
+    expect(sql(`SELECT to_jsonb(count(*)) FROM gridex_ediel_transport.attempts WHERE message_id=${literal(f.originalZ03.id)} AND entered_at IS NOT NULL`)).toBe(0)
+    expect(smtp).not.toHaveBeenCalled()
+  } finally {
+    if(holder.exitCode===null)holder.kill()
+    await done.catch(()=>undefined)
+    if(sending)await sending.catch(()=>undefined)
+  }
 },120000)

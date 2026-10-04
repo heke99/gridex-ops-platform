@@ -93,9 +93,16 @@ export async function sendOutboxItem(params: {
     if (!item) return { status: 'blocked', messageId: null, error: 'outbox_item_not_found' }
     const status = clean(item.status)
     const lockedBy = clean(item.locked_by)
+    const lockedAt = Date.parse(clean(item.locked_at) ?? '')
     sendAttemptId = sendAttemptId ?? clean(item.current_send_attempt_id)
     if (status !== 'sending' || (lockedBy && lockedBy !== workerId)) {
       return { status: 'blocked', messageId: null, error: 'outbox_item_not_claimed_by_worker' }
+    }
+    // Internal lease bound matches claim_ediel_outbox_items' ten-minute
+    // default. The SQL owner rechecks its own clock at prepare and entry.
+    const observedAt = Date.now()
+    if (!Number.isFinite(lockedAt) || lockedAt > observedAt || observedAt - lockedAt >= 10 * 60 * 1000) {
+      return {status:'blocked',messageId:null,error:'ediel_outbox_worker_lease_expired'}
     }
   } else {
     const claimed = await claimEdielOutboxItem({

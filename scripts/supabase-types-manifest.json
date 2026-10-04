@@ -3,8 +3,8 @@
   "generated_at": "2026-10-04T19:56:15.893941+00:00",
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37229361560",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261004202548_ediel_recovery_text_original_reference_alignment.sql",
-  "latest_migration_schema_effect": "Bounded text/UUID lineage comparison alignment; new authentic prefix capture pending. Previously captured schema/types/fingerprint retained unchanged and remain proof only for their actual captured prefix.",
+  "latest_migration": "20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+  "latest_migration_schema_effect": "Actual composed TEXT-reference, current post-lock worker lease, and immutable uncertainty-case prefix awaits authentic schema/types/fingerprint capture; earlier generated artifacts prove only their captured prefix.",
   "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
@@ -102,5 +102,5 @@
     "published_artifact_digest": "sha256:f5d80f256f4b57e895a9a1be3adf396a8ff29f749695a631fc5c4a1ea49c7600",
     "raw_receipt_sha256": "414dc3694b4663935782b360d357086522eeb651a763f152cfe80cca1ff12dba"
   },
-  "composition_note": "Actual composed prefix capture complete; final-head required native/browser/upgrade/parity remain pending."
+  "composition_note": "Final composed prefix capture pending. Ordinary required native/browser/upgrade/parity gates remain mandatory."
 }

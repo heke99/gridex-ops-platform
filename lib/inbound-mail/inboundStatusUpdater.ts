@@ -9,6 +9,7 @@ import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
+import type { Database } from '@/supabase/database.types'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -334,6 +335,12 @@ export async function createInboundEdielMessage(input: {
   const matchedOperationId =
     typeof matchedOutbound.operation_id === 'string' ? matchedOutbound.operation_id : null
 
+  // The immutable reception owner reads this text selector from the original.
+  // Bind it at birth to the same retained mail as the public UUID link.
+  const receptionBirth: Pick<Database['public']['Tables']['ediel_messages']['Insert'], 'inbound_email_message_id' | 'mailbox_message_id'> = {
+    inbound_email_message_id: input.inboundEmailMessageId,
+    mailbox_message_id: input.inboundEmailMessageId,
+  }
   const insertPayload = {
     company_id: input.companyId,
     environment: normalizedEnvironment,
@@ -365,7 +372,7 @@ export async function createInboundEdielMessage(input: {
           ? 'partially_matched'
           : 'business_unresolved',
     processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
-    inbound_email_message_id: input.inboundEmailMessageId,
+    ...receptionBirth,
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
     metering_point_id: matchedMeteringPointId,

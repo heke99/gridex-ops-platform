@@ -1,5 +1,68 @@
 # Codex — masterplan v2, TR-05
 
+Current2026-10-04T21:12Z (supersedes older pending findings below):
+- Published #50333b9f3d4 genuine run37232785275/artifact11314961110,
+  ZIPcbe9e9bf08531dcd7ecad9fab7d861f5fb404ea6f841e0b6f99f7b289d23a601:
+  15TOTAL6PASS9FAIL0ERROR0SKIP. Definite-loss actual worker retry, actual
+  unknown/restart denial, swept pre-entry fence, late accepted observation and
+  accepted projection repair PASS. Unswept expired genuine claim actually
+  SENT, proving the lease defect. Full TR05/TR10 approval remains pending.
+- Six native ACK failures confirmed resolved adapter birth mismatch: only
+  UUID inbound_email_message_id was set; actual reception owner recognizes
+  immutable TEXT mailbox_message_id. Ten06 fixes typed same-mail birth binding,
+  leaves unresolved routing owner untouched, proves unit RED1FAIL5PASS then
+  GREEN42PASS. New genuine CONTRL/APERAK first/replay/new-mail duplicate tests
+  are mandatory; no private admitted ACK or duplicate policy seed bypass.
+- Root lease fix: alreadyClaimed app early refusal + CLIforward20261004204256
+  SHA888d1c2dc890647e69105a3077b0b6b902f27a1afea09e03c74987c275e756e4.
+  Five bounded generic prepare/enter, retry-consume and sealed prepare/enter
+  patches first lock exact existing identity row then separately recheck the
+  database clock. Earlier env edit was not persisted; fresh sealed entry
+  exposed uninitialized m.environment. Final checks use loaded env except
+  retry uses loaded m.environment. Finite55generic/13sealed PASS after actual
+  stale-entry baseline RED; observation and historical receipt replay unchanged.
+  Independent ten06+ten07 bounded review clear. Actual two-session row-lock
+  expiry native proof added, pending execution; no claim from PGlite substitutes.
+- Ten07 published whole-CONTRL owner proof composed fromf97c5e16: full two-object
+  acceptance, subset denial and wrong negative scope denial, actual assessor
+  and prepare effects. Physical97=41base+56extension incl3neweffects PASS.
+  Upstream ACK admission/archive ports are finite and explicitly declared.
+- Ten08 published8791c94e onGitHub and root composed68a03ffe: immutable automatic
+  technical uncertainty cases, exact entered original/archive/actor/tenant/env
+  binding; sealed committed visible ENTRY witness; crash OLDclaim exact match;
+  append-only/RLS/noapplicationDML; bounded actual copy RPC+GET currentread
+  authorization; same-attempt lateobserved outcome preserves opening and grants
+  no resend/delivery proof. CLIforward20261004204835
+  SHA61beb70a0b8b4837d0356dfe86c2c1a9a4798f74dc549b0292af63f79cde2cb8.
+  Finite29+reader/API38PASS; independent ten07 bounded review clear. Nine actual
+  native cases remain pending and are composed into mandatory native suite.
+- Root genuine assertions fixed without weakening card: held network retry
+  may append a required pre-send archive, while every OLD archive/raw/hash/
+  rendered original/prior attempt remains identical. Z03 has no business-watch
+  projection; accepted transport owner/deadline + actual sweep/recovery denial
+  are used directly. Add actual guide activation retirement finalization denial.
+- Composed finite wrappers7/7PASS: cursor36/phase41/physical97 + journal owner
+  + lease55/13 + reconciliation29. Root worker/case TS suite37/37PASS.
+  Genuine combined next run planned17recovery+9case+2first-reception=28tests;
+  actual native/market certification NOT_RUN. Existing schema/type/fingerprint
+  artifacts retained unchanged; final composed authentic prefix capture pending.
+- #500858 and #5016bb all applicable auxiliary/verify/quality/upgrade jobs
+  green, actual clean job still running at21:11. Do not change these valid heads
+  or waive native/browser gates. Root retry parents remain stacked and #491
+  canonical ACK fix260fa4f8 was reused exactly inpublished33b9f3d4.
+Validation2026-10-04T21:18Z: composed fullunit9979/9979 PASS,779files,
+0failed/skipped; app/scripts TypeScript and owned ESLint PASS; finite wrappers
+7/7PASS; migration1064files/967groups and frozen33/121/231 integrity PASS.
+Tagged check169approved/186green/0failing in this composed branch (not a main
+count); TR05/TR10 still unapproved pending actual native. Independent root
+review of ten06's typed actual birth binding and fresh/replay/duplicate proof
+clear; afterreview requiredcodec ACKrequestfalse and actualmail clockprecision
+assertion fixed in fixture only. No genuine native result invented.
+Next: publish all composed
+source+memory on#503; execute fast genuine28-case feedback and capture final
+schema/type/fingerprint union byte-for-byte from GitHub. Complete-card reviewer
+and samePR approval only after genuine required effects, then green main merge.
+
 Current2026-10-04T20:31Z (supersedes older pending findings below):
 - Published d1d3701d genuine15-case native run37230522731/artifact11313871333
   ZIPa513b17a336578f788797a776c446e93e42ac614654cb19910483e1feae84f71:

@@ -6,7 +6,7 @@ const {test} = require('node:test')
 const assert = require('node:assert/strict')
 const {spawnSync} = require('node:child_process')
 const path = require('node:path')
-for (const [file, checks] of [['ediel-prodat-recovery-cursor-sql-regression.mjs',36],['ediel-prodat-recovery-phase-regression.mjs',41],['ediel-recovery-physical-negative-scope-sql-regression.mjs',94]]) {
+for (const [file, checks] of [['ediel-prodat-recovery-cursor-sql-regression.mjs',36],['ediel-prodat-recovery-phase-regression.mjs',41],['ediel-recovery-physical-negative-scope-sql-regression.mjs',97]]) {
   test(`retained actual recovery owner assertions: ${file}`,() => {
     const root = path.resolve(__dirname,'..')
     const run = spawnSync(process.execPath,[path.join(__dirname,file)],{cwd:root,encoding:'utf8',env:{...process.env,EDIEL_PGLITE_MODULE:require.resolve('@electric-sql/pglite')}})
@@ -15,7 +15,7 @@ for (const [file, checks] of [['ediel-prodat-recovery-cursor-sql-regression.mjs'
     else {
       const result = JSON.parse(run.stdout.trim())
       assert.equal(result.status,'PASS'); assert.equal(result.checks,checks)
-      if (file.includes('physical')) {assert.equal(result.physicalChecks,53); assert.equal(result.baseChecks,41)}
+      if (file.includes('physical')) {assert.equal(result.physicalChecks,56); assert.equal(result.baseChecks,41)}
     }
   })
 }

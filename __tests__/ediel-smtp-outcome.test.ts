@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { sendOutboxItem } from '@/lib/ediel/outbox/sendOutboxItem'
 import { SmtpDeliveryUncertainError } from '@/lib/ediel/transport/smtpOutcome'
 
-const mocks = vi.hoisted(() => ({ send: vi.fn(), writes: [] as Array<Record<string, unknown>>, from: vi.fn(), get: vi.fn(), claimLost: false, filters: [] as Array<[string, unknown]> }))
+const mocks = vi.hoisted(() => ({ send: vi.fn(), writes: [] as Array<Record<string, unknown>>, from: vi.fn(), get: vi.fn(), claimLost: false, lockedAt: null as string | null, filters: [] as Array<[string, unknown]> }))
 vi.mock('@/lib/ediel/db', () => ({ getEdielMessageById: mocks.get }))
 vi.mock('@/lib/ediel/transport/acceptedProjection', () => ({ readAcceptedEdielTransportProjection: vi.fn().mockResolvedValue(null) }))
 vi.mock('@/lib/ediel/transport', () => ({ sendEdielMessageViaSmtp: mocks.send }))
@@ -18,10 +18,11 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     mocks.writes.length = 0
     mocks.filters.length = 0
     mocks.claimLost = false
+    mocks.lockedAt = new Date().toISOString()
     mocks.get.mockResolvedValue({ id: 'message1', company_id: 'company1', environment: 'test', direction: 'outbound', status: 'prepared' })
     mocks.from.mockImplementation((table) => {
       let writing = false
-      const item = { id: 'outbox1', company_id: 'company1', environment: 'test', ediel_message_id: 'message1', status: 'sending', locked_by: 'worker1', current_send_attempt_id: 'attempt1' }
+      const item = { id: 'outbox1', company_id: 'company1', environment: 'test', ediel_message_id: 'message1', status: 'sending', locked_by: 'worker1', locked_at: mocks.lockedAt, current_send_attempt_id: 'attempt1' }
       const result = () => ({ data: table === 'ediel_send_locks' ? [] : writing ? mocks.claimLost && mocks.writes.at(-1)?.status === 'delivery_uncertain' ? null : { id: 'outbox1' } : item, error: null })
       return { select: vi.fn().mockReturnThis(), eq: vi.fn(function(this: unknown, key, value) { mocks.filters.push([key, value]); return this }), limit: vi.fn().mockReturnThis(),
         update: vi.fn(function(this: unknown, payload) { writing = true; mocks.writes.push(payload); return this }),
@@ -57,6 +58,14 @@ describe('SMTP uncertainty at the outbox boundary', () => {
     expect(await send()).toMatchObject({ status: 'delivery_uncertain', messageId: '<smtp1@example.test>' })
     expect(mocks.writes.at(-1)).toMatchObject({status:'delivery_uncertain',last_error:expect.stringContaining('DB unavailable'),locked_at:null,locked_by:null})
     expect(mocks.filters.at(-1)).toEqual(['current_send_attempt_id','attempt1'])
+  })
+  it.each(['expired','missing','invalid','future'] as const)('blocks an unswept %s claim before any provider or queue effect',async kind => {
+    mocks.lockedAt = kind === 'missing' ? null : kind === 'invalid' ? 'not-a-clock' : new Date(Date.now() + (kind === 'future' ? 1 : -1) * 3600000).toISOString()
+    mocks.send.mockResolvedValue({messageId:'<must-not-send>'})
+    const result = await send()
+    expect(mocks.send).not.toHaveBeenCalled()
+    expect(result).toMatchObject({status:'blocked'})
+    expect(mocks.writes).toEqual([])
   })
   it('fails closed if the attempt fence rejects the uncertain-state write', async () => {
     mocks.claimLost = true
