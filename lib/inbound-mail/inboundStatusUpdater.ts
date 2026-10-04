@@ -523,6 +523,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     business_match_status: 'blocked',
     processing_status: resolutionStatus,
     inbound_email_message_id: input.inboundEmailMessageId,
+    mailbox_message_id: input.inboundEmailMessageId,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
     failure_reason: null,
