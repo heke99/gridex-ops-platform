@@ -516,14 +516,29 @@
     {
       "id": "ESCO-08",
       "acceptance_id": "AT-ESCO-08",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+        "lib/ediel/flows/prodatServicePermission.ts",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/permissions/permissionEngine.ts",
+        "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+        "__tests__/ediel-esco-08-z18-fields.test.ts"
+      ]
     },
     {
       "id": "ESCO-09",
       "acceptance_id": "AT-ESCO-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-esco-08-09-shared-permission-sql-regression.mjs",
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+      ]
     },
     {
       "id": "ESCO-10",
@@ -1836,13 +1851,18 @@
     },
     {
       "id": "AT-ESCO-08",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs",
+        "__tests__/ediel-esco-08-z18-fields.test.ts"
+      ]
     },
     {
       "id": "AT-ESCO-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-esco-08-09-shared-permission.cjs"
+      ]
     },
     {
       "id": "AT-ESCO-10",
