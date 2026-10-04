@@ -1294,10 +1294,11 @@
     {
       "id": "U-19",
       "acceptance_id": "AT-U-19",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
         "lib/ediel/rulebook/utiltsFieldMatrix.ts",
-        "__tests__/ediel-u-19-prodat-reference.test.ts"
+        "__tests__/ediel-u-19-prodat-reference.test.ts",
+        "lib/ediel/matching.ts"
       ]
     }
   ],
@@ -2764,10 +2765,11 @@
     },
     {
       "id": "AT-U-19",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "lib/ediel/rulebook/utiltsFieldMatrix.ts",
-        "__tests__/ediel-u-19-prodat-reference.test.ts"
+        "__tests__/ediel-u-19-prodat-reference.test.ts",
+        "lib/ediel/matching.ts"
       ]
     },
     {
