@@ -49,9 +49,17 @@
     {
       "id": "GOV-06",
       "acceptance_id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/context.md"
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "__tests__/ediel-version-time-anchors.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+        "__tests__/ediel-final-canonical-utilts-owner.test.ts"
       ]
     },
     {
@@ -1483,9 +1491,17 @@
     },
     {
       "id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/context.md"
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "__tests__/ediel-version-time-anchors.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+        "__tests__/ediel-final-canonical-utilts-owner.test.ts"
       ]
     },
     {

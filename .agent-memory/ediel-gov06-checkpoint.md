@@ -1,7 +1,7 @@
 # GOV-06 / AT-GOV-06 isolated delivery
 - Owner: env08_time; base 643ea134; branch codex/ediel-gov06-explicit-time-decision-20261004. ENV-08 remains frozen in #516.
 - Literal scope: distinct admission/transition, document/business, delivery and replay anchors; retained policy to engine; locally incoherent time decision denied before mutation without external field ERC.
-- Skills: reuse spec-to-code-compliance, TDD, systematic-debugging, fp-check/refutation, verification-before-completion and independent review/delivery. Database, transport, UI/security-wide audits have no trigger; no new SQL/native durability claim.
+- Skills: reuse spec-to-code-compliance, TDD, systematic-debugging, verification-before-completion and independent review/delivery; actual-call refutation avoids stale findings. Database, transport, UI/security-wide audits have no trigger; no new SQL/native durability claim.
 - Inventory #491: 5984622796; full matrix/RED/product scope: 5984678369. Root approved narrow supplied-policy time guard; OPS-05, U/P classifiers and peer tokens excluded.
 - Existing baseline: 30/30 in five time/decision/runtime-owner files. Old blanket-now claim refuted: outbound pre-send clock is intentional; retained inbound policy uses source ingress.
 - Actual processor RED: inconsistent local referenceDate reaches matching/link ports before final owner refuses. Link port is modeled; source path performs linkEdielMessage. Positive control retains selected 2026 policy with replay 2027 and system clock 2030.
@@ -10,4 +10,7 @@
 - First freeze 6b61484c: app/test types PASS; full suite 10066 PASS / 1 FAIL exposed misplaced time check before physical syntax. Guard moved after genuine syntax rejection and remains before guide/function/effects; unchanged syntax regression retained.
 - Root found/authorized missing-anchor effect-boundary check. Separate immutable-head probe confirmed RED 1 failed / 9 passed; one presence line in initialCanonicalUtiltsDecision closes it while preserving detached diagnostic templates and all four admission-source categories.
 - Corrected candidate: 57/57 in eight reused time/decision/runtime/issuer files; absence plus eight inconsistency variants deny before matching/link, while unchanged physical syntax/control assertions pass. Publication scope correction: #491 comment 5984787115.
-- Next: publish immutable source/test candidate, independent whole-card review and current gates before own two coverage rows; root owns current native CI/main integration/merge/handover under #491 window.
+- Corrected immutable source/test freeze: b740e05101e31084cfb4327cf42ddae1f7c364c6; published receipt #491 5984796813. Full Node22/CI-boundary unit 10068/10068 in 764 files PASS (122.69s), app/test types, lint and spec PASS; own full receipt #491 5984820474.
+- Root independent full-card APPROVE exact b740e051: 123/123 in 10 reused files; public receipt #491 5984823508. Only GOV-06 VERIFIED / AT-GOV-06 PASSED rows promoted after that verdict; final head changes metadata only.
+- Final metadata-only gates PASS: masterplan tag --check has 74 approved / 80 tagged green / 0 failing; frozen spec 33/121/231; coverage diff is exactly the two own rows. No source/test edits after approved b740e051.
+- Next: one ready PR; root owns exact native CI/main union/integration/merge/handover under #491 window. No repeat full suite without source change.
