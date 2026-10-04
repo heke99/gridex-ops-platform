@@ -1596,8 +1596,11 @@
     },
     {
       "id": "SC-039",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-supply-market-consumers.test.ts",
+        "scripts/ediel-normal-switch-source-sql-regression.mjs"
+      ]
     },
     {
       "id": "SC-040",
