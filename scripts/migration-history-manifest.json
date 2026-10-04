@@ -814,6 +814,7 @@
     "20261003150100_ediel_archived_finance_invoice_retention_read.sql": "4d2999a90592ec578a2b7a7d3313ead6409f2b91e639676145438d4f0c87d851",
     "20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05",
     "20261003150300_ediel_received_validation_reads_retained_source.sql": "8087f71f6728dfad9e3fb02cc851b57febd9d934c5b84a1420d02dcecfcc2899",
+    "20261004083640_staff_user_commands.sql": "0cf1911c72cdb954f27eef54e7604c2008868ec293e33425a57e0e7f0e25147b",
     "20261004083735_staff_identity_provider_purpose.sql": "0bf0beed5002d287b9682675817300048271a3eeab59d88ec66f2a956ab2e578",
     "20261004083809_staff_api_integration_auth.sql": "7c065eefafb20c7b4481ac2e1b828426b4213974050432e7f2c84deb377e609a",
     "20261004085008_staff_active_membership.sql": "a740c68886993e2349d129c784491891a856ad1b4c02a064d3c4223cbbb24749",

@@ -8,7 +8,7 @@ import { isPlatformAdminContext, requireCompanyScopedActionAccess } from '@/lib/
 import { logAdminActionAndUsage } from '@/lib/audit/actionLogger'
 import { getCompanyById } from '@/lib/tenant/governance'
 import { getCompanyProductionStatus } from '@/lib/tenant/companyProductionStatus'
-import { grantCompanyUserAccess } from '@/lib/auth/companyUserAccess'
+import { changeStaffRole, validateStaffRoleAssignment, type StaffCommandContext } from '@/lib/tenant/staffCommands'
 import { resolveCanonicalCompanyAccessRole } from '@/lib/tenant/companyUserRoles'
 import {
   normalizeCountryCode,
@@ -260,6 +260,11 @@ export async function updateCompanyResponsibleUserAction(
     // Granting roles and changing a member's login e-mail needs users.write;
     // tenants.invite alone only allows inviting.
     const admin = await requireCompanyScopedActionAccess(companyId, { anyOf: ['users.write'] })
+    const staffContext: StaffCommandContext = {
+      companyId, actorUserId: admin.userId, permissions: admin.permissions,
+      channel: 'ops', actorIsPlatformAdmin: isPlatformAdminContext(admin),
+    }
+    validateStaffRoleAssignment(staffContext, roleKey)
     await assertCompanyRoleChangeAllowed({
       companyId,
       actorUserId: admin.userId,
@@ -304,6 +309,9 @@ export async function updateCompanyResponsibleUserAction(
       updatePayload.email_confirm = false
     }
 
+    // Commit the authorized role command before privileged Auth/profile side effects.
+    await changeStaffRole(staffContext, { userId, roleKey })
+
     const { error: authUpdateError } = await supabaseService.auth.admin.updateUserById(userId, updatePayload)
     if (authUpdateError) throw authUpdateError
 
@@ -319,17 +327,6 @@ export async function updateCompanyResponsibleUserAction(
     )
 
     if (profileError && !['42P01', '42703', 'PGRST205'].includes(profileError.code ?? '')) throw profileError
-
-    await grantCompanyUserAccess({
-      companyId,
-      userId,
-      email,
-      fullName,
-      membershipRole,
-      roleKey,
-      actorUserId: admin.userId,
-      source: 'company_settings_responsible_user_update',
-    })
 
     revalidatePath('/admin/company-settings')
     revalidatePath(`/admin/companies/${companyId}/users`)
