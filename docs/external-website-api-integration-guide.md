@@ -2,6 +2,8 @@
 
 Current contract: **2026-10-04.1**
 
+Release 2026-10-04.1 adds the separate Staff API family and its manifest metadata. Website request requirements and business response fields remain unchanged from 2026-10-02.4; existing immutable specifications retain their original bytes.
+
 The canonical human-readable documentation is served at `/developers/customer-portal-api`. The machine-readable website contract is published at `/api/v1/openapi/website-integration-v1.json`.
 
 ## Responsibilities

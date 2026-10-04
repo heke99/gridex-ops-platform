@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { createRequire } from 'node:module'
@@ -162,6 +162,10 @@ describe('Staff API public contract', () => {
     const dir = mkdtempSync(resolve(tmpdir(), 'gridex-staff-contract-'))
     try {
       mkdirSync(resolve(dir, 'docs/openapi'), { recursive: true })
+      // CI's inherited relative preload must keep restricting this child after
+      // its cwd changes to the disposable materializer fixture.
+      mkdirSync(resolve(dir, 'scripts/lib'), { recursive: true })
+      copyFileSync(resolve('scripts/lib/unit-loopback-network-boundary.cjs'), resolve(dir, 'scripts/lib/unit-loopback-network-boundary.cjs'))
       for (const name of ['website-integration-v1', 'customer-portal-v1', 'staff-v1']) writeFileSync(resolve(dir, `docs/openapi/${name}.json`), JSON.stringify({ info: { version: STAFF_API_CONTRACT_VERSION }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
       const script = resolve('scripts/materialize-openapi-release.cjs')
       execFileSync(process.execPath, [script], { cwd: dir })
