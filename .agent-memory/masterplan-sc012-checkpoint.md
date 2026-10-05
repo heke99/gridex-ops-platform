@@ -93,3 +93,60 @@ receipt is committed locally as documentation only and deliberately not pushed
 over the published frozen technical head, avoiding a second unchanged CI run.
 No further rule is self-selected; await root assignment of a genuinely unowned
 part.
+
+
+## Frozen read-only CI and ownership handoff — 2026-10-05 11:52:30 CEST (Europe/Stockholm)
+
+Receipt: `/tmp/masterplan-sc012-sc042-ci-0942.json`, SHA256
+`2dca81eac7caea7ce160a26e2113a822494aec6db9ff0919707306e900471c82`.
+Read-only shared inventory reused #530121 comments/#491453 comments/77 open PRs;
+no explicit competing reservation or new adoption of PR565/567 was found.
+Retained common integration remains with #503. Root alone sends one combined
+#530 status/handoff; this lane sends no public comment or ownership claim.
+Actual target heads remain the original approved technical commits. Existing
+source-specific local proofs are retained; this task ran no tests, Node/npx,
+replay, native, build, rebase, push or merge and requested no CI rerun.
+
+Both target PRs have zero formal reviews and zero inline review threads.
+CodeRabbit returned a skipped-review notice, which is not an independent
+approval. Existing actual root/peer literal reviews remain qualified separately.
+The once-only REST read returned mergeable=NULL/mergeable_state=unknown; this
+is not evidence of a merge conflict and does not authorize a speculative rebase.
+The nine project check names come from the retained required-check receipt;
+live server branch-protection metadata is unreadable (API403), so no new claim
+about server enforcement is made.
+
+Correction to the historical65-head publication inventory above: it contained
+16 full ledgers,35 exact prior approval/candidate summaries and14 preledger404.
+It proved no competing approved012/042 and no scoped filename ownership; it
+did not freshly prove absence of arbitrary PARTIAL rows in every summary.
+Explicit shared-board claims and actual PR records drive current ownership.
+Only this owned checkpoint is appended locally; the published technical head
+is preserved so no duplicate CI is triggered. No further unchanged CI poll
+will be performed by this lane.
+
+SC012 state: PUBLIC_CI_BLOCKED_BY_SHARED_NATIVE_FIXTURE. PR565 exact
+`407c25a6349fa433489714ef7a13987b9de299e3` has8/9 project checks SUCCESS.
+`clean-migration-replay` failed at
+https://github.com/heke99/gridex-ops-platform/actions/runs/37284815127/job/111681078225
+(completed2026-10-05T09:29:59Z), step7, existing native suite606PASS/1FAIL/1SKIP.
+Concrete selected case: scripts/ediel-z06f-reading-followup-native.test.ts45,
+`actual misaligned or missing own reading {register:901} cannot fulfill F or
+borrow sibling evidence`. Fixture creation reaches unchanged
+seedNormalSwitchNativeFixture:102/nativeSql:30 before behavioral assertions,
+then PostgreSQL rejects duplicate synthetic normalized_org_number5525583265
+under `ux_companies_normalized_org`. Actual helper's organization allocator
+uses Math.random()*1e7 plus Luhn without a uniqueness reservation. No SC012
+assertion or production failure is established by this setup collision.
+Sanitized decoded existing-job excerpt:
+`/tmp/masterplan-sc012-ci-clean-failure-excerpt.json`, SHA256
+`6efa4f96d7c6a480d9ea596f116e72a42249334e7652ef18a35b5079159da5bc`.
+Shell log redirect was denied; the GitHub connector read succeeded, without
+rerunning anything. Raw logs/temporary redirect tokens are not stored in Git.
+
+Next action: root-assigned sc014_integration_handoff performs one read-only
+patch analysis; the retained native-fixture/integrator owner owns any narrow
+collision-free synthetic identity fix and qualification on the appropriate
+changed head. Preserve the production unique constraint and every assertion.
+This lane makes no fix, second analysis, rerun or common capture. Local literal
+SC012 approval remains its bounded frozen proof; public mandatory CI is blocked.
