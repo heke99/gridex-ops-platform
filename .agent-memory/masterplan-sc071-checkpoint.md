@@ -274,3 +274,59 @@ is inferred. Final independent caller review pending, then actual run.
 Final caller static peer APPROVE export-feedback-review.md, workflow24a53b10.
 Adopted main505e2063 seventeen foreign documentation-only paths unchanged;
 authentic runtime BASE remains7b9218da. Next actual ten-case execution.
+
+Published draftPR586 exact44992cdd47f1e146315679749804697f6395f71c,
+workflow24a53b10,19exclusivelyownedpaths. Attach completed, board5993865348,
+sourceowner-before-runtime pointer5745993853606. Native37305623231, OPS
+37305623132, browser37305623213, full37305623096, Ediel37305623355 queued.
+Final peer review file finalized after publication (review-only local followup);
+caller/hash verdict unchanged, retain running449 head to avoid cancellation.
+Raw full diffcheck warns on unified-patch blank-context grammar and retained
+raw-log EOF; whitespace-aware check PASS, bytes/hashpins intentionally preserved.
+Next qualify actualnative10 and firstfailure before any whole/fullgate claims.
+
+## Actual bounded native first failure retained
+
+Native37305623231/job111748483656 actual449 completed2026-10-05T11:58:08Z
+FAILED8PASS/2FAIL/0ERROR/0SKIP,10discovered. OwnSC071six (including allthree
+new actualleased-export/revoke races) PASS; ownerSC010two route cases PASS.
+Both owner15s lease-expiry waits receive57014 statementtimeout before expected
+ediel_export_lease_not_current. Product defect NOT_CONFIRMED. Direct owner570
+handoff5993986989 and board5993989157 retain sole native-test responsibility;
+no unowned correction or second test harness.
+
+Artifact11343427856 ZIPshaab140ff44e32fcde4dd6210f6a1b00992269026f021cfeb4c1f9ee083c51b3ab,
+CRC/secretrefusal+all7559BASEGitblob hashes+exact824/33b7/config/candidate
+inputs independently verified. BASEcanonicalPASS, exactforwardCOMMIT, four
+real403/42501RPC witnesses, effectivebeforeafterhashes+48ledgerversions stable.
+Raw native/JUnit/source receipt and firstfailure qualification saved under
+export-native-first-*; completeartifact retained outsidePR and onGitHub.
+Full10/expiry/wholeSC071/010 remain unapproved. Peer qualifying actualpartial
+evidence. Next: receive exact native-only owner correction, update solecaller
+with separate native-source pin and readonly timeout diagnostics, run/qualify
+actual10 on unchanged product824; shared admission/userhandoff still pending.
+
+Independent actual8/2qualification complete: API/ZIP/jobreceipt equality,7559
+BASE blobs+8effectiveinputs/custody PASS; own6effects qualify, expiry assertions
+after ownerline144unreached. Reviewfile preserves initialP2 and partialresult.
+Next caller6e30b3f0/descriptor5bf24fc6 statically APPROVE: distinctSC010native
+commit only for its nativepath, read-only statement_timeout-only role diagnostic;
+allproduct824/migration/gates intact. NOT_RUN, notpublished while ownercorrects.
+Compact sourceowner chat snapshot01a10b40-9b6f confirms ACTIVE correcting
+its two tests with sameassertions; no duplicate sourcefix is created. Next:
+receiveexact native-only handoff, verifyproductunchanged, updatepin, qualify
+newsource/review and run soleworkflow once on actualnexthead.
+
+## Exact repaired native handoff received
+
+Source handoff5865994292830 supplies immutable9b50b1b9 and allsix hashes;
+ACK5994494883. Follow the owner's explicit one-extraction-commit request:
+all6overlays+identicalSQL select9b50; productbaseline824 recorded separately.
+Only ownernativeSHA changes1efc→14611; other5/config+SQLd0e4 independently
+byteidentical. Caller6e30 unchanged; descriptored96171e, correction independently
+staticAPPROVE; native NOT_RUN until nextactualjob. First4498/2 remains intact.
+Adopted actualmain498ebd1c25foreignpaths unchanged, no ownpath conflict,
+package/lock/ownregisterednative/fixture/helpers/redactor unchangedBASE7b.
+NativeBASE remains7b rather than claiming498 candidateparity. Next publish
+reviewed solecaller+sourcepin+rawfirstfailure as one owned packet; actual10
+with no secondproducer or duplicate native correction; then qualifycustody.

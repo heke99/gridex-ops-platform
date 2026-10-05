@@ -21,9 +21,9 @@ The follow-up `export-races.patch` provides three independently reviewed actual
 export/revoke cases in addition to the original three. Registered source6407877
 remains unchanged; the effective six-case source is33b7d52a, explicitly
 applied only to the disposable runtime checkout. Types/lint and bounded static
-review passed; **the new native cases are NOT_RUN**. Original flat temporary
+review passed; **all six owned cases PASS on449**; the complete experimental run is8PASS/2FAIL. Original flat temporary
 layout type failure remains documented. Source-owner four sequential/expiry
-cases remain separately owned and byte-identical.
+cases remain separately owned; the new exact owner correction changes only its two lease-test setups.
 
 The owner's bounded native-feedback proposal5993124044 is accepted5993523187.
 The same sole `.github/workflows/ediel-sc071-native.yml` now:
@@ -44,7 +44,7 @@ The same sole `.github/workflows/ediel-sc071-native.yml` now:
 
 Exact inputs: export-feedback-inputs.json. Actionlint, shell/Python syntax,
 selected types/lint and seven finite qualifier controls PASS; these controls
-are not database/native evidence. Independent caller review precedes execution.
+are not database/native evidence. Independent caller and actual partial evidence reviews are recorded in export-feedback-review.md. The two source-owner lease-expiry cases failed with57014 before their preservation assertions; no expiry/full-ten-case approval is inferred. Raw firstfailure log/JUnit/receipt and qualification are export-native-first-*; artifact11343427856 is retained. The next caller uses exact owner handoff5994292830: all six overlays and identical SQL are extracted from commit9b50b1b9, with product baseline824 and corrected native SHA14611ac1 recorded separately. It adds read-only timeout diagnostics; next native execution is NOT_RUN.
 The earlier export-native-invoker.patch is a superseded direct-admission proposal
 and is not applied by this workflow.
 

@@ -78,13 +78,13 @@ jobs:
           bash <<'NATIVE' > "$RUNNER_TEMP/sc071-session.log" 2>&1 || component_exit=$?
           set -euo pipefail
           printf checkout > "$RUNNER_TEMP/sc071-stage"
-          read -r feedback_base feedback_producer < <(python3 - <<'PY'
+          read -r feedback_base feedback_producer feedback_native < <(python3 - <<'PY'
           import json
           d=json.load(open('quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json'))
-          print(d['base_sha'],d['producer_commit'])
+          print(d['base_sha'],d['producer_commit'],d['sc010_native_commit'])
           PY
           )
-          git fetch --no-tags origin "$feedback_base" "$feedback_producer"
+          git fetch --no-tags origin "$feedback_base" "$feedback_producer" "$feedback_native"
           git worktree add --detach "$SC071_BASE_ROOT" "$feedback_base"
           cmp package.json "$SC071_BASE_ROOT/package.json"
           cmp package-lock.json "$SC071_BASE_ROOT/package-lock.json"
@@ -118,6 +118,10 @@ jobs:
           PY
           printf overlay > "$RUNNER_TEMP/sc071-stage"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          # Read-only bounded timeout diagnostic; never change role/connection
+          # guards to make a lease-wait assertion pass. Only timeout values are
+          # selected, excluding other role configuration such as JWT secrets.
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "SELECT coalesce(jsonb_agg(jsonb_build_object('role',r.rolname,'statement_timeout',split_part(v.setting,'=',2)) ORDER BY r.rolname),'[]'::jsonb) FROM pg_db_role_setting s JOIN pg_roles r ON r.oid=s.setrole CROSS JOIN LATERAL unnest(s.setconfig) AS v(setting) WHERE r.rolname IN ('authenticator','service_role','authenticated','anon') AND split_part(v.setting,'=',1)='statement_timeout' AND s.setdatabase IN (0,(SELECT oid FROM pg_database WHERE datname=current_database()))" > "$SC071_EVIDENCE/role-statement-timeouts.json"
           python3 - <<'PY'
           import hashlib,json,os,pathlib,subprocess
           candidate=pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'])
@@ -126,7 +130,8 @@ jobs:
           def digest(data):return hashlib.sha256(data).hexdigest()
           for p,h in d['producer_overlays'].items():
               assert not pathlib.Path(p).exists(), 'BASE already contains producer input: '+p
-              data=subprocess.check_output(['git','show',d['producer_commit']+':'+p])
+              source_commit=d['sc010_native_commit'] if p=='scripts/ediel-sc-010-beneficiary-export-native.test.ts' else d['producer_commit']
+              data=subprocess.check_output(['git','show',source_commit+':'+p])
               assert digest(data)==h,p
               dest=pathlib.Path(p);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
           assert digest(pathlib.Path(d['own_native']).read_bytes())==d['registered_native_sha256']
@@ -255,6 +260,7 @@ jobs:
               'workflow_checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
               'workflow_run_id':os.environ['GITHUB_RUN_ID'],'base_checkout':base_checkout,
               'base_replay':base_replay,'producer_commit':d['producer_commit'],
+              'sc010_native_commit':d['sc010_native_commit'],
               'declared_producer_overlays':d['producer_overlays'],'forward_source':d['forward_source'],'forward_sha256':d['forward_sha256'],
               'forward_execution':'COMPLETED' if stage in ('schema_readiness','native','native_complete') else 'NOT_COMPLETED',
               'effective_runtime_inputs':effective,'post_native_inputs':post,
