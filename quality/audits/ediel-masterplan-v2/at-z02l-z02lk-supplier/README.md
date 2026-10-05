@@ -1,3 +1,35 @@
+# Supplier Z02L / Z02LK: preserve atomic verification snapshots
+
+The bounded repair removes the redundant semantic Z02 request writer. A cached
+request hint no longer upgrades a held response or replaces the snapshot committed
+by the canonical atomic core. No other executable slice changes.
+
+**Final local result:71 unique PASS/0 FAIL/0 ERROR/0 SKIP**, including the same54
+supplier cases (test SHA b2278560) and17 existing regressions. Final scoped types
+and lint exit0/no warnings. Independent source-fix-review.md approves exact source
+9d0146c9; source-fix-verification.json binds commands, exit status and raw hashes.
+The four formerly failing assertions and their trailing status/event/no-other-write
+assertions now execute and pass. Assertions, native/core/linker/worker and shared
+inbound integration are unchanged.
+
+The extra supplier static runner still fails its existing obsolete function-name
+predicate, also absent on the exact pre-fix baseline; later assertions did not run.
+Raw failure and owner handoff5035996143168 are retained. Current required CI is a
+separate candidate gate. Both whole acceptance rows remain NOT_EXECUTED, coverage
+untouched. Accepted outer pipeline, native persistence, physical ACK and separate
+Z03 readiness remain outside this component proof.
+
+Bounded source ownership was claimed explicitly as5305996039657 and dead-helper
+refinement5305996102432 before edits. Original-source-supplement.md adds retained
+P text custody and exact authority limits; original PDF/HB proof is still absent.
+
+## Preserved original RED reproduction and execution history
+
+The entries below retain the original source-owner packet atbc2b60cf and must be
+read as history. current-run/current-junit and verification-receipt.json remain
+its50/4 raw receipt; repaired-final files and source-fix-verification.json are the
+new71/0 receipt. No historical result was rewritten as green.
+
 # Supplier Z02L / Z02LK: bounded consumer probes and retained RED
 
 The actual focused suite has **54 unique cases /50 PASS /4 FAIL /0 errors /0
