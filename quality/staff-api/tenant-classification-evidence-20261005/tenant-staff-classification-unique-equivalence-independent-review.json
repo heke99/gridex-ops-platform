@@ -1,0 +1,105 @@
+{
+  "status": "PASS_GUARDED_COMPOSITE_UNIQUE_SEMANTIC_PLAN_SOURCE_ONLY",
+  "reviewed_at": "2026-10-05T16:13:51.731348+00:00",
+  "source": {
+    "commit": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+    "tree": "ab689d16aeb888ece8c28567d221e40b9dea19ca"
+  },
+  "object_facts": {
+    "tenant_staff_actor_anchors": {
+      "company_uuid_nonnull": true,
+      "original_unique_name": "tenant_staff_actor_anchors_invitation_id_key",
+      "original_unique_columns": [
+        "invitation_id"
+      ],
+      "new_proposed_unique_columns": [
+        "invitation_id",
+        "company_id"
+      ],
+      "validated_by_default_parent_composite_FK": "tenant_staff_actor_anchors_invitation_id_company_id_fkey",
+      "invitation_nullable": false
+    },
+    "tenant_staff_identity_bindings": {
+      "company_uuid_nonnull": true,
+      "original_unique_name": "tenant_staff_identity_bindings_invitation_id_key",
+      "original_unique_columns": [
+        "invitation_id"
+      ],
+      "new_proposed_unique_columns": [
+        "invitation_id",
+        "company_id"
+      ],
+      "validated_by_default_parent_composite_FK": "tenant_staff_identity_bindings_invitation_id_company_id_fkey",
+      "invitation_nullable": true
+    },
+    "tenant_staff_identity_deliveries": {
+      "company_uuid_nonnull": true,
+      "original_unique_name": "tenant_staff_identity_deliveries_invitation_id_key",
+      "original_unique_columns": [
+        "invitation_id"
+      ],
+      "new_proposed_unique_columns": [
+        "invitation_id",
+        "company_id"
+      ],
+      "validated_by_default_parent_composite_FK": "tenant_staff_identity_deliveries_invitation_id_company_id_fkey",
+      "invitation_nullable": false
+    }
+  },
+  "classification": {
+    "table_name": "PRIMARYKEY text",
+    "kind": "tenant",
+    "rationale": "NOTNULL truthfulcompany-boundreason",
+    "null_company_meaning": null,
+    "classified_at": "defaultnowNOTNULL",
+    "classified_by": "defaultmigrationNOTNULL"
+  },
+  "equivalence_proof": {
+    "nonnull_invitation": "Parentgloballyuniqueidhasonecompany. Validated(invitation_id,company_id)FK and childcompanyNOTNULL forceallvalidchildrowsforthatinvitationtothesamecompany. ThereforethetwoUNIQUEconstraintsrejectthesamenonnullinvitationduplicates.",
+    "null_invitation": "Onlybindingsinvitationnullable; PostgreSQLdefaultUNIQUEallowsmultipleNULLunderbothone-columnandtwo-columnkeys. NoNULLSNOTDISTINCTchangeallowed.",
+    "no_global_identity_remap": "Rows/parentPK/FKsremainunchanged; noinvitationcanbeassignedtodifferentcompanyunderexistingvalidatedFK."
+  },
+  "captured_incoming_FKs": [
+    {
+      "table": "tenant_staff_identity_deliveries",
+      "referenced_columns": "id, company_id, actor_user_id, api_client_id, provider_id, invitation_id, local_auth_issuer"
+    },
+    {
+      "table": "tenant_staff_identity_deliveries",
+      "referenced_columns": "id, company_id"
+    },
+    {
+      "table": "tenant_staff_actor_anchors",
+      "referenced_columns": "actor_user_id, company_id"
+    }
+  ],
+  "no_incoming_FK_uses_old_single_invitation_unique": true,
+  "no_ON_CONFLICT_single_invitation_target_found_in_checked_sources": true,
+  "checked_sources_sha256": {
+    "supabase/schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+    "lib/auth/tenantStaffDelivery.ts": "0d99671c63840d1cf02d142c7eca68084f5d8bf31bfe3dbac730f5742dbde1ae",
+    "lib/staff-api/onboarding.ts": "9b9f00805eaf4735b27e581c220cddce534f350bce3703b1ec5b212d664d9989"
+  },
+  "required_new_forward_guards": [
+    "ExactthreeexpectedoldnamedUNIQUE(invitation_id), standardimmediate/nonNULLSNOTDISTINCTsemantics; replacementskeepnames/defaultsemantics.",
+    "ParentPRIMARYKEYid, childcompanyUUIDNOTNULL and validatedexactcompositeFK mustexist; rejectmissing/invalid/changedrelation.",
+    "RejectunexpectedFKdependentsand DROPwithoutCASCADE.",
+    "Atomicboundedtransaction/failclosedregistryconflicts; preserveallrows/otherconstraints/OIDs/FKs/functions/ACL/RLS.",
+    "Registerall3astruetenant,notmixed/system/platformshared; fullunchangedinvariantmustPASSincludingF8."
+  ],
+  "qualification_protocol": "UNIQUEreplacementisDDL: freshauthenticcombined-prefixcapture/importofschemaandfingerprintrequired. Noassumptionrawtypesremainidentical; authenticbytesdecide. Newfinalnative/upgrade/headqualification mandatory.",
+  "source_point_clarification": {
+    "prior_failed_review": "/tmp/gridex-staff-review/tenant-split-final-0cf-native-upgrade-independent-review.json",
+    "F6_predicate": 32,
+    "F6_message": 35,
+    "RAISE": 239,
+    "block_terminator": 245,
+    "note": "Replacescoarsecomment/endiflinepointersinpreviousreceiptmetadatawithoutchangingitshistoricalfailurefacts."
+  },
+  "limits": [
+    "Proposedmigrationnotyetreviewedorapplied; thisisasourcesemanticequivalenceassessmentonly.",
+    "Noactualtests/replays/hostedSQL/HTTP/private-state/sourceeditsbyreviewer."
+  ],
+  "critical_important_plan_findings": []
+}

@@ -1,0 +1,49 @@
+{
+  "status": "FROZEN_LOCAL_CLASSIFICATION_FORWARD_PASS_AUTHENTIC_PG17_CAPTURE_IMPORT_AND_FINAL_CI_PENDING",
+  "created_at_utc": "2026-10-05T16:29:32.445035+00:00",
+  "baseline_head": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+  "source_sha256": {
+    "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
+    "__tests__/staff-external-identity-classification-sql.test.ts": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d"
+  },
+  "checks": {
+    "actual_sql_cases": 11,
+    "combined_entire_original_migration_new_forward_and_native_script": "PASS_EMBEDDED_ONLY",
+    "test_types": "PASS",
+    "scoped_lint": "PASS_ZERO_WARNINGS",
+    "migration_integrity": "PASS_1069_FILES_972_GROUPS",
+    "database_contract_hardening": "PASS",
+    "independent_source_review": "PASS_ZERO_CRITICAL_IMPORTANT"
+  },
+  "runtime_delta": "Three tenant-classification rows and three guarded preserved-name UNIQUE(invitation_id,company_id) replacements. Parent PK and validated composite company FK preserve admitted rows; canonical NULL behavior remains. No ACL/RLS/FK/check/trigger/function/old SQL/invariant gate changes.",
+  "old_raw3_sha256_before_capture": {
+    "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "supabase/schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "supabase/schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd"
+  },
+  "capture_status": "PENDING_GENUINE_NEW_DDL_OUTPUTS_DO_NOT_ASSUME_OLD_SCHEMA_FINGERPRINT",
+  "receipt_sha256": {
+    "tenant-split-final-0cf-native-upgrade-independent-review.json": "d83f12cdc65b413b93d9ca7d3e367bf3b2d200c9f7d41bb73639e77eb1272fc8",
+    "tenant-staff-classification-unique-equivalence-independent-review.json": "78d9901e26c4db9eb25f62a3830eaef5c569969f972da5b67dc40bab3a25d700",
+    "staff-external-identity-classification-qualification.json": "0fa5e961b3f43e1e00198c2042c9b94ab7054844d3610d338483acee88522ae7",
+    "staff-external-identity-classification-combined-native-qualification.json": "b3d3f17811b5607e2b2753878ee2713ab71614da5b40b0abda51592f2d5786e5",
+    "staff-external-identity-classification-independent-source-review.json": "0422d04f5903aaf7368b643e65c48d98b9266ec97f9e5df90ef453f396a32645"
+  },
+  "uncompressed_log_sha256": {
+    "staff-external-identity-classification-red.log": "950c8d8f405b1299ad497d0b6cc532bdd9eeecdc37877b00dd7ccfab8f3d5761",
+    "staff-external-identity-classification-green.log": "7b5469a44b06689255a0740643965dd797350be9fd9c570e7b54ed25afeb9cdf",
+    "staff-external-identity-classification-test-types-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-external-identity-classification-lint-frozen.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "staff-external-identity-classification-combined-native.log": "9d0952a495fab675364476945c0906684377799a43886fe7050b8a8b0adf1e34"
+  },
+  "preserved_baselines_sha256": {
+    "previous-complete-types-manifest-0cf.json": "832f0d31c229484f95a39ee6a7006bfa3c8754246433ad9baddca100c7907233",
+    "previous-complete-migration-manifest-0cf.json": "ef624c7fecd352d0fe8bf87b464bdd40c25fecccd4465bd02c2e42c69a608d5b"
+  },
+  "hosted_writes": 0,
+  "limits": [
+    "Embedded exact-SQL and independent source review do not substitute for native PostgreSQL17 capture/clean/upgrade acceptance.",
+    "Historical0cf missing-classification failure is preserved; completed external-native assertions remain scoped to that source.",
+    "Fresh generated schema/fingerprint may change; never generate or adjust raw output locally."
+  ]
+}

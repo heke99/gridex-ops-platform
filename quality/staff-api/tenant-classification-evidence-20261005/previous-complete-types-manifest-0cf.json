@@ -5,7 +5,7 @@
   "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
   "latest_migration": "20261005124901_tenant_staff_external_identity_bindings.sql",
   "latest_migration_schema_effect": "Authentic PostgreSQL17 capture of exact64c source adds explicit external staff bindings, delivery/anchor records and service-only resolver/acceptance/bootstrap/native guards. Managed Auth guards are verified from the entire migration/native regression; dump scope remains public+gridex schemas. All three generated files are copied byte-for-byte. Capture is not final native acceptance.",
-  "composition_capture_pending": true,
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-05T13:45:29.025881+00:00",
@@ -600,11 +600,5 @@
     "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
     "latest_migration": "20261005101527_staff_independent_onboarding_authority.sql",
     "scope": "Historical46ec capture of20261005101527 only; never relabeled as new external-identity/native qualification."
-  },
-  "pending_forward_capture": {
-    "migration": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
-    "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d",
-    "status": "GENUINE_PG17_CAPTURE_IMPORT_REQUIRED_BEFORE_FINAL_CI",
-    "schema_effect": "Three preserved-name invitation uniqueness constraints add company_id, with validated-parent/NULL/ACL guards; three truthful tenant-classification rows. No prior SQL or invariant gate mutation."
   }
 }

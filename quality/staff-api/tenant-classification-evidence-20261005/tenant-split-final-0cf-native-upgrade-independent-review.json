@@ -1,0 +1,655 @@
+{
+  "status": "FAIL_EXACT_0CF_CLEAN_SCHEMA_CLASSIFICATION_GATE_NATIVE_SCRIPT_AND_UPGRADE_PASSES_RETAIN_THEIR_SCOPE",
+  "reviewed_at": "2026-10-05T16:11:01.343534+00:00",
+  "source": {
+    "commit": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+    "tree": "ab689d16aeb888ece8c28567d221e40b9dea19ca",
+    "run": 37331703621,
+    "clean_job": 111836147978
+  },
+  "authentic_artifact": {
+    "path": "/workspace/attachments/3bdd2086-17d4-47dc-8dfb-bc35cdf0b62a/gridex-tenant-split-clean-final-0cf.zip",
+    "metadata_path": "/tmp/gridex-staff-review/tenant-split-final-clean-artifact-metadata.json",
+    "name": "gridex-rem-002-clean-replay",
+    "id": 11356657780,
+    "run_id": 37331703621,
+    "head": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+    "sha256": "709fec90ba399a2ded51f3dbe0b01b60bc7889b9d049f5ef23a223fa7cdc548b",
+    "bytes": 16097383,
+    "member_count": 57,
+    "expiry_digest_size_crc_and_names_verified": true
+  },
+  "fresh_job_metadata": {
+    "path": "/tmp/gridex-staff-review/tenant-split-final-clean-job-fresh.raw-metadata.json",
+    "sha256": "ed747d426f59ef5da425225b2edeefbbad38a2ea8c5e04d8f85a5afdad0db5a1",
+    "cache_busted_authenticated_get": true,
+    "status": "completed",
+    "conclusion": "failure",
+    "completed_at": "2026-10-05T16:03:52Z"
+  },
+  "whole_registered_prefix": {
+    "migrations": 1068,
+    "tail": "20261005124901_tenant_staff_external_identity_bindings.sql",
+    "canonical_execution_sequence_equal": true,
+    "executed_count": 1046,
+    "executed_sequence_sha256": "5fc0dfe5d5a6fc326d57ad0391eb2ccc681f6e25d6812844ce99da295354b18a",
+    "postgres_version": "17.6"
+  },
+  "phases": {
+    "actual": 17,
+    "expected": 18,
+    "sequence": [
+      [
+        "2026-10-05T15:28:03Z",
+        "clean_replay_start"
+      ],
+      [
+        "2026-10-05T15:30:06Z",
+        "clean_replay_complete"
+      ],
+      [
+        "2026-10-05T15:30:06Z",
+        "artifact_generation_start"
+      ],
+      [
+        "2026-10-05T15:30:15Z",
+        "artifact_generation_complete"
+      ],
+      [
+        "2026-10-05T15:30:15Z",
+        "sql_regressions_start"
+      ],
+      [
+        "2026-10-05T15:30:26Z",
+        "merge_concurrency_start"
+      ],
+      [
+        "2026-10-05T15:30:31Z",
+        "merge_concurrency_complete"
+      ],
+      [
+        "2026-10-05T15:30:31Z",
+        "sql_regressions_complete"
+      ],
+      [
+        "2026-10-05T15:30:31Z",
+        "native_owners_start"
+      ],
+      [
+        "2026-10-05T15:56:07Z",
+        "native_owners_complete"
+      ],
+      [
+        "2026-10-05T15:56:07Z",
+        "browser_fixtures_start"
+      ],
+      [
+        "2026-10-05T15:58:10Z",
+        "browser_fixtures_complete"
+      ],
+      [
+        "2026-10-05T15:58:10Z",
+        "browser_start"
+      ],
+      [
+        "2026-10-05T16:02:51Z",
+        "browser_complete"
+      ],
+      [
+        "2026-10-05T16:02:51Z",
+        "after_browser_native_start"
+      ],
+      [
+        "2026-10-05T16:03:28Z",
+        "after_browser_native_complete"
+      ],
+      [
+        "2026-10-05T16:03:28Z",
+        "schema_gates_start"
+      ]
+    ],
+    "schema_gates_complete": false,
+    "NATIVE_SUITE_FAILED_or_TYPE_COMPARISON_FAILED_flags": false
+  },
+  "mandatory_junit": [
+    {
+      "member": "rem002-native-junit.xml",
+      "sha256": "2c06eeb4c875ecd36c3775e6b6f8eeb412e8cf6490924836c42b0c73e115be55",
+      "cases": 609,
+      "passes": 608,
+      "skipped": 1,
+      "class_counts": {
+        "scripts/ediel-ai-network-original-native.test.ts": 1,
+        "scripts/ediel-ai-purpose-source-native.test.ts": 1,
+        "scripts/ediel-artifact-retention-native.test.ts": 1,
+        "scripts/ediel-bilateral-prodat-h-original-native.test.ts": 20,
+        "scripts/ediel-bilateral-prodat-profile-native.test.ts": 4,
+        "scripts/ediel-blob-retention-native.test.ts": 2,
+        "scripts/ediel-closure-wire-native.test.ts": 46,
+        "scripts/ediel-confirmed-customer-bilateral-native.test.ts": 1,
+        "scripts/ediel-correction-context-native.test.ts": 117,
+        "scripts/ediel-correction-process-native.test.ts": 3,
+        "scripts/ediel-customer-record-retention-native.test.ts": 2,
+        "scripts/ediel-customer-retention-native.test.ts": 1,
+        "scripts/ediel-decision-original-retention-native.test.ts": 2,
+        "scripts/ediel-document-reference-dispatch-native.test.ts": 1,
+        "scripts/ediel-document-reference-native.test.ts": 40,
+        "scripts/ediel-dsn-source-native.test.ts": 3,
+        "scripts/ediel-esco-10-11-projection-native.test.ts": 3,
+        "scripts/ediel-finance-copy-retention-native.test.ts": 3,
+        "scripts/ediel-fresh-business-incident-native.test.ts": 6,
+        "scripts/ediel-inbound-reception-actual-columns-native.test.ts": 11,
+        "scripts/ediel-network-registry-source-native.test.ts": 1,
+        "scripts/ediel-original-source-intake-native.test.ts": 3,
+        "scripts/ediel-outbound-ack-replay-native.test.ts": 3,
+        "scripts/ediel-process-journal-retention-native.test.ts": 2,
+        "scripts/ediel-prodat-ack-raw-scope-native.test.ts": 2,
+        "scripts/ediel-prodat-mixed-native.test.ts": 6,
+        "scripts/ediel-prodat-object-batch-current-source-native.test.ts": 11,
+        "scripts/ediel-registry-import-native.test.ts": 1,
+        "scripts/ediel-registry-route-certificate-native.test.ts": 1,
+        "scripts/ediel-regulated-supply-ground-native.test.ts": 3,
+        "scripts/ediel-requested-change-native.test.ts": 5,
+        "scripts/ediel-retention-grant-native-clock-native.test.ts": 5,
+        "scripts/ediel-sc-003-005-service-native.test.ts": 1,
+        "scripts/ediel-service-evidence-native.test.ts": 29,
+        "scripts/ediel-source-owner-native.test.ts": 48,
+        "scripts/ediel-transport-data-query-plan-native.test.ts": 1,
+        "scripts/ediel-transport-exception-native.test.ts": 4,
+        "scripts/ediel-utilts-consumption-native.test.ts": 141,
+        "scripts/ediel-utilts-err-gateway-native.test.ts": 8,
+        "scripts/ediel-utilts-s02-required-native.test.ts": 26,
+        "scripts/ediel-z04-ack-native.test.ts": 16,
+        "scripts/ediel-z06f-reading-followup-native.test.ts": 8,
+        "scripts/staff-case-create-native.test.ts": 2,
+        "scripts/staff-case-write-native.test.ts": 5,
+        "scripts/staff-customer-write-native.test.ts": 3,
+        "scripts/staff-identity-provider-native.test.ts": 2,
+        "scripts/staff-user-client-concurrency-native.test.ts": 2,
+        "scripts/staff-user-concurrency-native.test.ts": 2
+      },
+      "repeated_case_labels": 1,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-source-owner-native.config.ts"
+    },
+    {
+      "member": "rem002-case-native-junit.xml",
+      "sha256": "ae211df9e26cc2696e2529f1912b4147c179ee5854360d2e4156ed3bb8c0824c",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-case-view-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-case-view-native.config.ts"
+    },
+    {
+      "member": "rem002-requested-change-native-junit.xml",
+      "sha256": "9af405d3960cf598c0ca91802dd6ef5563a1b574d15d985337e116226a835ad6",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-requested-change-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-requested-change-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-regulated-supply-native-junit.xml",
+      "sha256": "7879225209ad3e2ca9132d3375961b89a1b4ad4cb1aa4a859e6693651cc884bc",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-regulated-supply-ground-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-regulated-supply-ground-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-bilateral-customer-native-junit.xml",
+      "sha256": "1050679278303a71ce74f5ce48bb467f6675629731b011f2371181d31ea53930",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-bilateral-customer-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-bilateral-customer-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-bilateral-prodat-native-junit.xml",
+      "sha256": "6abe1d6251262638b0752498c1f9a230cb80f315d44729d337daeb8b6410931f",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-bilateral-prodat-profile-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-bilateral-prodat-profile-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-ai-purpose-native-junit.xml",
+      "sha256": "833193c9719e3a4cd8cab4cc3b07683508c501b8030d77aaaea197e7750ef91b",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-ai-purpose-source-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-ai-purpose-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-record-retention-native-junit.xml",
+      "sha256": "fa68ac7a1f9389f1ad2ca067cc1b3c22afa6bff949439faaa48e537cd5abf013",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-customer-record-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-customer-record-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-blob-retention-native-junit.xml",
+      "sha256": "d7898b53ddd08273c15603e460efc85e5b6d012f2c402f4f6dc968eab24afa2e",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-blob-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-blob-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-process-journal-retention-native-junit.xml",
+      "sha256": "7019087c4e107a121ab565fee8663cd59908715394e4055374c11f835d4957fa",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-process-journal-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-process-journal-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-finance-copy-retention-native-junit.xml",
+      "sha256": "6242ea86dd8a79fc594bc95e15fa88fdebb91f611c4bae629641e0a70da23683",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-finance-copy-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-finance-copy-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-decision-original-native-junit.xml",
+      "sha256": "2a76482c4916092bf14638aaa821e93b2713ae728afe90b7594dde52c994786b",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-decision-original-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-decision-original-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-business-incident-native-junit.xml",
+      "sha256": "c514abfad10279aa12dd36b31b85beb757259d0a6e1019e03292996db8ea596c",
+      "cases": 6,
+      "passes": 5,
+      "skipped": 1,
+      "class_counts": {
+        "scripts/ediel-fresh-business-incident-native.test.ts": 6
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-source-owner-native.config.ts"
+    },
+    {
+      "member": "rem002-case-after-browser-junit.xml",
+      "sha256": "17df35dbabffb9214895bc013bf162ffbdcd214068945df7dcefec1721e55ff3",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-case-view-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-case-view-native.config.ts"
+    },
+    {
+      "member": "rem002-requested-change-after-browser-junit.xml",
+      "sha256": "12ebf14f1fb5865d7b6f2d2104968eeb4ff6740cc2e650c6419ab16c8f907c74",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-requested-change-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-requested-change-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-regulated-supply-after-browser-junit.xml",
+      "sha256": "31debabb8af3b29f64710af6ca6f1adc889dafa4bf4e8cc7e2d5c9d93bf65301",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-regulated-supply-ground-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-regulated-supply-ground-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-bilateral-customer-after-browser-junit.xml",
+      "sha256": "e722fe17c173041685d7a664364ef16d15e5996ff4df8f858d8129d8f24dc708",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-bilateral-customer-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-bilateral-customer-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "sha256": "0de6b15e416c6a433cc102c6264b017155462251f9ffe17dbf2a9f00a645799e",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-bilateral-prodat-profile-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-bilateral-prodat-profile-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-ai-purpose-after-browser-junit.xml",
+      "sha256": "0a158dd6110cd2d5239f2fbbabec1960377e9ddc562e9aee820d6bba21ee2b82",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-ai-purpose-source-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-ai-purpose-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-record-retention-after-browser-junit.xml",
+      "sha256": "0aa1fad5f035294785c48f5990b08b943fd24c2534167509834c2258cdfc6e53",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-customer-record-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-customer-record-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-blob-retention-after-browser-junit.xml",
+      "sha256": "94ee60b6f63477fff4bda3f375f4f06a7ca57cdca6e3483efe984c12f804610e",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-blob-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-blob-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-process-journal-retention-after-browser-junit.xml",
+      "sha256": "90872ba085f23c120cceafe7cc8b8172b477a774c9997fe476764aaa5cc168d7",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-process-journal-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-process-journal-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "sha256": "db093a3ba9156f61034fd28569537dfc499c5a33148cc13a52f86801508ca87e",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-finance-copy-retention-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-finance-copy-retention-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-decision-original-after-browser-junit.xml",
+      "sha256": "5e7565395d343144c05394bc5de9722cccb93c491ce64cafa9ee369531b59850",
+      "cases": 1,
+      "passes": 1,
+      "skipped": 0,
+      "class_counts": {
+        "scripts/ediel-decision-original-browser-native.test.ts": 1
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-decision-original-browser-native.config.ts"
+    },
+    {
+      "member": "rem002-business-incident-after-browser-junit.xml",
+      "sha256": "6252381c1439efb0713664767e7e531d1c510df907f89d319f51897d4284b8d7",
+      "cases": 6,
+      "passes": 1,
+      "skipped": 5,
+      "class_counts": {
+        "scripts/ediel-fresh-business-incident-native.test.ts": 6
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0,
+      "config": "scripts/ediel-source-owner-native.config.ts"
+    },
+    {
+      "member": "e2e-artifacts/playwright-junit.xml",
+      "sha256": "4ae83d580478b9d315cdd1e912bfc756ee6a659747305fd635be067e53ff78b7",
+      "cases": 31,
+      "passes": 31,
+      "skipped": 0,
+      "class_counts": {
+        "ediel-ai-purpose-local.spec.mjs": 2,
+        "ediel-bilateral-customer-source-local.spec.mjs": 2,
+        "ediel-bilateral-prodat-profile-local.spec.mjs": 1,
+        "ediel-business-incident-local.spec.mjs": 2,
+        "ediel-case-local.spec.mjs": 3,
+        "ediel-customer-record-retention-local.spec.mjs": 3,
+        "ediel-decision-evidence-retention-local.spec.mjs": 3,
+        "ediel-finance-copy-retention-local.spec.mjs": 3,
+        "ediel-message-content-retention-local.spec.mjs": 3,
+        "ediel-network-registry-local.spec.mjs": 2,
+        "ediel-process-journal-retention-local.spec.mjs": 3,
+        "ediel-regulated-supply-ground-local.spec.mjs": 1,
+        "ediel-requested-change-local.spec.mjs": 3
+      },
+      "repeated_case_labels": 0,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "junit_summary": {
+    "reports": 26,
+    "cases": 674,
+    "passed": 667,
+    "skipped": 7,
+    "failures": 0,
+    "errors": 0,
+    "mandatory_configured_coverage_verified": true,
+    "all_skips_complemented_by_positive_execution": true,
+    "all_staff_native_cases_executed": true,
+    "browser_cases": 31,
+    "browser_passed": 31
+  },
+  "actual_external_identity_SQL_runtime_proof": {
+    "status": "PASS_COMPLETED_NATIVE_PG17_SUBGATE",
+    "script": "scripts/staff-external-identity-binding-regression.sql",
+    "script_sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "mandatory_failure_accumulator_bound": true,
+    "success_notice": "STAFF_EXTERNAL_IDENTITY_BINDING_NATIVE_PASS",
+    "notice_present": true,
+    "all_script_assertions_reached": "Explicitidentitybinding,canonicalbootstrapandlegacyacceptance,replay/disable/version/rotation/forgedlocalclaims,anchorcredential/session/refresh/identitydenials,privateACL/servicecallproofs plustransactionrollback.",
+    "scope": "Real PG17 stack regression; not wholecleanacceptance, real hosted privileges or real invitation email/delivery activation."
+  },
+  "blocking_failure": {
+    "gate": "scripts/sql/tenant-isolation-invariants.sql",
+    "gate_sha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+    "psql_line": 245,
+    "raise_inline_line": 222,
+    "artifact_log_line": 27486,
+    "failure_count": 3,
+    "code": "F-6_UNCLASSIFIED_PUBLIC_TABLES",
+    "tables": [
+      "tenant_staff_identity_deliveries",
+      "tenant_staff_identity_bindings",
+      "tenant_staff_actor_anchors"
+    ],
+    "source_predicate": "EverypublicrelkindrLEFTJOINplatform_table_classification whereclassificationtable_nameISNULL.",
+    "source_lines": {
+      "classification_predicate": 26,
+      "error_accumulation": 35,
+      "raise": 241
+    },
+    "no_RLS_ACL_or_unique_failure_reported_in_this_artifact": true,
+    "no_timeout_or_truncated_artifact": true
+  },
+  "minimal_dependency_facts": {
+    "all_three_have_nonnull_company_uuid": true,
+    "all_three_have_company_and_composite_parent_FKs": true,
+    "truthful_classification_kind": "tenant",
+    "null_company_meaning": null,
+    "classification_fields": [
+      "table_name",
+      "kind",
+      "rationale",
+      "null_company_meaning",
+      "classified_at",
+      "classified_by"
+    ],
+    "classified_defaults": "now()/migration",
+    "classification_kind_allowed": [
+      "tenant",
+      "platform_shared",
+      "mixed",
+      "system"
+    ],
+    "current_c6bf_omits_registry_rows": true,
+    "predicted_followup_F8_to_cover_before_native": "AllthreeUNIQUE(invitation_id)arevalidated-composite-FK scopedto company_invitations(id,company_id), but currentF8parentregexomitsinvitation_id. ActualfullinvariantRED/GREEN mustcoverthisafterclassification, preservingauthority/globalone-invitationuniqueness."
+  },
+  "generated_outputs": [
+    {
+      "path": "supabase/database.types.ts",
+      "member": "rem002-database.types.ts",
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "raw_byte_equal_to_0cf": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "member": "rem002-schema-snapshot/schema.sql",
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "raw_byte_equal_to_0cf": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "member": "rem002-schema-snapshot/schema.fingerprint.json",
+      "sha256": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+      "raw_byte_equal_to_0cf": true
+    }
+  ],
+  "canonical_schema_fingerprint": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1",
+  "independent_upgrade_proof": {
+    "path": "/tmp/gridex-staff-review/tenant-split-final-0cf-upgrade-independent-review.json",
+    "sha256": "cbfda140f589cd51c1ab3169de0ebb7af3073433a60f3f832a11b18582d125d8",
+    "status": "PASS_EXACT_0CF_UPGRADE_ONLY",
+    "not_reexecuted_here": true
+  },
+  "historical_proofs_not_relabelled": [
+    "e545failednative23505",
+    "0cfordinary10,775green",
+    "0cfpassedexternalscript",
+    "0cfpassedupgrade",
+    "WEBac1c6cagreen"
+  ],
+  "qualification_limits": [
+    "Full0cfcleanrequiredgateisFAILED despite allnativeJUnit/browser/regression subgatesbeinggreen.",
+    "SourceownerownsnewadditivetruthfulclassificationandfullgateRED/GREEN;noc6bfeditorinvariantweakeningbyreviewer.",
+    "Freshsourcehead/nativeandcapture/prefixbindingsremainrequiredaftercorrection;rawschemaunchangeddoesnotprovenewmigrationwasexecuted.",
+    "No hosted activation/Auth/DB/email calls, tests/replays/generation or repo mutations byreviewer."
+  ],
+  "reviewer_actions": {
+    "final_upgrade_downloads": 1,
+    "final_clean_downloads": 1,
+    "upgrade_verifier_invocations": 1,
+    "native_replays_or_tests": 0,
+    "runtime_or_migration_edits": 0,
+    "hosted_calls": 0,
+    "private_reads": 0
+  }
+}
