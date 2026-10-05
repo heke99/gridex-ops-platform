@@ -1,0 +1,17 @@
+{
+  "unfiltered": {
+    "exitCode": 2,
+    "rawOutput": "raw-whitespace-initial.log",
+    "findings": "Copied raw ownership JSON and requirement review have blank EOF lines; original bytes preserved"
+  },
+  "filtered": {
+    "exitCode": 0,
+    "excluded": [
+      "*.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/independent-z14vh-requirement-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/ownership-before-claim.json"
+    ],
+    "scope": "Code, generated metadata and checkpoint; exact copied raw receipts excluded only"
+  },
+  "rawCopiedBytesPreserved": true
+}
