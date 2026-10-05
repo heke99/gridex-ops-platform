@@ -5,6 +5,7 @@
 - **Täckning (coverage.json på main `4ac9c64`):** regler 91/121 VERIFIED (25 NOT_VERIFIED, 5 PARTIAL); kontrakt 116/231 PASSED (97 NOT_EXECUTED, 18 PARTIAL). Klara kluster: ESCO, ACK, U, AI. Öppet: DB-01..06, GOV-01/04/05/06/08, IMP-01/02/03/05, ENV-02/05/06/07/08/10, OPS-03/04/05, TR-05/08/09/10, TEN-09, P-08.
 - **2026-10-05 merge-carry DB-03/DB-06 (claim #530 5995389651):** main mergad in i #532 (`857ca407`) och #534 (`b7712581`). Enda konflikten per PR var taggraden, som slogs ihop. Lokalt: DB-03 114/114, DB-06 57/57 + SQL 50 PASS, coverage `--check` exit 0. CI helt grön på båda (inkl. clean replay) 14:27 UTC, DONE + RELEASE på #530; merge ligger kvar hos ägaren/root.
 - **2026-10-05 stale-PR-status (#530 5996822471):** #508/#512/#513/#514 gröna på gammal bas, rena mot main. #516/#519/#521/#522/#525/#526 har native-rött från bas 56192d1 (Z06F), rena mot main. Dubbelarbete ENV-06 (#517/#576) och ENV-10 (#512/#576). Merge-carry erbjuden, väntar på OK från root/ägare. Inget pushat.
+- **2026-10-05 integration-carry 10 PR (root ACK #530 5997005674, publ. 5997… ):** #508 ENV-02, #512 ENV-10 (hålls), #513 SC-041, #514 ENV-07, #516 ENV-08, #519 IMP-01, #521 GOV-06, #522 GOV-05, #525 IMP-02, #526 IMP-03 mergade med main aa271e14. Lokalt allt grönt + --check exit 0. OBS: test-ediel-unb-ack-request.cjs kräver `node --experimental-vm-modules`. Väntar på CI; root mergar.
 - **Nästa åtgärd:** välj ett kluster enligt "Shared work" (kolla öppna PR:ar, nu ~30, mestadels SC-bevis) och fortsätt regel för regel.
 
 ## Sparad överlämning — 2026-10-01 (aktuell)
