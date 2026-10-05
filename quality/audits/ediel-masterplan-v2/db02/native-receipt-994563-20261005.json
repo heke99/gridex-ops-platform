@@ -1,0 +1,41 @@
+{
+  "source_head": "99456309214d412b67f2222b0f69108124e94d48",
+  "source_tree": "dfdf257288801919841eea6604342f6930e8ad2d",
+  "run": 37250368328,
+  "job": 111576581771,
+  "artifact": 11322940903,
+  "zip_sha256": "63bae11e38b5fd9d7b8db5bf1e86cd96df705382df00e15dfa510c0abefe2e3e",
+  "overall": {
+    "passed": 609,
+    "failed": 1,
+    "skipped": 1
+  },
+  "own_native": {
+    "passed": 5,
+    "failed": 1,
+    "skipped": 0
+  },
+  "failed_message": "expected_sqlstate_23P01, got 23505",
+  "scope": "read-only actual current-head result, not full-card approval",
+  "test_before": {
+    "path": "scripts/ediel-db02-profile-periods-native.test.ts",
+    "commit": "99456309214d412b67f2222b0f69108124e94d48",
+    "git_blob": "d45b87144d91026aeee24d55b8332610168132cf",
+    "sha256": "f5cae71d396255e64c6685afdd95b24be9715287fea8e94f5dfc3b5d5d28d02c"
+  },
+  "authorized_fixture_delta": [
+    {
+      "before": "row(foreignProfile,foreign,'2026-06-01')",
+      "after": "row(foreignProfile,foreign,'2026-06-02')"
+    },
+    {
+      "before": "row(testProfile,company,'2026-06-01'",
+      "after": "row(testProfile,company,'2026-06-03'"
+    },
+    {
+      "before": "valid_from='2026-02-01' WHERE id=${literal(first)}",
+      "after": "valid_from='2026-02-02' WHERE id=${literal(first)}"
+    }
+  ],
+  "qualification": "Genuine original source-qualified native result; corrected dates are not a new native PASS. No product SQL changes."
+}

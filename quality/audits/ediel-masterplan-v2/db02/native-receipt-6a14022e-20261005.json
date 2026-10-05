@@ -1,0 +1,85 @@
+{
+  "source_head": "6a14022ed2782363068ec0fa3138915f50bba57f",
+  "source_tree": "f768e93784c61de8ee77d1d82f033c4b6339868d",
+  "run": 37344181319,
+  "job": 111878501868,
+  "artifact": 11362023150,
+  "zip_sha256": "00d6cebd563e304664988e918c014296c090b6dc9f1fcfeed2ada23898bad075",
+  "published_digest": "sha256:00d6cebd563e304664988e918c014296c090b6dc9f1fcfeed2ada23898bad075",
+  "members": 57,
+  "crc": "PASS",
+  "overall": {
+    "passed": 617,
+    "failed": 0,
+    "skipped": 1
+  },
+  "own_native": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+  },
+  "cases": [
+    {
+      "name": "installs a validated profile-only exclusion and date-order constraint with the genuine extension",
+      "result": "PASS"
+    },
+    {
+      "name": "actual profile writes enforce parent/date/half-open/disabled/update boundaries and roll back their fixture",
+      "result": "PASS"
+    },
+    {
+      "name": "two real sessions at repeatable-read preserve same-scope exclusion when first writer commit",
+      "result": "PASS"
+    },
+    {
+      "name": "two real sessions at repeatable-read preserve same-scope exclusion when first writer rollback",
+      "result": "PASS"
+    },
+    {
+      "name": "real migration preflight refuses legacy reversed and leaves retained source rows intact",
+      "result": "PASS"
+    },
+    {
+      "name": "real migration preflight refuses legacy overlap and leaves retained source rows intact",
+      "result": "PASS"
+    }
+  ],
+  "junit": {
+    "path": "rem002-native-junit.xml",
+    "sha256": "7c937fc35e9a3617aac27f5d23c42cf33401fdabac4937cf05bd3010ce649da1"
+  },
+  "native_source_receipt": {
+    "path": "e2e-artifacts/native/utilts-catalog-clean.json",
+    "sha256": "fd9cbabb124db9176975cbda1af21c2a895c3ee33110c81cffe96b5a7f296dea",
+    "codeSha": "6a14022ed2782363068ec0fa3138915f50bba57f",
+    "codeTree": "f768e93784c61de8ee77d1d82f033c4b6339868d",
+    "databasePhase": "clean"
+  },
+  "source_sha256": {
+    "scripts/ediel-db02-profile-periods-native.test.ts": "6824bd054d11f98e76289edf59eed27d63bbfab0abf10454e25fcf621c7a3c60",
+    "scripts/ediel-source-owner-native.config.ts": "b2b24ab1d95f21f5ce6fe51b7764d80d83d91b729e04637c3cf8466d462cb541",
+    "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0"
+  },
+  "clean_job_conclusion": "failure",
+  "failed_stage": "final schema snapshot check after native assertions",
+  "schema_comparison": {
+    "committed": "a183679d86a31305e60b2e1625f666adee3ff1faa442e03a3be2fe55b7ff901e",
+    "actual": "4c42c3416001eb09f6c52c6f788a555554613c0fff0ef3cec15a341c63e8b044",
+    "section_counts": {
+      "constraints": [
+        4477,
+        4479
+      ],
+      "extensions": [
+        7,
+        8
+      ],
+      "indexes": [
+        2921,
+        2922
+      ]
+    }
+  },
+  "previous_red_receipt": "quality/audits/ediel-masterplan-v2/db02/native-receipt-994563-20261005.json",
+  "qualification": "Genuine actual native results bound to exact 6a source/tree; all six owner cases ran. Overall suite includes one inherited skip. Clean job fails later only on committed schema snapshot comparison. Prior source-qualified 994 5 PASS / 1 FAIL remains unchanged and historical. No final import-head CI, whole-card coverage approval, hosted or market qualification is claimed."
+}

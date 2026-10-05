@@ -1396,8 +1396,16 @@
     {
       "id": "DB-02",
       "acceptance_id": "AT-DB-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "__tests__/ediel-db02-profile-periods.test.ts",
+        "scripts/ediel-db02-profile-periods-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+        ".agent-memory/masterplan-db02-checkpoint.md"
+      ]
     },
     {
       "id": "DB-03",
@@ -3506,8 +3514,16 @@
     },
     {
       "id": "AT-DB-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "__tests__/ediel-db02-profile-periods.test.ts",
+        "scripts/ediel-db02-profile-periods-native.test.ts",
+        "quality/audits/ediel-masterplan-v2/db02/native-receipt-6a14022e-20261005.json",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.md",
+        "quality/audits/ediel-masterplan-v2/db02/whole-independent-review-2fb524ff.json",
+        ".agent-memory/masterplan-db02-checkpoint.md"
+      ]
     },
     {
       "id": "AT-DB-03",

@@ -74,5 +74,6 @@ export default defineConfig({
     'scripts/ediel-retention-grant-native-clock-native.test.ts',
     'scripts/ediel-prodat-object-batch-current-source-native.test.ts',
     'scripts/ediel-original-source-intake-native.test.ts',
+    'scripts/ediel-db02-profile-periods-native.test.ts',
   ],setupFiles:['scripts/helpers/ediel-native-permission-catalog.setup.ts'],testTimeout:120000,hookTimeout:120000,fileParallelism:false},
 })
