@@ -1599,7 +1599,7 @@
     },
     {
       "id": "SC-035",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "scripts/test-ediel-p-10-z02-correlation.cjs",
         "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
@@ -1617,7 +1617,7 @@
     },
     {
       "id": "SC-037",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-037-future-start.test.ts",
         "__tests__/supplier-switch-activation-sweep.test.ts",
