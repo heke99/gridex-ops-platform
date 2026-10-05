@@ -19141,6 +19141,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.negative_prepared_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_negative_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_negative_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.negative_prepared_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_negative_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19169,6 +19172,9 @@ BEGIN IF TG_OP='UPDATE' AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS N
  SELECT * INTO w FROM gridex_negative_fixtures.positive_witnesses WHERE id=(NEW.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId')::uuid FOR UPDATE;
  IF w.id IS NULL THEN RAISE EXCEPTION 'ediel_positive_fixture_witness_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  IF NEW.company_id IS DISTINCT FROM w.company_id OR NEW.environment IS DISTINCT FROM 'test' OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_standard IS DISTINCT FROM 'edifact' OR NEW.raw_payload IS DISTINCT FROM f.original_wire THEN RAISE EXCEPTION 'ediel_positive_fixture_message_scope_invalid';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_consumptions WHERE registration_id=f.id;
  IF FOUND THEN IF prior.message_id IS DISTINCT FROM NEW.id OR prior.witness_id IS DISTINCT FROM w.id THEN RAISE EXCEPTION 'ediel_positive_fixture_original_already_consumed';END IF;RETURN NEW;END IF;
@@ -19289,7 +19295,13 @@ BEGIN
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=p_context->>'testReceiverEdielId' AND t#>>'{elements,11,0}'='1') THEN RAISE EXCEPTION 'ediel_positive_fixture_test_original_required';END IF;
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId' OR prior.source_reference IS DISTINCT FROM p_context->>'sourceReference'
@@ -19322,7 +19334,13 @@ BEGIN
  OR r.approval_version IS DISTINCT FROM p_context->>'revision' OR (p_context->>'stepNo')::integer<=0 OR (p_context->>'validUntil')::timestamptz<=now()
  THEN RAISE EXCEPTION 'ediel_negative_fixture_run_scope_mismatch';END IF;
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');
- PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||((p_context->>'stepNo')::integer)::text||'|'||hash,0));
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
+  AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO prior FROM gridex_negative_fixtures.originals WHERE company_id=r.company_id AND run_id=r.id AND step_no=(p_context->>'stepNo')::integer AND revision=r.approval_version AND wire_sha256=hash;
  IF FOUND THEN
   IF prior.expected_diagnostic_codes IS DISTINCT FROM diagnostics OR prior.test_receiver_ediel_id IS DISTINCT FROM p_context->>'testReceiverEdielId'
@@ -19358,6 +19376,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19380,6 +19401,9 @@ BEGIN
  SELECT * INTO f FROM gridex_negative_fixtures.positive_originals WHERE company_id=r.company_id AND run_id=r.id AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND revision=r.approval_version
   AND step_no=(p_context->>'stepNo')::integer AND original_wire=wire AND valid_until>clock_timestamp();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=f.test_receiver_ediel_id AND t#>>'{elements,11,0}'='1') THEN RETURN NULL;END IF;
@@ -19410,6 +19434,9 @@ BEGIN
   -- The server adapter additionally recomputes its actual Latin1 byte hash.
   AND role_code=r.role_code AND case_code=r.test_case_code AND suite=r.test_suite AND original_wire=wire AND valid_until>now();
  IF NOT FOUND THEN RETURN NULL;END IF;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB')<>1 THEN RETURN NULL;END IF;
  SELECT t#>>'{elements,3,0}' INTO receiver FROM jsonb_array_elements(tokens) t WHERE t->>'tag'='UNB';
@@ -19431,6 +19458,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.negative_prepared_consumptions c JOIN gridex_negative_fixtures.negative_prepared_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedNegativeFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_negative_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_negative_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_negative_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_negative_fixture_actual_run_link_required';END IF;
@@ -19456,6 +19486,9 @@ BEGIN
  SELECT witness.* INTO w FROM gridex_negative_fixtures.positive_consumptions c JOIN gridex_negative_fixtures.positive_witnesses witness ON witness.id=c.witness_id WHERE c.message_id=m.id AND c.company_id=p_company FOR SHARE OF witness;
  IF w.id IS NULL OR m.execution_context_snapshot->>'sourceQualifiedPositiveFixtureWitnessId' IS DISTINCT FROM w.id::text THEN RAISE EXCEPTION 'ediel_positive_fixture_original_required';END IF;
  SELECT * INTO STRICT f FROM gridex_negative_fixtures.positive_originals WHERE id=w.registration_id FOR SHARE;
+ IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=f.company_id AND opposite.run_id=f.run_id
+  AND opposite.step_no=f.step_no AND opposite.revision=f.revision AND opposite.wire_sha256=f.wire_sha256)
+ THEN RAISE EXCEPTION 'ediel_positive_fixture_original_conflict';END IF;
  SELECT * INTO STRICT r FROM public.ediel_test_runs WHERE id=w.run_id AND company_id=p_company AND environment='test' AND status IN('draft','running') FOR SHARE;
  IF m.raw_payload IS DISTINCT FROM f.original_wire OR r.role_code IS DISTINCT FROM f.role_code OR r.test_case_code IS DISTINCT FROM f.case_code OR r.test_suite IS DISTINCT FROM f.suite OR r.approval_version IS DISTINCT FROM f.revision OR f.valid_until<=clock_timestamp() THEN RAISE EXCEPTION 'ediel_positive_fixture_current_run_required';END IF;
  IF (SELECT count(*) FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id)<>1 OR NOT EXISTS(SELECT FROM public.ediel_test_run_messages l WHERE l.ediel_message_id=m.id AND l.test_run_id=w.run_id AND l.step_no=w.step_no) THEN RAISE EXCEPTION 'ediel_positive_fixture_actual_run_link_required';END IF;
