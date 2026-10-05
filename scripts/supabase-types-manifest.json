@@ -5,8 +5,8 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37241355536",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
   "latest_migration": "20261004221605_ediel_test_original_outcome_conflict.sql",
-  "latest_migration_schema_effect": "Authentic GOV-08 own-prefix PostgreSQL 17 clean capture adds opposite-outcome conflict guards to nine existing private original-fixture function bodies. Types are byte-identical; full schema and function fingerprint are imported from the capture. Native and clean/upgrade parity remain separate mandatory final-head gates.",
-  "composition_capture_pending": false,
+  "latest_migration_schema_effect": "The prior authentic GOV-08 capture remains exact historical evidence. Two publisher bodies in the unmerged draft now additionally refuse stale higher-isolation snapshots (internal25000); all other source migrations and generated files are unchanged. Fresh authentic own-prefix capture is pending; native and clean/upgrade parity remain mandatory final-head gates.",
+  "composition_capture_pending": true,
   "capture": {
     "workflow_run": 37241355536,
     "workflow_run_attempt": 1,

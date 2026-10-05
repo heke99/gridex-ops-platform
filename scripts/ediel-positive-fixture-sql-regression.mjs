@@ -133,6 +133,26 @@ try{
   const prepared=(await as('service_role',prepare(positive,s,id))).result
   assert.equal(prepared.qualification.registrationId,id);assert.equal((await as('service_role',`select gridex_negative_fixtures.prepared_${positive?'positive':'negative'}_fixture_v1('${company}','${prepared.witnessId}',${literal(raw)},'${actor}') result;`)).result.registrationId,id);checks++
  }
+ // A stale higher-isolation snapshot cannot safely qualify the opposite table.
+ // These are single-session isolation/side-effect checks; genuine separate-
+ // session snapshot/commit races are asserted by the native counterpart.
+ const isolationOriginals=(await originals()).rows
+ for(const isolation of ['repeatable read','serializable'])for(const positive of [true,false]){
+  for(const stepNo of [positive?4:5,40+(positive?0:1)]){
+   await db.exec(`begin isolation level ${isolation};set local role gridex_ediel_fixture_authority_owner;`)
+   try{
+    await assert.rejects(db.exec(positive?publish({...scope,stepNo}):negativePublish({...scope,stepNo})),
+     error=>error.code==='25000'&&error.message==='ediel_fixture_publisher_read_committed_required');checks++
+   }finally{await db.exec('rollback;')}
+  }
+ }
+ for(const positive of [true,false]){
+  const s={...scope,stepNo:positive?4:5},sql=positive?publish(s):negativePublish(s)
+  const expected=(await as('gridex_ediel_fixture_authority_owner',sql)).id
+  await db.exec('begin isolation level read uncommitted;set local role gridex_ediel_fixture_authority_owner;')
+  try{assert.equal((await db.exec(sql))[0].rows[0].id,expected);checks++}finally{await db.exec('rollback;')}
+ }
+ assert.deepEqual((await originals()).rows,isolationOriginals);checks++
  // An unrelated ordinary test message stays unqualified rather than aborting;
  // a genuinely ambiguous run link keeps the prior STRICT failure.
  assert.equal((await as('service_role',`select public.gridex_ediel_negative_fixture_read_v1(${json({companyId:company,messageId:uid(6),actorUserId:actor})}) result;`)).result,null);checks++

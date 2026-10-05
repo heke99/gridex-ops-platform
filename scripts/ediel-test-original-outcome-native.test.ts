@@ -1,8 +1,9 @@
+import {execFileSync,spawn} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
-import {readFileSync} from 'node:fs'
 import {beforeAll,expect,it} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 import {decisionNativeSql,decisionUser,literal} from './helpers/ediel-decision-original-native-fixture'
+import {nativeLockProcess,nativeLockProcessEnv} from './helpers/native-lock-process'
 
 // Genuine local PostgreSQL/GoTrue/permission/publisher/read/prepare boundaries.
 // The source and owner references and Latin1 original are explicitly synthetic;
@@ -39,7 +40,7 @@ beforeAll(async()=>{
  decisionNativeSql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'SYNTHETIC native original-outcome tenant','active')`)
  actor=await decisionUser(companyId,['communication.write','communication.send'],'SyntheticNativeOutcome1!')
  decisionNativeSql(`INSERT INTO public.ediel_test_runs(id,company_id,environment,status,role_code,test_suite,test_case_code,approval_version,created_by)
-  VALUES(${literal(runId)},${literal(companyId)},'test','running','supplier','PRODAT','synthetic-native-outcome','synthetic-native-v1',${literal(actor.id)})`)
+  VALUES(${literal(runId)},${literal(companyId)},'test','draft','supplier','PRODAT','synthetic-native-outcome','synthetic-native-v1',${literal(actor.id)})`)
  authorityBefore=decisionNativeSql(authoritySql)
 })
 
@@ -64,6 +65,65 @@ it.each([{first:'positive' as const,second:'negative' as const,step:1},{first:'n
   expect(originalRows()).toEqual(before)
  })
 
+it.each(['REPEATABLE READ','SERIALIZABLE','READ COMMITTED','READ UNCOMMITTED'].flatMap((isolation,index)=>[
+ {isolation,first:'positive' as const,second:'negative' as const,step:10+index*2},
+ {isolation,first:'negative' as const,second:'positive' as const,step:11+index*2},
+]))('native $isolation snapshot cannot publish $second after committed $first',async({isolation,first,second,step})=>{
+ // B observes the actual original tables before A publishes. Session markers,
+ // rather than sleeps, establish the snapshot -> publication -> commit order.
+ expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe('http://127.0.0.1:54321')
+ const before=originalRows(),context=scope(first,step)
+ const sessions=['publisher','snapshot'].map(label=>{
+  const marker=`gov08_${label}_${randomUUID()}`
+  const child=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+   {stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+  let stdout='',stderr=''
+  child.stdout.on('data',chunk=>{stdout+=String(chunk)});child.stderr.on('data',chunk=>{stderr+=String(chunk)})
+  const done=new Promise<{code:number|null;stdout:string;stderr:string}>((resolve,reject)=>{
+   const deadline=setTimeout(()=>reject(Error('native_gov08_psql_completion_timeout')),30000)
+   child.once('error',error=>{clearTimeout(deadline);reject(error)})
+   child.once('close',code=>{clearTimeout(deadline);resolve({code,stdout,stderr})})
+  })
+  void done.catch(()=>undefined)
+  const lock=nativeLockProcess(child,{marker,markerError:`native_gov08_${label}_ready_timeout`,lifetimeMs:20000})
+  return {child,marker,lock,done,output:()=>stdout}
+ })
+ const [a,b]=sessions
+ try{
+  b.child.stdin.write(`BEGIN ISOLATION LEVEL ${isolation};
+   SELECT ${literal(b.marker)}||':'||current_setting('transaction_isolation')||':'||(
+    (SELECT count(*) FROM gridex_negative_fixtures.positive_originals WHERE company_id=${literal(companyId)} AND run_id=${literal(runId)} AND step_no=${step})+
+    (SELECT count(*) FROM gridex_negative_fixtures.originals WHERE company_id=${literal(companyId)} AND run_id=${literal(runId)} AND step_no=${step}))::text;\n`)
+  await b.lock.ready
+  expect(b.output()).toContain(`${b.marker}:${isolation.toLowerCase()}:0`)
+  a.child.stdin.write(`BEGIN ISOLATION LEVEL READ COMMITTED;SET LOCAL ROLE gridex_ediel_fixture_authority_owner;
+   SELECT to_jsonb(${publishSql(context)});SELECT ${literal(a.marker)}||':'||current_setting('transaction_isolation');\n`)
+  await a.lock.ready
+  await a.lock.release('COMMIT')
+  expect(await a.done).toMatchObject({code:0,stderr:''})
+  expect(a.output()).toContain(`${a.marker}:read committed`)
+  const committed=originalRows(),original=committed.find(row=>row.step_no===step)
+  expect(committed).toHaveLength(before.length+1)
+  expect(committed.filter(row=>row.step_no!==step)).toEqual(before)
+  expect(original).toMatchObject({kind:first,company_id:companyId,run_id:runId,role_code:'supplier',
+   case_code:'synthetic-native-outcome',suite:'PRODAT',revision:'synthetic-native-v1',step_no:step,
+   expected_outcome:first,expected_diagnostic_codes:context.expectedDiagnosticCodes,test_receiver_ediel_id:'TEST',
+   original_wire:raw,wire_sha256:wireHash,original_file_sha256:wireHash,
+   source_reference:context.sourceReference,owner_decision_reference:context.ownerDecisionReference})
+  b.child.stdin.end(`SET LOCAL ROLE gridex_ediel_fixture_authority_owner;SELECT to_jsonb(${publishSql(scope(second,step))});COMMIT;\n`)
+  const rejected=await b.done
+  expect(rejected.code).toBe(3)
+  const unsupported=isolation==='REPEATABLE READ'||isolation==='SERIALIZABLE'
+  expect(rejected.stderr).toMatch(unsupported?/ERROR:\s+25000: ediel_fixture_publisher_read_committed_required/:
+   new RegExp(`ERROR:\\s+P0001: ediel_${second}_fixture_original_conflict`))
+  expect(originalRows()).toEqual(committed)
+  expect(decisionNativeSql(authoritySql)).toEqual(authorityBefore)
+ }finally{
+  const cleanup=await Promise.allSettled(sessions.map(session=>session.lock.dispose()))
+  for(const result of cleanup)if(result.status==='rejected')throw result.reason
+ }
+},35000)
+
 it('retained legacy contradictions hold at actual private/public reads, preparation and existing prepared witnesses',()=>{
  // Only the two original publisher bodies are temporarily restored. The real
  // current readers/permissions remain installed, and every change is rolled
@@ -72,7 +132,12 @@ it('retained legacy contradictions hold at actual private/public reads, preparat
   ['20260930171839_ediel_source_qualified_negative_fixture_v1.sql','publish_v1'],
   ['20260930212435_ediel_source_qualified_positive_fixture_v1.sql','publish_positive_v1'],
  ].map(([file,name])=>{
-  const source=readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),'utf8')
+  // Clean replay holds these originals outside the working-tree migration
+  // paths. Reuse the existing same-HEAD, manifest-bound source contract.
+  const revision=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()
+  const source=execFileSync('git',['show',`${revision}:supabase/migrations/${file}`],{encoding:'utf8'})
+  const manifest=JSON.parse(execFileSync('git',['show',`${revision}:scripts/migration-history-manifest.json`],{encoding:'utf8'})) as {files:Record<string,string>}
+  expect(createHash('sha256').update(source).digest('hex')).toBe(manifest.files[file])
   const start=source.indexOf(`CREATE FUNCTION gridex_negative_fixtures.${name}(`),end=source.indexOf('$$;',start)
   expect(start).toBeGreaterThanOrEqual(0);expect(end).toBeGreaterThan(start)
   return source.slice(start,end+3).replace('CREATE FUNCTION','CREATE OR REPLACE FUNCTION')

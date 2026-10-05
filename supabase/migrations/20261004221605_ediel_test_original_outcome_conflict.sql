@@ -2,6 +2,9 @@
 -- in the same company/run/step/revision/wire-hash scope. Keep every declaration
 -- and historical byte intact; refuse contradictory legacy qualification too.
 -- Replace only nine existing private bodies, retaining all pg_proc metadata.
+-- Publishers require a fresh statement snapshot after the shared lock. PostgreSQL
+-- READ UNCOMMITTED has READ COMMITTED semantics; stale higher-isolation snapshots
+-- cannot safely inspect declarations in the opposite original table.
 BEGIN;
 DO $fix$
 DECLARE target record;f record;needle text;guard text;body text;n integer:=0;
@@ -40,7 +43,11 @@ BEGIN
   END IF;
   IF (length(f.prosrc)-length(replace(f.prosrc,needle,'')))/length(needle)<>1
    THEN RAISE EXCEPTION 'test_original_outcome_conflict_predecessor_required: %',target.signature;END IF;
-  body:=replace(f.prosrc,needle,needle||guard);
+  body:=replace(f.prosrc,needle,
+   CASE WHEN target.boundary='publisher' THEN $isolation$
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
+$isolation$ ELSE '' END||needle||guard);
   EXECUTE replace(f.definition,f.prosrc,body);
   IF(SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE oid=f.oid) IS DISTINCT FROM f.metadata
    THEN RAISE EXCEPTION 'test_original_outcome_conflict_metadata_changed: %',target.signature;END IF;
