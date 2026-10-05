@@ -289,3 +289,24 @@ correction. Public branch movement is not an author qualification/input freeze;
 no corrective source/raw/native is admitted to combined capture yet. Original
 Staff578 currentebf caller qualification, wholeSC068/two-oracle adoption and
 current input freeze remain with its source owner. No new Masterplan rule starts.
+
+
+AFTER ONE original IMP05 public corrective source-only admission follow-up:
+actuald020 parents1f8+b83, exactly8owned source/test/checkpoint paths vsb83.
+Corrected forward05130401 SHA25649f9065c73b6eab997791abee0488b7d94ac48eaf4e52256f41d688b5aa4baab,
+no new migration filename. Existing schema/protected intake preimages unchanged;
+six finite reception/selector preimage/contract checks PASS. Prospective private
+SMTP capture under actual raw-birth authority, NULL original is_birth/current
+source/custody/claims and after-lock full custody recheck, qualified CONTRL and
+commonAPErAK owners preserve legalNULL/noordinaryreception/nohistoricbackfill.
+The original company_id=c applicability defect is corrected in public source;
+original current qualification/input freeze still NOT_OBSERVED and no forward
+is admitted yet. Public selected-suite source has actual protected admission
+with declared permission/parser/lock finite ports; no root execution or native/
+guide/whole IMP05 claim. Complete finite report246e9b890f6cf6255a3f4431341797023cf615ac8f298a53c207a131a4d06a1a
+retained byte-exact as own source-custody metadata. No old private report read
+or exported, no source/test/native/CI/capture/ref/index mutation in the combined
+writer. Original Staff ebf input-only carry8c8ef058 now delivered6003893283:
+eightgen/threeforwards/raw3/fullmanifest exact,22/23runtime exact; changedpage
+proof not reused. The source author's current freeze/SC068/twooracle obligations
+remain outstanding; root starts no replacement writer or intermediate capture.
