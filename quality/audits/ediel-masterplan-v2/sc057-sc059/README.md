@@ -1,10 +1,6 @@
-# SC057 / SC059 focused evidence
+# SC057 / SC059 approved code/effect evidence
 
-Two new files execute the current merged f86 source. Final owned cases are
-SC0579 +SC05913 =22 PASS with zero failures/errors/skips. The unchanged current
-registry harness also retains28 passing groups. Whole independent review and
-current-head ordinary CI remain pending; all352 coverage rows are unchanged.
-There is no product/helper/SQL/schema/native/config/workflow modification.
+Independent whole review approves both frozen cards at immutable aaa6b095. The reviewer freshly ran22 cases with zero failures/errors/skips; the inherited28 SQL groups passed once. Review, machine receipt and raw qualification are copied byte-exact here. Current main cfcee6877f57c4ff52265cafc6a8a1fa5692a714 is adopted non-destructively:51/52 original bounded inputs remain exact, with only the unrelated full schema capture changed; all four reached SQL owner bodies remain exact. Original runtime/source provenance and finite custody/admission/readiness/transaction-abort limits below are retained. Only SC057/SC059 become PASSED relative adopted main;350 other rows remain exact. Current-head ordinary CI and final merge remain pending/root-owned. No runtime/full/native repetition or production source change is made by this approval packet.
 
 | Frozen effect | Actual asserting path and result |
 | --- | --- |

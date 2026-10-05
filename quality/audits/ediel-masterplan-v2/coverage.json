@@ -1868,8 +1868,15 @@
     },
     {
       "id": "SC-057",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/current-main-carry.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/independent-unit.xml",
+        "__tests__/ediel-sc-057-registry-import-lifecycle.test.ts"
+      ]
     },
     {
       "id": "SC-058",
@@ -1884,8 +1891,15 @@
     },
     {
       "id": "SC-059",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/independent-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/current-main-carry.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/independent-unit.xml",
+        "__tests__/ediel-sc-059-registered-subaddress.test.ts"
+      ]
     },
     {
       "id": "SC-060",
