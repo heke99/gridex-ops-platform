@@ -1,0 +1,447 @@
+{
+  "version": 1,
+  "owner": "review_ten06",
+  "scope": [
+    "SC-051",
+    "SC-068"
+  ],
+  "recordedAt": "2026-10-05T04:46:02.978314+00:00",
+  "baseHead": "f957653066f36bdcf749dd2cfae68694b6a4a009",
+  "baseTree": "47877d9d13e5e656fb9c4d8dcc9e0f26ef0e459f",
+  "technicalFreezeInputs": [
+    {
+      "path": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+      "sha256": "0de6c6d3e291caa2d53f49186da265e451cfb80927ede8f11246b4b1ca023c97"
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "sha256": "c8a2ac0972c674af61135eb18f1c4c8c8455b661ab93291490a871e45ff90299"
+    }
+  ],
+  "unchangedQualifiedDirectInputs": [
+    {
+      "path": "lib/ediel/core/messagePolicy.ts",
+      "sha256": "47b340deff43dbb03ec7aeb44088237a8f08344d2a93b04801afa6af59ae4eab"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1"
+    },
+    {
+      "path": "lib/ediel/core/executionContext.ts",
+      "sha256": "903c503c140c41753d10c34fd22df438d3f28c1ce36d4544f3ebe4d9cd877276"
+    },
+    {
+      "path": "lib/ediel/core/receivedSourceValidationLedger.ts",
+      "sha256": "df98572339726111c2e426ac39e4286b211e3597f32bc66c22980a35e8877789"
+    },
+    {
+      "path": "lib/ediel/core/sourceRulePackEvidence.ts",
+      "sha256": "3371d022731b5b5b8527f0f00e09093032d9abc2a8ba964b06ed61a81bd07dec"
+    },
+    {
+      "path": "lib/ediel/core/productionGuards.ts",
+      "sha256": "061914f493794ac2b6799b963c74ca13fdd6251665e25d6587699a7e5ad45364"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+      "sha256": "702de664dad9aa919bb6cfa5d94e4ae7ff457083fdb91c7ab05b7b1441a5736f"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "sha256": "bd352ab2cdd941706fdf9ac1f1ecd1d15a8060e8464984180260e1b7d77a409c"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "sha256": "63cb5d6219a003fe81875276c751a81222fd3e5b1b5758a540c82203b982b022"
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "sha256": "ff0fe04f6888c0257dde773216173f1c12b0ea6708b1025a6af163499558f6f6"
+    },
+    {
+      "path": "lib/ediel/utilts/transactionPersistence.ts",
+      "sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8"
+    },
+    {
+      "path": "lib/ediel/rulebook/guideRegistry.ts",
+      "sha256": "0c65aab5e0cd39959791b1dd947a199c8fa298a3813826a4f49cda8f46d098f4"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+      "sha256": "5b1d47c9379aa22ba8bc0df60de6fb158ef3f54c882951a9107bf7c618009976"
+    },
+    {
+      "path": "lib/ediel/rulebook/validator.ts",
+      "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1"
+    },
+    {
+      "path": "lib/ediel/rulebook/sendGuards.ts",
+      "sha256": "f70b22c76a3d25099422fb839b05ea21cc41b9cec81be45540539e2cd8157a0f"
+    },
+    {
+      "path": "lib/ediel/rulebook/utilts25A4.ts",
+      "sha256": "4681b2ed91b1122e420532d7fd26aba13e8d8192bc1effb0f67cdd30e7846be2"
+    },
+    {
+      "path": "lib/ediel/recovery/prodatRecovery.ts",
+      "sha256": "358e040cca506506eb58d59a65640d85a55f7622a5ae8aaa4a4f7f9405d1ec36"
+    },
+    {
+      "path": "lib/ediel/recovery/transportRetry.ts",
+      "sha256": "7e4a328dc569db0beb872a213f7f6612d579500b7ab5dcbe643e7c3e8bd47974"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "sha256": "bbaf51fad4b0be0c48b940301b7cce73165fa6062d96a6aabb82d848747f27ed"
+    },
+    {
+      "path": "lib/ediel/transport/acceptedProjection.ts",
+      "sha256": "43f79b309419bcc2b4842f4ea53ebc7c2d5313e296c4881abc676e96cc9e68d4"
+    },
+    {
+      "path": "lib/ediel/transport/acceptedProjectionRepair.ts",
+      "sha256": "dc2337e0b9d120256601a96fd76919fc678e3a6a2fd945dcd0601c8f9f968fa8"
+    },
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad"
+    },
+    {
+      "path": "__tests__/helpers/utiltsCurrentOwnerFixture.ts",
+      "sha256": "8516e0d7aeb4b8f889a40e3cd2e0d7b3a9fc30c8f2a3ecd4f9357599709ef42c"
+    },
+    {
+      "path": "__tests__/helpers/utiltsFinalValidationFixture.ts",
+      "sha256": "da83819be8f1b2e9d37355cafdc66faa2eb2e8d76465fc722078b359b16a5d4d"
+    },
+    {
+      "path": "__tests__/helpers/utiltsCanonicalOwnerIo.ts",
+      "sha256": "a8e0deff702757727433030f7414115f301b4658cd55bd6161d43f54382a3558"
+    },
+    {
+      "path": "__tests__/helpers/utiltsBoundFixture.ts",
+      "sha256": "0244f21889ec5cf23bc9cbccc0300b90356f750a09a0f410aab273f337b4f936"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "sha256": "eaeebd59153c31d16f0baa0f5462a239eea6c7e629bebbb1543a802d81482191"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/package_manifest.json",
+      "sha256": "750456429d79aed938baf1542c93c57f4833da99d6df35d60be2c41f0159b0d8"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "45d115059c80b219fdc3826fe29481de28ec9c6c5adf1f689aa32576083dde76"
+    }
+  ],
+  "frozenScenarios": [
+    {
+      "id": "SC-051",
+      "name": "Versionsgränsen i oktober",
+      "given": "Båda revisionerna använder UNH-koden E5SE5A men olika nationella regler gäller före och från 2026-10-01.",
+      "when": "Prova mottagning, sändning, omsändning och historisk återspelning.",
+      "expected": "Ett sammanhållet, spårbart regelval per behandling. Nya 25-A-4-regler aktiveras inte före sin giltighet.",
+      "prohibited": "Oberoende datumval i olika lager får inte ge två motstridiga regelrevisioner.",
+      "rule_ids": [
+        "GOV-04",
+        "GOV-05",
+        "GOV-06"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    {
+      "id": "SC-068",
+      "name": "Test och återspelning når inte produktion",
+      "given": "En referensfil använder testidentitet eller ett beslut har läget historical_replay.",
+      "when": "Försök skapa automatisk produktionssändning eller kundändring.",
+      "expected": "Ingen extern produktionssändning och ingen produktionsmutation.",
+      "prohibited": "catalog_evidence får inte användas som operativ sändningsauktoritet.",
+      "rule_ids": [
+        "ENV-05",
+        "GOV-08"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "frozenSupportingRules": [
+    {
+      "id": "GOV-04",
+      "area": "Versioner",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Utgående meddelande och omsändning",
+      "trigger": "Före varje extern sändning",
+      "condition": "Använd då gällande anvisning; avvikande omsändning endast där giltig bilateral överenskommelse tillåter.",
+      "on_pass": "Ny prövning efter versionsgräns; behåll tidigare payload och beslut som historik.",
+      "on_failure": "Skicka inte gammal köpayload med ny versionsetikett.",
+      "callsite_owner": "pre-send policy gate",
+      "source": "T §1.4 s.4",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-GOV-04"
+    },
+    {
+      "id": "GOV-05",
+      "area": "Versioner",
+      "kind": "Ediel/Handbok",
+      "applies_to": "Mottagning",
+      "trigger": "Ny anvisning börjar gälla",
+      "condition": "Hantera närmast föregående giltiga anvisning under tvåveckorsövergång, med hänsyn till överordnade regler.",
+      "on_pass": "Använd ett komplett kompatibelt regelpaket per prövning, logga vald tolkning.",
+      "on_failure": "Plocka inte gynnsamma enstaka kontroller från olika versioner; samma UNH-kod är inte revisionsbevis.",
+      "callsite_owner": "guideRegistry / runtimeDecision",
+      "source": "T §1.4; U/UE omslag",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-GOV-05"
+    },
+    {
+      "id": "GOV-06",
+      "area": "Versioner",
+      "kind": "Intern arkitektur",
+      "applies_to": "UTILTS",
+      "trigger": "Gemensam runtimevalidering",
+      "condition": "Format-/övergångstid, dokumentdatum, leveransperiod och replaytid är separata tidsbegrepp som beslutet bär.",
+      "on_pass": "För explicit versionsbeslut till utiltsEngine; inget nytt implicit now().",
+      "on_failure": "Avvisa lokalt osammanhängande beslut före mutation; inte externt fältfel om orsaken är egen kod.",
+      "callsite_owner": "runtimeDecision → utiltsEngine",
+      "source": "CODE canonicalEdielPolicy/runtimeDecision; SYS",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-GOV-06"
+    },
+    {
+      "id": "GOV-08",
+      "area": "Testdata",
+      "kind": "Intern arkitektur",
+      "applies_to": "Referenser och TGT",
+      "trigger": "Inför acceptanstest",
+      "condition": "Knyt originalfilhash till källa, testfall, revision, roll och förväntat positivt/negativt resultat.",
+      "on_pass": "Bevara negativa referenser som negativa; dokumentera konflikt.",
+      "on_failure": "Ändra inte referensen för att passa egen renderer.",
+      "callsite_owner": "test fixtures / source inventory",
+      "source": "P §1.3; U §1.5; TGT lista",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-GOV-08"
+    },
+    {
+      "id": "ENV-05",
+      "area": "Miljö",
+      "kind": "Ediel/Handbok",
+      "applies_to": "UNB testflagga",
+      "trigger": "Parse/render",
+      "condition": "0035=1 för test; produktion utelämnar flaggan.",
+      "on_pass": "Separata identiteter, routing, dedupe och transportspärrar för test/replay/produktion.",
+      "on_failure": "Sätt inte0 som ersättning; kör aldrig TGTreferens som produktionsaffär.",
+      "callsite_owner": "envelope / environment gate",
+      "source": "T §4.2; SYS",
+      "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+      "implementation_status": "Ej verifierad",
+      "test_id": "AT-ENV-05"
+    }
+  ],
+  "assessment": {
+    "SC-051": "PARTIAL_COMPONENT_PACKET_NOT_WHOLE_APPROVED",
+    "SC-068": "PARTIAL_COMPONENT_PACKET_NOT_WHOLE_APPROVED",
+    "coverageModified": false,
+    "independentWholeReview": "PENDING_PARENT_ASSIGNMENT"
+  },
+  "rawFocusedJUnit": {
+    "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/scoped-junit.xml",
+    "sha256": "163ea5d19ad88773a1d394dd090f286092b4f9a5389acbab0314a7a1bf2390d4",
+    "counts": {
+      "total": 14,
+      "pass": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "cases": [
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 actual receipt 2026-09-30 carries one 25-A-3 through final owner, consumption and ACK"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 actual receipt 2026-10-01 carries one 25-A-4 through final owner, consumption and ACK"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 October field209 enforcement is not activated early at receipt 2026-09-30"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 October field209 enforcement is not activated early at receipt 2026-10-15"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 an asynchronous clock rollover cannot reselect the receipt guide in downstream billing"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 the real pre-send consumer captures its own fresh boundary before asynchronous registry IO"
+      },
+      {
+        "class": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+        "name": "SC-051 replay trace time preserves a stored receipt selection and original E5SE5A bytes"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 actual public production send holds a test reference identity {\"sender_ediel_id\":\"91100\"} before any new authority/provider"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 actual public production send holds a test reference identity {\"receiver_ediel_id\":\"91109\"} before any new authority/provider"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 actual public production send holds a test reference identity {\"application_reference\":\"23-TGT-PRODAT\"} before any new authority/provider"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 actual historical accepted-original repair cannot re-enter the provider after today changes to a test identity"
+      },
+      {
+        "class": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+        "name": "SC-068 historical sent status without an actual accepted journal never creates new production traffic"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "command": "Node22 node_modules/vitest/vitest.mjs run __tests__/ediel-sc-051-revision-treatment.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/sc051-sc068/scoped-junit.xml",
+      "result": "14 PASS0failure/error/skip; retained raw JUnit"
+    },
+    {
+      "command": "Node22 node_modules/typescript/bin/tsc --noEmit --project tsconfig.tests.json --incremental false",
+      "result": "exit0, fresh after only fixture type correction"
+    },
+    {
+      "command": "Node22 node_modules/eslint/bin/eslint.js __tests__/ediel-sc-051-revision-treatment.test.ts __tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "result": "exit0"
+    },
+    {
+      "command": "Node22 scripts/check-ediel-masterplan-v2.cjs",
+      "result": "exit0:33 originals,121 rules,231 contracts; no application conformance/production readiness"
+    },
+    {
+      "command": "git diff --check",
+      "result": "exit0"
+    }
+  ],
+  "testPortBoundaries": [
+    "Declared fresh immutable TEST source birth/hash before owner acquisition, current actor, issuer/registry/matching facts: not native/legal admission",
+    "External validation/consumption/ACK persistence receipts; parser, national rules, opaque owners, contracts and ACK drafts execute",
+    "Catalogue/history cases are unowned copies, not valid operative historical_replay decisions",
+    "SMTP provider uncalled sink; accepted projection/repair finite DB IO, not native custody",
+    "No real OpenSSL/TLS/provider network/native/DB execution; no historical native reuse; no full DB snapshots"
+  ],
+  "remainingCriteria": [
+    {
+      "scenario": "SC-051",
+      "effect": "Actual admitted worker resend across revision boundary, retained old payload/decision and fresh current assessment",
+      "existingPaths": [
+        "lib/ediel/recovery/prodatRecovery.ts",
+        "lib/ediel/recovery/transportRetry.ts",
+        "lib/ediel/outbox/sendOutboxItem.ts",
+        "lib/ediel/transport/index.part-2.ts"
+      ],
+      "coordination": "Root recovery lane; no source/helper edits authorized here"
+    },
+    {
+      "scenario": "SC-051",
+      "effect": "Operative historical-mode treatment rather than replayAt trace inspection",
+      "existingPaths": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/core/executionContext.ts"
+      ],
+      "status": "No carried operative mode producer identified in current searched contracts; no production defect inferred from bounded absence"
+    },
+    {
+      "scenario": "SC-068",
+      "effect": "Legitimate operative historical_replay decision: zero production send AND mutation",
+      "existingPaths": [
+        "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/transport/index.part-2.ts"
+      ],
+      "status": "Mode/producer gap; copied-owner denial and accepted-original repair do not close it"
+    },
+    {
+      "scenario": "SC-068",
+      "effect": "Production inbound test-reference/customer-mutation denial AND outward catalogue cannot authorize operation",
+      "existingPaths": [
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/utiltsInboundPolicyProcessor.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/rulebook/validator.ts"
+      ],
+      "status": "Unverified upstream admission/private operational authority branch; live TEST row and diagnostic-copy denial do not substitute"
+    }
+  ],
+  "sourceEnvelope": {
+    "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/source-envelope.json",
+    "sha256": "73dbcdba43a515d8c6a8877b84ec5706c4191c99108ed7823f36cd26373e736d",
+    "method": "TypeScript AST: recursive local static imports, re-exports and literal import()/require(); includes type-only dependencies. Bounded four-entry envelope, not proof that every reachable function executed or every dependency was read.",
+    "localPaths": 688,
+    "externalSpecifiers": 37,
+    "unresolved": 0,
+    "qualification": "Current base bytes; bounded static envelope only, not all-path execution/read"
+  },
+  "sourceSearch": {
+    "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/mode-source-search.txt",
+    "sha256": "9eb1ebfcd06c140be500de6dac39d054e69998571bd39442019fc056924cf7de",
+    "command": "rg -n historical_replay|catalog_evidence lib app supabase/migrations",
+    "matches": 14,
+    "limit": "Literal search plus typed public contracts, not exhaustive semantic absence proof"
+  },
+  "ownershipInventory": {
+    "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/ownership-inventory.json",
+    "sha256": "e86fd5edf9d6932ac4af884adf3a6b57ce27a98a8d54075d4f6c5ab6f6ae4304"
+  },
+  "publication": {
+    "state": "Technical packet ready to commit/push/open DRAFT PR",
+    "publishedHead": "Actual Git/remote/PR head recorded externally after commit; no self-referential file hash"
+  },
+  "skills": [
+    "spec-to-code-compliance: parent-assigned independent whole reviewer",
+    "verification-before-completion: passing commands before claims",
+    "supabase: finite DB ports only; no SDK/schema/auth changes"
+  ]
+}
