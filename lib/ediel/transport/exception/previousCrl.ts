@@ -65,7 +65,11 @@ export async function verifyPreviousSignedCrlCryptography(input:{scope:EdielCert
    const issuerName=(await run(['crl','-in',path,'-noout','-issuer','-nameopt','RFC2253'])).trim().replace(/^issuer=/,'')
    const matches=issuerNames.flatMap((name,index)=>name===issuerName?[index]:[])
    if(matches.length!==1||verifiedIssuers.has(matches[0]))return held()
-   const issuerIndex=matches[0];await run(['crl','-in',path,'-noout','-verify','-CAfile',issuerPaths[issuerIndex]])
+   const issuerIndex=matches[0]
+   const signature=await execute('openssl',['crl','-in',path,'-noout','-verify','-CAfile',issuerPaths[issuerIndex]],{timeout:10000,maxBuffer:65536})
+   // Some OpenSSL versions exit zero after printing a failed CRL signature
+   // verification. This command must explicitly confirm cryptographic success.
+   if(signature.stdout.trim()!==''||signature.stderr.trim()!=='verify OK')return held()
    const text=await run(['crl','-in',path,'-noout','-text'])
    if(/Delta CRL Indicator|Issuing Distribution Point|X509v3[^\n]*critical/.test(text))return held()
    const last=text.match(/Last Update:\s*([^\n]+)/)?.[1]

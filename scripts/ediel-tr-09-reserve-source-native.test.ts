@@ -30,6 +30,7 @@ const crlVerification=(file:string)=>{
 beforeAll(()=>{
  directory=mkdtempSync(join(tmpdir(),'ediel-tr09-native-pki-'))
  try{
+  console.info('TR09 owned fixture OpenSSL:',openssl(['version']).trim())
   writeFileSync(join(directory,'index.txt'),'');writeFileSync(join(directory,'serial'),'1000\n');writeFileSync(join(directory,'crlnumber'),'1000\n')
   writeFileSync(join(directory,'ca.cnf'),[
    '[ca]','default_ca=synthetic','[synthetic]',`dir=${directory}`,'database=$dir/index.txt','new_certs_dir=$dir','serial=$dir/serial','crlnumber=$dir/crlnumber',
@@ -280,6 +281,8 @@ it.each(['omitted_actual_cdp','corrupt_signature','revoked_recipient'] as const)
   const fields=['-noout','-issuer','-lastupdate','-nextupdate']
   expect(openssl(['crl','-in','corrupt-signature.crl',...fields])).toEqual(openssl(['crl','-in','previous.crl',...fields]))
   const valid=crlVerification('previous.crl'),invalid=crlVerification('corrupt-signature.crl')
+  console.info('TR09 actual CRL diagnostic contrast:',{valid:{status:valid.status,stdout:valid.stdout,stderr:valid.stderr},
+   invalid:{status:invalid.status,stdout:invalid.stdout,stderr:invalid.stderr}})
   expect(valid.status).toBe(0);expect(valid.stderr).toMatch(/verify OK/);expect(valid.stderr).not.toMatch(/verify failure/)
   // OpenSSL versions differ on exit status for a parsed bad signature. The
   // actual CLI diagnostic establishes this fixture's failure on either build.

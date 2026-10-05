@@ -159,8 +159,62 @@ direct genuine consumer RED is needed before classifying or fixing that
 potential portability gap. The separate reserve receipt records genuine RED
 and exact inputs rather than treating finite23 or fixture correction as PASS.
 
-Next: publish fixture correction plus truthful receipt/checkpoint for fresh
-genuine13 CI. Root owns whole-card independent review and ordinary mandatory
-gates. Corrected native execution remains PENDING; ordinary required gates
-remain pending and TR08 full-card stays UNPROVEN. No whole-card approval/
-coverage promotion or next rule implementation started.
+Published fixture correction HEAD
+`1c6a5decf726d87d6d0070d3a1a37abd85b73414`, tree
+`8eeb2cd7b129ef2ca339fd1b059385d3bb65f552`. Genuine corrected
+run37244105508/job111558455671/artifact11318289595 establishes13 total,
+12 PASS,1 FAIL,0 ERROR,0 SKIP. Exact receipt head/tree/scope/all nine input
+hashes match; ZIP SHA256
+`f530ecc8c180ff951fd949c2282a07baf19c0a591e57dacb9f894e675ebd9a93`
+matches GitHub digest. Original raw ZIP is retained unchanged in
+`artifacts/masterplan-v2/ediel-tr09-native-red-1c6a.zip`; raw JUnit/log extracted
+`/tmp/masterplan-tr09-native-1c6a`. All prior4 and eight corrected new cases
+PASS. The bad-signature real CLI contrast PASS, then actual sender fails the
+required hold assertion: it reaches mocked SMTP and returns
+`ediel_delivery_uncertain` caused by undefined mock receipt `accepted`, rather
+than holding the invalid CRL. This actual native consumer RED confirms the
+previous-CRL exit-only verification defect; no compatibility binary mock.
+
+Root independently verified the raw evidence/source, reserved the production
+signature boundary #4915985782738 and authorized only `previousCrl.ts`'s
+existing actual execution diagnostic. The repair keeps exact args/timeout/
+maxBuffer/catch, requires empty stdout plus explicit `verify OK` stderr, and
+holds absent/other output. PKIX/current CA/leaf/CDP/source/hash/date/revocation/
+capability/SQL paths remain unchanged. Native consumer refusal and zero
+operations/alarm/entry/SMTP assertions stay strict; fixture now logs actual
+CLI version and real valid/bad status/stdout/stderr for the next native receipt.
+Fresh scoped existing real-crypto7, primary offset3 and wire grammar8 PASS:
+18 total,0 failure/error/skip. Types and scoped lint exit0; no full suite or
+local native repetition. Native GREEN after this repair remains PENDING.
+
+Provisional exact sole-primary3a22 reuse was held locally as6386/a137.
+Root independently confirmed its normalized-UTC consumer still fails on two
+actual cases (#4915985840694); no second calendar fix was written here. The
+entire local source/reuse history is preserved on
+`codex/ediel-tr09-primary-reuse-held-20261005` at
+`a1378a7b5f55d0ff73e29b5301750a7069eaf81e`.
+
+Root authorized a coherent crypto-only fast-forward of published parent
+`1c6a5decf726d87d6d0070d3a1a37abd85b73414`: only the reviewed a137 signature/
+native/logging/raw-RED/own-receipt correction plus byte-exact independent
+review. Current local branch `codex/ediel-tr09-crypto-feedback-20261005`
+publishes to the same PR545 remote child branch. No3a22/calendar/U10 source or
+coverage delta is included; every other parent byte stays unchanged. The
+ancestral9433 fixture remains part of that baseline, never a final substitute
+for the sole primary's qualified replacement. Composition of that replacement
+waits until this native13 is harvested; do not cancel the run prematurely.
+
+Root independently source-reviewed complete a137 correction and ran fresh
+actual crypto7/7 PASS; narrow signature component APPROVE, full card PENDING.
+Log SHA256 `138cb30b546a40c006af074b51cb5b488b6ddf18f96f0b7b2447ee0b8b6be56d`.
+Review bytes SHA256
+`3037a1892be303949ac8336ad1b54073f1b65777a7f5ca9313d30191ae9a1f0b`
+are preserved unchanged at
+`quality/audits/ediel-masterplan-v2/tr-09-b167-independent-source-review.md`.
+Current production and native source blobs exactly equal reviewed a137;
+baseline config/workflow unchanged. No18-unit or crypto suite repeated here.
+
+Next: publish this crypto-only correction immediately for genuine13; root
+owns full current-head source/matrix review and ordinary mandatory gates.
+Repaired genuine native13 is PENDING, TR08 full-card UNPROVEN. No TR08/TR09
+approval/coverage promotion and no next rule implementation started.
