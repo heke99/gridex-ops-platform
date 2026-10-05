@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import CustomerActionsMenu from "./CustomerActionsMenu";
 import Link from "next/link";
 import CustomerIntakeEnhancer from "@/components/admin/customers/CustomerIntakeEnhancer";
 import { createCustomerAction } from "@/app/admin/customers/actions";
@@ -69,7 +70,7 @@ function inputClassName(
     state.fieldErrors[fieldName as keyof typeof state.fieldErrors],
   );
 
-  return `rounded-2xl border px-4 py-3 ${
+  return `min-w-0 w-full rounded-2xl border bg-white px-4 py-3 text-slate-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700 ${
     hasError ? "border-red-500 bg-red-50 text-red-950 " : "border-slate-300 "
   }${span === "full" ? " md:col-span-2" : ""}`;
 }
@@ -84,7 +85,7 @@ function FieldError({
   const error = state.fieldErrors[name as keyof typeof state.fieldErrors];
   if (!error) return null;
 
-  return <span className="text-xs font-medium text-red-600">{error}</span>;
+  return <span id={`intake-error-${name}`} role="alert" className="text-xs font-medium text-red-600">{error}</span>;
 }
 
 function postCreateActionLabel(
@@ -246,6 +247,14 @@ function CreatedCustomerNextSteps({ state }: { state: IntakeActionState }) {
   );
 }
 
+function openFieldSections(field: HTMLElement) {
+  let details = field.closest("details");
+  while (details) {
+    details.open = true;
+    details = details.parentElement?.closest("details") ?? null;
+  }
+}
+
 function Section({
   title,
   description,
@@ -256,15 +265,15 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-slate-700">
+    <details open={title.startsWith("1.") || title.startsWith("7.")} className="group min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+      <summary className="cursor-pointer text-sm font-semibold text-slate-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">
         {title}
-      </h3>
+      </summary>
       {description ? (
         <p className="mt-2 text-sm leading-6 text-slate-700">{description}</p>
       ) : null}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
+      <div className="mt-4 grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
+    </details>
   );
 }
 
@@ -279,8 +288,27 @@ export default function CustomerIntakeForm({
     initialIntakeActionState,
   );
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const fieldErrors = state.fieldErrors;
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    for (const field of form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input[name], select[name], textarea[name]")) {
+      const error = fieldErrors[field.name as keyof typeof fieldErrors];
+      if (error) {
+        field.setAttribute("aria-invalid", "true");
+        field.setAttribute("aria-describedby", `intake-error-${field.name}`);
+        openFieldSections(field);
+      } else {
+        field.removeAttribute("aria-invalid");
+        field.removeAttribute("aria-describedby");
+      }
+    }
+    form.querySelector<HTMLElement>('[aria-invalid="true"]:not(:disabled)')?.focus();
+  }, [fieldErrors]);
+
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <h2 className="text-lg font-semibold text-slate-950">Registrera kund</h2>
       <p className="mt-1 text-sm leading-6 text-slate-700">
         Skapa kunden även när data saknas. Systemet sparar kunden och lägger
@@ -289,7 +317,7 @@ export default function CustomerIntakeForm({
       </p>
 
       {state.status === "success" && state.message ? (
-        <div className="mt-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <p className="font-semibold">Klart.</p>
           <p className="mt-1">{state.message}</p>
           {state.duplicateReviewRequired && state.duplicateWarnings?.length ? (
@@ -309,13 +337,15 @@ export default function CustomerIntakeForm({
       ) : null}
 
       <form
+        ref={formRef}
         action={formAction}
-        className="mt-6 space-y-6"
+        onInvalidCapture={(event) => openFieldSections(event.target as HTMLElement)}
+        className="mt-4 space-y-3"
         data-customer-intake-form
         encType="multipart/form-data"
       >
         {state.status === "error" && state.message ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
             <p className="font-semibold">
               Kunden kunde inte sparas på grund av ett tekniskt eller
               formatmässigt fel.
@@ -337,7 +367,7 @@ export default function CustomerIntakeForm({
           title="1. Kund"
           description="Minsta möjliga kunddata. Saknas något skapas blockerare i stället för totalstopp."
         >
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Kundtyp</span>
             <select
               name="customerType"
@@ -351,7 +381,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="customerType" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Flöde</span>
             <select
               name="intakeFlowType"
@@ -366,7 +396,7 @@ export default function CustomerIntakeForm({
           </label>
 
           <label
-            className="grid gap-1 text-sm"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm"
             data-customer-section="private business association"
           >
             <span
@@ -388,7 +418,7 @@ export default function CustomerIntakeForm({
           </label>
 
           <label
-            className="grid gap-1 text-sm"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm"
             data-customer-section="private business association"
           >
             <span
@@ -410,7 +440,7 @@ export default function CustomerIntakeForm({
           </label>
 
           <label
-            className="grid gap-1 text-sm md:col-span-2"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2"
             data-customer-section="business association"
           >
             <span
@@ -431,7 +461,7 @@ export default function CustomerIntakeForm({
           </label>
 
           <label
-            className="grid gap-1 text-sm"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm"
             data-customer-section="business association"
           >
             <span className="text-slate-700">Kontaktperson titel</span>
@@ -444,7 +474,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contactTitle" />
           </label>
 
-          <label className="grid gap-1 text-sm" data-customer-section="private">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm" data-customer-section="private">
             <span className="text-slate-700">Lägenhetsnummer</span>
             <input
               name="apartmentNumber"
@@ -455,7 +485,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="apartmentNumber" />
           </label>
 
-          <label className="grid gap-1 text-sm" data-customer-section="private">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm" data-customer-section="private">
             <span className="text-slate-700">Personnummer</span>
             <input
               name="personalNumber"
@@ -467,7 +497,7 @@ export default function CustomerIntakeForm({
           </label>
 
           <label
-            className="grid gap-1 text-sm"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm"
             data-customer-section="business association"
           >
             <span className="text-slate-700">Organisationsnummer</span>
@@ -480,7 +510,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="orgNumber" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">E-post</span>
             <input
               type="email"
@@ -492,7 +522,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="email" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Telefon</span>
             <input
               name="phone"
@@ -509,7 +539,7 @@ export default function CustomerIntakeForm({
           description="Anläggning och mätpunkt skapas om information finns. Saknade uppgifter blir blockerare."
         >
           <label
-            className="grid gap-1 text-sm md:col-span-2"
+            className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2"
             data-flow-section="switch move_in move_out_takeover"
           >
             <span
@@ -530,7 +560,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="street" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Postnummer</span>
             <input
               name="postalCode"
@@ -541,7 +571,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="postalCode" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Ort</span>
             <input
               name="city"
@@ -552,7 +582,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="city" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Land</span>
             <select
               name="country"
@@ -564,7 +594,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="country" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">c/o</span>
             <input
               name="careOf"
@@ -575,7 +605,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="careOf" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Anläggningsnamn</span>
             <input
               name="siteName"
@@ -586,7 +616,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="siteName" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Anläggningstyp</span>
             <select
               name="siteType"
@@ -600,7 +630,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="siteType" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Nätägare</span>
             <select
               name="gridOwnerId"
@@ -631,7 +661,7 @@ export default function CustomerIntakeForm({
             </p>
           </div>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Anläggnings-ID</span>
             <input
               name="facilityId"
@@ -642,7 +672,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="facilityId" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Mätpunkts-ID</span>
             <input
               name="meterPointId"
@@ -653,7 +683,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="meterPointId" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Elområde</span>
             <select
               name="priceAreaCode"
@@ -670,7 +700,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="priceAreaCode" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Nätområde</span>
             <input
               name="gridAreaCode"
@@ -681,7 +711,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="gridAreaCode" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Beräknad årsförbrukning</span>
             <input
               name="annualConsumptionKwh"
@@ -692,7 +722,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="annualConsumptionKwh" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Önskat startdatum</span>
             <input
               type="date"
@@ -703,7 +733,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="moveInDate" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Nuvarande leverantör</span>
             <select
               name="currentSupplierId"
@@ -739,7 +769,7 @@ export default function CustomerIntakeForm({
             </span>
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">
               Nuvarande leverantör enligt kund/faktura
             </span>
@@ -752,7 +782,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="currentSupplierName" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Nuvarande leverantör org.nr</span>
             <input
               name="currentSupplierOrgNumber"
@@ -813,7 +843,7 @@ export default function CustomerIntakeForm({
           title="3. Avtal"
           description="Avtal får sparas även om kunden inte är redo för leverantörsbyte."
         >
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Avtalsmall</span>
             <select
               name="contractOfferId"
@@ -830,7 +860,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contractOfferId" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Avtalsstart</span>
             <input
               type="date"
@@ -841,7 +871,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contractStartDate" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Avtalsstatus</span>
             <select
               name="contractStatus"
@@ -856,7 +886,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contractStatus" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Förväntat startdatum</span>
             <input
               type="date"
@@ -867,7 +897,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="expectedStartDate" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Bekräftat startdatum</span>
             <input
               type="date"
@@ -878,7 +908,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="confirmedStartDate" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Faktiskt startdatum</span>
             <input
               type="date"
@@ -889,7 +919,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="actualStartDate" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Källa för startdatum</span>
             <select
               name="startDateSource"
@@ -909,7 +939,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="startDateSource" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Kundspecifik avtalstyp</span>
             <select
               name="contractTypeOverride"
@@ -926,7 +956,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="contractTypeOverride" />
           </label>
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">
               Orsak till kundspecifik justering
             </span>
@@ -939,7 +969,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="overrideReason" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Grön el-avgift</span>
             <select
               name="greenFeeMode"
@@ -978,7 +1008,7 @@ export default function CustomerIntakeForm({
             placeholder="Månadsavgift kr"
             className={inputClassName(state, "monthlyFeeSek")}
           />
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Fakturaavgift kr/faktura</span>
             <input
               type="number"
@@ -991,7 +1021,7 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="invoiceFeeSek" />
           </label>
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Startavgift kr</span>
             <input
               type="number"
@@ -1004,7 +1034,7 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="startFeeSek" />
           </label>
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Administrationsavgift kr</span>
             <input
               type="number"
@@ -1017,7 +1047,7 @@ export default function CustomerIntakeForm({
             />
             <FieldError state={state} name="adminFeeSek" />
           </label>
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Brytavgift kr</span>
             <input
               type="number"
@@ -1049,7 +1079,7 @@ export default function CustomerIntakeForm({
             className={inputClassName(state, "noticeMonths")}
           />
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Extra avgifter</span>
             <textarea
               name="optionalFeeLines"
@@ -1127,7 +1157,7 @@ export default function CustomerIntakeForm({
             className={inputClassName(state, "billingCity")}
           />
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Land faktura</span>
             <select
               name="billingCountry"
@@ -1141,7 +1171,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="billingCountry" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Faktureringsnivå</span>
             <select
               name="billingLevel"
@@ -1181,26 +1211,26 @@ export default function CustomerIntakeForm({
           title="5. Dokument och fullmakt"
           description="Ladda upp signerat avtal och signerad fullmakt direkt vid kundskapande."
         >
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Signerat avtal</span>
             <input
               type="file"
               name="signedAgreementFile"
               accept="application/pdf,image/png,image/jpeg,image/webp"
-              className="rounded-2xl border border-slate-300 px-4 py-3"
+              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
               Kopplas till kund, anläggning, mätpunkt och avtal om dessa finns.
             </span>
           </label>
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Signerad fullmakt</span>
             <input
               type="file"
               name="signedPowerOfAttorneyFile"
               accept="application/pdf,image/png,image/jpeg,image/webp"
-              className="rounded-2xl border border-slate-300 px-4 py-3"
+              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
               Skapar signerad fullmakt och tar bort blockerare för saknad
@@ -1208,7 +1238,7 @@ export default function CustomerIntakeForm({
             </span>
           </label>
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">
               Elnätsfaktura / anläggningsunderlag
             </span>
@@ -1216,7 +1246,7 @@ export default function CustomerIntakeForm({
               type="file"
               name="gridInvoiceFile"
               accept="application/pdf,image/png,image/jpeg,image/webp"
-              className="rounded-2xl border border-slate-300 px-4 py-3"
+              className="min-w-0 w-full rounded-2xl border border-slate-300 px-4 py-3"
             />
             <span className="text-xs text-slate-600">
               Sparas bara som föreslagen data. Anläggnings-ID, nätägare och
@@ -1225,7 +1255,7 @@ export default function CustomerIntakeForm({
             </span>
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Fullmaktsstatus</span>
             <select
               name="authorizationStatus"
@@ -1242,7 +1272,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="authorizationStatus" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Kundbekräftelse</span>
             <select
               name="customerConfirmationStatus"
@@ -1258,7 +1288,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="customerConfirmationStatus" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Fullmakt giltig från</span>
             <input
               type="date"
@@ -1269,7 +1299,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="authorizationValidFrom" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Fullmakt giltig till</span>
             <input
               type="date"
@@ -1285,7 +1315,7 @@ export default function CustomerIntakeForm({
           title="6. Dubblett och granskning"
           description="Möjlig dubblett sparas som blockerare och stoppar inte kundskapandet."
         >
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">
               Åtgärd vid möjlig/befintlig kund
             </span>
@@ -1315,7 +1345,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="duplicateResolution" />
           </label>
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">Befintligt kund-ID</span>
             <input
               name="existingCustomerId"
@@ -1326,7 +1356,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="existingCustomerId" />
           </label>
 
-          <label className="grid gap-1 text-sm md:col-span-2">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm md:col-span-2">
             <span className="text-slate-700">
               Kommentar till dubblettbeslut
             </span>
@@ -1349,7 +1379,7 @@ export default function CustomerIntakeForm({
           title="7. Nästa steg"
           description="Välj vad handläggaren ska göra direkt efter att kunden sparats. Det här ändrar bara arbetsflödet efter skapande, inte själva kundsparningen."
         >
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">Efter kundskapande</span>
             <select
               name="postCreateAction"
@@ -1367,7 +1397,7 @@ export default function CustomerIntakeForm({
             <FieldError state={state} name="postCreateAction" />
           </label>
 
-          <label className="grid gap-1 text-sm">
+          <label className="grid min-w-0 grid-cols-1 gap-1 text-sm">
             <span className="text-slate-700">
               Standardval för uppgiftsbegäran
             </span>
@@ -1395,34 +1425,17 @@ export default function CustomerIntakeForm({
 
         <CustomerIntakeEnhancer offers={contractOffers} values={state.values} />
 
-        <div className="grid gap-3 lg:grid-cols-3">
-          <button
-            type="submit"
-            name="intakeCreateMode"
-            value="create"
-            disabled={isPending}
-            className="rounded-2xl bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? "Skapar..." : "Skapa kund"}
-          </button>
-          <button
-            type="submit"
-            name="postCreateActionOverride"
-            value="request_data"
-            disabled={isPending}
-            className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Skapa kund och begär uppgifter
-          </button>
-          <button
-            type="submit"
-            name="intakeCreateMode"
-            value="create_blocked"
-            disabled={isPending}
-            className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            Skapa och markera som blockerad
-          </button>
+        <div className="sticky bottom-2 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <p className="text-xs text-slate-600">Ofullständiga uppgifter sparas med blockerare.</p>
+          <div className="ml-auto flex items-center gap-2">
+            <button type="submit" name="intakeCreateMode" value="create" disabled={isPending} className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+              {isPending ? "Skapar…" : "Skapa kund"}
+            </button>
+            <CustomerActionsMenu label="Alternativ" disabled={isPending} placement="top">
+              <button type="submit" name="postCreateActionOverride" value="request_data" disabled={isPending}>Skapa och begär uppgifter</button>
+              <button type="submit" name="intakeCreateMode" value="create_blocked" disabled={isPending}>Skapa och markera som blockerad</button>
+            </CustomerActionsMenu>
+          </div>
         </div>
       </form>
     </div>

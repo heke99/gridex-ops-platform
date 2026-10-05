@@ -1,0 +1,2 @@
+Command: Node22 node_modules/typescript/bin/tsc --noEmit --project tsconfig.tests.json
+Exit:0; no output.

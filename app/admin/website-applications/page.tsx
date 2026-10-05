@@ -1,3 +1,4 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu";
 import Link from "next/link";
 import {
   requireAdminPageAccess,
@@ -721,6 +722,7 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
         <button className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">
           Spara komplettering
         </button>
+        <AdminActionsMenu label="Fler åtgärder">
         <button
           formAction={resolveWebsiteApplicationEnergyAction}
           className="rounded-2xl border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-800 hover:bg-sky-50"
@@ -745,6 +747,7 @@ function ReviewForm({ item }: { item: WebsiteApplicationAdminRow }) {
         >
           Kontrollera om redo
         </button>
+        </AdminActionsMenu>
       </div>
     </form>
   );
@@ -758,9 +761,9 @@ function ApplicationDetails({ item }: { item: WebsiteApplicationAdminRow }) {
     item.source_table === "website_customer_applications",
   );
   return (
-    <details className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700">
-      <summary className="cursor-pointer">Öppna arbetsvy</summary>
-      <div className="mt-4 w-[min(78rem,calc(100vw-5rem))] space-y-4 text-sm font-normal text-slate-700">
+    <details className="mt-3 min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 [&_input]:min-w-0 [&_select]:min-w-0 [&_textarea]:min-w-0 [&_label]:min-w-0 [&_label]:grid-cols-1">
+      <summary className="cursor-pointer font-semibold">Komplettera i listan</summary>
+      <div className="mt-4 min-w-0 space-y-4 break-words text-sm font-normal text-slate-700">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <p className="text-xs uppercase tracking-[0.14em] text-slate-600">
@@ -981,14 +984,14 @@ export default async function WebsiteApplicationsAdminPage({
   const isPlatformAdmin = isPlatformAdminContext(access);
 
   return (
-    <main className="mx-auto max-w-7xl space-y-8 px-6 py-8">
-      <section className="rounded-[36px] border border-emerald-100 bg-white p-8 shadow-sm shadow-emerald-950/5">
+    <main className="mx-auto min-w-0 max-w-7xl space-y-4 p-4 lg:p-6">
+      <section className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm shadow-emerald-950/5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
               Nya kunder
             </p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
               Kundansökningar från hemsida
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
@@ -997,7 +1000,7 @@ export default async function WebsiteApplicationsAdminPage({
               avtalsbekräftelse eller aktiv kundstatus kan fortsätta.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <AdminActionsMenu label="Resurser">
             <Link
               href="/developers/customer-portal-api"
               className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
@@ -1010,34 +1013,34 @@ export default async function WebsiteApplicationsAdminPage({
             >
               Webhook-loggar
             </Link>
-          </div>
+          </AdminActionsMenu>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-5">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
+        <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-5">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
             <p className="text-sm text-slate-700">Totalt</p>
-            <p className="mt-2 text-3xl font-semibold text-slate-950">
+            <p className="mt-1 text-2xl font-semibold text-slate-950">
               {applications.length}
             </p>
           </div>
-          <div className="rounded-3xl border border-amber-200 bg-amber-50 p-5">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
             <p className="text-sm text-amber-900">Behöver kompletteras</p>
-            <p className="mt-2 text-3xl font-semibold text-amber-950">
+            <p className="mt-1 text-2xl font-semibold text-amber-950">
               {manualReview}
             </p>
           </div>
-          <div className="rounded-3xl border border-sky-200 bg-sky-50 p-5">
+          <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3">
             <p className="text-sm text-sky-800">Redo/kontroll</p>
-            <p className="mt-2 text-3xl font-semibold text-sky-950">{ready}</p>
+            <p className="mt-1 text-2xl font-semibold text-sky-950">{ready}</p>
           </div>
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
             <p className="text-sm text-emerald-800">Bekräftade/aktiva</p>
-            <p className="mt-2 text-3xl font-semibold text-emerald-950">
+            <p className="mt-1 text-2xl font-semibold text-emerald-950">
               {completed}
             </p>
           </div>
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-5">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
             <p className="text-sm text-red-800">Stoppade fel</p>
-            <p className="mt-2 text-3xl font-semibold text-red-950">
+            <p className="mt-1 text-2xl font-semibold text-red-950">
               {failed + facilityErrors}
             </p>
             <p className="mt-1 text-xs text-red-700">
@@ -1047,179 +1050,60 @@ export default async function WebsiteApplicationsAdminPage({
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center gap-2 text-sm font-semibold">
-          <Link
-            href="/admin/website-applications"
-            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-slate-700"
-          >
-            Alla
-          </Link>
-          <Link
-            href="/admin/website-applications?status=needs_information"
-            className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-900"
-          >
-            Saknar uppgifter
-          </Link>
-          <Link
-            href="/admin/website-applications?status=needs_facility_data"
-            className="rounded-full border border-amber-200 bg-white px-3 py-1 text-amber-900"
-          >
-            Begär nätägare
-          </Link>
-          <Link
-            href="/admin/website-applications?status=ready_for_switch"
-            className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-800"
-          >
-            Redo för byte
-          </Link>
-          <Link
-            href="/admin/website-applications?status=facility_data_invalid"
-            className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-red-800"
-          >
-            Anläggningsfel
-          </Link>
-          <Link
-            href="/admin/website-applications?status=failed"
-            className="rounded-full border border-red-200 bg-white px-3 py-1 text-red-800"
-          >
-            Fel kräver åtgärd
-          </Link>
-        </div>
-        <div className="overflow-x-auto rounded-2xl border border-slate-200">
-          <table className="min-w-full text-sm">
-            <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.14em] text-slate-600">
-              <tr>
-                <th className="px-4 py-3">Kund</th>
-                <th className="px-4 py-3">Kontakt</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Vad saknas</th>
-                <th className="px-4 py-3">Skapad</th>
-                <th className="px-4 py-3">Källa</th>
-                <th className="px-4 py-3">Nästa steg</th>
-                <th className="px-4 py-3">Åtgärder</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {applications.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-slate-600"
-                  >
-                    Inga nya webbansökningar hittades.
-                  </td>
-                </tr>
-              ) : null}
-              {applications.map((item) => {
-                const issues = reviewIssues(item);
-                return (
-                  <tr key={item.id} className="align-top">
-                    <td className="px-4 py-3 text-slate-700">
-                      <div className="font-semibold text-slate-950">
-                        {customerName(item)}
-                      </div>
-                      <div className="font-mono text-xs text-slate-500">
-                        {item.customer_number ?? item.external_customer_id}
-                      </div>
-                      {isPlatformAdmin ? (
-                        <div className="text-xs text-slate-500">
-                          {item.companies?.name ?? item.company_id}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      <div>{customerEmail(item)}</div>
-                      <div className="text-xs text-slate-500">
-                        {customerPhone(item)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}
-                      >
-                        {intakeStatusLabel(item.status)}
-                      </span>
-                      {item.error_stage ? (
-                        <div className="mt-1 text-xs text-red-700">
-                          {safeOperationalMessage(
-                            item.error_message ?? item.error_code,
-                          ) ?? "Tekniskt fel kräver åtgärd"}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {issues.length === 0 ? (
-                        <span className="text-emerald-700">
-                          Inget blockerar
-                        </span>
-                      ) : (
-                        <div className="space-y-1">
-                          {issues.slice(0, 4).map((issue) => (
-                            <div
-                              key={`${item.id}-${issue.field}`}
-                              className="text-xs text-amber-900"
-                            >
-                              • {issue.label}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">
-                      {formatDate(item.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      <span className="font-semibold">
-                        {sourceBadgeLabel(item)}
-                      </span>
-                      <div className="text-xs text-slate-500">
-                        {item.integration_api_clients?.name ??
-                          item.source_table ??
-                          "—"}
-                      </div>
-                      {item.external_intake_status ? (
-                        <div className="text-xs text-slate-500">
-                          External:{" "}
-                          {intakeStatusLabel(item.external_intake_status)}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {item.next_step ?? "Kontrollera ansökan."}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/admin/website-applications/${item.id}?source=${item.source_table ?? "website_customer_applications"}`}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
-                        >
-                          Detalj
-                        </Link>
-                        {item.customer_id ? (
-                          <Link
-                            href={`/admin/customers/${item.customer_id}`}
-                            className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Kundkort
-                          </Link>
-                        ) : null}
-                        {item.contract_id && item.customer_id ? (
-                          <Link
-                            href={`/admin/customers/${item.customer_id}?tab=contracts`}
-                            className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                          >
-                            Avtal
-                          </Link>
-                        ) : null}
-                        <ApplicationDetails item={item} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
+          <label className="grid min-w-0 gap-1 text-sm font-medium text-slate-700">
+            Status
+            <select name="status" aria-label="Status" defaultValue={status ?? ""} className="min-h-10 min-w-0 max-w-full rounded-xl border border-slate-300 bg-white px-3 py-2">
+              <option value="">Alla ansökningar</option>
+              <option value="needs_information">Saknar uppgifter</option>
+              <option value="needs_facility_data">Begär nätägare</option>
+              <option value="ready_for_switch">Redo för byte</option>
+              <option value="facility_data_invalid">Anläggningsfel</option>
+              <option value="failed">Fel kräver åtgärd</option>
+              {status && !["needs_information", "needs_facility_data", "ready_for_switch", "facility_data_invalid", "failed"].includes(status) ? <option value={status}>{intakeStatusLabel(status)}</option> : null}
+            </select>
+          </label>
+          <button className="min-h-10 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50">Visa</button>
+          {status ? <Link href="/admin/website-applications" className="px-3 py-2 text-sm font-medium text-slate-600 underline">Rensa filter</Link> : null}
+        </form>
+        <div className="space-y-3">
+          {applications.length === 0 ? <p className="py-8 text-center text-sm text-slate-600">Inga nya webbansökningar hittades.</p> : null}
+          {applications.map((item) => {
+            const issues = reviewIssues(item);
+            const detailHref = `/admin/website-applications/${item.id}?source=${item.source_table ?? "website_customer_applications"}`;
+            return (
+              <article key={item.id} className="min-w-0 rounded-2xl border border-slate-200 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 break-words">
+                    <Link href={detailHref} className="font-semibold text-slate-950 hover:underline">{customerName(item)}</Link>
+                    <p className="mt-1 text-sm text-slate-600">{customerEmail(item)} · {customerPhone(item)}</p>
+                    <p className="mt-1 text-xs text-slate-600">{item.customer_number ?? item.external_customer_id} · {formatDate(item.created_at)} · {sourceBadgeLabel(item)} · {item.integration_api_clients?.name ?? item.source_table ?? "—"}</p>
+                    {isPlatformAdmin ? <p className="mt-1 text-xs text-slate-600">{item.companies?.name ?? item.company_id}</p> : null}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusTone(item.status)}`}>{intakeStatusLabel(item.status)}</span>
+                    <Link href={detailHref} className="rounded-xl bg-emerald-700 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Öppna ansökan</Link>
+                    {item.customer_id ? (
+                      <AdminActionsMenu ariaLabel={`Fler länkar för ${customerName(item)}`}>
+                        <Link href={`/admin/customers/${item.customer_id}`}>Kundkort</Link>
+                        {item.contract_id ? <Link href={`/admin/customers/${item.customer_id}?tab=contracts`}>Avtal</Link> : null}
+                      </AdminActionsMenu>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 text-sm lg:grid-cols-2">
+                  <div className="min-w-0 break-words">
+                    {item.error_stage ? <p className="font-medium text-red-700">{safeOperationalMessage(item.error_message ?? item.error_code) ?? "Tekniskt fel kräver åtgärd"}</p> : null}
+                    {issues.length === 0 ? <p className="text-emerald-700">Inget blockerar</p> : <div className="space-y-1 text-amber-900"><p className="font-semibold">Behöver kompletteras</p>{issues.map((issue) => <p key={`${item.id}-${issue.field}`}>{issue.label}</p>)}</div>}
+                    {item.external_intake_status ? <p className="mt-1 text-xs text-slate-600">External: {intakeStatusLabel(item.external_intake_status)}</p> : null}
+                  </div>
+                  <p className="min-w-0 break-words text-slate-700"><span className="font-semibold">Nästa steg: </span>{item.next_step ?? "Kontrollera ansökan."}</p>
+                </div>
+                <ApplicationDetails item={item} />
+              </article>
+            );
+          })}
         </div>
       </section>
     </main>

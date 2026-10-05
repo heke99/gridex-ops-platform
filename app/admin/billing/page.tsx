@@ -9,6 +9,7 @@ import { approveAndSendReadyInvoicesAction } from './actions'
 import { createInvoiceFileAction } from './invoice-files/actions'
 import { listInvoiceFileCandidates, listInvoiceFiles, type InvoiceFileRecord } from '@/lib/billing/invoiceFileExport'
 import { loadTenantInvoiceProviderSelection } from '@/lib/billing/providers/registry'
+import AdminActionsMenu from '@/components/admin/ui/AdminActionsMenu'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,7 +104,7 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
         userEmail={user?.email ?? null}
       />
 
-      <main className="space-y-6 p-6 lg:p-8">
+      <main className="space-y-4 p-4 lg:p-6">
         {!companyId ? (
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
             Välj en tenant innan fakturor granskas eller skickas. Fakturering får aldrig köras över flera tenants samtidigt.
@@ -148,7 +149,9 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
               <p role="alert" className="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{FILE_ERRORS[params.file_error] ?? 'Fakturafilen kunde inte skapas.'}</p>
             ) : null}
             {invoiceFiles.length > 0 ? (
-              <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
+              <details open={Boolean(params.file)} className="mt-4 text-sm">
+                <summary className="cursor-pointer font-semibold text-slate-800">Tidigare fakturafiler ({invoiceFiles.length})</summary>
+              <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-200 text-sm">
                 {invoiceFiles.map((file) => (
                   <li key={file.id} className={`flex flex-wrap items-center justify-between gap-3 px-4 py-3 ${params.file === file.id ? 'bg-emerald-50/60' : ''}`}>
                     <span>
@@ -156,16 +159,17 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       <span className="ml-2 text-slate-600">{file.row_count} fakturor · {money(Number(file.total_inc_vat))}</span>
                       <span className="ml-2 text-xs text-slate-500">{new Date(file.created_at).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' })}{file.environment === 'test' ? ' · test' : ''}</span>
                     </span>
-                    <span className="flex gap-2">
+                    <AdminActionsMenu label="Ladda ner" ariaLabel={`Ladda ner fakturafil för ${file.billing_month}`}>
                       {(['csv', 'xlsx', 'json'] as const).map((format) => (
                         <a key={format} href={`/admin/billing/invoice-files/${file.id}?format=${format}`} className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">
                           {format === 'xlsx' ? 'Excel' : format.toUpperCase()}
                         </a>
                       ))}
-                    </span>
+                    </AdminActionsMenu>
                   </li>
                 ))}
               </ul>
+              </details>
             ) : null}
           </section>
         ) : null}
@@ -203,40 +207,39 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
         </section>
 
         {!customerFilter ? (
-          <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
             {[
               ['Klara för granskning', readyCount, 'Kan öppnas och kontrolleras innan utskick.'],
               ['Flaggade', flaggedCount, missingMeterCount ? `${missingMeterCount} saknar kompletta mätvärden.` : 'Kräver åtgärd före fakturering.'],
               ['Godkända', approvedCount, 'Godkända men ännu inte bekräftat skickade.'],
               ['Skickade', sentCount, 'Bekräftade av fakturapartnern.'],
             ].map(([label, count, help]) => (
-              <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-medium text-slate-500">{label}</p>
-                <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">{count}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{help}</p>
+              <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-3"><p className="text-sm font-medium text-slate-600">{label}</p><p className="text-2xl font-semibold text-slate-950">{count}</p></div>
+                <p className="mt-1 text-xs leading-5 text-slate-600">{help}</p>
               </div>
             ))}
           </section>
         ) : null}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div>
               <h2 className="font-semibold text-slate-950">{customerFilter ? 'Kundens fakturor' : `Kunder · ${selectedMonth}`}</h2>
               <p className="mt-1 text-xs text-slate-500">Flaggade kunder skickas aldrig med i batchen.</p>
             </div>
-            <div className="flex gap-3 text-xs font-medium text-slate-500">
+            <AdminActionsMenu label="Inställningar">
               <Link href="/admin/pricing" className="hover:text-slate-950">Prismotor</Link>
               <Link href="/admin/billing/integrations" className="hover:text-slate-950">Teknisk integration</Link>
-            </div>
+            </AdminActionsMenu>
           </div>
 
           {rows.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-slate-500">Inga faktureringsunderlag finns för urvalet ännu.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <div className="min-w-0">
+              <table className="w-full table-fixed text-left text-sm [&_td]:min-w-0 [&_td]:break-words max-xl:[&_tr]:grid max-xl:[&_tr]:grid-cols-2 max-xl:[&_td]:px-4 max-xl:[&_td]:py-2 max-xl:[&_tbody_tr]:p-2">
+                <thead className="sr-only bg-slate-50 text-xs uppercase tracking-wide text-slate-600 xl:not-sr-only xl:table-header-group">
                   <tr>
                     <th className="px-5 py-3 font-semibold">Kund</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
@@ -256,12 +259,12 @@ export default async function AdminBillingPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-4">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusStyle[row.status]}`}>{row.statusLabel}</span>
-                        {row.blocker ? <p className="mt-2 max-w-xs text-xs leading-5 text-slate-500">{row.blocker}</p> : null}
+                        {row.blocker ? <p className="mt-2 max-w-xs text-xs leading-5 text-amber-900">{row.blocker}</p> : null}
                       </td>
-                      <td className="px-4 py-4 text-slate-700">{productLabel(row.contractType, row.contractName)}</td>
-                      <td className="px-4 py-4 font-medium text-slate-700">{row.priceArea ?? '—'}</td>
-                      <td className="px-4 py-4 text-right tabular-nums text-slate-700">{quantity(row.totalKwh)}</td>
-                      <td className="px-4 py-4 text-right font-semibold tabular-nums text-slate-950">{money(row.amountIncVat)}</td>
+                      <td className="px-4 py-4 text-slate-700"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Avtal</span>{productLabel(row.contractType, row.contractName)}</td>
+                      <td className="px-4 py-4 font-medium text-slate-700"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Elområde</span>{row.priceArea ?? '—'}</td>
+                      <td className="px-4 py-4 tabular-nums text-slate-700 xl:text-right"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Förbrukning</span>{quantity(row.totalKwh)}</td>
+                      <td className="px-4 py-4 font-semibold tabular-nums text-slate-950 xl:text-right"><span className="mb-1 block text-xs font-medium text-slate-600 xl:hidden">Att fakturera</span>{money(row.amountIncVat)}</td>
                       <td className="px-5 py-4 text-right">
                         {row.invoiceExportItemId ? (
                           <Link href={`/admin/billing/invoices/${row.invoiceExportItemId}`} className="inline-flex rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50">Visa faktura</Link>

@@ -1,0 +1,355 @@
+{
+  "scope": "real server/client components; synthetic loader rows and stubbed actions, no transport",
+  "results": [
+    {
+      "name": "info Skapa uppgiftsbegäran",
+      "action": "createCustomerInfoRequestAction",
+      "fields": {
+        "customer_id": "synthetic-customer",
+        "site_id": "",
+        "metering_point_id": "",
+        "grid_owner_id": "",
+        "request_type": "z01_customer_masterdata",
+        "target_party_type": "grid_owner",
+        "target_party_name": "",
+        "current_supplier_name": "",
+        "notes": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "info Spara omfattning",
+      "action": "createAuthorizationScopeAction",
+      "fields": {
+        "customer_id": "synthetic-customer",
+        "scope_type": "customer_onboarding",
+        "valid_from": "",
+        "valid_to": "",
+        "evidence_note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "info Skapa tillståndsutkast",
+      "action": "createMeteringPermissionDraftAction",
+      "fields": {
+        "customer_id": "synthetic-customer",
+        "site_id": "",
+        "metering_point_id": "",
+        "case_reference": "",
+        "requested_start_date": "",
+        "requested_end_date": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "info Kontrollera fullmakt och förbered Z01",
+      "action": "queueCustomerInfoRequestAction",
+      "fields": {
+        "request_id": "synthetic-row"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "info Kontrollera uppdrag och förbered Z13",
+      "action": "queueMeteringPermissionZ13Action",
+      "fields": {
+        "permission_id": "synthetic-permission",
+        "service_assignment_selection": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "info Koppla och behandla mottaget svar",
+      "action": "applyZ14SnapshotAction",
+      "fields": {
+        "permission_id": "synthetic-permission",
+        "source_message_id": "synthetic-source_message_id"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "facility Markera skickad",
+      "action": "markFacilityLookupSentManuallyAction",
+      "fields": {
+        "request_id": "synthetic-facility",
+        "manual_channel": "portal",
+        "note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "facility Spara uppgifter",
+      "action": "completeFacilityLookupAction",
+      "fields": {
+        "request_id": "synthetic-facility",
+        "facility_id": "",
+        "metering_point_id": "synthetic-point",
+        "grid_area_code": "",
+        "price_area_code": "",
+        "note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "metering Förbered UTILTS E73",
+      "action": "prepareUtiltsE73Action",
+      "fields": {
+        "gridOwnerDataRequestId": "synthetic-request"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "metering Uppdatera",
+      "action": "updateGridOwnerDataRequestStatusAction",
+      "fields": {
+        "request_id": "synthetic-request",
+        "customer_id": "synthetic-customer",
+        "status": "pending",
+        "external_reference": "",
+        "response_payload_note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "metering Registrera mätvärde",
+      "action": "ingestMeteringValueAction",
+      "fields": {
+        "customer_id": "synthetic-customer_id",
+        "site_id": "",
+        "metering_point_id": "synthetic-metering_point_id",
+        "source_request_id": "",
+        "grid_owner_id": "",
+        "reading_type": "consumption",
+        "value_kwh": "12.75",
+        "quality_code": "",
+        "read_at": "",
+        "period_start": "",
+        "period_end": "",
+        "source_system": "manual_admin",
+        "raw_payload_note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Kör automatisk kontroll",
+      "action": "runAutomationSweepFormAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Förbered fakturaexporter",
+      "action": "queueReadyBillingExportsFormAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Förbered",
+      "action": "updateOutboundRequestStatusAction",
+      "fields": {
+        "outbound_request_id": "synthetic-outbound",
+        "customer_id": "synthetic-customer",
+        "status": "prepared",
+        "dispatch_step": "prepare"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Markera som skickad",
+      "action": "updateOutboundRequestStatusAction",
+      "fields": {
+        "outbound_request_id": "synthetic-outbound",
+        "customer_id": "synthetic-customer",
+        "status": "sent",
+        "dispatch_step": "send"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Markera som failed",
+      "action": "updateOutboundRequestStatusAction",
+      "fields": {
+        "outbound_request_id": "synthetic-outbound",
+        "customer_id": "synthetic-customer",
+        "status": "failed",
+        "failure_reason": "Dispatch markerad som failed från snabbåtgärd.",
+        "dispatch_step": "fail"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "outbound Spara status",
+      "action": "updateOutboundRequestStatusAction",
+      "fields": {
+        "outbound_request_id": "synthetic-outbound",
+        "customer_id": "synthetic-customer",
+        "status": "queued",
+        "external_reference": "",
+        "response_payload_note": "",
+        "failure_reason": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "pricing Spara komponent",
+      "action": "createPricingComponentRuleAction",
+      "fields": {
+        "contract_offer_id": "",
+        "component_label": "synthetic-component_label",
+        "component_code": "synthetic-component_code",
+        "component_type": "fixed_monthly_fee",
+        "value_amount": "",
+        "calculation_unit": "ore_per_kwh",
+        "applies_to": "contract",
+        "valid_from": "",
+        "valid_to": "",
+        "priority": "",
+        "note": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "users Skicka inbjudan",
+      "action": "inviteUserFormAction",
+      "fields": {
+        "email": "synthetic@example.test",
+        "roleId": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "users Skapa konto",
+      "action": "createUserFormAction",
+      "fields": {
+        "fullName": "",
+        "email": "synthetic@example.test",
+        "password": "synthetic-password",
+        "roleId": ""
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "users Skicka reset",
+      "action": "sendPasswordResetFormAction",
+      "fields": {
+        "email": "handlaggare@example.test"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "users Skicka confirm",
+      "action": "sendConfirmationEmailFormAction",
+      "fields": {
+        "email": "handlaggare@example.test"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "users Radera användare",
+      "action": "deleteUserCompletelyFormAction",
+      "fields": {
+        "user_id": "synthetic-user"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "integrations Spara leverantör",
+      "action": "selectInvoiceProviderAction",
+      "fields": {
+        "provider": "capway_aptic",
+        "environment": "test"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "integrations Testa Aptic-anslutning",
+      "action": "testCapwayConnectionAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "integrations Ombearbeta händelser",
+      "action": "reprocessInvoiceProviderEventsAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "integrations-ready Spara leverantör",
+      "action": "selectInvoiceProviderAction",
+      "fields": {
+        "provider": "capway_aptic",
+        "environment": "test"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "integrations-ready Aktivera utskick",
+      "action": "setInvoiceDispatchEnabledAction",
+      "fields": {
+        "enabled": "true"
+      },
+      "status": "PASS"
+    },
+    {
+      "name": "integrations-ready Testa Aptic-anslutning",
+      "action": "testCapwayConnectionAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "integrations-ready Ombearbeta händelser",
+      "action": "reprocessInvoiceProviderEventsAction",
+      "fields": {},
+      "status": "PASS"
+    },
+    {
+      "name": "metering registration retains values across collapse",
+      "status": "PASS"
+    },
+    {
+      "name": "metering invalid input blocks action and receives focus",
+      "status": "PASS"
+    },
+    {
+      "name": "closed metering panel opens through hash navigation",
+      "status": "PASS"
+    },
+    {
+      "name": "readonly information requests disable submit actions",
+      "status": "PASS"
+    },
+    {
+      "name": "outbound GET search submits its URL value",
+      "status": "PASS"
+    },
+    {
+      "name": "messages GET search submits its URL value",
+      "status": "PASS"
+    },
+    {
+      "name": "events GET search submits its URL value",
+      "status": "PASS"
+    },
+    {
+      "name": "metering GET search submits its URL value",
+      "status": "PASS"
+    },
+    {
+      "name": "users menu opens, stays within mobile viewport and closes with Escape",
+      "status": "PASS"
+    },
+    {
+      "name": "messages menu opens, stays within mobile viewport and closes with Escape",
+      "status": "PASS"
+    },
+    {
+      "name": "pricing menu opens, stays within mobile viewport and closes with Escape",
+      "status": "PASS"
+    },
+    {
+      "name": "outbound menu opens, stays within mobile viewport and closes with Escape",
+      "status": "PASS"
+    }
+  ],
+  "errors": []
+}

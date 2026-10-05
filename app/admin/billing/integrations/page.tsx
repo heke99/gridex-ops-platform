@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -103,23 +104,23 @@ export default async function BillingIntegrationsPage({
         userEmail={admin.email}
         workspaceName={scope?.companyName}
       />
-      <main className="space-y-6 p-8">
-        <section className="grid gap-4 lg:grid-cols-4">
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+      <main className="min-w-0 space-y-4 p-4 lg:p-6 [&_input:not([type=radio])]:min-w-0 [&_select]:min-w-0 [&_select]:w-full [&_label]:min-w-0 [&_label]:grid-cols-1">
+        <section className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Providerkopplingar</div>
-            <div className="mt-2 text-3xl font-semibold">{connections.length}</div>
+            <div className="mt-1 text-2xl font-semibold">{connections.length}</div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Exportkörningar</div>
-            <div className="mt-2 text-3xl font-semibold">{runs.length}</div>
+            <div className="mt-1 text-2xl font-semibold">{runs.length}</div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Misslyckade poster</div>
-            <div className="mt-2 text-3xl font-semibold">
+            <div className="mt-1 text-2xl font-semibold">
               {deadLetters.filter((row) => row.status === 'open').length}
             </div>
           </div>
-          <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-3">
             <div className="text-sm text-slate-600">Capway test-env</div>
             <div className="mt-2 text-sm font-semibold text-slate-950">
               {envStatus('CAPWAY_APTIC_TEST_BASE_URL')} /{' '}
@@ -139,7 +140,7 @@ export default async function BillingIntegrationsPage({
               {notice.text}
             </p>
           ) : null}
-          <form action={selectInvoiceProviderAction} className="mt-4 grid gap-4 md:grid-cols-[1fr_auto_auto] md:items-end">
+          <AdminDisclosurePanel id="billing-select-provider" title="Välj eller byt leverantör och miljö" defaultOpen={!selection?.invoice_export_target_system} className="mt-4 rounded-xl border border-slate-200 p-3"><form action={selectInvoiceProviderAction} className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,160px)_auto] lg:items-end">
             <fieldset className="grid gap-2">
               <legend className="text-sm font-medium text-slate-800">Leverantör</legend>
               {catalog.map((entry) => (
@@ -166,6 +167,7 @@ export default async function BillingIntegrationsPage({
               Miljö
               <select
                 name="environment"
+                aria-label="Miljö"
                 defaultValue={selection?.billing_provider_environment === 'production' ? 'production' : 'test'}
                 className="rounded-xl border border-slate-300 px-3 py-2"
               >
@@ -176,7 +178,7 @@ export default async function BillingIntegrationsPage({
             <button type="submit" className="rounded-2xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-600">
               Spara leverantör
             </button>
-          </form>
+          </form></AdminDisclosurePanel>
           <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
             <div className="rounded-2xl border p-3">
               <dt className="text-slate-600">Vald leverantör</dt>
@@ -232,7 +234,7 @@ export default async function BillingIntegrationsPage({
             </form>
           </div>
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid min-w-0 grid-cols-2 gap-2 xl:grid-cols-4">
             {[
               'CAPWAY_APTIC_TEST_TOKEN_URL',
               'CAPWAY_APTIC_TEST_BASE_URL',
@@ -243,7 +245,7 @@ export default async function BillingIntegrationsPage({
                 key={name}
                 className="rounded-2xl border border-amber-200 bg-white p-4 text-sm"
               >
-                <div className="font-mono text-xs text-slate-600">{name}</div>
+                <div className="break-all font-mono text-xs text-slate-600">{name}</div>
                 <div className="mt-1 font-semibold text-slate-950">
                   {envStatus(name)}
                 </div>
@@ -313,8 +315,8 @@ export default async function BillingIntegrationsPage({
                 </div>
               ) : null}
               {connections.map((row) => (
-                <div key={String(row.id)} className="p-6 text-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="font-semibold">
                       {fmt(row.display_name) || fmt(row.provider)}
                     </div>
@@ -346,8 +348,8 @@ export default async function BillingIntegrationsPage({
                 </div>
               ) : null}
               {runs.map((row) => (
-                <div key={String(row.id)} className="p-6 text-sm">
-                  <div className="flex items-center justify-between gap-3">
+                <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="font-semibold">
                       {fmt(row.billing_month)} · {fmt(row.provider)}
                     </div>
@@ -361,9 +363,7 @@ export default async function BillingIntegrationsPage({
                     Poster: {fmt(row.total_items)} · skickade: {fmt(row.sent_items)} ·
                     fel: {fmt(row.failed_items)}
                   </div>
-                  <div className="mt-2 font-mono text-xs text-slate-400">
-                    Körning {String(row.id)}
-                  </div>
+                  <details className="mt-2 text-xs text-slate-600"><summary className="cursor-pointer">Körnings-id</summary><p className="mt-1 break-all font-mono">{String(row.id)}</p></details>
                 </div>
               ))}
             </div>
@@ -398,8 +398,8 @@ export default async function BillingIntegrationsPage({
               </div>
             ) : null}
             {reviewEvents.slice(0, 25).map((row) => (
-              <div key={String(row.id)} className="p-6 text-sm">
-                <div className="flex items-center justify-between gap-3">
+              <div key={String(row.id)} className="min-w-0 break-words p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="font-semibold">
                     {fmt(row.event_type)} · {fmt(row.provider)}
                   </div>

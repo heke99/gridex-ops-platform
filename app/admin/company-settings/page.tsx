@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CompanyUserInviteForm from "@/components/admin/companies/CompanyUserInviteForm";
 import { requireAdminPageKeyAccess } from "@/lib/admin/guards";
@@ -69,7 +70,7 @@ export default async function CompanySettingsPage() {
         userEmail={context.email}
       />
 
-      <div className="space-y-6 p-8">
+      <div className="min-w-0 space-y-4 p-4 lg:p-6 [&_input]:min-w-0 [&_input]:w-full [&_select]:min-w-0 [&_select]:w-full [&_textarea]:min-w-0 [&_textarea]:w-full [&_label]:min-w-0 [&_label]:grid-cols-1">
         {!company || !companyId ? (
           <section className="rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800 shadow-sm">
             Kontot saknar aktiv bolagskoppling. Koppla användaren till ett bolag
@@ -77,7 +78,29 @@ export default async function CompanySettingsPage() {
           </section>
         ) : (
           <>
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <nav aria-label="Bolagsinställningar" className="flex flex-wrap gap-2 text-sm font-semibold text-slate-700">
+              <a href="#company-details" className="rounded-xl border border-slate-300 bg-white px-3 py-2 hover:bg-slate-50">Bolagsuppgifter</a>
+              <a href="#company-team" className="rounded-xl border border-slate-300 bg-white px-3 py-2 hover:bg-slate-50">Användare</a>
+              <a href="#legal-profile" className="rounded-xl border border-slate-300 bg-white px-3 py-2 hover:bg-slate-50">Juridisk status</a>
+            </nav>
+              <div id="legal-profile" className="scroll-mt-48 rounded-2xl border border-slate-200 bg-white p-4 lg:scroll-mt-32">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status</p>
+                <h2 className="mt-1 text-base font-semibold text-slate-950">
+                  {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
+                    ? "Juridikprofilen behöver kompletteras"
+                    : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
+                      ? "Juridikprofilen är komplett men väntar granskning"
+                      : "Juridikprofilen är granskad och verifierad"}
+                </h2>
+                <p className="mt-2 text-sm text-slate-700">Profilen genereras automatiskt från bolagsuppgifterna. Det finns inget separat juridikformulär.</p>
+                <details className="mt-3 text-sm text-slate-700"><summary className="cursor-pointer font-medium">Granskningsuppgifter</summary><div className="mt-2 grid gap-2 md:grid-cols-3">
+                  <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>
+                  <p><strong>Senast synkroniserad:</strong> {legalProfile?.last_synced_at ? new Date(legalProfile.last_synced_at).toLocaleString("sv-SE") : "–"}</p>
+                  <p><strong>Tvistlösning:</strong> OPS-standard</p>
+                </div></details>
+                {(legalProfile?.missing_fields ?? []).length > 0 ? <div className="mt-4 space-y-2">{(legalProfile?.missing_fields ?? []).map((code) => { const detail = legalProfileMissingFieldDetail(companyId, code); return <p key={code} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><strong>{detail.label}:</strong> {detail.message}</p>; })}</div> : null}
+              </div>
+            <section id="company-details" className="scroll-mt-48 rounded-2xl border border-slate-200 bg-white p-4 lg:scroll-mt-32">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-950">
@@ -87,12 +110,14 @@ export default async function CompanySettingsPage() {
                     Dessa uppgifter används i adminytan, onboarding och
                     kommunikation.
                   </p>
+                  <p className="mt-2 text-sm text-slate-700">Ediel-id: <strong>{company.ediel_id ?? 'Saknas'}</strong> · Driftmiljö: <strong>{isLiveApproved && company.operating_environment === 'production' ? 'Produktion' : 'Test'}</strong></p>
+                  {!isLiveApproved ? <p className="mt-1 text-sm text-amber-800">Produktion kräver att superadmin har godkänt go-live.</p> : null}
                 </div>
               </div>
               <form
                 id="company-profile"
                 action={updateCompanySettingsFormAction}
-                className="mt-5 grid gap-4 lg:grid-cols-2"
+                className="mt-4 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-2"
               >
                 <input type="hidden" name="company_id" value={companyId} />
                 <label className="grid gap-2 text-sm">
@@ -178,10 +203,7 @@ export default async function CompanySettingsPage() {
                   />
                 </label>
 
-                <div className="lg:col-span-2 mt-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    Fakturering och kundkommunikation
-                  </h3>
+                <AdminDisclosurePanel id="company-billing" title="Fakturering och kundkommunikation" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mt-1 text-sm leading-6 text-slate-700">
                     Kontaktuppgifter som används för plattformsadministration,
                     kundkommunikation och framtida faktureringsunderlag.
@@ -217,12 +239,9 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Fakturalandkod</span><input name="billing_country_code" defaultValue={company.billing_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm lg:col-span-2"><span className="font-medium text-slate-700">Särskild faktureringsinformation</span><textarea name="billing_terms_summary" defaultValue={company.billing_terms_summary ?? ""} rows={3} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    Adress
-                  </h3>
+                <AdminDisclosurePanel id="company-address" title="Adress" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="mt-4 grid gap-4 lg:grid-cols-2">
                     <label className="grid gap-2 text-sm">
                       <span className="font-medium text-slate-700">
@@ -273,10 +292,9 @@ export default async function CompanySettingsPage() {
                       />
                     </label>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">Klagomål</h3>
+                <AdminDisclosurePanel id="company-complaints" title="Klagomål" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mt-1 text-sm leading-6 text-slate-700">Minst en faktisk kontaktkanal krävs. Tomma funktionsfält använder support- eller primär e-post som fallback.</p>
                   <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Kontaktperson eller funktion</span><input name="complaints_contact_name" defaultValue={company.complaints_contact_name ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
@@ -289,10 +307,9 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="complaints_country_code" defaultValue={company.complaints_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm xl:col-span-3"><span className="font-medium text-slate-700">Beskrivning</span><textarea name="complaints_description" defaultValue={company.complaints_description ?? ""} rows={3} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">Dataskydd</h3>
+                <AdminDisclosurePanel id="company-data-protection" title="Dataskydd" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mt-1 text-sm leading-6 text-slate-700">Ett namn räcker inte ensamt. Profilen kräver e-post, telefon eller komplett postadress.</p>
                   <div className="mt-4 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Kontaktperson eller funktion</span><input name="data_protection_contact_name" defaultValue={company.data_protection_contact_name ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
@@ -304,12 +321,9 @@ export default async function CompanySettingsPage() {
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Ort</span><input name="data_protection_city" defaultValue={company.data_protection_city ?? ""} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                     <label className="grid gap-2 text-sm"><span className="font-medium text-slate-700">Landkod</span><input name="data_protection_country_code" defaultValue={company.data_protection_country_code ?? ""} placeholder={company.country_code ?? "SE"} className="rounded-2xl border border-slate-300 bg-white px-4 py-3" /></label>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    Varumärke och kundkommunikation
-                  </h3>
+                <AdminDisclosurePanel id="company-branding" title="Varumärke och kundkommunikation" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mt-1 text-sm leading-6 text-slate-700">
                     Fälten är valfria. Lämna dem tomma om bolagets juridiska
                     namn och standardavsändare ska användas. Systemet ska inte
@@ -397,12 +411,9 @@ export default async function CompanySettingsPage() {
                       </p>
                     </div>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
-                <div className="lg:col-span-2 rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
-                  <h3 className="text-sm font-semibold text-slate-950">
-                    Ediel och driftmiljö
-                  </h3>
+                <AdminDisclosurePanel id="company-ediel" title="Ediel och driftmiljö" className="lg:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <p className="mt-1 text-sm leading-6 text-slate-700">
                     Bolagets aktörsuppgifter på elmarknaden. De registreras och
                     ändras av Gridex vid driftsättning. Kontakta supporten om
@@ -480,7 +491,7 @@ export default async function CompanySettingsPage() {
                       ) : null}
                     </label>
                   </div>
-                </div>
+                </AdminDisclosurePanel>
 
                 <div className="lg:col-span-2 flex justify-end">
                   <button className="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800">
@@ -489,37 +500,15 @@ export default async function CompanySettingsPage() {
                 </div>
               </form>
 
-              <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-600">Juridisk status · read-only</p>
-                <h3 className="mt-2 text-lg font-black text-slate-950">
-                  {(legalProfile?.missing_fields ?? []).length > 0 || legalProfile?.completeness_status === "incomplete"
-                    ? "Juridikprofilen behöver kompletteras"
-                    : legalProfile?.review_required || !(legalProfile?.reviewed_at ?? legalProfile?.verified_at)
-                      ? "Juridikprofilen är komplett men väntar granskning"
-                      : "Juridikprofilen är granskad och verifierad"}
-                </h3>
-                <p className="mt-2 text-sm text-slate-700">Profilen genereras automatiskt från uppgifterna ovan. Det finns inget separat juridikformulär.</p>
-                <div className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-                  <p><strong>Granskning krävs:</strong> {legalProfile?.review_required ? "Ja" : "Nej"}</p>
-                  <p><strong>Senast synkroniserad:</strong> {legalProfile?.last_synced_at ? new Date(legalProfile.last_synced_at).toLocaleString("sv-SE") : "–"}</p>
-                  <p><strong>Tvistlösning:</strong> OPS-standard</p>
-                </div>
-                {(legalProfile?.missing_fields ?? []).length > 0 ? <div className="mt-4 space-y-2">{(legalProfile?.missing_fields ?? []).map((code) => { const detail = legalProfileMissingFieldDetail(companyId, code); return <p key={code} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-900"><strong>{detail.label}:</strong> {detail.message}</p>; })}</div> : null}
-              </div>
+
             </section>
 
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-950">
-                Bjud in användare
-              </h2>
-              <p className="mt-1 text-sm text-slate-700">
-                Lägg till en ny användare i bolaget och välj roll direkt.
-                Användaren visas i listan efter att kontot har skapats/kopplats.
-              </p>
+            <AdminDisclosurePanel id="invite-company-user" title="Bjud in användare" className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-sm text-slate-700">Lägg till en ny användare i bolaget och välj roll direkt.</p>
               <CompanyUserInviteForm companyId={companyId} />
-            </section>
+            </AdminDisclosurePanel>
 
-            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <section id="company-team" className="scroll-mt-48 rounded-2xl border border-slate-200 bg-white shadow-sm lg:scroll-mt-32">
               <div className="border-b border-slate-200 px-6 py-5">
                 <h2 className="text-lg font-semibold text-slate-950">
                   Bolagets användare och roller
@@ -537,10 +526,11 @@ export default async function CompanySettingsPage() {
                   </p>
                 ) : (
                   users.map((user) => (
+                    <AdminDisclosurePanel key={user.membershipId} id={`company-user-${user.membershipId}`} title={`${user.fullName || user.email || user.invitedEmail || 'Användare'} · ${getCompanyUserRoleLabel(user.roleKey)}`} className="min-w-0 px-4 py-4 [&_summary]:break-words">
+                    <p className="text-sm text-slate-600">{user.email ?? user.invitedEmail ?? user.userId} · {roleLabel(user.membershipRole)}</p>
                     <form
-                      key={user.membershipId}
                       action={updateResponsibleUserFormAction}
-                      className="grid gap-4 px-6 py-6 xl:grid-cols-[1fr_1fr_150px_160px_190px]"
+                      className="mt-3 grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-3"
                     >
                       <input
                         type="hidden"
@@ -574,6 +564,7 @@ export default async function CompanySettingsPage() {
                         </span>
                         <select
                           name="role_key"
+                          aria-label="Systemroll"
                           defaultValue={user.roleKey ?? "company_admin"}
                           className="rounded-2xl border border-slate-300 px-4 py-3"
                         >
@@ -584,7 +575,7 @@ export default async function CompanySettingsPage() {
                           ))}
                         </select>
                       </label>
-                      <div className="xl:col-span-5 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                      <div className="lg:col-span-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                         <span>
                           {roleLabel(user.membershipRole)} ·{" "}
                           {getCompanyUserRoleLabel(user.roleKey)} ·{" "}
@@ -595,6 +586,7 @@ export default async function CompanySettingsPage() {
                         </button>
                       </div>
                     </form>
+                    </AdminDisclosurePanel>
                   ))
                 )}
               </div>
