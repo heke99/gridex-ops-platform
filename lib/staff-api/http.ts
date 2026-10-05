@@ -6,6 +6,7 @@ import { ApiInputError } from '@/lib/api/strictRequest'
 import { currentIntegrationApiResponseContext, logIntegrationApiRequest } from '@/lib/integrations/apiAuth'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { requireStaffApiContext, type StaffApiContext, type StaffApiRequirements } from '@/lib/staff-api/context'
+import { assertStaffStorageTarget, staffStorageProjectRef } from '@/lib/staff-api/storageTarget'
 
 const STAFF_USER_FIELDS = new Set(['user_id', 'assignee_user_id', 'author_user_id'])
 /** Reuse the existing internal-data guard with only explicit staff account IDs excepted. */
@@ -58,10 +59,14 @@ export function staffApiError(error: unknown): Response {
 export async function withStaffApi(
   request: NextRequest, options: StaffApiRequirements, handler: (context: StaffApiContext) => Promise<Response>,
 ): Promise<Response> {
+  // Refuse a mismatched database before authentication rate-limit, audit or handler writes.
+  try { assertStaffStorageTarget(request.headers) } catch (error) { return staffApiError(error) }
   let context: StaffApiContext | undefined
   try {
     context = await requireStaffApiContext(request, options)
     const response = await handler(context)
+    const projectRef = staffStorageProjectRef()
+    if (projectRef) response.headers.set('X-Gridex-Project-Ref', projectRef)
     await logIntegrationApiRequest({ request, client: context.client, startedAt: context.startedAt, statusCode: response.status,
       metadata: { channel: 'staff_api', actor_user_id: context.actorUserId } })
     return response

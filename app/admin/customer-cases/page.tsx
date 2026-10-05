@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requireAdminPageKeyAccess } from '@/lib/admin/guards'
+import { hasPermissionRequirement } from '@/lib/admin/accessModel'
 import { resolveAdminTenantReadScope } from '@/lib/tenant/adminScope'
 import { listCustomerCases } from '@/lib/customer-cases/db'
 import { listTenantSupportCustomerOptions } from '@/lib/customer-cases/support'
@@ -21,12 +22,13 @@ function formatDate(value: string | null | undefined) {
 }
 
 export default async function CustomerCasesPage({ searchParams }: { searchParams: Promise<{ customer?: string; channel?: string }> }) {
-  const context = await requireAdminPageKeyAccess('operations.tasks')
+  const context = await requireAdminPageKeyAccess('support.cases')
   const query = await searchParams
   const scope = await resolveAdminTenantReadScope(context)
+  const canWrite = !scope.isPlatformAdmin && hasPermissionRequirement(context.permissions, { anyOf: ['cases.write'] })
   const [allCases, customers] = await Promise.all([
     listCustomerCases({ companyId: scope.companyId, limit: 200 }),
-    scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
+    canWrite && scope.companyId ? listTenantSupportCustomerOptions(scope.companyId) : Promise.resolve([]),
   ])
   const cases = allCases.filter(isSupportCase)
   const open = cases.filter((row) => !['resolved', 'closed', 'cancelled'].includes(row.status))
@@ -42,7 +44,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
           <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm text-slate-600">Totalt i supporthistorik</p><p className="mt-2 text-3xl font-semibold">{cases.length}</p></div>
         </section>
 
-        {!scope.isPlatformAdmin && scope.companyId ? (
+        {canWrite && scope.companyId ? (
           <section id="new-case" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-950">Nytt supportärende</h2>
             <form action={createCustomerCaseFromFormAction} className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -82,7 +84,7 @@ export default async function CustomerCasesPage({ searchParams }: { searchParams
                   </div>
                   <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">{formatStatusLabel(row.priority)} · {formatStatusLabel(row.status)}</span>
                 </div>
-                {!['resolved', 'closed', 'cancelled'].includes(row.status) && !scope.isPlatformAdmin ? (
+                {!['resolved', 'closed', 'cancelled'].includes(row.status) && canWrite ? (
                   <div className="mt-4 flex flex-wrap gap-2">
                     {['action_required', 'awaiting_external_response', 'manual_follow_up', 'resolved', 'closed'].map((status) => (
                       <form key={status} action={updateCustomerCaseStatusAction}>
