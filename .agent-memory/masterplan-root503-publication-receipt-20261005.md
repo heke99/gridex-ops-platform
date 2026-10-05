@@ -142,3 +142,26 @@ admission or author freeze. Original Staff/capture/native/CI/serial owners remai
 retained. Next: obtain original compatible source/input handoffs, cut over existing
 612 once its packets are ready, and finish qualified ordinary merges before the
 existing common baseline writer certifies the new main. No new baseline/tag claim.
+
+
+Actual606 is authenticated on mainb83b284467c8e0fcaa277706a708706e0a705068,
+treeeea46bab, merged21:33:59UTC with orderedparents296+9a2df. Entire actualtree
+equals qualifiedsource. Original owner all9 pre-merge receipt3420459 and postcheck
+3553685 are reused; root verifies GitHub actualcommit/PR metadata and Git tree,
+not rerunning qualification. Exactlyone common606marker raises37 to38 while all
+prior lines/rawreceipts stay exact. Original225 is closed UNMERGED21:38:17 after
+complete replacement proof3496645; it is not an actualmerge marker or blanket
+legacy150/148/146/482 closure. Actualsource changes no frozen coverage/SQL/gen.
+
+Original advisor15a source20PASS/28controlled overlays and12evidencepaths are
+public/released. Root genuinely consumes it once with prior7d atbd9f9ca5 and actual
+mainb83 at0c354644, current five-checker preparation6bb4ddb0. All60 fourchecker
+inputs remain exact; complete606delta changes no SQL/advisorread path, original
+advisor reader3281607 retains its own compatibility proof. Final source scope of
+existing612 is FIVE existing checkers. The unaccepted optional root-admission
+offer for Staff's two oracle hunks is retired5306003678385/5786003681367; original
+Staff author retains its implementation/admission in578, no duplication/cancel.
+Independent current61-path publication guard is active; original finite results,
+old raw/HOLD evidence and terminalc34 are unchanged. One current resulting-head
+ordinaryCI/expected-head merge is next, distinct from unresolved full73-source,
+Staff/input/canonical fixtures, twoinbound/IMP05 and finalcapture/main-baseline.
