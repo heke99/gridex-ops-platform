@@ -1722,8 +1722,13 @@
     },
     {
       "id": "SC-055",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/ack/sourceCorrelation.ts",
+        "lib/ediel/db.ts"
+      ]
     },
     {
       "id": "SC-056",
