@@ -1,0 +1,30 @@
+{
+  "scope": "Five exact public-safe continuation receipts; original thirty raw members and original custody index remain unchanged. No actual adoption or main-green claim.",
+  "members": [
+    {
+      "file": "actual515-source-status.json",
+      "bytes": 1022,
+      "sha256": "d43b9b5207977f3f8405be49ef6238dd9651e267141673752999f1b674382d29"
+    },
+    {
+      "file": "actual607603609541-public-merge-state.json",
+      "bytes": 2688,
+      "sha256": "fad7cf5d9e6af5bdb196b870fc0d56666d6e64867e2e3dc8396ccedc1c0d0505"
+    },
+    {
+      "file": "advisor-original-template-source-pinning-independent-review.json",
+      "bytes": 3626,
+      "sha256": "d244e8d295dd5152c821aa32d5f77f61e49bbe01d4cf7fa8955c082b0b2a27da"
+    },
+    {
+      "file": "advisor-original-template-source-pinning-readonly.json",
+      "bytes": 20869,
+      "sha256": "2b01b48d0d11fb78c2143faa2147cdbf96a8ba1e0fd2e1e3be7da0fca96f5b3c"
+    },
+    {
+      "file": "metadata-adoption-97b3-renewed-readiness.json",
+      "bytes": 8784,
+      "sha256": "8fe10ac0d80c85cb5a037c638671674b7dfef471c526f2b68b9466044efd423f"
+    }
+  ]
+}

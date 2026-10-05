@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "allocation": "Independent NONWRITER peer under BEFORE #5306001448876; no writer/owner transfer.",
+  "source_commit": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+  "source_tree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+  "reviewed_packet": {"path":"/workspace/ediel-session-inventory-20261005/main97b3-advisor-original-template-source-pinning-readonly.json","sha256":"2b01b48d0d11fb78c2143faa2147cdbf96a8ba1e0fd2e1e3be7da0fca96f5b3c"},
+  "inputs": [{"path":"scripts/gridex-supabase-advisors-hardening-regression.cjs","blob":"f83b8fce6d9ce22cd5a270e099bb776f7cc77fed","sha256":"2116509e6e7913856a51a7cf1f481cbb08ac9350713b8588574fb6b1dd39eb43"},{"path":"supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql","blob":"e44c9994e8a9ead435f59b6f603d20b30567b546","sha256":"f85410f5504d43b518badefe98ffcea09e699bfc5d1a85a2b469c44b73b0ed3c"},{"path":"supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql","blob":"9cc11e60c7efbf032f6889fb8cbbe468326c7145","sha256":"600c714ecb165e429d51fabf3e7df43ef09adffa9247d768dddfbfb18eb99b7b"},{"path":"supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql","blob":"f36e2fd3388ea50e8584fb497cc7353cf1d06ce4","sha256":"758889e9bfa112fe2fbe3417bbd3755394bc81c6de9b735720950af4f3102217"}],
+  "independent_checks": "Four blob/SHA pins and byte equality with845 verified by git show/rev-parse/hash comparison; checker provenance verified by blame. No source or gate execution.",
+  "verdict": "APPROVE_BOUNDED_STATIC_SOURCE_CHAIN",
+  "blocking_findings": [],
+  "reasons": ["Original257 declares exact bilateral-original(uuid,uuid,jsonb): SECURITY DEFINER, search_path=pg_catalog, timezone UTC.","Closure89/97 replaces prosrc in full pg_get_functiondef; national141/154 changes name and prosrc while retaining SET configuration. This is conditional on reaching ordered source blocks/anchors.","Checker258-266 misclassifies the two quoted CREATE-prefix literals at national154. Its public.public output is a display-prefix artifact."],
+  "completed_middle_screen": {"migrations":234,"reused_not_rerun":true,"manifest_sha256":"7f2385cf3a4fb313ff280cb03275dc9d9b1217f84ef0ea582294abf64e93e693","independent_core_cross_check":"Original/closure contain no auth.(uid|users) or the three supplied lock predicates. Completed packet's exact other-signature selectors exclude this target.","limit":"Four core files independently reviewed; not a second234-body diagnosis or universal SQL proof."},
+  "owner_obligation": "Original checker owner repairs narrow header/statement classification. Preserve failures for real unpinned declarations and unproved dynamic templates; no whitelist, blanket exclusion or dropped assertion. Owner validates repair separately; no new native run is required for this static false positive.",
+  "unknown": {"effective_live_catalog":true,"actual_replay":true,"security_native_market_whole":true},
+  "historical": {"prior_packet_sha256":"1b7ede604c69814023d9af65d22abb3e3bdc0fa007cd371b57105e6861a1f07c","verified_unchanged":true,"old_two_file_template_UNKNOWN":"Valid for old scope; no retroactive PASS."},
+  "limits": "No source/SQL/fixture/helper/coverage/ref edits, fetch, catalog/native/log/artifact/CI reads or reruns. No fixed-checker/runtime/current-main approval. Parent97b3-to5156b guard is reported separately. Public metadata only; no private payload/body dump.",
+  "skills": "Supabase; fp-check direct refutation principles; verification-before-completion.",
+  "recorded_utc": "2026-10-05 19:35:36 UTC"
+}

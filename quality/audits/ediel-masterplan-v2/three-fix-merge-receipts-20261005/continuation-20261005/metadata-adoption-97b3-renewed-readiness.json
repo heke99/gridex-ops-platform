@@ -1,0 +1,134 @@
+{
+  "result": "READY_FOR_SINGLE_OWNER_METADATA_ADOPTION_ONLY",
+  "recordedAtUTC": "2026-10-05T19:24:06.810970+00:00",
+  "scope": "Renew the same immutable public33-path documentation carrier against frozen actual97b3. No new runtime/source/native/whole/current-main CI qualification.",
+  "beforeAllocation": "5306001448876",
+  "actualMain": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+  "actualMainTree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+  "actualMainParents": [
+    "4b179ee45dce580142f0684e330675fe9e033d69",
+    "4f96cb99e11660ca8c8faa000b139ce2860be0aa"
+  ],
+  "mainObjectAvailability": "Parent fetch session66522 completed exit0; reviewer did not fetch.",
+  "publicCarrier": "c5541eb3aab1d3d4a8854724bd642dc96573cbba",
+  "publicCarrierTree": "dc4a5ce2604dc7ed3080d0cc2f0736fb22cea313",
+  "publicCarrierParent": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "publicationRef": "refs/heads/codex/ediel-three-fix-merge-receipts-20261005",
+  "publicCarrierPublicationProofReused": "three-fix-receipt-publication-actual-remote.json; no fresh network/remote read by reviewer",
+  "prospectiveOrdinaryMergeTree": "1038fd5f7ba516be89e65ce3ec2c95ec3d255d5b",
+  "mergeTreeCommand": [
+    "git",
+    "merge-tree",
+    "--write-tree",
+    "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+    "c5541eb3aab1d3d4a8854724bd642dc96573cbba"
+  ],
+  "mergeTreeExitCode": 0,
+  "mergeTreeConflictDiagnostics": [],
+  "allCurrentMainModeTypeBlobsExact": 8485,
+  "prospectiveTreeEntries": 8518,
+  "newOwnedMetadataPaths": 33,
+  "newPaths": [
+    ".agent-memory/masterplan-three-fix-merge-receipts-20261005.md",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/README.md",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/SHA256-index.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-actual-postmerge-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-carry-publication.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-current-main-1657-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-exact-head-nine-ci-terminal.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-final-premerge-guard.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr521-postmerge-coverage-raw-sha-qualification.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-actual-postmerge-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-carry-publication.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-current-main-1657-independent-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-exact-head-nine-ci-terminal.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-final-premerge-f7-guard.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-final-premerge-guard.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-826-current-main-requalification.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-826-full-foreign-preservation.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-current-main-union-preview.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-command.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-independent-runtime-review.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-junit.xml",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-producer-command.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-producer-junit.xml",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-producer-run.log",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-producer-runtime-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-run.log",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr532-pr534-pr521-union-runtime-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr534-actual-postmerge-receipt.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr534-carry-publication.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr534-current-main-1657-0e4248c7-b7bfb88d.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr534-exact-head-nine-ci-terminal.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/pr534-final-premerge-guard.json",
+    "quality/audits/ediel-masterplan-v2/three-fix-merge-receipts-20261005/three-fix-actual-merged-batch-8451.json"
+  ],
+  "allNewMembersExactPublishedCarrier": true,
+  "currentMainPathsModifiedOrDeleted": 0,
+  "foreignPathsAdded": 0,
+  "allCurrentSourceTestsSQLConfigWorkflowsSharedMemoryExact": true,
+  "originalCarrier8233BaseModeTypeBlobsExact": true,
+  "workingCarrierCleanAndAtExactHead": true,
+  "actualCoverage": {
+    "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "modeTypeBlob": [
+      "100644",
+      "blob",
+      "0c246afd6edae832617d757f7295fa3335fa7176"
+    ],
+    "rawBytes": 135468,
+    "sha256": "a209c3c3e15f93fa6ea27e9d8cc55332d6d364f844cfa37c77086f6bf8d1e44f",
+    "prospectiveUnionRawBytesExact": true
+  },
+  "custody": {
+    "indexSha256": "114a0e49009cd846865d1b732968650e910dc2216fc9206362d70132ff0c575f",
+    "indexRawAndAllThirtyMembersExactCarrierAndOutsideOriginals": true,
+    "allThirtyMemberByteSizesAndHashesVerified": true,
+    "original33PathPacketUnchanged": true,
+    "rawMemberCount": 30,
+    "original8451PacketRemainsHistorical": true
+  },
+  "historical3251Readiness": {
+    "actualMain": "3251d20a8b9fe0294367977dca49de65aabe7513",
+    "prospectiveTree": "7fd91c7ba58ca1a8f3ff2985b7a805b0f0fd3375",
+    "entries": 8470,
+    "coverageBlob": "05f1050d32ea48bd87c4111776c655859b357690",
+    "retainsOwnPriorScopeOnly": true
+  },
+  "receiptInputs": {
+    "three-fix-receipt-metadata-adoption-3251-renewed-readiness.json": {
+      "sha256": "e47d7e2770435bfd98d83ef1020f90b56190abbef4471c75d3dfaa6d303359ae",
+      "recordedScopeReused": true
+    },
+    "three-fix-receipt-publication-actual-remote.json": {
+      "sha256": "babc592c0f3b356b89645e6678423b3510b53d8f31c96973db7782d60fc251ef",
+      "recordedScopeReused": true
+    },
+    "three-fix-receipt-publication-handoff-3251-renewal.json": {
+      "sha256": "14e8fb99e7e6d8f93cf5b7eb663607e8787f568d39a173017719b6efd9bb8e53",
+      "recordedScopeReused": true
+    },
+    "three-fix-receipt-publication-independent-review.json": {
+      "sha256": "fc13ff755e556f9a54a11b9e75b08052e830b2e87ad800317835163a34eeb2ff",
+      "recordedScopeReused": true
+    }
+  },
+  "neededAdoptionHandoff": {
+    "existingSoleHandoffComment": 6000318067,
+    "commonHandoverAlreadyFulfilled": "c6c861916d04099007c4b30c2a184edadc8beb4d",
+    "writer": "Retained sole serial baseline/documentation-adoption writer",
+    "action": "Use the existing single handoff to adopt publicc554 once by an ordinary metadata-only merge. Immediately before mutation guard the actual main against frozen97b3; if it moved, renew this same33-path guard. With unchanged inputs the expected resulting tree is1038fd5f7ba516be89e65ce3ec2c95ec3d255d5b. Independently verify the actual post-adoption parents/tree. No additional common-handover request or competing writer is needed."
+  },
+  "actualMetadataAdoption": "NOT_EXECUTED",
+  "actualAdoptionCommit": null,
+  "mainCertifiedGreen": false,
+  "tagCreatedByReviewer": false,
+  "scopeLimits": [
+    "Historical27 exact PR-head CI bindings and297 finite disjoint cases remain historical; not new97b3 runtime or whole/native credit.",
+    "Current main coverage/rawsource is preserved exactly rather than replaced by the older8451 coverage status.",
+    "No repo working-file, index/ref, source/test/common-memory changes; merge-tree may materialize only prospective Git tree objects.",
+    "No publication/PR/comment/fetch/CIwatch/test/native/SQL/capture/common-handover/tag action.",
+    "The sole outside write is this versioned readiness receipt; no historical receipt/rawmember edits."
+  ],
+  "findings": []
+}

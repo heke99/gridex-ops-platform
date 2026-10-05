@@ -1,0 +1,388 @@
+{
+  "recorded_at_utc": "2026-10-05 19:28:32 UTC",
+  "repository_workspace": "/workspace/gridex-ops-platform",
+  "exact_source_commit": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+  "exact_source_tree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+  "actual_git_parents": [
+    "4b179ee45dce580142f0684e330675fe9e033d69",
+    "4f96cb99e11660ca8c8faa000b139ce2860be0aa"
+  ],
+  "allocation": {
+    "parent_before_edit_readonly_claim": "5306001448876",
+    "prior_return_to_owner_handoff": "5036000928964",
+    "writer": "NONE",
+    "parent_current_main_delta_guard": "Parent will compare four reached blobs against later actual main 5156b; this packet stays pinned to 97b3."
+  },
+  "scope": "Static tracked-source qualification of public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb), its original definition, relevant later reconstruction/configuration chain and national dynamic copy; no implementation, execution, live catalog or whole security verdict.",
+  "previous_packet": {
+    "path": "/workspace/ediel-session-inventory-20261005/main845-advisor-search-path-checker-readonly.json",
+    "sha256": "1b7ede604c69814023d9af65d22abb3e3bdc0fa007cd371b57105e6861a1f07c",
+    "preserved_unchanged": true,
+    "old_scope": "Checker and national-copy migration only; original-template source pin was UNKNOWN. This separate packet qualifies the newly authorized original-source chain and does not rewrite the earlier evidence."
+  },
+  "verdict": {
+    "original_source_template_pin": "QUALIFIED_STATIC_EXPLICIT_SEARCH_PATH_PG_CATALOG",
+    "source_configuration_preservation": "QUALIFIED_STATIC_CONFIGURATION_PRESERVING_RECONSTRUCTION",
+    "national_copy_source_pin": "QUALIFIED_STATIC_INHERITED_FROM_ORIGINAL_SOURCE_CHAIN",
+    "effective_live_catalog_proconfig": "UNKNOWN",
+    "clean_or_upgrade_replay_execution": "UNKNOWN_FROM_THIS_PACKET",
+    "product_security_native_whole_pass": "NOT_CLAIMED"
+  },
+  "pinned_inputs": [
+    {
+      "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+      "blob": "f83b8fce6d9ce22cd5a270e099bb776f7cc77fed",
+      "sha256": "2116509e6e7913856a51a7cf1f481cbb08ac9350713b8588574fb6b1dd39eb43",
+      "unchanged_from_845": true
+    },
+    {
+      "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+      "blob": "e44c9994e8a9ead435f59b6f603d20b30567b546",
+      "sha256": "f85410f5504d43b518badefe98ffcea09e699bfc5d1a85a2b469c44b73b0ed3c",
+      "unchanged_from_845": true
+    },
+    {
+      "path": "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+      "blob": "9cc11e60c7efbf032f6889fb8cbbe468326c7145",
+      "sha256": "600c714ecb165e429d51fabf3e7df43ef09adffa9247d768dddfbfb18eb99b7b",
+      "unchanged_from_845": true
+    },
+    {
+      "path": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+      "blob": "f36e2fd3388ea50e8584fb497cc7353cf1d06ce4",
+      "sha256": "758889e9bfa112fe2fbe3417bbd3755394bc81c6de9b735720950af4f3102217",
+      "unchanged_from_845": true
+    }
+  ],
+  "original_creation": {
+    "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+    "header_line": 257,
+    "body_lines": [
+      258,
+      311
+    ],
+    "signature": "public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)",
+    "source_declared_attributes": [
+      "LANGUAGE plpgsql",
+      "SECURITY DEFINER",
+      "SET search_path=pg_catalog",
+      "SET timezone='UTC'"
+    ],
+    "raw_source_body_sha256": "f6830089abbd4b0493d8e9f1b6cf76826fb9b6d714f94cfc285fa53cb63c1be4",
+    "header": {
+      "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+      "blob": "e44c9994e8a9ead435f59b6f603d20b30567b546",
+      "lines": [
+        {
+          "line": 257,
+          "text": "CREATE FUNCTION public.ediel_create_bilateral_prodat_original_v1(p_company_id uuid,p_actor_user_id uuid,p_draft jsonb) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog SET timezone='UTC' AS $$"
+        }
+      ]
+    },
+    "function_end": {
+      "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+      "blob": "e44c9994e8a9ead435f59b6f603d20b30567b546",
+      "lines": [
+        {
+          "line": 311,
+          "text": "END$$;"
+        }
+      ]
+    }
+  },
+  "ordered_relevant_source_chain": [
+    {
+      "migration": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+      "source_creation_line": 257,
+      "effect": "Creates exact bilateral original signature with explicit search_path=pg_catalog and timezone UTC."
+    },
+    {
+      "migration": "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+      "read_definition_line": 89,
+      "execution_line": 97,
+      "effect": "Reads exact original via regprocedure and pg_get_functiondef; changes only prosrc text with closure checks/lock and intent association. EXECUTE replace(d, original prosrc, body) reuses the reconstructed function header/settings. No search_path/proconfig/header replacement in this block.",
+      "witness": {
+        "path": "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+        "blob": "9cc11e60c7efbf032f6889fb8cbbe468326c7145",
+        "lines": [
+          {
+            "line": 89,
+            "text": " d:=pg_get_functiondef('public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure);SELECT prosrc INTO STRICT body FROM pg_proc WHERE oid='public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure;"
+          },
+          {
+            "line": 97,
+            "text": " EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure),body);"
+          }
+        ]
+      }
+    },
+    {
+      "migration": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+      "read_definition_line": 141,
+      "execution_line": 154,
+      "effect": "Reads that same installed original via exact regprocedure. Lines 143–153 change body text. Line 154 replaces only CREATE OR REPLACE function-name prefix with national name, then prosrc. It does not replace/remove SET fields. pg_get_functiondef reconstructs the function declaration including function-local SET configuration; the source-defined chain therefore carries original search_path/timezone into the intended national definition.",
+      "witness": {
+        "path": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+        "blob": "f36e2fd3388ea50e8584fb497cc7353cf1d06ce4",
+        "lines": [
+          {
+            "line": 141,
+            "text": " d:=pg_get_functiondef('public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure);SELECT prosrc INTO STRICT b FROM pg_proc WHERE oid='public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure;"
+          },
+          {
+            "line": 154,
+            "text": " d:=replace(d,'CREATE OR REPLACE FUNCTION public.ediel_create_bilateral_prodat_original_v1(','CREATE OR REPLACE FUNCTION public.ediel_create_national_supply_rescission_original_v1(');EXECUTE replace(d,(SELECT prosrc FROM pg_proc WHERE oid='public.ediel_create_bilateral_prodat_original_v1(uuid,uuid,jsonb)'::regprocedure),b);"
+          }
+        ]
+      }
+    }
+  ],
+  "configuration_preservation_conditions": [
+    "Tracked migrations reach these blocks in migration order and their explicit anchor checks succeed.",
+    "pg_get_functiondef operates on the exact regprocedure named in source, with its actual installed attributes; source analysis does not establish what any live database currently contains.",
+    "No inference about out-of-band ALTERs, failed/unapplied migrations, grants/RLS, auth correctness or other functions."
+  ],
+  "bounded_later_mutation_screen": {
+    "migration_selector": "Exact97b3 tracked supabase/migrations/*.sql with basename >= 20261001023248 (inclusive original creation).",
+    "migration_count": 234,
+    "ordered_path_blob_manifest_sha256": "7f2385cf3a4fb313ff280cb03275dc9d9b1217f84ef0ea582294abf64e93e693",
+    "function_name_bound_hits": [
+      {
+        "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+        "blob": "e44c9994e8a9ead435f59b6f603d20b30567b546",
+        "lines": [
+          257,
+          334,
+          337
+        ]
+      },
+      {
+        "path": "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+        "blob": "9cc11e60c7efbf032f6889fb8cbbe468326c7145",
+        "lines": [
+          89,
+          97
+        ]
+      },
+      {
+        "path": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+        "blob": "f36e2fd3388ea50e8584fb497cc7353cf1d06ce4",
+        "lines": [
+          141,
+          154
+        ]
+      }
+    ],
+    "explicit_config_alter_matches": [
+      {
+        "path": "supabase/migrations/20261001053742_ediel_private_supply_activation_search_path.sql",
+        "blob": "0bd1670f57fb69453041d828654854afee205d1e",
+        "line": 18,
+        "text": "ALTER FUNCTION gridex_received_sources.activate_supply_before_source_guard_v1(uuid,uuid,uuid,date,uuid,text)\n SET search_path=pg_catalog;"
+      },
+      {
+        "path": "supabase/migrations/20261001061731_ediel_private_source_alias_catalog_path.sql",
+        "blob": "82ac8f76577f5e0eb6d969d3da2f1a07966a01a2",
+        "line": 25,
+        "text": "ALTER FUNCTION %s SET search_path=pg_catalog',spec.identity);"
+      }
+    ],
+    "direct_pg_proc_update_delete_or_reset_matches": [],
+    "observed_target_specific_subsequent_alter_reset_or_rename": "NONE in this bounded tracked migration corpus; full target name occurs only in the three relevant migration paths.",
+    "generic_config_candidate": {
+      "path": "supabase/migrations/20261001061731_ediel_private_source_alias_catalog_path.sql",
+      "selector_lines": [
+        7,
+        12
+      ],
+      "alter_line": 25,
+      "selector": "Exactly activate_supply_before_source_guard_v1(uuid,uuid,uuid,date,uuid,text) and gridex_apply_exact_z02_core_before_current_source_v1(uuid,uuid,uuid,uuid,uuid,uuid,uuid), both gridex_received_sources.",
+      "disposition": "EXCLUDES target by exact signatures; this dynamic ALTER cannot change the bilateral-original declaration pin.",
+      "witness": {
+        "path": "supabase/migrations/20261001061731_ediel_private_source_alias_catalog_path.sql",
+        "blob": "82ac8f76577f5e0eb6d969d3da2f1a07966a01a2",
+        "lines": [
+          {
+            "line": 8,
+            "text": "  ('gridex_received_sources.activate_supply_before_source_guard_v1(uuid,uuid,uuid,date,uuid,text)',"
+          },
+          {
+            "line": 10,
+            "text": "  ('gridex_received_sources.gridex_apply_exact_z02_core_before_current_source_v1(uuid,uuid,uuid,uuid,uuid,uuid,uuid)',"
+          },
+          {
+            "line": 12,
+            "text": " ) AS targets(identity,body_hash) LOOP"
+          },
+          {
+            "line": 15,
+            "text": "   WHERE p.oid=pg_catalog.to_regprocedure(spec.identity);"
+          }
+        ]
+      }
+    },
+    "generic_public_body_candidates": [
+      {
+        "path": "supabase/migrations/20261001025642_ediel_retention_current_auth_owner_bridge.sql",
+        "selector_lines": [
+          52,
+          56
+        ],
+        "configuration_preservation_lines": [
+          67,
+          73
+        ],
+        "disposition": "EXCLUDES target from the source-defined body: required auth.(uid|users) predicate is absent from original body; closure additions do not introduce it. Also uses reconstructed header and checks proconfig unchanged. Does not qualify target owner/live catalog.",
+        "source_predicate_absent": true,
+        "witness": {
+          "path": "supabase/migrations/20261001025642_ediel_retention_current_auth_owner_bridge.sql",
+          "blob": "4f6a2c526a2ce305eaafce7e21b59c53dfe7f090",
+          "lines": [
+            {
+              "line": 54,
+              "text": "          WHERE p.proowner='gridex_ediel_retention_owner'::regrole"
+            },
+            {
+              "line": 55,
+              "text": "          AND n.nspname IN('public','gridex_ediel_retention')"
+            },
+            {
+              "line": 56,
+              "text": "          AND p.prosrc~*'auth\\.(uid|users)' LOOP"
+            }
+          ]
+        }
+      },
+      {
+        "path": "supabase/migrations/20261001112929_ediel_contract_source_intake_lock_order.sql",
+        "selector_lines": [
+          26,
+          30
+        ],
+        "disposition": "EXCLUDES target: two exact regprocedures are different functions and all three required source lock-text needles are absent from original plus closure additions.",
+        "source_needles_absent": [
+          "SELECT * INTO e FROM gridex_metering_method_changes.events WHERE id=event AND company_id=c FOR SHARE;",
+          "SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=p_event_id AND company_id=p_company_id FOR UPDATE;",
+          "SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=p_event_id AND company_id=p_company_id FOR SHARE;"
+        ],
+        "witness": {
+          "path": "supabase/migrations/20261001112929_ediel_contract_source_intake_lock_order.sql",
+          "blob": "d18ac695fb2498018aa2a93c5d379b83b392b5fd",
+          "lines": [
+            {
+              "line": 26,
+              "text": " FOR f IN SELECT p.oid,p.proowner,to_jsonb(p)-'prosrc' metadata,p.prosrc,pg_get_functiondef(p.oid) definition FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname IN('public','gridex_metering_method_changes','gridex_received_sources','gridex_ediel_retention') AND("
+            },
+            {
+              "line": 27,
+              "text": " p.oid='gridex_ediel_retention.contract_copy_source_current_v1(uuid,text,text,uuid)'::regprocedure OR p.oid='gridex_received_sources.production_contract_source_for_execution_v1(uuid,uuid,uuid,text)'::regprocedure OR"
+            },
+            {
+              "line": 28,
+              "text": " position('SELECT * INTO e FROM gridex_metering_method_changes.events WHERE id=event AND company_id=c FOR SHARE;' IN p.prosrc)>0 OR"
+            },
+            {
+              "line": 29,
+              "text": " position('SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=p_event_id AND company_id=p_company_id FOR UPDATE;' IN p.prosrc)>0 OR"
+            },
+            {
+              "line": 30,
+              "text": " position('SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=p_event_id AND company_id=p_company_id FOR SHARE;' IN p.prosrc)>0) LOOP"
+            }
+          ]
+        }
+      },
+      {
+        "paths": [
+          "supabase/migrations/20261003150100_ediel_archived_finance_invoice_retention_read.sql",
+          "supabase/migrations/20261003150300_ediel_received_validation_reads_retained_source.sql"
+        ],
+        "selector_lines": [
+          [
+            14,
+            16
+          ],
+          [
+            17,
+            20
+          ]
+        ],
+        "disposition": "Exact pg_proc oid IN selectors contain finance/invoice-retention read or received-validation signatures, excluding this bilateral-original signature. No target source pin change."
+      }
+    ],
+    "generic_rewrite_blocks_bounded_source_pin_qualification": false,
+    "screen_limit": "Static targeted migration/name/configuration/selector screening; not a general SQL parser proof, live catalog inspection or audit. A schema.sql full-name search hit is a tracked snapshot declaration, not migration execution evidence, and was not used to infer effective catalog state."
+  },
+  "checker_mismatch_preserved": {
+    "previous_witness": "Prior unchanged two-file packet contains exact12-lines input/mismatch.",
+    "checker_seam": "scripts/gridex-supabase-advisors-hardening-regression.cjs:258–266",
+    "conclusion": "Quoted old/new CREATE OR REPLACE header-prefix arguments on national-copy line154 are text replacement literals, not standalone public function declarations. split() treats them as declarations with no SET header, producing false offenders. public.public is the display prefix added at checker266, not the actual namespace.",
+    "source_pin_now_concrete": "The original header and two preserving transformations supply the previously missing source-template prerequisite; this does not claim actual live execution/pinning."
+  },
+  "owner_and_repair_prerequisites": {
+    "provenance": {
+      "checker_split_origin": {
+        "commit": "35309c4c1c867f77c00a78910e96c2010ffe05d2",
+        "subject": "Harden Supabase security advisors (search_path, definer views, RPC grants, RLS posture)",
+        "lines": [
+          258,
+          259,
+          260,
+          261
+        ]
+      },
+      "checker_forward_pin_and_header_origin": {
+        "commit": "e3f0858f48a0e9b97f627d51fc3a18ea7766e7a9",
+        "subject": "Forward-pin search_path on Ediel consolidation trigger functions + more script repairs",
+        "lines": [
+          248,
+          249,
+          250,
+          251,
+          252,
+          253,
+          254,
+          262,
+          263,
+          264,
+          265,
+          266
+        ]
+      }
+    },
+    "source_migration_origin": {
+      "commit": "0dc68c7740773ee937b654e73e6e2dc1fdc6814d",
+      "subject": "Ediel masterplan v2, part 2e-prodat (split of #426)",
+      "paths": [
+        "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+        "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+        "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql"
+      ]
+    },
+    "recipient": "Original Supabase advisors regression/checker owner and retained original PRODAT/supply-rescission source owner, through existing repair coordinator. This agent owns only this read-only receipt; no writer or owner transfer.",
+    "small_existing_repair_scope": "Checker258–266 statement/header parsing with exact original-template source-chain qualification; immutable SQL, source bodies, settings, grants/RLS and coverage rows remain outside the repair.",
+    "required_before_a_fixed_claim": [
+      "Independently review original257 + closure89/97 + national141/154 at current reached blobs.",
+      "Distinguish real executable CREATE FUNCTION definitions from quoted replacement-prefix text.",
+      "Keep a real missing inline/qualified forward pin failing; preserve handling of actual dynamic execution when its source/template configuration is unproved.",
+      "Qualify parser acceptance for this preserved source chain rather than add a function-name whitelist, blanket DO/EXECUTE/quoted-SQL exclusion, fake SET string or dropped assertion.",
+      "Owner-controlled repair validation is separate and still required; this receipt did not implement or run a checker."
+    ],
+    "live_pinning_claim_prerequisite": "Separate authorized evidence of actual function configuration/migration application would be required for an effective catalog verdict; it is not requested or supplied here."
+  },
+  "skills_applied": [
+    "Previously applied Supabase core guidance, Supabase Postgres best practices, local differential-review, fp-check and verification-before-completion. The user/parent authorized only static source qualification; no CLI/advisor/native/test execution or schema changelog mutation."
+  ],
+  "limits": {
+    "no_sql_execution": true,
+    "no_database_or_native_catalog_reads": true,
+    "no_ci_tests_capture_rerun_or_log_download": true,
+    "no_repo_source_checker_migration_coverage_edits": true,
+    "no_fetch_ref_push_merge_comment_or_ownership_transfer": true,
+    "only_authorized_outside_packet_written": true,
+    "no_claim_other_function_security_or_grant_rls_verdict": true,
+    "newer_main_not_reviewed_here": true
+  },
+  "unchanged_local_origin_main_ref": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "public_documentation_suitability": "Contains exact tracked source paths/blobs and selected relevant declaration/transformation/selector lines only, with no runtime/capture/catalog/source-body dump. Public document copy requires its separate owner/peer handling; no publication or peer PASS is claimed here."
+}

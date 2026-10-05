@@ -1,0 +1,64 @@
+{
+  "observedAt": "2026-10-05T19:23:16Z",
+  "currentMainObservationAt": "2026-10-05T19:20:24Z",
+  "observationTimeNote": "Clock tool timestamp after four completed public PR metadata reads. Current-main snapshot is the earlier separately timed read.",
+  "currentMain": {
+    "sha": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+    "tree": "e5504cfea3f1006c8b2d578ea1ef47c646d48fa1",
+    "parents": [
+      "4b179ee45dce580142f0684e330675fe9e033d69",
+      "4f96cb99e11660ca8c8faa000b139ce2860be0aa"
+    ],
+    "time": "2026-10-05T19:17:55Z"
+  },
+  "pullRequests": [
+    {
+      "pr": 607,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/607",
+      "state": "closed",
+      "merged": true,
+      "mergedAt": "2026-10-05T18:48:40Z",
+      "actualMergeSha": "3251d20a8b9fe0294367977dca49de65aabe7513",
+      "head": "b39dc1d0f133ee56a8d1c2eccade44e461ef1bc9",
+      "base": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+      "githubMergeableState": "unknown"
+    },
+    {
+      "pr": 603,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/603",
+      "state": "closed",
+      "merged": true,
+      "mergedAt": "2026-10-05T19:03:23Z",
+      "actualMergeSha": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+      "head": "0fe4b951fffb612e97ad0c62822381728be5fb04",
+      "base": "99676683338e11e60666345782609a822de9181e",
+      "githubMergeableState": "unknown"
+    },
+    {
+      "pr": 609,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/609",
+      "state": "closed",
+      "merged": true,
+      "mergedAt": "2026-10-05T19:06:06Z",
+      "actualMergeSha": "4b179ee45dce580142f0684e330675fe9e033d69",
+      "head": "7b3f041afa20b598be663e8c13f5ea2261176c73",
+      "base": "99676683338e11e60666345782609a822de9181e",
+      "githubMergeableState": "unknown"
+    },
+    {
+      "pr": 541,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/541",
+      "state": "closed",
+      "merged": true,
+      "mergedAt": "2026-10-05T19:17:55Z",
+      "actualMergeSha": "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+      "head": "4f96cb99e11660ca8c8faa000b139ce2860be0aa",
+      "base": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+      "githubMergeableState": "unknown"
+    }
+  ],
+  "qualification": "Actual public merge-state metadata only. Nine required checks were qualified by retained single observers and referenced shared-board receipts; no CI/log/native re-observation here.",
+  "baseline": "NOT_CERTIFIED_GREEN",
+  "sourceAuthority": "Canonical serial merge/final baseline writer and original source owners retained.",
+  "mergedStateFieldNote": "githubMergeableState is the raw PR mergeability computation, not a reviewer approval."
+}

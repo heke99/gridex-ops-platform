@@ -1,0 +1,31 @@
+{
+  "actualMain": "6b3f3e6a2f319dafe8ba185db051e4eb6a37796d",
+  "tree": "3566a1a90599137ef5c6148cd19391f66af40c56",
+  "parents": [
+    "97b3f81c9954f3b320dd2900f0adb8d0b2610574",
+    "22cb4e12242c72b814aed412aefe3bc7753a31e5"
+  ],
+  "coverageBlob": "d0ffb1a9acec978f02b5d8b0ec4cbf5ae17f41a4",
+  "coverageSha256": "1dca6a3de1fe2507a2374ee3c898fd96dec7ebcb714fc50858fa6f32a417f21b",
+  "coverageBytes": 137580,
+  "directStoredStatuses": {
+    "rules": {
+      "total": 121,
+      "statuses": {
+        "VERIFIED": 107,
+        "NOT_VERIFIED": 11,
+        "PARTIAL": 3
+      }
+    },
+    "acceptance_contracts": {
+      "total": 231,
+      "statuses": {
+        "PASSED": 160,
+        "NOT_EXECUTED": 57,
+        "PARTIAL": 14
+      }
+    }
+  },
+  "sourceFixturePostimage": "2f32623b0d7161b40ce2fe4ddde2b18081deb470",
+  "qualification": "Stored statuses directly counted on actual tree, not branch sums, whole behavior, native or main-CI approval. Canonical serial merger and sole final-baseline observer retain ownership."
+}
