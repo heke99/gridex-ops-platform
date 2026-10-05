@@ -283,8 +283,29 @@
     {
       "id": "IMP-05",
       "acceptance_id": "AT-IMP-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/rules.json",
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/certificateScope.ts",
+        "lib/ediel/routeProfileProductionReadiness.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+        "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+        "scripts/ediel-scoped-readiness-sql-regression.mjs",
+        "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+        "__tests__/helpers/syntheticEdielRecipientFixture.ts",
+        "__tests__/ediel-recipient-address-binding.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+        ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-01",
@@ -2217,8 +2238,29 @@
     },
     {
       "id": "AT-IMP-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/rules.json",
+        "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/security/certificateTrust.ts",
+        "lib/ediel/certificateScope.ts",
+        "lib/ediel/routeProfileProductionReadiness.ts",
+        "lib/ediel/routeMaterializer.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "supabase/migrations/20260930165148_ediel_monotonic_route_security_dependencies.sql",
+        "supabase/migrations/20261001000600_ediel_registry_txt_preview_and_route_history.sql",
+        "supabase/migrations/20261001040159_ediel_registry_market_source_isolation.sql",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql",
+        "supabase/migrations/20261005130401_ediel_imp05_original_mailbox_return_route.sql",
+        "scripts/ediel-scoped-readiness-sql-regression.mjs",
+        "scripts/ediel-technical-syntax-route-sql-regression.mjs",
+        "__tests__/helpers/syntheticEdielRecipientFixture.ts",
+        "__tests__/ediel-recipient-address-binding.test.ts",
+        "__tests__/ediel-recipient-readiness.test.ts",
+        "__tests__/ediel-imp-05-route-version-readiness.test.ts",
+        ".agent-memory/masterplan-imp05-recipient-binding-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-01",

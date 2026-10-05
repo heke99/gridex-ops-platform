@@ -1,5 +1,7 @@
-// Partial IMP05 assertions; no whole-rule tag/approval until return-path effects
-// are asserted. Reuses the existing SQL runner's one database and real RPCs.
+// masterplan: IMP-05, AT-IMP-05
+// Collective IMP05 proof with signed recipient/address and readiness suites.
+// Each existing SQL runner retains its own one database and real public RPCs;
+// producer markers describe scope and never self-approve the whole rule.
 import { createRequire } from 'node:module'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
