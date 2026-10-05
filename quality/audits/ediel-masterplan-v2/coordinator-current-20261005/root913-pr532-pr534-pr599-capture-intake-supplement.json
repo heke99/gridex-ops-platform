@@ -1,0 +1,438 @@
+{
+  "schema": "bounded_forward_capture_intake_supplement_v1",
+  "date": "2026-10-05",
+  "reviewer": "/root/source_intake_export_union_review",
+  "disposition": "532_534_TEST_ONLY_PLUS599_ADDITIONAL_ABSENT_FORWARD",
+  "scope": "Extend only existing source/capture-prefix intake to current public532/534/599; no card/code/native/CI review.",
+  "retained_original533_535_receipt": {
+    "path": "/workspace/agent-review-checkpoints/root913-pr533-pr535-forward-capture-intake.json",
+    "sha256": "367391c4318fc911c5fbd0f55ae762abeec6e7fb6b5a2a140d00af3bea35a72a",
+    "byte_exact_unchanged": true,
+    "public_checkpoint_reference": "Coordinator-current checkpoint731, as reported by parent; no publication by reviewer."
+  },
+  "root913": {
+    "head": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+    "tree": "44ce48b1e0aa47b68a273af1d92196670e01c663",
+    "migration_tree": "400fe39e86fc8f7fe89f87ff70e84c24a1b1b88e",
+    "sql_count": 1073,
+    "capture_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "capture_migration_tree": "400fe39e86fc8f7fe89f87ff70e84c24a1b1b88e",
+    "root913_migration_tree_equals_capture_source": true,
+    "active_generated_output_sha256": {
+      "supabase/database.types.ts": "88cf7de264a01c68ba51d6b57f69aac451068cabc0f20f88362d748793ce7b5e",
+      "supabase/schema.sql": "0d733d1ebe663805028817315f66e0e4f6c6740f832a988133c12596e2bd0857",
+      "supabase/schema.fingerprint.json": "fee88a983a91dd6e222d14dec461332521ad99065c773412e701d8039c7912bc"
+    },
+    "raw_outputs_match_recorded_active_origin": true
+  },
+  "shared_inherited_baseline_capture": {
+    "manifest_sha256": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+    "record": {
+      "actual_checkout_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
+      "actual_checkout_tree": "64b001c1a440a60c3fa18b288cf70e1ee5aa69f7",
+      "workflow_run": 37274735111,
+      "workflow_run_attempt": 1,
+      "artifact_id": 11330260370,
+      "artifact_zip_sha256": "f088892d9c1a439899d090681c03bd59b75150e7b9d5022ef899406293801072",
+      "published_artifact_digest": "sha256:f088892d9c1a439899d090681c03bd59b75150e7b9d5022ef899406293801072",
+      "latest_replay_migration": {
+        "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+      },
+      "artifact_sha256": {
+        "database.types.ts": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+        "schema.sql": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+        "schema.fingerprint.json": "10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7"
+      },
+      "input_sha256": {
+        "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+        "scripts/migration-history-manifest.json": "b19e0e57bba7ae6e1bd5c52086e9eaebf2f7e0f986745a1d2d59403ee3d34ae6",
+        "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+        "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+        "scripts/supabase-types-manifest.json": "c8b6b97924597d79e41ec5408de168516ecacf947a2b90ea0567e3e6ffe92825",
+        "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+        "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+        "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+      },
+      "schema_fingerprint": "a183679d86a31305e60b2e1625f666adee3ff1faa442e03a3be2fe55b7ff901e",
+      "purpose": "capture_only",
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "receipt": "quality/staff-api/customer-conflicts-main7edef-capture-receipt-20261005.json"
+    },
+    "scope": "Existing published authentic staff/P08 capture custody; no artifact reinspection/download. Older generated baseline is not the current root9131073 prefix, nor DB05 new051300 forward.",
+    "raw_generated_outputs_in_root913": "Keep existing5be active origin. Source/receipt hashes only; no mixed generated snapshot."
+  },
+  "capture_input_paths_considered": [
+    "scripts/apply-supabase-types-nullability-overrides.cjs",
+    "scripts/gridex-aud-003-clean-replay.sh",
+    "scripts/gridex-schema-snapshot.cjs",
+    "scripts/migration-history-manifest.additions.json",
+    "scripts/migration-history-manifest.json",
+    "scripts/migration-history-manifest.runtime.additions.json",
+    "scripts/supabase-types-manifest.json",
+    "supabase/config.toml"
+  ],
+  "packets": [
+    {
+      "pr": 532,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/532",
+      "published_head": "c89d003f20b48942130486387536df06880ab98e",
+      "head_tree": "ad291440082e6d7630513e05d5cc05066673650d",
+      "published_branch_ref": "codex/ediel-db03-validation-inventory-20261004",
+      "public_base_sha": "de6d22bea64cf2b8810969cb87924128176ebab1",
+      "public_pr_body_sha256": "ec20394556a860306fa932a0bc3c0c82b828c0f48707b0525d57073bb1f5447b",
+      "changed_paths": [
+        {
+          "path": ".agent-memory/masterplan-db03-checkpoint.md",
+          "status": "added",
+          "git_blob": "1729508f04747f0a27d5fc54a9802208ed328f0a"
+        },
+        {
+          "path": "__tests__/ediel-source-decision-timeline.test.ts",
+          "status": "modified",
+          "git_blob": "0c1d1afcd707b59604a32093454efb1f08130fee"
+        },
+        {
+          "path": "__tests__/ediel-structural-source-selection.test.ts",
+          "status": "modified",
+          "git_blob": "1b012e8cac485fdcd950f305f9cf5536bf46edd1"
+        },
+        {
+          "path": "__tests__/ediel-utilts-transaction-persistence.test.ts",
+          "status": "modified",
+          "git_blob": "4619ad13c0b9c6fcbafdfbf2b04bc3a1433d3cab"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "status": "modified",
+          "git_blob": "549bed9cc077933c22d8560cea716672245fdeec"
+        }
+      ],
+      "schema_paths_in_public_pr_diff": [],
+      "capture_input_paths_in_public_pr_diff": [],
+      "forward_records": [],
+      "disposition": "TEST_EVIDENCE_ONLY_NO_ADDITIONAL_CAPTURE_NEEDED",
+      "migration_comparison": {
+        "head_sql_count": 1066,
+        "common_sql_count": 1066,
+        "common_sql_blob_changes": [],
+        "common_ordered_path_git_blob_sha256": "197d5991f798b677c10367c220e2822b6103813bf1e0f299be50572b8745895c",
+        "root913_only_sql_count": 7,
+        "root913_only_sql_paths": [
+          "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+          "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+          "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+          "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+          "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+          "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql",
+          "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql"
+        ],
+        "preservation_rule": "Keep all root913 SQL/history/registrations and add only approved exact new forwards. No historical rewrite or omission."
+      },
+      "current_manifest_metadata": {
+        "path": "scripts/supabase-types-manifest.json",
+        "sha256": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+        "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "composition_capture_pending_raw_field": false,
+        "matches_shared_inherited_baseline_manifest": true,
+        "capture_origin_reference": "shared_inherited_baseline_capture below",
+        "capture_origin_is_current_full_root913_prefix": false,
+        "capture_origin_is_new_forward_prefix": "NO_NEW_FORWARD"
+      },
+      "owner_checkpoint_pointer": {
+        "path": ".agent-memory/masterplan-db03-checkpoint.md",
+        "sha256": "0ac841793a9c315f1fb5f953aef843cedef5a6407287a7bd6256ba8b524b2325"
+      },
+      "source_native_whole_gate_verdict": "NOT_REVIEWED; assigned retained authors/reviewers elsewhere",
+      "CI_artifact_state": "NOT_QUERIED",
+      "capture_admission_gap": {
+        "required_new_capture_from_this_PR_alone": false,
+        "reason": "Only tagged tests, own checkpoint/coverage and, for534, existing SQL regression assertions change; no replay migration or eight capture-input path changes. Reuse root913 active generated origin without importing older baseline provenance as current."
+      }
+    },
+    {
+      "pr": 534,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/534",
+      "published_head": "b7bfb88dae9fc4f77807b618f953812a72412578",
+      "head_tree": "ff0dab27f6272d9566e8278080c69e2cb50a586a",
+      "published_branch_ref": "codex/ediel-db06-billing-basis-inventory-20261004",
+      "public_base_sha": "de6d22bea64cf2b8810969cb87924128176ebab1",
+      "public_pr_body_sha256": "88d9cf8a967816c3d0fc1468e99c6267b7694d48d3383f3de3f15c776636dc97",
+      "changed_paths": [
+        {
+          "path": ".agent-memory/ediel-db06-checkpoint.md",
+          "status": "added",
+          "git_blob": "4c74152d4cc09cab436f728b29d24ebd84e39473"
+        },
+        {
+          "path": "__tests__/billing-canonical-gate.test.ts",
+          "status": "modified",
+          "git_blob": "31887826f76ff1df40186a79b83f580d210b1af7"
+        },
+        {
+          "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+          "status": "modified",
+          "git_blob": "71cd917dcec8d7e251cfb8d6ed281e2aa7c5b6ed"
+        },
+        {
+          "path": "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+          "status": "modified",
+          "git_blob": "c3f88fa028288ae30f606694a28dba6e56dc8721"
+        },
+        {
+          "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+          "status": "modified",
+          "git_blob": "46c1020ed6765684956f2484582ed532d3e67e9b"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "status": "modified",
+          "git_blob": "5ff0fa121c9597ba6ec849c59c75d560b42774d0"
+        },
+        {
+          "path": "scripts/ediel-billing-source-sql-regression.mjs",
+          "status": "modified",
+          "git_blob": "3ab2d0568600b504a893d86ba245ab6c043f2c30"
+        }
+      ],
+      "schema_paths_in_public_pr_diff": [],
+      "capture_input_paths_in_public_pr_diff": [],
+      "forward_records": [],
+      "disposition": "TEST_EVIDENCE_ONLY_NO_ADDITIONAL_CAPTURE_NEEDED",
+      "migration_comparison": {
+        "head_sql_count": 1066,
+        "common_sql_count": 1066,
+        "common_sql_blob_changes": [],
+        "common_ordered_path_git_blob_sha256": "197d5991f798b677c10367c220e2822b6103813bf1e0f299be50572b8745895c",
+        "root913_only_sql_count": 7,
+        "root913_only_sql_paths": [
+          "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+          "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+          "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+          "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+          "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+          "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql",
+          "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql"
+        ],
+        "preservation_rule": "Keep all root913 SQL/history/registrations and add only approved exact new forwards. No historical rewrite or omission."
+      },
+      "current_manifest_metadata": {
+        "path": "scripts/supabase-types-manifest.json",
+        "sha256": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+        "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "composition_capture_pending_raw_field": false,
+        "matches_shared_inherited_baseline_manifest": true,
+        "capture_origin_reference": "shared_inherited_baseline_capture below",
+        "capture_origin_is_current_full_root913_prefix": false,
+        "capture_origin_is_new_forward_prefix": "NO_NEW_FORWARD"
+      },
+      "owner_checkpoint_pointer": {
+        "path": ".agent-memory/ediel-db06-checkpoint.md",
+        "sha256": "b4932b423d38a02c3f4c3f2d54ffdeb69ff5c6838c5241c136375ed47049745f"
+      },
+      "source_native_whole_gate_verdict": "NOT_REVIEWED; assigned retained authors/reviewers elsewhere",
+      "CI_artifact_state": "NOT_QUERIED",
+      "capture_admission_gap": {
+        "required_new_capture_from_this_PR_alone": false,
+        "reason": "Only tagged tests, own checkpoint/coverage and, for534, existing SQL regression assertions change; no replay migration or eight capture-input path changes. Reuse root913 active generated origin without importing older baseline provenance as current."
+      }
+    },
+    {
+      "pr": 599,
+      "url": "https://github.com/heke99/gridex-ops-platform/pull/599",
+      "published_head": "20c227166a007c07b3eafabdd89cae28f7538a13",
+      "head_tree": "09c8f1acac382fb8687ddd3dc701746d4796631f",
+      "published_branch_ref": "claude/magical-cerf-55zxau",
+      "public_base_sha": "863806547821e92f37aad866261123882810e37e",
+      "public_pr_body_sha256": "95705f7f715f09d951206cd192ac1032eb7f9f670dbe8b85b3729095b6f8d096",
+      "changed_paths": [
+        {
+          "path": ".agent-memory/handover.md",
+          "status": "modified",
+          "git_blob": "3e2f02209abd1ed8343b83c24ff87742f56f0012"
+        },
+        {
+          "path": ".agent-memory/masterplan-db04-db05-checkpoint.md",
+          "status": "added",
+          "git_blob": "f6e40c31a030b4c1c4f2c24d0477e80dbc3c935c"
+        },
+        {
+          "path": ".github/workflows/ediel-db04-native.yml",
+          "status": "added",
+          "git_blob": "657d32e74a57a9087235a3a55912d08c8a3139b6"
+        },
+        {
+          "path": "__tests__/db-05-hard-delete-guard.test.ts",
+          "status": "added",
+          "git_blob": "876485e5ffb854f4ffe46b04d700abffb1a64bbb"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "status": "modified",
+          "git_blob": "215063487a45144f41fb32a1c59c2cdf255b2296"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/db04-query-plan/native.config.ts",
+          "status": "added",
+          "git_blob": "cc8114f136f2bf325b3005d01cada6a8c5389fe4"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/db05/FINDING-F-DB-05-01.md",
+          "status": "added",
+          "git_blob": "1c6f638046a9b3df2fd19d659e1a69ebe798ee5a"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/db05/hard-delete-cascade-repro.mjs",
+          "status": "added",
+          "git_blob": "2266095de7be454f230ec7f1d43b57f266fa1ac2"
+        },
+        {
+          "path": "scripts/db-05-hard-delete-guard-native.test.ts",
+          "status": "added",
+          "git_blob": "1b79bc3180b2450aeeb2993419ddbe70d64050d6"
+        },
+        {
+          "path": "scripts/db-05-tenant-offboarding-native.test.ts",
+          "status": "added",
+          "git_blob": "67ff9f12edadf3a0f588ece1004369d69fc219aa"
+        },
+        {
+          "path": "scripts/ediel-transport-data-query-plan-native.test.ts",
+          "status": "modified",
+          "git_blob": "f739992c8d00620f8210d0d20f30ebab7de72593"
+        },
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "status": "modified",
+          "git_blob": "a40b6654588113130624faed0e03a9a3545ea70d"
+        },
+        {
+          "path": "scripts/test-ediel-db-05-retention.cjs",
+          "status": "added",
+          "git_blob": "33173a7d86b762db9687fc9bcda8873c003bc840"
+        },
+        {
+          "path": "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+          "status": "added",
+          "git_blob": "1cf851fe9b9235cc626c2c028b7615026afd703a"
+        }
+      ],
+      "schema_paths_in_public_pr_diff": [
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql"
+      ],
+      "capture_input_paths_in_public_pr_diff": [
+        "scripts/migration-history-manifest.json"
+      ],
+      "forward_records": [
+        {
+          "path": "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+          "sha256": "ed92e54ee5c21c781d1e06260e5e7b0a1569ec2896f9e7af0b95f61f3dc5bc3d",
+          "git_blob": "1cf851fe9b9235cc626c2c028b7615026afd703a",
+          "root913_presence": "ABSENT"
+        }
+      ],
+      "disposition": "NEW_SCHEMA_FORWARD_REQUIRES_COMBINED_PREFIX_CAPTURE_IF_ADMITTED",
+      "migration_comparison": {
+        "head_sql_count": 1067,
+        "common_sql_count": 1066,
+        "common_sql_blob_changes": [],
+        "common_ordered_path_git_blob_sha256": "197d5991f798b677c10367c220e2822b6103813bf1e0f299be50572b8745895c",
+        "root913_only_sql_count": 7,
+        "root913_only_sql_paths": [
+          "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+          "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+          "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+          "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+          "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+          "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql",
+          "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql"
+        ],
+        "preservation_rule": "Keep all root913 SQL/history/registrations and add only approved exact new forwards. No historical rewrite or omission."
+      },
+      "current_manifest_metadata": {
+        "path": "scripts/supabase-types-manifest.json",
+        "sha256": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+        "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+        "composition_capture_pending_raw_field": false,
+        "matches_shared_inherited_baseline_manifest": true,
+        "capture_origin_reference": "shared_inherited_baseline_capture below",
+        "capture_origin_is_current_full_root913_prefix": false,
+        "capture_origin_is_new_forward_prefix": false
+      },
+      "owner_checkpoint_pointer": {
+        "path": ".agent-memory/masterplan-db04-db05-checkpoint.md",
+        "sha256": "0293754c3ae97d96c04bbbbf5e6b48b17bce7658bc7289454aa7b7f45366a3f8"
+      },
+      "source_native_whole_gate_verdict": "NOT_REVIEWED; assigned retained authors/reviewers elsewhere",
+      "CI_artifact_state": "NOT_QUERIED",
+      "capture_admission_gap": {
+        "current_forward_capture_receipt_in_checked_published_metadata": "NOT_PRESENT",
+        "owner_published_statement": "Generated schema/fingerprint/types for20261005130000 still require genuine regeneration from clean replay.",
+        "owner_statement_lines": [
+          {
+            "line": 14,
+            "text": "- NOT done / for root: regenerate supabase/schema.sql + fingerprint + generated types from a clean replay (shared generated artifacts, not hand-edited); CI parity gates will flag the new migration until then. Check no native test relies on service_role deleting live companies."
+          },
+          {
+            "line": 35,
+            "text": "- Still for root: schema.sql/fingerprint/types regen for migration 20261005130000; DB-04 native-only approval decision. Status: branch-approved, CI-green (native workflow), NOT merged, no PR."
+          },
+          {
+            "line": 42,
+            "text": "- Before merge (root): schema.sql/fingerprint/types regen for 20261005130000; DB-04 native-only decision."
+          }
+        ],
+        "raw_pending_false_interpretation": "Inherited8a capture remains fulfilled for its older050200 prefix only. False does not qualify new051300 migration. Keep historical record; record actual new source capture scope when admitted.",
+        "fresh_native_CI_claim": "Public author claims native results; this intake neither observes nor reapproves those results."
+      }
+    }
+  ],
+  "final_combined_capture_inventory": {
+    "retained_forward_records": [
+      {
+        "pr": 533,
+        "head": "43f983e9fdd0174bedbc3ecbb6ccc97c10a0beee",
+        "path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+        "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
+        "root913_presence": "ABSENT"
+      },
+      {
+        "pr": 535,
+        "head": "6a14022ed2782363068ec0fa3138915f50bba57f",
+        "path": "supabase/migrations/20261004223219_ediel_tenant_profile_interval_guard.sql",
+        "sha256": "8f40a4b9d4c36d4c1d5ec14a6af499d55e1c6510c5ba921873b714e94d702ed0",
+        "root913_presence": "ABSENT"
+      },
+      {
+        "pr": 599,
+        "head": "20c227166a007c07b3eafabdd89cae28f7538a13",
+        "path": "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql",
+        "sha256": "ed92e54ee5c21c781d1e06260e5e7b0a1569ec2896f9e7af0b95f61f3dc5bc3d",
+        "git_blob": "1cf851fe9b9235cc626c2c028b7615026afd703a",
+        "root913_presence": "ABSENT"
+      }
+    ],
+    "currently_in_root913": [],
+    "absent_from_root913_count": 3,
+    "conditional_sql_count_all_three_exact_forwards_without_other_migration_changes": 1076,
+    "new_forwards_from532_534": [],
+    "test_only532_534_trigger_capture": false,
+    "capture_count": 1,
+    "condition": "Every actually admitted new forward must be included. Freeze current913 CI/source; after retained owners qualify exact sources and actual final combined source stabilizes, perform one necessary authentic capture for that complete source. Capture is not authorised/executed by this intake.",
+    "custody_required": "Actual source head/tree, full ordered migration set/digests, all eight source replay inputs, actual replay tail and unmodified raw schema/types/fingerprint from genuine producer. Latest filename or matching generated-types hash is insufficient.",
+    "source_history_preservation": "All1066 common historical SQL blobs are exact per supplementary candidate. Preserve the seven root913-only SQL sources plus admitted prior533/535 entries; never replace root1073 history with an older branch prefix.",
+    "gate_ownership": "Existing authors and source/native observers retain approvals. Root503 retained lane consumes qualified exact receipts; no reviewer ownership transfer."
+  },
+  "method_limits": {
+    "CI_scan_poll_rerun": false,
+    "artifact_download": false,
+    "behavior_SQL_native_capture_execution": false,
+    "source_test_forward_manifests_shared_memory_writes": false,
+    "GitHub_mutations": false,
+    "private_IMP05_analysis_included": false,
+    "own_git_objects_and_this_outside_checkpoint_only": true
+  }
+}
