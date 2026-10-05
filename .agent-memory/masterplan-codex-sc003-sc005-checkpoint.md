@@ -1,61 +1,69 @@
-# SC003 / SC005 current consumer evidence
+# SC003 / SC005 approved evidence owner
 
-Isolated owner branch codex/ediel-sc003-sc005-provider-projection-evidence-20261005
-at main base9dc4a783a0c5e926596e3054a958c64e43efd490. Initial claims5305986205147 /
-4915986205299; native expansion5305986353434 /4915986353609 published before edits.
+WHOLE SC003 and SC005 code behavior APPROVED at PR555 source
+4c36922918060efc4ac6e3a26960c0c5a54ceaae /tree
+9a8d1591e66387a7a8a027f59b0e60b017842068. Mainbase
+9dc4a783a0c5e926596e3054a958c64e43efd490. Isolated owner checkout
+/workspace/gridex-masterplan-sc003-sc005; branch
+codex/ediel-sc003-sc005-provider-projection-evidence-20261005.
+Claims5305986205147/5986353434 and4915986205299/5986353609.
 
-The17 actual coupled unit checks pass (8 SC003,9 SC005), with0fail/error/skip.
-Scoped unit and new-native types/lint pass. Workflow YAML/Bash/Python, exact
-single-file selection,14input paths,30min limit and redaction mechanics pass.
-Native1 NOT_RUN; full suite/capture/upgrade/browser NOT_RUN. Frozen33/352 integrity
-and owned tags/shared-row invariants PASS. The existing full tag scanner was
-attempted unexpectedly (it executes tagged suites) and returned unreadable
-Vitest JSON /exit1; not repeated, no full tag-gate PASS claimed. No whole SC005
-approval or coverage promotion. Initial16/17unit failure was a finite-port
-expected timestamp format mismatch; corrected fixture only, no product RED.
+Actual coupled unit17/17 PASS,0failure/error/skip, scoped unit/native types/lint
+PASS and frozen33/352 integrity PASS. Existing whole tag scanner attempt exited1
+with unreadable Vitest JSON (no gate PASS claimed); not repeated. Root separately
+qualified its narrow process-boundary EPERM fix without changing source/tests.
+Initial16/17 unit fixture failure was expected timestamp formatting; normalized
+finite port only, no production RED or weakened product assertion.
 
-SC003 runs the real service-permission command/origin adapters, request timing,
-render gateway, reporting context and canonical DGI PRODAT renderer/codec.
-Finite authority/route/intent/request/queue ports are declared in the file.
-SC005 runs the actual HTTP GET/parser/projection/provenance filter; authentication
-and private SQL RPC are declared finite ports. These cannot prove physical
-reception/ACK cardinality. Independent SC003 whole review is pending source freeze.
+Genuine focused native1/1 PASS,0failure/error/skip at exact source4c:
+run37251038821/job111578527071/artifact11321431618. Server and localZIP digest
+80adf466a674b9bdafd97cfd32c88fdefdf158043b76518f8bd51e2a07239b2d.
+Actual receipt exactHEAD/tree/scope/native_exit0 and all15input hashes matchGit;
+prior own14input prose was a count slip, corrected without workflow/code edit.
+Raw authenticZIP/receipt/log/JUnit and direct API provenance are retained in
+quality/audits/ediel-masterplan-v2/sc003-sc005/native-4c369229/.
 
-The single new native case imports the unchanged existing exported fixture.
-It neither imports/registers the old native suite nor modifies fixture helpers.
-Actual native owners cover independent archive/review missions on one existing
-market permission, one legal-P DGI wire with internal K linkage, one E66 binding /
-series / contract / accepted disposition / physical positive APERAK, two scoped
-reads and separate consumer receipts. Stored source/raw/hash/seal, full values,
-contracts, dispositions, ACK rows, evidence archives, energy count/sum and invoice
-rows must remain unchanged after each read, exact replay, foreign/widened denials
-and selected grant revocation; other mission retains current read. Revoked
-captured two-scope ACK replay is held without creating another physical ACK.
-Only external SMTP is substituted; issuer/legal/tenant bootstrap is explicitly
-synthetic. This proves no external legal registration, provider route or live mail.
+Independent complete scenario review /root/sc007_sc066_review approved both:
+sc003-sc005-independent-review.md SHA
+b9e41278a750531cbf98e4400aa30ba8059e5ef35955c11667cdd6f6e36afb77;
+machine receipt SHA
+c59260ade48066063363e1e9f5d7b7a4296289f8e720ad18d198d33ec9de3063.
+Byte-exact records copied into own quality packet. Only SC003/SC005 promoted
+PASSED; other350rows unchanged. Technical inputs, native test/config/workflow,
+shared fixture, existing service-native suite, productSQL/TS and frozen33sources
+remain exact4c. Current final-head ordinary CI/main/merge remain PENDING.
 
-Historical497 sourcef4a0fb43 /run37219122360 /artifact11310821113 literal391
-same-permission case is genuine bounded corroboration. Its physical-ACK count
-was not coupled explicitly to same-permission391, so current new native1 is
-required. Different-permission352 is not selected as literal SC005. The old
-359-node transitive inventory is incomplete and not treated as exhaustive.
-Current captured schema hash equality is not genuine current prefix replay.
+Actual source-qualified paths: service-permission command/origin adapters and
+captured timing → real DGI render gateway/reporting context/PRODAT codec; actual
+HTTP GET/parser/projection/provenance consumer; native independent service
+evidence archives/reviews/grants on one permission/Z13/Z14, legalP/internalK,
+one E66/sourcebinding/series/contract/accepted disposition/physicalpositiveACK,
+two exact scoped reads/distinct consumer receipts and unchanged fullsource/raw/
+hash/seal/value/archive/contract/ACK/energy/invoice state after read/replay/foreign
+or widened denial and selected grant revoke. Other mission stays current; revoked
+captured two-scope ACK replay holds without creating another physical ACK.
 
-Root grants only1additive native-config include plus new focused workflow,
-which reuses the sole existing clean replay owner, its EXIT cleanup/status
-boundary/redactor and ordinary required gates.14workflow input hashes plus
-exactHEAD/tree/run scope are emitted in CI; private status and replay logs never
-enter upload. Final parent composition must union other owners' native includes,
-retain staff/source/capture facts and never replace root config with this prefix.
+Finite unit authority/route/intent/request/queue/authentication/SQL ports remain
+explicit. Native issuer namespace/version, transport-mandate registry, legal
+representations and reviewed source-absence history grounds are synthetic
+upstream bootstrap facts; external SMTP mocked. No private SERVICE archive/
+separate review/grant/storage/disposition/physicalACK RESULT is seeded. No native
+legal/history/market custody, live SMTP or universal concurrency approval claimed.
+Historical497 samepermission391 corroboration stays bounded;352differentpermission
+never substitutes SC005. Old359-node transitive inventory was incomplete and not
+reused as exhaustive. Schema equality alone never qualifies current replay.
 
-No production/schema/migration/shared fixture/shared memory/coverage edits.
-SC004/006 reserved SQL/wrapper/admin/native paths untouched. TR09 whole approval
-packet1b7702ef is published on545 ready for ordinaryCI, not main/DONE. TR08 all-hop /
-provider / SPF source lane remains paused and blocked under543; no second trace
-implementation. Parent owns final main integration and independent approval.
+Root retains final additive native-config union and actual main/staff/source/
+coverage/capture composition. Actual main now b83b19753af6d4722adeb11e3d1fdca65a60b534
+(491 merged0796 after requiredchecks), for NEXT pair only; this proof stays exact4c.
+No SC004/006 reserved source/test/fixture, shared memory or parent branch edit.
+TR09 fullapproved packet remains published545; TR08 whole provider/all-hop/SPF
+lane remains blocked/paused under543. Root U10 detailed status payload rejected
+by auto-review is untouched pending exact payload userapproval.
 
-Skills applied: spec-to-code-compliance full frozen scenario/TEN criteria,
-Supabase existing source/current-tenant boundary guidance, verification-before-
-completion and receiving-code-review. No new feature/schema/performance/audit
-workflow or external service needed. Next: publish immutable packet and execute
-only genuine CI single native case; whole reviews precede any scoped promotion.
+Skills used: spec-to-code-compliance whole literals/TEN criteria, Supabase current
+source/tenant/RPC guidance, verification-before-completion and receiving review.
+No duplicate full/native execution, new DB harness, private authority or second
+implementation. Next: publish meaningful approved pair packet and preserve all
+technical inputs; then fresh current ownership/coverage/tag inventory before
+claiming next two unowned technical cards and exact split paths.

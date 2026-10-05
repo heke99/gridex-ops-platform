@@ -48,11 +48,25 @@
     "native_scoped_lint": "PASS",
     "workflow_yaml_bash_python_single_scope_redaction_mechanics": "PASS",
     "native": {
-      "status": "NOT_RUN",
+      "status": "PASS",
+      "source_head": "4c36922918060efc4ac6e3a26960c0c5a54ceaae",
+      "source_tree": "9a8d1591e66387a7a8a027f59b0e60b017842068",
+      "run_id": 37251038821,
+      "job_id": 111578527071,
+      "artifact_id": 11321431618,
+      "zip_sha256": "80adf466a674b9bdafd97cfd32c88fdefdf158043b76518f8bd51e2a07239b2d",
       "selected_files": [
         "scripts/ediel-sc-003-005-service-native.test.ts"
       ],
-      "cases": 1
+      "tests": 1,
+      "passed": 1,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "native_exit_code": 0,
+      "input_count": 15,
+      "all_input_hashes_equal_frozen_git": true,
+      "raw_evidence": "native-4c369229/"
     },
     "full_suite": "NOT_RUN",
     "schema_capture": "NOT_RUN",
@@ -89,14 +103,30 @@
     "dependency_inventory": "Prior359-node inventory is incomplete and is not reused as exhaustive; reviewer corrected697native/699current with13changed existing plus2new transport helpers."
   },
   "limits": [
-    "Finite unit RPC/authorization/route/persistence ports do not prove legal custody or physical SQL cardinality.",
-    "New native case requires genuine clean replay at exact published source before any SC005 whole approval.",
+    "Finite unit RPC/authorization/route/persistence ports do not prove external legal custody.",
+    "Genuine focused native1 at exact4c proves the coupled actual local SQL effect path; all15actualinput hashes checked.",
+    "Native external issuer namespace/version, transport-mandate registry, legal representations and reviewed source-absence history grounds are synthetic upstream bootstrap facts; SMTP is mocked. Actual private SERVICE archive/separate review/grant/storage/disposition/physicalACK RESULT owners execute and are not seeded.",
     "Captured schema equality alone is not current migration-tail replay proof.",
-    "External SMTP is mocked and issuer/legal/tenant bootstrap is synthetic in the native fixture.",
-    "Ordinary mandatory gates, capture, browser and upgrade parity are not replaced."
+    "Ordinary mandatory gates, capture, browser, upgrade parity, current main composition and external market custody are not replaced or claimed."
   ],
   "whole_review": {
-    "SC-003": "PENDING_INDEPENDENT_REVIEW",
-    "SC-005": "PENDING_GENUINE_SINGLE_CASE_AND_INDEPENDENT_REVIEW"
+    "SC-003": "APPROVE",
+    "SC-005": "APPROVE",
+    "source_head": "4c36922918060efc4ac6e3a26960c0c5a54ceaae",
+    "source_tree": "9a8d1591e66387a7a8a027f59b0e60b017842068",
+    "review_sha256": "b9e41278a750531cbf98e4400aa30ba8059e5ef35955c11667cdd6f6e36afb77",
+    "review_receipt_sha256": "c59260ade48066063363e1e9f5d7b7a4296289f8e720ad18d198d33ec9de3063"
+  },
+  "approval_packet_invariants": {
+    "technical_files_equal_4c369229": true,
+    "promoted_acceptance_rows": [
+      "SC-003",
+      "SC-005"
+    ],
+    "all_other_350_rows_unchanged": true,
+    "frozen_33_files_unchanged": true,
+    "workflow_receipt_actual_inputs": 15,
+    "prose_count_corrected_only": true,
+    "current_final_head_required_ci": "PENDING"
   }
 }
