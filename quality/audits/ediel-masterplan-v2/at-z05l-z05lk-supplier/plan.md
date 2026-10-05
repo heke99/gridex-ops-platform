@@ -15,12 +15,12 @@ updated-head ledgers found no earlier pair/path claim. Inventory outside repo:
 - [x] Read complete frozen given/when/expected/prohibited, existing P13 receipts,
   retained original P text and scoped HB review with their custody limits.
 - [x] Isolate from actualmain, preserve source/helpers/native/coverage, claim files.
-- [ ] Prove complete DDQ Z05 LZ22/LKZ23 baseline including211,262,UD/IT before
+- [x] Prove complete DDQ Z05 LZ22/LKZ23 baseline including211,262,UD/IT before
   missing-field/date/reason contrasts. Use existing physical fixtures unchanged.
-- [ ] Couple actual facade/lifecycle/source adapter under finite RPC and Supabase
+- [x] Couple actual facade/lifecycle/source adapter under finite RPC and Supabase
   IO. Assert native-refused zeroeffects, genuine returned-period task scope,
   cached-hint contrasts and idempotent replay without extra task.
-- [ ] Preserve ordinary RED if found; independently refute direct-seam findings
+- [x] Preserve ordinary RED if found; independently refute direct-seam findings
   and inspect actual caller/source/schema before claiming a bounded existing fix.
 - [ ] Focused behavior/types/lint and independent review, freeze candidate inputs,
   publish one component PR, continue while current CI runs.

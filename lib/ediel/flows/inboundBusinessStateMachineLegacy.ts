@@ -289,8 +289,7 @@ export async function applyInboundBusinessStateMachine(input: {
       // carries that scope; an unbound received H end takes it from the
       // committed periods.
       const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent
-        ? input.message.customer_id ? [{ customer_id: input.message.customer_id, metering_point_id: input.message.metering_point_id ?? null }]
-          : await endingPeriodScopes(companyId, sourceResult.periods)
+        ? await endingPeriodScopes(companyId, sourceResult.periods)
         : []
       if (companyId) for (const period of scopes) {
         const caseId = await createReviewCase({ message: { ...input.message, customer_id: period.customer_id, metering_point_id: period.metering_point_id ?? input.message.metering_point_id },

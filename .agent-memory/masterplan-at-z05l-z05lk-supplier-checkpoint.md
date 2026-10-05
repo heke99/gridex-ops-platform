@@ -37,3 +37,24 @@ before any source claim. Preserve all six ordinary assertions and raw failures.
 Genuinely fast-forward adopted actualmain7b158e79 after fresh diff: only foreign
 589/590 NEW tests/docs; all runtime/SQL/config/pkg/frozen/coverage unchanged.
 40/34/6 receipt remains within identical source/deps/version/scope; not rerun.
+
+Exact BEFORE-edit claim5305996702321/coordinator5035996704425 reserves only
+Legacy cached-scopes ternary and two old finite q.in/ownperiod-row bindings.
+Fresh peer278/455/38boards+69openpaths found no earlier exact writer; historical
+421/423/424/422 source and424/423 fixture overlaps disclosed/preserved.
+Actual repair89unique/89PASS/0FAIL/0ERROR/0SKIP across6files, own40 unchanged
+2a076859 +49existing. Six originalRED assertions/trailing checks nowpass.
+Mechanical reconstruction confirms other executable slices and EVERY old
+assertion/native source port unchanged. Scoped finaltypes/lint underway,
+independent RED refutation/finalrepair review underway. No native/wholeclaim.
+
+Final scoped types31380/lint14779 actualexit0/no warnings. Peer APPROVE exact
+source8e810/test2a076, final review20490ba2; prior review hashde317 superseded
+ONLY by corrected receipt hash after final static metadata addition. Historical
+REDreviewa50d2079 and fullsourcefacit0b2dc2f8 remain unchanged.
+Actualmain36e adopted via genuine merge after first global-no-script-delta guard
+FAILED on two foreignTEN07 harness scripts. Actual runtime/SQL/pkg/config/frozen
+and39 unaffected reviewed pins unchanged; scripts are not reached by own89.
+Raw failure/classification saved, valid89receipt reused; foreignledger adopted
+exactly, wholepair untouched. Next freeze/publish one repairedcomponentPR, keep
+CI input/source versions exact, continue scout while593/currentcandidate CI runs.
