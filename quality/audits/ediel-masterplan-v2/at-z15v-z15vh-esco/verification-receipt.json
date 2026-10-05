@@ -2187,5 +2187,85 @@
       "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/review.md",
       "quality/audits/ediel-masterplan-v2/at-z15v-z15vh-esco/verification-receipt.json"
     ]
+  },
+  "current_main_requalification": {
+    "observed_utc": "2026-10-05T12:10:02Z",
+    "main": "d2adff9a1219125b6bccfed5aee4782243e09851",
+    "main_tree": "c1618140a29514633117c6dac0cfc6afe19d1891",
+    "original_frozen_head": "6952cccef497c04a57f32d1b7ea916fd3242af53",
+    "original_frozen_tree": "ecdcdff67d10c2a9b059f8db70281246d3bf350a",
+    "qualification_commit_local_only": "f7be17fd5235de3b36bfc06c937830847cf59687",
+    "qualification_tree": "d3972dd11d19d5a1da5f19ee0513d2d2ad243d01",
+    "scope": "Original two frozen tests and exactly12original owned new paths composed onto authentic current main; latest owned record deltas reviewed separately",
+    "selected_source_pin_count": 392,
+    "unchanged_selected_pins": 391,
+    "changed_selected_inputs": [
+      {
+        "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+        "previous_main_blob": "8eef646e17c1bb709766a4dca48a02995c6cfeff",
+        "previous_sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+        "current_main_blob": "26c4ed40a5a8d7e4a78361a7249e24253e80b485",
+        "current_sha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+        "delta": "Signed certificate SMTP target binding from existing retained IMP05 integration; no owned source edit"
+      }
+    ],
+    "current_coverage_blob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+    "coverage_byte_unchanged": true,
+    "runtime": {
+      "node": "22.23.3",
+      "vitest": "4.1.9",
+      "dependencies": "Existing locked471-package installation reused, package and lock unchanged"
+    },
+    "focused_tests": {
+      "started_utc": "2026-10-05T12:07:22Z",
+      "files_passed": 2,
+      "tests_passed": 42,
+      "exit_code": 0,
+      "pre_post_head": "f7be17fd5235de3b36bfc06c937830847cf59687",
+      "command": "npx --no-install vitest run __tests__/ediel-at-z15v-esco-profile.test.ts __tests__/ediel-at-z15vh-esco-profile.test.ts",
+      "original_output_utf8": "\n RUN  v4.1.9 /workspace/gridex-z15-qualification-d2adff9a-20261005\n\n\n Test Files  2 passed (2)\n      Tests  42 passed (42)\n   Start at  12:07:22\n   Duration  2.09s (transform 2.70s, setup 44ms, import 3.38s, tests 410ms, environment 0ms)\n\nnpm notice\nnpm notice New major version of npm available! 11.9.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n",
+      "original_output_sha256": "382173d3d7e5bda2d79f11a6a21794f7402c6b0d095a6458ef4046999aebebff"
+    },
+    "static_checks": {
+      "typescript_tests_config": {
+        "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false -p tsconfig.tests.json",
+        "exit_code": 0
+      },
+      "spec_integrity": {
+        "command": "node scripts/check-ediel-masterplan-v2.cjs",
+        "exit_code": 0,
+        "originalFiles": 33,
+        "rules": 121,
+        "acceptanceContracts": 231,
+        "applicationConformanceAsserted": false,
+        "productionReadinessAsserted": false
+      },
+      "composed_diff_check": {
+        "exit_code": 0
+      }
+    },
+    "prior_execution_receipts_preserved": true,
+    "sql_native_reexecution": false,
+    "whole_acceptance": "HELD",
+    "external_market_acceptance_asserted": false
+  },
+  "required_ci_failure": {
+    "head": "6952cccef497c04a57f32d1b7ea916fd3242af53",
+    "check": "pr-certificate",
+    "job_id": 111751493445,
+    "run_id": 37305899922,
+    "attempt": 1,
+    "started_utc": "2026-10-05T12:00:10Z",
+    "completed_utc": "2026-10-05T12:00:26Z",
+    "conclusion": "FAILURE",
+    "diagnosis": "Job executed newer workflow command against older frozen checkout runner without --certificate=pr handler; default smoke attempted without dependencies and did not emit certificate artifact",
+    "observed_failures": [
+      "nodemailer/lib/addressparser MODULE_NOT_FOUND",
+      "node_modules/typescript/bin/tsc MODULE_NOT_FOUND",
+      "pr-release-certificate.json not emitted"
+    ],
+    "remedy": "Adopt already-integrated matching current-main workflow and runner, preserve failed attempt, review bounded source/base and owned record delta, publish new head and obtain its actual required CI",
+    "rerun_or_waiver": false,
+    "blocked_board_comment": 5994134640
   }
 }
