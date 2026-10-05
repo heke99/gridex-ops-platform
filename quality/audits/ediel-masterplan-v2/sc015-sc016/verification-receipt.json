@@ -1,0 +1,113 @@
+{
+  "base": "507e8bfa20606be31933eea1582066267ff2577a",
+  "node": "22.23.3",
+  "scenarios": [
+    "SC-015",
+    "SC-016"
+  ],
+  "status": "focused_execution_GREEN_independent_whole_review_PENDING",
+  "unit_cases": {
+    "SC-015": 7,
+    "SC-016": 3,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "sql": {
+    "SC-015": {
+      "new_asserting_groups": 8,
+      "unchanged_timing_groups": 25,
+      "unchanged_inherited_groups": 64,
+      "installed_exact_owner_bodies": 7
+    },
+    "SC-016": {
+      "new_asserting_groups": 10,
+      "unchanged_inherited_groups": 61,
+      "installed_exact_owner_bodies": 4
+    },
+    "wrapper_cases": 2,
+    "wrapper_failures": 0,
+    "wrapper_skips": 0
+  },
+  "checks": {
+    "scoped_types_exit": 0,
+    "scoped_lint_exit": 0,
+    "cjs_syntax_exit": 0,
+    "frozen_integrity_exit": 0,
+    "all_preexisting_tracked_files_unchanged": true
+  },
+  "native": "NOT_RUN",
+  "authentic_market_legal_acceptance": "NOT_PROVEN",
+  "ordinary_current_head_CI": "PENDING",
+  "full_suite": "NOT_RUN_in_this_packet",
+  "input_manifest": "source-manifest.json",
+  "evidence": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-unit-final.log",
+      "sha256": "f3ff17a6665956d38e9f155005f1d32a2ae47e02c5cabe1ec9118ec1176857c3"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-unit-final.xml",
+      "sha256": "4b007b5fa49a1bae48e8e24aedf59b5ec865751fd26d0e18654804c5279ff6ff"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-unit-final.log",
+      "sha256": "860a105cb8c22aa2a74013646a9982d022274027b4fddded1a66ccbb457111a5"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc016-unit-final.xml",
+      "sha256": "144053a3c62cd33efa60f8e0168e79517d41d62cc09ae703e7152a7454570d4a"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-owner-final-sql.log",
+      "sha256": "cc69501607ed8e7a19743bab14872338713750a4075506bcc7e8354547e048df"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-sc016-wrapper-final.log",
+      "sha256": "df7ed29ea1715a58eca838431d2c32fe5394a2c0fa7cb8e89d74833483767062"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-sc016-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-sc016-lint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/sc015-sc016-integrity.log",
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc015-sc016/evidence/masterplan-sc016-owned-checks-20261005.json",
+      "sha256": "8e43d276cab75a010e70e33d8dee201f6bb5ab606d6644e2d30e86c87f569186"
+    }
+  ],
+  "fixture_history": [
+    {
+      "stage": "SC015 schema fields added after inherited full-row ACK capture",
+      "result": "guard correctly held ediel_ack_service_scope_receipt_changed",
+      "fix": "initialize own missing schema before existing first capture; inherited assertions unchanged"
+    },
+    {
+      "stage": "SC015 missing ediel_messages.status in finite schema",
+      "result": "42703 missing fixture column",
+      "fix": "declare production-shaped status column before inherited capture"
+    },
+    {
+      "stage": "SC015 negative transaction helper",
+      "result": "RESET ROLE after expected error masked original with25P02",
+      "fix": "own negative uses actual RPC query and outer rollback before reset, exact expected original-byte guard asserted"
+    },
+    {
+      "stage": "SC016 Vitest childspawn without narrow permissions",
+      "result": "EPERM before SQL; no semantic result",
+      "fix": "existing loopback preload absolute path, Node22 and additional network permission; final3PASS0skip"
+    },
+    {
+      "stage": "SC015 unused import cleanup after final7PASS",
+      "result": "removed only unused tokenizer imports",
+      "fix": "final lint0; no asserting behavior changed"
+    }
+  ]
+}
