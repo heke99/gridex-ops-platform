@@ -1682,8 +1682,14 @@
     },
     {
       "id": "SC-042",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts"
+      ]
     },
     {
       "id": "SC-043",
