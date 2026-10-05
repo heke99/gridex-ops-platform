@@ -1,4 +1,5 @@
-// DB-05 (partial, F-DB-05-01 only; not an approval of DB-05): a raw hard delete of a company or customer must not
+// masterplan: DB-05, AT-DB-05
+// DB-05 (F-DB-05-01 prohibited effect): a raw hard delete of a company or customer must not
 // cascade away audit/journal history. Real schema snapshot (supabase/schema.sql) loaded object by object into PGlite,
 // then the guard migration applied on top. User triggers on the seeded tables are disabled only to seed a minimal
 // row; FK/RI triggers (the cascades under test) are untouched. Not native PostgreSQL.
