@@ -1,3 +1,5 @@
+// masterplan: ACK-02, AT-ACK-02
+// (BGM 27 with ERC 42 for whole-message header rejection.)
 import {requireEdielTechnicalSyntaxAckEvidence} from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import {readProdatCommonHeaderNegativeAckRoute,prodatCommonHeaderNegativeAckRouteQualification} from '@/lib/ediel/ack/prodatCommonHeaderNegativeAckRoute'
 import {beforeEach,describe,expect,it,vi} from 'vitest'

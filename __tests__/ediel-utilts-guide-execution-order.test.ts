@@ -1,3 +1,4 @@
+// masterplan: U-03, AT-U-03
 import { beforeEach, expect, it, vi } from 'vitest'
 import { energyHandoffMessage } from './helpers/utiltsObservationHandoff'
 import { runUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
