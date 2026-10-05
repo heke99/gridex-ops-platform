@@ -23631,6 +23631,28 @@ BEGIN
 END$$;
 
 --
+-- Name: confirm_production_contract_on_ack_v1(); Type: FUNCTION; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE o gridex_received_sources.production_contract_origins%rowtype;e gridex_received_sources.production_contract_events%rowtype;
+BEGIN
+ IF NEW.aperak_status IS DISTINCT FROM 'accepted' OR OLD.aperak_status IS NOT DISTINCT FROM NEW.aperak_status
+ OR NEW.direction IS DISTINCT FROM 'outbound' OR NEW.message_family IS DISTINCT FROM 'PRODAT' OR NEW.message_code IS DISTINCT FROM 'Z09' THEN RETURN NEW;END IF;
+ SELECT * INTO o FROM gridex_received_sources.production_contract_origins WHERE message_id=NEW.id;
+ IF NOT FOUND THEN RETURN NEW;END IF;
+ SELECT * INTO e FROM gridex_received_sources.production_contract_events WHERE id=o.event_id FOR SHARE;
+ IF e.company_id IS DISTINCT FROM NEW.company_id OR e.environment IS DISTINCT FROM NEW.environment
+ OR EXISTS(SELECT FROM gridex_received_sources.production_contract_revocations r WHERE r.event_id=e.id) THEN RETURN NEW;END IF;
+ INSERT INTO gridex_received_sources.production_contract_confirmations(event_id,company_id,environment,message_id)
+  VALUES(e.id,e.company_id,e.environment,NEW.id) ON CONFLICT DO NOTHING;
+ RETURN NEW;
+END $$;
+
+--
 -- Name: correction_concerns; Type: TABLE; Schema: gridex_received_sources; Owner: -
 --
 
@@ -97488,6 +97510,19 @@ CREATE TABLE gridex_received_sources.production_contract_brp_bindings (
 ALTER TABLE ONLY gridex_received_sources.production_contract_brp_bindings FORCE ROW LEVEL SECURITY;
 
 --
+-- Name: production_contract_confirmations; Type: TABLE; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TABLE gridex_received_sources.production_contract_confirmations (
+    event_id uuid NOT NULL,
+    company_id uuid NOT NULL,
+    environment text NOT NULL,
+    message_id uuid NOT NULL,
+    confirmed_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT production_contract_confirmations_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text])))
+);
+
+--
 -- Name: production_contract_events; Type: TABLE; Schema: gridex_received_sources; Owner: -
 --
 
@@ -121762,6 +121797,20 @@ ALTER TABLE ONLY gridex_received_sources.production_contract_brp_bindings
     ADD CONSTRAINT production_contract_brp_bindings_pkey PRIMARY KEY (message_id);
 
 --
+-- Name: production_contract_confirmations production_contract_confirmations_message_id_key; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.production_contract_confirmations
+    ADD CONSTRAINT production_contract_confirmations_message_id_key UNIQUE (message_id);
+
+--
+-- Name: production_contract_confirmations production_contract_confirmations_pkey; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.production_contract_confirmations
+    ADD CONSTRAINT production_contract_confirmations_pkey PRIMARY KEY (event_id);
+
+--
 -- Name: production_contract_events production_contract_events_company_id_environment_source_re_key; Type: CONSTRAINT; Schema: gridex_received_sources; Owner: -
 --
 
@@ -141285,6 +141334,18 @@ CREATE TRIGGER production_brp_binding_immutable BEFORE DELETE OR UPDATE ON gride
 CREATE TRIGGER production_brp_binding_no_truncate BEFORE TRUNCATE ON gridex_received_sources.production_contract_brp_bindings FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
 
 --
+-- Name: production_contract_confirmations production_contract_confirmations_immutable; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER production_contract_confirmations_immutable BEFORE DELETE OR UPDATE ON gridex_received_sources.production_contract_confirmations FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
+-- Name: production_contract_confirmations production_contract_confirmations_no_truncate; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
+--
+
+CREATE TRIGGER production_contract_confirmations_no_truncate BEFORE TRUNCATE ON gridex_received_sources.production_contract_confirmations FOR EACH STATEMENT EXECUTE FUNCTION gridex_received_sources.permission_transition_immutable_v1();
+
+--
 -- Name: production_contract_events production_contract_events_immutable; Type: TRIGGER; Schema: gridex_received_sources; Owner: -
 --
 
@@ -142591,6 +142652,12 @@ CREATE TRIGGER company_invitations_tenant_accept_guard BEFORE INSERT OR UPDATE O
 --
 
 CREATE CONSTRAINT TRIGGER company_memberships_last_functioning_admin_guard AFTER DELETE OR UPDATE ON public.company_memberships DEFERRABLE INITIALLY IMMEDIATE FOR EACH ROW EXECUTE FUNCTION public.guard_last_functioning_tenant_admin();
+
+--
+-- Name: ediel_messages confirm_production_contract_on_ack; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER confirm_production_contract_on_ack AFTER UPDATE OF aperak_status ON public.ediel_messages FOR EACH ROW EXECUTE FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1();
 
 --
 -- Name: contract_offers contract_offers_closed_delete_guard; Type: TRIGGER; Schema: public; Owner: -
@@ -148589,6 +148656,27 @@ ALTER TABLE ONLY gridex_received_sources.production_contract_brp_bindings
 
 ALTER TABLE ONLY gridex_received_sources.production_contract_brp_bindings
     ADD CONSTRAINT production_contract_brp_bindings_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
+
+--
+-- Name: production_contract_confirmations production_contract_confirmations_company_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.production_contract_confirmations
+    ADD CONSTRAINT production_contract_confirmations_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id);
+
+--
+-- Name: production_contract_confirmations production_contract_confirmations_event_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.production_contract_confirmations
+    ADD CONSTRAINT production_contract_confirmations_event_id_fkey FOREIGN KEY (event_id) REFERENCES gridex_received_sources.production_contract_events(id);
+
+--
+-- Name: production_contract_confirmations production_contract_confirmations_message_id_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE ONLY gridex_received_sources.production_contract_confirmations
+    ADD CONSTRAINT production_contract_confirmations_message_id_fkey FOREIGN KEY (message_id) REFERENCES public.ediel_messages(id);
 
 --
 -- Name: production_contract_events production_contract_events_approved_by_fkey; Type: FK CONSTRAINT; Schema: gridex_received_sources; Owner: -
@@ -159354,6 +159442,12 @@ ALTER TABLE gridex_received_sources.prodat_source_function_facets ENABLE ROW LEV
 --
 
 ALTER TABLE gridex_received_sources.production_contract_brp_bindings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: production_contract_confirmations; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
+--
+
+ALTER TABLE gridex_received_sources.production_contract_confirmations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: production_contract_events; Type: ROW SECURITY; Schema: gridex_received_sources; Owner: -
@@ -183152,6 +183246,12 @@ REVOKE ALL ON FUNCTION gridex_received_sources.committed_permission_effects_v1(c
 --
 
 REVOKE ALL ON FUNCTION gridex_received_sources.committed_supply_effects_v1(c uuid, source_id uuid, requested integer[]) FROM PUBLIC;
+
+--
+-- Name: FUNCTION confirm_production_contract_on_ack_v1(); Type: ACL; Schema: gridex_received_sources; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_received_sources.confirm_production_contract_on_ack_v1() FROM PUBLIC;
 
 --
 -- Name: FUNCTION correction_receipt_v1(c gridex_received_sources.correction_concerns); Type: ACL; Schema: gridex_received_sources; Owner: -
