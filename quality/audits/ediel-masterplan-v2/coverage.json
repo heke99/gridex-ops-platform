@@ -1682,8 +1682,17 @@
     },
     {
       "id": "SC-007",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "lib/ediel/services/projection.ts",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-008",
@@ -2332,8 +2341,21 @@
     },
     {
       "id": "SC-066",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-ai-list-history.test.ts",
+        "__tests__/ediel-ai-bi-processing-decision.test.ts",
+        "scripts/test-ediel-ai-history-and-reconciliation.cjs",
+        "scripts/ediel-ai-reconciliation-embedded-check.mjs",
+        "lib/ediel/aiListHistory.ts",
+        "lib/ediel/aiListOrigination.ts",
+        "lib/ediel/aiBiImportEngine.ts",
+        "supabase/migrations/20261001023514_ediel_network_registry_original_source_owner.sql",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc007-sc066/current-consumer-wrapper.txt"
+      ]
     },
     {
       "id": "SC-067",
