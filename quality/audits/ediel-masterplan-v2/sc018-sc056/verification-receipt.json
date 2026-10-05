@@ -5027,10 +5027,21 @@
   "coverageUnchanged": true,
   "productionSqlMigrationHelperNativeFixtureSharedMemoryUnchanged": true,
   "publication": {
-    "status": "TECHNICAL_PACKET_FROZEN_FOR_FIRST_PUBLISH",
-    "technicalHead": "Will be the next commit containing these exact technical inputs; remote head is verified separately after push",
+    "status": "DRAFT_PROOF_PUBLISHED_INDEPENDENT_WHOLE_REVIEW_PENDING",
+    "pr": 560,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/560",
+    "publishedTechnicalHead": "f3e367813cf1bf5bb12cc702aff786e9d821920d",
+    "publishedTechnicalTree": "a66fa0c95152dee8238dd1c79af16f4ec3fd1599",
+    "baseHead": "507e8bfa20606be31933eea1582066267ff2577a",
+    "remoteVerifiedExact": true,
     "draft": true,
-    "independentWholeReview": "PENDING",
-    "coveragePromoted": false
+    "coveragePromoted": false,
+    "publicationOnlyChange": "This checkpoint/receipt update preserves all three technical inputs, all twenty direct sources and all three frozen inputs exactly; final remote documentation head is reported separately."
+  },
+  "publicationOnlyVerification": {
+    "allTechnicalDirectSourceFrozenInputsByteEqualTechnicalFreeze": true,
+    "coverageUnchanged": true,
+    "productionSchemaMigrationsHelpersNativeFixturesSharedMemoryUnchanged": true,
+    "noRuntimeNativeRepeat": true
   }
 }
