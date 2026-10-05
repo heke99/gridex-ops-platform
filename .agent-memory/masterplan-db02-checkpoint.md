@@ -324,6 +324,38 @@ native outcomes plus mandatory actual-head gates. Own coverage remains
 unapproved; main merge remains held. No local full-suite retry or alternate
 native bootstrap is used.
 
+## Fresh combined-prefix capture import — 2026-10-05
+
+Direct job API verifies capture run `37248423784`, job `111570888599`, SUCCESS
+on exact `ec72b580814703f30b62adb39d2d8371665e148b`, tree
+`ad0c400d4d05913c62826db28eca77aa5a49c0be`. Artifact `11320046969` ZIP SHA256
+and published digest both equal
+`4b2a65e85d5c7806887bc123c175a49115a39da39e8b79015f7a01d2ec2f8b41`.
+Four-member set, CRC, eight exact source Git inputs, three outputs, actual
+223219 replay tail and canonical fingerprint all verify. Producer is CLI
+2.101.0 / PostgreSQL 17.6; timestamp `2026-10-05T00:55:48.177774+00:00`.
+
+All three genuine generated files are byte-copied and remain unchanged from
+the prior DB-02 import: types `4f5713d6`, schema `bbcdb029`, fingerprint file
+`3583cfca`; canonical fingerprint remains `8c818532`. Raw receipt is imported
+unchanged at `quality/audits/ediel-masterplan-v2/db02/capture-receipt-20261005.json`.
+The complete original ec72 manifest is retained exactly under superseded
+provenance, including earlier DB-02 history and the immutable incoming main
+manifest pointer. Its SHA256 equals the producer's manifest input hash. The
+new manifest records this actual captured source/tree and marks its prefix
+capture fulfilled; the following metadata-only commit is not relabeled as
+the captured source.
+
+Full migration checks, specification 33/121/231, diff, output/receipt equality,
+complete original-manifest preservation and source/native/unit/config/coverage
+byte checks PASS. No SQL or native assertion changes. Capture explicitly records
+native/browser/type-schema comparison/upgrade parity NOT_RUN. Direct OPS jobs
+API still has clean/native `111570888875`, verify `111570888902` and upgrade
+`111570888880` queued, with quality `111570888686` active. Six own native cases
+have not executed. Next: publish this metadata/receipt checkpoint, independent
+capture review, genuine six-case results and mandatory actual-head gates.
+No whole-card promotion, local full retry or main merge is authorized yet.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.
