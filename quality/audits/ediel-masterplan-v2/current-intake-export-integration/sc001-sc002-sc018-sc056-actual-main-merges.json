@@ -1,0 +1,35 @@
+{
+  "actual_main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "stored_approved_ids": 217,
+  "merges": [
+    {
+      "pr": 557,
+      "head": "7e00e5a50b3eef141e7eb54c53bb2f05f3a44087",
+      "actual_merge": "665e6e9be107caae63ed79e3044cc2e41afe5269",
+      "actual_tree": "0a1f2e65b1de79503f814cc4de2a823c6940adfa",
+      "qualified_main_parent": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714"
+    },
+    {
+      "pr": 560,
+      "head": "0ad71de342f1f59ef140525622c3c1d8bc38c699",
+      "actual_merge": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+      "actual_tree": "e222e54afb45d25f2988eaf283274527ad413f0c",
+      "qualified_main_parent": "665e6e9be107caae63ed79e3044cc2e41afe5269"
+    }
+  ],
+  "required_checks": "Each exact frozen owner head had all9 requiredSUCCESS and CodeRabbitSUCCESS; fresh whole/source carry approved; secondunion changes onlySC018/056 and retains firstpair. Actual APIparents/tree verified. No currentintegration native/fullexecution relabel.",
+  "foreign_coverage_evidence": "All350foreign rows+metadata exact at each actualmerge; own2PASSED perpacket",
+  "copied_independent_records_sha256": {
+    "sc001-sc002-main-a8c991c1-minimum-carry-review.md": "cc6698ce68ea1d6aac5c4aec5bb932e46c3a1e29f8ca02dbbc8f9b35675a12a6",
+    "sc001-sc002-main-a8c991c1-minimum-carry-receipt.json": "9141d36823a3441196a1478a8bc2b636516e111f504116964576acc0f8646b5d",
+    "sc001-sc002-main-cfcee6877-minimum-carry-review.md": "8a223899b132dbbecd10d0019c938840fbc0a0769f4505305df1d4316afa26a4",
+    "sc001-sc002-main-cfcee6877-minimum-carry-receipt.json": "5181122e47fcdf3b629e978f34bd9948b0a905ea25f912d5d211e3ef01e3e2b5",
+    "sc018-sc056-main-a8c991c1-minimum-carry-review.md": "c637428bf8af7846322534763a397993743b325389d32502cec90fcdb3a53337",
+    "sc018-sc056-main-a8c991c1-minimum-carry-receipt.json": "5db3b1506656c77c51c49fc327a32b918c1708d5e0317a35794eef2bd38182e3",
+    "sc018-sc056-main-cfcee6877-minimum-carry-receipt.json": "2bf603fbcf8a52eee0bd161c597199f7a9db642c4c6a8575ce8594b1721feb3f",
+    "sc018-sc056-main-cfcee6877-minimum-carry-review.md": "ba66ffb6348b9a6fbc87e3a686ec2e6e50b0bfa7949d6151b53f79b87796fd9e",
+    "sc001-sc002-sc018-sc056-a8c991c1-github-gates.json": "b1c20504ff2400def2b606866755b804fdc7aa8d2f463c779405eecd873ff6a3",
+    "sc001-sc002-sc018-sc056-a8c991c1-carry-qualify.py": "a6211f49a3d919ec634e0a17b73dcd413e7eeebf5d3ef204903190c716663a7f"
+  },
+  "common_handover_lines_added": 28
+}

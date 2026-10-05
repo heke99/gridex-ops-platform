@@ -1,0 +1,17 @@
+{
+  "at": "2026-10-05T17:25:09.025522+00:00",
+  "pr": 513,
+  "head": "7eb5faa09ebee5a72a7415eaa7c85c00ce063ed1",
+  "actual_main_before": "25c0a12f78e650d456a62c789be8f814b595783e",
+  "expected_merge_tree": "a12d34bfbd6dee7cace2ca76dcac574e11b033d6",
+  "coverage_changed_only": [
+    "SC-041"
+  ],
+  "all_foreign_rows_metadata_order_preserved": true,
+  "scope_paths": [
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/test-ediel-unb-ack-request.cjs"
+  ],
+  "reviewed_tests_exact": "6655470b13f33c0ad8c5a096cb6ccb8219b534b2",
+  "tests_repeated": false
+}

@@ -1,3 +1,4 @@
+import type { Database } from '@/supabase/database.types'
 import { getEdielMessageById } from '@/lib/ediel/db'
 import { sendEdielMessageViaSmtp } from '@/lib/ediel/transport'
 import { supabaseService } from '@/lib/supabase/service'
@@ -53,7 +54,7 @@ async function updateOutboxStatus(params: {
   outboxItemId: string
   sendAttemptId?: string | null
   workerId?: string | null
-  payload: Record<string, unknown>
+  payload: Database['public']['Tables']['ediel_outbox']['Update']
 }): Promise<void> {
   let query = supabaseService
     .from('ediel_outbox')
@@ -92,9 +93,16 @@ export async function sendOutboxItem(params: {
     if (!item) return { status: 'blocked', messageId: null, error: 'outbox_item_not_found' }
     const status = clean(item.status)
     const lockedBy = clean(item.locked_by)
+    const lockedAt = Date.parse(clean(item.locked_at) ?? '')
     sendAttemptId = sendAttemptId ?? clean(item.current_send_attempt_id)
     if (status !== 'sending' || (lockedBy && lockedBy !== workerId)) {
       return { status: 'blocked', messageId: null, error: 'outbox_item_not_claimed_by_worker' }
+    }
+    // Internal lease bound matches claim_ediel_outbox_items' ten-minute
+    // default. The SQL owner rechecks its own clock at prepare and entry.
+    const observedAt = Date.now()
+    if (!Number.isFinite(lockedAt) || lockedAt > observedAt || observedAt - lockedAt >= 10 * 60 * 1000) {
+      return {status:'blocked',messageId:null,error:'ediel_outbox_worker_lease_expired'}
     }
   } else {
     const claimed = await claimEdielOutboxItem({
@@ -285,8 +293,6 @@ export async function sendOutboxItem(params: {
       payload: {
         status: 'sent',
         sent_at: technicalSentAt,
-        smtp_message_id: providerMessageId,
-        transport_channel: 'smtp',
         receiver_ediel_id: persistedMessage.receiver_ediel_id ?? null,
         receiver_subaddress: persistedMessage.receiver_sub_address ?? null,
         last_error: null,
@@ -309,7 +315,6 @@ export async function sendOutboxItem(params: {
           workerId,
           payload: {
             status: 'delivery_uncertain',
-            smtp_message_id: providerMessageId,
             last_error: `delivery_uncertain_after_smtp_send: ${errorMessage}`,
             locked_at: null,
             locked_by: null,

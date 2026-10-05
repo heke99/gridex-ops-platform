@@ -347,6 +347,16 @@ export const CANONICAL_EDIEL_BUSINESS_SEMANTICS: readonly CanonicalEdielBusiness
   ...ACK_SEMANTICS,
 ]
 
+for (const semantics of CANONICAL_EDIEL_BUSINESS_SEMANTICS) {
+  Object.freeze(semantics.senderRoles)
+  Object.freeze(semantics.receiverRoles)
+  Object.freeze(semantics.expectedBusinessResponses)
+  Object.freeze(semantics.expectedAcknowledgements)
+  Object.freeze(semantics.source)
+  Object.freeze(semantics)
+}
+Object.freeze(CANONICAL_EDIEL_BUSINESS_SEMANTICS)
+
 export function listCanonicalEdielBusinessSemantics(): readonly CanonicalEdielBusinessSemantics[] {
   return CANONICAL_EDIEL_BUSINESS_SEMANTICS
 }

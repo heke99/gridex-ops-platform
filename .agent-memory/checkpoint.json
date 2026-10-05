@@ -1,16 +1,16 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-04T23:00:00Z",
-  "status": "PAUSED_FOR_HANDOVER_CI_GREEN",
-  "paused": true,
-  "branch": "claude/cool-tesla-2pmyua",
-  "active_pr": 491,
-  "base_head_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+  "updated_at": "2026-10-05T17:14:00Z",
+  "status": "IN_PROGRESS",
+  "paused": false,
+  "branch": "codex/ediel-tr05-recovery-20261004",
+  "active_pr": 503,
+  "base_head_sha": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
   "runtime_accepted_sha": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
-  "last_merged_pr": 420,
+  "last_merged_pr": 512,
   "last_accepted_pr": 420,
   "root_main_acceptance_comment": null,
-  "active_item": "#491: TEN/ESCO/ACK klart; driv CI grön",
+  "active_item": "Masterplan v2: existing PR503 F3 correction/current CI and coordinated main baseline",
   "current_audit": "quality/audits/ediel-masterplan-v2/chat-handoff-20261001/",
   "pr421_syntax_header_remediation_20260930": {
     "baseline_head": "e0bd3641f617edb92e508bd62c2767730e20fca1",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Läs #491 CI på senaste head och åtgärda rött; nästa kluster enligt resterande kort efter claim på #491.",
+  "next_action": "Publish reviewed same503 composition once; require all nine current-head checks and actual clean/native/parity before guarded merge; other retained owners finish their distinct existing PRs.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1524,5 +1524,68 @@
     "TEN-07": "codex",
     "ESCO-10": "codex",
     "ESCO-11": "codex"
+  },
+  "masterplan_coordinator_current": {
+    "owner": "/root",
+    "coordination_issue": 530,
+    "source_composition_head": "105b8b87af0b1f02a8f82b869495703fb5ec8d5a",
+    "source_composition_tree": "1aa8738a7c0db47a4ee5754e02f78060c3bb45fe",
+    "adopted_main": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+    "last_observed_published_head": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "stored_main_approvals": 241,
+    "stored_candidate_approvals": 247,
+    "foreign_rows_preserved": 346,
+    "f3_reviewed_writer": "10f4e393ab63d51cf4c2460f1558f29c4cca9094",
+    "f3_verification": "Declared finite SQL RED56PASS2FAIL -> GREEN58PASS; actual composed58PASS; current native pending",
+    "prior_c5_clean_replay": "FAILURE_F3_19_NULL_ROW_IDENTITIES_UNKNOWN",
+    "capture_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "capture_run": 37319901610,
+    "capture_job": 111796010070,
+    "capture_artifact": 11351030885,
+    "capture_flags_unchanged": "NOT_RUN for original native/browser/schema comparison/upgrade",
+    "current_candidate_gate_status": "PENDING_PUBLICATION_AND_CURRENT_CI",
+    "source_proof_archive": "quality/audits/ediel-masterplan-v2/root503-f3-current-main-20261005",
+    "blocked_external_analysis": "Private IMP05 export: explicit user reply pending after automatic review rejection; excluded."
+  },
+  "coordinator_current_snapshot_20261005_1506": {
+    "actual_main": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "actual_main_tree": "b519b3271f5bdd41bc3aac794b607420b5b725f5",
+    "actual_main_approvals": 222,
+    "actual_main_verified": 92,
+    "actual_main_passed": 130,
+    "published_root_head": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "root_adopted_main": "36e873fbac87695f9d3522086f721961824e29f9",
+    "root_stored_approvals": 227,
+    "newer_main_not_yet_adopted": true,
+    "ci": "CURRENT_PENDING",
+    "coordination_comments": [
+      5997005674,
+      5997187270
+    ],
+    "private_imp05_analysis_export": "HELD_PENDING_EXPLICIT_USER_REPLY",
+    "receipt": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/15-06-snapshot.json"
+  },
+  "latest_actual_main_merge": {
+    "head": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+    "tree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+    "pr": 548,
+    "approvals": 224,
+    "root_candidate_frozen": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "new_main_not_yet_adopted": true
+  },
+  "root503_prior_coordinator_snapshot_20261005_1714": {
+    "owner": "/root",
+    "coordination_issue": 530,
+    "published_head": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "pre_import_consumer": "d2f820ebf7eeeccef3d86f01e2536c1b9ddd53e2",
+    "stored_main_approvals": 221,
+    "capture_run": 37319901610,
+    "capture_job": 111796010070,
+    "capture_artifact": 11351030885,
+    "capture_status": "SUCCESS_AUTHENTIC_RAW_IMPORT_INDEPENDENTLY_APPROVED",
+    "current_candidate_gate_status": "PENDING_NEW_PUBLICATION",
+    "sole_local_work": "Independently reviewed current source/import/adoption and four unique real merge handovers publishing now.",
+    "pre_publication_source_head": "7c6ecae3ca4bae3a9bc4574c034a71f8224b4888",
+    "blocked_external_analysis": "IMP05 new technical analysis: explicit user permission pending; omitted."
   }
 }

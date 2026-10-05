@@ -7,8 +7,39 @@
     {
       "id": "GOV-01",
       "acceptance_id": "AT-GOV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/source_manifest.json",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/deadlinePolicy.ts",
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+        "lib/ediel/rulebook/utiltsRulebook.ts",
+        "lib/ediel/rulebook/mapEdielError.ts",
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-utilts-field-matrix.test.ts",
+        "__tests__/ediel-utilts-effective-date.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-utilts-profiles.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-canonical-business-semantics.test.ts",
+        "__tests__/ediel-canonical-deadline-policy.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-ack-canonical-admission.test.ts",
+        "__tests__/ediel-ack-inherited-guide-consumers.test.ts",
+        "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.md",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.json",
+        ".agent-memory/masterplan-gov01-checkpoint.md"
+      ]
     },
     {
       "id": "GOV-02",
@@ -43,14 +74,32 @@
     {
       "id": "GOV-05",
       "acceptance_id": "AT-GOV-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts",
+        "__tests__/ediel-accepted-guide-package.test.ts",
+        "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+        ".agent-memory/masterplan-gov05-checkpoint.md"
+      ]
     },
     {
       "id": "GOV-06",
       "acceptance_id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "__tests__/ediel-version-time-anchors.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+        "__tests__/ediel-final-canonical-utilts-owner.test.ts",
         "quality/audits/ediel-masterplan-v2/context.md"
       ]
     },
@@ -1177,8 +1226,18 @@
     {
       "id": "TR-05",
       "acceptance_id": "AT-TR-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "TR-06",
@@ -1221,9 +1280,13 @@
     {
       "id": "TR-10",
       "acceptance_id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "VERIFIED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {
@@ -1313,8 +1376,30 @@
     {
       "id": "DB-03",
       "acceptance_id": "AT-DB-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/datedSourceMeasurements.ts",
+        "lib/billing/underlayEngine.ts",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-utilts-transaction-persistence.test.ts",
+        "__tests__/ediel-utilts-consumption-contract.test.ts",
+        "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+        "__tests__/ediel-source-decision-timeline.test.ts",
+        "__tests__/ediel-structural-source-wire.test.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-dated-source-measurements.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "scripts/ediel-utilts-late-version-sql-regression.mjs",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-source-owner-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        ".agent-memory/masterplan-db03-checkpoint.md"
+      ]
     },
     {
       "id": "DB-04",
@@ -1331,8 +1416,21 @@
     {
       "id": "DB-06",
       "acceptance_id": "AT-DB-06",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
     },
     {
       "id": "OPS-01",
@@ -1580,8 +1678,20 @@
     },
     {
       "id": "SC-011",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatPermissionLifecycle.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-service-grant-set-sql-regression.mjs",
+        "__tests__/ediel-permission-own-partition.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.md",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.json",
+        ".agent-memory/masterplan-sc011-sc023-checkpoint.md"
+      ]
     },
     {
       "id": "SC-012",
@@ -1889,13 +1999,29 @@
     },
     {
       "id": "SC-040",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "SC-041",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/ackPolicy.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "scripts/test-ediel-unb-ack-request.cjs"
+      ]
     },
     {
       "id": "SC-042",
@@ -2120,8 +2246,16 @@
     },
     {
       "id": "SC-063",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/tr-10-sc-063-native-approval-20261004.md",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/test-ediel-tr-10-reconciliation.cjs",
+        "scripts/test-ediel-tr-10-worker-source.cjs",
+        "__tests__/ediel-tr-10-reconciliation-copy.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-0c526-receipt.json"
+      ]
     },
     {
       "id": "SC-064",
@@ -2199,8 +2333,39 @@
     },
     {
       "id": "AT-GOV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/source_manifest.json",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/deadlinePolicy.ts",
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+        "lib/ediel/rulebook/utiltsRulebook.ts",
+        "lib/ediel/rulebook/mapEdielError.ts",
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-utilts-field-matrix.test.ts",
+        "__tests__/ediel-utilts-effective-date.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-utilts-profiles.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-canonical-business-semantics.test.ts",
+        "__tests__/ediel-canonical-deadline-policy.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-ack-canonical-admission.test.ts",
+        "__tests__/ediel-ack-inherited-guide-consumers.test.ts",
+        "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.md",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.json",
+        ".agent-memory/masterplan-gov01-checkpoint.md"
+      ]
     },
     {
       "id": "AT-GOV-02",
@@ -2231,13 +2396,31 @@
     },
     {
       "id": "AT-GOV-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts",
+        "__tests__/ediel-accepted-guide-package.test.ts",
+        "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+        ".agent-memory/masterplan-gov05-checkpoint.md"
+      ]
     },
     {
       "id": "AT-GOV-06",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/flows/utiltsCanonicalValidation.ts",
+        "__tests__/ediel-version-time-anchors.test.ts",
+        "__tests__/ediel-utilts-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+        "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+        "__tests__/ediel-final-canonical-utilts-owner.test.ts",
         "quality/audits/ediel-masterplan-v2/context.md"
       ]
     },
@@ -3117,8 +3300,18 @@
     },
     {
       "id": "AT-TR-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-tr-05-recovery-source.cjs",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "__tests__/ediel-prodat-recovery-gateway.test.ts",
+        "lib/ediel/intent/prodatRecoveryGateway.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4-receipt.json",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-d4.zip",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-approval.md",
+        "quality/audits/ediel-masterplan-v2/tr05-d4-whole-card-receipt.json"
+      ]
     },
     {
       "id": "AT-TR-06",
@@ -3156,9 +3349,13 @@
     },
     {
       "id": "AT-TR-10",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
-        "quality/audits/ediel-masterplan-v2/transport.md"
+        "quality/audits/ediel-masterplan-v2/transport.md",
+        "scripts/ediel-tr-10-reconciliation-native.test.ts",
+        "scripts/ediel-tr-05-recovery-native.test.ts",
+        "artifacts/masterplan-v2/ediel-tr05-tr10-native-05c6-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr-10-native-complete-approval-20261004.md"
       ]
     },
     {
@@ -3239,8 +3436,30 @@
     },
     {
       "id": "AT-DB-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "lib/ediel/utilts/consumptionContract.ts",
+        "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+        "lib/ediel/sources/structuralSourceSelection.ts",
+        "lib/ediel/sources/datedSourceMeasurements.ts",
+        "lib/billing/underlayEngine.ts",
+        "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "__tests__/ediel-utilts-transaction-persistence.test.ts",
+        "__tests__/ediel-utilts-consumption-contract.test.ts",
+        "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+        "__tests__/ediel-source-decision-timeline.test.ts",
+        "__tests__/ediel-structural-source-wire.test.ts",
+        "__tests__/ediel-structural-source-selection.test.ts",
+        "__tests__/ediel-dated-source-measurements.test.ts",
+        "__tests__/ediel-source-owner-runtime.test.ts",
+        "scripts/ediel-utilts-late-version-sql-regression.mjs",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "scripts/ediel-source-owner-native.test.ts",
+        "scripts/ediel-utilts-consumption-native.test.ts",
+        ".agent-memory/masterplan-db03-checkpoint.md"
+      ]
     },
     {
       "id": "AT-DB-04",
@@ -3254,8 +3473,21 @@
     },
     {
       "id": "AT-DB-06",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
     },
     {
       "id": "AT-OPS-01",

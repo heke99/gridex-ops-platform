@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-10-05T17:44:38.374598+00:00",
+  "verdict": "APPROVE_IMPLEMENTATION",
+  "head": "e0906c50a7b51f0e6e3f036565c5cfe5757fa30a",
+  "tree": "d51218d0b21f6a996d35056a7289d86f2cd1781d",
+  "review_sha256": "87960afe8cf06c26e236b9f2b820e93b6e22f8b51de78de014d427cc80493cd5",
+  "owned_ids": [
+    "GOV-01",
+    "AT-GOV-01"
+  ],
+  "tests_repeated": false,
+  "final_head_ci_required": true,
+  "limits": [
+    "No new original custody",
+    "No market or native authority approval",
+    "No other rule promotion"
+  ]
+}

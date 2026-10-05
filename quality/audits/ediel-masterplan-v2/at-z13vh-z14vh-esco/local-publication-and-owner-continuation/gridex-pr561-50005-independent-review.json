@@ -1,0 +1,349 @@
+{
+  "version": 1,
+  "reviewer": "at_z13v_requirement_review",
+  "pr": 561,
+  "head": "50005ee8fd2af075c0f8effaf3992ecaab9eb1eb",
+  "tree": "142b9e621f89ed4f8c2d66b39fc25b7e124c49f7",
+  "adopted_base": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "merge_base": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "authentic_api_head_base_and_handoff_verified": true,
+  "handoff_comment": {
+    "id": 5996045110,
+    "created_at": "2026-10-05T14:02:13Z",
+    "responds_to": 5995876037
+  },
+  "verdict": "APPROVE_BOUNDED_TEST_EVIDENCE",
+  "findings": {
+    "critical": [],
+    "important": [],
+    "minor": []
+  },
+  "whole_card_verdicts": {
+    "SC-051": "PARTIAL_INTEGRATION_E2E_QUALIFICATION",
+    "SC-068": "PARTIAL_INTEGRATION_E2E_QUALIFICATION"
+  },
+  "prior_missing_concrete_joins": {
+    "SC-051": "CLOSED_BOUNDED_ACTUAL_WORKER_FRESH_ADMISSION_SOURCE_REFUSAL",
+    "SC-068": "CLOSED_BOUNDED_ACTUAL_SQL_PRODUCTION_REFERENCE_AND_E66_EFFECT_SOURCE_REFUSAL"
+  },
+  "changed_paths": {
+    "count": 45,
+    "all_added": true,
+    "tests": 2,
+    "owned_quality_records": 43,
+    "production_helpers_schema_source_native_config_workflow_shared_memory_coverage_changes": 0,
+    "paths": [
+      "__tests__/ediel-sc-051-revision-treatment.test.ts",
+      "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/checkpoint.md",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/README.md",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/current-688-prior-envelope-carry.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/current-main-source-delta.patch",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/frozen-spec-check.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-final.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-final.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-first.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-first.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-lint.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-second.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-second.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-tsconfig.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-types.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-sc068-f6bf-independent-source-inputs.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-sc068-f6bf-independent-whole-review.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-sc068-f6bf-independent-whole-review.md",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-checks-20261005.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-final.diff",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-fourth-fixture.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-fourth-fixture.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-initial-fixture.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-initial-fixture.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-lint.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-second-fixture.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-second-fixture.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-third-fixture.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-third-fixture.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-types.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-types.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/static-invariants.log",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/verification-receipt.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/mode-source-search.txt",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/ownership-inventory.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/scoped-junit.xml",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/source-envelope.json",
+      "quality/audits/ediel-masterplan-v2/sc051-sc068/verification-receipt.json"
+    ]
+  },
+  "current_input_hashes": {
+    "verified": 51,
+    "mismatches": [],
+    "non_owned_equal_adopted_base": true
+  },
+  "cited_evidence_hashes": {
+    "verified": 36,
+    "mismatches": []
+  },
+  "prior688_inventory": {
+    "count": 688,
+    "all_equal_adopted_base": true,
+    "current_hash_mismatches": [],
+    "equal_old_hashes": 679,
+    "changed_modules": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "lib/ediel/inboundCases.ts",
+      "lib/ediel/matching.ts",
+      "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "lib/ediel/services/authorization.ts",
+      "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+      "lib/inbound-mail/inboundStatusUpdater.ts"
+    ],
+    "full_nine_delta_patch_read": true,
+    "not_recomputed_import_graph_or_execution_proof": true
+  },
+  "prior_assertions": [
+    {
+      "path": "__tests__/ediel-sc-051-revision-treatment.test.ts",
+      "prior_cases": 7,
+      "current_cases": 8,
+      "asserting_section_equal": true,
+      "current_test_sha256": "71eb67c02715da9e064e96312340e3cf589c878832e9e5fb3af9438c0ec9cc27"
+    },
+    {
+      "path": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "prior_cases": 7,
+      "current_cases": 8,
+      "asserting_section_equal": true,
+      "current_test_sha256": "573a70c3055939fcef3764af2d21fabcaac98e3a3dabee249a224ce09b344760"
+    }
+  ],
+  "current_owner_junit": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-green-final.xml",
+      "sha256": "edd6f89f5cc505174390f2dab20859f0abf0aabf5dfe58650274b6adb9b66942",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-focused.xml",
+      "sha256": "6de987d29a497aa9a53192037d5ddfb187ba7b64a02c964f1ff82f9c1b46b602",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "reviewer_runtime_execution": false,
+  "inherited_legal_groups_in_owner_SC068_log": {
+    "count": 20,
+    "observed": true,
+    "reviewer_rerun": false
+  },
+  "selected_current_SQL_bodies": [
+    {
+      "name": "gridex_ediel_inbound_context.derive_before_received_err_response_v1",
+      "line": 11920,
+      "body_sha256": "0e10cee1995e253786966552bca70e2b95f33974c0bca61136a2254600fecd7a",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_inbound_context.derive",
+      "line": 11899,
+      "body_sha256": "2cec2eb8da8da50341eff100e9486de7bc50cf59f932da2e89353b826d86bbc4",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_inbound_context.require_before_received_err_response_v1",
+      "line": 12038,
+      "body_sha256": "283b70e8ddda03c11668273c31df1d3c097a2a9e3fc7d1c1c7543fc4e6ef8358",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_inbound_context.require_v1",
+      "line": 12057,
+      "body_sha256": "f728a41d2b267ac46b9c78c233494bc6d5a111f7d448541de6538d0fe286e777",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_inbound_context.capture",
+      "line": 11882,
+      "body_sha256": "1974840b990f4d6424b34e52b057a845fc41123ea8b8b13ae9b506579644cdec",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "public.ediel_require_inbound_legal_context_v1",
+      "line": 45290,
+      "body_sha256": "ef448ea9e997867cb3f1bbb3b6804781216dc3ee75247a783c8c45cc87492878",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_received_sources.seal_utilts_insert_v1",
+      "line": 27053,
+      "body_sha256": "f0d8ffb7b0625ed18d7c488f0008d5cab4d84e54181a6b5b0209b311b79612e5",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_source_rules.capture_before_outbound_owner_v1",
+      "line": 16112,
+      "body_sha256": "86d9c395a38430396461d8b7e3fbc03d915c0d2ec0b6ac663534108ac8b7e424",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_source_rules.capture_before_native_ack_guide_v1",
+      "line": 16084,
+      "body_sha256": "c49e4085a0d35be2b0335ff5e3b07cacbcddc09f2051b1717c5c53f698936a11",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_source_rules.capture_v1",
+      "line": 16190,
+      "body_sha256": "fdab95af5ec87ef5b7b00a023a6fd63300bd7c3a4f523ad109d30511b91e830c",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "gridex_ediel_source_rules.probe_v1",
+      "line": 16234,
+      "body_sha256": "2c355f2fbbb8d310740d22efe4d74c93ce15efdee5e2ec30cb7c75128cfed147",
+      "saved_installed_body_matches_current_captured_body": true
+    },
+    {
+      "name": "public.ediel_probe_source_rule_pack_capture_v1",
+      "line": 43367,
+      "body_sha256": "19fa120c782ad27f8ad40f5b982fbd9acff0c17cb71317fefbf0e9f7d6991d5f",
+      "saved_installed_body_matches_current_captured_body": true
+    }
+  ],
+  "sourcepack_rpc_actual_service_role_guard": "supabase/schema.sql:43367",
+  "SC068_sql_snapshot_scope": [
+    "production original ediel_messages row unchanged",
+    "production held immutable legal receipt unchanged",
+    "source-pack receipts count0",
+    "monitored business sinks unchanged; unexpected source/storage ports throw"
+  ],
+  "SC068_not_zero_all_metadata_writes": true,
+  "empty_type_lint_limits": {
+    "owner_recorded_exits": {
+      "SC051_types_exit": 0,
+      "SC051_lint_exit": 0,
+      "SC068_types_exit": 0,
+      "SC068_lint_exit": 0,
+      "scope": "Each owned new test file checked separately with transitive imports; no full/native check."
+    },
+    "reviewer_did_not_execute": true,
+    "empty_logs_do_not_independently_prove_execution": true
+  },
+  "raw_failure_history": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-first.xml",
+      "sha256": "9f4a2b845994d09c3f05c0ecbbd8051778c917306c368ef263a37a8c224d99cf",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "expected 'ediel_source_rule_pack_basis_required' to contain 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT…'"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-second.xml",
+      "sha256": "49ebb0ae0191f278ee80277fca570d46b29c81b9012a3b6e8b81bfa2dd29484b",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "expected 'ediel_source_rule_pack_basis_required' to contain 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT…'"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc051-continuation-final.xml",
+      "sha256": "1ca72a8749520e2696dd556da6cc32a4c78885182f65875549c6f5e70d92ce51",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "expected undefined to match object { admissionDate: '2026-10-15', …(1) }"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-initial-fixture.xml",
+      "sha256": "e66f1bd07f68040766f368167f1d9958759ac81f950d72c9fe1061eaf4d48c71",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "function public.ediel_is_qualified_retention_transition_v1(public.ediel_messages, public.ediel_messages) does not exist"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-second-fixture.xml",
+      "sha256": "3a4836c93fd8ce3d97cf01dc480bd317e256e42364921399fe489a65dae16992",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "column \"hold_reason\" does not exist"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-third-fixture.xml",
+      "sha256": "e1db10f36fa1c0c13b0d388a706b6d32b4100e75d97c6226a3c2633eafd1ee88",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "expected [Function] to throw error including 'ediel_source_rule_pack_basis_required' but got 'utilts_final_canonical_transaction_ev…'"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc051-sc068/continuation/sc068-owned-fourth-fixture.xml",
+      "sha256": "c18a77977b42654f6156be4a7343ab6edbd1ca7b74a62c2d8c81a47d82bd3d76",
+      "tests": 8,
+      "failures": 1,
+      "failure_messages": [
+        "promise resolved \"{ message: { …(27) }, …(7) }\" instead of rejecting"
+      ],
+      "classification": "retained fixture/oracle correction, not reproduced production RED"
+    }
+  ],
+  "coverage": {
+    "byte_equal_adopted_base": true,
+    "row_count": 352,
+    "rows": [
+      {
+        "id": "SC-051",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      },
+      {
+        "id": "SC-068",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      }
+    ],
+    "promotion_authorized": false
+  },
+  "new_JSON_parse_count": 10,
+  "new_mode_required": false,
+  "production_defect_reproduced": false,
+  "native_provider_market_authentic_TGT_source_custody_qualification": "NOT_RUN_NOT_PROVEN_BY_THIS_REVIEW",
+  "ordinary_exact_head_CI": "NOT_QUALIFIED_BY_THIS_REVIEW",
+  "retained_merge_owner": "PR561 writer/root561",
+  "report": {
+    "path": "/tmp/gridex-pr561-50005-independent-review.md",
+    "sha256": "066951e3977afd9eb23c7bdad4faf8aa278355aa405ca1939eea313c367233e4",
+    "bytes": 16587
+  },
+  "reviewer_mutations": [
+    "new /tmp review report",
+    "new /tmp machine receipt"
+  ],
+  "tests_native_full_CI_rerun_or_external_post": false
+}

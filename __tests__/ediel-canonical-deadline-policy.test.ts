@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { vi } from 'vitest'
 
 import {
   assertCanonicalDeadlineCatalogConsistency,
@@ -106,5 +107,65 @@ describe('canonical Ediel deadline authority', () => {
     expect(scheduler).toContain('canonicalSupplierSwitchSendPolicyProjection')
     expect(scheduler).not.toContain(".from('market_process_policies')")
     expect(historicalAction).not.toContain('setUTCFullYear')
+  })
+})
+
+// masterplan: GOV-01, AT-GOV-01
+describe('published deadline source integrity before first canonical selection', () => {
+  it('retains the first actual Z01 response deadline after nested Z02 constraint mutation attempts', async () => {
+    vi.resetModules()
+    const source = await import('@/lib/ediel/rulebook/deadlinePolicy')
+    const rows = source.CANONICAL_EDIEL_DEADLINE_RULES.filter(row => row.code === 'Z02')
+    const original = rows.map(row => row.constraints[0].offset)
+    const writes = rows.map(row => Reflect.set(row.constraints[0], 'offset', 1))
+    try {
+      expect(source.canonicalZ01BusinessResponseDeadlineMinutes()).toBe(30)
+      expect(writes).toEqual([false, false])
+      expect(rows.map(row => row.constraints[0].offset)).toEqual([30, 30])
+    } finally {
+      rows.forEach((row, index) => Reflect.set(row.constraints[0], 'offset', original[index]))
+    }
+  })
+
+  it('retains the first actual supplier-switch policy after published Z03 constraint mutation attempts', async () => {
+    vi.resetModules()
+    const source = await import('@/lib/ediel/rulebook/deadlinePolicy')
+    const row = source.CANONICAL_EDIEL_DEADLINE_RULES.find(entry => entry.code === 'Z03' && entry.subtype === 'L')!
+    const constraint = row.constraints.find(entry => entry.kind === 'not_after')!
+    const original = constraint.offset
+    const wrote = Reflect.set(constraint, 'offset', -1)
+    try {
+      expect(source.canonicalSupplierSwitchSendPolicy({ subtype: 'L' })).toMatchObject({
+        maxAdvanceMonths: 14,
+        minimumLeadCalendarDays: 14,
+        latestRelativeToStartDays: -14,
+      })
+      expect(wrote).toBe(false)
+      expect(source.canonicalDeadlineCatalog()).toBe(source.CANONICAL_EDIEL_DEADLINE_RULES)
+    } finally {
+      Reflect.set(constraint, 'offset', original)
+    }
+  })
+
+  it('retains the first actual source locator and protects every published row and nested record', async () => {
+    vi.resetModules()
+    const source = await import('@/lib/ediel/rulebook/deadlinePolicy')
+    const row = source.CANONICAL_EDIEL_DEADLINE_RULES.find(entry => entry.code === 'Z03' && entry.subtype === 'L')!
+    const original = { ...row.source }
+    const wrote = Reflect.set(row.source, 'section', 'in-process-altered-locator')
+    try {
+      expect(source.canonicalSupplierSwitchSendPolicy({ subtype: 'L' }).source.section).toBe(original.section)
+      expect(source.canonicalSupplierSwitchSendPolicy({ subtype: 'L' }).source).toEqual(original)
+      expect(wrote).toBe(false)
+      expect(Object.isFrozen(source.CANONICAL_EDIEL_DEADLINE_RULES)).toBe(true)
+      for (const published of source.canonicalDeadlineCatalog()) {
+        expect(Object.isFrozen(published)).toBe(true)
+        expect(Object.isFrozen(published.source)).toBe(true)
+        expect(Object.isFrozen(published.constraints)).toBe(true)
+        expect(published.constraints.every(Object.isFrozen)).toBe(true)
+      }
+    } finally {
+      Reflect.set(row.source, 'section', original.section)
+    }
   })
 })

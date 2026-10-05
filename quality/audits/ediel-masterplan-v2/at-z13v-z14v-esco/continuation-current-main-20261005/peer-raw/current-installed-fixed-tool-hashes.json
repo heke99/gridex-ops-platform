@@ -1,0 +1,27 @@
+[
+  {
+    "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/typescript/lib/typescript.js",
+    "sha256": "3ae902c92cc44dace175c0e69e13a4b0899f6983c6121d76b9ab8dd5795e7675",
+    "matchesOriginalReceipt": true
+  },
+  {
+    "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/typescript/package.json",
+    "sha256": "822ef7ca6452205657b6288b066481ecf508bfbf43455d715cf7d3ec457561e6",
+    "matchesOriginalReceipt": true
+  },
+  {
+    "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/vitest/package.json",
+    "sha256": "e12762a5b629bea6cbb2b0540a8a15c50f3098bb3193d3e319293b58b64c4ed9",
+    "matchesOriginalReceipt": true
+  },
+  {
+    "path": "/workspace/gridex-ediel-sc010-sc071-20261005/node_modules/@types/node/package.json",
+    "sha256": "dff75445c782bf28ff62a6b3768aee8b50f87f21f776a8dec60206e28371fb8b",
+    "matchesOriginalReceipt": true
+  },
+  {
+    "path": "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "sha256": "b587d8a062552ab52ecae2a7b0bcd079351d1dc61cf2555fd5994f558274ae58",
+    "matchesOriginalReceipt": true
+  }
+]

@@ -48,3 +48,5 @@ Allowed statuses: `NOT_STARTED`, `IN_PROGRESS`, `PARTIAL`, `BLOCKED`,
 Never store API keys, tokens, secrets, `.env` content, private keys, passwords,
 full identity numbers, production customer data, raw webhook secrets, entire
 chats, chain-of-thought or complete terminal output.
+
+Current existing-PR integration: see the top of current-state.md/current-task.md and masterplan-root503-ci-integration-20261005.md. Older freeze snapshots are historical.

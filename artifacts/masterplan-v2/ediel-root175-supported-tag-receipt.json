@@ -1,0 +1,646 @@
+{
+  "purpose": "actual_supported_masterplan_gate_with_exact_unchanged_source",
+  "checkout_sha": "6b0e6a218f09efae230a01682beaf6af1d9104f1",
+  "checkout_tree": "3139fdb36d644c6a2d983e73b8e6815002ecf7fb",
+  "command": "node scripts/ediel-masterplan-test-coverage.cjs --check",
+  "runner": "Node22; local npx wrapper adds only --pool=threads --maxWorkers=2; actual scanner and all assertions unchanged",
+  "network_boundary": "Existing unit-loopback-network-boundary.cjs preload permits only loopback/local IPC; narrow tool permission corrected actual spawnSync npx EPERM",
+  "exit_code": 0,
+  "ids": 352,
+  "approved": 175,
+  "tagged_green": 186,
+  "tagged_failing": 0,
+  "untagged": 166,
+  "input_coverage_sha256": "3a598c935d7e2b465fecb559308f2dedd9fb4dd9a9771ca74f8f44ead9236062",
+  "scanner_sha256": "e23a0789eb9ea1fb9c7cda2f06901ecb075f9f9a2df1ad04900072e5d44f1bbe",
+  "tagged_test_inputs": {
+    "__tests__/ediel-accepted-projection-consumers.test.ts": {
+      "sha256": "bb0b252bdd409d4890628de7c961f8cb56e6f60989fe84105d20d20713f86f9a",
+      "git_blob": "5a50ea3ffb8978c1e1257f6de59f44feb32d154d"
+    },
+    "__tests__/ediel-ack-01-contrl.test.ts": {
+      "sha256": "193d9f0169456eb3f56471205f0db20f94719e22e5b1175506a599a81fe055f0",
+      "git_blob": "1151483e2629e8d317a70e981a608f0808debbf9"
+    },
+    "__tests__/ediel-ack-02-prodat-aperak.test.ts": {
+      "sha256": "8211fd9cc818e4f754d6f4a58d1953b5af7f428cba810263163c73bf82f49577",
+      "git_blob": "aa0fadee9f2688a2b5a9f64a4b15d779c7b111f3"
+    },
+    "__tests__/ediel-ack-03-10-aperak-structure.test.ts": {
+      "sha256": "c9938e767eb95d654eb2bd65d3ca23c1fb55015e7b3bd18bf1b3613cb6cfd849",
+      "git_blob": "f01c30fdef810be5058018075ef18169f360fb6b"
+    },
+    "__tests__/ediel-ack-04-05-utilts-ack.test.ts": {
+      "sha256": "1a141af1eb11628f7e070bf1897e94f498613b4efa0a96e2934fb8c4920f89b3",
+      "git_blob": "3d0cfe01e707d740cde7d0c49634f77aceb0983a"
+    },
+    "__tests__/ediel-ack-06-family-binding.test.ts": {
+      "sha256": "4f007285ef01e7444f30907e24225f9345c41285204946f85b7bfb63f80b4335",
+      "git_blob": "f61b552775da52ed84f605dea0bea2536923a600"
+    },
+    "__tests__/ediel-ack-outbox-retry-safety.test.ts": {
+      "sha256": "a519ef698d70f95d4fd21100146280f9c12edad6b890c602cdbc611693dd8324",
+      "git_blob": "03a808ecca784fb7f0dff26cc84d59c55f4209dc"
+    },
+    "__tests__/ediel-ack-source-correlation.test.ts": {
+      "sha256": "c9bb9b4e9bf7dcff6455e3654a4b0ac4f7b69bb78a813db809b1c97889b102f5",
+      "git_blob": "2f10f6c4fc183600f8844b532f286682cd609b57"
+    },
+    "__tests__/ediel-actor-role-profiles.test.ts": {
+      "sha256": "b8795e132cefbca3e3112a9441080228a0693338934f31b0a07af7952c3f5041",
+      "git_blob": "edbebfea81ae48a2335e5591b24b98927fef665d"
+    },
+    "__tests__/ediel-ai-bi-processing-decision.test.ts": {
+      "sha256": "bae15c4c6a4746b56c1803b814e41af88741ee085ec7dc4c176f0b03faa0788d",
+      "git_blob": "62fdec7f898ee4048bf16e509d84415c46cad08e"
+    },
+    "__tests__/ediel-ai-legal-transport-parties.test.ts": {
+      "sha256": "14cc5d3153def653e8159566c6f262de258ed1f8a9bb4e4eb11408660e7ce79d",
+      "git_blob": "a25e5cfe4fd6fc4d38a71da8aa45197f610a8dc1"
+    },
+    "__tests__/ediel-ai-list-format.test.ts": {
+      "sha256": "33d9b156f73c4144ed6016c62504bb639a7b0efda70e710b86acc87d35870e42",
+      "git_blob": "7f75fea645ade3db7c33ca8219957298b062247e"
+    },
+    "__tests__/ediel-ai-list-history.test.ts": {
+      "sha256": "e9b5fb79bca07bf103c277fae8e36104bb3e383f51edf5d5f74d0e21ff304562",
+      "git_blob": "7bd4297c7e3a9f2d4c9c65255b08878b2bd90e53"
+    },
+    "__tests__/ediel-beneficiary-projection-api.test.ts": {
+      "sha256": "4cf24f91394597257e77c6a2cd431eb65f811058c07e27c4318b54daf90f9393",
+      "git_blob": "7e15299a78a1ba9f543e8b3e04c50afde5d5f31d"
+    },
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts": {
+      "sha256": "07b330061f98122e677eeeb016b3e765845bbdde92eaf3a926c5098473849282",
+      "git_blob": "b5c779e6eaa41c487d4f1eb0f334213ab6699481"
+    },
+    "__tests__/ediel-bilateral-prodat-closure-operation.test.ts": {
+      "sha256": "d0bde6d3340d33207f72c341c296f84354f34109bc76963f7b53f25578acfc6d",
+      "git_blob": "5312e45afd4020cb7273bdcf6aae0a6735cffbc9"
+    },
+    "__tests__/ediel-bilateral-prodat-profile-intake.test.ts": {
+      "sha256": "3afaceccf1f3498fc2bce95bbb067a1ef4a0d2ac6bafd3e4055ed5251cfece74",
+      "git_blob": "22b0df7817bff477c99058b630ac6c0954158718"
+    },
+    "__tests__/ediel-bilateral-prodat-supply-consumer.test.ts": {
+      "sha256": "8eff977a75575f5d1165c673eb646b82515774a90fc2cd498b8aafd53f34e9d4",
+      "git_blob": "c12da008b3b812bdf737adb414272afa2781127b"
+    },
+    "__tests__/ediel-certificate-trust-crypto.test.ts": {
+      "sha256": "a9020c2cd693c566af5516a42a9b34faa88430568214e3a5b58765715ea48bae",
+      "git_blob": "22926e2c574dc86f6460de8bbe97cf0961a11dc7"
+    },
+    "__tests__/ediel-cms-recipient-set.test.ts": {
+      "sha256": "bb5d323b1511dedda1438863e6ead645f4471e166e8f3d3c8ee074496f1de66f",
+      "git_blob": "bbb7d63c0d6b2869bb644a30ee0eceb45f95401b"
+    },
+    "__tests__/ediel-committed-inbound-ack.test.ts": {
+      "sha256": "45f66682c6b348432d98296f1291d3e367264ab9b03b5dec27b25de86b8d36e8",
+      "git_blob": "8b56263d8e27cf24da8e9d32924c504cacb45dfb"
+    },
+    "__tests__/ediel-dsn-classification.test.ts": {
+      "sha256": "a206504d9f40ae81127a7c9d7bbc79badfd4e7b8ff6c3c934cf4f42103fb5818",
+      "git_blob": "76a0f645a347b9670ec4b599a26aec4069ff7c6d"
+    },
+    "__tests__/ediel-dsn-disposition.test.ts": {
+      "sha256": "b0f0335cda4ae4ae015b2c1be54b7485553c4a6330b3d569ae34499137288950",
+      "git_blob": "03dbada035478de9e5d11a3a8008908d97cec03d"
+    },
+    "__tests__/ediel-dsn-source-observations.test.ts": {
+      "sha256": "aa6286c57243b4a6545e5c74a344f0b14a2f3c11c8a3e4f1e9b2613c099b4069",
+      "git_blob": "a2d183116f0258c19cc2867de62de99d71affe82"
+    },
+    "__tests__/ediel-dsn-transport-candidates.test.ts": {
+      "sha256": "e2e72c310a5d3e859a2712d737c0ba4e3640fe981c2ccb9e80d7cbc66145845d",
+      "git_blob": "77ad6ddc50e02cf3ee3746a5da45855baf946f8f"
+    },
+    "__tests__/ediel-duplicate-103-orchestrator.test.ts": {
+      "sha256": "858116345642b613455a4e2e9a21358098bde387aa838c3782fada86f001c450",
+      "git_blob": "a885b881c04f7da9c168c22245c726177ce64c61"
+    },
+    "__tests__/ediel-e66-monthly-billing-resolution.test.ts": {
+      "sha256": "90835e859865db7f068bc3df9351e02f9cfe59a0a49d7782e9d4871f9e7d7b73",
+      "git_blob": "c002873906c9c8bd50b399147c588cc4969c3327"
+    },
+    "__tests__/ediel-esco-03-05-permission-responses.test.ts": {
+      "sha256": "2b85fb410f0ec62738dde1678d2a7c95f08d07b7d78e01b911dbf237db6327b6",
+      "git_blob": "c571ed36ebcf38c50ba99a71e90982c6635a0838"
+    },
+    "__tests__/ediel-esco-08-z18-fields.test.ts": {
+      "sha256": "f826473760b97eb1070cab34896b2c2b2f45cca9c05e46083e1c7d755a163b12",
+      "git_blob": "bbecf4abfdb94ad5bcc580bcccae6c01f537d2a0"
+    },
+    "__tests__/ediel-fresh-business-incident.test.ts": {
+      "sha256": "57448d665754b779988a7230128b87929838ecf782a4e36d8af82a9e9eb30e68",
+      "git_blob": "c23ac852bddd7f0e68342ea144ef0377e8aea40b"
+    },
+    "__tests__/ediel-future-capability-held.test.ts": {
+      "sha256": "faa0ad449179de92a754d0beaa0cd1bf2854209d73bcc49e1770118d53989424",
+      "git_blob": "fff286a467b145c9c005982d88af0d0813152207"
+    },
+    "__tests__/ediel-genuine-duplicate-103-response.test.ts": {
+      "sha256": "1d4d084fe595e8871b52f38201e5e8c92fc87da5399580f4b8dbe8d23ce1eac8",
+      "git_blob": "bd5e1841ca1502c5a5847c3ec930dd0e861782bf"
+    },
+    "__tests__/ediel-inbound-duplicate-scope.test.ts": {
+      "sha256": "6764662820535c572976101b12cf02bda1c73db5db6634befe3a156a4a39c852",
+      "git_blob": "9347c0c4e5cd27bba9422da93ec9088a3d9303d9"
+    },
+    "__tests__/ediel-inbound-mail-legal-receiver.test.ts": {
+      "sha256": "b9bc1b2a5d4e5ced6f4f90098906e7c8b7d7a5aace8a59ca44720ec4399114aa",
+      "git_blob": "ca9b7f49a908c73d8eca4625ac9221f2862a15c7"
+    },
+    "__tests__/ediel-inbound-verified-tenant-context.test.ts": {
+      "sha256": "bf17efae1f5a7681931a5ed89615a581717e4e094046b69f35c10540c9410309",
+      "git_blob": "e8a6bb72cfcf044a76d5e3114d11fb5ffa6b6a1e"
+    },
+    "__tests__/ediel-outbound-ack-protected-replay.test.ts": {
+      "sha256": "53fcbd23ed0f0405361c5bc3f2c96771763ed0387aa8d401b8912b255571858a",
+      "git_blob": "84b5015beb8e8746f9a71c09e111a0193715f00f"
+    },
+    "__tests__/ediel-outbound-execution-context.test.ts": {
+      "sha256": "0a81a38e1e72e5fa23fc9773cfe5f3ea210a098e175f5e13d958075bc3fbee16",
+      "git_blob": "fc0a615eac5dd48331433aa68427fed857f2bef4"
+    },
+    "__tests__/ediel-p-06-z13-birth-date.test.ts": {
+      "sha256": "5e68b26ad886a8e050f4b4103dbff392fefc9b25640a8d6cde1eb9ef3cf045f8",
+      "git_blob": "a0849124ade8e3ff7703ac01d40529d76b8f70e9"
+    },
+    "__tests__/ediel-packing-limit-authority.test.ts": {
+      "sha256": "6a889d3757d325567acf9222085a1c50b8846fcbc408aa6db53d2de4f2b39b16",
+      "git_blob": "46888b3fed9f17e6fd6d086d87d8fd2ce2991d9a"
+    },
+    "__tests__/ediel-periodic-dgi-outbound-candidate.test.ts": {
+      "sha256": "7e6966b225cd8dde0e677a4dd975120a45061202e603167916d7222762389aac",
+      "git_blob": "1fe933456954ad4fae2efaa6e540680a76407c78"
+    },
+    "__tests__/ediel-periodic-dgi-reason-authority.test.ts": {
+      "sha256": "bc6683f16af88a8af23a50c7486956be025a2c2d084d307e62cd069c1a0669d9",
+      "git_blob": "503dbbb13ae7249523f17fb930599e4107ee768b"
+    },
+    "__tests__/ediel-permission-identityless-register-scope.test.ts": {
+      "sha256": "c294f7dbfb0d53c16a6057ae70905fd5025169244451ca6ad15f8c27abd5b293",
+      "git_blob": "21f87f28daee35f09a6b6caba04ef68f468853f5"
+    },
+    "__tests__/ediel-prodat-26a-field-matrix.test.ts": {
+      "sha256": "c2af437bc8dd07bde56b1c6138402c9217182b99bfae609196923bac59525476",
+      "git_blob": "e24c7fdf19a649708432834d095021b465aef14c"
+    },
+    "__tests__/ediel-prodat-aperak-acw-match.test.ts": {
+      "sha256": "2b198cfe36564650a84cd345c1ddb6043e71975adc67a7682f6317baef62d048",
+      "git_blob": "d5f123a66bd2241839459a9663f92ab01539242d"
+    },
+    "__tests__/ediel-prodat-aperak-text-evidence.test.ts": {
+      "sha256": "e051faf2f7dfb2c7658e4725d5d2706ccfd8eeac73f147ec85bf01d3af1e16e6",
+      "git_blob": "926ff66b39f4b68cdd57926f94b6c1432a0a1735"
+    },
+    "__tests__/ediel-prodat-aperak-unused-document.test.ts": {
+      "sha256": "ccdca101f113d2ddec217568ce42addfc90a0157c58f61c93cd5eb7bd45d962c",
+      "git_blob": "197bf9e1ae6b2d42372fd225eeaf993a9534add8"
+    },
+    "__tests__/ediel-prodat-bilateral-source-capability.test.ts": {
+      "sha256": "5e467298dd8c11782847df866a6b14df920763561aef18f31e845844af76d0db",
+      "git_blob": "31f308026c8be81a555ba7a3c4cc0545a6eb98b2"
+    },
+    "__tests__/ediel-prodat-common-header-rejection.test.ts": {
+      "sha256": "6cb7373463fe77ce7bee79a599bb1bcc6901deee4b9d3c360d2d772568d98e13",
+      "git_blob": "4f1d787d5aa4e7aec36708ce479adc1f5e003b37"
+    },
+    "__tests__/ediel-prodat-date-boundaries.test.ts": {
+      "sha256": "c52b954f13b8287e29ca03dce3ed76a877cea928c604400ebc836c5067a192a5",
+      "git_blob": "56976e074a2b969d4b75d1525bbcd7b3b45b70a7"
+    },
+    "__tests__/ediel-prodat-date-consumers.test.ts": {
+      "sha256": "9aca839df42af14db554889948035b7a34498f157abdf985b73637d5f6e2d284",
+      "git_blob": "def131fa84bb556ad83b3ac5b0ec11a40af1426e"
+    },
+    "__tests__/ediel-prodat-date-event-wire-phase.test.ts": {
+      "sha256": "2a5eb19960f9b8dbd853ea2f31c54d9e9f02b79ee63713bfefaf4180e63f78c8",
+      "git_blob": "25fad19728d669aec1ffa31d272f443fffe4fd44"
+    },
+    "__tests__/ediel-prodat-date-events.test.ts": {
+      "sha256": "3a747686fafa6ae9b43c4bb1c8a0eda3f0d90d368fb33d8eb3ce6fdbc363b565",
+      "git_blob": "4ee193f990c63a428ccc96c5f9a63fc8e59e8d8e"
+    },
+    "__tests__/ediel-prodat-date-fields.test.ts": {
+      "sha256": "b2df2e00cd4fbdc1801dbe1866a0d1d4679c0669e73d9851d2b7b1d1cd2afde6",
+      "git_blob": "d0da8e7d3620a237113f002d12783e0b8714165e"
+    },
+    "__tests__/ediel-prodat-death-status-builders.test.ts": {
+      "sha256": "2db848f7f12b554f2d47c132c0072f89bfd806672c7fd5229375ca8e9c5e6db6",
+      "git_blob": "625b8f21535f13ba135ba5657643b31ccba2c7cb"
+    },
+    "__tests__/ediel-prodat-death-status-policy.test.ts": {
+      "sha256": "03a9cefb71f9912b5a1691c584830b12889360307fd6f68953eec7df41f49df7",
+      "git_blob": "2e0617db488dd021f123ea42552b3eb4bb8afa18"
+    },
+    "__tests__/ediel-prodat-death-status-source.test.ts": {
+      "sha256": "a3cf5af745a2bf3e0d3a4606bd065a47ce8255d8a929d2f6f730784c14246762",
+      "git_blob": "ed9f9169e2b7f036bfc8dbb5b9f31df40da94102"
+    },
+    "__tests__/ediel-prodat-dependent-subtype-send.test.ts": {
+      "sha256": "96cba41cb0e67e26fbaeae3a1aa24275a73ff383af0a59ec8be46c894922b874",
+      "git_blob": "d4e7d856001876f5c7099c8fc6e043a9db8f0616"
+    },
+    "__tests__/ediel-prodat-dependent-subtype-source.test.ts": {
+      "sha256": "66a71fc43fa3d4e871b77763c31313d7fc60afeeb62fb0bcb9bf370df83d8dda",
+      "git_blob": "56293c90a6711d3cc992803d4bcd19f3d347f8ed"
+    },
+    "__tests__/ediel-prodat-dependent-subtype-ud-boundaries.test.ts": {
+      "sha256": "c7136c4afa92f1e3e34689db040fa324e80a8a5d88d50ff6ddf8ee34e249fd97",
+      "git_blob": "8573f79e5c522ec4a60e5d51d2a3faf7dadb3b82"
+    },
+    "__tests__/ediel-prodat-dependent-subtype-ud.test.ts": {
+      "sha256": "582b3211ba61c0cb44ca1a6e4ffd965b6abd8f18876967117a2f9a04a8ff820a",
+      "git_blob": "29caab0891b73062ad9fdadd427bbce4ebd06ed5"
+    },
+    "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts": {
+      "sha256": "62ac74af7a24dee985c011eff17054e2cdf20b7b32ec23a04a273df1b52b1388",
+      "git_blob": "5dc33537aa5d33be0f71df9ebf6efed17f097ab2"
+    },
+    "__tests__/ediel-prodat-dependent-z14.test.ts": {
+      "sha256": "d3818c3eb62068bb76902af56da19004c23a4245b99a750258420fca04d24fad",
+      "git_blob": "c09b969a9a7c755cd6e7b112c332208da0b42bd0"
+    },
+    "__tests__/ediel-prodat-energy-product-inbound.test.ts": {
+      "sha256": "2f9cf10c837ae7adcce13f60803896cf19499f6d3c68217a83c1f5abc735fa7b",
+      "git_blob": "c80ae290aae7178c4d5c1c33522ebd5574ac22bc"
+    },
+    "__tests__/ediel-prodat-energy-product-scope.test.ts": {
+      "sha256": "aa8a2a3ee29161560d005b8e91a631b199bec88976fec0ca449d74c4d20577e2",
+      "git_blob": "3529a6d10c12b08aac9d1cf8b133a1a0ff4d1de0"
+    },
+    "__tests__/ediel-prodat-energy-product.test.ts": {
+      "sha256": "7fda7b006f7a24ca2ba6c7fb2a764da5408986f6a1b65344695f90c9949b5750",
+      "git_blob": "242526b6b7f3f8c355643aaf54ccf92bb79e7784"
+    },
+    "__tests__/ediel-prodat-field-identity-inbound.test.ts": {
+      "sha256": "8b0e53b62184f50d58957564885f7b2b8e1ae385d96b377132edeb52b24816d8",
+      "git_blob": "4d1eb0487e401a59d3bcf0fa80fab9df764b8269"
+    },
+    "__tests__/ediel-prodat-field-identity.test.ts": {
+      "sha256": "cba9cd26d15f5afcbc821e6623cebbd49463a45e6bd104150b84a3ffece724fe",
+      "git_blob": "1c3e77eeb2759b1e872716467d6de50c4e7827d3"
+    },
+    "__tests__/ediel-prodat-identity-li-compliance.test.ts": {
+      "sha256": "564a9b25b7b4c1a2654ccbdd4e3fc063d7b46241ea76ec253aaddedd7062ad72",
+      "git_blob": "792f6c5578c7bc18d6338800259ab1baff8e2304"
+    },
+    "__tests__/ediel-prodat-incoming-unused-fields.test.ts": {
+      "sha256": "0b23873c2f515fa1065bc467f9ba3361f9ea7665222347e3e8cf4c7e751e988a",
+      "git_blob": "e38e9653fb741b4f0a5ba79f44aaee32bcba8931"
+    },
+    "__tests__/ediel-prodat-mixed-object-outcome.test.ts": {
+      "sha256": "8f5b6cd93427a7c42f2281386dfa2268ae374c96d261879e082467854b537521",
+      "git_blob": "7af8ac8755877fda316bc3ad6bf704f10ae96c19"
+    },
+    "__tests__/ediel-prodat-prior-flow.test.ts": {
+      "sha256": "f29d5f0c27c9f7b96c8fd9f13bf4abd8f332b5f9763b299770bdb98937b7041e",
+      "git_blob": "0960e28846036a4b50c8d4ceffb15bfbbf6b193b"
+    },
+    "__tests__/ediel-prodat-reference-consumers.test.ts": {
+      "sha256": "65b1cb132a223643cd229f7edc1737e5797cc3c7be7a74bba0e600d17154e720",
+      "git_blob": "4269b259a820f4e9a005b302cbbb4c3f2f942b4c"
+    },
+    "__tests__/ediel-prodat-register-ack-boundary.test.ts": {
+      "sha256": "3eb9c368535769f1051c6c2ab670e74991524e431b62ecbc979db72271013a4e",
+      "git_blob": "fc20da1e645bc18f9715effe16fe091c77e6467b"
+    },
+    "__tests__/ediel-prodat-register-builders.test.ts": {
+      "sha256": "f64949c049e2851a8351516978dc9e10bc64f4c791262e779293e784ef5668c8",
+      "git_blob": "6208814de148c5560b83c31658f4805472fe37f2"
+    },
+    "__tests__/ediel-prodat-register-conditions.test.ts": {
+      "sha256": "6c15b2e263a5776e897f718d365c1632dadbc154a578b0e86836fbc4758797ba",
+      "git_blob": "f44c93b970f80fff7682adf4e825bff8ed7d03f0"
+    },
+    "__tests__/ediel-prodat-registers.test.ts": {
+      "sha256": "ea606af8523d21b937137b0316006a681e151af2e3d6c842fc326d52a3164218",
+      "git_blob": "f1de1875b880864f330dc1a44e2db36c618e04e5"
+    },
+    "__tests__/ediel-prodat-reporting-builders.test.ts": {
+      "sha256": "4540269dce71c54699cd7c5a487caf2b860a5cad4228223b00e5ee69e983be36",
+      "git_blob": "6a4ef59038d6a4d469b8e44c8a62ea3c391bfc79"
+    },
+    "__tests__/ediel-prodat-reporting-chain.test.ts": {
+      "sha256": "9b435fdb9c83b62dd1b088541b54f51548c9988a22254ad7334062c8964af8b9",
+      "git_blob": "8bf312ac0214f85e292de7307e34ae26722df134"
+    },
+    "__tests__/ediel-prodat-reporting-notes.test.ts": {
+      "sha256": "a557c35129f153c281946cfb5edb205e7f89219d75c6ff354f0d691a9d2f9159",
+      "git_blob": "7404610b17be45086238465c43273111e631569f"
+    },
+    "__tests__/ediel-prodat-reporting-policy-boundaries.test.ts": {
+      "sha256": "4b369fc341397f9c9e853c83e46574f55119b9c42fc4d751ff726ebf2addf40f",
+      "git_blob": "7a9f7bdf45e86d57ed561205ce825727994945a7"
+    },
+    "__tests__/ediel-prodat-structural-ack-retained-first.test.ts": {
+      "sha256": "cf33d633f8b3a6ca9b79d7a55af49c75e02afa8dd13190a79d76578d6c5bd09a",
+      "git_blob": "bc0a4cb771a88dbe3b63412f3f2e573f484f1b95"
+    },
+    "__tests__/ediel-prodat-subtypes.test.ts": {
+      "sha256": "b533b358d1b5ee3b5edc756185b3bd36a9406cfb2524a2e2ea73417a778a745d",
+      "git_blob": "487c69e7b0875537f31df2b5b39167d5ae4a2334"
+    },
+    "__tests__/ediel-prodat-z04-persisted-ack.test.ts": {
+      "sha256": "354d62debabb967132802e213d1d0bca75baa2ceef4bc7329775aa29d5ab2a70",
+      "git_blob": "b1d085e2c47db721de7d1525dd361fe84a59fa07"
+    },
+    "__tests__/ediel-prodat-z14-negative-context.test.ts": {
+      "sha256": "244cc7565643a96fffc1cc8565a337d5607042ccce514731a3f51ba8f6c476bf",
+      "git_blob": "43d4ab4a88e08225fc80b5978334a79ba309cf39"
+    },
+    "__tests__/ediel-raw-mime-archive.test.ts": {
+      "sha256": "ce9f97b8d4cb433f9b4c951d4fec15e8171ea4481b5a4853b417f3fabe5bf75b",
+      "git_blob": "73bdc30ab5cb61e0b00937afb261292397afa9c5"
+    },
+    "__tests__/ediel-received-structure-reader-boundaries.test.ts": {
+      "sha256": "cd415fecf4dabf2c2e68ce9f3c2b47a688e17e00cc84c62b49b097e5d79e1050",
+      "git_blob": "2ed96253ae3130706677f8bb15b31e55f3b47e7d"
+    },
+    "__tests__/ediel-received-structure-reader.test.ts": {
+      "sha256": "4d487e92e9ea1f75d63b0f920e35400836feda50a3a993553c4869d03afe1e6a",
+      "git_blob": "008ba82b8afd5a7bcf62c5282d90778a646cca62"
+    },
+    "__tests__/ediel-received-utilts-global-functional-validation.test.ts": {
+      "sha256": "c0634bb27a9fb206df8fd292ad87e9fa0166338a0621d424420a14fcda21da89",
+      "git_blob": "166f46d49343c5463394cb9bfa73f5e3ee2c29cd"
+    },
+    "__tests__/ediel-received-utilts-header-validation.test.ts": {
+      "sha256": "9904bf55173a5de00ba270a230edbb52f7870907eb31c3576662eb8665219b4f",
+      "git_blob": "9143c040aee19c5b0e3d917a63315f42f24d3133"
+    },
+    "__tests__/ediel-scoped-capability-readiness.test.ts": {
+      "sha256": "890e055f8eae9d7a5ea08b0df430416618360710906882e705a9491d02614af0",
+      "git_blob": "3186ef6b524f9f179f49f7ccdbeb4c9f7fb4e1f2"
+    },
+    "__tests__/ediel-service-permission-origin.test.ts": {
+      "sha256": "c9274981b943f8f40c8660fed6e1a26cb42cbdb4b19ffd33358a3b68b390ef19",
+      "git_blob": "02199e81ab66e041827c89d4961e1f868bd66acd"
+    },
+    "__tests__/ediel-smime-archive-send-guard.test.ts": {
+      "sha256": "214334e399a399ff181160d2ab4c53cc02bf2ad014ec7bc0411b1625578eed3d",
+      "git_blob": "28eb274898c7ee3754d5c257ad1c99b9ba77be5e"
+    },
+    "__tests__/ediel-smime-archive-storage.test.ts": {
+      "sha256": "3a2cb5bbcb95b7d63b2f013b0d6c406691c9780d60bb8b9e02454898905d6ee6",
+      "git_blob": "ad2b3fc32cb58fb9950e4512a797d2cfbf301ee7"
+    },
+    "__tests__/ediel-source-producer-reference.test.ts": {
+      "sha256": "f110035dffec822827e7065a2e2ce0e04fd695ee9018d982c7f6aecf4f58b076",
+      "git_blob": "7a0c0aea1809b52200e7dcecdca83c9592e90ec7"
+    },
+    "__tests__/ediel-structural-safe-apply-source.test.ts": {
+      "sha256": "aaa7e9eb4e7709e581451bc0ff2d1ff65dcb253eb4b7eb6ee50c75206ffba85e",
+      "git_blob": "207537a69d3b08f751ffec7a8092146c873f1a5c"
+    },
+    "__tests__/ediel-supply-end-followup.test.ts": {
+      "sha256": "843f9657101a88285c635175df950a9f52bd71558664ced411c310e757a91c6f",
+      "git_blob": "8f2d280d21cca740913b17de7e60714e9fb3369d"
+    },
+    "__tests__/ediel-supply-market-consumers.test.ts": {
+      "sha256": "ce38011de3e40a71a0a778ecbce6e8a9c2f7703425dbd80483b7c8b350764dcf",
+      "git_blob": "b6f9490ecaec53b11e915d5b559029593dcdc576"
+    },
+    "__tests__/ediel-switch-cancellation-source.test.ts": {
+      "sha256": "d120dddef484808385af191e7eca02edf05ba4cd1913f246f77b2292e2a70341",
+      "git_blob": "243ab224d5cddc746f29c41568827e1e63814878"
+    },
+    "__tests__/ediel-ten-01-02-identity-gate.test.ts": {
+      "sha256": "8f1e5b12f15fa612ccb3936fe92adf30fd391372b40d1307ebf25f63399c3117",
+      "git_blob": "895fdbf125dfb284f1ec4f7ee5bc5e6e92d09be0"
+    },
+    "__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts": {
+      "sha256": "90022776c966421f21fc7df95c1ff4f7fea44af9aa23844a32dd5b235b479fb2",
+      "git_blob": "49cb98289d9d3475c760e2a8f43a6b198c2c50f3"
+    },
+    "__tests__/ediel-ten-07-owner-original.test.ts": {
+      "sha256": "e57d647994a8d0154ee9fa39d24c96903d914b5edb1f6f4aff89fa58eac66e1a",
+      "git_blob": "78ee8ff4455910433195c5cb62f95ed923b4726d"
+    },
+    "__tests__/ediel-ten-11-no-fabricated-protocol-error.test.ts": {
+      "sha256": "cc7d06432f3af0e1f746efbbbb0b2cb003bd510f28c058113c1cecdcfda5cc2a",
+      "git_blob": "98893f44b1a537b95f3f4f0444a6374ea0d36ff2"
+    },
+    "__tests__/ediel-tr-01-mail-channels.test.ts": {
+      "sha256": "4f56277a8adcf054680f514591f8300a6c3611b68bc135ef2fc7397731985396",
+      "git_blob": "d3b7b1300a3129bc4f15f2a85902617ea7349bd7"
+    },
+    "__tests__/ediel-tr-01-production-recipient.test.ts": {
+      "sha256": "3a0fddcecb427db2eca97ffec147acd58ce1c747aadacc996d163fa4317ddac3",
+      "git_blob": "7f743b724f784c313e51f3c148467b2c53f97bf1"
+    },
+    "__tests__/ediel-tr-02-smtp-evidence.test.ts": {
+      "sha256": "85f86a7b4b301f9e0c53530c9f014eae11679d89f2324d9a6b9a0c212017cdb2",
+      "git_blob": "a9894e38a3ad636e01fbfcb8b5dcf86f9a1a2855"
+    },
+    "__tests__/ediel-tr-03-archive-dispatch.test.ts": {
+      "sha256": "2ee9dede44c4f8db227cf6c2e4534f1bcbf1ef5e7302720c97bba3cda3323e7a",
+      "git_blob": "7ededf8ff11771aa9bb3bdff0c4d61dbace5bf1b"
+    },
+    "__tests__/ediel-tr-04-attributed-dsn.test.ts": {
+      "sha256": "213f02436eb868a2882eba8e8a4ed48ab708d27fc0c0257be11540f394153410",
+      "git_blob": "c30a9f89125d13d96734b76bd303d691465353f6"
+    },
+    "__tests__/ediel-tr-10-reconciliation-copy.test.ts": {
+      "sha256": "da669cbccb0347c7489184a6133a409bcde8df12ca713fa23efe7b04e38f0c95",
+      "git_blob": "14e03f7bfccfcb87347b8b6cd02420d97bff0a86"
+    },
+    "__tests__/ediel-transport-byte-integrity.test.ts": {
+      "sha256": "cd0e9380a1257260edcef458042dc3ef575b3e7a733744368078233b9cddb970",
+      "git_blob": "ccd748d050810b6a4dec926aeae41e604eb8918a"
+    },
+    "__tests__/ediel-transport-copy-api.test.ts": {
+      "sha256": "7d07c42537887bd324d54566b232de613ac30b6f1de9ed8ee5b554fd10bcdfee",
+      "git_blob": "0545c5cade28ebe71df1a183ac626fdecfc6aaf1"
+    },
+    "__tests__/ediel-transport-security-resolution.test.ts": {
+      "sha256": "2296294f502f220609166697517bf06a3834665f7f8a64c037a7ede6a93103a5",
+      "git_blob": "dfb2b71f72a98853eba87eaa15bab6be04362778"
+    },
+    "__tests__/ediel-u-06-request-application-reference.test.ts": {
+      "sha256": "4ee980390a8f2bc76ca5776308734c55ededec2c6567a08aacec3a7fb6effec2",
+      "git_blob": "26093b793c76ae64ede75da71a94b9763e485406"
+    },
+    "__tests__/ediel-u-06-request-mandate-scope.test.ts": {
+      "sha256": "ee990f42893a811bf96c0d461c7291e0a354d2e7c7af8faaf2ecce378eaf33ff",
+      "git_blob": "5182f72b83aa033b6498f78bf83d19cf2ad311e0"
+    },
+    "__tests__/ediel-u-08-esco-partial-structure.test.ts": {
+      "sha256": "b4539691000274533c296a55c1e20945216a9c0cc9837d64c8c602acaaf8d656",
+      "git_blob": "d0ea019191800a7dde9fbacb248e698d97951db1"
+    },
+    "__tests__/ediel-u-10-interval-count.test.ts": {
+      "sha256": "16619a34620e8e44967123101ae75d2a1ae5c08b96a0ddf2fa3812b746345479",
+      "git_blob": "7aa11e2f4ff3fc107e711ef19aecd8d237f95f0a"
+    },
+    "__tests__/ediel-u-12-outbound-single-transaction.test.ts": {
+      "sha256": "3e6154e9bc82b987b7afd7e355eea569fc6196d6b9375f84ec70fa8ede3775f7",
+      "git_blob": "53d13a17930febd425e163bd2576818212153a1f"
+    },
+    "__tests__/ediel-u-19-prodat-reference.test.ts": {
+      "sha256": "178ca41eaf7c1778a1915a204f4a9e0c7cf6eb03b01e62fe2a61c85c1c81567b",
+      "git_blob": "81cf6a2c722854c61b964a9a2d9ec3a40be3668d"
+    },
+    "__tests__/ediel-unsm-grammar-consumers.test.ts": {
+      "sha256": "3530dde62849d92083e0045a9321b4a45ec3756e315192430b61147b36995615",
+      "git_blob": "9007000259dba7ddc7b29c2b93dd0978161cb82b"
+    },
+    "__tests__/ediel-unsm-inbound-source-hold.test.ts": {
+      "sha256": "9aa4e93806a1c98a943b93cd187c00fa9c6e0ed500cf0ca58dc3b0a160dcc7a9",
+      "git_blob": "b3e5c6818c7322a1e64b50d452ececb9165d3bf3"
+    },
+    "__tests__/ediel-utilts-aperak-physical-scope.test.ts": {
+      "sha256": "7f5cd652c4661bf61a333c887134258d2726b6f9299bd3eae52cc13c8ca1ab83",
+      "git_blob": "1121fb5e0a20fa9311c08cf39c4248fda7fca71e"
+    },
+    "__tests__/ediel-utilts-canonical-observation-scope.test.ts": {
+      "sha256": "aa60c9b425181b14c5ed297d080204f137383f2749f782c5326b3fb4f13aa914",
+      "git_blob": "c29b9af8e271f25e328a9f4bc5926d493db43e99"
+    },
+    "__tests__/ediel-utilts-consumption-contract.test.ts": {
+      "sha256": "cc5f524b390d9d412d9afc06e7f43748ff174111c909fdc727262edbd132ed08",
+      "git_blob": "3fec0723e8224ad4294a1c4c53c1fba10dbfa0c6"
+    },
+    "__tests__/ediel-utilts-decision-reuse.test.ts": {
+      "sha256": "ff83e1704621d56fe43b34b8763e18406415094f0cc650ecac4487a9012a071f",
+      "git_blob": "31062663a6d3edb045c903125e7ffe7da79de151"
+    },
+    "__tests__/ediel-utilts-effective-date.test.ts": {
+      "sha256": "942c00b0ccccaa7e58635ed829a8ff62684b02691e925075c35c4de706d726f1",
+      "git_blob": "ccf525da20653394e1973d034618625d6dca8e75"
+    },
+    "__tests__/ediel-utilts-err-canonical-guide.test.ts": {
+      "sha256": "af30f23643332f99b93620f62e644039cb0ec2b354b5a00ef3a0d907063f40fe",
+      "git_blob": "ebc98360d507422f5d9db44208da1f5bb7dc356f"
+    },
+    "__tests__/ediel-utilts-err-gateway.test.ts": {
+      "sha256": "23ef361ca21228e316b23120b44fe9008f973f3d42f0215c446e7c30786cde59",
+      "git_blob": "19f1a273ca897e1cbe7d25b5312240e63b498c51"
+    },
+    "__tests__/ediel-utilts-guide-execution-order.test.ts": {
+      "sha256": "4580ed919cbe2c1b59976836c9dc6e355a700d9a1a5e43922094799eba42cd9c",
+      "git_blob": "78e02a511635a5852dada2b7efabf2283d5423bc"
+    },
+    "__tests__/ediel-utilts-observation-order-guide.test.ts": {
+      "sha256": "d90269b26b7ae82a78b98510605fd4c8f7c5259101346765533262fcf616a89b",
+      "git_blob": "b1285b81b9a3eb42ee2d6b09a7f6534081069b36"
+    },
+    "__tests__/ediel-utilts-profile-own-scope.test.ts": {
+      "sha256": "faaff860d12b005dfbdac0779f033e1a1934499533ad9baaba0a665783238a31",
+      "git_blob": "807085af19e17abedfc3737d64240dc3f922b080"
+    },
+    "__tests__/ediel-utilts-quantity-precision.test.ts": {
+      "sha256": "626e4cb303bc4ebc4cf943226ce0f11e5eb5d8f0e44b3d9dcb7997041598c6be",
+      "git_blob": "8a929985bb164a78fd57d8ca63c38043733cb662"
+    },
+    "__tests__/ediel-utilts-runtime-cutoff.test.ts": {
+      "sha256": "a84dc0ec277e9728252241adf17fc7d435e04275b8b5e6a1501878bf61a2117b",
+      "git_blob": "b43f138ddba26dae82bc9a545ea6fadb0f2f049b"
+    },
+    "__tests__/ediel-utilts-s02-required-scope.test.ts": {
+      "sha256": "cb0d97ff6f1c047dcd82e00f951dd02e6ef24e944b5a75762da7bc58126928f6",
+      "git_blob": "ed74cec3f0b3f5a2a94c7d4ddd2deb88b71810c9"
+    },
+    "__tests__/ediel-utilts-structural-comparison.test.ts": {
+      "sha256": "4c5d21a15925bdfb7787becbb4a6197437635f379e7a654dc2df41680f953d89",
+      "git_blob": "7e6ba7ea641dfc4d3aebab45598f7b7198dc47ef"
+    },
+    "__tests__/ediel-utilts-transaction-disposition.test.ts": {
+      "sha256": "fdb7e3d292c6646e53bb8a144cb43045f66cb6d7f52e7e8d188b6d0d6a7e9079",
+      "git_blob": "99e7d65daf90460b088b7fe1059f51aae013c6da"
+    },
+    "__tests__/prodat-dependent-condition-engine.test.ts": {
+      "sha256": "acec12d7ff63a52ed8538fe213522d28eb365f0bed6891d5eea93602284646a0",
+      "git_blob": "e6cb894f9ba6441af6e0a4dabcb3497b70087005"
+    },
+    "__tests__/supplier-switch-activation-sweep.test.ts": {
+      "sha256": "3348a9e2e47b895dc180e08392467122041bfb17a2bc2c93f410256ee277f562",
+      "git_blob": "b9a32676a90f58e72067510c11408aeea54d2456"
+    },
+    "__tests__/tenant-ediel-identity-evidence.test.ts": {
+      "sha256": "9239bf93f5f58e7c21c51fe2db1a59e3a567e5ae88f6c9892b4f211acf15c642",
+      "git_blob": "34b0303733e32392ed337638ec577ebf022bbfd5"
+    },
+    "__tests__/utilts-aperak-contrl-central-engine.test.ts": {
+      "sha256": "e117e6b655e9f9b373197fca7d4abec623c91f2702cb2ea1b94ccf76d72963b9",
+      "git_blob": "42c244bf7a557b9cef48d216029c0d46785e69b7"
+    },
+    "scripts/test-ediel-esco-01-02-request-basis.cjs": {
+      "sha256": "946947dd6a6ef0980208b29d8317026776af868aebd8d0c9f7dd3012f44a8e39",
+      "git_blob": "ed4911465ee3294bc94c021e488df5f3563470dc"
+    },
+    "scripts/test-ediel-esco-04-07-permissions.cjs": {
+      "sha256": "f9e97830f4082f8871a41b54544b50609e9075bed596807fa40b000f6f66bfe6",
+      "git_blob": "64c4845be04b932d8a4e085c3ff5884eeeaf7c51"
+    },
+    "scripts/test-ediel-esco-06-request-coordination.cjs": {
+      "sha256": "2a6214c5c90b69a6ca32ca6dc0c0a3cfa16c2bbb70ba0f6f7f484232744dc27b",
+      "git_blob": "e1505cbebbf43cd5d288d0d13c621a3c49d70ba2"
+    },
+    "scripts/test-ediel-esco-08-09-shared-permission.cjs": {
+      "sha256": "6682a43031fae7cb11923d36313744a509b8bc0fa06b4b7b4e24921523f904a4",
+      "git_blob": "8679e6013ae040521da4af0b128de551ebe152c4"
+    },
+    "scripts/test-ediel-p-10-z02-correlation.cjs": {
+      "sha256": "d4c36e4dcc5f237ef75ffdbdab5b28edb0028285098f518751251ce97045ef3d",
+      "git_blob": "0e0402c38ba0f8279e549e7672969cf11fef8bfc"
+    },
+    "scripts/test-ediel-p-11-z04-order.cjs": {
+      "sha256": "7e1957a1ea9eb4a3ce4b4d5eebcf3c43713297f9304a6cda8d4c314148a53ed3",
+      "git_blob": "76f7d716dd87b9c7df4512ed61c75cef0c898ffe"
+    },
+    "scripts/test-ediel-p-12-z04ad-scope.cjs": {
+      "sha256": "e74942f1fdabc4103aeaeefd726ab3d40494bed05fd90f93882dc4e36aeae43a",
+      "git_blob": "9147425d83243f25f25703729ae89ed1ba7f26e4"
+    },
+    "scripts/test-ediel-p-13-end-preserves.cjs": {
+      "sha256": "403e1de10f63162347b82537515303be0653873697a0a336d4fa35970b5728d1",
+      "git_blob": "d41aa7c2b94f945ee2489bacc4f6779edf9a17a7"
+    },
+    "scripts/test-ediel-ten-07-scoped-projection.cjs": {
+      "sha256": "d78c0c44427de9016347845737806e7480f43714406b7914561da8f1b8b8417a",
+      "git_blob": "a1fc3424e3317b7436ee588a819a9e3fd6126fa5"
+    },
+    "scripts/test-ediel-ten-08-10-grants.cjs": {
+      "sha256": "54858fb61368c5c14e38205f2f050e37ad42ca3b8bff878a7ea162c373e73998",
+      "git_blob": "dd9fc20a64b03e070b8954ff8c7be87837e74c89"
+    },
+    "scripts/test-ediel-ten-09-resolve-timing.cjs": {
+      "sha256": "58981131f053fcc3d97f35d91b15edd577f3ba852dfd2ad560ab49732fbd1406",
+      "git_blob": "0e2cc70f6ae8cf285bca435545503c6ef9dd3a52"
+    },
+    "scripts/test-ediel-tr-02-smtp-ledger.cjs": {
+      "sha256": "00a09cf919bfeeb51d3ef35903a0f20c4d87a7063eceaf490a50b83bfc271e4b",
+      "git_blob": "be519c5d85766f21d2c8bedc6216411dded20725"
+    },
+    "scripts/test-ediel-tr-04-dsn-source.cjs": {
+      "sha256": "a0645958c47d46aee5180ea5357c374e726dab77f3377910be68a2dc2bd8b8c3",
+      "git_blob": "bee6fc01e0961ff55fda8f1e7cdc71a14b99236e"
+    },
+    "scripts/test-ediel-tr-05-recovery-source.cjs": {
+      "sha256": "2af174ec138f9e63f6f5903a40f829da443ad7845d935415e13ef0d05da4b966",
+      "git_blob": "6ba9019f4e2d8701ff4450bf837b1ccd2cddecd6"
+    },
+    "scripts/test-ediel-tr-10-reconciliation.cjs": {
+      "sha256": "52e54f8f8432d0a9f5069eff7f4d4b65142991c83b700738389b10295409ed4e",
+      "git_blob": "b0c77a83db522f512c5137902db9600aa9795990"
+    },
+    "scripts/test-ediel-tr-10-worker-source.cjs": {
+      "sha256": "983e43375923816ab623466c8ec1952accf67347af312c9137f6c14a1a7c2b03",
+      "git_blob": "27413e1a960aa7422c57f11b5c5356c3948285fe"
+    },
+    "scripts/test-ediel-unb-ack-request.cjs": {
+      "sha256": "879f4dafb2f52edf13a033c53af41f18f4696298fc838dc4f630d0b076627548",
+      "git_blob": "b994bb06b06a794b4c2015535fb2cd5ef93495dc"
+    },
+    "scripts/test-ediel-utilts-series-and-err-ack.cjs": {
+      "sha256": "778ad64bb4ad6af211d66774d012dabe19fa1ad876567690a180669cc86bb84e",
+      "git_blob": "b11b5b85813214b8babf79523e2ea00ef9ac5c1f"
+    }
+  },
+  "output_log_sha256": "387ced01dc14dda82fc3d05c8a191e9b75c9f543b3e144a5557b728349617cb6",
+  "original_log_archive": "artifacts/masterplan-v2/ediel-root175-supported-tag-log.zip",
+  "archive_sha256": "f4d6807ebb7c5d320c0db976ca32604ef01d2b6abb288c411508ab78e7449475",
+  "not_claimed": "This qualified parent result is not a new 189-row composed-head gate, native replay, schema capture, browser test, parity or market activation."
+}

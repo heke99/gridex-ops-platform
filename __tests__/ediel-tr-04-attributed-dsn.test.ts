@@ -6,6 +6,7 @@ import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProce
 const io = vi.hoisted(() => ({
   row: {} as Record<string, unknown>, attachments: [] as Record<string, unknown>[],
   calls: [] as string[], rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>,
+  intakeReads: [] as Record<string, unknown>[],
   updates: [] as Record<string, unknown>[], candidateError: false, observationError: false,
   tenant: vi.fn(() => { throw new Error('DSN must not resolve a business tenant') }),
   task: vi.fn(() => { throw new Error('DSN must not create a business task') }),
@@ -25,6 +26,10 @@ vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
     return query
   },
   rpc: (name: string, args: Record<string, unknown>) => {
+    if (name === 'ediel_read_unattributed_technical_intake_v1') {
+      io.intakeReads.push(args)
+      return Promise.resolve({ data: null, error: null })
+    }
     io.rpcCalls.push({ name, args })
     if (name === 'gridex_ediel_dsn_attempt_candidates_v1') return Promise.resolve({
       data: [{ attemptId: '00000000-0000-4000-8000-000000000011', messageId: '00000000-0000-4000-8000-000000000012', lane: 'generic_journal' }],
@@ -53,6 +58,7 @@ const source = (encoded: boolean) => [
 ].join('\r\n')
 beforeEach(() => {
   vi.clearAllMocks(); io.calls = []; io.rpcCalls = []; io.updates = []; io.attachments = []
+  io.intakeReads = []
   io.candidateError = false; io.observationError = false
   io.row = { id: uid(3), company_id: uid(1), ediel_mailbox_id: uid(4), environment: 'test',
     ediel_mailboxes: { id: uid(4), company_id: uid(1), environment: 'test', is_active: true },
@@ -66,6 +72,7 @@ it.each(['raw_email', 'body_text', 'attachment'] as const)('quarantines valid at
   if (field === 'attachment') io.attachments = [{ id: uid(8), raw_text: raw, is_edifact_candidate: true, filename: 'dsn.eml' }]
   else io.row[field] = raw
   expect(await processInboundEmailMessage({ inboundEmailMessageId: uid(3), actorUserId: uid(2) })).toEqual({ status: 'manual_review', companyId: uid(1), parseResultId: null })
+  expect(io.intakeReads).toEqual([{ p_inbound_email_message_id: uid(3), p_source_message_id: null, p_actor_user_id: uid(2) }])
   expect(io.rpcCalls.map(c => c.name)).toEqual(['gridex_ediel_dsn_attempt_candidates_v1', 'ediel_record_dsn_source_observation_v1'])
   expect(io.rpcCalls[0].args).toEqual({ p_company_id: uid(1), p_environment: 'test', p_mailbox_id: uid(4), p_rfc_message_id: '<original@fixture.invalid>', p_final_recipient: 'recipient@fixture.invalid' })
   expect(io.rpcCalls[1].args.p_input).toMatchObject({ companyId: uid(1), actorUserId: uid(2), inboundEmailMessageId: uid(3),
@@ -83,6 +90,7 @@ it.each(['raw_email', 'body_text', 'attachment'] as const)('quarantines valid at
 it.each(['candidate', 'observation'] as const)('keeps transport quarantine when the %s port fails', async failure => {
   io.row.raw_email = source(false); io.candidateError = failure === 'candidate'; io.observationError = failure === 'observation'
   expect(await processInboundEmailMessage({ inboundEmailMessageId: uid(3), actorUserId: uid(2) })).toMatchObject({ status: 'manual_review', parseResultId: null })
+  expect(io.intakeReads).toEqual([{ p_inbound_email_message_id: uid(3), p_source_message_id: null, p_actor_user_id: uid(2) }])
   expect(io.rpcCalls).toHaveLength(failure === 'candidate' ? 1 : 2)
   expect(io.updates[0]).toMatchObject({ match_status: 'dsn_transport_review', match_payload: { sourceObservation: null,
     observationStatus: failure === 'candidate' ? 'not_qualified' : 'source_observation_held' } })

@@ -1,6 +1,6 @@
 import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
-import { recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
+import { admitUnattributedTechnicalSource, recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 import { supabaseService } from '@/lib/supabase/service'
@@ -10,6 +10,7 @@ import type { InboundEntityMatch } from '@/lib/inbound-mail/inboundMatcher'
 import { createInboundMailTask } from '@/lib/inbound-mail/inboundTaskFactory'
 import { classifyProductionInboundDecision } from '@/lib/ediel/inbound/productionInboundDecisionEngine'
 import { tenantResolutionForStorage, type InboundTenantResolution } from '@/lib/ediel/tenant/resolveInboundTenant'
+import type { Database } from '@/supabase/database.types'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -110,7 +111,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'CONTRL') {
     return {
       contrl_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
-      syntax_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       syntax_check_status: isNegativeContrL(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeContrL(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeContrL(parsed) ? nowIso() : null,
@@ -122,7 +122,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'APERAK') {
     return {
       aperak_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
-      application_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       functional_check_status: isNegativeAperak(parsed) ? 'rejected' : 'accepted',
       ack_outcome: isNegativeAperak(parsed) ? 'negative' : 'positive',
       failed_at: isNegativeAperak(parsed) ? nowIso() : null,
@@ -134,7 +133,6 @@ function ackColumnsForParsed(parsed: ParsedEdifactEnvelope): Record<string, unkn
   if (parsed.messageFamily === 'UTILTS_ERR') {
     return {
       utilts_err_status: 'received',
-      application_status: 'rejected',
       functional_check_status: 'rejected',
       ack_outcome: 'negative',
       failed_at: nowIso(),
@@ -338,6 +336,12 @@ export async function createInboundEdielMessage(input: {
   const matchedOperationId =
     typeof matchedOutbound.operation_id === 'string' ? matchedOutbound.operation_id : null
 
+  // The immutable reception owner reads this text selector from the original.
+  // Bind it at birth to the same retained mail as the public UUID link.
+  const receptionBirth: Pick<Database['public']['Tables']['ediel_messages']['Insert'], 'inbound_email_message_id' | 'mailbox_message_id'> = {
+    inbound_email_message_id: input.inboundEmailMessageId,
+    mailbox_message_id: input.inboundEmailMessageId,
+  }
   const insertPayload = {
     company_id: input.companyId,
     environment: normalizedEnvironment,
@@ -369,7 +373,7 @@ export async function createInboundEdielMessage(input: {
           ? 'partially_matched'
           : 'business_unresolved',
     processing_status: input.outboundMatch?.status === 'matched' ? statusForInboundEdielMessage(input.parsed) : 'manual_review',
-    inbound_email_message_id: input.inboundEmailMessageId,
+    ...receptionBirth,
     related_message_id: matchedOutboundEdielMessageId,
     outbound_request_id: matchedOutboundRequestId,
     metering_point_id: matchedMeteringPointId,
@@ -476,6 +480,7 @@ export async function createInboundEdielMessage(input: {
 
 export async function createUnresolvedInboundEdielMessage(input: {
   companyId?: string | null
+  actorUserId?: string | null
   inboundEmailMessageId: string
   parseResultId?: string | null
   parsed: ParsedEdifactEnvelope
@@ -491,58 +496,26 @@ export async function createUnresolvedInboundEdielMessage(input: {
     parseResultId: input.parseResultId ?? null,
   })
   const resolutionStatus = tenantResolutionStatus(input.tenantStatus)
-  const insertPayload = {
-    company_id: input.companyId ?? null,
-    direction: 'inbound',
-    message_standard: 'edifact',
-    message_family: input.parsed.messageFamily,
-    message_code: parsedMessageCode(input.parsed),
-    status: 'received',
-    sender_ediel_id: input.parsed.senderEdielId,
-    sender_sub_address: input.parsed.senderSubAddress,
-    receiver_ediel_id: input.parsed.receiverEdielId,
-    receiver_sub_address: input.parsed.receiverSubAddress,
-    parsed_unb_sender_ediel_id: input.parsed.senderEdielId,
-    parsed_unb_receiver_ediel_id: input.parsed.receiverEdielId,
-    resolved_company_id: input.companyId ?? null,
-    interchange_reference: input.parsed.interchangeReference,
-    transaction_reference: input.parsed.transactionReference,
-    application_reference: input.parsed.applicationReference,
-    external_reference: input.parsed.bgmReference,
-    original_message_id: input.parsed.bgmReference,
-    raw_payload: input.parsed.rawPayload,
-    parsed_payload: mergeTenantResolutionIntoPayload(input.parsed as unknown as Record<string, unknown>, input.tenantResolution),
-    validation_report: mergeTenantResolutionIntoPayload({
-      status: 'routing_unresolved_manual_review',
-      reasons: input.reasons,
-      candidates: input.candidates,
-      syntaxDecision: 'not_checked',
-      routingDecision: resolutionStatus,
-      note: 'Tenant-routing stoppade affärsuppdatering. Detta är inte ett EDIFACT-syntaxfel och ska inte automatiskt skapa negativ CONTRL.',
-    }, input.tenantResolution),
-    tenant_resolution_status: resolutionStatus,
-    business_match_status: 'blocked',
-    processing_status: resolutionStatus,
-    inbound_email_message_id: input.inboundEmailMessageId,
-    mailbox_message_id: input.inboundEmailMessageId,
-    message_received_at: nowIso(),
-    parsed_at: nowIso(),
-    failure_reason: null,
-  }
+  // Local attribution failure is not a protocol/object rejection. Only the
+  // protected prospective custody producer may create this technical original.
+  if (input.companyId || !input.actorUserId || !input.parseResultId ||
+    !['test', 'production'].includes(input.environment ?? '') ||
+    !['PRODAT', 'UTILTS'].includes(input.parsed.messageFamily)) return null
 
-  const { data, error } = await supabaseService
-    .from('ediel_messages')
-    .insert(insertPayload)
-    .select('id')
-    .maybeSingle()
-
-  if (error) {
-    console.warn('[inbound-mail] Kunde inte skapa unresolved inbound ediel_message', error)
+  let edielMessageId: string
+  try {
+    const admitted = await admitUnattributedTechnicalSource({
+      actorUserId: input.actorUserId,
+      inboundEmailMessageId: input.inboundEmailMessageId,
+      parseResultId: input.parseResultId,
+      rawPayload: input.parsed.rawPayload,
+      environment: input.environment!,
+    })
+    edielMessageId = admitted.sourceMessageId
+  } catch (error) {
+    console.warn('[inbound-mail] Teknisk källa hålls utan säker originalauktoritet', error)
     return null
   }
-
-  const edielMessageId = (data as { id?: string } | null)?.id ?? null
-  if (!edielMessageId) return null
 
   await supabaseService.from('ediel_unresolved_items').insert({
     company_id: input.companyId ?? null,

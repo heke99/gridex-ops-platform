@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-05T17:08:31.038977+00:00",
+  "pr": 514,
+  "head": "338a6abb47291eb9d3bcc7bf3261626e0e29162c",
+  "actual_main_before": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "expected_merge_tree": "bd7a50913a5c23eabe11e4f16a84b604d95c1822",
+  "coverage_changed_only": [
+    "ENV-07",
+    "AT-ENV-07"
+  ],
+  "all_other_350_rows_metadata_order_preserved": true,
+  "scope_paths": [
+    ".agent-memory/ediel-env07-checkpoint.md",
+    "__tests__/ediel-env07-outbox-separation.test.ts",
+    "__tests__/ediel-prodat-interchange-batching.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "reviewed_test_exact": "ba8b0741",
+  "whole_approval_comment": 5984406183,
+  "selected_source_carry": "108 inputs/1 referenced migration; current main512 adds only unrelated test/ledger/memory; previously reviewed508 AST delta remains qualified",
+  "tests_repeated": false
+}

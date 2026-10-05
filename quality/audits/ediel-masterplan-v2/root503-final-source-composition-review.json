@@ -1,0 +1,90 @@
+{
+  "decision": "APPROVE_SOURCE_COMPOSITION",
+  "scope": "Immutable source preservation and truthful provenance only; no full-card or final runtime approval",
+  "reviewed_tree": "a28ae5f5d6fe44e58962ccfc958c79e390c6ee28",
+  "prior_tree": "e446ae0722eec0e6b2652ebd1ef0434808dc4ab2",
+  "parents": {
+    "root": "fcff88afef65e1e4090fda25b1c55a8de7c5a3e5",
+    "dsn": "4b2245416df6d268c48db32ff6f01915396af94d",
+    "primary": "1db2920c3b23c5029f9f2946c671955ada6e559d",
+    "main": "507e8bfa20606be31933eea1582066267ff2577a"
+  },
+  "common_base": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+  "all_tree_paths": 7496,
+  "multi_parent_paths": [
+    ".agent-memory/handover.md",
+    ".agent-memory/masterplan-codex-dsn-checkpoint.md",
+    "lib/inbound-mail/inboundStatusUpdater.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-source-owner-native.config.ts",
+    "scripts/migration-history-manifest.json",
+    "scripts/supabase-types-manifest.json",
+    "supabase/schema.fingerprint.json",
+    "supabase/schema.sql"
+  ],
+  "unexpected_source_loss": [],
+  "root_forwards": [
+    {
+      "path": "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+      "git_blob": "45b27af733d94eb3b0bea3f129302014bbb745e6",
+      "sha256": "35480da2d1476a7ae676a7df23deb2eb102b285b5eadaa22c775e11e932980f1"
+    },
+    {
+      "path": "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+      "git_blob": "50d7bc9a181a2bf26aa62f65314112df9c8c3a47",
+      "sha256": "888d1c2dc890647e69105a3077b0b6b902f27a1afea09e03c74987c275e756e4"
+    },
+    {
+      "path": "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+      "git_blob": "b7301ea1968fce510fb1251bc4fa0e56ac5d4006",
+      "sha256": "61beb70a0b8b4837d0356dfe86c2c1a9a4798f74dc549b0292af63f79cde2cb8"
+    },
+    {
+      "path": "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+      "git_blob": "1018826e24516776a0ff32efd7a2e1debf89219b",
+      "sha256": "ed925604abf81ebab51a778797ce040a290c8d05aefcd23a156e4004eb765f6b"
+    },
+    {
+      "path": "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+      "git_blob": "6b034ed08fb5758b561cab8bb9f0b1b60b3a991f",
+      "sha256": "2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad"
+    }
+  ],
+  "migration_files": 1069,
+  "canonical_14digit_version_groups": 972,
+  "all_raw_migration_hashes_verified": true,
+  "frozen_originals": 33,
+  "rules": 121,
+  "acceptance_contracts": 231,
+  "coverage_rows": 352,
+  "parent_approval_markers": 210,
+  "coverage_status_and_evidence": "Exact parent union; root TR05/TR10/AT/SC rows unchanged; P08/AT and SC036 exact primary PARTIAL. 210 retained parent markers are not reviewer-wide approval.",
+  "generated_raw": "All three exact root fcff",
+  "capture": "Original root object unchanged; capture/latest220429 and source/latest020000 correctly separated; pending=true; fresh composed capture mandatory.",
+  "manifest_pointers": "Main9dc, current TR04 4b and sole primary1db blob and SHA256 each independently verified",
+  "shared_ack_union": "Root typed resolved-mail birth/nonexistent-column removal preserved; primary unresolved mailbox birth, two positive legacy guards and canonical constant/guard preserved; no unrelated differences",
+  "handover": "All nonempty lines of all parent streams preserved; root checkpoint old bytes retained under new current preamble",
+  "new_tests_run_by_reviewer": false,
+  "not_qualified": [
+    "new composed capture",
+    "final-head CI/native/upgrade/browser/parity",
+    "whole unreviewed primary scenario approvals",
+    "later primary72a9/17537736 deltas"
+  ],
+  "snapshot_sha256": "f2eef2faa7b9ac09b3ce6f9a3e2b5cbb861441888e9f34c3aa9b3375aeac7ede",
+  "review_time_utc": "2026-10-05T03:46:04.288547+00:00",
+  "skill_routing": {
+    "applied": [
+      "code-review",
+      "differential-review",
+      "verification-before-completion",
+      "supabase"
+    ],
+    "outside_scope": [
+      "new implementation",
+      "broad security scan",
+      "UI/performance",
+      "native or workflow execution"
+    ]
+  }
+}

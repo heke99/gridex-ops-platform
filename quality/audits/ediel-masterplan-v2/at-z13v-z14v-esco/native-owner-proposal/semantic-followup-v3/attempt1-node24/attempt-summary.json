@@ -1,0 +1,8 @@
+{
+  "command": "node --max-old-space-size=4096 /tmp/gridex-z14-native-owner-proposal-semantic-check/check-overlay.cjs",
+  "nodeVersion": "v24.19.0",
+  "semanticResult": "UNAVAILABLE: compiler diagnostics computed but not persisted before receipt-only child_process git EPERM",
+  "toolExitCode": 1,
+  "nativeExecution": "NOT_RUN",
+  "repositoryMutation": "NONE by this check"
+}

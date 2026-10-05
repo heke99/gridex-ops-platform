@@ -78,6 +78,13 @@ const ACK_MATRIX: readonly CanonicalAckMatrixRule[] = [
   },
 ] as const
 
+for (const rule of ACK_MATRIX) {
+  Object.freeze(rule.businessResponses)
+  Object.freeze(rule.acknowledgeIncomingMessageWith)
+  Object.freeze(rule)
+}
+Object.freeze(ACK_MATRIX)
+
 function normalize(value: unknown): string {
   return String(value ?? '').trim().toUpperCase().replace('-', '_')
 }

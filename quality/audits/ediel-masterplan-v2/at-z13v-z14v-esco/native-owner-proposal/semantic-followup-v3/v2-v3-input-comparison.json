@@ -1,0 +1,26 @@
+{
+  "inputCount": 1685,
+  "sameInputPaths": true,
+  "changedInputs": [
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+      "v2": "b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f",
+      "v3": "a82ca826ae7b9ab25ff83bf7b4af5c0fa42533edf543ac808f30ae9b1909d0c3"
+    }
+  ],
+  "sameFields": [
+    "compilerOptions",
+    "rootNames",
+    "packages",
+    "fixedInputs",
+    "compiler",
+    "head",
+    "targetBlob"
+  ],
+  "sameNodeVersion": true,
+  "v2Errors": 9,
+  "v3Errors": 0,
+  "v2ExitCode": 1,
+  "v3ExitCode": 0,
+  "onlyEffectiveSourceChange": "Visible qualify overload declarations146/147 reversed; body/oracles unchanged"
+}

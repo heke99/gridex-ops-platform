@@ -10,13 +10,13 @@ const id=n=>`00000000-0000-0000-0000-${String(n).padStart(12,'0')}`
 let checks=0
 const check=(actual,expected)=>{assert.deepEqual(actual,expected);checks++}
 function fn(file,name){const sql=readFileSync(new URL(file,import.meta.url),'utf8'),a=sql.indexOf(`CREATE FUNCTION ${name}`),b=sql.indexOf('$$;',a);if(a<0||b<0)throw Error(name);return sql.slice(a,b+3)}
-const raw=(code,objects,sender='54321',receiver='12345')=>["UNB+UNOC:3+54321:14+12345:14+261001:1200+I++23-DDQ-PRODAT","UNH+M+PRODAT:D:97A:UN:E2SE6A",`BGM+${code}+DOC+9`,`NAD+FR+${sender}:160:SVK`,`NAD+DO+${receiver}:160:SVK`,...objects.flatMap((own,i)=>[own.point===null&&own.agency===null?`LIN+${i+1}`:`LIN+${i+1}++${own.point??''}:::${own.agency??'9'}`,`RFF+LI:${own.li??'LI-A'}`,'RFF+Z05:TES',...(own.permission?[`RFF+Z09:${own.permission}`]:[]),...(own.omitCustomer?[]:[`NAD+UD+${own.customer??'PERSON-A'}:SE1:260`]),'CCI++Z13',`CAV+${own.reason??'S17'}`,...(own.status?['CCI++Z23',`CAV+${own.status}`]:[]),...(own.start?[`DTM+90:${own.start}:203`]:[]),...(own.end?[`DTM+91:${own.end}:203`]:[]),...(own.permissionEnd?[`DTM+164:${own.permissionEnd}:203`]:[]),...(own.endReason?['CCI++Z25',`CAV+${own.endReason}`]:[]),'CCI++Z14','CAV+::::8716867000030']),"UNT+40+M","UNZ+1+I"].join("'")+"'"
+const raw=(code,objects,sender='54321',receiver='12345')=>["UNB+UNOC:3+54321:14+12345:14+261001:1200+I++23-DDQ-PRODAT","UNH+M+PRODAT:D:97A:UN:E2SE6A",`BGM+${code}+DOC+9`,`NAD+FR+${sender}:160:SVK`,`NAD+DO+${receiver}:160:SVK`,...objects.flatMap((own,i)=>[own.point===null&&own.agency===null?`LIN+${i+1}`:`LIN+${i+1}++${own.point??''}:::${own.agency??'9'}`,`RFF+LI:${own.li??'LI-A'}`,'RFF+Z05:TES',...(own.permission?[`RFF+Z09:${own.permission}`]:[]),...(own.omitCustomer?[]:[`NAD+UD+${own.customer??'PERSON-A'}:SE1:260`]),'CCI++Z13',`CAV+${own.reason??'S17'}`,...(own.status?['CCI++Z23',`CAV+${own.status}`]:[]),...(own.start?[`DTM+90:${own.start}:203`]:[]),...(own.end?[`DTM+91:${own.end}:203`]:[]),...(own.permissionEnd?[`DTM+164:${own.permissionEnd}:203`]:[]),...(own.endReason?['CCI++Z25',`CAV+${own.endReason}`]:[]),'CCI++Z14','CAV+::::8716867000030']),"UNT","UNZ+1+I"].map((segment,index,segments)=>index===segments.length-2?`UNT+${segments.length-2}+M`:segment).join("'")+"'"
 const service=async(sql,params=[])=>{await db.exec('SET ROLE service_role');try{return await db.query(sql,params)}finally{try{await db.exec('RESET ROLE')}catch{ /* preserve actual transaction error */ }}}
 const apply=(source=id(30),expected=null,actor=id(2),company=id(1))=>service('SELECT public.ediel_apply_permission_source_v1($1,$2,$3,$4) b',[company,source,actor,expected]).then(r=>r.rows[0].b)
 const current=(permission=id(10),source=id(30))=>service('SELECT public.ediel_permission_source_is_current_v1($1,$2,$3) b',[id(1),permission,source]).then(r=>r.rows[0].b)
 const fixtures=[]
-async function incoming(n,code,objects,decisions=objects.map(()=> 'accepted'),functional='accepted'){
- const wire=raw(code,objects);await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,status,customer_id) VALUES($1,$2,'test','inbound','PRODAT',$3,$4,'received',$5)",[id(n),id(1),code,wire,id(3)])
+async function incoming(n,code,objects,decisions=objects.map(()=> 'accepted'),functional='accepted',application=null){
+ const wire=application===null?raw(code,objects):raw(code,objects).replace('23-DDQ-PRODAT',application);await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,status,customer_id) VALUES($1,$2,'test','inbound','PRODAT',$3,$4,'received',$5)",[id(n),id(1),code,wire,id(3)])
  const tokens=(await db.query('SELECT gridex_received_sources.closure_wire_tokens_v2($1) b',[wire])).rows[0].b
  const lines=tokens.filter(x=>x.tag==='LIN').map(x=>x.index)
  const scopes=objects.map((o,i)=>({messageIndex:0,messageReference:'M',objectId:o.point??null,identityAgency:o.agency===null?null:o.agency??'9',registers:[{lineIndex:i,lineNumber:String(i+1),registerIndex:null,registerPosition:0,segmentIndex:lines[i]}]}))
@@ -30,8 +30,8 @@ async function incoming(n,code,objects,decisions=objects.map(()=> 'accepted'),fu
  await db.query("INSERT INTO gridex_received_sources.prodat_response_facets VALUES($1,$2,$3,'test',$4,$5,encode(sha256(convert_to($5,'UTF8')),'hex'))",[id(n+1000),id(n),id(1),sourceHash,JSON.stringify({responses:scopes.map((scope,i)=>({scope:'object',lineIndex:scope.registers[0].segmentIndex,ercCode:decisions[i]==='accepted'?'100':'MODELED_BAD'}))})])
  await db.query('INSERT INTO application_fixture VALUES($1,$2)',[id(n),facet]);await db.query('INSERT INTO legal_fixture VALUES($1,$2)',[id(n),{actorRole:'energy_service_company',legalEdielId:'12345',environment:'test',family:'PRODAT',code}]);fixtures.push(n);return{wire,scopes,facet}
 }
-async function permission(n,objects){
- const wire=raw('Z13',objects,'12345','54321');await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,status,message_sent_at,immutable_rendered_at,immutable_payload_hash,customer_id) VALUES($1,$2,'test','outbound','PRODAT','Z13',$3,'acknowledged',now(),now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[id(n+5000),id(1),wire,id(3)])
+async function permission(n,objects,application=null){
+ const original=raw('Z13',objects,'12345','54321'),wire=application===null?original:original.replace('23-DDQ-PRODAT',application);await db.query("INSERT INTO ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,status,message_sent_at,immutable_rendered_at,immutable_payload_hash,customer_id) VALUES($1,$2,'test','outbound','PRODAT','Z13',$3,'acknowledged',now(),now(),encode(sha256(convert_to($3,'UTF8')),'hex'),$4)",[id(n+5000),id(1),wire,id(3)])
  await db.query("INSERT INTO accepted_source_fixture VALUES($1,encode(sha256(convert_to($2,'UTF8')),'hex'))",[id(n+5000),wire])
  await db.query("INSERT INTO metering_permissions(id,company_id,customer_id,status,source_z13_message_id,outbound_z13_message_id,rff_li_reference,grid_owner_ediel_id,market_state_version,metadata) VALUES($1,$2,$3,'z13_sent',$4,$4,$5,'54321',0,'{}')",[id(n),id(1),id(3),id(n+5000),objects[0].li??'LI-A'])
 }
@@ -83,6 +83,50 @@ try{
  await incoming(330,'Z14',[{...own,li:'UNKNOWN',status:'A74'}]);check((await apply(id(330))).applied,false);check((await apply(id(330))).idempotent,true)
  await incoming(430,'Z14',[{...own,status:'A74'}]);await db.query("INSERT INTO gridex_received_sources.permission_transitions(source_message_id,company_id,permission_id,payload_hash,resulting_state) VALUES($1,$2,$3,encode(sha256(convert_to($4,'UTF8')),'hex'),'{}')",[id(430),id(1),id(10),(await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(430)])).rows[0].raw_payload]);await db.query('DELETE FROM legal_fixture WHERE source=$1',[id(430)]);check((await apply(id(430))).idempotent,true)
  check((await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) b',[id(99),id(30)])).rows[0].b,[])
+ {
+ // SC-023 bounded source contrast: independent V and VH share one point;
+ // actual S18 termination closes only the VH permission. History-job coverage
+ // is a separate, presently unproved effect, never inferred from this status.
+ const sc023Start=checks,point='735123456789012345'
+ await permission(7010,[{point,li:'SC023-V',reason:'S17'}],'23-DGI-PRODAT')
+ await incoming(7030,'Z14',[{...own,point,li:'SC023-V',permission:'SC023-V-PERM',status:'A74'}],['accepted'],'accepted','23-DGI-PRODAT')
+ check((await apply(id(7030))).applied,true)
+ // SC-011 committed counterpart with the exact ESCO application and cancellation
+ // mapping. All older fixture inputs and assertions above remain unchanged.
+ const sc011Start=checks,v={...own,point,li:'SC023-V',permission:'SC023-V-PERM',status:'A74',permissionEnd:'202701010000',endReason:'B77'}
+ await incoming(7040,'Z15',[v],['accepted'],'accepted','23-DGI-PRODAT');check((await apply(id(7040))).applied,true)
+ const exactCancellation=await incoming(7041,'Z15',[{...v,reason:'Z24'}],['accepted'],'accepted','23-DGI-PRODAT');check((await apply(id(7041))).applied,true)
+ const exactEffects=(await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) b',[id(1),id(7041)])).rows[0].b
+ check(exactEffects.length,1);check(exactEffects[0].objectScope,exactCancellation.scopes[0]);check(exactEffects[0].sourcePayloadHash,(await db.query("SELECT encode(sha256(convert_to($1,'UTF8')),'hex') h",[exactCancellation.wire])).rows[0].h)
+ check(await current(id(7010),id(7030)),true);check((await db.query('SELECT permission_end_at FROM metering_permission_sites WHERE metering_permission_id=$1',[id(7010)])).rows[0].permission_end_at,null)
+ const sc011Checks=checks-sc011Start
+ console.log(`SC-011 exact DGI/Z15/Z24 committed source: ${sc011Checks} PASS; declared canonical/legal/original ports, not original admission or native evidence.`)
+ await permission(7110,[{point,li:'SC023-VH',reason:'S18'}],'23-DGI-PRODAT')
+ await incoming(7130,'Z14',[{...own,point,li:'SC023-VH',reason:'S18',permission:'SC023-VH-PERM',status:'A74'}],['accepted'],'accepted','23-DGI-PRODAT')
+ check((await apply(id(7130))).applied,true)
+ // Use the actual captured relation definition and reference-default function,
+ // rather than a guessed "contracts" table or a live DDQ authority assertion.
+ const schema=readFileSync(new URL('../supabase/schema.sql',import.meta.url),'utf8')
+ const referenceStart=schema.indexOf('CREATE FUNCTION public.gridex_new_public_resource_reference(')
+ const contractStart=schema.indexOf('CREATE TABLE public.customer_contracts (')
+ assert.ok(referenceStart>=0&&contractStart>=0)
+ await db.exec(schema.slice(referenceStart,schema.indexOf('$$;',referenceStart)+3))
+ await db.exec(schema.slice(contractStart,schema.indexOf('\n);',contractStart)+4))
+ await db.query("INSERT INTO customer_contracts(id,company_id,customer_id,status,starts_at,confirmed_start_at,ends_at,lifecycle_stage,customer_contract_reference,metadata) VALUES($1,$2,$3,'active','2026-01-01','2026-01-01','2027-01-01','active','SC023-DDQ-SENTINEL',$4)",[id(7200),id(1),id(3),{fixture:'declared dated supplier relationship; not authenticated DDQ delivery',point,legalSupplier:'DECLARED-DDQ'}])
+ const separate=async()=>(await db.query("SELECT jsonb_build_object('permission',(SELECT to_jsonb(p) FROM metering_permissions p WHERE id=$1),'sites',(SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM metering_permission_sites s WHERE metering_permission_id=$1),'contract',(SELECT to_jsonb(c) FROM customer_contracts c WHERE id=$2)) b",[id(7010),id(7200)])).rows[0].b
+ const preserved=await separate()
+ const vh=await incoming(7140,'Z15',[{...own,point,li:'SC023-VH',reason:'S18',permission:'SC023-VH-PERM',status:'A74',permissionEnd:'202601011200',endReason:'B77'}],['accepted'],'accepted','23-DGI-PRODAT')
+ const ended=await apply(id(7140))
+ check(ended.applied,true);check(ended.permissionId,id(7110));check(ended.manifest.map(item=>item.status),['applied'])
+ check((await db.query('SELECT status FROM metering_permissions WHERE id=$1',[id(7110)])).rows[0].status,'ended')
+ check((await db.query('SELECT status FROM metering_permission_sites WHERE metering_permission_id=$1',[id(7110)])).rows[0].status,'ended')
+ check(await separate(),preserved);check(await current(id(7010),id(7030)),true)
+ const vhEffects=(await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) b',[id(1),id(7140)])).rows[0].b
+ check(vhEffects.length,1);check(vhEffects[0].objectScope,vh.scopes[0]);check(vhEffects[0].effectKind,'metering_permission')
+ check((await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(7140)])).rows[0].raw_payload,vh.wire)
+ check((await apply(id(7140))).idempotent,true);check(await separate(),preserved)
+ console.log(`SC-023 actual VH closure + independent V/dated supplier row: ${checks-sc023Start-sc011Checks} PASS; history-job completion/coverage and live DDQ delivery NOT proved; whole scenario HELD.`)
+ }
  if(process.env.EDIEL_PERMISSION_PROBE_MODULE){const{default:probe}=await import(pathToFileURL(process.env.EDIEL_PERMISSION_PROBE_MODULE).href);await probe({db,id,source:id(30),scopes:source.scopes,company:id(1),actor:id(2),effects,checks})}
  console.log(`Partial permission actual SQL mechanics: ${checks} passed (declared external ports; not native/authentic acceptance).`)
 }catch(error){console.error(error.message);if(error.where)console.error(error.where);process.exitCode=1}finally{await db.close()}

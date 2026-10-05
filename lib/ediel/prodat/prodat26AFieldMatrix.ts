@@ -115,6 +115,14 @@ export const PRODAT_26A_FIELD_MATRIX: readonly MatrixRow[] = [
   {fieldNumber:'262',fieldKey:'balance_responsible',segmentPath:'NAD+Z02/C082/3039',partyQualifier:'Z02',partyElement:2,partyComponents:1,partyMaxLength:35,requirements:['-','-','R','R','R','R','R','R','R','-','-','-','-']},
 ] as const
 
+Object.freeze(PRODAT_26A_MESSAGE_CODES)
+for (const row of PRODAT_26A_FIELD_MATRIX) {
+  Object.freeze(row.requirements)
+  if (row.allowedValues) Object.freeze(row.allowedValues)
+  Object.freeze(row)
+}
+Object.freeze(PRODAT_26A_FIELD_MATRIX)
+
 const REQUIREMENT_MAP: Record<Prodat26ARequirement, RulebookFieldRule['requirement']> = {
   R: 'required',
   D: 'dependent',

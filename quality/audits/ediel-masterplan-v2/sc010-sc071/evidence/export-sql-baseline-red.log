@@ -1,0 +1,24 @@
+Actual positive ACK service-scope SQL consumer: 23 PASS; synthetic source/storage dependencies, NOT native/legal approval proof
+Grant-set forward SQL: 21 PASS; finite synthetic source/accepted/review fixtures, NOT native/legal approval proof
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: SC010 requires a real production queue, not a synchronous projection
++ actual - expected
+
++ 'missing_export_consumer'
+- 'queued'
+
+    at file:///workspace/gridex-sc010-sc071/scripts/.ediel-projection-replay-consumer.tmp.mjs:250:10
+    at async exportCheck (file:///workspace/gridex-sc010-sc071/scripts/.ediel-projection-replay-consumer.tmp.mjs:246:56)
+    at async file:///workspace/gridex-sc010-sc071/scripts/.ediel-projection-replay-consumer.tmp.mjs:248:2 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'missing_export_consumer',
+  expected: 'queued',
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.3

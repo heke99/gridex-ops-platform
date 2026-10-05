@@ -1,0 +1,15 @@
+Static qualification of the retained-owner missing222/326 proposal
+
+Final retained-owner proposal v3 is independently APPROVED as a proposal only. Standard semantic TypeScript result is PASS; native/DB/provider/product module execution, lint, ordinary baseline full typecheck, current-composition native CI and whole V/VH acceptance are NOT_RUN. No repository file, source/fixture/config/schema/harness, claim, PR or ownership was changed. Root owns durable retention and owner handoff.
+
+Actual basis:2a96780497eb102527f514103c608f0ec0b3a1a3; existing target scripts/ediel-service-evidence-native.test.ts blob9435a5e2c9cc3d7477a5455068236ed3a669cda1, original SHAa54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee. The target and every fixed config/package/fixture input remained unchanged; Git head/status before and after match.
+
+Attempt1-node24: actual Node24.19.0 command exit1 caused by ancillary receipt child_process git EPERM after semantic diagnostics were computed but before they were saved. NO semantic verdict or recovered input manifest is claimed. Raw first driver/tooloutput and explicitly labeled post-attempt executable/compiler reconstruction are preserved.
+
+Attempt2-node22: actual TS5.9.3/cached Node22.23.0, real unchanged tsconfig.scripts.json extending tsconfig.json,113 roots/1591 sourcefiles. Exact v2 patchf9367af5 and candidateb7f01003 FAIL (exit1):9errors all target,0elsewhere. Visible overload order makes existing projection426 ReturnType<typeof qualify> infer void; grantId and NativeQualification→void errors are a proposal-introduced type error. Raw first actual semantic diagnostics/driver/command/exit/source manifest and published v2 bytes remain frozen.
+
+Attempt3-v3-node22: same standard compiler/config/options/roots/packages/fixtures/Node22 and input paths. Exact v3 candidatea82ca826 PASS (exit0),0diagnostics/errors. No suppression or narrowed inclusion; driver uses full ts.getPreEmitDiagnostics(program), only the existing native target's read is virtual, and forbids emit. V2/V3 actual manifests contain1685 identical input paths; ONLY native virtual target hash changes. The only candidate edit from v2 swaps two visible overload declarations, preserving the callback early return/body/oracles and normal ReturnType contract. Read-only git apply --check for v3 also exit0. No further check or run is needed for this static task.
+
+Final proposal artifacts are copied byte-exact here: proposal-v3.patch, proposal-v3-notes.md, proposal-v3-candidate.ts.txt. Their original /tmp paths remain unchanged. Published v2 remains in its original /tmp paths and frozen attempt2 copies. First source review and first semantic finding remain separate from peer-v3-final-review.md. Final manifest lists actual files/hashes/bytes and the three distinct attempt results; it excludes itself to avoid a self-hash.
+
+For durable documentation, retain candidate source bytes with a .txt suffix; copying a .ts or .test.ts receipt into a repository can alter that repository's broad compiler/test inclusion. This packet is evidence/proposal data, not an extra native test or harness.

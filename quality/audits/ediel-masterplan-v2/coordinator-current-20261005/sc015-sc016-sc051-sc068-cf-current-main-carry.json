@@ -1,0 +1,171 @@
+{
+  "scope": "Read-only current-main carry for two independently approved pairs; hypothetical trees are source/ledger integration predictions, not actual merges or CI/native custody",
+  "created_at_utc": "2026-10-05T15:18:13.913110+00:00",
+  "readonly_repository": "/workspace/gridex-masterplan-readonly-559-561-aa",
+  "main": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+  "main_tree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+  "previous_qualified_main": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+  "main_approved_count": 224,
+  "new_main_paths_total": 13,
+  "new_main_executable_test_or_script_paths": [
+    "__tests__/ediel-ack-source-correlation.test.ts",
+    "__tests__/ediel-permission-market-consumers.test.ts",
+    "__tests__/ediel-permission-process-order.test.ts",
+    "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+    "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+    "scripts/ediel-service-administration-sql-regression.mjs"
+  ],
+  "new_main_delta_classification": "MergedSC013/020 test/proof/coverage additions only; one selectedSC015 inherited administrationfixture gains an isolated rollback-onlySC020 assertion block; no production/SQLbody/schema/migration/capture/sharedconfig changes",
+  "pairs": [
+    {
+      "pr": 559,
+      "head": "234f76b9383b7d56a15018dbbbe46a2d79e84654",
+      "head_tree": "15572bf3a8e7fdb06a8db23a1af742cc98db52cc",
+      "main": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+      "expected_single_merge_tree": "4f2a926f6858181f4a4b495990949245ea2fc3cc",
+      "whole_qualified_prior": "cdeeee07036da027ea840123f4f951ab32690395",
+      "preserved_main_blobs_except_ledger": 7800,
+      "foreign_rows_preserved": 350,
+      "only_own_row_changes": [
+        "SC-015",
+        "SC-016"
+      ],
+      "metadata_and_frozen_row_order_preserved": true,
+      "own_evidence_unions_preserved": true,
+      "selected_input_hashes_exact_count": 31,
+      "previous_whole_review_coverage_pin_expected_own_promotion_count": 0,
+      "complete_SQL_body_hashes_exact_count": 25,
+      "authentic_capture_eight_inputs_exact": true,
+      "reached_selected_new_main_input_deltas": [
+        "scripts/ediel-service-administration-sql-regression.mjs"
+      ],
+      "whole_code_approval_carry": "APPROVE_WITH_ORIGINAL_FINITE_IO_LIMITS",
+      "no_behavior_native_broad_execution": true,
+      "ci_gate": "HOLD_FOR_FRESH_REQUIRED_SUCCESS",
+      "merged_approvals": 226,
+      "prior_source_carry_record": "sc015-sc016-sc051-sc068-aa-current-main-carry.json",
+      "prior_source_carry_sha256": "596662f2bf9c785cd1edc2860d702709f80df63f4b474cd74a4808563d4f2e81",
+      "all_prior_qualified_production_SQL_schema_capture_bytes_unchanged": true,
+      "qualified_selected_inputs_total": 32,
+      "classified_additive_fixture_delta": {
+        "path": "scripts/ediel-service-administration-sql-regression.mjs",
+        "prior_sha256": "b8e6102285022d3a74a3954e313e70524dd1140c24032873562a50cd7e22c9ec",
+        "current_sha256": "9f6b4c8f4a5e88cb23d0e884add4cf5201a6b9e4a36abd9ecbe0b1c30702d8bd",
+        "addition_sha256": "3ed7b9f1eaef3996c503b46da25ae005299eab849d5d806ae3828d46c51655c8",
+        "addition_lines": 16,
+        "strip_added_block_restores_all_prior_source_bytes": true,
+        "all_old_assertions_and_extension_markers_preserved": true,
+        "ordinary_SQL_BEGIN_finally_ROLLBACK_restores_inserted_value_permission_status_and_receipts": true,
+        "no_new_definition_authority_or_schema": true,
+        "only_new_JS_counter_and_proof_line_survive_block": true,
+        "same_SC015_SC016_wrapper_has_no_fixed_inherited_admin_count": true,
+        "verification_scope": "Read-only exact additive-source and transaction-lifetime qualification; no current-merged-tree behavior execution claimed"
+      },
+      "prior_qualified_selected_input_map_sha256": "1604db517fd1dc9dc253f552706c130bfb1a42de8dbfd49387ac4e0c27d5c493",
+      "owned_scenario_assertions_production_SQL_migrations_schema_capture_inputs_unchanged": true,
+      "current_shared_fixture_delta_explicitly_classified": true
+    },
+    {
+      "pr": 561,
+      "head": "16e7c71d8f307cf193a5ef14be6b5aad9db8d74c",
+      "head_tree": "9e9aebf13dc3d8ca5822af04e5a4d1f7f727b874",
+      "main": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+      "expected_single_merge_tree": "7bba29d77cbb25b9c4adccdd9d0f319b37fa2c6e",
+      "whole_qualified_prior": "50005ee8fd2af075c0f8effaf3992ecaab9eb1eb",
+      "preserved_main_blobs_except_ledger": 7800,
+      "foreign_rows_preserved": 350,
+      "only_own_row_changes": [
+        "SC-051",
+        "SC-068"
+      ],
+      "metadata_and_frozen_row_order_preserved": true,
+      "own_evidence_unions_preserved": true,
+      "selected_input_hashes_exact_count": 50,
+      "previous_whole_review_coverage_pin_expected_own_promotion_count": 1,
+      "complete_SQL_body_hashes_exact_count": 12,
+      "authentic_capture_eight_inputs_exact": true,
+      "reached_selected_new_main_input_deltas": [],
+      "whole_code_approval_carry": "APPROVE_WITH_ORIGINAL_FINITE_IO_LIMITS",
+      "no_behavior_native_broad_execution": true,
+      "ci_gate": "HOLD_FOR_FRESH_REQUIRED_SUCCESS",
+      "merged_approvals": 226,
+      "prior_source_carry_record": "sc015-sc016-sc051-sc068-aa-current-main-carry.json",
+      "prior_source_carry_sha256": "596662f2bf9c785cd1edc2860d702709f80df63f4b474cd74a4808563d4f2e81",
+      "all_prior_qualified_production_SQL_schema_capture_bytes_unchanged": true,
+      "qualified_selected_inputs_total": 50,
+      "prior_qualified_selected_input_map_sha256": "2abb37ad5fab532b24ffee38d06f7a3e9a3b99e4a71d25ee06423e76c35f3bef",
+      "owned_scenario_assertions_production_SQL_migrations_schema_capture_inputs_unchanged": true,
+      "current_shared_fixture_delta_explicitly_classified": false
+    }
+  ],
+  "merge_order": {
+    "first_559_then_561_expected_tree": "be0aebf8b7ed71e8ccb113e1a5fdc759a557f6af",
+    "first_561_then_559_expected_tree": "be0aebf8b7ed71e8ccb113e1a5fdc759a557f6af",
+    "trees_byte_identical": true,
+    "only_intersection_of_changed_path_sets": "quality/audits/ediel-masterplan-v2/coverage.json",
+    "combined_foreign_rows_preserved": 348,
+    "combined_metadata_frozen_row_order_and_all_evidence_unions_preserved": true,
+    "only_combined_row_changes": [
+      "SC-015",
+      "SC-016",
+      "SC-051",
+      "SC-068"
+    ],
+    "combined_approved_count": 228,
+    "combined_ledger_sha256": "de3d9cbc8f29bd39a3b2ccaaf8b24cbf45e09132f4d59daadd4af6a80048b1a4",
+    "method": "Actual single merge-tree maps plus standard three-way merge-file at actual main ledger; two private temporary index/write-tree calculations. No merge commits, ref updates, owner changes or invented custody."
+  },
+  "mutations": "Only own MD/JSON checkpoints and dedicated clone/temp Git objects/index. No owner source/tests/coverage/schema/sharedmemory edits, tests/native runs, pushes or merges.",
+  "root_next_action": "Refresh actual main/head and require nine SUCCESS results plusCodeRabbit for each exact frozenhead; root performs expected-head guarded merges, recomputes tree if another actualmain change intervenes.",
+  "version": 2,
+  "new_main_delta_paths": [
+    ".agent-memory/masterplan-sc013-sc020-checkpoint.md",
+    "__tests__/ediel-ack-source-correlation.test.ts",
+    "__tests__/ediel-permission-market-consumers.test.ts",
+    "__tests__/ediel-permission-process-order.test.ts",
+    "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-head-gates.json",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/verification-receipt.json",
+    "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+    "scripts/ediel-service-administration-sql-regression.mjs"
+  ],
+  "previous_immutable_version": {
+    "json": "sc015-sc016-sc051-sc068-aa-current-main-carry.json",
+    "json_sha256": "596662f2bf9c785cd1edc2860d702709f80df63f4b474cd74a4808563d4f2e81",
+    "md": "sc015-sc016-sc051-sc068-aa-current-main-carry.md",
+    "md_sha256": "99c4b85401eb8028c4efab5f22aa3467bc601365915b596d9c8af50e5e576e22",
+    "preserved_unchanged": true
+  },
+  "coordination_correction": {
+    "incorrect_prior_handoff_message": "Extra approval was incorrectly calledSC047 in one message to root, never in the immutableAA source/ledger record",
+    "actual_36_to_aa_delta": {
+      "SC-034": {
+        "before": "PARTIAL",
+        "after": "PASSED"
+      },
+      "SC-047": {
+        "before": "PARTIAL",
+        "after": "PARTIAL",
+        "prior_evidence_union_retained": true,
+        "approved": false
+      }
+    }
+  },
+  "CI_reader_status": "Not repolled; root explicitly readfresh9gates at15:11 and ownsremaininggates/merge",
+  "prior_qualified_main_executable_test_or_script_paths": [
+    "__tests__/ediel-sc-057-registry-import-lifecycle.test.ts",
+    "__tests__/ediel-sc-059-registered-subaddress.test.ts",
+    "__tests__/ediel-service-administration.test.ts",
+    "__tests__/ediel-utilts-err-gateway.test.ts",
+    "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+    "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+    "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+    "scripts/ediel-z04-ack-native.test.ts",
+    "scripts/test-ediel-ten-07-scoped-projection.cjs"
+  ],
+  "inspection_method": "Exact pinned Git blobs/tree maps in dedicated readonly clone; existing checkout remainsaa271e14, all CF analysis uses explicitcf275d78 refs"
+}

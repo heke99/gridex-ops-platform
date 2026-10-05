@@ -15,6 +15,10 @@ function clean(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+function escapeIlike(value: string): string {
+  return value.replace(/([\\%_])/g, '\\$1')
+}
+
 function normalizeMailboxAddress(value: unknown): string | null {
   const raw = clean(value)?.toLowerCase()
   if (!raw) return null
@@ -80,14 +84,14 @@ async function resolveWebhookMailboxCompanyId(mailbox: string): Promise<string |
       .select('id,company_id')
       .eq('is_active', true)
       .eq('is_verified', true)
-      .ilike('from_email', address)
+      .ilike('from_email', escapeIlike(address))
       .limit(20),
     supabaseService
       .from('manual_communication_mailboxes')
       .select('id,company_id')
       .eq('is_active', true)
       .eq('is_verified', true)
-      .ilike('reply_to_email', address)
+      .ilike('reply_to_email', escapeIlike(address))
       .limit(20),
   ])
   if (fromResult.error) throw fromResult.error
