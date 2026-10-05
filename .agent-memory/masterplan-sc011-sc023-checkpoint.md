@@ -31,6 +31,16 @@ Node 22; existing pinned PGlite 0.3.14. Both direct scripts use `EDIEL_PGLITE_MO
 | `/tmp/gridex-sc011-grant-source-final.log` | New atomic SC-011 contrast PASS; all retained 23 ACK + 21 grant-set + 48 administration checks PASS | `2f88c00bf2452d34e7c0ceb71efe6ef04dc795bd1e86597d56649388fc75dddf` |
 | `/tmp/gridex-sc011-sc023-scoped-ts.log` | 29/29 PASS in own-partition + unchanged provenance suite | `c491b19748029a4ebff9b328f5da260f46fed2a65107be666850e3dd8c1f4666` |
 
-App/test TypeScript and scoped ESLint PASS; frozen integrity 33 originals / 121 rules / 231 contracts PASS; earlier tagged gate 74 approved / 82 green / 0 failing PASS. These gates predate the final DGI-input refinement and the upcoming genuine main merge; fresh changed-scope gates are required before publication. No coverage row was promoted.
+App/test TypeScript and scoped ESLint PASS; frozen integrity 33 originals / 121 rules / 231 contracts PASS; earlier tagged gate 74 approved / 82 green / 0 failing PASS. These historical gates predate the final DGI-input refinement and main update. No coverage row was promoted.
+
+## Actual main integration and review freeze
+
+Own source commit `fe8175cb639b1d6f21542e5bed2d3e680f2acd53` was genuinely merged with actual main `a24885d52275f832307329b92bcfaef95fca8cb2`, producing `5e2e66fc74cd7221dc6d19920779049222047fcf` / tree `ecb9478bcdc403eb2bf4787dfd7d373d206532bb`. No reset, cherry-pick, source-owner overwrite, production change or coverage change. Exact PR delta remains the four claimed paths. Package-lock is unchanged (SHA256 `93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627`).
+
+Fresh integration caught a test-only `const ended` collision with the retained ESCO-04/07 source-injection harness. Only our new assertions received their own lexical block; its existing owner file and assertions remain unchanged. Fresh retained wrapper: 16/16 PASS, `/tmp/gridex-sc011-sc023-main-a248-esco04-07.log`, SHA256 `69259b4a2ded5f040befc1fa53619f91c395af4c25ecc88ae1242ec05f030c0d`.
+
+Fresh current-source qualification: eight function bodies equal captured main, `/tmp/gridex-sc011-sc023-main-a248-function-qualification.json`, SHA256 `04993d65c55dc93e84dd8edfe580b08ef5e2030cb6f90c06838b2f236ea4fe16`. Direct source probe remains 83/83 PASS with byte-identical bounded result log. Fresh scoped TS is 29/29 PASS (`/tmp/gridex-sc011-sc023-main-a248-scoped-ts.log`, SHA256 `9ae39fc8b53fb2a01e54258f92bf194e2857a436e84e4c180386a82e971f21d4`). App/test TypeScript, scoped ESLint, diff/syntax and frozen integrity PASS. Final supported tagged gate: 233 approved / 270 green / 0 failing, `/tmp/gridex-sc011-sc023-main-a248-tagged-gate-final.log`, SHA256 `def69299b192a99efe1b6366b00ded550406febcd44545105fbc8f6d675688c5`. Its retained supported consumers also execute the new actual grant/source contrasts; direct `.mjs` registration is still not claimed.
+
+SC-011 awaits independent whole-scenario review of this exact source freeze. SC-023 remains HELD for the explicitly missing history-job completion/coverage and qualified DDQ-delivery effects; parent must return any product question to the retained ESCO-07 owner. No new authority, native run, broad replay or scenario promotion is asserted. Parent owns CI and merge.
 
 No scenario approval before complete literal proof, current gates, and independent whole-scenario review. Parent owns CI, merge and the shared coverage/main window.

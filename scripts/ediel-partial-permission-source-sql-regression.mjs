@@ -83,6 +83,7 @@ try{
  await incoming(330,'Z14',[{...own,li:'UNKNOWN',status:'A74'}]);check((await apply(id(330))).applied,false);check((await apply(id(330))).idempotent,true)
  await incoming(430,'Z14',[{...own,status:'A74'}]);await db.query("INSERT INTO gridex_received_sources.permission_transitions(source_message_id,company_id,permission_id,payload_hash,resulting_state) VALUES($1,$2,$3,encode(sha256(convert_to($4,'UTF8')),'hex'),'{}')",[id(430),id(1),id(10),(await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(430)])).rows[0].raw_payload]);await db.query('DELETE FROM legal_fixture WHERE source=$1',[id(430)]);check((await apply(id(430))).idempotent,true)
  check((await db.query('SELECT gridex_received_sources.committed_permission_effects_v1($1,$2,NULL) b',[id(99),id(30)])).rows[0].b,[])
+ {
  // SC-023 bounded source contrast: independent V and VH share one point;
  // actual S18 termination closes only the VH permission. History-job coverage
  // is a separate, presently unproved effect, never inferred from this status.
@@ -125,6 +126,7 @@ try{
  check((await db.query('SELECT raw_payload FROM ediel_messages WHERE id=$1',[id(7140)])).rows[0].raw_payload,vh.wire)
  check((await apply(id(7140))).idempotent,true);check(await separate(),preserved)
  console.log(`SC-023 actual VH closure + independent V/dated supplier row: ${checks-sc023Start-sc011Checks} PASS; history-job completion/coverage and live DDQ delivery NOT proved; whole scenario HELD.`)
+ }
  if(process.env.EDIEL_PERMISSION_PROBE_MODULE){const{default:probe}=await import(pathToFileURL(process.env.EDIEL_PERMISSION_PROBE_MODULE).href);await probe({db,id,source:id(30),scopes:source.scopes,company:id(1),actor:id(2),effects,checks})}
  console.log(`Partial permission actual SQL mechanics: ${checks} passed (declared external ports; not native/authentic acceptance).`)
 }catch(error){console.error(error.message);if(error.where)console.error(error.where);process.exitCode=1}finally{await db.close()}
