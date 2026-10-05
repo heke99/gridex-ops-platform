@@ -310,3 +310,32 @@ writer. Original Staff ebf input-only carry8c8ef058 now delivered6003893283:
 eightgen/threeforwards/raw3/fullmanifest exact,22/23runtime exact; changedpage
 proof not reused. The source author's current freeze/SC068/twooracle obligations
 remain outstanding; root starts no replacement writer or intermediate capture.
+
+
+ACTUAL #612 delivered23:19:32UTC: actualmain8c18fe64988154707a927e1af6bd6645de1be6e6,
+orderedparents1a+6d, tree5f61a80b exactly independenta3a43aef predicted tree.
+Root's sole serialturnBEFORE5306005251283/AFTER6005274870 is RELEASED after
+ONE normalexpected-head merge and authenticated API/publicGit parents/tree/ref.
+AllNINE exactrequiredcheck/job SUCCESS and FOURordinaryattempt1 workflows
+SUCCESS, soleobserverb71dd21aSEALED/STOPPED; freshfinalAPI check-ID/source/run/
+actualmain guard passed immediatelybeforemerge. Rawfinalobserver2318JSON is
+retainedbyteexact; earlierunpublished2317label-onlyseal remainsprivatehistory.
+Localactualpostimagecustody proves68own612tuples exactsource6d and8638foreign
+main entries exact1a, SQL1073/wholecoverage352/main271 exact. No code/control/
+AST/test/native/capture rerun or rawreceipt rewriting. Genuinecoordinatorcarry
+retainsall35priorown tuples andallforeignactual8centries. Solecommonhandover
+addsONE612marker,41unique/all40priorlines exact; no secondauthor delivery.
+
+Original fivechecker/advisor/quote/billing/Z01 inputs nowactuallyadmittedONCE.
+Advisor9bb EXACTsevenDOChandoff6004142444 may proceed withrealpreimages through
+retainedfinalMAINadopter5998471335/5998550376, not anotherdocsvehicle. Latest
+original520public3fefa/34 supersedes818/3b; original611public25227/EXACT3
+supersedesd64, theirsource/CI/actualmarkersalreadyfinished. Original602a1aa/7
+andSC0102eefa/65remainready. Rootcurrentownmetadataislatestcoordinatoronly.
+CommonactualMAINdocsadoption/fullbaseline/push-main remainoriginalowner work;
+sourceall9 is not blanketwholeplan/full73/mainGREEN. OriginalStaffebf all13/
+PG17 results6005084967nowreportedready/sourceauthorsfinished; exactwholeSC068
+/twooracle/finalinput dispositions stillrequested5786002657858 beforequalified
+finalcomposition. OriginalIMP05correctived020currentqualification/freezeresult
+is stillunobserved afterpublicsource246review; rootretainsONEfuturecombined
+capture afteractuallyadmittedqualifiedinputs. No newrule/cluster/scout/tag.

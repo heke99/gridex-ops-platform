@@ -1,0 +1,539 @@
+{
+  "schema": "gridex-pr-ci-metadata-final-lease-seal/v1",
+  "observer_task": "/root/pr612_773_sole_ci_observer",
+  "lease_started_at_utc": "2026-10-05T22:28:49Z",
+  "lease_sealed_at_utc": "2026-10-05 23:18:30 UTC",
+  "lease_status": "SEALED_STOPPED_ALL9_SUCCESS",
+  "gate_status": "READY",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 612,
+  "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+  "head_branch": "codex/canonical-source-regression-checks-20261005",
+  "producer_base_sha": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "pr_api_base_sha_at_final_snapshot": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "current_main_qualification_is_outside_observer_scope": true,
+  "root_reported_safe_main_advances": [
+    {
+      "pr_number": 611,
+      "sha": "9538c4818a5802e066cbae5639a5f07a28675560",
+      "scope": "13 original owner MD/JSON documentation paths; root supplied source/input invariance."
+    },
+    {
+      "pr_number": 520,
+      "sha": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+      "scope": "Two existing documentation paths; root supplied source/input invariance."
+    }
+  ],
+  "root_reported_current_main_foreign_composition_guard": {
+    "status": "SOURCE_ONLY_READY",
+    "expected_merge_parents": [
+      "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
+      "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    ],
+    "expected_merge_tree": "5f61a80b764ff3c389c3f9d7df3b05be64c9504c",
+    "attribution": "Root message. Not independently inspected or certified by this CI metadata observer; root must fresh-guard before merge.",
+    "sha256_prefix_from_root_message": "a3a43aef"
+  },
+  "identity_and_success_guards": {
+    "public_pr_exact_head_ref_repo": true,
+    "exact_nine_required_contexts": true,
+    "exact_four_current_ordinary_attempt1_producers": true,
+    "all_four_workflows_terminal_success": true,
+    "all_nine_genuine_check_and_job_success": true,
+    "all_nine_bound_to_actual_job_run_workflow": true,
+    "actual_setup_execution_evidence": true,
+    "no_failed_or_active_required_job_steps": true,
+    "all_check_execution_timestamps_known_and_ordered": true,
+    "no_skip_or_cancelled_required_success": true
+  },
+  "counts": {
+    "required": 9,
+    "genuine_success": 9,
+    "in_progress": 0,
+    "failure": 0,
+    "skipped_required": 0,
+    "cancelled_required": 0,
+    "missing_required": 0
+  },
+  "ordinary_producers": [
+    {
+      "run_id": 37382624365,
+      "workflow_id": 358913488,
+      "name": "Ediel masterplan v2 regressions",
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-05T22:27:48Z",
+      "run_started_at": "2026-10-05T22:27:48Z",
+      "updated_at": "2026-10-05T22:32:47Z",
+      "pull_request_associations": [
+        {
+          "number": 612,
+          "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ]
+    },
+    {
+      "run_id": 37382624415,
+      "workflow_id": 336345774,
+      "name": "Gridex browser and quality E2E",
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-05T22:27:48Z",
+      "run_started_at": "2026-10-05T22:27:48Z",
+      "updated_at": "2026-10-05T22:29:04Z",
+      "pull_request_associations": [
+        {
+          "number": 612,
+          "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ]
+    },
+    {
+      "run_id": 37382624233,
+      "workflow_id": 336204822,
+      "name": "Gridex full E2E",
+      "path": ".github/workflows/full-e2e.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-05T22:27:47Z",
+      "run_started_at": "2026-10-05T22:27:47Z",
+      "updated_at": "2026-10-05T22:33:28Z",
+      "pull_request_associations": [
+        {
+          "number": 612,
+          "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ]
+    },
+    {
+      "run_id": 37382624242,
+      "workflow_id": 298519857,
+      "name": "OPS hardening",
+      "path": ".github/workflows/ops-hardening.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-05T22:27:47Z",
+      "run_started_at": "2026-10-05T22:27:47Z",
+      "updated_at": "2026-10-05T23:16:37Z",
+      "pull_request_associations": [
+        {
+          "number": 612,
+          "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ]
+    }
+  ],
+  "required_contexts": [
+    {
+      "name": "verify",
+      "check_run_id": 112008255095,
+      "job_id": 112008255095,
+      "run_id": 37382624242,
+      "run_attempt": 1,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:28:15Z",
+      "check_completed_at": "2026-10-05T22:30:11Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255095",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "quality-release-gates",
+      "check_run_id": 112008254744,
+      "job_id": 112008254744,
+      "run_id": 37382624242,
+      "run_attempt": 1,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:28:14Z",
+      "check_completed_at": "2026-10-05T22:39:39Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008254744",
+      "application": "github-actions",
+      "annotation_count": 12,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "clean-migration-replay",
+      "check_run_id": 112008255064,
+      "job_id": 112008255064,
+      "run_id": 37382624242,
+      "run_attempt": 1,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:28:14Z",
+      "check_completed_at": "2026-10-05T23:16:36Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255064",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "check_run_id": 112008255108,
+      "job_id": 112008255108,
+      "run_id": 37382624242,
+      "run_attempt": 1,
+      "workflow_id": 298519857,
+      "workflow_path": ".github/workflows/ops-hardening.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:28:14Z",
+      "check_completed_at": "2026-10-05T22:38:07Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624242/job/112008255108",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "smoke",
+      "check_run_id": 112008116985,
+      "job_id": 112008116985,
+      "run_id": 37382624233,
+      "run_attempt": 1,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:27:51Z",
+      "check_completed_at": "2026-10-05T22:29:10Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112008116985",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "coverage",
+      "check_run_id": 112008116958,
+      "job_id": 112008116958,
+      "run_id": 37382624233,
+      "run_attempt": 1,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:27:51Z",
+      "check_completed_at": "2026-10-05T22:33:14Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112008116958",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "browser-public",
+      "check_run_id": 112008118151,
+      "job_id": 112008118151,
+      "run_id": 37382624415,
+      "run_attempt": 1,
+      "workflow_id": 336345774,
+      "workflow_path": ".github/workflows/browser-quality-e2e.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:27:51Z",
+      "check_completed_at": "2026-10-05T22:29:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624415/job/112008118151",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "targeted-regressions",
+      "check_run_id": 112008117311,
+      "job_id": 112008117311,
+      "run_id": 37382624365,
+      "run_attempt": 1,
+      "workflow_id": 358913488,
+      "workflow_path": ".github/workflows/ediel-masterplan-v2.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:27:51Z",
+      "check_completed_at": "2026-10-05T22:32:46Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624365/job/112008117311",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    },
+    {
+      "name": "pr-certificate",
+      "check_run_id": 112010046261,
+      "job_id": 112010046261,
+      "run_id": 37382624233,
+      "run_attempt": 1,
+      "workflow_id": 336204822,
+      "workflow_path": ".github/workflows/full-e2e.yml",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477",
+      "check_status": "completed",
+      "check_conclusion": "success",
+      "job_status": "completed",
+      "job_conclusion": "success",
+      "check_started_at": "2026-10-05T22:33:17Z",
+      "check_completed_at": "2026-10-05T22:33:28Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37382624233/job/112010046261",
+      "application": "github-actions",
+      "annotation_count": 2,
+      "check_output_title": null,
+      "check_output_summary": null,
+      "runner_execution_evidence": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "runner_id": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "runner_started_at": "UNKNOWN_NOT_EXPOSED_BY_APPROVED_SUMMARY_WRAPPER",
+      "failed_steps": [],
+      "remaining_active_steps": []
+    }
+  ],
+  "excluded_non_applicable_checks": [
+    {
+      "check_run_id": 112008172145,
+      "name": "zap-staging-baseline",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008122159,
+      "name": "staging-quality-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008119582,
+      "name": "k6-staging-load",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008119525,
+      "name": "k6-staging-soak",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008119458,
+      "name": "browser-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008118825,
+      "name": "full",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008118752,
+      "name": "runtime-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008118677,
+      "name": "crawl-production-readonly",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008118625,
+      "name": "nightly-release-certificate",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    },
+    {
+      "check_run_id": 112008118538,
+      "name": "real-customer-staging",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "6d69aea82bf1f2e7fab048e024fff3339c2f3477"
+    }
+  ],
+  "historical_checkpoints": {
+    "old773_genuine_lint_failure_preserved": "pr612-773-first-genuine-lint-step-failure-20261005-2159.json",
+    "same6d_interim_pending_superseded_by_this_terminal_seal": "pr612-6d-eight-success-clean-replay-pending-20261005-2252.json"
+  },
+  "limits": [
+    "This seal certifies only the nine normal required CI conclusions and producer/job/check identities for this exact public head.",
+    "Known check start/end timestamps remain check metadata. Runner identifiers and runner start timestamps are UNKNOWN because the approved summaries omit them; actual Set up job success is retained as execution evidence.",
+    "No raw logs or artifacts were read; no workflow retries, cancellation, dispatch, source edits, local/native test execution or merge were performed.",
+    "Initial producer base b83 remains distinct from root's current main 1a and pending actual delivery.",
+    "No certification of whole masterplan, full73 runtime, artifact/test case counts, effective database catalog, current main tree or production state."
+  ],
+  "supersedes_unpublished_label_only_seal": {
+    "file": "pr612-6d-all9-success-final-observer-lease-seal-20261005-2317.json",
+    "sha256": "4945da5ed2b5c3e15be0323027a6f7f42acb86d7a234c5fc20c87e2b97e74eea",
+    "reason": "Labels the root-reported eight-character checksum explicitly as a prefix. CI metadata and READY conclusions are byte-equivalent in meaning; earlier file remains unchanged."
+  }
+}
