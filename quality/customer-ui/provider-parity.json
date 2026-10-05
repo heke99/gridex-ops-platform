@@ -1,0 +1,16 @@
+[
+  {
+    "name": "gridex_select_invoice_provider_v1",
+    "repository": "supabase/migrations/20261002180000_invoice_file_export.sql",
+    "normalized_body_matches": true,
+    "repository_sha256": "a95384814bd9982102eceea8a4013094f0f40d70e7215c7af0a990a5c050795f",
+    "live_sha256": "a95384814bd9982102eceea8a4013094f0f40d70e7215c7af0a990a5c050795f"
+  },
+  {
+    "name": "gridex_set_invoice_dispatch_enabled_v1",
+    "repository": "supabase/migrations/20261002160000_tenant_invoice_provider_selection.sql",
+    "normalized_body_matches": true,
+    "repository_sha256": "ecd3ad56c190baf067bd0bdde0de5ab0c54c7676fb33f4a0de1dd598563a5949",
+    "live_sha256": "ecd3ad56c190baf067bd0bdde0de5ab0c54c7676fb33f4a0de1dd598563a5949"
+  }
+]

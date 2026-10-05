@@ -1,0 +1,17 @@
+
+/workspace/gridex-ops-platform/app/admin/customers/[id]/page.part-4.tsx
+  416:9  warning  'activeSites' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+  417:9  warning  'activeMeteringPoints' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  421:9  warning  'lifecycleSummary' is assigned a value but never used             @typescript-eslint/no-unused-vars
+  503:9  warning  'hasUsablePowerOfAttorney' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  518:9  warning  'legalLooksAccepted' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  586:9  warning  'tenantCustomerView' is assigned a value but never used           @typescript-eslint/no-unused-vars
+  597:9  warning  'hasSwitchData' is assigned a value but never used                @typescript-eslint/no-unused-vars
+  634:9  warning  'primaryContact' is assigned a value but never used               @typescript-eslint/no-unused-vars
+  688:9  warning  'openCustomerBlockers' is assigned a value but never used         @typescript-eslint/no-unused-vars
+  702:9  warning  'pendingCustomerInfoRequests' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/workspace/gridex-ops-platform/scripts/gridex-batch-2-3-4-6-regression.cjs
+  0:0  warning  File ignored because of a matching ignore pattern. Use "--no-ignore" to disable file ignore settings or use "--no-warn-ignored" to suppress this warning
+
+✖ 11 problems (0 errors, 11 warnings)

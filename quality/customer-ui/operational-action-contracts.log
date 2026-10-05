@@ -1,0 +1,8 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+
+ Test Files  2 passed (2)
+      Tests  26 passed (26)
+   Start at  15:22:03
+   Duration  682ms (transform 264ms, setup 56ms, import 339ms, tests 171ms, environment 0ms)

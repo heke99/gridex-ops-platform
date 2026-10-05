@@ -1,0 +1,17 @@
+{
+  "success": false,
+  "numTotalTests": 10988,
+  "numPassedTests": 10970,
+  "numFailedTests": 1,
+  "numPendingTests": 17,
+  "files": 849,
+  "failures": [
+    {
+      "file": "__tests__/staff-user-rbac-audit.test.ts",
+      "test": "staff user RBAC static boundary audit runs the complete audit against the shared-command implementation",
+      "messages": [
+        "Error: Command failed: /tmp/gridex-ui-npm-cache/_npx/52027bd8fc0022aa/node_modules/node/bin/node scripts/security-audit-rbac.mjs\nRBAC audit failed:\n- components/admin/AdminSidebar.tsx saknar: platformOnly?: boolean\n\n    at genericNodeError (node:internal/errors:983:15)\n    at wrappedFn (node:internal/errors:537:14)\n    at checkExecSyncError (node:child_process:916:11)\n    at execFileSync (node:child_process:952:15)\n    at /workspace/gridex-ops-platform/__tests__/staff-user-rbac-audit.test.ts:24:12\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:302:11\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26\n    at file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20\n    at new Promise (<anonymous>)\n    at runWithCancel (file:///workspace/gridex-ops-platform/node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10)"
+      ]
+    }
+  ]
+}

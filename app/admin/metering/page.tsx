@@ -1,3 +1,4 @@
+import AdminDisclosurePanel from "@/components/admin/ui/AdminDisclosurePanel"
 // app/admin/metering/page.tsx
 import AdminHeader from '@/components/admin/AdminHeader'
 import { requirePermissionServer } from '@/lib/auth/requirePermissionServer'
@@ -53,13 +54,13 @@ export default async function AdminMeteringPage({ searchParams }: PageProps) {
  userEmail={context.email}
  />
 
- <div className="space-y-6 p-8">
+ <div className="min-w-0 space-y-4 p-4 lg:p-6">
  <MeteringFilterBar query={query} />
  <MeteringOperationalSummary requests={requests} values={values} />
 
- <section className="grid gap-6 xl:grid-cols-[minmax(0,1.05fr)_420px]">
+ <section className="space-y-4">
  <MeteringRequestsSection requests={requests} />
- <MeteringIngestForm />
+ <AdminDisclosurePanel id="metering-register-value" title="Registrera mätvärde manuellt" className="rounded-2xl border border-slate-200 bg-white p-4"><MeteringIngestForm /></AdminDisclosurePanel>
  </section>
 
  <MeteringValuesTable values={values} />

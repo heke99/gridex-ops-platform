@@ -1,0 +1,562 @@
+[
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 3673
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 5189
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 1141
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 1161
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 1784
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 5392
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 2040
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 2190
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 2973
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 4791
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 1509
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 5127
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "default",
+    "width": 320,
+    "height": 2791
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 320,
+    "height": 7688
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 3443
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 4767
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 1061
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 1081
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 1520
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 3328
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 1816
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 1946
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 3239
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 4997
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 1415
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 4736
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "height": 2699
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "height": 7388
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 2718
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 3874
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 900
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 900
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 1023
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 1491
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 1313
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 1391
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 1770
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 2724
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 900
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 2362
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1024,
+    "height": 1838
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 1024,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1024,
+    "height": 4477
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 1604
+  },
+  {
+    "view": "dashboard",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 2017
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 900
+  },
+  {
+    "view": "queue",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 900
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 999
+  },
+  {
+    "view": "support",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 1267
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 958
+  },
+  {
+    "view": "billing",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 1036
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 1394
+  },
+  {
+    "view": "switches",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 2348
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 900
+  },
+  {
+    "view": "website",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 2062
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "height": 1814
+  },
+  {
+    "view": "settings",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "height": 4045
+  }
+]

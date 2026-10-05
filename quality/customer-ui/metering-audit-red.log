@@ -1,0 +1,53 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/admin-cis-action-customer-binding.test.ts (8 tests | 1 failed) 55ms
+     × parses Swedish decimal input and checks the customer company before ingesting 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/admin-cis-action-customer-binding.test.ts > admin CIS actions use the saved record customer for follow-up work > parses Swedish decimal input and checks the customer company before ingesting
+AssertionError: expected "vi.fn()" to be called with arguments: [ ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+-   ObjectContaining {
++   {
+      "action": "metering_value_ingested",
++     "actor_user_id": "actor",
++     "company_id": null,
++     "entity_id": "value-a",
++     "entity_type": "metering_value",
++     "metadata": {
++       "customerId": "customer-a",
++       "meteringPointId": "point-a",
++     },
++     "new_values": {
+        "company_id": "company-a",
++       "customer_id": "customer-a",
++       "id": "value-a",
++     },
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ __tests__/admin-cis-action-customer-binding.test.ts:94:25
+     92|     expect(state.companyAccess).toHaveBeenCalledWith('actor', 'company…
+     93|     expect(state.ingest).toHaveBeenCalledWith(expect.objectContaining(…
+     94|     expect(state.audit).toHaveBeenCalledWith(expect.objectContaining({…
+       |                         ^
+     95|     expect(state.sync).toHaveBeenCalledWith(expect.anything(), 'custom…
+     96|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  15:09:02
+   Duration  450ms (transform 144ms, setup 33ms, import 155ms, tests 55ms, environment 0ms)

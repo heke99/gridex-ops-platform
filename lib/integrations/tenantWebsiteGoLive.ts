@@ -1,5 +1,6 @@
 import { supabaseService } from '@/lib/supabase/service'
 import type { IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { selectTenantWebsitePrimaryClient } from '@/lib/integrations/tenantWebsiteClient'
 import {
   loadTenantWebsiteFlowReadiness,
   type TenantWebsiteFlowReadiness,
@@ -57,25 +58,24 @@ export async function getTenantWebsiteGoLiveSummary(
 
   const { data: clientRows, error: clientError } = await supabaseService
     .from('integration_api_clients')
-    .select('id,company_id,name,status,key_prefix,secret_hash,scopes,allowed_ips,allowed_origins,metadata,rate_limit_per_minute,expires_at,profile_key,launch_ready,launch_blockers,created_at')
+    .select('id,company_id,name,status,key_prefix,secret_hash,scopes,allowed_ips,allowed_origins,metadata,rate_limit_per_minute,expires_at,profile_key,launch_ready,launch_blockers,created_at,primary_text:metadata->>primary,environment_text:metadata->>environment')
     .eq('company_id', companyId)
     .eq('profile_key', 'tenant_website')
     .is('deleted_at', null)
+    .in('status', ['active', 'paused'])
+    .order('status', { ascending: true })
     .order('created_at', { ascending: false })
   if (clientError) throw clientError
 
   const candidates = (clientRows ?? []) as Array<IntegrationApiClient & {
+    primary_text: unknown
+    environment_text: unknown
     profile_key?: string | null
     launch_ready?: boolean | null
     launch_blockers?: unknown[] | null
     created_at?: string | null
   }>
-  const primary = candidates.find((row) => {
-    const metadata = row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-      ? row.metadata as Record<string, unknown>
-      : {}
-    return metadata.primary === true
-  }) ?? candidates[0] ?? null
+  const primary = selectTenantWebsitePrimaryClient(candidates)
 
   const readiness = primary
     ? await loadTenantWebsiteFlowReadiness({ companyId, client: primary })

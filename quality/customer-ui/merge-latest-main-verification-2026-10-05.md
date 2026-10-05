@@ -1,0 +1,9 @@
+# Latest main composition — 2026-10-05
+
+Main advanced from f88e88fb to4b179ee4 while the fixture follow-up was published. PR #608 became conflicting, so GitHub did not start CI for8fa937d9. The only overlap among44 incoming changed files was the SC-068 fixture. Main already carries the identical `timeAnchors: initial.policy!.timeAnchors` correction; the conflict consists solely of its formatting and our explanatory comment. Main's complete version is retained. Root and the existing agent independently checked that copied-policy ownership refusal, no persistence, no business effects and unchanged original assertions are preserved.
+
+All49 other own source/test/gate hashes, including every UI/action file and the ENV-07 lease timestamp fixture, are unchanged. Incoming Ediel runtime, tests and approval records are preserved from main without our edits. No UI/runtime action conflict. Source receipt: `merge-latest-main-source-2026-10-05.json`.
+
+Root post-composition verification:14 files/137 tests PASS, covering actual facility reads, CIS customer binding, navigation, operational action contracts, intake links, ENV-07, SC-068, ACK retries and incoming canonical policy/permission tests. Own diff against main passes whitespace checks. Two trailing blank lines in incoming Ediel evidence logs are retained as upstream evidence rather than edited. Tests TypeScript and scoped fixture lint passed immediately before composition; final published-head CI must validate the composed tree.
+
+No authorized merge until all applicable checks on the final exact head pass. Local tagged-gate report failure is investigated separately; no test assertion, timeout, lease guard, grant or masterplan approval was relaxed. Verification used synthetic data and isolated SQL; no production business write, send or manual deploy.
