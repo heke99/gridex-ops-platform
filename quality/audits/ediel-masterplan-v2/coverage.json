@@ -1962,8 +1962,13 @@
     },
     {
       "id": "SC-072",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-independent-common-mapping.cjs",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/syntaxValidator.ts",
+        "docs/ediel/masterplan-v2/registers/source_manifest.json"
+      ]
     },
     {
       "id": "AT-GOV-01",
