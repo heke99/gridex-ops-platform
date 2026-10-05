@@ -46,11 +46,12 @@
     "__tests__/ediel-unresolved-inbound-mailbox-selector.test.ts": "c449d0a96a4964110d1d0c09af768c6bf453892f68dd96dc20f64a1b7676f7b0",
     "scripts/ediel-source-owner-native.config.ts": "722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56",
     "scripts/migration-history-manifest.runtime.additions.json": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
-    "scripts/supabase-types-manifest.json": "10c7394d1688fc1663d114cae35d2fab649d9b8ea6867d2480e3dc9c05afd708",
+    "scripts/supabase-types-manifest.json": "20d0cb061ae7d5eb834599e61a5d1d5f8cf695f00ddc9043613c8590deeb2d1a",
     "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
     "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
     "scripts/ediel-sc014-technical-intake-native.test.ts": "7388fe22df96a46ba580ef3a399995924f8f0da4fa2dc61390bd2a966410d824",
     "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
     "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
-  }
+  },
+  "provenance_correction": "Top-level active generated-byte origin explicitly root329; exact staff/P08 main origin and complete root origin retained separately. Type-baseline latest-tail guard remains mandatory and is expected to refuse pending source until authentic import."
 }
