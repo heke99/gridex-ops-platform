@@ -247,11 +247,15 @@ export async function findMatchingGridOwnerDataRequest(
       .eq('company_id', companyId)
       .in('external_reference', references)
       .order('created_at', { ascending: false })
-      .limit(1)
+      .limit(2)
 
     if (byReference.error) throw byReference.error
-    const hit = (byReference.data?.[0] as GridOwnerDataRequestRow | undefined) ?? null
-    if (hit) return hit
+    // external_reference is not unique per company: bind only an unambiguous
+    // hit that does not name another metering point than the one resolved.
+    const hits = (byReference.data ?? []) as GridOwnerDataRequestRow[]
+    const hit = hits.length === 1 ? hits[0] : null
+    const hitPoint = stringOrNull((hit as { metering_point_id?: unknown } | null)?.metering_point_id)
+    if (hit && (!meteringPointId || !hitPoint || hitPoint === meteringPointId)) return hit
   }
 
   if (!meteringPointId) return null

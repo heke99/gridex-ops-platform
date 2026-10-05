@@ -1253,3 +1253,4 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
 - 2026-10-04 SC-049 PASSED (wip): E61/E62 bara vid verklig avvikelse mot erhållen struktur; ESCO utan struktur får inga.
 - 2026-10-05 #556 review: U-19 fixed (parser record shape, fcaa0317). U-11 got a declared E97 preserve/remove test through the real filter. P-06 now runs the real requestMissingFacilityInformation flow (protected identity → needs_review/blocked, no outbox, no PoA event). SC-036 downgraded to PARTIAL (gap in open-blockers).
+- 2026-10-05 #556: SC-035 and SC-037 downgraded to PARTIAL after review (gaps in open-blockers).

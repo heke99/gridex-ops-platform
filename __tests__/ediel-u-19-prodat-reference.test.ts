@@ -1,9 +1,9 @@
 // masterplan: U-19, AT-U-19
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const db=vi.hoisted(()=>({rows:[] as Array<Record<string,unknown>>,inValues:[] as string[],companies:[] as unknown[]}))
-vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{const f:{company?:unknown,refs?:string[]}={};const q={select:()=>q,
- eq:(c:string,v:unknown)=>{if(c==='company_id'){f.company=v;db.companies.push(v)}return q},in:(_c:string,v:string[])=>{f.refs=v;db.inValues=v;return q},order:()=>q,
- limit:async()=>({data:db.rows.filter(r=>r.company_id===f.company&&(!f.refs||f.refs.includes(String(r.external_reference)))),error:null}),
+vi.mock('@/lib/supabase/service',()=>({supabaseService:{from:()=>{const f:{company?:unknown,refs?:string[],point?:unknown}={};const q={select:()=>q,
+ eq:(c:string,v:unknown)=>{if(c==='company_id'){f.company=v;db.companies.push(v)}if(c==='metering_point_id')f.point=v;return q},in:(_c:string,v:string[])=>{f.refs=v;db.inValues=v;return q},order:()=>q,
+ limit:async()=>({data:db.rows.filter(r=>r.company_id===f.company&&(!f.refs||f.refs.includes(String(r.external_reference)))&&(f.point===undefined||r.metering_point_id===f.point)),error:null}),
  maybeSingle:async()=>({data:null,error:null})};return q}}}))
 import {runUtiltsRuntimeForMessage} from '@/lib/ediel/utiltsEngine'
 import {resolveCanonicalEdielPolicy} from '@/lib/ediel/rulebook/canonicalEdielPolicy'
@@ -50,5 +50,18 @@ describe('U-19 the PRODAT case reference is used for correlation where it can be
   expect(parsed.references.TN).toEqual(['PRODAT-CASE-1'])
   const hit=await findMatchingGridOwnerDataRequest({...base,parsed_payload:{references:parsed.references}} as unknown as EdielMessageRow)
   expect(hit?.id).toBe('req-tn');expect(db.inValues).toEqual(['PRODAT-CASE-1'])
+ })
+ it('a same-company TN naming another point is not bound; the request for the resolved point wins',async()=>{
+  db.rows=[{id:'req-other',company_id:'c1',external_reference:'PRODAT-CASE-1',metering_point_id:'mp-other'},
+   {id:'req-own',company_id:'c1',external_reference:'OWN',metering_point_id:'mp'}]
+  const hit=await findMatchingGridOwnerDataRequest({...base,metering_point_id:'mp',parsed_payload:{references:{TN:['PRODAT-CASE-1']}}} as unknown as EdielMessageRow)
+  expect(hit?.id).toBe('req-own')
+ })
+ it('ambiguous TN candidates stay unbound and fall back to the point, without throwing',async()=>{
+  db.rows=[{id:'req-a',company_id:'c1',external_reference:'DUP',metering_point_id:null},{id:'req-b',company_id:'c1',external_reference:'DUP',metering_point_id:null}]
+  await expect(findMatchingGridOwnerDataRequest({...base,parsed_payload:{references:{TN:['DUP']}}} as unknown as EdielMessageRow)).resolves.toBeNull()
+ })
+ it('an unbindable TN hint does not change the E66 validation and ACK outcome',()=>{
+  expect(outcome(withReference("RFF+TN:DUP'"))).toEqual(outcome(energyHandoffMessage('2026-10-01')))
  })
 })
