@@ -1,0 +1,562 @@
+[
+  {
+    "view": "info",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "info",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "facility",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "facility",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "metering",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "metering",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "outbound",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "outbound",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "messages",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "messages",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "events",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "events",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "pricing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "pricing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "users",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "users",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "integrations",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "integrations",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "default",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "state": "expanded",
+    "width": 390,
+    "violations": []
+  },
+  {
+    "view": "info",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "info",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "facility",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "facility",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "metering",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "metering",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "outbound",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "outbound",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "messages",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "messages",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "events",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "events",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "pricing",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "pricing",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "users",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "users",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "integrations",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "integrations",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "default",
+    "width": 1280,
+    "violations": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": {
+      "width": 1280,
+      "height": 900
+    },
+    "state": "expanded",
+    "width": 1280,
+    "violations": []
+  }
+]

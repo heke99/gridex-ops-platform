@@ -1,5 +1,6 @@
 // Extracted from page.tsx; keep public imports on the facade module.
-import { activeTenantGroup, tenantWorkspaceGroups } from "./workspaceGroups";
+import { platformWorkspaceGroups, tenantWorkspaceGroups } from "./workspaceGroups";
+import CustomerWorkspaceNav from "@/components/admin/customers/CustomerWorkspaceNav";
 import { hasPermissionRequirement } from "@/lib/admin/accessModel";
 import Link from "next/link"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -714,8 +715,7 @@ export async function CustomerAdminDetailPage({
     ].includes(String(request.status ?? "").toLowerCase()),
   );
   const showFoldedTechnicalPanels = isPlatformAdmin && activeTab === "ediel-operations";
-  const tenantGroups = tenantWorkspaceGroups((tab) => canShowCustomerWorkspaceTab(tab, isPlatformAdmin, canReadContracts));
-  const activeGroup = activeTenantGroup(tenantGroups, activeTab);
+  const workspaceGroups = (isPlatformAdmin ? platformWorkspaceGroups : tenantWorkspaceGroups)((tab) => canShowCustomerWorkspaceTab(tab, isPlatformAdmin, canReadContracts));
   const canRegisterContact = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["cases.write"] });
   const canEditCustomer = !isPlatformAdmin && hasPermissionRequirement(access.permissions, { anyOf: ["masterdata.write"] });
   // F12: masked identity-change history; null while the migration is not applied yet.
@@ -728,12 +728,12 @@ export async function CustomerAdminDetailPage({
 
   return (
     <div className="space-y-6">
-      <section className="sticky top-0 z-20 rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm backdrop-blur">
+      <section className="sticky top-0 z-20 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-sm font-medium text-slate-700">Kundkort</p>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-950">
+            <h1 className="break-words text-xl font-semibold tracking-tight text-slate-950">
               {customerName}
             </h1>
             <span
@@ -744,18 +744,18 @@ export async function CustomerAdminDetailPage({
               {customerStatusLabel(customer.status)}
             </span>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-700">
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+          <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 break-words text-xs text-slate-600">
+            <span className="break-all">
               Kundnummer: {customer.customer_number ?? "—"}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="break-all">
               {displayEmail ?? "Ingen e-post"}
             </span>
-            <span className="rounded-full bg-slate-100 px-3 py-1">
+            <span className="break-all">
               {displayPhone ?? "Ingen telefon"}
             </span>
             {activeCustomerContract ? (
-              <span className="rounded-full bg-slate-100 px-3 py-1">
+              <span className="break-all">
                 {activeCustomerContract.contract_name}
               </span>
             ) : null}
@@ -808,64 +808,18 @@ export async function CustomerAdminDetailPage({
         </section>
       ) : null}
 
-      {isPlatformAdmin ? (
-      <nav
-        aria-label="Kundkortets delar"
-        className="flex flex-wrap gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm"
-      >
-        {CUSTOMER_WORKSPACE_TABS
-          .filter((tab) => canShowCustomerWorkspaceTab(tab.id, isPlatformAdmin, canReadContracts))
-          .map((tab) => (
-            <Link
-              key={tab.id}
-              href={customerTabHref(id, tab.id)}
-              aria-current={activeTab === tab.id ? "page" : undefined}
-              className={`rounded-full border px-3 py-1.5 font-semibold transition ${
-                activeTab === tab.id
-                  ? "border-emerald-700 bg-emerald-700 text-white"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          ))}
-      </nav>
-      ) : (
-      <nav aria-label="Kundkortets delar" className="grid gap-2 rounded-3xl border border-slate-200 bg-white p-3 text-sm shadow-sm">
-        <div className="flex flex-wrap gap-2">
-          {tenantGroups.map((group) => (
-            <Link
-              key={group.id}
-              href={customerTabHref(id, group.tabs[0])}
-              aria-current={activeGroup?.id === group.id ? "page" : undefined}
-              className={`rounded-full border px-3 py-1.5 font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600 ${
-                activeGroup?.id === group.id
-                  ? "border-emerald-700 bg-emerald-700 text-white"
-                  : "border-slate-200 text-slate-700 hover:bg-slate-50"
-              }`}
-            >
-              {group.label}
-            </Link>
-          ))}
-        </div>
-        {activeGroup && activeGroup.tabs.length > 1 ? (
-          <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-2" aria-label={`${activeGroup.label}: delar`}>
-            {activeGroup.tabs.map((tabId) => (
-              <Link
-                key={tabId}
-                href={customerTabHref(id, tabId)}
-                aria-current={activeTab === tabId ? "true" : undefined}
-                className={`rounded-full px-3 py-1 text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-sky-600 ${
-                  activeTab === tabId ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === tabId)?.label ?? tabId}
-              </Link>
-            ))}
-          </div>
-        ) : null}
-      </nav>
-      )}
+      <CustomerWorkspaceNav
+        activeTab={activeTab}
+        groups={workspaceGroups.map((group) => ({
+          id: group.id,
+          label: group.label,
+          tabs: group.tabs.map((tabId) => ({
+            id: tabId,
+            label: CUSTOMER_WORKSPACE_TABS.find((tab) => tab.id === tabId)?.label ?? tabId,
+            href: customerTabHref(id, tabId),
+          })),
+        }))}
+      />
 
       {activeTab === "overview" ? (
         <SectionAnchor
@@ -875,7 +829,7 @@ export async function CustomerAdminDetailPage({
         >
           <section
             data-testid="customer-overview-contact-summary"
-            className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="mb-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -890,47 +844,20 @@ export async function CustomerAdminDetailPage({
               </Link>
             </div>
 
-            <dl className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Namn</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-950">{customerName}</dd>
-                <dd className="mt-1 text-xs text-slate-600">{customerTypeUiLabel}</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">E-post</dt>
-                <dd className="mt-2 break-words text-sm font-semibold text-slate-950">{displayEmail ?? "Saknas"}</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Telefon</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-950">{displayPhone ?? "Saknas"}</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Kundnummer</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-950">{customer.customer_number ?? "Saknas"}</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4 sm:col-span-2">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Adress</dt>
-                {activeAddressDisplay ? (
-                  <dd className="mt-2 text-sm font-semibold text-slate-950">
-                    <span className="block">{activeAddressDisplay.street}</span>
-                    <span className="mt-1 block font-medium text-slate-700">
-                      {[activeAddressDisplay.postalCode, activeAddressDisplay.city].filter(Boolean).join(" ") || "Postort saknas"}
-                    </span>
-                    <span className="mt-1 block text-xs font-medium text-slate-500">{activeAddressDisplay.type}</span>
-                  </dd>
-                ) : (
-                  <dd className="mt-2 text-sm font-semibold text-slate-950">Adress saknas</dd>
-                )}
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{primaryIdentityLabel}</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-950">{primaryIdentityValue}</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4">
-                <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{secondaryIdentityLabel}</dt>
-                <dd className="mt-2 text-sm font-semibold text-slate-950">{secondaryIdentityValue}</dd>
-              </div>
+            <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+              <div className="min-w-0"><dt className="text-xs text-slate-500">E-post</dt><dd className="mt-1 break-words font-medium text-slate-950">{displayEmail ?? "Saknas"}</dd></div>
+              <div><dt className="text-xs text-slate-500">Telefon</dt><dd className="mt-1 font-medium text-slate-950">{displayPhone ?? "Saknas"}</dd></div>
+              <div className="min-w-0"><dt className="text-xs text-slate-500">Adress</dt><dd className="mt-1 break-words font-medium text-slate-950">{activeAddressDisplay ? <>{activeAddressDisplay.street}, {[activeAddressDisplay.postalCode, activeAddressDisplay.city].filter(Boolean).join(" ") || "Postort saknas"}</> : "Adress saknas"}</dd></div>
             </dl>
+            <details className="mt-3 border-t border-slate-100 pt-3">
+              <summary className="cursor-pointer text-sm font-medium text-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700">Identitet och kundnummer</summary>
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-4">
+                <div><dt className="text-xs text-slate-500">Namn</dt><dd className="mt-1 break-words font-medium text-slate-950">{customerName}</dd><dd className="text-xs text-slate-600">{customerTypeUiLabel}</dd></div>
+                <div><dt className="text-xs text-slate-500">Kundnummer</dt><dd className="mt-1 font-medium text-slate-950">{customer.customer_number ?? "Saknas"}</dd></div>
+                <div><dt className="text-xs text-slate-500">{primaryIdentityLabel}</dt><dd className="mt-1 font-medium text-slate-950">{primaryIdentityValue}</dd></div>
+                <div><dt className="text-xs text-slate-500">{secondaryIdentityLabel}</dt><dd className="mt-1 font-medium text-slate-950">{secondaryIdentityValue}</dd></div>
+              </dl>
+            </details>
           </section>
 
           <CustomerBusinessActionsCard

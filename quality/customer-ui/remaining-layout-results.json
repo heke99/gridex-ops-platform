@@ -1,0 +1,1268 @@
+[
+  {
+    "view": "info",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "KundAnläggningStatusSaknasPrioritetÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Saknas"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Prioritet"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "facility",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "KundAnläggningStatusSaknasPrioritetÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Saknas"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Prioritet"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "metering",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Typ/source"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "kWh"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Period"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Revision"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "metering",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Typ/source"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "kWh"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Period"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Revision"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "outbound",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "outbound",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "events",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "pricing",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200",
+        "text": "E-postRollerAuth-statusSkapadÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Auth-status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Skapad"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "users",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200",
+        "text": "E-postRollerAuth-statusSkapadÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Auth-status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Skapad"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "integrations",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "events-platform",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 320,
+    "state": "default",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 320,
+    "state": "expanded",
+    "width": 320,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "KundAnläggningStatusSaknasPrioritetÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Saknas"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Prioritet"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "facility",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "KundAnläggningStatusSaknasPrioritetÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Saknas"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Prioritet"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "metering",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Typ/source"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "kWh"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Period"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Revision"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "metering",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Typ/source"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "kWh"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Period"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 font-semibold text-slate-700",
+        "text": "Revision"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "outbound",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "outbound",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "events",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "pricing",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200",
+        "text": "E-postRollerAuth-statusSkapadÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Skapad"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "users",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200",
+        "text": "E-postRollerAuth-statusSkapadÅtgärd"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Skapad"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-left font-semibold text-slate-700",
+        "text": "Åtgärd"
+      }
+    ]
+  },
+  {
+    "view": "integrations",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "events-platform",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "",
+        "text": "TidKundAnläggningHändelseStatusNästa steg"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Händelse"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Status"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-5 py-3",
+        "text": "Nästa steg"
+      }
+    ]
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 390,
+    "state": "default",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 390,
+    "state": "expanded",
+    "width": 390,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "metering",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "metering",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": [
+      {
+        "tag": "TR",
+        "cls": "border-b border-slate-200 text-left",
+        "text": "TidKundMätpunktTyp/sourcekWhPeriodRevisionÖppna"
+      },
+      {
+        "tag": "TH",
+        "cls": "px-6 py-4 text-right font-semibold text-slate-700",
+        "text": "Öppna"
+      }
+    ]
+  },
+  {
+    "view": "outbound",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "outbound",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 1024,
+    "state": "default",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 1024,
+    "state": "expanded",
+    "width": 1024,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "info",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "facility",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "metering",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "metering",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "outbound",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "outbound",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "messages",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "events",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "pricing",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "campaigns",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "users",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "integrations",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "info-readonly",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "integrations-ready",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "events-platform",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 1280,
+    "state": "default",
+    "width": 1280,
+    "items": []
+  },
+  {
+    "view": "messages-platform",
+    "viewport": 1280,
+    "state": "expanded",
+    "width": 1280,
+    "items": []
+  }
+]
