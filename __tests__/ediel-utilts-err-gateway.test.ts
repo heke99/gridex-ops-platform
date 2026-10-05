@@ -1,4 +1,4 @@
-// masterplan: U-13, AT-U-13
+// masterplan: U-13, AT-U-13, SC-048
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
@@ -500,4 +500,23 @@ it('accepts only the actual immutable source capability in ERR preflight, never 
   expect(draft.rawPayload).toContain('STS+E01::260+41+E19::260')
   expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19',ackSourceQualification:{...q}})).toThrow('ack_source_qualification_scope_mismatch')
   expect(()=>buildUtiltsErrDraft({actorUserId:f.actor,sourceMessage:f.source,messageText:'E19'})).toThrow('ACK_UTILTS_ERR_ORIGINAL_REASON_SCOPE_REQUIRED')
+})
+
+it('SC-048 an own E50 period fault on a known object is finalized as a physical UTILTS ERR E50 on the current TN, without E10 or created objects',async()=>{
+ // Registration (SG5 DTM+597) moved before the latest QTY+220 reading date.
+ const f=seed([{reference:'OWN-E50',outcome:'accepted'}],'2026-09-30',raw=>raw.replace("DTM+597:202608010000:203'\nDTM+354","DTM+597:202607150000:203'\nDTM+354").replace("QTY+136:500'","QTY+136:1000'"))
+ expect(f.runtime.ackPlan.utiltsErrCodes).toEqual(['E50'])
+ // Contrast: the same object and sender with a valid registration time gives no ERR code.
+ expect(runUtiltsRuntimeForMessage({...f.source,raw_payload:f.source.raw_payload!.replace("DTM+597:202607150000:203'\nDTM+354","DTM+597:202608010000:203'\nDTM+354")},{referenceDate:'2026-09-30'}).ackPlan.utiltsErrCodes).toEqual([])
+ expect(f.runtime.validation.issues.filter(i=>i.severity==='error').map(i=>i.utiltsErrCode)).toEqual(['E50'])
+ const tablesBefore=[...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])
+ await f.finalize()
+ const errs=f.acks().filter(row=>row.message_family==='UTILTS_ERR')
+ expect(errs).toHaveLength(1)
+ const wire=EdifactEnvelopeCodec.decode(String(errs[0].raw_payload))
+ const codes=wire.segments.filter(s=>s.tag==='STS'||s.tag==='ERC').flatMap(s=>s.elements.flatMap((_,i)=>segmentComposite(s,i,wire.una)))
+ expect(codes).toContain('E50');expect(codes).not.toContain('E10')
+ expect(wire.segments.filter(s=>s.tag==='RFF').map(s=>segmentComposite(s,1,wire.una)).filter(c=>c[0]==='TN').map(c=>c[1])).toEqual(['OWN-E50'])
+ // No master data was created to make the check pass.
+ expect([...database.tables.keys()].filter(t=>t!=='ediel_messages'&&t!=='ediel_message_events'&&t!=='ediel_ack_transaction_results').map(t=>[t,database.tables.get(t)!.length])).toEqual(tablesBefore)
 })
