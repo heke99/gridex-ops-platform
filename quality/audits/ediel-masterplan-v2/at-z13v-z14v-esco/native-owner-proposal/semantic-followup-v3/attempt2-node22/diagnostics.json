@@ -1,0 +1,83 @@
+[
+  {
+    "code": 2339,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 428,
+    "column": 92,
+    "length": 7,
+    "message": "Property 'grantId' does not exist on type 'void'."
+  },
+  {
+    "code": 2339,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 428,
+    "column": 221,
+    "length": 7,
+    "message": "Property 'grantId' does not exist on type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 444,
+    "column": 25,
+    "length": 14,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 444,
+    "column": 82,
+    "length": 15,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 460,
+    "column": 48,
+    "length": 9,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 479,
+    "column": 25,
+    "length": 5,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 479,
+    "column": 73,
+    "length": 5,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 496,
+    "column": 25,
+    "length": 5,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  },
+  {
+    "code": 2345,
+    "category": "Error",
+    "file": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-service-evidence-native.test.ts",
+    "line": 496,
+    "column": 73,
+    "length": 5,
+    "message": "Argument of type 'NativeQualification' is not assignable to parameter of type 'void'."
+  }
+]

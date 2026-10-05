@@ -1,0 +1,12 @@
+{
+  "atUTC": "2026-10-05T14:23:41.921326+00:00",
+  "actualMainAuthoritativeBranchAPI": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "PRHead": "b7acb387c4132c7885e84bd1d7197f3ec5a0143f",
+  "targetRef": "main",
+  "historicalPRBaseSnapshot": "fff486f822001d35970f163507b10e17c3692f58",
+  "firstGuard": "ABORTED correctly; erroneously compared PR creation/adopted base snapshot to live main; no merge command executed",
+  "correctedGuardReason": "PR base.sha remains fff creation snapshot. Current main explicitly authenticated via branches/main, target ref/repo separately verified, composed tree recomputed against live3dff. This is not an acceptance of a changed main or guard bypass.",
+  "expectedComposedTree": "f49ae22d0deb1d41ab0f6695a370067f6ed663cd",
+  "all9CISHA256": "75717a6ceee7a93884b3dcf7614d35e75f4db35f4d92724379fcd4ca350d08be",
+  "independentCompositionReviewSHA256": "99653d205b15905864b430e6cf91d83fe15b89373cab4b3efb27019c72928a60"
+}
