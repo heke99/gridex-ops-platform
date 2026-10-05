@@ -1674,8 +1674,11 @@
     },
     {
       "id": "SC-036",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+        "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+        "scripts/test-ediel-p-11-z04-order.cjs",
         "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
         "lib/inbound-mail/inboundStatusUpdater.ts",
