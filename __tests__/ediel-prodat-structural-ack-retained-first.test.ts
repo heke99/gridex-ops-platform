@@ -1,3 +1,4 @@
+// masterplan: ACK-07, AT-ACK-07
 import {beforeEach,expect,it,vi} from 'vitest'
 const io=vi.hoisted(()=>({source:{} as Record<string,unknown>,read:vi.fn(),final:vi.fn(),outbox:vi.fn(),guide:vi.fn(),create:vi.fn(),actor:vi.fn()}))
 vi.mock('@/lib/ediel/db',()=>({getEdielMessageById:async()=>io.source}))
