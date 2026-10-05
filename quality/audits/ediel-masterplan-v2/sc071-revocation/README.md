@@ -6,6 +6,14 @@ current independent review approves the static component. **Native NOT_RUN;
 whole SC-071 remains unapproved.** The canonical local setup failed while
 registering a Docker image layer, before database replay or test execution.
 
+The new `.github/workflows/ediel-sc071-native.yml` invokes the unchanged
+canonical replay and this selected config on the exact PR head. It requires
+three cases with no failures/errors/skips and publishes only redacted feedback,
+including a stage receipt if replay fails. Its initial static review finding
+and correction are retained in `native-feedback-review.md`; finite workflow
+control probes do not establish database or native behavior. Actual CI native
+execution remains pending until its artifact is qualified.
+
 SC-010 remains with [PR #570](https://github.com/heke99/gridex-ops-platform/pull/570)
 at `7a894c3b7938daf9bbbab7680f71ca5911aefc9c`; its finite HTTP component is
 reused by reference. Ownership handoff: #530 comment5991386261, accepted5991584319.

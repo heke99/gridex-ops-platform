@@ -19,12 +19,16 @@ SC010 remains with earlier owner grant-revalidation-20261005, PR570 exact
 were preserved outside this PR and are superseded by that owner's packet.
 Released SQL component5991561047 is another finite receipt, never native proof.
 
-Only owned new files: scripts/ediel-sc-071-projection-revocation-native.test.ts,
+Owned new files: .github/workflows/ediel-sc071-native.yml,
+scripts/ediel-sc-071-projection-revocation-native.test.ts,
 this checkpoint and quality/audits/ediel-masterplan-v2/sc071-revocation/**.
 Production/SQL/helpers/canonical config/shared memory/coverage are untouched.
 Current main has91 VERIFIED rules+113 PASSED contracts=204 distinct approvals.
 
-Next action, retained coordinator/native owner (PR574): run the three selected native
+Next action, this SC071 owner (PR574): publish and follow the isolated native
+feedback workflow invoking the unchanged canonical replay/selected config.
+Next action, retained coordinator: carry the optional shared-suite include
+proposal only in its cleared file window. The coordinator can also run the selected native
 cases on an existing authentic local/CI stack with the selected canonical
 config, or clear one shared native-suite include. No duplicate common fixture,
 stack/capture/schema/manifest producer is supplied. Next action, retained
@@ -91,3 +95,45 @@ SC010570 head7a894c3b is still OPEN/DRAFT; its latest queried clean-replay job
 was IN_PROGRESS, so no whole CI/main status is adopted from it.
 A pre-publication scoped hash/path/credential-pattern check passed for all
 13 newly owned paths. Existing tracked files remained unchanged.
+
+## Resumed work 2026-10-05 — current, supersedes initial native handoff
+
+The user explicitly instructed continued execution. Same clean branch/worktree
+and reviewed test/config bytes are retained; no completed work is recreated.
+Native feedback claim5305992076279 reserves only NEW own workflow
+.github/workflows/ediel-sc071-native.yml. Fresh main remains01b11f55; complete
+old69 PR-file inventory plus nine new/changed568–576 heads/81 paths finds no
+workflow-file overlap. Shared include request5991979879 is still unapplied.
+
+The new isolated CI invoker reuses the existing sole canonical replay script,
+selected config, fixture, lock helper and redactor. Exact PR-head/Node22/CLI
+2.101.0/PG17, three-case zero-skip JUnit check and input hashes are required;
+ordinary current-main/upgrade/browser/parity gates are not replaced. Native
+NOT_RUN until its real run produces a qualified receipt. WholeSC071 remains
+unapproved independently of that finite projection test result.
+
+Local runtime read: current enforced network/ready environment, healthy Docker
+28.4/vfs,32GB filesystem,27GB free, zero images/containers/volumes. Retrying the
+unchanged space-exhausting stack or changing the daemon is not a remedy. CI
+provides the authentic stack without another database harness.
+
+Actionlint1.7.12 release checksum, workflow lint, all shell/Python syntax and
+three finite wrapper orchestration controls PASS. These controls replace
+setup/test commands synthetically and establish NO native/DB or contract proof.
+Independent review initially found P2: early replay failure lost diagnostics.
+Corrected with a fresh bash child retaining source errexit/canonical EXIT; the
+parent collects failed stage/logs after cleanup, redacts before artifact promotion
+and refuses remaining credential patterns. Initial failed review is preserved
+with the corrected verdict in native-feedback-review.md.
+
+Extended ten-source-hash inventory excludes billing/invoice export, customer
+life-event, provisioning/spot jobs and fixed customer-operation branches from
+beneficiary distribution. Source-owner questions and required actual consumer
+boundaries are in export-integration-gap.md; no new worker/design approval is
+inferred. Existing mutex is not a durable export lease or current grant check.
+
+ci-before-native-feedback.json preserves only prior candidateaf760c04 results;
+it cannot qualify the upcoming workflow publication head. Next action: publish
+the reviewed new workflow and follow its actual setup/test/artifact outcome;
+correct any first evidenced failure in own scope and retain external/shared
+failures for their owner. No coverage or shared artifact is promoted.

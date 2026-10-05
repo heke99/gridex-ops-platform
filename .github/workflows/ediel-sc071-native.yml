@@ -1,0 +1,171 @@
+name: Ediel SC071 native feedback
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/ediel-sc-071-projection-revocation-native.test.ts'
+      - 'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts'
+      - 'scripts/fixtures/ediel-service-evidence-native.ts'
+      - 'scripts/helpers/native-lock-process.ts'
+      - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
+      - 'scripts/ediel-source-owner-native.config.ts'
+      - 'scripts/gridex-aud-003-clean-replay.sh'
+      - 'scripts/migration-history-manifest*.json'
+      - 'lib/ediel/services/**'
+      - 'lib/ediel/utilts/**'
+      - 'lib/ediel/flows/prodatServicePermission.ts'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ediel-sc071-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-sc071-native-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Supplemental selected execution of the sole canonical replay/native owners.
+# Ordinary OPS clean/upgrade/browser/parity gates remain mandatory. Neither
+# this job nor its three projection cases establishes the leased export seam.
+jobs:
+  sc071-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install the PostgreSQL client for the canonical replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
+      - name: Run the three grant races after canonical clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p sc071-native-working
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/sc071-native-status.json"
+          component_exit=0
+          # A separate shell preserves the canonical source's errexit and EXIT
+          # cleanup even though the parent collects its failing result. Never
+          # source the replay in an if/! /|| context that disables errexit.
+          bash <<'NATIVE' > "$RUNNER_TEMP/sc071-session.log" 2>&1 || component_exit=$?
+          set -euo pipefail
+          printf replay > "$RUNNER_TEMP/sc071-stage"
+          source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/sc071-replay.log" 2>&1
+          printf status > "$RUNNER_TEMP/sc071-stage"
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          printf native > "$RUNNER_TEMP/sc071-stage"
+          npx vitest run \
+            --config quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts \
+            --reporter=default --reporter=junit \
+            --outputFile=sc071-native-working/native-junit.xml \
+            > sc071-native-working/native.log 2>&1
+          printf native_complete > "$RUNNER_TEMP/sc071-stage"
+          NATIVE
+          # The child has now executed the canonical cleanup on success/failure.
+          # Raw evidence stays private until redaction succeeds below.
+          cp "$RUNNER_TEMP/sc071-session.log" sc071-native-working/session.log
+          if [[ -f "$RUNNER_TEMP/sc071-replay.log" ]]; then
+            cp "$RUNNER_TEMP/sc071-replay.log" sc071-native-working/replay.log
+          fi
+          export SC071_COMPONENT_EXIT="$component_exit"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, subprocess, xml.etree.ElementTree as ET
+          inputs = [
+              '.github/workflows/ediel-sc071-native.yml',
+              'scripts/ediel-sc-071-projection-revocation-native.test.ts',
+              'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts',
+              'scripts/ediel-source-owner-native.config.ts',
+              'scripts/fixtures/ediel-service-evidence-native.ts',
+              'scripts/helpers/native-lock-process.ts',
+              'scripts/helpers/ediel-native-permission-catalog.setup.ts',
+              'scripts/gridex-aud-003-clean-replay.sh',
+              'scripts/gridex-redact-native-evidence.py',
+              'scripts/migration-history-manifest.json',
+              'scripts/migration-history-manifest.additions.json',
+              'scripts/migration-history-manifest.runtime.additions.json',
+              'lib/ediel/services/administration.ts',
+              'lib/ediel/services/projection.ts',
+              'lib/ediel/utilts/transactionPersistence.ts',
+              'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
+          ]
+          junit = pathlib.Path('sc071-native-working/native-junit.xml')
+          junit_error = None
+          try:
+              cases = list(ET.parse(junit).getroot().iter('testcase')) if junit.exists() else []
+          except ET.ParseError as error:
+              cases, junit_error = [], str(error)
+          counts = {name: sum(c.find(name) is not None for c in cases)
+                    for name in ('failure', 'error', 'skipped')}
+          complete = len(cases) == 3 and not any(counts.values())
+          component_exit = int(os.environ['SC071_COMPONENT_EXIT'])
+          stage = pathlib.Path(os.environ['RUNNER_TEMP'], 'sc071-stage').read_text()
+          receipt = {
+              'scope': 'SC071 native projection/revocation component only',
+              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'component_exit_code': component_exit, 'last_stage': stage,
+              'native_execution': 'ATTEMPTED' if stage.startswith('native') else 'NOT_RUN',
+              'native_exit_code': component_exit if stage.startswith('native') else None,
+              'canonical_replay': 'COMPLETED' if stage != 'replay' else 'FAILED',
+              'expected_cases': 3, 'actual_cases': len(cases), 'junit_counts': counts,
+              'junit_parse_error': junit_error,
+              'complete_three_case_pass': component_exit == 0 and complete,
+              'test_scope': ['scripts/ediel-sc-071-projection-revocation-native.test.ts'],
+              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in inputs},
+              'ordinary_required_gates': 'NOT_REPLACED',
+              'whole_sc071': 'UNAPPROVED', 'leased_export_consumer': 'NOT_PROVEN',
+              'external_issuer_and_smtp_ports': 'FINITE_SYNTHETIC_FIXTURE',
+              'browser_tests': 'NOT_RUN', 'upgrade_parity': 'NOT_RUN',
+              'authentic_market_evidence': 'NOT_PROVIDED',
+          }
+          pathlib.Path('sc071-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          pathlib.Path('sc071-native-working/complete.flag').write_text('1' if complete else '0')
+          PY
+          if [[ "$(cat sc071-native-working/complete.flag)" != 1 ]]; then component_exit=1; fi
+          rm sc071-native-working/complete.flag
+          python3 scripts/gridex-redact-native-evidence.py \
+            --local-secrets "$GRIDEX_NATIVE_STATUS" --root sc071-native-working
+          python3 - <<'PY'
+          import pathlib, re
+          remaining = re.compile(rb'\b(?:eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|sb_secret_[A-Za-z0-9_-]+)\b')
+          if any(remaining.search(p.read_bytes()) for p in pathlib.Path('sc071-native-working').iterdir() if p.is_file()):
+              raise SystemExit('sc071_redaction_incomplete_no_artifact_published')
+          PY
+          # Only a successfully redacted directory becomes eligible to upload.
+          mv sc071-native-working sc071-native-evidence
+          if [[ -f sc071-native-evidence/native.log ]]; then cat sc071-native-evidence/native.log; fi
+          cat sc071-native-evidence/receipt.json
+          rm -f "$GRIDEX_NATIVE_STATUS"
+          exit "$component_exit"
+      - name: Upload redacted SC071 native feedback
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ediel-sc071-native-${{ github.event.pull_request.head.sha }}
+          path: sc071-native-evidence/
+          if-no-files-found: warn
+          retention-days: 14

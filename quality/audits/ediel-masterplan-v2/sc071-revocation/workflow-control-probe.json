@@ -1,0 +1,31 @@
+{
+  "scope": "Finite workflow orchestration controls ONLY; subprocess status/replay/test commands are synthetic, not native evidence",
+  "workflow_sha256": "415504aba370073521c904b3d397b7d1106276f30d23b307d935bf1967a663c3",
+  "results": [
+    {
+      "finite_wrapper_control": "replay_failure",
+      "exit_code": 1,
+      "cleanup_observed": true,
+      "errexit_preserved": true,
+      "redacted_feedback_preserved": true,
+      "real_database_or_native_test_executed": false
+    },
+    {
+      "finite_wrapper_control": "native_failure",
+      "exit_code": 1,
+      "cleanup_observed": true,
+      "errexit_preserved": true,
+      "redacted_feedback_preserved": true,
+      "real_database_or_native_test_executed": false
+    },
+    {
+      "finite_wrapper_control": "complete_native_wrapper_control",
+      "exit_code": 0,
+      "cleanup_observed": true,
+      "errexit_preserved": true,
+      "redacted_feedback_preserved": true,
+      "real_database_or_native_test_executed": false
+    }
+  ],
+  "native_proof": "NOT_PROVIDED"
+}

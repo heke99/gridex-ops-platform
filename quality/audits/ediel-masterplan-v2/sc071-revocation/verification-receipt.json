@@ -128,5 +128,22 @@
     "all_new_owned_paths": true,
     "receipt_hashes_exact": true,
     "credential_pattern_check": "PASS"
+  },
+  "resumed_work": {
+    "recorded_at_utc": "2026-10-05T09:59:43.729688+00:00",
+    "base_head": "af760c048fb07b0232e304ec2facd565e6b5951a",
+    "native_feedback_claim": 5992076279,
+    "optional_shared_include_request": 5991979879,
+    "new_workflow": ".github/workflows/ediel-sc071-native.yml",
+    "workflow_sha256": "415504aba370073521c904b3d397b7d1106276f30d23b307d935bf1967a663c3",
+    "static_actionlint": "PASS v1.7.12 checksum-qualified release",
+    "shell_python_syntax": "PASS",
+    "finite_wrapper_control_probe": "workflow-control-probe.json; synthetic orchestration only, no database/native qualification",
+    "production_search_inventory": "export-path-inventory.json; ten exact source hashes",
+    "independent_workflow_review": "native-feedback-review.md; initial P2 preserved and corrected",
+    "native_execution": "AWAITING_ACTUAL_CI",
+    "whole_sc071": "UNAPPROVED",
+    "shared_files_edited": false,
+    "reviewed_test_config_hashes_unchanged": true
   }
 }
