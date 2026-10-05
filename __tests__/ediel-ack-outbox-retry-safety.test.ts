@@ -1,3 +1,4 @@
+// masterplan: ACK-07, AT-ACK-07
 import { beforeEach, expect, it, vi } from 'vitest'
 import type { EdielMessageRow } from '@/lib/ediel/types'
 
