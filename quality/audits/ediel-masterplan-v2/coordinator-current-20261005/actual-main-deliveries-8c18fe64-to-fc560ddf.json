@@ -1,0 +1,71 @@
+{
+  "kind": "Authenticated actual PR594 OPS03/ATOPS03 ordinary merge; original all9/native/code evidence reused",
+  "pr_number": 594,
+  "actual_main": "fc560ddfe3d7290b3fa516c1ffe8b1641cb69d4b",
+  "actual_main_tree": "11804364323064e9dca69a8a7a2ad8a3e79ac3bd",
+  "ordered_parents": [
+    "8c18fe64988154707a927e1af6bd6645de1be6e6",
+    "c5cf7921a3047f803ae707a186ede52951919806"
+  ],
+  "source_head": "c5cf7921a3047f803ae707a186ede52951919806",
+  "merged_at_utc": "2026-10-05T23:25:03Z",
+  "method": "merge",
+  "original_ready_turn": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005325429",
+  "original_actual_postcheck_release": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6005367866",
+  "original_current_main_source_guard_sha256": "aee07ab4b1f8882c3de637a778a7538e2e0ab5dcda4acbe38207602de1f23ae8",
+  "original_all_nine_gate_receipt_sha256": "60ac9049c1e147e865403d04e0f0fbc4a5babcc7c49fc4f47f02a5d6ca9bbbe5",
+  "original_actual_delivery_receipt_sha256": "9afed33196c3c18d2adcaf55cf8d967e002936ae0cdb31b3b11c57f81ebe3c0a",
+  "actual_tree_equals_original_qualified_prediction": true,
+  "complete_actual_delta": [
+    {
+      "path": ".agent-memory/masterplan-ops03-checkpoint.md",
+      "status": "modified",
+      "git_blob": "8ad0470e25341e258e333732745fe8ead8353932"
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "status": "modified",
+      "git_blob": "00aacf0b932f2e33e0773bafeb67bd4657a34849"
+    },
+    {
+      "path": "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+      "status": "added",
+      "git_blob": "784d682a7986eeedce953d68d06d35094439eb81"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "status": "modified",
+      "git_blob": "88b7be952b109b556fd1da6e8d3e26fa11394ef6"
+    },
+    {
+      "path": "scripts/gridex-full-production-e2e.cjs",
+      "status": "modified",
+      "git_blob": "5d6da09a5d7e673dad71e1a42b7e0c5433c1a608"
+    }
+  ],
+  "actual_coverage": {
+    "rules": {
+      "VERIFIED": 109,
+      "NOT_VERIFIED": 9,
+      "PARTIAL": 3
+    },
+    "contracts": {
+      "PASSED": 164,
+      "NOT_EXECUTED": 53,
+      "PARTIAL": 14
+    },
+    "stored": 273,
+    "total": 352,
+    "promotions": [
+      "OPS-03",
+      "AT-OPS-03"
+    ]
+  },
+  "qualification_limits": [
+    "Root reads actual PR/Git parents/tree/five-path custody only, not original native/code artifact or CI logs.",
+    "Original all9/current c5 certificate/native/coverage qualification and true attempts remain its existing source owner.",
+    "Only original OPS03/ATOPS03 promotions; 350 foreign rows/order/raw bytes and canonical whole fixtures retain original guarded authority.",
+    "No full73/current-main/native-prefix/wholeMasterplan/formal live approval inferred; original baseline owner retained."
+  ],
+  "common_handover": "Exactly ONE new594 marker; preserve all41 prior ACTUAL lines"
+}
