@@ -56,7 +56,8 @@
     "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
     "supabase/migrations/20261001022500_ediel_beneficiary_projection_provenance_receipts.sql": "4a703b34cc06a5797666b92b97aa1e865aaf6e8eec01534401576225ba7157cf",
     "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
-    "scripts/ediel-service-evidence-native.test.ts": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee"
+    "scripts/ediel-service-evidence-native.test.ts": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+    "supabase/migrations/20261001004953_ediel_current_company_permission_denies.sql": "3a83ea9f98a75c8bed50eed150fd6101df5e3ac3418696f79ccc88708bb9f665"
   },
   "newTechnicalHashes": {
     "__tests__/ediel-sc-010-071-current-grant.test.ts": "b8bb0e58533910959530dbfd413cb5ee969ada5f3580a03ed084d47b82a4be0e",
@@ -68,7 +69,9 @@
     "final-focused-node22.log": "99265b240f75eeea493eed45c4ba71f6a07c897abf4c7c4793a10e1173cfb9b5",
     "qualification-sql.log": "3c842c6dcf837906e2befe1114624ea15d9538947ab123db12ae9f2f0e3d3b59",
     "final-junit.xml": "1c67ff3b940d53e90ec55e9a637f4f533200b44237abdda721e596947e71cbd5",
-    "tests-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "tests-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tagged-coverage.log": "0434f1e55ce5532ea70c8308d08d45a65b8e51317caac26a9b34ba80313ec68c",
+    "independent-review.md": "3f39b50cca65eef2bda552e416c70c7492c76bea28a0824373916b87547a34d5"
   },
   "previousFailures": [
     {
@@ -95,5 +98,60 @@
       "scope": "execution environment",
       "reason": "restricted runner returned spawnSync EPERM despite subprocess completion; allowed network/socket execution boundary produced canonical focused pass without changing assertions"
     }
-  ]
+  ],
+  "technicalCommit": "04fb46e67cf20f666056905032889895550ec827",
+  "commands": [
+    {
+      "command": "EDIEL_PGLITE_MODULE=<installed pinned 0.3.14> EDIEL_SQL_REPOSITORY=<worktree> Node22 scripts/ediel-sc-010-071-current-grant-sql-regression.mjs",
+      "exitCode": 0,
+      "artifact": "qualification-sql.log"
+    },
+    {
+      "command": "Node22 node_modules/vitest/vitest.mjs run __tests__/ediel-sc-010-071-current-grant.test.ts --reporter=verbose --reporter=junit",
+      "exitCode": 0,
+      "artifact": "final-focused-node22.log; final-junit.xml",
+      "environment": "supported network/socket execution boundary; subprocess uses finite embedded SQL, no external DB"
+    },
+    {
+      "command": "Node22 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+      "exitCode": 0,
+      "artifact": "tests-types.log"
+    },
+    {
+      "command": "Node22 node_modules/eslint/bin/eslint.js __tests__/ediel-sc-010-071-current-grant.test.ts scripts/ediel-sc-010-071-current-grant-sql-regression.mjs",
+      "exitCode": 0,
+      "artifact": "final-scoped-lint.log"
+    },
+    {
+      "command": "Node22 --check scripts/ediel-sc-010-071-current-grant-sql-regression.mjs",
+      "exitCode": 0
+    },
+    {
+      "command": "Node22 scripts/check-ediel-masterplan-v2.cjs",
+      "exitCode": 0,
+      "artifact": "frozen-integrity.log"
+    },
+    {
+      "command": "Node22 scripts/ediel-masterplan-test-coverage.cjs --check",
+      "exitCode": 0,
+      "artifact": "tagged-coverage.log",
+      "scope": "supported tagged checks only; no literal whole-scenario promotion"
+    }
+  ],
+  "ownershipStatus": "RELEASED: earlier raced exclusive claim5991253973 retained",
+  "wholeScenarioOwnerClaim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991253973",
+  "reviewedTechnicalCommit": "04fb46e67cf20f666056905032889895550ec827",
+  "publicationPurpose": "disjoint SQL-component evidence handoff only",
+  "finalMainObserved": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "independentReview": {
+    "reviewer": "sc010_sc071_review",
+    "verdict": "APPROVE bounded partial-evidence packet; no unresolved Critical/Important issues",
+    "technicalCommit": "04fb46e67cf20f666056905032889895550ec827",
+    "independentExecution": false,
+    "artifact": "independent-review.md"
+  },
+  "remainingOwners": {
+    "SC-010": "grant-revalidation-20261005, claim5991253973",
+    "SC-071": "revocation-20261005, claim5991278834; explicit handoff5991386261"
+  }
 }
