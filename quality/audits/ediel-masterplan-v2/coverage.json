@@ -1653,8 +1653,20 @@
     },
     {
       "id": "SC-008",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc008-owner-raw-read.test.ts",
+        "__tests__/ediel-beneficiary-projection-api.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "lib/admin/guards.ts",
+        "lib/tenant/adminScope.ts",
+        "lib/ediel/db.ts",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-009",
@@ -1740,8 +1752,19 @@
     },
     {
       "id": "SC-017",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-ten-07-scoped-projection-sql-regression.mjs",
+        "scripts/ediel-esco-10-11-projection-native.test.ts",
+        "scripts/ediel-service-evidence-native.test.ts",
+        "lib/ediel/services/projection.ts",
+        "lib/ediel/utilts/qualifyReceivedStructure.ts",
+        "lib/ediel/utilts/transactionPersistence.ts",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc008-sc017/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-018",
