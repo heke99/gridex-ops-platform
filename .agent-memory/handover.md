@@ -1,3 +1,12 @@
+## Actual next serial deliveries — 2026-10-05T17:55:00Z
+
+Four additional actual main deliveries, authenticated from first-parent history, recorded once. Consumes sole common-writer requests5305998669478 and5999925375. Main8451 stores254 approvals. Source913 is still frozen at8/9 required success; this record is not final-main CI/tag certification. Earlier eighteen actual lines remain exact below.
+
+- ACTUAL MAIN MERGE PR #600: `f7df744d58fb6677daa075f5613facb80c65db71`; tree `4050d46715dfc6699a71a298e1c42617e3823855`; parents `37b06fd31d91b23671c6f62fd459b6eb7635d605` + `52a0e77cbf4816d2f55cfea083b29888632c374c`; stored approvals 248. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/600).
+- ACTUAL MAIN MERGE PR #532: `117f02fae50bef27e50008058cdeee1a49993dde`; tree `8ce07f82dc1349bd64add6d14873291f93365df2`; parents `f7df744d58fb6677daa075f5613facb80c65db71` + `c89d003f20b48942130486387536df06880ab98e`; stored approvals 250. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/532).
+- ACTUAL MAIN MERGE PR #534: `258066a7ac85c7a346fb05b66675c861c5e4aa60`; tree `764a5d7a911b8e833e77c5e61445cdce34f566bd`; parents `117f02fae50bef27e50008058cdeee1a49993dde` + `b7bfb88dae9fc4f77807b618f953812a72412578`; stored approvals 252. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/534).
+- ACTUAL MAIN MERGE PR #521: `8451f013837c8b4b198ad2c5490cc2a54ab847ff`; tree `52bc0f6a130ca9d974de8ef579104bed42eb10e2`; parents `258066a7ac85c7a346fb05b66675c861c5e4aa60` + `9f20a3c7cc33c41e1af639fb5cc6176134920872`; stored approvals 254. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/521).
+
 ## Actual serial main deliveries — 2026-10-05T17:30:00Z
 
 These eighteen actual Git deliveries are recorded once, from first-parent main history after cf275 through `37b06fd31d91b23671c6f62fd459b6eb7635d605`. This is documentary source custody, not a claim that current main push CI or every whole scenario is green. Final baseline/tag remains with its designated serial writer. #595 consumes unique request5035999025683; #598 consumes4915999009722. Historical and partial evidence is preserved.
