@@ -1,6 +1,6 @@
 # SC-010 / SC-071 — grant revalidation
 
-Agent: Codex grant-revalidation-20261005. Status: component VERIFIED and PUBLISHED in draft #570; whole SC-010 BLOCKED. Current candidate CI/integration and whole-scenario approval remain separate.
+Agent: Codex grant-revalidation-20261005. Current status (2026-10-05 continuation): SC010 first real internal export IMPLEMENTED_NOT_NATIVE_VERIFIED in the same checkout; original component #570 exact7a now has all nine required CI checks SUCCESS. Whole SC010 remains unapproved. The older published/blocker snapshot below is historical and superseded by the expanded producer claim, not discarded.
 Branch: `codex/ediel-sc010-sc071-grant-revalidation-20261005`.
 Checkout: `/workspace/gridex-sc010-sc071`.
 Base/source commit: `985724f58ef15e222cf4d3b2e1c643c674852106` (actual main, 2026-10-05).
@@ -9,7 +9,25 @@ Published candidate head: `7a894c3b7938daf9bbbab7680f71ca5911aefc9c`, PR https:/
 Latest publication/handoff checkpoint is saved on remote documentation ref `codex/ediel-sc010-sc071-checkpoint-20261005`, with only this own checkpoint and `publication-status.json` added to published7a. This preserves the running candidate CI without a status-only source-branch push. Read that ref's exact commit from Git and carry its two documentation files during coordinator integration.
 Claim: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991253973.
 
-## Scope and ownership
+## Current continuation and next concrete action
+
+User explicitly instructed continued autonomous execution. Independent design review confirms the user contract plus retained SC010 reservation permits the missing first producer in new own files; the earlier request for an extra producer assignment was overly strict. Expanded exact NEW-path reservation was published before code: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992097869. SC071 owner accepted this sole producer dependency in5992281152. No existing source owner or shared file was taken over.
+
+Actual main adopted through non-destructive merges: `0dab92006d2ce17db21774e17d983b9a407b1a47`, preserving SC036 and all other owners' approvals. Actual main totals91VERIFIED rules+114PASSED contracts=205distinct/352. New technical work is currently uncommitted after that local main-preserving merge; read exact HEAD from Git. Source freeze/publication follows verification and independent re-review.
+
+Implemented new `beneficiaryExport.ts`, authenticated enqueue/process/result routes, and the single forward migration `20261005101500_ediel_beneficiary_export_jobs.sql`. Queue captures trusted actor/beneficiary/explicit scope and expected version, with exact-scope idempotency. Actual database claims issue rotating five-minute lease tokens; worker returns counts without payload. Execute reuses the existing current projection and writes a private one-page DGI result in the same transaction. Result read rechecks full current rights and exact retained-page equality. Late result or completion lock waits must pass a final wall-clock lease check or roll back the entire RPC. Private derived result expires for reads after one hour; expired payloads are actually removed on the next authorized actor worker pass, not guaranteed physically purged at the hour or after actor deactivation. Original/audit job references remain.
+
+Prepared genuine canonical-native cases: active enqueue→actual revoke→lease→blocked execution; positive DGI export followed by current denial of cached result; real result-table and job-table lock waits past the genuine shortened lease deadline, expecting atomic rollback of result/receipt/completion. They reuse the existing ESCO fixture, real source/archive/accepted storage, PostgreSQL/PostgREST, lock-process helper and canonical configuration. Route session selection and SMTP/issuer/legal inputs remain finite named boundaries. Native is NOT_RUN here: no second stack/harness or fake skip is substituted for the existing canonical source-owned runtime.
+
+SQL extension reuses existing projection-replay→provenance→grant-set→positive-scope→administration chain. Current9 new groups and107 inherited groups PASS under Node22.23.3/PGlite0.3.14, with explicit finite upstream fixtures and no genuine concurrency claim. It includes actual grant administration revoke, zero prohibited original/receipt/output effects, exact-scope collision, stale/expired/rotated token denial, role loss and unaffected beneficiary control. Whole-card/native approval does not follow from these groups. New asserting Vitest bridge exercises that SQL runner in the normal tagged selection.
+
+Independent implementation review identified three P2 issues before publication: purpose512 versus existing2000; expiry after a destination/completion lock wait; wrong current-role/endpoint denial names. All are corrected in source and being re-reviewed. The same-key collision now changes a still-authorized page limit to reach the actual collision check. Follow-up also aligns job/result expiry to one exact deadline. Reports live under own `sc010-sc071/`; no external approval is inferred.
+
+Preserved failures: first new component run11missing-entry failures; SQL first missing module env, then injected `migration` variable shadowing, then two overlapping temporary runners invalidated by ENOENT cleanup; inherited final decoder initially lacked EDIEL_SQL_REPOSITORY. Corrected sequential baseline is RED on missing real queue; corrected sequential full runner is GREEN. New SQL Vitest bridge initially hit sandbox spawn EPERM (49PASS/1FAIL), saved separately with its JUnit; supported additional tool network permission is used for the unchanged runner, preserving the ordinary unit network guard and assertions. These setup/runner results are not rewritten as successful first attempts.
+
+Next own step: finish exact source/test freeze and re-review, publish concrete producer/RPC/hash to SC071 owner and the sole integration coordinator, and qualify the prepared native cases on the canonical stack. Coordinator carries exactly one migration admission row, authentic schema/types/fingerprint capture, and one native include; shared registration/capture/config/common memory remain untouched here. Native workflow/stack reuse is being coordinated instead of creating a competing producer. No SC010 coverage promotion or MERGED line before full effects/review/current CI/integration.
+
+## Historical component scope and ownership
 
 Own NEW test: `__tests__/ediel-sc-010-071-grant-revalidation.test.ts`.
 Own evidence: `quality/audits/ediel-masterplan-v2/sc010-sc071/`.

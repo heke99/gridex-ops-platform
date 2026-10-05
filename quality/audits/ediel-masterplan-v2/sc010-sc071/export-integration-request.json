@@ -1,0 +1,40 @@
+{
+  "scope": "one new migration admission and canonical capture, coordinator owned",
+  "source_main": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+  "migration": {
+    "path": "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql",
+    "sha256": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "suggested_admission_file": "scripts/migration-history-manifest.runtime.additions.json",
+    "files_entry": {
+      "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+    }
+  },
+  "native_include": "scripts/ediel-sc-010-beneficiary-export-native.test.ts",
+  "native_cases": 4,
+  "selected_config": "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts",
+  "shared_files_modified_by_this_owner": [],
+  "new_consumer_hashes": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "__tests__/ediel-sc-010-beneficiary-export.test.ts": "0973e1fe6e465632cf575ce50af7d2c1dfd39f396067147f6d547e45f942cc2c",
+    "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "5e22444e6ccfe4e23938b43df5f87986cc962db0c54d9b808a8645b0d28e30fb",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+  },
+  "rpc_signatures": [
+    "public.ediel_queue_beneficiary_export_v1(uuid,uuid,uuid,uuid,bigint,text,uuid,text[],timestamptz,timestamptz,integer,timestamptz,uuid)",
+    "public.ediel_claim_beneficiary_exports_v1(uuid,uuid,integer)",
+    "public.ediel_execute_beneficiary_export_v1(uuid,uuid,uuid,uuid)",
+    "public.ediel_read_beneficiary_export_v1(uuid,uuid,uuid)"
+  ],
+  "required_canonical_outputs": [
+    "authentic native JUnit/log/input hashes",
+    "schema.sql/fingerprint",
+    "generated database types and exact manifest",
+    "clean and authentic-upgrade replay parity"
+  ],
+  "status": "PENDING_COORDINATED_ADMISSION_AND_NATIVE; NOT_APPROVED"
+}

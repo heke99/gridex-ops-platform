@@ -1,0 +1,133 @@
+{
+  "recorded_utc": "2026-10-05T10:28:00Z",
+  "agent": "grant-revalidation-20261005",
+  "branch": "codex/ediel-sc010-sc071-grant-revalidation-20261005",
+  "source_main": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+  "pre_freeze_head": "3e37ebda679449b6336818b367abf48abd15300c",
+  "producer_commit": "read the commit that first adds the exact producer hashes; this receipt does not self-hash a later metadata commit",
+  "owned_scenario": "SC-010",
+  "released_scenario_owner": {
+    "SC-071": "revocation-20261005; #574 accepted dependency5992281152"
+  },
+  "ownership_claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992097869",
+  "implementation": "real authenticated scoped enqueue/claim/execute/current result-reader; private internal one-page E66 export",
+  "producer_files": {
+    "lib/ediel/services/beneficiaryExport.ts": "95b6bae56b2eb60e31ea32f03f4aec097af81cf19b5ab3d848b26e8d8a87820f",
+    "app/api/ediel/beneficiary/series/[seriesId]/exports/route.ts": "6b484c34b4e7dfa9923f16e105839a73be8d9a8c19491ddad7b219db6588e1ed",
+    "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
+    "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
+    "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
+    "__tests__/ediel-sc-010-beneficiary-export.test.ts": "0973e1fe6e465632cf575ce50af7d2c1dfd39f396067147f6d547e45f942cc2c",
+    "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "5e22444e6ccfe4e23938b43df5f87986cc962db0c54d9b808a8645b0d28e30fb",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
+    "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
+  },
+  "verification": {
+    "node": "22.23.3",
+    "pglite": "0.3.14",
+    "vitest": "4.1.9",
+    "focused": {
+      "tests": 50,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "boundaries": "actual routes/parser/adapter/worker; finite session-selection and RPC ports except the real SQL subprocess"
+    },
+    "sql": {
+      "owned_groups": 9,
+      "inherited_groups": 107,
+      "exit_code": 0,
+      "boundaries": "actual new SQL/current source/permission/admin/projection owners, existing finite upstream fixtures; one PGlite session, no genuine concurrent PostgreSQL"
+    },
+    "tests_types": {
+      "exit_code": 0,
+      "log": "evidence/export-types.log"
+    },
+    "lint": {
+      "exit_code": 0,
+      "log": "evidence/export-lint.log"
+    },
+    "frozen_integrity": {
+      "exit_code": 0,
+      "original_files": 33,
+      "rules": 121,
+      "contracts": 231,
+      "application_conformance_asserted": false
+    },
+    "full_tagged_gate": {
+      "exit_code": 0,
+      "ids": 352,
+      "candidate_approved": 205,
+      "tagged_green": 225,
+      "tagged_failing": 0,
+      "untagged": 127,
+      "log": "evidence/export-tagged.log"
+    },
+    "native": {
+      "status": "NOT_RUN",
+      "source_reviewed_cases": 4,
+      "config": "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts",
+      "boundaries": "canonical stack/ESCO fixture/native lock helper; named static session selection and external SMTP/issuer/legal fixtures; no native skip substituted"
+    },
+    "source_carry": {
+      "existing_non_ledger_manifest_inputs": 21,
+      "current_main_drift": []
+    },
+    "review": {
+      "path": "implementation-review.md",
+      "initial_findings": 3,
+      "source_status": "ALL_SOURCE_FIXED; no additional confirmed product/tenant defect; genuine native qualification pending",
+      "whole_scenario_approval": false
+    }
+  },
+  "failures_preserved": [
+    "11 missing-entry component assertions before implementation",
+    "SQL setup missing EDIEL_PGLITE_MODULE",
+    "injected migration variable shadowing TDZ",
+    "two overlapping own temp runners invalidated by ENOENT, then sequential reruns only",
+    "inherited bounded decoder initially lacked EDIEL_SQL_REPOSITORY",
+    "component SQL bridge sandbox spawn EPERM:49PASS/1FAIL; unchanged supported-permission rerun50PASS",
+    "mistyped tagged-checker path MODULE_NOT_FOUND; corrected actual checker passes"
+  ],
+  "execution_commands": {
+    "focused": "node22 node_modules/vitest/vitest.mjs run __tests__/ediel-sc-010-beneficiary-export.test.ts __tests__/ediel-sc-010-071-grant-revalidation.test.ts __tests__/ediel-beneficiary-projection-api.test.ts __tests__/ediel-beneficiary-projection-provenance.test.ts --reporter=default --reporter=junit --outputFile=quality/audits/ediel-masterplan-v2/sc010-sc071/evidence/export-component-junit.xml",
+    "sql": "EDIEL_PGLITE_MODULE=<repository>/node_modules/@electric-sql/pglite/dist/index.js EDIEL_SQL_REPOSITORY=<repository> node22 scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs",
+    "tagged": "PATH=<node22>/bin:$PATH node scripts/ediel-masterplan-test-coverage.cjs --check",
+    "native_pending": "GRIDEX_NATIVE_STATUS=<real private canonical status JSON> node22 node_modules/vitest/vitest.mjs run --config quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts --reporter=default --reporter=junit --outputFile=<redacted evidence path>"
+  },
+  "evidence_sha256": {
+    "evidence/export-component-green.log": "8615fdb899d55bcee6ad7efe37971a62d3f6450f2748d14bea566f036fab756f",
+    "evidence/export-component-junit.xml": "092e5a0c75a2b7662426540510e87314c6e4c89210335451bd610689e99216ff",
+    "evidence/export-component-runner-failed-junit.xml": "db1276a684f5c862223c5390bf8f3988988441853d8a3835c126ec1d7245451c",
+    "evidence/export-component-runner-failed.log": "18d7d6147c5fa94d5bc0f99f86928259d226b029ad6b16b26b4086216161c9cd",
+    "evidence/export-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "evidence/export-spec.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "evidence/export-sql-baseline-red.log": "7274e49e5779dc10631018c4b52e5335515f2d6afbf358315514e750723b2d44",
+    "evidence/export-sql-green.log": "c45f1215ba97b44309003d375c32455cc9c13d2ad176a2b4e38e3ebca88a9e86",
+    "evidence/export-sql-red.log": "d46d54f37a76cfe412f7259abc61e427c949cd0e736c892707fb468073d3a989",
+    "evidence/export-tagged.log": "f73e9ce23c463663a3a35e36ec236d7b97845f95e6e347e4279ecf2051fa776f",
+    "evidence/export-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "evidence/export-component-red.log.gz": "1b298aff9da8fe760f7c3145cde1f19e599a71285b207a781a57d4e2f1dea20f"
+  },
+  "source_review_sha256": "2cd1d598bff908f5ac46f06f4e761eee21d2babbf307df1641120ff307e11823",
+  "shared_files_modified": [],
+  "coverage_changed": false,
+  "status": "IMPLEMENTED_AND_COMPONENT_SQL_VERIFIED; NATIVE_AND_COORDINATED_CANONICAL_ADMISSION_PENDING; WHOLE_NOT_APPROVED",
+  "next_owner_actions": {
+    "producer_owner": "publish exact source and qualify native on existing canonical runtime",
+    "SC071_owner": "reuse same real job consumer for parallel grant/export cases",
+    "integration_coordinator": "apply the one proposed admission, register one native include, capture authentic schema/types/fingerprint and require current CI before merge"
+  },
+  "limits": [
+    "one page export, next retained; not full unbounded interval or external transport",
+    "derived result read expiry one hour, actual cleanup on next authorized actor worker pass; no guaranteed physical one-hour purge",
+    "native/proofchange/endpoint-loss/long-purpose/full lifecycle effects not yet executed",
+    "no merged/deployed/customer/market acceptance"
+  ],
+  "compressed_raw_log": {
+    "path": "evidence/export-component-red.log.gz",
+    "decompressed_sha256": "a6b08d003ec2dd43c886e4437a63aaa811deaffc7e3d09eb539b5075bf8aa8e0",
+    "reason": "preserve exact original bytes including terminal whitespace without source diff whitespace failures"
+  }
+}
