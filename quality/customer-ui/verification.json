@@ -164,5 +164,25 @@
       "Read-only role checks sample an active member and a no-membership subject, not every user or tenant.",
       "No production build, full migration replay, whole-system audit or deployment."
     ]
+  },
+  "merge_verification": {
+    "source_base_for_full_local_suite": "25c0a12f",
+    "composed_main": "8451f013",
+    "full_suite_passed": 10972,
+    "full_suite_skipped": 17,
+    "full_suite_failed": 0,
+    "files": 849,
+    "typechecks": {
+      "app": 0,
+      "tests": 0,
+      "scripts": 0
+    },
+    "build": 0,
+    "lint": 0,
+    "lint_warnings": 125,
+    "contract_gates_passed": 9,
+    "rbac_followup_tests_passed": 29,
+    "status": "PENDING_PUBLISHED_HEAD_CI",
+    "report": "merge-verification-2026-10-05.md"
   }
 }

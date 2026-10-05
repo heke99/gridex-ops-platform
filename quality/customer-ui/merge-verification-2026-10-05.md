@@ -20,6 +20,10 @@ Full suite command uses Node22, two workers,15s test timeout, default+JSON repor
 
 Earlier scoped browser/database evidence remains in `remaining-admin-verification-2026-10-05.md`. Live authenticated tenant journeys are not claimed.
 
+## Composition with concurrent main
+
+After the full local run, another34 main commits affecting195 files were integrated into the feature branch from main `8451f013`. Again there was no overlap with the UI or verification changes. All46 candidate source hashes remain identical; the RBAC gate passes after composition. GitHub CI must verify the final published head, including these concurrently landed main changes.
+
 ## Delivery gate
 
 PR publication and integration are pending. Merge requires all applicable GitHub checks to pass on the proposed commit. No admin bypass, workflow weakening, threshold reduction or external/staging approval label is authorized or used.
