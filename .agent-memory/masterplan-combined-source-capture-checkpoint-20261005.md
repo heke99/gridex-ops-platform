@@ -17,3 +17,23 @@ No combined capture/native/full rerun, production migration, deployment or exter
 Current qualified source-only union:932a194cded4d4a59aaa429464516b80ac38d303/tree53b15632af24ad71431d849e3bd6b339b71ec0fe genuinely includes actualmain4a and exact PUBLIC533eca/53578. Independent source-only guard249ef98a verifies1073 oldSQL+two exactapprovedforwards=1075,348foreign ordered fullrows/evidence/mainmetadata exact,267→271 onlyGov08/AT+DB02/AT. Native configuration retains all old registrations plus both author tests once; root13/F3/app/lib/generated3 exactmain. One manifest conflict retains all common/branch-only complete histories; the two differing note/scope strings survive in exact public blob/hash bindings.5be and originalfourNOT_RUN flags are historical and unchanged; composition_capture_pending=true. No authentic1075capture/native/parity/currentCI is claimed.
 
 Actualmain later517/547 is38aa with unchanged SQL/generator prefix. Root requests current exact Staff source/input freeze at5786001650383, preserving its independently qualified cff→d0 authentic1076 import6001591414. A final Gov+DB+Staff prefix would1078 SQL if the original Staff owner hands off qualified immutable inputs;599 remainsheld, privateIMP05excluded. Existing supplier/Z01 code-only corrections are public612 c34 and have their own sole ordinaryCI observer; their eventual actualmain admission changes no SQL/generator inputs. Continue useful source/preflight work, then freeze one admitted final producer and perform one genuine combined capture.
+
+Source a2cefbaf85ea3de761ac38d02d1bd3ace553e7a8 genuinely adopts actual main38aa;
+ordered parents are b61f2b97 +38aa7345 and tree d456407d97ffeb3a833a9ae3db73b5787f95f7bf.
+Independent carry receipt e4de81f4 is retained byte-exact in this audit subtree.
+All1073 historical SQL, eight generator inputs and previous Gov/DB1075 prefix,
+manifest/raw3/native registrations/F3 remain exact. Incoming ENV06 production
+changes are explicitly inherited from qualified main, not described as metadata.
+All348 foreign ordered full rows/evidence remain exact; main271→candidate275
+changes only original Gov08/DB02 and their acceptance rows. Capture stays pending;
+the four historical capture-only NOT_RUN flags remain unchanged.
+
+Current Staff e081 input-only receipt 8f65763f is also retained byte-exact.
+All1073 historical main SQL, three Staff forwards,23 runtime files and eight
+generator inputs are unchanged from the qualified d0/cff source boundaries.
+Current manifest and full older origin snapshots retain their actual producers.
+The two later fixture changes do not warrant an additional Staff capture. Their
+SC068/ENV07 variants are separately routed to the original owners for canonical
+first-admitted fixture preservation; no new fixture repair is created here.
+Original Staff source/native/whole qualification and input-freeze handoff remain
+required; this receipt grants no runtime or whole-business approval.

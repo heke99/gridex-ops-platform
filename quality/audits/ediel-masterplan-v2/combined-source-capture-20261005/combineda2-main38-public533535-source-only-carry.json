@@ -1,0 +1,123 @@
+{
+  "schema": "gridex-combineda2-main38-source-only-carry/v1",
+  "verdict": "APPROVE_SCOPED_MAIN38_SOURCE_INPUT_LEDGER_CARRY_CAPTURE_PENDING",
+  "created_at": "2026-10-05T20:09:33.238539+00:00",
+  "candidate": "a2cefbaf85ea3de761ac38d02d1bd3ace553e7a8",
+  "candidate_tree": "d456407d97ffeb3a833a9ae3db73b5787f95f7bf",
+  "genuine_ordered_parents": [
+    "b61f2b9737fafc2763e6ea7806b71c773239472e",
+    "38aa73454b724040f6aaf4339e7feab226ce3ecd"
+  ],
+  "previous_source": "932a194cded4d4a59aaa429464516b80ac38d303",
+  "previous_main": "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+  "adopted_main": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "actual_incoming_merges": [
+    {
+      "PR": 517,
+      "merge": "3658404d21e76bdabc5b61d91cf43a5c6683b93a",
+      "reviewed_head": "cd93fac133c240f56f208ad43dab1ec4075433fc"
+    },
+    {
+      "PR": 547,
+      "merge": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+      "reviewed_head": "da2f27f9f889622fb037e9c3965a7078232585c1"
+    }
+  ],
+  "prior_immutable_public_guard": {
+    "path": "quality/audits/ediel-masterplan-v2/combined-source-capture-20261005/combined932-main4a-public533535-source-only-guard.json",
+    "sha256": "249ef98a857ba1a2784e61c8f1add06148880f47b3c616a3881a2a3f0d98140b",
+    "byte_exact_local_published_b61_and_a2": true
+  },
+  "incoming_source_effect_pins": [
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "bf8fe510263807aadf9d8831c63519435be70b0377e0ffc161f7d921c28d4385",
+      "exact_actual_main_blob": "9d8aca478463192050b12e448f9c5b5af0767d21",
+      "owner_public_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "qualification": "Exact public owner body.",
+      "effect": "On PRODAT subtype-policy failure, retain actual physical-own223 diagnostic/disposition before policy fallback; opaque original-decision capability remains owned by its existing issuer."
+    },
+    {
+      "path": "lib/ediel/decisionEngine.ts",
+      "sha256": "5267a66d5f3380e2b2171c0899f2e843bd8c81f39822832f853a173343d44d03",
+      "exact_actual_main_blob": "faa717c496defd3fd67053fa3fcf767e25f3f856",
+      "owner_public_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "qualification": "Exact public owner body.",
+      "effect": "Public PRODAT ACK aggregates physical223 field errors/internal-review with existing assessments; no private original-fixture authority is granted."
+    },
+    {
+      "path": "lib/ediel/prodat/prodatTransactionReason.ts",
+      "sha256": "8ffc6d7d91910ee86eecd39f54bb9c6a46e805f5fc5e78028e18c59735cbe348",
+      "exact_actual_main_blob": "f3478eca8ea974f3693907485ffb4c5bcbbf908c",
+      "owner_public_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "qualification": "Exact public owner body.",
+      "effect": "Shared own-message/BGM/SG14 transaction-reason evaluator uses actual UNA/tokens/scoped references; unqualified source remains local review."
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "sha256": "6461183da115063562ac8c393612809be672019dc59936700821701951e882c5",
+      "exact_actual_main_blob": "a8ea27ead16b409f6cc3df44765bccc079e33d4f",
+      "owner_public_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "qualification": "Exact public owner body.",
+      "effect": "Actual physical223 assessment replaces generic223 rule on non-dependent PRODAT scope, preserving independent field semantics."
+    },
+    {
+      "path": "lib/ediel/rulebook/validator.ts",
+      "sha256": "e43d57ac442986b2cc2f14149e3fd1e0851b2e978fb750cbf5a4185f5864dce7",
+      "exact_actual_main_blob": "aa134656fc281e9691808e0c118352e913b9a2a6",
+      "owner_public_head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+      "qualification": "Four paths exact public owner body; validator composes only its223 delta onto unchanged current-main0062/0035 guard.",
+      "effect": "Policy-failure path retains physical223 issues alongside prior parser/dependent/register/authority failures. Current-main0062/0035 UNB envelope guard is preserved."
+    }
+  ],
+  "main_delta": {
+    "paths": 19,
+    "all18_nonledger_blobs_modes_exact_actualmain": true,
+    "no_main_paths_lost": true,
+    "source_boundary": "Five meaningful already-reviewed ENV06 physical223 source changes are adopted, not merely documentation or blanket unchanged runtime. SC007/SC066 asserting/test/proof/native-example packet and shared handover are exact actualmain."
+  },
+  "preserved_source_inputs": {
+    "all1073_old_SQL_paths_blobs_modes_exact_main4a_to38": true,
+    "generator8_paths": [
+      "scripts/gridex-aud-003-clean-replay.sh",
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json",
+      "scripts/supabase-types-manifest.json",
+      "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "scripts/gridex-schema-snapshot.cjs",
+      "supabase/config.toml"
+    ],
+    "generator8_exact_through_main_delta_and_a2_equals932": true,
+    "root13_F3_generated3_exact932_main_and_original_qualified_pins": true,
+    "two_GOV_DB_forwards_registries_and_migration_tree_exact932": true,
+    "SQL_prefix": 1075,
+    "migration_tree": "defbf44a6fc563a8516c9a8a80a5b847b90cefa3",
+    "manifest_bytes_complete_history_original_note_scope_public_bindings_exact932": true,
+    "manifest_sha256": "f26ede7d9ae73e5d863a49172df7cb8fdd586682f5b37e92be4823600e4dc4ca",
+    "native_config_author_tests_and_existing_GOV_DB_packet_bytes_exact932": true
+  },
+  "coverage": {
+    "all352_IDs_order_main38metadata_exact": true,
+    "foreign348_ordered_fullrows_including_evidence_exact_main38": true,
+    "foreign348_fullrow_canonical_sha256": "b7b245430dda6a75732c21b410ebb3c9ddf4015abbd25cdaec8684525f40058d",
+    "only_four_owned_row_deltas": [
+      "AT-DB-02",
+      "AT-GOV-08",
+      "DB-02",
+      "GOV-08"
+    ],
+    "complete_owned_rows_evidence_exact_original_public_eca_and78": true,
+    "main_PASSED_or_VERIFIED": 271,
+    "candidate_PASSED_or_VERIFIED": 275
+  },
+  "capture": {
+    "composition_capture_pending": true,
+    "historical_original_producer": "5be3a902a61309e295d1f3b82f5ceb0996edb1dd",
+    "original_native_browser_typecomparison_upgrade_flags": "NOT_RUN",
+    "no_historical_receipt_relabelled_current": true,
+    "Staff_remains_separate_input_only_intake_future_union_not_adopted_here": true,
+    "candidate_not_claimed_final_if_Staff3_later_admitted": true
+  },
+  "limits": "Immutable source-only a2/b61+main38 carry; original249 preservation/native/manifest agreements retained. No execution/test/native/CI/artifact/capture/fetch/GitHub/wholeGOVDB call or rerun, no source/index/ref/coverage/generated/memory mutation or publication. Own minimal immutable public-safe JSON only. New ENV06 input effects explicitly scoped using actual merged owner source; no current combined runtime/native/parity/wholeCI or final-prefix approval. Root owns future admitted-input union and current capture/gates."
+}
