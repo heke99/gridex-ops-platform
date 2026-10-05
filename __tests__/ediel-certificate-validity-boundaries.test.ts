@@ -1,3 +1,4 @@
+// masterplan: TR-06, AT-TR-06, SC-060
 import { describe, expect, it } from 'vitest'
 import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
 const now = new Date('2026-09-30T12:00:00.000Z')

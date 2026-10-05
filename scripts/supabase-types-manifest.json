@@ -5,7 +5,7 @@
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
   "latest_migration": "20261004220429_ediel_switch_original_guard_private_owner.sql",
   "latest_migration_schema_effect": "Authentic composed220429 prefix captured unchanged at05c6; only existing immutable guard security-owner metadata changed, generated public type bytes unchanged. Native/browser/upgrade/parity gates remain separate.",
-  "composition_capture_pending": false,
+  "composition_capture_pending": true,
   "capture": {
     "purpose": "capture_only",
     "captured_at": "2026-10-04T22:32:26.697877+00:00",
@@ -98,5 +98,38 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "Byte-identical0c526214144 prefix captured; new220429 and later main/ClaudeP08 union require genuine capture. Capture native/browser/upgrade/parity NOT_RUN; all ordinary gates mandatory."
+  "composition_note": "Root220429 and actualmain9dc staff205603/205816 source union now includes sole-primary0796 calendar fix. Retained generated artifacts and original capture attribution are unchanged; authentic final combined-prefix capture and mandatory exact-head clean/upgrade/native/browser/parity are pending.",
+  "upstream_main_manifest": {
+    "commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "502cb4515098eaa4aa8c9b593cd3c8520e773e42",
+    "sha256": "ec3346fe4b0ebb28ca1054437f3434e3819120b6a192a9df730dd5b2ede208f3",
+    "retained_origin": 37219877261,
+    "purpose": "immutable provenance pointer; not a new combined-prefix capture"
+  },
+  "current_prefix_verification": {
+    "kind": "mandatory_actual_composed_head_proof",
+    "latest_migration": "20261004220429_ediel_switch_original_guard_private_owner.sql",
+    "retained_root_manifest": {
+      "commit": "6b0e6a218f09efae230a01682beaf6af1d9104f1",
+      "path": "scripts/supabase-types-manifest.json",
+      "git_blob": "34548bc1325c43aa6798c3d1dcbb6ae28fdd07f6",
+      "sha256": "cc9dee39a72f26b5d52fdea9251dfc1a35bec62855c0990a6fd98029b5358019"
+    },
+    "source_migrations": [
+      {
+        "name": "20261004205603_staff_customer_retention_read_prerequisite.sql",
+        "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+      },
+      {
+        "name": "20261004205816_support_attachment_quarantine_carrier.sql",
+        "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+      }
+    ],
+    "requirements": [
+      "Bind actual checkout head/tree, all eight actual replay inputs, latest migration and all three generated raw bytes.",
+      "Import only genuine changed capture bytes; do not relabel retained root/main receipts.",
+      "Mandatory exact-head clean and upgrade native/browser/schema/type/parity and application release checks pass."
+    ]
+  }
 }
