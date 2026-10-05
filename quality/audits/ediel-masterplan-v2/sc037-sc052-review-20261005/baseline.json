@@ -1,0 +1,224 @@
+{
+  "scope": "SC-037/SC-052 review-only; product/test/coverage/shared integration ownership retained",
+  "claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992513806",
+  "localSource": {
+    "commit": "01b11f55af710c3e6aad1f5a433631a88c702047",
+    "tree": "cc0b6412e13c04f6baa3413957c7b609aeba74be"
+  },
+  "currentMain": {
+    "commit": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+    "tree": "4891ad27f53aab20bc109eaf0e8a6ab8c2ba25a7",
+    "coverageGitBlob": "51c4349f445ebd524fd376da51ee1cecf6db8c48",
+    "rules": {
+      "NOT_VERIFIED": 25,
+      "VERIFIED": 91,
+      "PARTIAL": 5
+    },
+    "contracts": {
+      "NOT_EXECUTED": 97,
+      "PASSED": 116,
+      "PARTIAL": 18
+    },
+    "storedApproved": 207,
+    "total": 352
+  },
+  "compare": {
+    "status": "ahead",
+    "totalCommits": 15,
+    "changedPaths": [
+      {
+        "path": ".agent-memory/handover.md",
+        "status": "modified",
+        "gitBlob": "cbf63e194e54d03f7ac7cd3d7180cb8514b04a07"
+      },
+      {
+        "path": ".agent-memory/masterplan-sc010-sc071-sql-component-checkpoint.md",
+        "status": "added",
+        "gitBlob": "d002d89a5bbf079f54793b2fd02d7e57d1d6bcb3"
+      },
+      {
+        "path": ".agent-memory/masterplan-sc042-checkpoint.md",
+        "status": "added",
+        "gitBlob": "438c6ca60d55e3c3e3bd9276a2efa6cdc316bb98"
+      },
+      {
+        "path": ".agent-memory/masterplan-sc046-sc047-review-checkpoint.md",
+        "status": "added",
+        "gitBlob": "b5c73a6db9fd605a9e3a16c09e0e4eeba74ea23e"
+      },
+      {
+        "path": ".agent-memory/masterplan-sc072-checkpoint.md",
+        "status": "added",
+        "gitBlob": "4ed04860894fbeb6e2adf39f479c57164a4644a4"
+      },
+      {
+        "path": "__tests__/ediel-sc-010-071-current-grant.test.ts",
+        "status": "added",
+        "gitBlob": "911cf7fbbd252100c3579aad32d03bc2e33c612b"
+      },
+      {
+        "path": "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+        "status": "modified",
+        "gitBlob": "43241276379767b9a9300d3f40c23e10925689ce"
+      },
+      {
+        "path": "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+        "status": "added",
+        "gitBlob": "f1b710fd125659291a3a4a527de999a6759ee262"
+      },
+      {
+        "path": "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+        "status": "added",
+        "gitBlob": "4de4863ca1194d594d0275f3e913e500eb81a7e0"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+        "status": "modified",
+        "gitBlob": "51c4349f445ebd524fd376da51ee1cecf6db8c48"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/final-focused-node22.log",
+        "status": "added",
+        "gitBlob": "ca8acb329be28af6968b7a21b800cf0baabe5a02"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/final-junit.xml",
+        "status": "added",
+        "gitBlob": "f513966590e14a1bbe57c0d9ac8763f0b4eb8f66"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/final-scoped-lint.log",
+        "status": "added",
+        "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/frozen-integrity.log",
+        "status": "added",
+        "gitBlob": "fa66826ebe45e94f3f057d1c84fc33787821d5fb"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/independent-review.md",
+        "status": "added",
+        "gitBlob": "f4c357e43cfd4dcb7dae928979088b460bf6b9f4"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/qualification-sql.log",
+        "status": "added",
+        "gitBlob": "62ba55090468704f629c7e98130ed7ed9264f864"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/tagged-coverage.log",
+        "status": "added",
+        "gitBlob": "2f428310363073bf242ecf9cea1ac8a5884a8180"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/tests-types.log",
+        "status": "added",
+        "gitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc010-sc071-sql-component/verification-receipt.json",
+        "status": "added",
+        "gitBlob": "68b8f7fbe8862cea5596afcc862a398421d69f70"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc046-sc047-review-20261005/qualified-timestamp-native.xml",
+        "status": "added",
+        "gitBlob": "a5f9830764dcf37205eb3072c61d89a2d117f910"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc046-sc047-review-20261005/qualified-unit-excerpts.log",
+        "status": "added",
+        "gitBlob": "f9076307bf73af914003089a09461cae5e9da00a"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc046-sc047-review-20261005/review.md",
+        "status": "added",
+        "gitBlob": "fd3f294d0695b3423e72e1df5dd24e8e8e45cb3e"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/sc046-sc047-review-20261005/source-and-ci-receipt.json",
+        "status": "added",
+        "gitBlob": "d280dafa0cc3cab6214b1ca97ef903e0bc1a7477"
+      },
+      {
+        "path": "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+        "status": "modified",
+        "gitBlob": "0328281c2ee33ea5aa2c3c4b4779e07a14e3600e"
+      },
+      {
+        "path": "scripts/ediel-sc-010-071-current-grant-sql-regression.mjs",
+        "status": "added",
+        "gitBlob": "5c7744364241a7412b759b4814c05d80076e5481"
+      },
+      {
+        "path": "scripts/test-ediel-independent-common-mapping.cjs",
+        "status": "modified",
+        "gitBlob": "25a5508232355216abdbfb5de13de7f397e44ba6"
+      }
+    ],
+    "productionSchemaSpecUnchanged": true,
+    "qualifiedNativeP11Script": {
+      "path": "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+      "gitBlob": "0328281c2ee33ea5aa2c3c4b4779e07a14e3600e",
+      "readOnlySavedSource": "/tmp/gridex-sc037-current-p11-order.mjs"
+    }
+  },
+  "reviewRows": [
+    {
+      "id": "SC-037",
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-sc-037-future-start.test.ts",
+        "__tests__/supplier-switch-activation-sweep.test.ts",
+        "lib/operations/supplierSwitchActivation.ts"
+      ]
+    },
+    {
+      "id": "SC-052",
+      "status": "PARTIAL",
+      "evidence": [
+        "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+        "__tests__/ediel-u-06-request-application-reference.test.ts",
+        "lib/ediel/rulebook/utiltsApplicationReference.ts"
+      ]
+    }
+  ],
+  "qualifiedCurrentMainInputs": [
+    {
+      "path": "__tests__/ediel-sc-037-future-start.test.ts",
+      "gitBlob": "8eeb434862030425886a5a897b1a809669c396d8"
+    },
+    {
+      "path": "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+      "gitBlob": "fa0e617e008f4bdace3121153bcc7980764dcc02"
+    },
+    {
+      "path": "__tests__/ediel-u-06-request-application-reference.test.ts",
+      "gitBlob": "26093b793c76ae64ede75da71a94b9763e485406"
+    },
+    {
+      "path": "__tests__/supplier-switch-activation-sweep.test.ts",
+      "gitBlob": "b72743cbc0095d30fcb51f32b88dce22130a9ad2"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.test.ts",
+      "gitBlob": "783087b6c479eb19b95bf11381da096b07246688"
+    }
+  ],
+  "SC036StoredWholeApprovalDisputed": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992400012",
+  "limits": [
+    "No local native DB or installed test dependencies; shell proxy unavailable",
+    "No production mutation or product implementation",
+    "Existing historical ordinary/native receipts remain attributed to exact 01b11f55 checkout",
+    "No whole scenario or external market acceptance inferred"
+  ],
+  "publicationMainObservation": {
+    "commit": "1c151dd0bacc1add8e6795219c64c6716d48a455",
+    "tree": "ef7b5a3375e645a965e04e6becef000ce6d1dc83",
+    "advanceFromQualifiedMain": "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+    "changeScope": "Only six new SC038/045 review/checkpoint/receipt paths from #573; reviewed source/schema/tests/spec/coverage unchanged",
+    "storedApproved": 207,
+    "reviewedRows": "SC037/SC052 remain PARTIAL; SC036 approval dispute retained"
+  }
+}
