@@ -1,0 +1,177 @@
+{
+  "schema": "gridex-pr612-773-to-4bd-delivery-archive-custody-guard/v1",
+  "verdict": "READY_BOUNDED_DELIVERY_ARCHIVE_ONLY_FRESH_HEAD_CI_AND_MAIN_DELIVERY_PENDING",
+  "recorded_at_utc": "2026-10-05T22:17:31.104736+00:00",
+  "reviewer": "/root/pr612_five_component_publication_guard",
+  "scope": "ONE eight-path delivery-only archive/source custody guard; prior five-component source approval reused, not reopened",
+  "candidate": "4bd4ba44e46b44ffbe2d16afda53405b70715f58",
+  "candidate_tree": "6b0ad456d329c18198d0d7a6517de751201b5259",
+  "single_parent_public_source": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+  "exact_delta": {
+    "paths": [
+      ".agent-memory/remaining-source-regression-checks-checkpoint-20261005.md",
+      "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-lint-fix-verification.json",
+      "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output-index.json",
+      "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output.zip",
+      "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/public773-first-genuine-lint-step-failure.json",
+      "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source-index.json",
+      "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source.zip",
+      "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls.cjs"
+    ],
+    "count": 8,
+    "modifications": 1,
+    "additions": 6,
+    "deletions": 1,
+    "only_own_memory_archive_indexes_archives_and_sanitary_receipts": true,
+    "original_owned_memory_prefix_preserved": true
+  },
+  "foreign_guard": {
+    "exact_entries": 8686,
+    "all_other_path_mode_type_blob_tuples_unchanged": true,
+    "pinset_sha256": "78458358399b3f61e22040d647696d69c90e35aa5693aec5fbefe5cabd5521a6",
+    "pinset_encoding": "UTF-8 compact JSON arrays[path,mode,type,blob] sorted by path",
+    "product_SQL_generated_native_workflow_tests_coverage_lint_rules_configs_dependency_sources_unchanged": true,
+    "original_control_result_HOLD_READY_other_receipt_bytes_unchanged": true
+  },
+  "five_active_checkers": [
+    {
+      "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+      "mode_type_blob": [
+        "100755",
+        "blob",
+        "6182ed0254f19bb2a31bb6b0daa99e375bd10f0f"
+      ],
+      "sha256": "1937ab14b3ff9fd84e4c1f2f762c477b135b87fb632ffd248d068f851798f7b3"
+    },
+    {
+      "path": "scripts/gridex-z01-facility-no-placeholder-regression.cjs",
+      "mode_type_blob": [
+        "100644",
+        "blob",
+        "3ebb37804d07a67bf6c33c683cda9a3973f3e6c3"
+      ],
+      "sha256": "bb4faff930d887bc0065c62ff95df3308e88ad379d5b14656c43672c262d83af"
+    },
+    {
+      "path": "scripts/gridex-website-quote-integrity-regression.mjs",
+      "mode_type_blob": [
+        "100644",
+        "blob",
+        "632728ef27fc4be9d66f17dacbe9c700599a3bf7"
+      ],
+      "sha256": "90aeaeaf3e3c384faeacc7bd56d95e6c55ed284ae013789481b5260b414f1ba2"
+    },
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "mode_type_blob": [
+        "100644",
+        "blob",
+        "5cf6582348ca687c442daaac1b3ee4d7215fea95"
+      ],
+      "sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1"
+    },
+    {
+      "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+      "mode_type_blob": [
+        "100644",
+        "blob",
+        "4eddbb25fb01d415aa058b2c8b7edd50d15a55ba"
+      ],
+      "sha256": "106f6b686484af8ebf8d1ba4d8dee9151381d90ce948a7c8d62a0d8708e41654"
+    }
+  ],
+  "archives": [
+    {
+      "index_path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source-index.json",
+      "index_sha256": "75699fee1b1388e7613a045c36011ee087e1694df1259916ef4f766d8dc12890",
+      "archive_path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source.zip",
+      "archive_sha256": "63a6b8218b5e9a0e9ac8db570a2225f5ff95a93eaee547b1ad1cdcfd4c904903",
+      "archive_bytes": 1961,
+      "members": [
+        {
+          "path": "static-counterexample-controls.cjs",
+          "bytes": 4043,
+          "sha256": "81296230bd8793883dbf568373decf1cbba9d647482f18549a8d8985c982de27",
+          "crc_verified": true
+        }
+      ],
+      "safe_unique_members_CRC_and_exact_raw_comparison": true
+    },
+    {
+      "index_path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output-index.json",
+      "index_sha256": "2c7b134d8eeabf4950c550361743a881862e8a9d85a4566a4d2c28ae236abeb5",
+      "archive_path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-local-lint-output.zip",
+      "archive_sha256": "94cbb5eef6957da915b7e03cd222ce9c449229dfd2c84876feb42fa9484d0a17",
+      "archive_bytes": 3260,
+      "members": [
+        {
+          "path": "stdout.txt",
+          "bytes": 19624,
+          "sha256": "25b1207fc3c7f8f97b27e9d825fa75fe7d4a681fee829c5a4ff41b9353e6b234",
+          "crc_verified": true
+        },
+        {
+          "path": "stderr.txt",
+          "bytes": 181,
+          "sha256": "d12f2ea758ad10fef044ed82e63c71ac4ee28d7f4c433e5f9f6172f99d63c166",
+          "crc_verified": true
+        }
+      ],
+      "safe_unique_members_CRC_and_exact_raw_comparison": true
+    }
+  ],
+  "original_raw_driver": {
+    "old_path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls.cjs",
+    "original773_blob": "53999548377cd33982803e7986db08547c74d2fd",
+    "raw_sha256": "81296230bd8793883dbf568373decf1cbba9d647482f18549a8d8985c982de27",
+    "raw_bytes": 4043,
+    "one_zip_member_exact_to_original773_bytes": true,
+    "historical_receipt_path_references_remain_unchanged_index_resolves_custody": true,
+    "source_modified": false
+  },
+  "sanitary_diagnosis": {
+    "verification_path": "quality/audits/ediel-masterplan-v2/remaining-source-regression-checks-20261005/audit-source-archive-lint-fix-verification.json",
+    "verification_sha256": "e569aadbe34acdc9fbeb598c2336fa44e8dda01509aa8d38f110f7dea1dd4307",
+    "genuine_first_failure_metadata_sha256": "875260bc856f20ef75c0a9a40c819081972c619d0fc54014a84db5967ce69a99",
+    "first_failure_bytes_exact_original_observer_receipt": true,
+    "run": 37379273855,
+    "attempt": 1,
+    "job": 111996685808,
+    "failed_step_number": 5,
+    "failed_step_name": "Run npm run lint",
+    "authentic_five_no_require_imports_lines": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "root_precise_private_log_diagnosis_and_targeted_reproduction_reused": true,
+    "no_CI_log_read_by_this_reviewer": true,
+    "full_CI_log_remains_private_sha256": "ccd7c2619facc8c68ac0f64bca60dfa8b81f0bbe079267634dd188b7d1a96168"
+  },
+  "existing_full_local_lint_evidence": {
+    "root_reported_actual_execution_exit_code": 0,
+    "root_execution_receipt_and_output_index_agree": true,
+    "exact_raw_stdout_stderr_compare_existing_external_local_outputs": true,
+    "raw_stdout_summary": "125 problems (0 errors, 125 warnings)",
+    "stdout_sha256": "25b1207fc3c7f8f97b27e9d825fa75fe7d4a681fee829c5a4ff41b9353e6b234",
+    "stderr_sha256": "d12f2ea758ad10fef044ed82e63c71ac4ee28d7f4c433e5f9f6172f99d63c166",
+    "node_version_record": "22.23.3",
+    "package_script": "eslint",
+    "package_lock_sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+    "existing_dependency_workspace_lock_actual_bytes_equal": true,
+    "no_install_or_lint_rerun_or_config_rule_change": true,
+    "qualification": "Existing root-author local full-lint execution only; not current GitHub gates"
+  },
+  "blocking_findings": [],
+  "pending": {
+    "old773_containing_workflows": "Root/sole observer must await genuine terminal settlement before publication; snapshot running clean replay is historical, no duplicate watch",
+    "new_same612_head_all9": "PENDING_PUBLICATION_AND_ACTUAL_CURRENT_HEAD_ORDINARY_CI",
+    "main_delivery": "PENDING_FRESH_SOURCE_MAIN_EXPECTED_HEAD_GUARDED_NORMAL_MERGE",
+    "full73_native_capture_wholemain_newbaseline": "NOT_CLAIMED"
+  },
+  "skill_routing": "Reuses already-read AGENTS/narrow memory and verification-before-completion; immutable eight-path byte assertions before READY. New ZIP pair opened solely for this new archive custody task. No new component, AST, control, SQL/native or broad security review.",
+  "mutations": "Only this new immutable outsideGit sanitary JSON. No source/index/ref/sharedmemory/GitHub/API/CI/test/AST/control/native/capture/privatehistory/log/full-review operation; no unrelated existing ZIP reopened.",
+  "next": "Root consumes this bounded receipt once, awaits old containing workflows settlement, then alone publishes one normal fast-forward same612head. Existing observer qualifies resulting all9; no old/local result transfer."
+}
