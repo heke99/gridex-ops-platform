@@ -100,5 +100,70 @@
     ],
     "reviewedSourceTestSpecInputsUnchanged": true,
     "reviewedCoverageInputChangedForSC036Only": true
+  },
+  "followupPublicationBaseline": {
+    "commit": "fb11952a105adc62b62a89ea70a19c9ad030ad22",
+    "tree": "fcb872555f7fa85af5ec5dadc055885aac0d48db",
+    "coverageGitBlob": "c1748d36f7af4ecf16c41b0348db3b7422a3d37a",
+    "rules": {
+      "NOT_VERIFIED": 25,
+      "VERIFIED": 91,
+      "PARTIAL": 5
+    },
+    "acceptanceContracts": {
+      "NOT_EXECUTED": 98,
+      "PASSED": 115,
+      "PARTIAL": 18
+    },
+    "rows": [
+      {
+        "id": "SC-035",
+        "status": "PARTIAL",
+        "evidence": [
+          "scripts/test-ediel-p-10-z02-correlation.cjs",
+          "scripts/ediel-p-10-z02-correlation-sql-regression.mjs"
+        ]
+      },
+      {
+        "id": "SC-036",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+          "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+          "scripts/test-ediel-p-11-z04-order.cjs",
+          "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+          "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+          "lib/inbound-mail/inboundStatusUpdater.ts",
+          "__tests__/supplier-switch-activation-sweep.test.ts"
+        ]
+      },
+      {
+        "id": "SC-039",
+        "status": "PARTIAL",
+        "evidence": [
+          "__tests__/ediel-supply-market-consumers.test.ts",
+          "scripts/ediel-normal-switch-source-sql-regression.mjs"
+        ]
+      },
+      {
+        "id": "SC-042",
+        "status": "PASSED",
+        "evidence": [
+          "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+          "lib/ediel/core/runtimeDecision.ts",
+          "lib/ediel/utiltsEngine.ts",
+          "lib/ediel/ack.ts",
+          "lib/ediel/rulebook/ackGuidePolicy.ts"
+        ]
+      }
+    ],
+    "deltaPaths": [
+      ".agent-memory/masterplan-sc042-checkpoint.md",
+      "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json"
+    ],
+    "reviewedSourceTestSpecInputsUnchanged": true,
+    "coverageOnlyForSC042": true,
+    "SC036WholeApprovalDisputedByRetainedReviewer": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5992400012"
   }
 }

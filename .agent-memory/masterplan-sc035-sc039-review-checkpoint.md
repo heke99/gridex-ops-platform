@@ -1,6 +1,6 @@
 # SC-035 / SC-039 independent review checkpoint
 
-Status: READY_FOR_REVIEW_NOT_MERGED. User standing instruction: continue the frozen masterplan autonomously, two bounded IDs at a time, preserve retained owners and reusable evidence.
+Status: UNDER_REVIEW_SOURCE_OWNER_ACTION_REQUIRED. User standing instruction: continue the frozen masterplan autonomously, two bounded IDs at a time, preserve retained owners and reusable evidence.
 
 ## Scope and ownership
 
@@ -27,6 +27,12 @@ Activated: using-superpowers (route by actual task), using-git-worktrees (isolat
 - Fresh actual main01b11f55 clean replay111688500421 is now SUCCESS: original48-file native suite608PASS/1SKIP. Bounded original observation saved; it does not establish a full received-Z02 next-worker sequence or a reversed incoming C/original pair. Ordinary job111688500429 succeeds808files/10336tests; seven actual test blobs qualify the recorded excerpts.
 
 ## Next action
+
+Published draft https://github.com/heke99/gridex-ops-platform/pull/579, attached to this task. Immutable technical packet9fb8c909761b8dc1caba2d4460445fb6c573744a/tree8cc0d4abb52ed5ed0b8618bb74bb4e59b59f668c was imported exactly locally; branch clean, eight new files, PR mergeable and unmerged. Current document HEAD is read from Git/PR metadata; this followup updates only owned checkpoint/baseline metadata.
+
+Main then advanced via #567 tofb11952a105adc62b62a89ea70a19c9ad030ad22: only independent SC042 checkpoint/test/coverage paths changed; all reviewed source/test/spec inputs remain unchanged, own rows PARTIAL. Literal stored main total91 VERIFIED+115 PASSED=206/352. Retained SC036 reviewer5992400012 disputes that merged whole-scenario approval and requests criterion reconciliation; do not silently count the ledger as independently proven or edit that foreign row. Preserve the discrepancy for its source/integration owners. Previous summary totals204 and205 are baseline snapshots, not current totals.
+
+Reviewer handoff5992246430 remains authoritative for this pair. New draft review/CI is pending; no whole approval, merge, new runtime test or external acceptance is claimed. Before the next pair, release only completed review-only reservation on530, retain Claude's implementation and coordinator's integration, refresh board/open PRs/current main. Metadata patch misses changed no code; full-line sequential correction completed.
 
 Publication main advanced to0dab92006d2ce17db21774e17d983b9a407b1a47 via #568 (SC036). Five changed paths inspected; no reviewed production/test/spec input changed. The reviewed coverage input changed only for that independent SC036 promotion; own SC035/039 rows remain PARTIAL. Current main totals91 VERIFIED rules +114 PASSED contracts =205/352. Reports/receipts retain their exact01 baseline; publicationBaseline in baseline.json records the newer main and qualified delta. PR remains based on the exact inspected01 source, so integration must retain #568's changes. A combined metadata patch missed the full checkpoint paragraph; the sequential exact updates succeeded and no source was changed.
 
