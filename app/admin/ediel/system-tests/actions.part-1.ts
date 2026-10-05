@@ -164,6 +164,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   const explicitCertificateId = formString(params.certificateId ?? null);
   if (explicitCertificateId) {
     await resolveOutboundRecipientCertificate({
+      companyId: params.companyId,
       certificateId: explicitCertificateId,
       receiverEdielId: params.portalEdielId,
       receiverSubaddress: params.receiverSubaddress,
@@ -178,6 +179,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   let existingLookupError: string | null = null;
   try {
     const existingCertificate = await resolveOutboundRecipientCertificate({
+      companyId: params.companyId,
       receiverEdielId: params.portalEdielId,
       receiverSubaddress: params.receiverSubaddress,
       messageFamily: "PRODAT",
@@ -223,6 +225,7 @@ export async function resolveEffectiveSystemTestCertificateId(params: {
   }
 
   await resolveOutboundRecipientCertificate({
+    companyId: params.companyId,
     certificateId: effectiveCertificateId,
     receiverEdielId: params.portalEdielId,
     receiverSubaddress: params.receiverSubaddress,

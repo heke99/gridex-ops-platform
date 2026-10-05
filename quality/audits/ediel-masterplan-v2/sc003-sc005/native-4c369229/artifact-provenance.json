@@ -1,0 +1,33 @@
+{
+  "remote_api_verified": true,
+  "run_id": 37251038821,
+  "job_id": 111578527071,
+  "artifact_id": 11321431618,
+  "artifact_name": "ediel-sc003-sc005-native-4c36922918060efc4ac6e3a26960c0c5a54ceaae",
+  "remote_artifact_digest": "sha256:80adf466a674b9bdafd97cfd32c88fdefdf158043b76518f8bd51e2a07239b2d",
+  "local_zip_sha256": "80adf466a674b9bdafd97cfd32c88fdefdf158043b76518f8bd51e2a07239b2d",
+  "source_head": "4c36922918060efc4ac6e3a26960c0c5a54ceaae",
+  "source_tree": "9a8d1591e66387a7a8a027f59b0e60b017842068",
+  "native_result": {
+    "tests": 1,
+    "passed": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "exit_code": 0
+  },
+  "test_scope": [
+    "scripts/ediel-sc-003-005-service-native.test.ts"
+  ],
+  "all_15_input_sha256_match_git_and_worktree": true,
+  "raw_member_sha256": {
+    "receipt.json": "5955b9a5c9c7514046ab884e6f53458b7defd4927eb122fbd848b157e8212bff",
+    "native-junit.xml": "e67b7ff926a1be10304f89f962b0a861500cbb7c715c945278166fa144723bdf",
+    "native.log": "d79b46f4bc20e274e7695d831ceb8b694f46f4f51a46954856b2c5fecea13073"
+  },
+  "limits": [
+    "External SMTP is mocked; fixture issuer/representation/registry/tenant/source inputs are explicitly synthetic.",
+    "Actual archive/review/permission/grant/currentSQL/storage/disposition/physicalACK/projection owners execute.",
+    "Focused native proof does not replace ordinary required gates, schema capture, browser, upgrade, main integration or external legal/market custody."
+  ]
+}

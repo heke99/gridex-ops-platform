@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="17" failures="0" errors="0" time="0.140554345">
+    <testsuite name="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" timestamp="2026-10-05T00:55:39.865Z" hostname="c8313f035683" tests="8" failures="0" errors="0" skipped="0" time="0.114966006">
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; retains the K assignment internally while P alone is the legal DGI actor on the queued wire" time="0.089893419">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; holds customer_contract_absent before route, intent or wire effects" time="0.006083029">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; holds dso_contract_absent before route, intent or wire effects" time="0.002664516">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; holds privacy_roles_absent before route, intent or wire effects" time="0.001364069">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; a SaaS-only mission cannot become a market permission merely by asking the provider" time="0.001408731">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; rejects a K UUID substituted for the legal ESCO even with an ESCO role label" time="0.009351569">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; compatible market-permission reuse grants no beneficiary access and creates no second request or wire" time="0.000619034">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-003-provider-legal-dgi.test.ts" name="SC003 provider command through actual source gateway and DGI renderer &gt; rejects a malformed reuse response that claims unrestricted access" time="0.000705886">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" timestamp="2026-10-05T00:55:39.892Z" hostname="c8313f035683" tests="9" failures="0" errors="0" skipped="0" time="0.025588339">
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; returns two distinct current grants and receipts for one unchanged source/series without an upstream write or per-beneficiary ACK call" time="0.012284749">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; does not let K1 use K2 grant or disclose owner/source diagnostics" time="0.001633055">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; rejects a wrongly bound private-port success instead of returning another grant" time="0.000975307">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; denies widening a K grant through purpose rather than widening P access" time="0.001827109">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; denies widening a K grant through start rather than widening P access" time="0.000895718">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; denies widening a K grant through fields rather than widening P access" time="0.00080018">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; an ungranted tenant knowing the same series obtains no source rows" time="0.0013958">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; a caller cannot select the provider company or its actor through the query" time="0.001396306">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-005-shared-dgi-projections.test.ts" name="SC005 two scoped API derivatives of the same DGI source &gt; refuses private source fields inside an allegedly allowed row" time="0.002574484">
+        </testcase>
+    </testsuite>
+</testsuites>

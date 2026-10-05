@@ -47,5 +47,16 @@ try {
  // A genuinely newer correction still supersedes the current version.
  await message(uid(13),'NEWEST');await persist(uid(13),item('NEWEST','2026-10-03T08:00:00Z','11'))
  assert.deepEqual(await current(),['NEWEST']);checks++
+ // SC-046: the source may carry only field 512 (registration) or only field 532
+ // (latest update). Each shape alone keeps newer current data on a late older arrival.
+ for(const [label,field,mp] of [['512-only','registrationDate','735999999999999512'],['532-only','latestUpdateDate','735999999999999532']]){
+  const shaped=(tx,at,value)=>({...item(tx,null,value),externalMeteringPointId:mp,registrationDate:null,latestUpdateDate:null,[field]:at})
+  const cur=async()=>(await db.query(`SELECT source_transaction_reference tx FROM public.meter_reading_series WHERE company_id=$1 AND external_metering_point_id=$2 AND is_current`,[company,mp])).rows.map(r=>r.tx)
+  const n=label==='512-only'?20:30
+  await message(uid(n),label+'-NEWER');await persist(uid(n),shaped(label+'-NEWER','2026-10-02T08:00:00Z','10'))
+  await message(uid(n+1),label+'-OLDER');const older=await persist(uid(n+1),shaped(label+'-OLDER','2026-09-20T08:00:00Z','7'))
+  assert.equal(older[0].disposition,'accepted',label);assert.equal(older[0].responseType,'positive_aperak',label);checks++
+  assert.deepEqual(await cur(),[label+'-NEWER'],label+': a late older version must not displace newer current data');checks++
+ }
  console.log(`PASS ${checks} U-04 late-version checks (focused PGlite mechanics, not native replay)`)
 }finally{await db.close()}

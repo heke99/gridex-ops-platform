@@ -1,0 +1,650 @@
+{
+  "version": 1,
+  "owner": "Codex root current chat / isolated at-z06f-z06g-supplier-20261005",
+  "claim": 5994768280,
+  "base": "fff486f822001d35970f163507b10e17c3692f58",
+  "base_tree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "coverage_blob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+  "own_rows": [
+    {
+      "id": "AT-Z06F-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z06G-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "frozen_contract_read": {
+    "base": "fff486f822001d35970f163507b10e17c3692f58",
+    "scope": "frozen contract read before new-file claim; no behavior/native execution",
+    "contracts": [
+      {
+        "id": "AT-Z06F-SUPPLIER",
+        "name": "Meddelandefall Z06F",
+        "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "when": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E64; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      },
+      {
+        "id": "AT-Z06G-SUPPLIER",
+        "name": "Meddelandefall Z06G",
+        "given": "SUPPLIER; Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "when": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "23-DDQ-PRODAT; BGM=Z06; fält223=E32; CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.; Versionera ändrad struktur utan att påhittad avläsning krävs.",
+        "prohibited": "Fel roll, fel riktning, saknade R/D-fält, felaktig korrelation eller mutation ska inte verkställas.",
+        "rule_ids": [
+          "TEN-05",
+          "P-01",
+          "ENV-06"
+        ],
+        "layer": "Planerat meddelande-/rollprov",
+        "execution_status": "Inte körd mot systemet",
+        "evidence": ""
+      }
+    ],
+    "rules": [
+      {
+        "id": "TEN-05",
+        "area": "Separata verksamhetsroller",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Aktör både DDQ och DGI",
+        "trigger": "Varje affärshändelse",
+        "condition": "Roll bestäms av affärsprocess, inte globalt standardfält.",
+        "on_pass": "23-DDQ-PRODAT för leverantörsprocess;23-DGI-PRODAT för tillståndsprocess.",
+        "on_failure": "Z14 får inte aktivera leverans; Z04 ger inte generellt ESCO-tillstånd.",
+        "callsite_owner": "policy context / prodat application reference",
+        "source": "T §5.2.3; P §2.1; SYS",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-TEN-05"
+      },
+      {
+        "id": "ENV-06",
+        "area": "Meddelandeprofil",
+        "kind": "Ediel/Handbok",
+        "applies_to": "PRODAT",
+        "trigger": "BGM/CCI byggs",
+        "condition": "BGM bär Z-funktion utan suffix; CCI Z13/CAV bär treteckenskod för undertyp.",
+        "on_pass": "Z03 + Z22 betyder Z03L, inte BGM+Z03L.",
+        "on_failure": "Avvisa fel kombination på rätt kontrollnivå.",
+        "callsite_owner": "profileRenderer / subtypeRegistry",
+        "source": "P §2.1,2.6",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-ENV-06"
+      },
+      {
+        "id": "P-01",
+        "area": "PRODAT-fält",
+        "kind": "Ediel/Handbok",
+        "applies_to": "Alla P",
+        "trigger": "Fältkontroll",
+        "condition": "74 numeriska fält +3 parentgrupper;110bas-D-celler och registeroverlay hanteras uttryckligt.",
+        "on_pass": "Fältresultat bär riktigt fältnummer, grupp/komponent, objekt/ärende och källregel.",
+        "on_failure": "Inget fältnummer från regex över DTM/RFF-text.",
+        "callsite_owner": "fieldMatrix / canonicalPolicyFieldValidator",
+        "source": "P §2.2,2.6,3.3",
+        "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+        "implementation_status": "Ej verifierad",
+        "test_id": "AT-P-01"
+      }
+    ],
+    "cases": [
+      {
+        "id": "CASE-Z06F-SUPPLIER",
+        "family": "PRODAT",
+        "code": "Z06",
+        "subtype": "F",
+        "wire_reason": "E64",
+        "operating_role": "SUPPLIER",
+        "direction": "inbound",
+        "application_reference": "23-DDQ-PRODAT",
+        "trigger": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.",
+        "permitted_effect": "Versionera struktur och avläsningsutlösande ändring; kontrollera berörda mätvärdesförväntningar.",
+        "additional_guard": "Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "capability_status": "Tillämplig",
+        "field_profile": "prodat_fields + prodat_conditional_cells + parent_group + register_overlay",
+        "source": "P §2.1–2.2,2.6; HB kap.4,10,11",
+        "test_id": "AT-Z06F-SUPPLIER"
+      },
+      {
+        "id": "CASE-Z06G-SUPPLIER",
+        "family": "PRODAT",
+        "code": "Z06",
+        "subtype": "G",
+        "wire_reason": "E32",
+        "operating_role": "SUPPLIER",
+        "direction": "inbound",
+        "application_reference": "23-DDQ-PRODAT",
+        "trigger": "Nätägarens kund-/anläggningsuppdatering.",
+        "expected": "CONTRL och APERAK enligt guide; ytterligare UTILTS för F enligt ändring och Handbok.",
+        "permitted_effect": "Versionera ändrad struktur utan att påhittad avläsning krävs.",
+        "additional_guard": "Z06E utanför fastställd standardlivshändelse kräver bilateral grund. Z06F/G får inte skriva kundidentitet från förbjuden NAD+UD.",
+        "capability_status": "Tillämplig",
+        "field_profile": "prodat_fields + prodat_conditional_cells + parent_group + register_overlay",
+        "source": "P §2.1–2.2,2.6; HB kap.4,10,11",
+        "test_id": "AT-Z06G-SUPPLIER"
+      }
+    ],
+    "source_manifest": [
+      {
+        "id": "P",
+        "filename": "260630_Ediel_PRODAT_APERAK_Anvisning_version_26-A_16-B(6).pdf",
+        "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+        "pages": 140
+      },
+      {
+        "id": "T",
+        "filename": "260220_Ediel-anvisning-generella_tekniska_regler_version_24-A-6(4).pdf",
+        "sha256": "5204d4514774b04b8eedb039e1f4799ed447c7fef14554577935e2d7bd93f951",
+        "pages": 60
+      },
+      {
+        "id": "U",
+        "filename": "260331_Ediel_UTILTS-APERAK_Anvisning_version_25-A-4.pdf",
+        "sha256": "0524c18f38864ebe081dec9d3d53f1797b224ef0af7b01986627e895f47d99be",
+        "pages": 135
+      },
+      {
+        "id": "UE",
+        "filename": "260331_Ediel_UTILTS-APERAK_User_Guide_Version_25-A-4 (2).pdf",
+        "sha256": "a2f2018077b253bb012ef0255c6dc98dcfffeb65b9e707af5ca131838990a92a",
+        "pages": 135
+      },
+      {
+        "id": "AI",
+        "filename": "250401_Ediel_AI-listan_Anvisning_version_14-A-3 Giltig fr_n 2025-10-01(5).pdf",
+        "sha256": "c5815bacbc40beb1ee1b36cb03c71a089fbc18cda3368811afadcdca78899351",
+        "pages": 11
+      },
+      {
+        "id": "OE",
+        "filename": "UTILTS-APERAK_ver_E5SE5A_exempelsamling_objekt_el_250430 (1).pdf",
+        "sha256": "36741ce40f0b67c12cc7df655afd4e260fef86712f3d0272bd6ee61dd76aee6d",
+        "pages": 57
+      },
+      {
+        "id": "AP",
+        "filename": "260807_ANVISNING_APERAK_VERSION05.B.5(4).pdf",
+        "sha256": "0bc4790af2509d19c682748c4aeb85d7acc75cd30214636bae259e2c6c3594bd",
+        "pages": 26
+      }
+    ],
+    "frozen_file_sha256": {
+      "docs/ediel/masterplan-v2/registers/acceptance_tests.json": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "docs/ediel/masterplan-v2/registers/rules.json": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "docs/ediel/masterplan-v2/registers/prodat_message_cases.json": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "docs/ediel/masterplan-v2/registers/source_manifest.json": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7"
+    },
+    "z06_dependent_cells": [
+      {
+        "id": "PC-258-Z06",
+        "field": "258",
+        "message": "Z06",
+        "when": "register_count > 1",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-210-Z06",
+        "field": "210",
+        "message": "Z06",
+        "when": "change_effective_at < supply_start_at",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-508-Z06",
+        "field": "508",
+        "message": "Z06",
+        "when": "subtype == F",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-214-Z06",
+        "field": "214",
+        "message": "Z06",
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-217-Z06",
+        "field": "217",
+        "message": "Z06",
+        "when": "subtype == F",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-218-Z06",
+        "field": "218",
+        "message": "Z06",
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-306-Z06",
+        "field": "306",
+        "message": "Z06",
+        "when": "subtype IN (F,G)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-259-Z06",
+        "field": "259",
+        "message": "Z06",
+        "when": "subtype == F AND meter_stands_expected",
+        "when_true": "R",
+        "when_false": "O if subtype IN (E,G) AND meter_stands_expected else X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Ytterligare EL-villkor: utan rapportering av mätarställningar får 259 inte skickas alls; då X, inte O.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-254-Z06",
+        "field": "254",
+        "message": "Z06",
+        "when": "subtype IN (F,G)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-242-Z06",
+        "field": "242",
+        "message": "Z06",
+        "when": "subtype IN (F,G)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-310-Z06",
+        "field": "310",
+        "message": "Z06",
+        "when": "customer_event == death AND ((message == Z05 AND subtype == LK) OR (message IN (Z06,Z09) AND subtype == E))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Inte generell status för konkurs.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-320-Z06",
+        "field": "320",
+        "message": "Z06",
+        "when": "market == GAS AND (message == Z04 OR subtype IN (F,G))",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-240-Z06",
+        "field": "240",
+        "message": "Z06",
+        "when": "market == GAS AND (message == Z04 OR series_id_changed)",
+        "when_true": "R",
+        "when_false": "O",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "EL: alltid X. Nationella gasregler ska inte tillämpas som elregler.",
+        "source": "P §2.2 s.16–22; respektive fältnotering",
+        "market_override": "EL => X oavsett annan gren; GAS utanför aktiv kapabilitet."
+      },
+      {
+        "id": "PC-227-Z06",
+        "field": "227",
+        "message": "Z06",
+        "when": "subtype == E",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-228-Z06",
+        "field": "228",
+        "message": "Z06",
+        "when": "subtype == E",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-229-Z06",
+        "field": "229",
+        "message": "Z06",
+        "when": "parent_UD_active AND end_user_address_available",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "Barnkrav gäller endast när elanvändargruppen används.",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-231-Z06",
+        "field": "231",
+        "message": "Z06",
+        "when": "subtype == E",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-232-Z06",
+        "field": "232",
+        "message": "Z06",
+        "when": "subtype == E",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-316-Z06",
+        "field": "316",
+        "message": "Z06",
+        "when": "subtype == E",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-250-Z06",
+        "field": "250",
+        "message": "Z06",
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-251-Z06",
+        "field": "251",
+        "message": "Z06",
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-252-Z06",
+        "field": "252",
+        "message": "Z06",
+        "when": "parent_IV_active AND invoicee_address_applicable",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-253-Z06",
+        "field": "253",
+        "message": "Z06",
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-317-Z06",
+        "field": "317",
+        "message": "Z06",
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      },
+      {
+        "id": "PC-318-Z06",
+        "field": "318",
+        "message": "Z06",
+        "when": "parent_IV_active",
+        "when_true": "R",
+        "when_false": "X",
+        "unknown": "Stoppa egen sändning tills nödvändiga fakta är kända. Vid mottagning: avgör om fakta kan härledas ur giltigt meddelande/behörig struktur; lokalt kunskapsgap är inte automatiskt externt protokollfel.",
+        "parent_rule": "Utvärdera parent_group först. Inaktiv grupp gör barnets R/D icke-tillämpligt.",
+        "note": "",
+        "source": "P §2.2 s.16–22; respektive fältnotering"
+      }
+    ],
+    "guards": [
+      "Both are inbound DSO to SUPPLIER, DDQ, physicalBGMZ06; own223E64vsE32",
+      "ForbiddenUD is ignored by received source policy; never approved customeridentity mutation",
+      "Native already-applied case bridge is not first-apply proof; field/mutation first-ingress variants depend on retained input/defer seam",
+      "No fabricated communication.write permission or protected source/readiness approvals",
+      "Existing registration/fixture/harness remain503/retainedsourceowner-only"
+    ]
+  },
+  "source_inputs": [
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "blob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+      "sha256": "2ab4a02d257602504f790153cd45ef77972acbb73f77a5a0c4fb8d58faea9194"
+    },
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-wire.ts",
+      "blob": "3435a81d610efb5a90ae43c7c003606c988b5e22",
+      "sha256": "7b39f1ed1490fe5521f4a13e6033794904f7a133de97f1984c6d44803fbeba6b"
+    },
+    {
+      "path": "scripts/ediel-z06f-reading-followup-native.test.ts",
+      "blob": "82260ac485e832fe41893b8416832080da1535e5",
+      "sha256": "35b0b330d79a995fc350538c4e53ccf4b95b1fbaa723cf60adc09023172227eb"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a"
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "blob": "55b59cce1055b5c63718a10c572c095e72488b59",
+      "sha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d"
+    },
+    {
+      "path": "lib/ediel/safeApplyReview.ts",
+      "blob": "2913941c871255c07cf60f0a979a954e67bfa678",
+      "sha256": "a22eb0de76a691c9b294ad230504e0ee013fb9dacf39ce69af8625302539b56f"
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5",
+      "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2"
+    },
+    {
+      "path": "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+      "blob": "3338e7b097e37d3ab88818644ddfdb8ce526e1b7",
+      "sha256": "a2ddbcc4e917e3bce8100241d48aec026ec56297d905eca9383bfe5a83873ed4"
+    },
+    {
+      "path": "lib/ediel/core/receivedProdatFinalResponsePlan.ts",
+      "blob": "4d7f1ff6a93e99762b7c8c8ab814f7a1ae7b1a56",
+      "sha256": "65c846ad8612d4cb3fc51d9b3f8d7b7b665ffbdad5cbafaa9afc4712dc3684c1"
+    },
+    {
+      "path": "lib/ediel/ack/sourceCorrelation.ts",
+      "blob": "2df0a9ec7647ed3953892a3c3d54238aaf0282b2",
+      "sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653"
+    },
+    {
+      "path": "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "blob": "3dfd322f54f256b769ab95ee81670a16c324982f",
+      "sha256": "9867489d81c902cb4cc49a1ca468e82ca88f577a9ce3b52bb4d158cdaa89c245"
+    },
+    {
+      "path": "supabase/migrations/20261001013700_ediel_prodat_structural_final_response_receipts.sql",
+      "blob": "88ecf8d8e2a9c76eaca9aad4a41a96ce77840397",
+      "sha256": "b031039094620dad96db2a93295826468c8c877164bca1a05a81c57d2c19ee7b"
+    },
+    {
+      "path": "supabase/migrations/20261001042609_ediel_source_owned_z06f_reading_followup.sql",
+      "blob": "33f102c9c7cb7e0c845ab439ba5144245caaae49",
+      "sha256": "0eeb5bc5daaddc0ebd17e6fbe3f6f7964fbfaad9773a631dc9b7cd5321cb5fe5"
+    },
+    {
+      "path": "lib/ediel/core/kernel.ts",
+      "blob": "e768195621f24838e59274ea09b50031d00a978f",
+      "sha256": "e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1"
+    },
+    {
+      "path": "package.json",
+      "blob": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+    },
+    {
+      "path": "package-lock.json",
+      "blob": "b247061206a317aeb7302f50d469117555d0b62f",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    }
+  ],
+  "preflight": {
+    "initial_snapshot_utc": "2026-10-05T12:43:26Z",
+    "board530_comments": 206,
+    "board491_comments": 454,
+    "open_prs": 68,
+    "available_exact_head_ledgers": 54,
+    "genuine_older_missing_ledgers": 14,
+    "legacy_tag_transport_failure": "421 large patch fetch failed;271fulltestfiles actuallyread instead; no ownATtags",
+    "final_metadata_race_utc": "2026-10-05T12:47:33Z",
+    "race_new_or_changed_heads": 0,
+    "parent_claim_guard_board530_comments": 208,
+    "parent_claim_guard_board491_comments": 454,
+    "claim_guard_main": "fff486f822001d35970f163507b10e17c3692f58",
+    "result": "CLEAR only new independent cases/docs, no retainedsource/harness release",
+    "cached_snapshot_file": "preflight-snapshot.json",
+    "cached_snapshot_bytes": 505083,
+    "cached_snapshot_sha256": "3a971d4b06e983cb965ceaeed0d2209435180e08d187e4e649038b6a12c2ff31"
+  },
+  "execution": {
+    "native": "NOT_RUN",
+    "owned_stack_ready": false,
+    "static_types": "PASS",
+    "scoped_lint": "PASS",
+    "no_dependency_install_or_native_rerun": true,
+    "static_receipt": "verification-receipt.json",
+    "guide_valid_positive_fixture": "HELD: inherited field306E22 conflicts with preserved originalZ11/Z12 witnesses; retainedowner qualification required"
+  },
+  "whole_acceptance": "HELD",
+  "machine_tags": false,
+  "retained_coordination": [
+    {
+      "issue": 503,
+      "comment": 5994170476,
+      "purpose": "conditionalF/G actualapproval/ACK/UD/negativeeffects"
+    },
+    {
+      "issue": 503,
+      "comment": 5994437865,
+      "purpose": "join ONE existing F/G/Z09 chain, no ownership release"
+    }
+  ],
+  "source_dependencies": [
+    "Existing fixed native registration list is owned by503",
+    "Existing change fixture applies before returning; first-apply and physicalUD require retained input/defer seam",
+    "Declared public ACK-route/profile input must not fabricate protected authority or a permission alias",
+    "Retained fixture/canonical source owner must qualify field306Z11/Z12 and existing E22 input before guide-valid native controls; field-306-source-qualification.json"
+  ],
+  "dependency_reuse": {
+    "package_and_lock_sha_equal_prior_locked_install": true,
+    "node_modules": "Owned symlink to existing locked installation, no duplicate npm install",
+    "native_execution": "NOT_RUN"
+  },
+  "retained_native_registration_proposal": {
+    "file": "native-registration.patch",
+    "sha256": "fcb0ba7863cc3a9229769b84389d7ca4dad6f127e9dbeb6f664207d3e90c47d5",
+    "target": "scripts/ediel-source-owner-native.config.ts",
+    "target_sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+    "applied": false,
+    "git_apply_check_exit": 0,
+    "owner": "503 retained native/config coordinator"
+  },
+  "post_freeze_source_qualification": "field-306-source-qualification.json"
+}

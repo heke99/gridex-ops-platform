@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc057-sc059
+
+ ✓ __tests__/ediel-sc-059-registered-subaddress.test.ts (13 tests) 120ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  04:51:17
+   Duration  666ms (transform 308ms, setup 21ms, import 360ms, tests 120ms, environment 0ms)
+
+JUNIT report written to /tmp/sc059-unit-focused.xml

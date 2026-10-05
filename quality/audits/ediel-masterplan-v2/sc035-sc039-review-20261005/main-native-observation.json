@@ -1,0 +1,38 @@
+{
+  "scope": "Original clean replay observation; qualifies executed existing tests only, not whole SC035/039",
+  "head": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "run": 37287095697,
+  "job": 111688500421,
+  "status": "completed",
+  "conclusion": "success",
+  "originalNativePass": 608,
+  "originalNativeSkipped": 1,
+  "excerpts": [
+    "2026-10-05T09:41:41.8683156Z  Test Files  48 passed (48)",
+    "2026-10-05T09:41:41.8685966Z       Tests  608 passed | 1 skipped (609)"
+  ],
+  "priorPacketSupplement": {
+    "immutableReviewPacket": "713b781781695fef56db01818ab70e3761539d14",
+    "qualification": [
+      {
+        "scenario": "SC-031",
+        "inputCount": 44,
+        "allInputSha256MatchCurrentMain": true,
+        "originalReportSha256": "ed7046f55788c15b26c4f0a8194e644318545fdee60d7fb99f4b99f1115751fe"
+      },
+      {
+        "scenario": "SC-034",
+        "inputCount": 17,
+        "allInputSha256MatchCurrentMain": true,
+        "originalReportSha256": "f87f733e37a617238e8ef58e25c2c7e11fc5874907eb1c6e351d4ce621d0f536"
+      }
+    ],
+    "SC034currentReceipt": "Existing actual ediel-z04-ack-native.test.ts16-case file succeeds, including whole-message-lin-sequence case. Its BGM27/field314/sourceACW and zero cases/switches/supply assertions qualify the persisted wire/outbox component; no SMTP or market delivery inferred.",
+    "remainingSC034": [
+      "firstLIN2 through actual processor/persisted ACK",
+      "wrong global LIN order1,3,2 (not field258)",
+      "otherwise business-ready good sibling/no partial effect"
+    ],
+    "wholeSC034Status": "PARTIAL"
+  }
+}

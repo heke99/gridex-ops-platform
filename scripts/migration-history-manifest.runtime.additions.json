@@ -121,6 +121,10 @@
     "20261002140000_customer_billing_profile_revisions.sql": "1fcb41695eb2cce4d63313b12d785acb1bc054c1d07927da748c2f1848e4b73b",
     "20261002160000_tenant_invoice_provider_selection.sql": "0da076f24300f43285fecf6752108c1f9e0d8b363267be0a7434988e613d368a",
     "20261002180000_invoice_file_export.sql": "e60545189328b22e6c61f1604224b5c5b917fdafa82a401dd40638a3213f9083",
-    "20261004165620_staff_user_role_id_nullability.sql": "efdc9d67fcb6e3edd6d77e97de0b5c79978a2b3673d6bad1607880b5cbe98510"
+    "20261004165620_staff_user_role_id_nullability.sql": "efdc9d67fcb6e3edd6d77e97de0b5c79978a2b3673d6bad1607880b5cbe98510",
+    "20261004205603_staff_customer_retention_read_prerequisite.sql": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+    "20261004205816_support_attachment_quarantine_carrier.sql": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594",
+    "20261005004623_customer_contact_version_conflict_http409.sql": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+    "20261005010327_customer_identity_version_conflict_http409.sql": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
   }
 }

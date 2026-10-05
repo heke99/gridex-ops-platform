@@ -1,6 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
-import { evaluateCertificateStatus } from '@/lib/ediel/security/certificateStatus'
-import { describeCertificate, resolveOutboundRecipientCertificate } from '@/lib/ediel/security/outboundRecipientCertificate'
+import { describeCertificate, resolveOutboundRecipientCertificate, routeReceiverSubaddress } from '@/lib/ediel/security/outboundRecipientCertificate'
 import type { EdielEnvironment } from '@/lib/ediel/types'
 
 type JsonRecord = Record<string, unknown>
@@ -159,23 +158,6 @@ function certValidTo(row: CertificateRow | null | undefined): string | null {
   return certText(row, 'valid_to', 'validTo') ?? certText(row, 'certificate_valid_to', 'certificateValidTo')
 }
 
-function certificateMatches(row: CertificateRow, params: { receiverEdielId: string | null; messageFamily: string; environment: string }): boolean {
-  const owner = certText(row, 'owner_ediel_id', 'ownerEdielId', 'owner_ediel_id') ?? certText(row, 'owner_party_id', 'ownerPartyId')
-  if (params.receiverEdielId && owner && owner !== params.receiverEdielId) return false
-  const family = upper(certText(row, 'message_family', 'messageFamily') ?? certText(row, 'message_type', 'messageType'))
-  if (family && family !== params.messageFamily) return false
-  const env = lower(certText(row, 'environment', 'environment'))
-  if (params.environment && env && env !== params.environment) return false
-  const purpose = lower(certText(row, 'purpose', 'purpose'))
-  if (purpose && !['encryption', 'both'].includes(purpose)) return false
-  const usage = lower(certText(row, 'usage', 'usage'))
-  if (usage && usage !== 'outbound_recipient') return false
-  const pem = certText(row, 'public_certificate_pem', 'publicCertificatePem')
-  if (!pem?.includes('BEGIN CERTIFICATE')) return false
-  const status = evaluateCertificateStatus(row)
-  return Boolean(status.isUsableForSmime)
-}
-
 async function loadRouteProfile(routeProfileId: string): Promise<RouteProfileRow | null> {
   const { data, error } = await supabaseService
     .from('ediel_route_profiles')
@@ -197,64 +179,31 @@ async function loadCommunicationRoute(routeId: string | null | undefined): Promi
   return (data as CommunicationRouteRow | null) ?? null
 }
 
-async function loadCertificateById(certificateId: string | null): Promise<CertificateRow | null> {
-  if (!certificateId) return null
-  const { data, error } = await supabaseService
-    .from('ediel_certificates')
-    .select('*')
-    .eq('id', certificateId)
-    .maybeSingle()
-  if (error) throw error
-  return (data as CertificateRow | null) ?? null
-}
-
 async function findBestRecipientCertificate(params: {
   profile: RouteProfileRow
-  route: CommunicationRouteRow | null
   receiverEdielId: string | null
   receiverEmail: string | null
   environment: EdielEnvironment
   messageFamily: string
 }): Promise<CertificateRow | null> {
-  const existing = await loadCertificateById(text(params.profile.receiver_certificate_id) ?? text(params.profile.certificate_id))
-  if (existing && certificateMatches(existing, params)) return existing
-
   try {
     const resolved = await resolveOutboundRecipientCertificate({
+      companyId: params.profile.company_id,
       routeProfileId: params.profile.id,
-      certificateId: null,
+      certificateId: text(params.profile.receiver_certificate_id) ?? text(params.profile.certificate_id),
       receiverEdielId: params.receiverEdielId,
-      receiverSubaddress: text(params.profile.receiver_subaddress) ?? text(params.profile.receiver_sub_address),
+      receiverSubaddress: routeReceiverSubaddress(params.profile),
       messageFamily: params.messageFamily,
+      businessCode: text(params.profile.business_code) ?? text(params.profile.message_code),
       environment: params.environment,
       certificateEnvironment: params.environment,
       smtpTo: params.receiverEmail,
       ownEdielId: text(params.profile.own_ediel_id) ?? text(params.profile.sender_ediel_id),
     })
-    const byId = await loadCertificateById(resolved.id)
-    if (byId && certificateMatches(byId, params)) return byId
+    return { ...resolved.raw, fingerprint_sha256: resolved.fingerprintSha256 } as CertificateRow
   } catch {
-    // Fallback below keeps readiness checks useful even if the strict resolver
-    // rejects due to older route metadata. Approval still requires a valid row.
+    return null
   }
-
-  if (!params.receiverEdielId) return null
-  const query = supabaseService
-    .from('ediel_certificates')
-    .select('*')
-    .eq('owner_ediel_id', params.receiverEdielId)
-    .eq('environment', params.environment)
-    .in('purpose', ['encryption', 'both'])
-    .in('status', ['active', 'renewal_available'])
-    .order('valid_to', { ascending: false, nullsFirst: false })
-    .limit(20)
-
-  const { data, error } = await query
-  if (error) {
-    if (isMissingSchema(error)) return null
-    throw error
-  }
-  return ((data ?? []) as CertificateRow[]).find((candidate) => certificateMatches(candidate, params)) ?? null
 }
 
 function certificateEvidence(certificate: CertificateRow | null): JsonRecord {
@@ -362,9 +311,13 @@ export async function evaluateRouteProfileProductionReadiness(
   let certificate: CertificateRow | null = null
   if (smimeRequired) {
     updates.certificate_required = true
-    certificate = await findBestRecipientCertificate({ profile, route, receiverEdielId: receiverId, receiverEmail, environment: env, messageFamily: family })
+    certificate = await findBestRecipientCertificate({ profile, receiverEdielId: receiverId, receiverEmail, environment: env, messageFamily: family })
     if (!certificate) {
       addIssue(blockers, 'receiver_certificate_missing', 'Mottagarcertifikat saknas eller är inte användbart för S/MIME.')
+      updates.security_policy_status = 'blocked'
+      metaUpdates.receiver_certificate_status = 'blocked'
+      metaUpdates.receiver_certificate_id = null
+      metaUpdates.receiver_certificate_fingerprint = null
     } else {
       const certEvidence = certificateEvidence(certificate)
       const certOwner = text(certEvidence.ownerEdielId)
