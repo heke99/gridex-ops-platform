@@ -25,7 +25,7 @@ const mimeName = 'ENV-01 lossless bytes at every SMTP packaging boundary > MIME 
 const guardName = 'ENV-01 lossless bytes at every SMTP packaging boundary > the actual send path rejects before route, archive, attempt or provider effects'
 const tgtFile = '__tests__/ediel-prodat-register-tgt-workflow.test.ts'
 const tgtName = 'actual TGT workflow surrounding PRODAT register exchange > requires distinct messages for repeated acknowledgements and reports completion separately from portal approval'
-const reviewedBase = 'aa271e14b8a39145dca04aa1433dd54be88f44bd'
+const reviewedBase = '99676683338e11e60666345782609a822de9181e'
 const ledgerFile = 'quality/audits/ediel-masterplan-v2/coverage.json'
 const approvedEvidence = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '__tests__/ediel-ops-03-release-evidence.test.ts', '.github/workflows/full-e2e.yml']
@@ -64,10 +64,12 @@ type CoverageFault = 'document_missing' | 'document_conformance' | 'mime_missing
   | 'tgt_duplicate' | 'suite_name' | 'source' | 'workflow_source' | 'head' | 'attempt' | 'job' | 'job_failed'
   | 'artifact' | 'artifact_head' | 'artifact_run' | 'artifact_attempt' | 'digest' | 'expired' | 'latest_cancelled'
   | 'run_failed' | 'current_run' | 'current_job_failed' | 'runner_missing' | 'runner_corrupt'
+  | 'name_double_encoded' | 'name_unknown_entity' | 'name_html_entity' | 'xml_entity'
+type NumericReferenceFault = 'decimal_suffix' | 'hex_suffix' | 'uppercase_hex' | 'null' | 'control' | 'surrogate' | 'noncharacter' | 'above_range'
 type LedgerChange = 'approved' | 'foreign_rule_status' | 'foreign_at_status' | 'foreign_evidence' | 'spec' | 'metadata' | 'row_order' | 'missing' | 'extra'
   | 'invalid_evidence' | 'duplicate_evidence' | 'evidence_order' | 'own_extra_field' | 'own_wrong_status' | 'one_row' | 'foreign_whitespace' | 'duplicate_key'
   | 'invalid_json' | 'mode' | 'symlink' | 'deleted' | 'type'
-type Options = { fault?: Fault; selfAttested?: boolean; ddq?: boolean; dgi?: boolean; coverage?: boolean; coverageFault?: CoverageFault; nightly?: boolean; ciFailed?: boolean; ledgerChange?: LedgerChange }
+type Options = { fault?: Fault; selfAttested?: boolean; ddq?: boolean; dgi?: boolean; coverage?: boolean; coverageFault?: CoverageFault; coverageNameEncoding?: 'decimal' | 'hex'; numericReferenceFault?: NumericReferenceFault; coverageReferenceText?: boolean; nightly?: boolean; ciFailed?: boolean; ledgerChange?: LedgerChange }
 type LedgerRow = { id: string; status: string; evidence: string[]; [key: string]: unknown }
 function candidateLedger(change: LedgerChange) {
   const ledger = JSON.parse(ledgerSnapshot.stdout) as { rules: LedgerRow[]; acceptance_contracts: LedgerRow[]; [key: string]: unknown }
@@ -123,11 +125,29 @@ function fixture(options: Options = {}) {
     workflow_run: { id: f === 'artifact_run' ? 999 : 100, repository_id: 10, head_repository_id: 10, head_sha: f === 'artifact_head' ? 'e'.repeat(40) : head } }
   return { run, job, artifact, archive }
 }
+const xmlAttribute = (value: string) => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&apos;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 function coverageFixture(options: Options) {
   const f = options.coverageFault
-  const junit = (file: string, name: string, content = '') => `<testcase classname="${file}" name="${name}" time="0.1">${content}</testcase>`
+  // The authentic Vitest reporter encodes the suite separator as &gt;. Keeping
+  // raw > here hid the actual producer/consumer mismatch despite green tests.
+  const nameAttribute = (name: string) => {
+    const encoded = xmlAttribute(name)
+    if (f === 'name_double_encoded') return encoded.replace(/&gt;/g, '&amp;gt;')
+    if (f === 'name_unknown_entity') return encoded.replace(/&gt;/g, '&unknown;')
+    if (f === 'name_html_entity') return encoded.replace(/&gt;/g, '&GT;')
+    if (options.coverageNameEncoding === 'decimal') return encoded.replace(/&gt;/g, '&#62;')
+    if (options.coverageNameEncoding === 'hex') return encoded.replace(/&gt;/g, '&#x3e;')
+    if (options.numericReferenceFault === 'decimal_suffix') return encoded.replace(/&gt;/g, '&#62junk;')
+    if (options.numericReferenceFault === 'hex_suffix') return encoded.replace(/&gt;/g, '&#x3eJUNK;')
+    if (options.numericReferenceFault === 'uppercase_hex') return encoded.replace(/&gt;/g, '&#X3E;')
+    const inserted = { null: '&#0;', control: '&#1;', surrogate: '&#xD800;', noncharacter: '&#xFFFE;', above_range: '&#x110000;' }
+    if (options.numericReferenceFault && options.numericReferenceFault in inserted) return inserted[options.numericReferenceFault as keyof typeof inserted] + encoded
+    return encoded
+  }
+  const junit = (file: string, name: string, content = '') => `<testcase classname="${xmlAttribute(file)}" name="${nameAttribute(name)}" time="0.1">${content}</testcase>`
   const tgt = junit(tgtFile, f === 'suite_name' ? tgtName.split(' > ')[1] : tgtName, f === 'tgt_skipped' ? '<skipped/>' : '')
-  const xml = `<testsuites><testsuite name="${transportFile}">${f === 'mime_missing' ? '' : junit(transportFile, mimeName)}${f === 'guard_missing' ? '' : junit(transportFile, guardName)}</testsuite><testsuite name="${tgtFile}">${f === 'tgt_missing' ? '' : tgt}${f === 'tgt_duplicate' ? tgt : ''}</testsuite></testsuites>`
+  const literalText = options.coverageReferenceText ? '<!-- <testcase name="&#0; &#62junk;"> --><?note value="&#0;"?><system-out context="&#x9;&#xA;&#xD;&#32;&#xD7FF;&#xE000;&#xFFFD;&#x10000;&#x10FFFF;"><![CDATA[<testcase name="&#0; &#xD800; &#62junk;">]]></system-out>' : ''
+  const xml = `${f === 'xml_entity' ? '<!DOCTYPE testsuites [<!ENTITY scope SYSTEM "file:///etc/passwd">]>' : ''}<testsuites>${literalText}<testsuite name="${xmlAttribute(transportFile)}">${f === 'mime_missing' ? '' : junit(transportFile, mimeName)}${f === 'guard_missing' ? '' : junit(transportFile, guardName)}</testsuite><testsuite name="${xmlAttribute(tgtFile)}">${f === 'tgt_missing' ? '' : tgt}${f === 'tgt_duplicate' ? tgt : ''}</testsuite></testsuites>`
   const document = { scope: 'specification integrity and evidence references only', originalFiles: 33, rules: 121, acceptanceContracts: 231,
     applicationConformanceAsserted: f === 'document_conformance', productionReadinessAsserted: false }
   const entries: Record<string, string> = { 'ediel-unit-junit.xml': xml, 'self-attested.json': JSON.stringify({ classes: ['document', 'unit', 'transport', 'TGT'], sourceFile: 'trusted-by-name.test.ts' }) }
@@ -362,6 +382,31 @@ it('coverage nightly reuses the latest successful PR/push producer on the same i
   const result = consume({ coverage: true, nightly: true })
   expect(result.evidence.codeEvidence).toBe('qualified')
   expect(result.evidence.caseEvidence?.find(row => row.id === 'coverage_tgt_code')?.producer).toMatchObject({ runId: '12345', runAttempt: '2', artifactId: '500' })
+})
+it.each(['decimal', 'hex'] as const)('coverage decodes numeric %s attribute references before exact reviewed-case selection', coverageNameEncoding => {
+  const result = consume({ coverage: true, coverageNameEncoding })
+  expect(result.evidence.fullCardVerification).toBe('CODE_VERIFIED')
+  for (const level of ['unit', 'transport', 'TGT']) expect(result.evidence.levels[level].status).toBe('qualified')
+})
+it.each(['name_double_encoded', 'name_unknown_entity', 'name_html_entity', 'xml_entity'] as const)('coverage refuses %s without qualifying a differently named or declared-entity case', coverageFault => {
+  const result = consume({ coverage: true, coverageFault })
+  for (const level of ['unit', 'transport', 'TGT']) expect(result.evidence.levels[level].status).toBe('missing')
+  expect(result.evidence.caseEvidence?.filter(row => ['coverage_mime_code', 'coverage_send_guard_code', 'coverage_tgt_code'].includes(row.id))).toEqual([])
+  expect(result.evidence.levels.integration.status).toBe('qualified')
+  expect(result.evidence.fullCardVerification).toBe('NOT_VERIFIED')
+})
+it.each(['decimal_suffix', 'hex_suffix', 'uppercase_hex', 'null', 'control', 'surrogate', 'noncharacter', 'above_range'] as const)('coverage refuses invalid numeric %s attributes before a permissive decoder can rename a case', numericReferenceFault => {
+  const result = consume({ coverage: true, numericReferenceFault })
+  for (const level of ['unit', 'transport', 'TGT']) expect(result.evidence.levels[level].status).toBe('missing')
+  expect(result.evidence.caseEvidence?.filter(row => ['coverage_mime_code', 'coverage_send_guard_code', 'coverage_tgt_code'].includes(row.id))).toEqual([])
+  expect(result.evidence.levels.integration.status).toBe('qualified')
+  expect(result.evidence.fullCardVerification).toBe('NOT_VERIFIED')
+})
+it('coverage accepts reference-like literal text in comments, processing instructions and CDATA without inventing an attribute or testcase', () => {
+  const result = consume({ coverage: true, coverageReferenceText: true })
+  expect(result.evidence.fullCardVerification).toBe('CODE_VERIFIED')
+  for (const level of ['unit', 'transport', 'TGT']) expect(result.evidence.levels[level].status).toBe('qualified')
+  expect(result.evidence.caseEvidence?.filter(row => row.id.startsWith('coverage_'))).toHaveLength(4)
 })
 it.each([['document_missing', 'document'], ['document_conformance', 'document'], ['mime_missing', 'transport'], ['guard_missing', 'transport'], ['tgt_missing', 'TGT'], ['tgt_skipped', 'TGT'], ['tgt_duplicate', 'TGT'], ['suite_name', 'TGT'], ['source', 'TGT']] as const)('coverage keeps %s out of its %s class while preserving other authentic result classes', (coverageFault, level) => {
   const result = consume({ coverage: true, coverageFault })

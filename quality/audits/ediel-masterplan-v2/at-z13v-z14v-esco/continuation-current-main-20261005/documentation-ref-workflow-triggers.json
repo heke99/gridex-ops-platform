@@ -1,0 +1,45 @@
+{
+  "basis": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+  "checkedWorkflows": 16,
+  "targetRef": "codex/ediel-v-vh-continuation-checkpoint-20261005",
+  "allConfiguredPushTriggersExcludeTarget": true,
+  "newPRCreated": false,
+  "manualWorkflowOrRerunDispatched": false,
+  "pushTriggers": [
+    {
+      "path": ".github/workflows/browser-deps-lock-sync-temporary.yml",
+      "sha256": "6c6c7fe045496292486af35b515c8d615e343fdf13f6906d4b993d4df633d2ae",
+      "pushTrigger": "  push:\n    branches:\n      - agent/release-certification-hardening-20260817\n"
+    },
+    {
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "sha256": "1b22d834938a7929224d71a8791daffd5a8b877baf83af193763a938cf033787",
+      "pushTrigger": "  push:\n    branches: [main]\n"
+    },
+    {
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "sha256": "a77f92d018038e4b863801ddda345f08b2b917f106929798bc175a58b5a568bb",
+      "pushTrigger": "  push:\n    branches: [main]\n"
+    },
+    {
+      "path": ".github/workflows/full-e2e.yml",
+      "sha256": "50409111bf3440b2e74df6e06f1bea48e9c8cb7039732b192a23303cb5c82054",
+      "pushTrigger": "  push:\n    branches: [main]\n"
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "sha256": "eceef159107cc788bb0188e43874ed20fbcf9acdbd9a0f259ef68e20b5c6a261",
+      "pushTrigger": "  push:\n    branches: [main]\n"
+    },
+    {
+      "path": ".github/workflows/tenant-integrity-regression.yml",
+      "sha256": "46d45b2364ad8b7bf2d80e7399b40a5835565bd34003c274d06f4e6dd6ebb890",
+      "pushTrigger": "  push:\n    branches: [main]\n    paths:\n      - 'supabase/migrations/**'\n      - 'lib/tenant/integrity.ts'\n      - 'lib/tenant/scope.ts'\n      - 'lib/tenant/lifecycle.ts'\n      - 'lib/tenant/operationPolicy.ts'\n      - 'lib/integrations/apiAuth.ts'\n      - 'lib/integrations/webhooks.ts'\n      - 'lib/email/emailOutbox.ts'\n      - 'lib/ediel/orchestrator.ts'\n      - 'app/admin/companies/**'\n      - 'app/admin/system/tenant-integrity/**'\n      - 'scripts/gridex-tenant-integrity-regression.cjs'\n      - 'scripts/gridex-tenant-shutdown-regression.cjs'\n      - 'lib/supabase/service.ts'\n      - 'lib/supabase/tenantDb.ts'\n      - 'lib/admin/guards.ts'\n      - 'lib/admin/apiGuards.ts'\n      - 'scripts/check-service-role-tenant-ratchet.cjs'\n      - 'scripts/service-role-tenant-ratchet.json'\n      - 'scripts/sql/tenant-isolation-invariants.sql'\n      - '.github/workflows/tenant-integrity-regression.yml'\n\n"
+    },
+    {
+      "path": ".github/workflows/vercel-production-deploy.yml",
+      "sha256": "2ab42b283d76821709ec50f546daf75c80a64030e651cf34767603172ff7c9d3",
+      "pushTrigger": "  push:\n    branches: [main]\n"
+    }
+  ]
+}

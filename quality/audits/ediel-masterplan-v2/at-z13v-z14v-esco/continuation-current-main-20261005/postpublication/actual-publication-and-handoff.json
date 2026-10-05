@@ -1,0 +1,79 @@
+{
+  "atUTC": "2026-10-05T15:35:42.229602+00:00",
+  "actualPublishedQualificationCommit": "c2696ffbd0bb9a3166e1805086c6d0cfa24f1c71",
+  "actualPublishedQualificationTree": "1d7f440bdaacb94b5c6706800eabac0bdab49acb",
+  "publicationBasisMain": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+  "actualOwnerHandoff503": 5997645816,
+  "actualCoordinatorHandoff530": 5997661219,
+  "sentBodiesAuthenticatedByteExact": true,
+  "closedImplementationRemoteHeadsUnchanged": true,
+  "latestObservedMain": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+  "latestObservedMainTree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+  "latestMainActualMergePR": 548,
+  "latestMainStoredApproved": 224,
+  "latestMainRemaining": 128,
+  "latestMainTotal": 352,
+  "latestMainCoverageSHA256": "53cba5fa5b094fa16e8ad3b600d5d387fe7b91f219f3480ffed43c4402452481",
+  "latestMainCoverageBlob": "1be7b6b873b9f6bdc62a805a613b1f68a42a7dab",
+  "mainAaToCfChangedPaths": [
+    ".agent-memory/masterplan-sc013-sc020-checkpoint.md",
+    "__tests__/ediel-ack-source-correlation.test.ts",
+    "__tests__/ediel-permission-market-consumers.test.ts",
+    "__tests__/ediel-permission-process-order.test.ts",
+    "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-head-gates.json",
+    "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/verification-receipt.json",
+    "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+    "scripts/ediel-service-administration-sql-regression.mjs"
+  ],
+  "originalVirtualSemanticRepoInputs": 880,
+  "mainAaToCfIntersectionWithRecordedSemanticInputs": [],
+  "standardScriptRootPathsChanged": [],
+  "latestMainScope": "Read-only root delta qualification only; no new peer/compiler/full-program/native approval. All changed paths outside the recorded repo input set and no standard script root change. Earlier peer remains pinned to aa/c5.",
+  "newTestsCompilerNativeDBProviderCIOrSourceEdit": false,
+  "nativePatchApplied": false,
+  "ownershipScountNotRefreshedToCf": "Earlier complete scout remains timebound; new main merge does not clear a new claim or release existing retained scopes.",
+  "files": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/archive-published-receipt.json",
+      "sha256": "9a5830fd8d333bf62a166cd6c6c79a8cdfbe0c57eba76ad37c944d404b8dbb25",
+      "bytes": 864
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/current-503-actual-comment.json",
+      "sha256": "819ac5c1c5182649a8c749c05129e5cd0584932eda2868a08ca3796c02bd639d",
+      "bytes": 6064
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/current-530-actual-comment.json",
+      "sha256": "b06e108a0c792299cc58aacb25b3a213092919237ff6528d4fb8832ff70b582a",
+      "bytes": 6392
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/postpublication-observed-main.json",
+      "sha256": "444efa6de89606f68c4f11bd4b8e021d0a5d66601e6c7fe9c60cdd6ef592320a",
+      "bytes": 5349
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/postpublication-exact-remote-refs.txt",
+      "sha256": "9c5bbe46d825753454a9a0a92b0c90056401b330d1ea1e5f81a65382c942db06",
+      "bytes": 286
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/continuation-current-main-20261005/postpublication/postpublication-main-delta.txt",
+      "sha256": "4dd53628dbaa049db094f231776cbc9a650b36dd65a87405a07ad061baf9094d",
+      "bytes": 849
+    }
+  ],
+  "allRecordedWorkspaceRelativeInputsIncludingNonGit": 902,
+  "inputClassification": "880 original Git-tracked inputs including virtual target; additional22 workspace-relative non-Git paths are not counted as repository inputs.",
+  "coordinatorCommentUpdatedInPlaceAtUTC": "2026-10-05T15:37:35Z",
+  "coordinatorFinalBodyAuthenticatedByteExact": true,
+  "coordinatorFinalBodySHA256": "c1b987e69c956baac3b556da7c3971f0ea020304207893921bda6d3cb3fff6ca",
+  "coordinatorOriginalFirstPublishedBodyPreserved": true,
+  "coordinatorUpdateMeaning": "Spacing clarification plus explicit latest cf-main observation, same comment ID; no second handover/comment"
+}

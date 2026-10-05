@@ -1,3 +1,4 @@
+// masterplan: GOV-05, AT-GOV-05
 import { describe, expect, it } from 'vitest'
 import { resolveCanonicalMessagePolicy } from '@/lib/ediel/core/messagePolicy'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
@@ -22,6 +23,11 @@ describe('coherent two-week inbound guide selection', () => {
     const selected = resolveCanonicalMessagePolicy(message)!
     expect(selected.guide.guideRevision).toBe('25-A-4')
     expect(runUtiltsRuntimeForMessage(message, { canonicalPolicy: selected }).validation.issues.some(issue => issue.code === 'UTILTS_METERING_POINT_GS1_CHECK_DIGIT_INVALID')).toBe(true)
+    const decision = resolveCanonicalRuntimeDecision(message)
+    expect(decision.validationReport.canonicalPolicy).toMatchObject({
+      guide: { guideRevision: '25-A-4', associationAssignedCode: 'E5SE5A' },
+      timeAnchors: { admissionDate: '2026-10-15' },
+    })
   })
   it('retains the current guide when only functional object knowledge fails', () => {
     const message = { ...energyHandoffMessage('2026-10-01'), metering_point_id: null, business_match_status: 'unmatched' }

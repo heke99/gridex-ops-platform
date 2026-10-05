@@ -1,0 +1,21 @@
+{
+  "extends": "/workspace/gridex-masterplan-sc051-sc068/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "typeRoots": [
+      "/workspace/gridex-masterplan-sc051-sc068/node_modules/@types"
+    ],
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "/workspace/gridex-masterplan-sc051-sc068/__tests__/ediel-sc-051-revision-treatment.test.ts",
+    "/workspace/gridex-masterplan-sc051-sc068/next-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}

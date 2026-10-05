@@ -1,0 +1,168 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005
+
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 66ms
+   → expected { code: 'Z02', subtype: 'L', …(6) } to match object { …(2) }
+(6 matching properties omitted from actual)
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required LIN in the real field consumer 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:LI in the real field consumer 10ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required RFF:Z05 in the real field consumer 10ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:UD in the real field consumer 11ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > rejects missing required NAD:IT in the real field consumer 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > refuses DGI application reference in the actual Z02 policy 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds absent candidate references without enqueuing or mutation 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds ambiguous candidate references without enqueuing or mutation 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds foreign-only candidate references without enqueuing or mutation 5ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete correlation proof and allows review only 6ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete payload proof and allows review only 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete snapshot proof and allows review only 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic applied proof and allows review only 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds incomplete atomic receipt proof and allows review only 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a blocked job even with a complete-looking result 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > does not promote a needs_review job even with a complete-looking result 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > propagates a declared actor-port denial before any request query or worker effect 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > holds worker enqueue failure without replacing a verified snapshot 2ms
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint 7ms
+   → expected { …(2) } to deeply equal { …(4) }
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result 6ms
+   → expected { …(2) } to deeply equal { …(3) }
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation 15ms
+   → expected { code: 'Z02', subtype: 'LK', …(6) } to match object { …(2) }
+(6 matching properties omitted from actual)
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required LIN in the real field consumer 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:LI in the real field consumer 10ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required RFF:Z05 in the real field consumer 9ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:UD in the real field consumer 8ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > rejects missing required NAD:IT in the real field consumer 7ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > refuses DGI application reference in the actual Z02 policy 0ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > passes physical-LI-selected own scope to one worker, without waiting for an incoming ACK or prewriting verification 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds absent candidate references without enqueuing or mutation 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds ambiguous candidate references without enqueuing or mutation 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds foreign-only candidate references without enqueuing or mutation 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete correlation proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete payload proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete snapshot proof and allows review only 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic applied proof and allows review only 3ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds incomplete atomic receipt proof and allows review only 4ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a blocked job even with a complete-looking result 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > does not promote a needs_review job even with a complete-looking result 2ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > propagates a declared actor-port denial before any request query or worker effect 0ms
+ ✓ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > holds worker enqueue failure without replacing a verified snapshot 2ms
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint 3ms
+   → expected { …(2) } to deeply equal { …(4) }
+ × __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result 3ms
+   → expected { …(2) } to deeply equal { …(3) }
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+AssertionError: expected { code: 'Z02', subtype: 'L', …(6) } to match object { …(2) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "createSupplyPeriod": false,
+-   "outcome": "unexpected_direction_review",
++   "outcome": "grid_owner_information_received",
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:136:70
+    134|     expect(decideProdatLifecycle(row)).toMatchObject({ subtype: profil…
+    135|       createSupplyPeriod: false, endSupplyPeriod: false, requiresCorre…
+    136|     expect(decideProdatLifecycle({ ...row, direction: 'outbound' })).t…
+       |                                                                      ^
+    137|   })
+    138|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > a held real Z02 linker cannot be upgraded to verified by the downstream state consumer using a cached request hint
+AssertionError: expected { …(2) } to deeply equal { …(4) }
+
+- Expected
++ Received
+
+  {
+-   "gridAreaId": "PRIOR-NET",
+-   "lineItemReference": "PRIOR-VERIFIED-LI",
+-   "pointId": "735123456789012345",
+-   "sourceMessageId": "00000000-0000-4000-8000-000000000020",
++   "businessState": "grid_owner_information_received",
++   "sourceEdielMessageId": "00000000-0000-4000-8000-000000000007",
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:226:40
+    224|     expect(request().verified_payload).toEqual(originalSnapshot)
+    225|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    226|     expect(request().verified_payload).toEqual(originalSnapshot)
+       |                                        ^
+    227|     expect(request().status).toBe('manual_review_required')
+    228|     expect(verifiedEvents()).toEqual([])
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'L' supplier ('Z22') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > the downstream state consumer preserves the source-owned snapshot after a complete declared atomic result
+AssertionError: expected { …(2) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+  {
+-   "atomicCoreReceipt": "00000000-0000-4000-8000-000000000040",
+-   "lineItems": [
+-     {
+-       "gridArea": "NET",
+-       "li": "OWN-Z01-LI",
+-       "pointId": "735123456789012345",
+-     },
+-   ],
+-   "sourceMessageId": "00000000-0000-4000-8000-000000000007",
++   "businessState": "grid_owner_information_received",
++   "sourceEdielMessageId": "00000000-0000-4000-8000-000000000007",
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:239:40
+    237|     expect(request().verified_payload).toEqual(sourceOwned)
+    238|     await applyInboundBusinessStateMachine({ actorUserId: own.actor, m…
+    239|     expect(request().verified_payload).toEqual(sourceOwned)
+       |                                        ^
+    240|     assertNoBusinessWrites()
+    241|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts > AT-Z02 'LK' supplier ('Z23') > decodes real DDQ/Z02/reason/object/LI/grid/customer bytes and never means supply activation
+AssertionError: expected { code: 'Z02', subtype: 'LK', …(6) } to match object { …(2) }
+(6 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "createSupplyPeriod": false,
+-   "outcome": "unexpected_direction_review",
++   "outcome": "grid_owner_information_received",
+  }
+
+ ❯ __tests__/ediel-at-z02l-z02lk-supplier-profile.test.ts:136:70
+    134|     expect(decideProdatLifecycle(row)).toMatchObject({ subtype: profil…
+    135|       createSupplyPeriod: false, endSupplyPeriod: false, requiresCorre…
+    136|     expect(decideProdatLifecycle({ ...row, direction: 'outbound' })).t…
+       |                                                                      ^
+    137|   })
+    138|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 38 passed (44)
+   Start at  13:37:26
+   Duration  2.15s (transform 1.32s, setup 33ms, import 1.62s, tests 270ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005/quality/audits/ediel-masterplan-v2/at-z02l-z02lk-supplier/corrected-control-junit.xml

@@ -1,3 +1,4 @@
+// masterplan: SC-020
 import { describe, expect, it } from 'vitest'
 import { applyPermissionEvent } from '@/lib/ediel/permissions/permissionEngine'
 import { handleZ14PermissionResponse } from '@/lib/ediel/permissions/z14HandleResponse'

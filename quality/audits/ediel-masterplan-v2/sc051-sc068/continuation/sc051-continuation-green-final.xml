@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.416669111">
+    <testsuite name="__tests__/ediel-sc-051-revision-treatment.test.ts" timestamp="2026-10-05T13:53:44.793Z" hostname="c8313f035683" tests="8" failures="0" errors="0" skipped="0" time="0.416669111">
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 actual receipt 2026-09-30 carries one 25-A-3 through final owner, consumption and ACK" time="0.155832922">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 actual receipt 2026-10-01 carries one 25-A-4 through final owner, consumption and ACK" time="0.055536448">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 October field209 enforcement is not activated early at receipt 2026-09-30" time="0.060026204">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 October field209 enforcement is not activated early at receipt 2026-10-15" time="0.052083347">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 an asynchronous clock rollover cannot reselect the receipt guide in downstream billing" time="0.045248312">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 the real pre-send consumer captures its own fresh boundary before asynchronous registry IO" time="0.013767223">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 replay trace time preserves a stored receipt selection and original E5SE5A bytes" time="0.002115459">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-051-revision-treatment.test.ts" name="SC-051 the actual queued worker reconsiders the unchanged September E5SE5A original with October admission and holds before provider entry" time="0.030533285">
+        </testcase>
+    </testsuite>
+</testsuites>

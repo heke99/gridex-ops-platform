@@ -53,7 +53,7 @@ const nativeCaseBindings = [
     effects: { DDQ: true, DGI: false, multipleTenants: false, crossTenantAssignments: false, tenantCountLowerBound: 1 },
     ports: { postgres: 'real_local', postgrest: 'real_local', smtp: 'substituted', issuer: 'synthetic', tenantBootstrap: 'synthetic' } },
 ]
-const reviewedNativeInputBase = 'aa271e14b8a39145dca04aa1433dd54be88f44bd'
+const reviewedNativeInputBase = '99676683338e11e60666345782609a822de9181e'
 const ownedNativeInputExceptions = ['scripts/gridex-full-production-e2e.cjs', '__tests__/ediel-ops-03-code-release-evidence.test.ts',
   '.agent-memory/masterplan-ops03-checkpoint.md', '.github/workflows/full-e2e.yml']
 const coverageLedgerPath = 'quality/audits/ediel-masterplan-v2/coverage.json'
@@ -216,7 +216,49 @@ function consumeReviewedCodeEvidence(root, source, blockers, modes) {
     if (/<!DOCTYPE|<!ENTITY/i.test(xml)) throw Error('case_junit_entity_forbidden')
     const { XMLParser, XMLValidator } = require('fast-xml-parser')
     if (XMLValidator.validate(xml) !== true) throw Error('case_junit_invalid')
-    const parsed = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', processEntities: false, parseAttributeValue: false }).parse(xml)
+    // The locked decoder accepts numeric prefixes and drops prohibited scalar
+    // values. Check complete attribute references before it can rename a case.
+    function attributeReferences(value) {
+      for (let at = value.indexOf('&'); at !== -1;) {
+        const end = value.indexOf(';', at + 1)
+        if (end === -1) throw Error('case_junit_reference_invalid')
+        const token = value.slice(at + 1, end)
+        if (!/^(?:amp|lt|gt|quot|apos)$/.test(token)) {
+          const numeric = /^#(?:([0-9]+)|x([0-9a-fA-F]+))$/.exec(token)
+          if (!numeric) throw Error('case_junit_reference_invalid')
+          const cp = numeric[1] === undefined ? Number.parseInt(numeric[2], 16) : Number(numeric[1])
+          if (!Number.isSafeInteger(cp) || !(cp === 9 || cp === 10 || cp === 13 ||
+            (cp >= 0x20 && cp <= 0xD7FF) || (cp >= 0xE000 && cp <= 0xFFFD) ||
+            (cp >= 0x10000 && cp <= 0x10FFFF))) throw Error('case_junit_reference_invalid')
+        }
+        at = value.indexOf('&', end + 1)
+      }
+    }
+    // Comments, CDATA and processing instructions contain literal text rather
+    // than attributes; quoted > and < within a value must not split its tag.
+    for (let at = 0; (at = xml.indexOf('<', at)) !== -1;) {
+      const terminator = xml.startsWith('<!--', at) ? '-->' : xml.startsWith('<![CDATA[', at) ? ']]>' : xml.startsWith('<?', at) ? '?>' : null
+      if (terminator) {
+        const end = xml.indexOf(terminator, at + 2)
+        if (end === -1) throw Error('case_junit_invalid')
+        at = end + terminator.length
+        continue
+      }
+      for (at++; at < xml.length && xml[at] !== '>'; at++) {
+        if (xml[at] !== '"' && xml[at] !== "'") continue
+        const end = xml.indexOf(xml[at], at + 1)
+        if (end === -1) throw Error('case_junit_invalid')
+        attributeReferences(xml.slice(at + 1, end))
+        at = end
+      }
+      at++
+    }
+    // Decode standard attribute references (Vitest emits &gt; in suite names)
+    // after rejecting all DOCTYPE/ENTITY declarations above.
+    const parsed = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', processEntities: true,
+      // This locked parser couples numeric references to htmlEntities. Supply
+      // only XML's five predefined names, never the larger HTML entity set.
+      htmlEntities: { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }, parseAttributeValue: false }).parse(xml)
     const testcases = []
     function collect(node) {
       if (!node || typeof node !== 'object') return

@@ -1,0 +1,25 @@
+{
+  "base": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "claim": 5995705023,
+  "author": "/root/z03_profile_implementer",
+  "model": "gpt-6.1-sol/high per explicit SDD selection",
+  "sourceScope": "__tests__/ediel-at-z03l-z03lk-supplier-profile.test.ts",
+  "pointers": [
+    {
+      "path": "docs/superpowers/plans/2026-10-05-z03l-z03lk-supplier.md",
+      "sha256": "c58ca8094cfd46559751bd772b216739501fc73694b86b21289f0d1427307535"
+    },
+    {
+      "path": ".superpowers/sdd/2026-10-05-z03l-z03lk-supplier/task-1-brief.md",
+      "sha256": "a810b17751a104b9eb6367d97cefc6294f35b26c6928ae4f59de15748cfb7c03"
+    },
+    {
+      "path": ".superpowers/sdd/2026-10-05-z03l-z03lk-supplier/global-constraints.md",
+      "sha256": "f36837b58b0238d88ce12d14b23b57f2252d730609484b49ad43c7f6e0a0b008"
+    }
+  ],
+  "runtime": "NOT_RUN",
+  "originalBindResponse": "configured scoped HOLD only",
+  "wholeApproval": false,
+  "sourcePremiseCorrection": "method basis property siteId, not customerSiteId; original validation and negative effect retained"
+}
