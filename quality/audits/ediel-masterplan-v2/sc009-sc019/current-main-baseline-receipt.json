@@ -1,0 +1,63 @@
+{
+  "scope": "Actual current-main local qualification; independent final carry and new GitHub gates pending",
+  "created_at": "2026-10-05T14:11:56.523252+00:00",
+  "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "node": "22.23.3",
+  "focused": {
+    "tests": 32,
+    "failure": 0,
+    "error": 0,
+    "skipped": 0
+  },
+  "tagged": {
+    "ids": 352,
+    "approved": 219,
+    "green": 242,
+    "failing": 0,
+    "untagged": 110
+  },
+  "commands": [
+    {
+      "name": "focused_three_suites",
+      "log": "current-main-focused.log",
+      "exit_code": 0,
+      "sha256": "db46bddcb488f72f84ec3a76f4428a334cd9e63914595e5e8be99db9c6a92693"
+    },
+    {
+      "name": "focused_junit",
+      "log": "current-main-focused.xml",
+      "exit_code": 0,
+      "sha256": "35c787e32952a6e7ec795d42cb7c2ff3aa61fdffec6fcffc94969b512ae0e7b4"
+    },
+    {
+      "name": "frozen_integrity",
+      "log": "current-main-integrity.log",
+      "exit_code": 0,
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    },
+    {
+      "name": "tests_types",
+      "log": "current-main-tests-types.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "scoped_lint",
+      "log": "current-main-scoped-lint.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "unfiltered_tagged_check",
+      "log": "current-main-tagged-coverage.log",
+      "exit_code": 0,
+      "sha256": "13a0e4e7d9655dc29a85914a4ffce1bd458876f052a28590fbc764e784bd1358"
+    }
+  ],
+  "source_carry_sha256": "0b9d6ec384a814281f8ed9e80b0a470fffe15299f952484f86e515df3d22c7ef",
+  "runner": "Existing unmodified full tag checker, loopback-only NODE_OPTIONS preload, temporary npx launcher maps vitest to installed CLI with supported maxWorkers=2. Entire checker selection/guards unchanged. All three asserting suites byte-exact originalapproved7bd. No class/AST adaptation or source/SQL/native fixture repair needed.",
+  "historical_ci_failure": "historical-7bd-clean-failure.json",
+  "independent_final_review": "PENDING",
+  "current_published_head_ci": "PENDING",
+  "merge_owner": "retained root coordinator"
+}

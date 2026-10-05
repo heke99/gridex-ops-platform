@@ -1,3 +1,4 @@
+// masterplan: SC-019
 import { describe, expect, it } from 'vitest'
 import { evaluateBillingGate } from '@/lib/billing/billingGate'
 
