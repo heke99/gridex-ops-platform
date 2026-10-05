@@ -307,8 +307,18 @@
     {
       "id": "ENV-02",
       "acceptance_id": "AT-ENV-02",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactTokenizer.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/edifactValidation.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "__tests__/ediel-env02-positional-ast.test.ts",
+        ".agent-memory/masterplan-env02-checkpoint.md"
+      ]
     },
     {
       "id": "ENV-03",
@@ -2358,8 +2368,18 @@
     },
     {
       "id": "AT-ENV-02",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactTokenizer.ts",
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/core/canonicalMessage.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/edifactValidation.ts",
+        "lib/ediel/prodat/prodatRegisterGroups.ts",
+        "lib/ediel/utilts/canonicalObservationScope.ts",
+        "__tests__/ediel-env02-positional-ast.test.ts",
+        ".agent-memory/masterplan-env02-checkpoint.md"
+      ]
     },
     {
       "id": "AT-ENV-03",
