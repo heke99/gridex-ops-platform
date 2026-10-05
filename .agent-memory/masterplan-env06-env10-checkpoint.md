@@ -4,7 +4,7 @@
 - Branch: `claude/zealous-brown-1okb98`, worktree `/home/user/gridex-ops-platform`, base main `01b11f5`
 - Date: 2026-10-05
 - Claim: #530 comment 5991462511 (ENV-06, AT-ENV-06, ENV-10, AT-ENV-10)
-- Status: locally verified, under review — PR #576 (commit 84fa4d35f), READY #530 comment 5991879839; CI pending, not merged
+- Status: CI-green on head e509208 (PR #576), awaiting review/integration-owner merge; not merged
 
 ## Verified defects (reproduced on 01b11f5 before the fix)
 
