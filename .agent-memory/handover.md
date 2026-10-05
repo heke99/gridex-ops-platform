@@ -1,3 +1,11 @@
+## Actual documentation and rule deliveries — 2026-10-05T19:06:06Z
+
+Actual607/603/609 are independently authenticated through public PR state and Git commit tree/ordered parents, and recorded once by the retained common handover writer. Current4b179ee4 is a working source base.603 admits SC011 and the sole authoritative a7SC068 postimage; SC023 stays HELD/NOT_EXECUTED and untagged.609 admits GOV01/AT only and preserves that same fixture. Existing source authors/CI observers and ONE final common baseline/tag writer remain unchanged. Current-main full green and whole-masterplan completion are not claimed.
+
+- ACTUAL MAIN MERGE PR #607: `3251d20a8b9fe0294367977dca49de65aabe7513`; tree `c1bfe1f0de4cbab8df06cd0fbb85dc6d177e3044`; ordered parents `f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af` + `b39dc1d0f133ee56a8d1c2eccade44e461ef1bc9`; original producer's source/whole/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/607).
+- ACTUAL MAIN MERGE PR #603: `8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4`; tree `f6a0d76b8c58568c28b6c31835d7dcc335c5517a`; ordered parents `3251d20a8b9fe0294367977dca49de65aabe7513` + `0fe4b951fffb612e97ad0c62822381728be5fb04`; original producer's source/whole/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/603).
+- ACTUAL MAIN MERGE PR #609: `4b179ee45dce580142f0684e330675fe9e033d69`; tree `e7c6c84279be2b3e463c17e3fd0f11dd84f9a841`; ordered parents `8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4` + `7b3f041afa20b598be663e8c13f5ea2261176c73`; original producer's source/whole/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/609).
+
 ## Actual source deliveries — 2026-10-05T18:34:44Z
 
 Actual604/605/503 are recorded once with direct GitHub parent/tree custody. Root503's actual tree matches its independent latest-main prediction; nine mandatory checks and real completed native/F3/type/schema/upgrade terminals succeeded. Existing native skips and the old19 individually UNKNOWN identities remain attributed honestly. Current f88e88fb is a working source base. SC068's retained carrier, production-full residuals, later foreign SQL union and one final common baseline/tag remain unfinished and separately owned.

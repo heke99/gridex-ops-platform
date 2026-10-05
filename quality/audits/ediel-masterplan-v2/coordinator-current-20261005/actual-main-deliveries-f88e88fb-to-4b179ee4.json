@@ -1,0 +1,49 @@
+{
+  "scope": "Authenticated actual first-parent documentation/SC011/GOV01 deliveries. Original serial operators retain source and CI qualification; no second merge or observer.",
+  "previous_actual_main": "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+  "actual_main": "4b179ee45dce580142f0684e330675fe9e033d69",
+  "actual_tree": "e7c6c84279be2b3e463c17e3fd0f11dd84f9a841",
+  "deliveries": [
+    {
+      "pr": 607,
+      "actual_merge": "3251d20a8b9fe0294367977dca49de65aabe7513",
+      "tree": "c1bfe1f0de4cbab8df06cd0fbb85dc6d177e3044",
+      "parents": [
+        "f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af",
+        "b39dc1d0f133ee56a8d1c2eccade44e461ef1bc9"
+      ],
+      "merged_at": "2026-10-05T18:48:40Z",
+      "published_head": "b39dc1d0f133ee56a8d1c2eccade44e461ef1bc9"
+    },
+    {
+      "pr": 603,
+      "actual_merge": "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+      "tree": "f6a0d76b8c58568c28b6c31835d7dcc335c5517a",
+      "parents": [
+        "3251d20a8b9fe0294367977dca49de65aabe7513",
+        "0fe4b951fffb612e97ad0c62822381728be5fb04"
+      ],
+      "merged_at": "2026-10-05T19:03:23Z",
+      "published_head": "0fe4b951fffb612e97ad0c62822381728be5fb04"
+    },
+    {
+      "pr": 609,
+      "actual_merge": "4b179ee45dce580142f0684e330675fe9e033d69",
+      "tree": "e7c6c84279be2b3e463c17e3fd0f11dd84f9a841",
+      "parents": [
+        "8d9903740fe8c3d7a0fd003b7b3c0b5ca8fa54d4",
+        "7b3f041afa20b598be663e8c13f5ea2261176c73"
+      ],
+      "merged_at": "2026-10-05T19:06:06Z",
+      "published_head": "7b3f041afa20b598be663e8c13f5ea2261176c73"
+    }
+  ],
+  "qualification_boundaries": {
+    "SC068": "One authoritative a7 fixture postimage admitted by603;609 preserves the same exact postimage. No second implementation.",
+    "SC023": "NOT_EXECUTED / HELD and untagged",
+    "whole_masterplan": "NOT_COMPLETE",
+    "current_main_full_green": "NOT_CLAIMED",
+    "final_baseline_tag": "Existing exclusive final writer only",
+    "root503_historical_capture": "Producer5be and original NOT_RUN flags unchanged"
+  }
+}
