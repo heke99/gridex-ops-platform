@@ -166,6 +166,7 @@ describe('Staff API public contract', () => {
       // its cwd changes to the disposable materializer fixture.
       mkdirSync(resolve(dir, 'scripts/lib'), { recursive: true })
       copyFileSync(resolve('scripts/lib/unit-loopback-network-boundary.cjs'), resolve(dir, 'scripts/lib/unit-loopback-network-boundary.cjs'))
+      copyFileSync(resolve('scripts/lib/refactor-safe-static-read.cjs'), resolve(dir, 'scripts/lib/refactor-safe-static-read.cjs'))
       for (const name of ['website-integration-v1', 'customer-portal-v1', 'staff-v1']) writeFileSync(resolve(dir, `docs/openapi/${name}.json`), JSON.stringify({ info: { version: STAFF_API_CONTRACT_VERSION }, 'x-contract-schema-version': STAFF_API_CONTRACT_VERSION }))
       const script = resolve('scripts/materialize-openapi-release.cjs')
       execFileSync(process.execPath, [script], { cwd: dir })
