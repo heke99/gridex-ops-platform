@@ -1,0 +1,100 @@
+{
+  "recorded_at": "2026-10-05T15:43:03.708988+00:00",
+  "published_pr": 598,
+  "url": "https://github.com/heke99/gridex-ops-platform/pull/598",
+  "head": "321931a506f7ee6d0560e5d5e7c1133b8c3378f4",
+  "tree": "d507e0f3d309737f965dc3df180be70117d4770c",
+  "actualbase": "b7a2daa3627f1f8f56055681ba5a8d78e902ad55",
+  "test_sha256": "b553d8541af9e7987e566dc9c315f26e9e6b05512743d889deccfd4b986ef422",
+  "runtime": "48unique/48PASS/0FAIL/0ERROR/0SKIP",
+  "final_types_lint": "exit0 on exactb553",
+  "peer_review_sha256": "c509685c04a60c73452114b570efb7721a239b3ada24f164f3034d8521bb39f3",
+  "postreview_adoption_peer": "NO_FINDINGS: exact22foreignP04delta and29samepins/2unapprovedrows; adoptionreceipt84486d54896125e3f9285e222450b581813e73f55a4caa5acba59de1a06810c5",
+  "ready_comments": {
+    "530": 5997811985,
+    "503": 5997813956
+  },
+  "CI_snapshot": {
+    "pr": 598,
+    "head": "321931a506f7ee6d0560e5d5e7c1133b8c3378f4",
+    "state": "open",
+    "merged_at": null,
+    "mergeable": true,
+    "checks": [
+      {
+        "id": 111846632710,
+        "name": "browser-public",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768380/job/111846632710",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632647,
+        "name": "upgrade-migration-replay",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768386/job/111846632647",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632628,
+        "name": "coverage",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768329/job/111846632628",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632585,
+        "name": "verify",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768386/job/111846632585",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632450,
+        "name": "quality-release-gates",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768386/job/111846632450",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632350,
+        "name": "clean-migration-replay",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768386/job/111846632350",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632256,
+        "name": "targeted-regressions",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768467/job/111846632256",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      },
+      {
+        "id": 111846632248,
+        "name": "smoke",
+        "status": "queued",
+        "conclusion": null,
+        "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37334768329/job/111846632248",
+        "started_at": "2026-10-05T15:40:48Z",
+        "completed_at": null
+      }
+    ]
+  },
+  "whole_rows": "Both B/D NOT_EXECUTED[] unchanged",
+  "limits": "Evidence-only documentation branch; only PR598321 qualifies published runtime. Pending checks are pending; no native/source authority/actualmerge/whole approval."
+}

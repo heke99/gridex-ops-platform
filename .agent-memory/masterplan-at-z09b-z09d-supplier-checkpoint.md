@@ -1,3 +1,9 @@
+## Current — published bounded component, required CI pending
+
+PR598 exact `321931a506f7ee6d0560e5d5e7c1133b8c3378f4`, tree `d507e0f3d309737f965dc3df180be70117d4770c`, actualbaseb7a2daa3. Actual48PASS/types/lint0 and peer reviewc509 APPROVE; peer postreview adoptioncheck hasNO_FINDINGS. Publication/actualCI snapshot: publication-receipt.json; READY5305997811985/5035997813956. Required CI newlyqueued/running, not approved. Only30NEWownpaths and no existing source/helper/coverage edits; entireAT B/D remainsNOT_EXECUTED[]. This documentation-only continuation does not move the candidate/CIhead.
+
+Next action: continue sole593/597/598CI+retainedqueue watch; reviewer independentlyscouts next trulyfree/full gap withno source/native/testing duplication. All earlier snapshot statuses below remain historical.
+
 # AT-Z09B / AT-Z09D supplier — bounded application coupling
 
 Owner: Codex retained peer, author of #593/#597; sole NEW test writer. Reviewer: revocation_contract_review, read only. Integration/common memory/native/capture owner: retained #503.
