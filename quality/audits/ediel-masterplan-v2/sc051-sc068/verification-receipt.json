@@ -436,8 +436,30 @@
     "sha256": "e86fd5edf9d6932ac4af884adf3a6b57ce27a98a8d54075d4f6c5ab6f6ae4304"
   },
   "publication": {
-    "state": "Technical packet ready to commit/push/open DRAFT PR",
-    "publishedHead": "Actual Git/remote/PR head recorded externally after commit; no self-referential file hash"
+    "state": "DRAFT PR published and REST/remote verified",
+    "pullRequest": "https://github.com/heke99/gridex-ops-platform/pull/561",
+    "technicalHead": "b644c74cf803bfa370ffd9e5d83c49e21d416398",
+    "technicalTree": "4a18cee79fe88ad09c8ab768c7df656f03e2c0f1",
+    "finalDocumentationHead": "Recorded externally after this publication/source qualification commit",
+    "currentMainSourceQualification": {
+      "actualMainHead": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+      "qualifiedAtPublication": true,
+      "productionStaticEnvelopeUnchanged": 688,
+      "changedProductionEnvelopePaths": [],
+      "mainCandidateRows": [
+        {
+          "id": "SC-051",
+          "status": "NOT_EXECUTED",
+          "evidence": []
+        },
+        {
+          "id": "SC-068",
+          "status": "NOT_EXECUTED",
+          "evidence": []
+        }
+      ],
+      "limit": "Main advancement was evidence/test/coverage only for this bounded source envelope; no fresh whole-current native or missing-predicate proof inferred"
+    }
   },
   "skills": [
     "spec-to-code-compliance: parent-assigned independent whole reviewer",
