@@ -201,13 +201,20 @@ function normalizePriceAreaAssurance(input: ResolutionReadinessInput): PriceArea
   }
 }
 
+function isPostalCentroidEvidence(assurance: PriceAreaAssurance): boolean {
+  if (assurance.source === 'postal_centroid') return true
+  // Website V1 remaps postal_centroid → postal_consensus for the public enum.
+  // Keep the centroid trust floor when evidence still records that provenance.
+  return assurance.evidence.coordinate_scope === 'postal_centroid'
+}
+
 function priceAreaEvidenceAccepted(assurance: PriceAreaAssurance): boolean {
   if (!assurance.priceArea || assurance.uniquePriceAreaCount !== 1) return false
   if (assurance.status === 'verified') {
     return assurance.confidence >= MIN_VERIFIED_PRICE_ASSURANCE_CONFIDENCE
   }
   if (assurance.status === 'estimated') {
-    const minimum = assurance.source === 'postal_centroid'
+    const minimum = isPostalCentroidEvidence(assurance)
       ? MIN_POSTAL_CENTROID_PRICE_ASSURANCE_CONFIDENCE
       : MIN_ESTIMATED_PRICE_ASSURANCE_CONFIDENCE
     return assurance.confidence >= minimum
