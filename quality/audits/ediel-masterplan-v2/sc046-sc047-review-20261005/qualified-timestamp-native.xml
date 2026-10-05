@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites><testsuite name="Existing individual timestamp witnesses; no late-arrival claim" tests="2" failures="0" errors="0" skipped="0"><testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="native E66 persists SG5 field 512 as the DTM+735 UTC instant and preserves it on exact retry" time="0.685227487">
+        </testcase>
+        <testcase classname="scripts/ediel-utilts-consumption-native.test.ts" name="native accepted S01 persists only SG5 field 532 and no individual consumption effect on retry" time="0.853336479">
+        </testcase>
+        </testsuite></testsuites>
