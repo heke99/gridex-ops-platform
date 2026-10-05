@@ -94,16 +94,44 @@ captured OPS project. Private material in the registered JWK is rejected. Its `k
 The server-only OPS `GRIDEX_STAFF_DELIVERY_PRIVATE_KEY` must match that JWK;
 configuration/native-readiness failure precedes invitation intent creation.
 
-The initial tenant administrator is enrolled through the trusted server helper
-`provisionExternalStaffBootstrapInvitation({companyId, apiClientId,
-actorUserId, email, fullName?, roleKey, idempotencyKey})`. The actor must come
-from verified OPS administrative authority. The service-only native wrapper
+The reachable first-enrollment control is **Personalportal · första
+administratören** under `/admin/companies/<verified-company-id>/users` in OPS.
+A genuine OPS platform administrator explicitly selects an active registered
+same-company client, recipient email/name and an assignable role. The server
+action accepts no actor, company, callback, membership or metadata fields from
+the form. Its company argument is validated and authorized again on every
+submission; rendering the control grants no authority.
+
+Before constructing the cookie-aware Auth client, the adapter verifies that
+the public Auth configuration and actual central service SDK point to the
+captured OPS project. It then checks the actual Auth and REST targets of the
+same server SDK before `getUser`. That genuinely verified user must match the
+same SDK's `canonical_authenticated_tenant_context` result, with explicit
+current `is_platform_admin: true`, selected company and `users.write` permission.
+No role name, email, user metadata or colliding tenant Auth UUID is a substitute.
+Company operational eligibility and the explicitly selected company-filtered
+client are checked before invoking the existing helper.
+
+The action calls only `provisionExternalStaffBootstrapInvitation({companyId,
+apiClientId, actorUserId, email, fullName?, roleKey, idempotencyKey})`; it derives
+`actorUserId` from that verified OPS session. The form retains a hidden UUID
+and entered values across failed submissions. The native key includes the
+company and UUID; retrying the same command preserves its key, while changing
+the recipient/client/role with that key conflicts. A fresh page load provides
+a key for a new command. The browser receives only a pending status and safe
+message, never the invitation token, acceptance URL or credentials. The control
+creates no Auth account or email independently.
+
+The service-only native wrapper
 checks the current client/provider/company and uses the existing canonical
 users.write/admin/role-ceiling invitation engine. It fixes the durable marker
 `channel: ops`, `staff_operation: invite`, `external_staff_identity: true` and
 original client; these fields alone confer no authority. Subsequent tenant
 staff invitations use the normal Staff API and the same canonical engine.
 No public bootstrap endpoint or automatic existing-user email linking is added.
+The caller is implemented; the actual Gridex company, trusted OPS administrator,
+first tenant administrator and registered production configuration still require
+verification. These source checks establish none of those identities.
 
 ## One delivery owner
 
@@ -186,5 +214,25 @@ application/type/lint/parity and browser gates remain mandatory. Historical
 checks are never relabeled as new-source acceptance. Apply the OPS forward only
 to central OPS and the private delivery migration only to tenant Prod.
 No hosted migration, account, email, environment or domain changes are part of
-these source checks. Activate the independent support deployment only after
-verified tenant enrollment, registration, callback and actual session delivery.
+these source checks. Operational qualification has two stages:
+
+1. After the required source/native gates and verified company/operator/config
+   prerequisites, make the independent `apps/support` deployment's registered
+   HTTPS delivery POST and `/auth/invitation` callback available. Use its actual
+   registered origin; an arbitrary preview hostname cannot qualify the fixed
+   bridge audience. Configure tenant Auth redirect URLs and SMTP. This technical
+   availability must precede the first real invitation and does not establish
+   successful enrollment or ordinary staff access.
+2. Use the authenticated OPS control for the verified first administrator. The
+   sole leased worker delivers through the registered tenant bridge; qualify
+   the actual email callback, explicit first-password update and acceptance,
+   then fresh identity resolution and a real company-scoped session. Enable
+   normal staff use only after these end-to-end checks. Failed or indeterminate
+   delivery requires reconciliation, not an automatic second email.
+
+Apply central OPS forwards only to OPS, and tenant private delivery SQL only
+to tenant `gridex-prod`. The independently hosted Gridex customer portal keeps
+its separate Customer API compatibility prerequisites: its current paired
+customer identity headers are not a provider assertion. Enforcing a Customer
+provider requires that portal's actual assertion integration before enabling
+that customer flow; Staff proofs cannot substitute for it.
