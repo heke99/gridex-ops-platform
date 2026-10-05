@@ -1082,5 +1082,60 @@ Older Current sections above are historical and SUPERSEDED.
 - 2026-10-04 #426 HELT GRÖN på f32e40b5 (alla 10 jobb, inkl. clean-migration-replay). Nästa: bygg om del 2-stacken (2a–2f) + del 3 från detta huvud och öppna PR:er i ordning.
 - 2026-10-04 Split av #426 publicerad som staplade utkast-PR:er från gröna f32e40b5: #483 2a core → #484 2b TEN/ESCO/AI → #485 2c ACK → #486 2d UTILTS → #487 2e PRODAT → #488 2f retention+schema/typer/manifest → #489 3 UI/browser/workflows (träd == #426). Merge i ordning; lägre PR:er är inte självständigt gröna. Därefter: produktionsmigrationer (dry-run BEGIN/ROLLBACK), defekter F-OPS-02/F-ENV-01/F-GOV-03 två i taget.
 - 2026-10-04 Kandidatgranskning: TEN-01/02/05/06, U-04, U-14 ej godkända (effektluckor, se candidates-2026-10-04.md). Överlämning till nästa agent; prompt i chatten och i next-actions.md.
+- 2026-10-04 IMP-04 + ENV-03 (+AT) godkända (gren claude/env-03-imp-04): UTILTS-byggaren hittar inte längre på subadress; selftest/smoke-UNT beräknas. Kända gamla röda strängregressioner (oförändrade på main): gridex-utilts-completion-regression 'threads resolved environment', ediel-parsing-tenant-hardening-regression.
+- 2026-10-04 TEN-01, AT-TEN-01, TEN-02, AT-TEN-02 godkända (__tests__/ediel-ten-01-02-identity-gate.test.ts), gren claude/cool-tesla-2pmyua; inga nya fynd.
+- 2026-10-04 #491: upgrade-replay-bas = #489:s merge 2bc65ea (ägarbeslut A1; d30fa02 finns ej i main), parity-only replay när inga nya migrationer. TEN-05, AT-TEN-05, TEN-06, AT-TEN-06 godkända (`__tests__/ediel-ten-05-06-role-and-legal-receiver.test.ts`); TEN-06-defekt åtgärdad: PRODAT/UTILTS utan exakt en NAD+DO/MR föll tillbaka på UNB-mottagaren som juridisk mottagare (hålls nu olöst, `inboundLegalReceiverEdielId`). Prod-dry-run blockerad: PROD_DB_READONLY_URL saknas som env i containern, db-värden endast IPv6.
+- 2026-10-04 #491: applied-TXT branch-history-scenariot (c8f666d9/#424-bas) pensionerat (ägarbeslut H1); upgrade-replay + clean replay täcker uppgradering.
+- 2026-10-04 #491: U-04, AT-U-04, U-14, AT-U-14 godkända (`scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs` via `scripts/test-ediel-utilts-series-and-err-ack.cjs`; PGlite-mekanik, positiv lagringsauktoritet kvar i native replay). Negativkontroll: utan U-04-fixen faller testet.
+- 2026-10-04 RESERVATION: TEN-08+TEN-10 pågår i session_01RxmpLE5UfwVEetssVwdAWs på `claude/cool-tesla-2pmyua` (#491). Annan agent: börja på ESCO-kluster, se current-task.md.
+- 2026-10-04 #491: TEN-08, AT-TEN-08, TEN-10, AT-TEN-10 godkända (`scripts/test-ediel-ten-08-10-grants.cjs`); reservation släppt. Nästa enligt prioritet: ESCO-kluster (kolla om annan agent tagit det).
+- 2026-10-04 RESERVATION: ESCO-04/06/07 pågår (Claude, #491, claim-kommentar postad). Övriga ESCO lediga.
+- 2026-10-04 #491: ESCO-04, AT-ESCO-04, ESCO-07, AT-ESCO-07 godkända (`scripts/test-ediel-esco-04-07-permissions.cjs`). ESCO-06 fortfarande reserverat (Claude); kartläggning: ingen Z13-upprepningskoordinering finns i koden.
+- 2026-10-04 #491: ESCO-06, AT-ESCO-06 godkända (`scripts/test-ediel-esco-06-request-coordination.cjs`); tolkning av spårbarhet dokumenterad i current-task.md. ESCO-reservation släppt. Lediga: ESCO-01/02/03/05/08/09/10/11, ACK-01..09, TEN-03/04/07/09/11-14.
+- 2026-10-04 Samordning: Codex tar TEN-07 (egen gren); Claude tar ESCO-03+05 (claim 5981418363), sedan ESCO-08+09.
+- 2026-10-04 #491: ESCO-03, AT-ESCO-03, ESCO-05, AT-ESCO-05 godkända (`__tests__/ediel-esco-03-05-permission-responses.test.ts`). Nästa Claude: ESCO-08+09.
+- 2026-10-04 #491: ESCO-08, AT-ESCO-08, ESCO-09, AT-ESCO-09 godkända. Nästa Claude: ESCO-01+02.
+- 2026-10-04 #491: ESCO-01, AT-ESCO-01, ESCO-02, AT-ESCO-02 godkända. Nästa: ESCO-10+11 (fråga om överlapp med Codex TEN-07 postad).
+- 2026-10-04 #491: Codex TEN-06-fynd (UTILTS_ERR) åtgärdat + test. ESCO-01..09 klara (Claude). ESCO-10/11 erbjudna Codex. Claude nästa: ACK-01+02.
+- 2026-10-04 #491: ACK-01, AT-ACK-01, ACK-02, AT-ACK-02 godkända. Nästa Claude: ACK-04+05.
+- 2026-10-04 #491: ACK-04, AT-ACK-04, ACK-05, AT-ACK-05 godkända. Nästa Claude: ACK-03+10.
+- 2026-10-04 #491: ACK-03, AT-ACK-03 godkända; ACK-10 kompletterad. Coverage-regel: evidence slås ihop, skrivs aldrig över. Nästa Claude: ACK-06+07.
+- 2026-10-04 #491: ACK-06/07 (+AT) godkända. Nästa Claude: ACK-08+09.
+- 2026-10-04 #491: ACK-09 (+AT) godkänd, ACK-08 kompletterad. Alla ACK-regler klara. Nästa Claude: TEN-03+04.
+- 2026-10-04 #491: ACK-02 ERC40/41 stängd. Codex äger TEN-07 + ESCO-10/11 (egen PR). Claude nästa: TEN-03+04.
+- 2026-10-04 #491: TEN-03/04 (+AT) godkända via taggade befintliga tester. Nästa Claude: TEN-09+11.
+- 2026-10-04 #491: TEN-09/11 (+AT) godkända. Nästa Claude: TEN-12/13/14.
+- 2026-10-04 #491: TEN-12/13/14 (+AT) godkända. TEN/ESCO/ACK klart i #491 (förutom Codex TEN-07, ESCO-10/11). Coverage 119.
+- 2026-10-04 #491: Claude claimar återstående P/U-kort (27), två i taget, P först.
+- 2026-10-04 Codex försökte claima TEN-09 (redan klar i #491) — svarat 5981753458+; Codex PR #497 (TEN-07, ESCO-10/11 overifierade tills CI).
+- 2026-10-04 #491: P-07 godkänd; P-08 PARTIAL (taggad, lucka: produktionsrelation vid mottagning). Gap-register för P i quality/audits/ediel-masterplan-v2/p-u-cards/.
+- 2026-10-04 #491: P-16 (+AT) godkänd (ny test: motpartsscope för annat bolag/avtal/miljö avvisas).
+- 2026-10-04 #491: P-14 (+AT) godkänd via taggade tester (bundet original, ingen Z13C/Z14C, sen start efter kancellering återaccepteras inte).
+- 2026-10-04 #491: P-02 (+AT) godkänd; P-06 PARTIAL (ny test field 249 ej i Z13; luckor: skyddad identitet, ZZZ).
+- 2026-10-04 #491: P-11 (+AT) godkänd (ny scripts/test-ediel-p-11-z04-order.cjs: Z04 före positiv APERAK, sen negativ ACK backar inte).
+- 2026-10-04 #491: P-10 (+AT) godkänd (ny scripts/test-ediel-p-10-z02-correlation.cjs).
+- 2026-10-04 #491: P-12 (+AT) godkänd (ny scripts/test-ediel-p-12-z04ad-scope.cjs).
+- 2026-10-04 #491: P-12, P-13 (+AT) godkända (nya runners p-12-z04ad-scope, p-13-end-preserves). Kvar P: P-15 (öppen), P-06/P-08 PARTIAL.
+- 2026-10-04 #491: P-15 PARTIAL (taggad; lucka: framtida leverantörs struktur före start). P-kort klara utom PARTIAL P-06/08/15. Nästa: U-kort.
+- 2026-10-04 #491: U-01/03/07/10/16/18 (+AT) godkända; nio U PARTIAL taggade; U-19 saknar implementation. Gap-register uppdaterat (P+U). Coverage 147.
+- 2026-10-04 #491: U-13 (+AT) godkänd (utgående ERR 9/AB i utilts-err-gateway).
+- 2026-10-04 #491: TEN-09 (+AT) nedgraderad till PARTIAL efter Codex-repro: reuse_permission-grenen (ediel_resolve_service_permission_command_v1) bortser från signerad DSO networkStart; produktfix + beteendetest kvar (Claude äger). Codex tar TR-01/02.
+- 2026-10-04 #491: U-17 (+AT) godkänd. U-06 och U-11 kvar PARTIAL med nya test (u-06-request-application-reference; E87 efter cutoff); kvarvarande luckor i gap-registret.
+- 2026-10-04 #491: TEN-09 fix — migration 20261004170000 gates public ediel_resolve_service_permission_command_v1 with current_request_timing_v1 (held when outside DSO network start / 3-year bound; held immutable_service_request_permission_mismatch when the request receipt names another permission). PGlite proof scripts/ediel-ten-09-resolve-timing-sql-regression.mjs (7 PASS, red without migration). TEN-09 PARTIAL until native CI runs the real resolver behind the gate; schema.sql/fingerprint to be refreshed from the CI rem002-schema-snapshot artifact.
+- 2026-10-04 #491: U-19 NOT_VERIFIED→PARTIAL (förbud bevisat: fält 226 aldrig obligatorisk nyckel; korrelation saknas).
+- 2026-10-04 ÄGARBESLUT TEN-09: behåll timing-grinden på explicit återbruk (20261004170000), även om tidigare källgodkänt tillstånd täcker äldre historik. Codex-refutation 5982182197 beaktad.
+- 2026-10-04 #491: U-15 (+AT) godkänd (send-preflight blockerar flera MR/blandade skäl/upplösning). U-12 kvar PARTIAL: ingen delningsplanerare.
+- 2026-10-04 #491 (lokalt, pushas efter merge): U-08 (+AT) godkänd.
+- 2026-10-04 #491 (lokalt): U-11 aggregat-E98 efter cutoff bevisat; kvar: inga E30-energikontroller implementerade.
+- 2026-10-04 #491: U-06 (+AT) godkänd; mandatgrinden = requireDataRequestStructure (tidigare 'saknas'-fynd var fel).
+- 2026-10-04 #491: U-12 (+AT) godkänd.
+- 2026-10-04 Samordning: Claude-session_01JdTfHD (claude/dazzling-dijkstra-vyyw0g) har GOV-03+ENV-01; ny Codex-session claimade också ENV-01 -> flaggat på #491 (förslag: Codex tar ENV-02).
+- 2026-10-04 ÄGARBESLUT P-08: giltig mottagning = nätägarens positiva APERAK på vår bundna Z09D -> bekräfta egen produktionsavtalshändelse. Migration 20261004190000 (wip/p08-p15, pushas efter #491-merge).
+- 2026-10-04 (wip/p08-p15): P-15 (+AT) godkänd; U-09 (+AT) godkänd; P-08 implementerad (PARTIAL tills native).
+- 2026-10-04 ACK-01-fynd (Codex #503 variant): canonicalInboundAckStatusUpdater skrev ej existerande kolumner syntax_status/application_status; borttagna + schematest (RED utan fix). inboundStatusUpdater.ts ägs av Codex #503.
 - 2026-10-04 OPS-02 (+AT) godkänd i #507: kundkort + arbetskö styrs av processbeslutet och hålls utan beslut; badge rättad; automation/normalizeSimpleRequestStatus falsklarm (registrering vid utskick).
 - 2026-10-04 GOV-03 (+AT) godkänd (gren claude/dazzling-dijkstra-vyyw0g); F-GOV-03 falsklarm efter fp-check. ENV-01 överlämnad till #504 (Codex, källbaserad striktare tolkning: inga radbrytningar i payload, UNOC:3-grind). Approved 55→57. Nästa lediga: F-OPS-02 (OPS-02).
+- 2026-10-04 DB-01 PARTIAL (gren claude/db-01, ägarbeslut fasa ut): adminformuläret skriver inte längre till ediel_party_addresses, död resolver borttagen; kvar avvecklingsmigration + granskning ediel_parties vs platform_market_actors. Mergas först efter #491 (merge-fönster).
+- 2026-10-04 SC-049 PASSED (wip): E61/E62 bara vid verklig avvikelse mot erhållen struktur; ESCO utan struktur får inga.
+
+2026-10-05T02:08Z root: actual GitHub merges491→b83 and500→507 completed after their unchanged exact-head required greens. Main183/352 is the complete parent approval union. Sole-owned501 now composes main507 and retained6bb DSN source; original501 generated bytes/capture retained, one provenance conflict resolved with pending=true and immutable main pointer. New actual source-prefix capture/current mandatory qualification required before501 main merge. Primary published side-source and root503 follow agreed order; no duplicate calendar, service or DSN implementation.

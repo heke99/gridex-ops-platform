@@ -1,3 +1,4 @@
+// masterplan: P-13, AT-P-13
 import {beforeEach,describe,expect,it,vi} from 'vitest'
 const rpc=vi.hoisted(()=>vi.fn())
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc}}))
