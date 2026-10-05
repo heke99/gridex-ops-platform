@@ -1,0 +1,68 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005
+
+ ❯ __tests__/ediel-at-z13vh-esco-profile.test.ts (6 tests | 1 failed) 167ms
+     × joins the historical timing guard, actual identityless S18 draft and source authority 75ms
+     ✓ holds missingEnd against the independently declared history 22ms
+     ✓ holds changedEnd against the independently declared history 21ms
+     ✓ holds ongoingReason against the independently declared history 17ms
+     ✓ requires the independent evaluation clock rather than a stored parsed snapshot 23ms
+     ✓ refuses an absent bounded end at the timing and actual service-source boundary 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z13vh-esco-profile.test.ts > Z13VH bounded history profile with independent source and clock > joins the historical timing guard, actual identityless S18 draft and source authority
+AssertionError: expected [ …(27) ] to deeply equal ArrayContaining{…}
+
+- Expected
++ Received
+
+- ArrayContaining [
++ [
++   "UNB+UNOC:3+99111:ZZ+54321:ZZ+261005:1200+VH-UNB++23-DGI-PRODAT++1++1",
++   "UNH+1+PRODAT:D:97A:UN:E2SE6A",
++   "BGM+Z13+VH-DOCUMENT+9+AB",
++   "DTM+137:202610051100:203",
++   "DTM+ZZZ:1:805",
++   "NAD+FR+21660:160:SVK+++++++SE",
++   "NAD+DO+54321:160:SVK+++++++SE",
++   "LIN+1",
+    "DTM+90:202606010000:203",
+    "DTM+91:202609010000:203",
+-   "NAD+UD+SYNTHETIC-VH-CUSTOMER:SE1:260",
++   "CCI++Z13",
++   "CAV+S18",
++   "CCI++Z04",
++   "CAV+Z04",
++   "CCI++Z12",
++   "CAV+:::D",
++   "CCI++Z14",
++   "CAV+::::8716867000030",
++   "CCI++Z22",
++   "CAV+E19",
++   "CCI++Z24",
++   "CAV+B72",
++   "RFF+LI:VH-LI",
++   "RFF+ANJ:VH-AGREEMENT",
++   "NAD+UD+SYNTHETIC-VH-CUSTOMER:SE1:260++Synthetic VH Customer+++++SE",
++   "UNT+25+1",
++   "UNZ+1+VH-UNB",
+  ]
+
+ ❯ __tests__/ediel-at-z13vh-esco-profile.test.ts:88:27
+     86|     expect(parts('UNB', 7)).toEqual(['23-DGI-PRODAT']); expect(parts('…
+     87|     expect(f.rawSegments).toContain('LIN+1')
+     88|     expect(f.rawSegments).toEqual(expect.arrayContaining(['DTM+90:2026…
+       |                           ^
+     89|     const reason = f.rawSegments.indexOf('CCI++Z13')
+     90|     expect(reason).toBeGreaterThanOrEqual(0); expect(f.rawSegments[rea…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  12:48:34
+   Duration  4.37s (transform 3.22s, setup 103ms, import 3.84s, tests 167ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005/quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-first-tests.xml
