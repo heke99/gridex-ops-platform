@@ -672,3 +672,5 @@ Side track, separate from the Ediel campaign.
 - 2026-10-04 session: #426 grön (f32e40b5); F-SRC-01 rättad (20261003150300); sex SQL/Python-regressioner uppdaterade; split #483–#489; kandidatgranskning (0 nya godkännanden); överlämning.
 
 - 2026-10-05T15:06:32Z coordinator: direct API/Git main aa271e14/treeb519b327 and published503c5af verified; main222/root227 separate. New read-only allocation5305997005674 and pointer handoff5305997187270, exact required-gate snapshot archived. Current checks pending, no duplicate native/full dispatch; blocked private IMP05 report excluded.
+
+- 2026-10-05T15:22:00Z: #548 actualcf275/tree80d verified against independent expected union/all9+CodeRabbit; main224. #576 owner publicly releases duplicateENV claim5997290033; soleENV6#517/ENV10#512 plus explicit source-writer handoff requested5997428449. Foreign CFcarry receipts544 and559/561 preserved; no source/native/test rerun or blocked private IMP05 report export.

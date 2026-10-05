@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-05T15:06:32Z",
+  "updated_at": "2026-10-05T15:17:00Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-tr05-recovery-20261004",
@@ -1557,5 +1557,13 @@
     ],
     "private_imp05_analysis_export": "HELD_PENDING_EXPLICIT_USER_REPLY",
     "receipt": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/15-06-snapshot.json"
+  },
+  "latest_actual_main_merge": {
+    "head": "cf275d78d252bdaa8e49fb4e5f65afaa61bf0128",
+    "tree": "80d5b295ceae1c65b57b924a42e259897b5412cd",
+    "pr": 548,
+    "approvals": 224,
+    "root_candidate_frozen": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "new_main_not_yet_adopted": true
   }
 }
