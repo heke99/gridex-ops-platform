@@ -274,8 +274,11 @@
     {
       "id": "IMP-04",
       "acceptance_id": "AT-IMP-04",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "IMP-05",
@@ -310,8 +313,14 @@
     {
       "id": "ENV-03",
       "acceptance_id": "AT-ENV-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "ENV-04",
@@ -1208,8 +1217,13 @@
     {
       "id": "DB-01",
       "acceptance_id": "AT-DB-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "DB-02",
@@ -1459,8 +1473,15 @@
     },
     {
       "id": "SC-021",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/flows/receivedProdatStructuralAcks.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043602_ediel_committed_domain_prodat_final_responses.sql"
+      ]
     },
     {
       "id": "SC-022",
@@ -1708,8 +1729,13 @@
     },
     {
       "id": "SC-055",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+        "lib/ediel/flows/inboundAckProcessing.ts",
+        "lib/ediel/ack/sourceCorrelation.ts",
+        "lib/ediel/db.ts"
+      ]
     },
     {
       "id": "SC-056",
@@ -2042,8 +2068,11 @@
     },
     {
       "id": "AT-IMP-04",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/utilts.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-IMP-05",
@@ -2074,8 +2103,14 @@
     },
     {
       "id": "AT-ENV-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/utilts.ts",
+        "lib/ediel/testing/selftest.ts",
+        "lib/inbound-mail/smokeTests.ts",
+        "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-04",
@@ -2769,8 +2804,13 @@
     },
     {
       "id": "AT-DB-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PARTIAL",
+      "evidence": [
+        "app/admin/ediel/actors/actions.ts",
+        "app/admin/ediel/actors/page.tsx",
+        "lib/ediel/partyRegistry.ts",
+        "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts"
+      ]
     },
     {
       "id": "AT-DB-02",
