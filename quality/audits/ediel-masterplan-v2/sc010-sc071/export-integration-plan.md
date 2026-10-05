@@ -2,7 +2,17 @@
 
 > Use the existing executing-plans workflow. This document belongs to the retained SC010 owner. It does not approve a scenario or transfer shared-file ownership.
 
-Date: 2026-10-05. Owner: grant-revalidation-20261005. Branch: `codex/ediel-sc010-sc071-grant-revalidation-20261005`. Source: actual main `01b11f55af710c3e6aad1f5a433631a88c702047`; all previously reviewed non-ledger inputs remain unchanged. Existing component PR #570 stays at `7a894c3b7938daf9bbbab7680f71ca5911aefc9c` until a substantive candidate is ready.
+Historical initial plan (superseded by the current execution status below). Date: 2026-10-05. Owner: grant-revalidation-20261005. Branch: `codex/ediel-sc010-sc071-grant-revalidation-20261005`. Source: actual main `01b11f55af710c3e6aad1f5a433631a88c702047`; all previously reviewed non-ledger inputs remain unchanged. Existing component PR #570 stays at `7a894c3b7938daf9bbbab7680f71ca5911aefc9c` until a substantive candidate is ready.
+
+## Current execution status — 2026-10-05
+
+Source PR570 is published at9b50b1b9a5aae19e9cabead09c92af4e0443c44c. Product routes, service and migration are exactly824e5f53/d0e4; the SQL regression and bridge now prove12 owned SQL groups plus107 inherited checks, with50 focused component cases. Their final exact-source independent review and actual raw receipts are in implementation-review.md and the full-scope receipts. The initial checklist below records the proposed work and is historical; it must not be read as current execution status.
+
+The retained native owner586 extended its sole existing workflow, replayed pinnedBASE7b9218da genuinely, applied d0e4 forward on that same disposable stack and ran the combined sixSC071 plusfourSC010 selector at44992cdd. Actual result is8PASS/2FAIL: sixSC071 and the first two SC010 cases passed; both owned lease-wait cases reached PostgreSQL statement timeout before the expected specific lease exception. Their final rollback assertions were not reached. export-native-first-run-qualification.json preserves authentic artifact/run/input/JUnit attribution and all failed evidence. This is bounded native feedback, with finite upstream/session/SMTP fixture ports; it does not establish candidate canonical admission, final capture or clean/upgrade parity.
+
+Only the owned native lease-test timing/setup was repaired and independently reviewed at14611ac1, published in9b50b1b9. Types/lint passed. The exact error, real lock/DB-clock expiry and atomic rollback oracles remain. Repaired native is NOT_RUN. READY5865994292830 gives the retained owner the exact one-commit six-overlay extraction pin; that owner alone reruns its existing workflow/stack. Native-feedback-inputs.json and export-integration-request.json distinguish current test hashes from unchanged product baseline and retained historical input hashes.
+
+Root503 owns the one checksum admission, canonical native registration and authentic schema/types/fingerprint/clean-upgrade capture. Fresh9b50 CI is running; its clean replay already fails because d0e4 is not checksum-pinned. Previous3ded CI targeted213approved/232taggedgreen/0failure and all historical runs stay separately attributed. Own coverage rows remain unpromoted and full SC010 NOT_APPROVED. Final source composition must carry relevant newer main source and pass all required exact current-head checks before integration. WholeSC071 remains its retained owner's decision. No duplicate producer, workflow, native stack, shared capture or external market/SMTP activity is introduced.
 
 ## Requirement and intended product boundary
 

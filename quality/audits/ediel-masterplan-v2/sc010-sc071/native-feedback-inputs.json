@@ -58,5 +58,6 @@
   "actual_base_first_run": "7b9218da2c7f71f4373bcc9189715c0043a8cb31; genuine complete canonical BASE replay,48 official ledger rows, fingerprint9a0e; retained owner chooses/pins any next BASE explicitly",
   "actual_first_run": "37305623231 at44992cdd; export-native-first-run-qualification.json preserves8 PASS /2 FAIL and custody",
   "repaired_native": "NOT_RUN; types/lint exit0 and independent source review only",
-  "repair_ready_handoff": "https://github.com/heke99/gridex-ops-platform/pull/586#issuecomment-5994292830"
+  "repair_ready_handoff": "https://github.com/heke99/gridex-ops-platform/pull/586#issuecomment-5994292830",
+  "actual_first_run_invoked_config": "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts; e18a61db; genuine combined6SC071+4SC010 selector, own4-only config hashed but NOT_INVOKED"
 }

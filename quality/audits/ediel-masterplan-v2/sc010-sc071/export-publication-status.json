@@ -465,5 +465,81 @@
   "native_first_run_qualification": "export-native-first-run-qualification.json",
   "historical_source_candidate": "3ded2c09e12e81777f7b5d4c37f4d9c411e9660e",
   "first_native_repair_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
-  "current_source_checks": "PENDING; previous3ded statusCheckRollup belongs only to3ded"
+  "current_source_checks": "PENDING; previous3ded statusCheckRollup belongs only to3ded",
+  "historical_3ded_final_checks": {
+    "pr-certificate": {
+      "id": 111750239159,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333102/job/111750239159"
+    },
+    "sc071-native": {
+      "id": 111747519745,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333307/job/111747519745"
+    },
+    "coverage": {
+      "id": 111747519415,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333102/job/111747519415"
+    },
+    "smoke": {
+      "id": 111747519184,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333102/job/111747519184"
+    },
+    "clean-migration-replay": {
+      "id": 111747519048,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332952/job/111747519048"
+    },
+    "upgrade-migration-replay": {
+      "id": 111747518961,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332952/job/111747518961"
+    },
+    "verify": {
+      "id": 111747518939,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332952/job/111747518939"
+    },
+    "tenant-integrity-regression": {
+      "id": 111747518792,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333219/job/111747518792"
+    },
+    "quality-release-gates": {
+      "id": 111747518683,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332952/job/111747518683"
+    },
+    "sc003-sc005-native": {
+      "id": 111747518332,
+      "status": "completed",
+      "conclusion": "failure",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332988/job/111747518332"
+    },
+    "targeted-regressions": {
+      "id": 111747518286,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305332981/job/111747518286"
+    },
+    "browser-public": {
+      "id": 111747518210,
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37305333015/job/111747518210"
+    }
+  },
+  "current9b50_observed_clean_replay": "job111757933911 FAILURE; actual log reports migration source is not checksum-pinned:20261005101500_ediel_beneficiary_export_jobs.sql; no canonical native/capture ran",
+  "publication_board": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5994322686"
 }
