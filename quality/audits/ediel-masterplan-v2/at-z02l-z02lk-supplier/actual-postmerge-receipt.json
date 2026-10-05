@@ -1,0 +1,96 @@
+{
+  "verified_at": "2026-10-05T15:48:17.572616+00:00",
+  "PR": 593,
+  "actualmerge": "728e4f99bf13fae5ead9678f9a2931a298f94e0d",
+  "parents": [
+    "863806547821e92f37aad866261123882810e37e",
+    "4e98af7a33feffd013c20524887cc65424d98912"
+  ],
+  "tree": "57e7c123cb919a6fb0ed8bfa599f0746a0d1b3c3",
+  "matched_fresh_preview": true,
+  "owned_exact_paths": 43,
+  "foreign_preserved_paths": 7834,
+  "coverage_byte_preserved": true,
+  "whole_pair_rows": [
+    {
+      "id": "AT-Z02L-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    },
+    {
+      "id": "AT-Z02LK-SUPPLIER",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "actualmain_distinct_ids": 352,
+  "actualmain_stored_approved": 227,
+  "source_sha256": "9d0146c91d56a547083394f6a39ccb2d73905b54e48aa1bbb604a725d1eabf06",
+  "required_checks": [
+    {
+      "id": 111828207395,
+      "name": "pr-certificate",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111828207395"
+    },
+    {
+      "id": 111812832027,
+      "name": "coverage",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111812832027"
+    },
+    {
+      "id": 111812831294,
+      "name": "smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507755/job/111812831294"
+    },
+    {
+      "id": 111808656899,
+      "name": "clean-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656899"
+    },
+    {
+      "id": 111808656878,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656878"
+    },
+    {
+      "id": 111808656845,
+      "name": "upgrade-migration-replay",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656845"
+    },
+    {
+      "id": 111808656306,
+      "name": "quality-release-gates",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507722/job/111808656306"
+    },
+    {
+      "id": 111808279402,
+      "name": "browser-public",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323508053/job/111808279402"
+    },
+    {
+      "id": 111808277486,
+      "name": "targeted-regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37323507770/job/111808277486"
+    }
+  ],
+  "scope": "Merged bounded Z02 atomic-snapshot app fix only; wholeAT/native/market not promoted",
+  "common_handover_owner": 503
+}

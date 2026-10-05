@@ -1,3 +1,9 @@
+## Current — bounded source fix actually merged
+
+PR593 merged `728e4f99bf13fae5ead9678f9a2931a298f94e0d` after all9requiredCI SUCCESS and exactreviewed4e98af7a. Actualparents86380654+4e98af7a/tree57e7c123 exactly match finalguard; all43own and7,834foreignpaths/coverage preserved. EntireZ02L/LK staysNOT_EXECUTED[]; actualmain352distinctIDs/227storedapproved. Actualpostmerge-receipt.json retains checkIDs/URLs/source/tree/limits. Commonhandover belongssolelyretained503; single request posted, nocommonfileeditedhere. The boundedimplementationclaim isreleased; original/native/ACK/whole owners unchanged. This evidence-onlybranchsource remainshistorical: ONLYreferencedPR/mainSHAqualifiesactualruntime.
+
+Next: complete597onlyafterall9gates/currentmainshared-sourceunionguard; continue598freshCI andread-onlynextgapscout. No repeatednative/fullruns or CIheadmutation. Allolderpending/readysectionsbelowarehistorical.
+
 ## Current — all nine required CI passed on repaired candidate
 
 PR593 exact `4e98af7a33feffd013c20524887cc65424d98912` has all9requiredCI SUCCESS. Source-qualified local71PASS/types/lint and peer reviewceb469c3 remain intact. Fresh actualmaincf275d78 clean preview preserves all43own paths and7,800foreign paths/currentcoverage. Retained503 queue handoff5997568280/5305997570599. See owned all-nine-ci-ready-receipt.json for exact check IDs/URLs and read-only593→597 union. No actual merge or wholeAT/native claim. This evidence-only branch retains historical source bytes; it qualifies only referenced repaired593 head. Next action: retained queue finalmain/head guard and actualmerge handover; root continues distinct NEW B/D test publication while597clean replay runs.
