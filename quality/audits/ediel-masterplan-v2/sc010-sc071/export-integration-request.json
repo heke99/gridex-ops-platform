@@ -36,9 +36,9 @@
     "generated database types and exact manifest",
     "clean and authentic-upgrade replay parity"
   ],
-  "status": "PENDING_COORDINATED_ADMISSION_AND_AUTHENTIC_CAPTURE; repaired same-workflow native rerun pending; full SC010 NOT_APPROVED",
+  "status": "READY_INPUTS_FOR_RETAINED_ROOT_ADMISSION_AND_AUTHENTIC_CAPTURE; actualboundednative10PASS; fullSC010 NOT_APPROVED until currentcandidateintegration/gates",
   "product_source_commit": "824e5f53c9a115e3f423d3e2e5ba13b41001bdb9 (all product/RPC/migration bytes remain identical)",
-  "latest_test_qualification": "export-full-contract-sql-receipt.json and implementation-review.md:12 actual own SQL groups plus107 inherited,50 focused tests; first native8PASS/2FAIL at44992cdd; repaired native14611ac1 NOT_RUN",
+  "latest_test_qualification": "export-full-contract-sql-receipt.json:12ownSQL+107inherited and50focused; export-native-rerun-qualification.json:actual4SC010+6SC071 PASS/0failure,error,skip atf7 source9b50/146/d0e4 BASE7b; exact independent review; historical4498/2 retained",
   "historical_initial_request": {
     "source_main": "0dab92006d2ce17db21774e17d983b9a407b1a47",
     "new_consumer_hashes": {
@@ -47,12 +47,13 @@
       "app/api/ediel/beneficiary/exports/[jobId]/route.ts": "13ac70a6d9496cb9f37eb5df8ed7b8f13d587aa7f11eb0f664558cee3ba278af",
       "app/api/ediel/beneficiary/exports/process/route.ts": "543fb0a036d9ba81d51fd6769e95c5278a354961c5f1d82bcc69cc026aa15e49",
       "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596",
-      "__tests__/ediel-sc-010-beneficiary-export.test.ts": "c3a53636c68c73149e6a4c0bc141db499bd3917de020eb08ffc7d7e77f536afa",
-      "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "575ccd57eb12c5539aba0f118274b544c7820f048886e3e54da1da903cc02494",
-      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+      "__tests__/ediel-sc-010-beneficiary-export.test.ts": "0973e1fe6e465632cf575ce50af7d2c1dfd39f396067147f6d547e45f942cc2c",
+      "scripts/ediel-sc-010-beneficiary-export-sql-regression.mjs": "5e22444e6ccfe4e23938b43df5f87986cc962db0c54d9b808a8645b0d28e30fb",
+      "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "1efcb1dda6673437f911f746a0409a43a513a720820e070abebed245072343f9",
       "quality/audits/ediel-masterplan-v2/sc010-sc071/sc010-export-native.config.ts": "d8d4c4fd5e8a014dad5b70d1cb2e09108ea0d35ede7f55b11b4b748f4eb7c145"
     },
-    "latest_test_qualification": "export-continuation-receipt.json; only owned SQL test runner differs, no migration/RPC/native delta"
+    "latest_test_qualification": "export-continuation-receipt.json; only owned SQL test runner differs, no migration/RPC/native delta",
+    "recorded_source_snapshot": "9b50b1b9 published packet before current metadata refresh; unchanged request originating with824 product"
   },
   "source_candidate": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
   "native_source_commit": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
@@ -60,5 +61,14 @@
   "retained_native_owner": "PR586 / revocation-20261005; sole existing workflow, same canonical stack,6+4 selector",
   "native_ready_handoff": "https://github.com/heke99/gridex-ops-platform/pull/586#issuecomment-5994292830",
   "prior_shared_request": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5993037079",
-  "current_native_boundaries": "The owned4 selector is hashed but not invoked in the actual first run. The retained owner combined selector invokes both actual files, sixSC071 plusfourSC010. All real effects remain within declared finite route-session/upstream issuer/SMTP ports."
+  "current_native_boundaries": "The owned4 selector is hashed but not invoked in the actual first run. The retained owner combined selector invokes both actual files, sixSC071 plusfourSC010. All real effects remain within declared finite route-session/upstream issuer/SMTP ports.",
+  "actual_native_artifact": {
+    "run": 37310521982,
+    "job": 111764517709,
+    "caller": "f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763",
+    "artifact_id": 11345294346,
+    "ZIP_SHA256": "90787405c69fa0ab78e6682834968ca9b7dbe2943a16ccb101c768f86023d991",
+    "qualified_receipt": "export-native-rerun-qualification.json",
+    "claim": "bounded actual behavior; candidatecanonical capture/clean-upgrade/current-sourcequalification remain pending503"
+  }
 }

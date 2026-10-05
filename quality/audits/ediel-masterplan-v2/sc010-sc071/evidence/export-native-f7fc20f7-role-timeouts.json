@@ -1,0 +1,1 @@
+[{"role":"anon","statement_timeout":"3s"},{"role":"authenticated","statement_timeout":"8s"},{"role":"authenticator","statement_timeout":"8s"}]
