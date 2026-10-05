@@ -13,3 +13,10 @@
 - Test `__tests__/db-05-hard-delete-guard.test.ts` (PGlite over supabase/schema.sql snapshot + migration; 7 PASS; RED proof: 5 of 7 fail without the migration). Local: vitest, eslint, typecheck:tests, db:migrations:integrity PASS. Not native PostgreSQL; not CI-run.
 - NOT done / for root: regenerate supabase/schema.sql + fingerprint + generated types from a clean replay (shared generated artifacts, not hand-edited); CI parity gates will flag the new migration until then. Check no native test relies on service_role deleting live companies.
 - DB-05 / AT-DB-05 stay NOT_VERIFIED: card still needs the other parts (workflow per retention class, access revoke, personal-data purge mapped to asserting tests). Test is intentionally untagged.
+
+## 2026-10-05 13:30Z native CI GREEN @82de2b4 (run 37316852211, 3/3 native tests)
+- Clean replay incl. migration 20261005130000 succeeds natively.
+- DB-04 query plans PASS (again).
+- DB-05 guard native PASS: service_role 23001 on company and customer; rows, audit kept; both triggers enabled.
+- DB-05 offboarding native PASS (canonical_transition_tenant_lifecycle): outsider 42501; unsettled billing -> tenant_closure_blocked with nothing changed; after settling: closed, api client revoked, webhook disabled, portal identity disabled, sessions 0; customer, email, customer_events, seeded audit kept, transition audit +2; hard delete after close still 23001.
+- Remaining for DB-05 approval: (1) link retention-class purge proof (ediel-retention-sql-regression.mjs, ediel-record-retention-sql-regression.mjs, both PASS locally) into a tagged test the coverage scanner sees; (2) root decision on native-test approvals (same as DB-04); (3) root regenerates schema.sql/types for the migration. Status: CI-green on branch, not reviewed, not merged, coverage unchanged.
