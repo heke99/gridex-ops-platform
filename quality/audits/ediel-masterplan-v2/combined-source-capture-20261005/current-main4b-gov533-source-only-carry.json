@@ -1,0 +1,66 @@
+{
+  "schema": "bounded_combined_current_main_source_carry_v1",
+  "verdict": "READY_SOURCE_ONLY_CAPTURE_PENDING",
+  "candidate": "0fd007da5dfd35656faad90a15c2ce2d1433b15b",
+  "candidate_tree": "e34c7db76de4d239b7f4277983b7f4dbc33ae8a6",
+  "genuine_ordered_parents": [
+    "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+    "4b179ee45dce580142f0684e330675fe9e033d69"
+  ],
+  "actual_main": "4b179ee45dce580142f0684e330675fe9e033d69",
+  "qualified_public_GOV08": "eca119cb5bd016cfe27d70720783fb08ad8970d1",
+  "prior_source_guard": {
+    "candidate": "066a60ad8f111c638aefc5689b3f3784bcaf83ac",
+    "sha256": "b21a7ed1f3b96c199bcfb15abbcfc116086282dd33a0221ae5be446eb313fe6e"
+  },
+  "delta_paths": [
+    ".agent-memory/masterplan-gov08-checkpoint.md",
+    "__tests__/ediel-negative-fixture-authority.test.ts",
+    "__tests__/ediel-negative-fixture-send-guard.test.ts",
+    "__tests__/ediel-positive-fixture-authority.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261004.json",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005-43f.json",
+    "quality/audits/ediel-masterplan-v2/gov08-capture-receipt-20261005.json",
+    "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.json",
+    "quality/audits/ediel-masterplan-v2/gov08-independent-whole-review-d0a85ac.md",
+    "quality/audits/ediel-masterplan-v2/gov08-native-receipt-d0a85ac7-20261005.json",
+    "quality/audits/ediel-masterplan-v2/gov08-step-alias-qualification-20261005.json",
+    "scripts/ediel-negative-fixture-sql-regression.mjs",
+    "scripts/ediel-positive-fixture-sql-regression.mjs",
+    "scripts/ediel-source-owner-native.config.ts",
+    "scripts/ediel-test-original-outcome-native.test.ts",
+    "scripts/migration-history-manifest.additions.json",
+    "scripts/supabase-types-manifest.json",
+    "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql"
+  ],
+  "delta_count": 19,
+  "all_other_current_main_blobs_modes_exact": true,
+  "coverage": {
+    "rows": 352,
+    "foreign_complete_rows_order_evidence_metadata_exact": 350,
+    "only_owned_promotions": [
+      "GOV-08",
+      "AT-GOV-08"
+    ],
+    "main_stored_approved": 263,
+    "candidate_stored_approved": 265
+  },
+  "SQL": {
+    "all1073_current_main_paths_blobs_modes_exact": true,
+    "candidate_count": 1074,
+    "only_added_path": "supabase/migrations/20261004221605_ediel_test_original_outcome_conflict.sql",
+    "sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25"
+  },
+  "capture": {
+    "composition_capture_pending": true,
+    "current_inputs_exact_prior066": true,
+    "historical_generated_not_relabelled": true,
+    "authentic_combined_capture_dispatched": false
+  },
+  "limits": [
+    "source-only; not native/parity/current-head all-green/wholeplan acceptance",
+    "535 public source carry awaited; Staff input/native authority retained;599held",
+    "one existing final common baseline/tag and metadata MAIN-adoption writer"
+  ]
+}
