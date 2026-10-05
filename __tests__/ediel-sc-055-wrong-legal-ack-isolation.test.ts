@@ -203,6 +203,11 @@ describe('SC-055 wrong legal APERAK cannot mutate a targeted case or another ten
     await assertSafeRefusal()
   })
 
+  it('refuses only a wrong legal sender with exact references and the correct legal receiver', async () => {
+    incoming().raw_payload = ackRaw('SC055-SOURCE-D', '66666', '12345')
+    await assertSafeRefusal()
+  })
+
   it('refuses a similar document reference and wrong legal counterparty without targeting the own case', async () => {
     incoming().raw_payload = ackRaw('SC055-SOURCE-D-SIMILAR', '66666', '99999')
     await assertSafeRefusal()
