@@ -150,3 +150,21 @@ collision-free synthetic identity fix and qualification on the appropriate
 changed head. Preserve the production unique constraint and every assertion.
 This lane makes no fix, second analysis, rerun or common capture. Local literal
 SC012 approval remains its bounded frozen proof; public mandatory CI is blocked.
+
+
+## Genuine clean-CI collision and single bounded fixture repair — 2026-10-05 12:09 Europe/Stockholm
+
+Published407c25a6 retained genuine8SUCCESS/cleanFAIL: run37284815127/job111681078225 Z06Freading fixture setup hit ux_companies_normalized_org for5525583265 at normal-switch helper's legalcompanyUPDATE, before scenarioassertions. Actual606PASS/1FAIL/1SKIP and original sanitized excerpt are retained in/tmp/masterplan-sc012-ci-clean-failure-excerpt.json; this is not a shown SC012productfailure.
+
+Fresh77PRfilenameownershipinventory and530delta through5992136188 find no scopedcompetingorg-allocation repair; broadhistorical424 is not a new precise helperrepairclaim. Root announced single existingSC012lane repair on565 after shared530handoff5992109528. One author prepared/tmp/masterplan-sc012-native-fixture-proposal.patch ec1c3882, root alone applied it, independently added5actualSQLcomponenttests and executed6tests(total5+unchangedSC0121). Peer onlyreads; no duplicate native/Docker/CI run orcommonproducer.
+
+The new fixture-only SQLbuilder native-fixture-company-identity.ts3b6796cd applies originallegalfields in an actual transaction, tries atmost32existing validated559Luhnsyntheticcandidates and returns actualstoredorg. Onlyunique_violation with exact public/companies/ux_companies_normalized_org diagnostics permits another candidate. Uniqueindex arbitrates races; no check-then-write prequery orweakening. Everyotherconstraint/SQLfailure propagates; exhaustion/missingcompany fail explicitly. ExistingexportedfixtureOrganizationNumberbody unchanged for foreigncorrectioncaller; misleadinguniquenesscomment corrected. Normal-switch helper b03ed608 changes only import/candidateallocation/legacycomment; independent reversepatch restores entire original8ec16f31. No productionTS/SQL/migration/rowpromotion/guards changed.
+
+Actualroot/tmp/masterplan-sc012-fixture-collision-qualified-tests.log SHA7f7e9b3291f01f0a02d3a35b109b26ce94559706cc3b6463c961d95e9392e094 PASS6/6zero skip: originalnormalizer/indexDDL faithfully executed in a reducedPGlitecompanytable; genuineoriginalcollision reproduced, occupiedfirst→nextcandidatewritesalloriginallegalfields+fullforeignrowunchanged, boundedexhaustion rollsback, differentunique andCHECKerrors reraised, absentcompany nochange. This is componentSQL evidence, not a realtwo-session/nativeentirepipeline/concurrencyclaim. Required final-headCI remains pending.
+
+Fullscriptscompiler/scopedlint PASS. Initialtestcompiler failedonly3TS18046 unknownrowlookups; exactnewtestquery generic repaired. Finaltestcompiler PASS, emptylog. /tmp/masterplan-sc012-fixture-collision-type-only-preservation.json independentlytranspiles before/after to byteidenticalruntimeJS ed5cdb6d; unchanged5assertions/SQLbody proof reused without6test rerun. Finaltest7776d949. ExactfinalpeerAPPROVE/no findings /tmp/masterplan-sc012-fixture-collision-peer-review.json SHA988b9694e2edb19834245510302abda46f48c4f2e68adccd6d707ce1f1fdd433 covers final7776 and3b67/b03e.
+
+Singlemandatorysupportedtagcheck is running on actualnewfixturebranchcomposition, correctNode22/networktoolpermission+unchangedloopbackpreload; its result is not yet claimedPASS. Root alone owns finalfreeze/commit/push/currentheadCIreceipt. ExistingcoverageSC012approvalretained, allother351rows unchanged; no newrule ormarket/nativewholeapproval. Commonnativeconfig/checksum/schema/generated/capture producer remains retained503.
+
+
+Finalnew-source supportedtaggate actuallyPASSexit0 onthisisolatedSC012branch:352/189approved/201taggreen/0fail/151untagged, log62bcc0eb84e37bfcf2e1ca7303b3ddf99100446d0da444732a30044454f45c97. Its unchangedcounts/outputhashmatchtheoldergate, butthisisanactualnew-sourceexecution, notoldreceiptborrow. Finaltype-onlytestlintalsoPASS. Root commits/publishes onlythetwofixturefiles/newcomponenttest/ownCP addition atopfrozenSC012packet; coverage andother351rowsunchanged. Nativeentirepipelinefinal-headCIstillpending; originalfailedjobretained.
