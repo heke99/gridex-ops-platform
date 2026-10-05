@@ -111,3 +111,20 @@ new clock harness was approved or implemented. The retained native coordinator
 owns any isolated DB timing qualification. The existing normal-switch SQL fixture
 uses synthetic activation effects and must not be represented as native proof.
 This reply introduces no SC037 coverage edit or ownership transfer.
+
+## Independent review corrections (2026-10-05)
+
+CodeRabbit review5412816395 at c25a1a73 raised two minor evidence-integrity issues.
+Applied receiving-code-review workflow: verified both against retained bytes.
+SC034 now labels failed FullE2E37281682654 as historical985 baseline, not current
+PR head. The exact previously executed probe source is archived byte-identically
+(d65352eb...) separately; original sc031-probe.json remains ee567670... unchanged.
+The capture recipe checks exact clean HEAD before loading and before writing,
+records that checked revision, and uses exclusive creation to refuse overwrite.
+Syntax passed; refusal invocation hit sandbox spawnSync git EPERM before its
+assertion. No refusal assertion success or full probe rerun is claimed.
+Technical packet713b781 remains immutable historical evidence. No product/test,
+coverage or shared memory edit; retained owners keep implementation/integration.
+Latest observed mainfb11952 records206/352 approved entries; SC036 whole approval
+is disputed by its independent reviewer in #5305992400012 and is not endorsed
+by this review lane. SC031/034 remainPARTIAL; merge not performed.

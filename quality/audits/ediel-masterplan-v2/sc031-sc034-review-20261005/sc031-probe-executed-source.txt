@@ -4,20 +4,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const {stripTypeScriptTypes} = require('node:module')
 const {SourceTextModule} = require('node:vm')
-const {execFileSync} = require('node:child_process')
 const root = '/workspace/gridex-ediel-sc031-sc034-review-20261005'
-// Guarded capture recipe; the exact source previously executed is archived separately.
-// Never overwrite the retained observation, even when copying this recipe for a rerun.
-const expectedBaseline = '985724f58ef15e222cf4d3b2e1c643c674852106'
-const outputPath = root + '/quality/audits/ediel-masterplan-v2/sc031-sc034-review-20261005/sc031-probe.json'
-function verifyCheckout() {
- const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd:root,encoding:'utf8'}).trim()
- assert.equal(revision, expectedBaseline, 'Review baseline differs; no observation may be written')
- assert.equal(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {cwd:root,encoding:'utf8'}).trim(), '', 'Tracked source must be clean')
- return revision
-}
-const checkedRevision = verifyCheckout()
-assert(!fs.existsSync(outputPath), 'Retained evidence exists; use a separately named capture')
 const {sourceManifestModule} = require(root + '/scripts/helpers/ediel-source-manifest-vm.cjs')
 const modules = new Map()
 const entry = new SourceTextModule(`
@@ -55,8 +42,7 @@ async function run() {
   const caller=api.validateProdatRegisterPayload({code:'Z01',rawSegments:parsed.rawSegments,una:parsed.una})
   outputs.push({extra,syntax,inbound:inbound.filter(x=>x.blocking),ignored,caller:caller.filter(x=>x.blocking)})
  }
- assert.equal(verifyCheckout(), checkedRevision, 'Checkout changed during capture')
- fs.writeFileSync(outputPath, JSON.stringify({baseline:checkedRevision,node:process.version,scope:'actual syntax + inbound matrix + exact register-wrapper call; no database/case/ACK/provider execution',outputs},null,2)+'\n', {flag:'wx'})
+ fs.writeFileSync(root+'/quality/audits/ediel-masterplan-v2/sc031-sc034-review-20261005/sc031-probe.json', JSON.stringify({baseline:'985724f58ef15e222cf4d3b2e1c643c674852106',node:process.version,scope:'actual syntax + inbound matrix + exact register-wrapper call; no database/case/ACK/provider execution',outputs},null,2)+'\n')
  assert.equal(outputs[0].caller.length,0)
  assert.equal(outputs[1].inbound.length,0)
  assert(outputs[1].ignored.some(x=>x.fieldNumber==='213'))
