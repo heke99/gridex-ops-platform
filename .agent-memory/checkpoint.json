@@ -1,6 +1,6 @@
 {
   "project": "gridex-ops-platform",
-  "updated_at": "2026-10-05T14:45:48.577940+00:00",
+  "updated_at": "2026-10-05T15:06:32Z",
   "status": "IN_PROGRESS",
   "paused": false,
   "branch": "codex/ediel-tr05-recovery-20261004",
@@ -46,7 +46,7 @@
     "adjudication": "USER_AUTHORIZED_CONTINUATION_NATIVE_PASS_BROWSER_FIX_ACTIVE",
     "adjudication_report": "quality/audits/ediel-masterplan-v2/e035-source-ledger/case-fix5-native-adjudication-20260923.md"
   },
-  "next_action": "Adopt latest actual main with exact source/replay/evidence carry, publish independently reviewed authentic capture + finite TR04 adapter, require new-head gates; merge independently complete green scenario packets concurrently.",
+  "next_action": "Keep published root503 c5af frozen while its actual CI completes; independently qualify current-main carry and merge complete green scenario pairs. Resolve ENV06/ENV10 ownership and existing DB05/OPS03/F/G handoffs without duplicate producers. Publish this checkpoint ref without restarting root candidate jobs.",
   "pr421_clock_boundary_20260929": {
     "test_first_red_head": "05861c23f40b3017b4b4d1f03208c79247791658",
     "red_ops": 36541272452,
@@ -1539,5 +1539,23 @@
     "sole_local_work": "Independently reviewed current source/import/adoption and four unique real merge handovers publishing now.",
     "pre_publication_source_head": "7c6ecae3ca4bae3a9bc4574c034a71f8224b4888",
     "blocked_external_analysis": "IMP05 new technical analysis: explicit user permission pending; omitted."
+  },
+  "coordinator_current_snapshot_20261005_1506": {
+    "actual_main": "aa271e14b8a39145dca04aa1433dd54be88f44bd",
+    "actual_main_tree": "b519b3271f5bdd41bc3aac794b607420b5b725f5",
+    "actual_main_approvals": 222,
+    "actual_main_verified": 92,
+    "actual_main_passed": 130,
+    "published_root_head": "c5afbda9519aa4d0db1ea3f339fddbb8f95f16f4",
+    "root_adopted_main": "36e873fbac87695f9d3522086f721961824e29f9",
+    "root_stored_approvals": 227,
+    "newer_main_not_yet_adopted": true,
+    "ci": "CURRENT_PENDING",
+    "coordination_comments": [
+      5997005674,
+      5997187270
+    ],
+    "private_imp05_analysis_export": "HELD_PENDING_EXPLICIT_USER_REPLY",
+    "receipt": "quality/audits/ediel-masterplan-v2/coordinator-current-20261005/15-06-snapshot.json"
   }
 }

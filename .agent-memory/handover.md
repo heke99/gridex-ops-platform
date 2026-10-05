@@ -1308,3 +1308,7 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-05 main integration: #590 7b158e79ca58fdf7a9b3a77ece035c6b81790bbd — Merge pull request #590 from heke99/codex/ediel-at-z01l-z01lk-supplier-20261005; actual tree 00612b25336ee545defa14695f439537accd2dde; owner source/evidence retained, no production apply.
 - 2026-10-05 main integration: #551 2579fa93b8008eb72ca2a77d074b551828d0be58 — Merge pull request #551 from heke99/codex/ediel-sc004-sc006-beneficiary-evidence-20261005; actual tree d05a67b8e566720e0579e59287262e426c0c7584; owner source/evidence retained, no production apply.
 - 2026-10-05 main integration: #562 36e873fbac87695f9d3522086f721961824e29f9 — Merge pull request #562 from heke99/codex/ediel-sc057-sc059-registry-evidence-20261005; actual tree a32ecc7e8760c056581385b233bd84c56f82d476; owner source/evidence retained, no production apply.
+
+- 2026-10-05 main integration: #587 d10402d5028021794994e6d5d61622de61d08b57 — actual parents36e873fb +757008e7, tree ddbd102d384349dc25f46c845e0ec26fe67f785b; SC034 PASSED, SC047 PARTIAL evidence only; no production apply.
+
+- 2026-10-05 main integration: #588 aa271e14b8a39145dca04aa1433dd54be88f44bd — actual parentsd10402d5 +7453605e, tree b519b3271f5bdd41bc3aac794b607420b5b725f5; F/G proposal-only release, whole AT/native HELD, helper continuation excluded; no production apply.
