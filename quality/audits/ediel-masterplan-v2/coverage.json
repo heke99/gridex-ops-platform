@@ -1296,8 +1296,13 @@
     {
       "id": "OPS-03",
       "acceptance_id": "AT-OPS-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "scripts/gridex-full-production-e2e.cjs",
+        "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+        "__tests__/ediel-ops-03-release-evidence.test.ts",
+        ".github/workflows/full-e2e.yml"
+      ]
     },
     {
       "id": "OPS-04",
@@ -3044,8 +3049,13 @@
     },
     {
       "id": "AT-OPS-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/gridex-full-production-e2e.cjs",
+        "__tests__/ediel-ops-03-code-release-evidence.test.ts",
+        "__tests__/ediel-ops-03-release-evidence.test.ts",
+        ".github/workflows/full-e2e.yml"
+      ]
     },
     {
       "id": "AT-OPS-04",

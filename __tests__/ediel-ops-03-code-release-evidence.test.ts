@@ -10,7 +10,9 @@ import { expect, it } from 'vitest'
 // Consumer behaviour only. GitHub/Git identity ports are finite; ZIP extraction,
 // XML parsing, source hashing and the existing certificate code are real.
 // These synthetic JUnit fixtures do not execute their native business cases.
-// No OPS03/AT tag: the actual positive six-class/native matrix is still pending.
+// masterplan: OPS-03, AT-OPS-03
+// Independent whole-code review approves these consumer assertions;
+// actual new-head native/CI results and market activation remain separate.
 const producer = path.resolve('scripts/gridex-full-production-e2e.cjs')
 const localRequire = createRequire(import.meta.url)
 const head = 'a'.repeat(40), tree = 'b'.repeat(40), repository = 'heke99/gridex-ops-platform'
