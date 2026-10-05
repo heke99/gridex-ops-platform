@@ -118352,7 +118352,8 @@ CREATE TABLE public.tenant_ediel_profiles (
     valid_to timestamp with time zone,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     CONSTRAINT tenant_ediel_profiles_environment_check CHECK ((environment = ANY (ARRAY['test'::text, 'production'::text]))),
-    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text))
+    CONSTRAINT tenant_ediel_profiles_market_check CHECK ((market = 'electricity'::text)),
+    CONSTRAINT tenant_ediel_profiles_validity_order CHECK (((valid_to IS NULL) OR (valid_to >= valid_from)))
 );
 
 ALTER TABLE ONLY public.tenant_ediel_profiles FORCE ROW LEVEL SECURITY;
@@ -126891,6 +126892,13 @@ ALTER TABLE ONLY public.tenant_customer_sync_requests
 
 ALTER TABLE ONLY public.tenant_ediel_profiles
     ADD CONSTRAINT tenant_ediel_profiles_company_id_environment_market_valid_f_key UNIQUE (company_id, environment, market, valid_from);
+
+--
+-- Name: tenant_ediel_profiles tenant_ediel_profiles_enabled_period_excl; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.tenant_ediel_profiles
+    ADD CONSTRAINT tenant_ediel_profiles_enabled_period_excl EXCLUDE USING gist (company_id WITH =, environment WITH =, market WITH =, tstzrange(valid_from, valid_to, '[)'::text) WITH &&) WHERE (is_enabled);
 
 --
 -- Name: tenant_ediel_profiles tenant_ediel_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
