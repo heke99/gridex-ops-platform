@@ -115,7 +115,9 @@ mustContain(
   "requirePlatformAdminActionAccess",
 );
 mustContain("app/admin/roles/page.tsx", "requirePlatformAdminAccess");
-mustContain("components/admin/AdminSidebar.tsx", "platformOnly?: boolean");
+mustContain("lib/admin/navigation.ts", "platformOnly?: boolean");
+mustContain("lib/admin/navigation.ts", "if (item.platformOnly && !context.isPlatformAdmin) return false");
+mustContain("components/admin/AdminSidebar.tsx", "getAdminNavigationGroups");
 mustContain("components/admin/AdminSidebar.tsx", "isPlatformAdmin");
 mustContain("app/admin/page.tsx", "isPlatformAdminContext");
 mustContain("app/admin/page.tsx", 'href="/admin/company-settings"');

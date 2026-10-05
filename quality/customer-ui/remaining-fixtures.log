@@ -1,0 +1,9 @@
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v4.1.9 /tmp/gridex-ui-browser
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  15:37:33
+   Duration  1.53s (transform 920ms, setup 0ms, import 289ms, tests 1.05s, environment 0ms)

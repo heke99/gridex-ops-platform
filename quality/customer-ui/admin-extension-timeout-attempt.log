@@ -1,0 +1,26 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/tenantservice-support-conversation.test.ts (17 tests | 1 failed) 6339ms
+     × customer creates a case; staff reply is visible, internal note and phone log are not 5020ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/tenantservice-support-conversation.test.ts > scenario A: web case → OPS reply → customer sees only customer-visible content > customer creates a case; staff reply is visible, internal note and phone log are not
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/tenantservice-support-conversation.test.ts:110:3
+    108|
+    109| describe('scenario A: web case → OPS reply → customer sees only custom…
+    110|   it('customer creates a case; staff reply is visible, internal note a…
+       |   ^
+    111|     const support = await import('@/lib/customer-service/supportConver…
+    112|     const created = await openCase()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 20 passed (21)
+      Tests  1 failed | 154 passed (155)
+   Start at  13:55:09
+   Duration  19.11s (transform 9.87s, setup 170ms, import 7.05s, tests 7.59s, environment 2ms)
