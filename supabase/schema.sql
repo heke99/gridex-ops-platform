@@ -19119,6 +19119,9 @@ BEGIN
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');tokens:=gridex_received_sources.wire_tokens_bounded_v1(wire,999999);
  IF tokens IS NULL OR (SELECT count(*) FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB')<>1
   OR NOT EXISTS(SELECT FROM jsonb_array_elements(tokens)t WHERE t->>'tag'='UNB' AND t#>>'{elements,3,0}'=p_context->>'testReceiverEdielId' AND t#>>'{elements,11,0}'='1') THEN RAISE EXCEPTION 'ediel_positive_fixture_test_original_required';END IF;
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
  IF EXISTS(SELECT FROM gridex_negative_fixtures.originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
   AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
@@ -19155,6 +19158,9 @@ BEGIN
  OR r.approval_version IS DISTINCT FROM p_context->>'revision' OR (p_context->>'stepNo')::integer<=0 OR (p_context->>'validUntil')::timestamptz<=now()
  THEN RAISE EXCEPTION 'ediel_negative_fixture_run_scope_mismatch';END IF;
  wire:=gridex_negative_fixtures.decode_latin1_v1(p_original);hash:=encode(sha256(p_original),'hex');
+
+ IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
+ THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(r.id::text||'|'||(p_context->>'stepNo')||'|'||hash,0));
  IF EXISTS(SELECT FROM gridex_negative_fixtures.positive_originals opposite WHERE opposite.company_id=r.company_id AND opposite.run_id=r.id
   AND opposite.step_no=(p_context->>'stepNo')::integer AND opposite.revision=r.approval_version AND opposite.wire_sha256=hash)
