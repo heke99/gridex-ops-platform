@@ -78042,6 +78042,147 @@ export type Database = {
           },
         ]
       }
+      tenant_staff_actor_anchors: {
+        Row: {
+          actor_user_id: string
+          company_id: string
+          created_at: string
+          invitation_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          company_id: string
+          created_at?: string
+          invitation_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          company_id?: string
+          created_at?: string
+          invitation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_actor_anchors_invitation_id_company_id_fkey"
+            columns: ["invitation_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_invitations"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
       tenant_staff_assertion_replays: {
         Row: {
           company_id: string
@@ -78173,6 +78314,441 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenant_website_readiness_v"
             referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      tenant_staff_identity_bindings: {
+        Row: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          created_at: string
+          delivery_id: string | null
+          id: string
+          invitation_id: string | null
+          local_auth_issuer: string
+          local_user_id: string
+          provider_configuration: Json
+          provider_id: string
+          revoked_at: string | null
+          status: string
+          version: number
+        }
+        Insert: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          invitation_id?: string | null
+          local_auth_issuer: string
+          local_user_id: string
+          provider_configuration: Json
+          provider_id: string
+          revoked_at?: string | null
+          status?: string
+          version?: number
+        }
+        Update: {
+          actor_user_id?: string
+          api_client_id?: string
+          company_id?: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          invitation_id?: string | null
+          local_auth_issuer?: string
+          local_user_id?: string
+          provider_configuration?: Json
+          provider_id?: string
+          revoked_at?: string | null
+          status?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_staff_identity_binding_delivery_id_company_id_actor_fkey"
+            columns: [
+              "delivery_id",
+              "company_id",
+              "actor_user_id",
+              "api_client_id",
+              "provider_id",
+              "invitation_id",
+              "local_auth_issuer",
+            ]
+            isOneToOne: false
+            referencedRelation: "tenant_staff_identity_deliveries"
+            referencedColumns: [
+              "id",
+              "company_id",
+              "actor_user_id",
+              "api_client_id",
+              "provider_id",
+              "invitation_id",
+              "local_auth_issuer",
+            ]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_delivery_id_company_id_fkey"
+            columns: ["delivery_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_staff_identity_deliveries"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_invitation_id_company_id_fkey"
+            columns: ["invitation_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_invitations"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_bindings_provider_id_company_id_fkey"
+            columns: ["provider_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_identity_providers"
+            referencedColumns: ["id", "company_id"]
+          },
+        ]
+      }
+      tenant_staff_identity_deliveries: {
+        Row: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          created_at: string
+          id: string
+          invitation_id: string
+          local_auth_issuer: string
+          provider_id: string
+          receipt_payload: Json | null
+          recipient_email: string
+          request_hash: string
+          request_payload: Json
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          actor_user_id: string
+          api_client_id: string
+          company_id: string
+          created_at?: string
+          id?: string
+          invitation_id: string
+          local_auth_issuer: string
+          provider_id: string
+          receipt_payload?: Json | null
+          recipient_email: string
+          request_hash: string
+          request_payload: Json
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          actor_user_id?: string
+          api_client_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          invitation_id?: string
+          local_auth_issuer?: string
+          provider_id?: string
+          receipt_payload?: Json | null
+          recipient_email?: string
+          request_hash?: string
+          request_payload?: Json
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_actor_user_id_company_id_fkey"
+            columns: ["actor_user_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_staff_actor_anchors"
+            referencedColumns: ["actor_user_id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_api_client_permission_summary_v"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "integration_api_clients"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_api_client_id_company_id_fkey"
+            columns: ["api_client_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "integration_legacy_api_key_sunset_v"
+            referencedColumns: ["api_client_id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_actor_testing_status_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "company_dashboard_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_automation_control_center_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2b_live_control_tower_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_batch_2c_control_tower_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_company_operations_statistics_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_contract_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_effective_legal_sources_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "gridex_tenant_email_dispatch_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "platform_go_live_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_contract_offer_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_intake_tracking_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_event_mail_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_integrity_company_summary_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_website_readiness_v"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_invitation_id_company_id_fkey"
+            columns: ["invitation_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "company_invitations"
+            referencedColumns: ["id", "company_id"]
+          },
+          {
+            foreignKeyName: "tenant_staff_identity_deliveries_provider_id_company_id_fkey"
+            columns: ["provider_id", "company_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_customer_identity_providers"
+            referencedColumns: ["id", "company_id"]
           },
         ]
       }
@@ -96271,6 +96847,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_accept_external_staff_invitation_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_accept_staff_invitation_v1: {
         Args: { p_command: Json }
         Returns: Json
@@ -97399,6 +97979,10 @@ export type Database = {
           p_street: string
         }
         Returns: string
+      }
+      gridex_create_external_staff_invitation_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_create_grid_owner_data_request_v1: {
         Args: { p_company_id: string; p_request: Json }
@@ -98580,6 +99164,10 @@ export type Database = {
           source: string
         }[]
       }
+      gridex_lookup_pending_staff_identity_binding_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_luhn_valid: { Args: { p_value: string }; Returns: boolean }
       gridex_make_idempotency_key: {
         Args: { p_parts: string[] }
@@ -98932,6 +99520,10 @@ export type Database = {
           p_recipient_email: string
           p_token_hash: string
         }
+        Returns: Json
+      }
+      gridex_prepare_staff_identity_delivery_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_preview_delete_unused_contract: {
@@ -99462,6 +100054,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_record_staff_identity_delivery_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_record_utilts_source_validation_v1: {
         Args: {
           p_company_id: string
@@ -99551,6 +100147,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      gridex_refresh_staff_identity_binding_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_register_customer_lifecycle_decision_v1: {
         Args: {
@@ -99735,6 +100335,10 @@ export type Database = {
           p_customer_type?: string
           p_offer_reference: string
         }
+        Returns: Json
+      }
+      gridex_resolve_staff_identity_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_restore_archived_contract: {
@@ -99978,6 +100582,14 @@ export type Database = {
         }
         Returns: string[]
       }
+      gridex_staff_anchor_invitation_email_v1: {
+        Args: { p_actor: string; p_company_id: string; p_invitation_id: string }
+        Returns: string
+      }
+      gridex_staff_assert_external_actor_v1: {
+        Args: { p_actor: string; p_client: string; p_company: string }
+        Returns: undefined
+      }
       gridex_staff_assert_write_actor_v1: {
         Args: {
           p_actor_user_id: string
@@ -100000,6 +100612,46 @@ export type Database = {
           p_query: string
           p_status: string
         }
+        Returns: Json
+      }
+      gridex_staff_identity_invitation_v1: {
+        Args: { p_command: Json; p_lease?: boolean }
+        Returns: {
+          accept_token_hash: string | null
+          accepted_at: string | null
+          cancelled_at: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string | null
+          full_name: string | null
+          id: string
+          idempotency_key: string | null
+          invitation_token: string | null
+          invited_by: string | null
+          invited_email: string | null
+          invited_user_id: string | null
+          membership_role: string | null
+          metadata: Json
+          revoked_at: string | null
+          role: string | null
+          role_id: string | null
+          role_key: string | null
+          status: string
+          token: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "company_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      gridex_staff_identity_registration_v1: {
+        Args: { p_command: Json; p_delivery?: boolean }
         Returns: Json
       }
       gridex_staff_normalize_role_v1: {
@@ -100030,6 +100682,10 @@ export type Database = {
           p_message: string
           p_payload: Json
         }
+        Returns: Json
+      }
+      gridex_staff_tenant_onboarding_ready_v1: {
+        Args: { p_command: Json }
         Returns: Json
       }
       gridex_staff_update_customer_case_status: {
@@ -100342,6 +100998,10 @@ export type Database = {
       gridex_validate_publication_graph_v1: {
         Args: { p_publication_version_id: string }
         Returns: string[]
+      }
+      gridex_validate_staff_identity_binding_v1: {
+        Args: { p_command: Json }
+        Returns: Json
       }
       gridex_verify_contract_lifecycle_backfill: {
         Args: { p_company_id?: string }

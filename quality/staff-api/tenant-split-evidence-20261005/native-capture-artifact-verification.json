@@ -1,0 +1,30 @@
+{
+  "artifact_id": 11349745078,
+  "run_id": 37318392819,
+  "name": "staff-schema-capture-64c9c652c8033998c239ea2a7019c4d724604bbd",
+  "published_digest": "sha256:ec7ca64ff88d51081d3457bf2d73845bd795cf32c9141750c07b2a188e923a46",
+  "zip_sha256": "ec7ca64ff88d51081d3457bf2d73845bd795cf32c9141750c07b2a188e923a46",
+  "expires_at": "2026-10-19T13:45:48Z",
+  "zip_path": "/workspace/attachments/19ec24ff-f11d-4bb6-b2b9-0d41761a522a/gridex-tenant-split-capture-64c9.zip",
+  "extracted_path": "/tmp/gridex-tenant-split-capture-64c9",
+  "checkout_sha": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+  "checkout_tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
+  "receipt_sha256": "1542040be4bd30fc68991905a334fd56e99baa88d896755e12f7c02b9daa0dc8",
+  "verified": [
+    "GitHub artifact metadata run/head/name/digest",
+    "Exact four safe ZIP members and CRC",
+    "Actual capture commit and tree",
+    "All eight exact pre-import source inputs",
+    "Latest migration name and entire source hash",
+    "Raw generated three output hashes",
+    "PostgreSQL17 and pinned CLI2.101.0",
+    "Fingerprint and schemas agree with receipt",
+    "Capture-only four NOT_RUN flags"
+  ],
+  "native_acceptance": "PENDING",
+  "artifact_sha256": {
+    "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd"
+  }
+}

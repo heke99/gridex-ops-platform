@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-05T10:53:50.672579+00:00",
-  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37299065849",
-  "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
-  "latest_migration": "20261005101527_staff_independent_onboarding_authority.sql",
-  "latest_migration_schema_effect": "Authentic PostgreSQL17 capture of exact46ec source adds only the service-only independent invitation wrapper and the two intended machine-auth body edits. Nonfunction schema sections are unchanged; raw types/schema/fingerprint are copied without edits. Capture is not native acceptance; final full clean/upgrade/type/schema parity remains mandatory.",
-  "composition_capture_pending": true,
+  "generated_at": "2026-10-05T13:45:29.025881+00:00",
+  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37318392819",
+  "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+  "latest_migration": "20261005124901_tenant_staff_external_identity_bindings.sql",
+  "latest_migration_schema_effect": "Authentic PostgreSQL17 capture of exact64c source adds explicit external staff bindings, delivery/anchor records and service-only resolver/acceptance/bootstrap/native guards. Managed Auth guards are verified from the entire migration/native regression; dump scope remains public+gridex schemas. All three generated files are copied byte-for-byte. Capture is not final native acceptance.",
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-05T10:53:50.672579+00:00",
-    "checkout_sha": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
-    "checkout_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
-    "workflow_run_id": "37299065849",
+    "captured_at": "2026-10-05T13:45:29.025881+00:00",
+    "checkout_sha": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "checkout_tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
+    "workflow_run_id": "37318392819",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261005101527_staff_independent_onboarding_authority.sql",
-      "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492"
+      "name": "20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -76,18 +76,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+    "schema_fingerprint": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1",
     "artifact_sha256": {
-      "database.types.ts": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
-      "schema.sql": "e891f1e8cca13860f060251c41d333430233cfe3ab7192d576c7ab9ce0c2922f",
-      "schema.fingerprint.json": "969b0b3f9738cb4846478acba85594c5cb4d3baddd10030c6c8933032d539f16"
+      "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
-      "scripts/migration-history-manifest.json": "1db55f3169e1262f321c3cbb40e392882d1ff7f3613fc215d979c465d934eaca",
+      "scripts/migration-history-manifest.json": "ef624c7fecd352d0fe8bf87b464bdd40c25fecccd4465bd02c2e42c69a608d5b",
       "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
       "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
-      "scripts/supabase-types-manifest.json": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+      "scripts/supabase-types-manifest.json": "6318d0ea43a935cab4dca6947f1eb712779f3d22d1cb8f8375f037eb79e818fb",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -97,21 +97,21 @@
     "type_schema_comparison": "NOT_RUN",
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
-    "workflow_run": 37299065849,
-    "artifact_id": 11341610088,
-    "artifact_zip_sha256": "750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
-    "published_artifact_digest": "sha256:750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
-    "artifact_expires_at": "2026-10-19T10:54:10Z",
-    "actual_checkout_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
-    "actual_checkout_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
-    "import_source_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
-    "import_source_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+    "workflow_run": 37318392819,
+    "artifact_id": 11349745078,
+    "artifact_zip_sha256": "ec7ca64ff88d51081d3457bf2d73845bd795cf32c9141750c07b2a188e923a46",
+    "published_artifact_digest": "sha256:ec7ca64ff88d51081d3457bf2d73845bd795cf32c9141750c07b2a188e923a46",
+    "artifact_expires_at": "2026-10-19T13:45:48Z",
+    "actual_checkout_commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "actual_checkout_tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
+    "import_source_commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "import_source_tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
     "captured_and_import_source_trees_match": true,
-    "input_hash_scope": "All eight inputs bind exact frozen46ec pre-import source. Later import modifies generated artifacts, provenance and one test typing only; SQL/runtime remain frozen.",
-    "receipt": "quality/staff-api/independent-onboarding-evidence-20261005/native-capture-receipt.json",
-    "qualification": "Authentic artifact producer succeeds; ZIP digest, four exact members/CRC, all output/input hashes and latest migration checked. Final native acceptance/CI pending."
+    "input_hash_scope": "All eight inputs bind exact64c pre-import source. The later import changes generated artifacts/provenance; non-schema main composition is separately byte-checked. SQL/Staff runtime remain frozen.",
+    "receipt": "quality/staff-api/tenant-split-evidence-20261005/native-capture-receipt.json",
+    "qualification": "Authentic producer succeeded. GitHub run/head/name/digest, exact four ZIP members/CRC, actual commit/tree, eight input hashes, latest c6bf migration and three raw outputs verified. Native/browser/comparison/upgrade tests are explicitly NOT_RUN here; mandatory final full CI remains pending."
   },
-  "composition_note": "Authentic composed-prefix capture includes retained main P08 plus both exact staff PT409 forwards. Main and 2c origins remain historical and unchanged. All three generated files were byte-copied from the authenticated current-prefix artifact. This is capture-only; fresh exact final-head mandatory application/native/browser/upgrade/parity/types/API CI remains required after import.",
+  "composition_note": "The latest capture is the exact frozen64c tenant-split source. Prior complete manifests and capture origins remain immutable historical evidence. Later non-schema main composition and final clean/upgrade/type/schema/API/required CI receive their own exact-source qualification.",
   "upstream_main_manifest": {
     "commit": "507e8bfa20606be31933eea1582066267ff2577a",
     "path": "scripts/supabase-types-manifest.json",
@@ -122,7 +122,7 @@
   },
   "current_prefix_verification": {
     "kind": "mandatory_external_final_head_proof",
-    "capture_latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+    "capture_latest_migration": "20261005124901_tenant_staff_external_identity_bindings.sql",
     "source_migrations": [
       {
         "name": "20261004175536_ediel_dsn_encoded_source_identity.sql",
@@ -147,6 +147,14 @@
       {
         "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
         "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+      },
+      {
+        "name": "20261005101527_staff_independent_onboarding_authority.sql",
+        "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492"
+      },
+      {
+        "name": "20261005124901_tenant_staff_external_identity_bindings.sql",
+        "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
       }
     ],
     "requirements": [
@@ -473,5 +481,124 @@
     "git_blob": "f700f064ff1f054407d60d6853a34469c70164f3",
     "sha256": "b626d291a0b9c9c759ac227e2d06d606e94da5c05750ee0f591e20500dcf4325",
     "scope": "Historical complete generated manifest remains reachable in Git; prior capture/source evidence is preserved."
+  },
+  "external_identity_preimport_manifest": {
+    "commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "83ec1e02635b369fe41d44525f1577387b4da4a6",
+    "sha256": "6318d0ea43a935cab4dca6947f1eb712779f3d22d1cb8f8375f037eb79e818fb",
+    "scope": "Exact unchanged pre-import manifest captured by the authentic producer; immutable previous complete4fd manifest is separately retained."
+  },
+  "external_identity_prior_capture": {
+    "capture": {
+      "purpose": "capture_only",
+      "captured_at": "2026-10-05T10:53:50.672579+00:00",
+      "checkout_sha": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+      "checkout_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+      "workflow_run_id": "37299065849",
+      "workflow_run_attempt": "1",
+      "supabase_cli_version": "2.101.0",
+      "postgres_server_version": "17.6",
+      "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
+      "latest_replay_migration": {
+        "name": "20261005101527_staff_independent_onboarding_authority.sql",
+        "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492"
+      },
+      "schema_names": [
+        "gridex_ack_authority",
+        "gridex_ai_processing",
+        "gridex_ai_purpose_sources",
+        "gridex_bilateral_customer_sources",
+        "gridex_bilateral_prodat",
+        "gridex_billing_source",
+        "gridex_brp_changes",
+        "gridex_brp_declaration_intake",
+        "gridex_brp_sources",
+        "gridex_business_expectations",
+        "gridex_certificate_trust",
+        "gridex_contract_source_intake",
+        "gridex_correction_process",
+        "gridex_customer_life_events",
+        "gridex_customer_masterdata",
+        "gridex_ediel_ack_guide",
+        "gridex_ediel_ack_replay",
+        "gridex_ediel_business_incidents",
+        "gridex_ediel_common_header",
+        "gridex_ediel_duplicate_responses",
+        "gridex_ediel_inbound_context",
+        "gridex_ediel_inbound_receptions",
+        "gridex_ediel_outbound_owner",
+        "gridex_ediel_readiness",
+        "gridex_ediel_retention",
+        "gridex_ediel_services",
+        "gridex_ediel_source_rules",
+        "gridex_ediel_technical_ack",
+        "gridex_ediel_transport",
+        "gridex_ediel_wire_namespace",
+        "gridex_internal",
+        "gridex_metering_method_changes",
+        "gridex_method_expectations",
+        "gridex_negative_fixtures",
+        "gridex_network_registry_sources",
+        "gridex_outbound_dispatch",
+        "gridex_private",
+        "gridex_prodat_object_batch",
+        "gridex_received_err_response",
+        "gridex_received_reading_expectations",
+        "gridex_received_sources",
+        "gridex_registry_import",
+        "gridex_regulated_supply",
+        "gridex_requested_changes",
+        "gridex_requested_customer_changes",
+        "gridex_requested_method_watches",
+        "gridex_service_administration",
+        "gridex_service_permission",
+        "gridex_supply_rescission",
+        "gridex_switch_cancellations",
+        "gridex_transport_exception",
+        "gridex_utilts_binding",
+        "gridex_utilts_issuer",
+        "public"
+      ],
+      "schema_fingerprint": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b",
+      "artifact_sha256": {
+        "database.types.ts": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+        "schema.sql": "e891f1e8cca13860f060251c41d333430233cfe3ab7192d576c7ab9ce0c2922f",
+        "schema.fingerprint.json": "969b0b3f9738cb4846478acba85594c5cb4d3baddd10030c6c8933032d539f16"
+      },
+      "input_sha256": {
+        "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+        "scripts/migration-history-manifest.json": "1db55f3169e1262f321c3cbb40e392882d1ff7f3613fc215d979c465d934eaca",
+        "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+        "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+        "scripts/supabase-types-manifest.json": "0303e259d7410d553daf4346ce33d21cb92a43d25d4322a7f7d10072794d0ffe",
+        "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
+        "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
+        "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+      },
+      "native_tests": "NOT_RUN",
+      "browser_tests": "NOT_RUN",
+      "type_schema_comparison": "NOT_RUN",
+      "upgrade_parity": "NOT_RUN",
+      "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory",
+      "workflow_run": 37299065849,
+      "artifact_id": 11341610088,
+      "artifact_zip_sha256": "750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
+      "published_artifact_digest": "sha256:750944617aaf9e33b342b3d21bc854c03518d7e0e453949d42b3c2ca070e085a",
+      "artifact_expires_at": "2026-10-19T10:54:10Z",
+      "actual_checkout_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+      "actual_checkout_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+      "import_source_commit": "46ecb047ea55ea3e8466128c44c4288471f73f5a",
+      "import_source_tree": "ab660e95673d09078d5f516f9624f3a52b4bc6ac",
+      "captured_and_import_source_trees_match": true,
+      "input_hash_scope": "All eight inputs bind exact frozen46ec pre-import source. Later import modifies generated artifacts, provenance and one test typing only; SQL/runtime remain frozen.",
+      "receipt": "quality/staff-api/independent-onboarding-evidence-20261005/native-capture-receipt.json",
+      "qualification": "Authentic artifact producer succeeds; ZIP digest, four exact members/CRC, all output/input hashes and latest migration checked. Final native acceptance/CI pending."
+    },
+    "generated_at": "2026-10-05T10:53:50.672579+00:00",
+    "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37299065849",
+    "sha256": "5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8",
+    "latest_migration": "20261005101527_staff_independent_onboarding_authority.sql",
+    "scope": "Historical46ec capture of20261005101527 only; never relabeled as new external-identity/native qualification."
   }
 }

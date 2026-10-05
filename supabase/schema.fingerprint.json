@@ -58,12 +58,12 @@
   ],
   "sections": {
     "columns": {
-      "count": 14318,
-      "sha256": "24f6162ea396e179100762ec57dee772d8c378b5e65aa84ccf1843a2293b386a"
+      "count": 14350,
+      "sha256": "b6448b3157bf34b1ebd5ac679a7077d39dbffe54dff784ec09ac9b5d50075c8b"
     },
     "constraints": {
-      "count": 4477,
-      "sha256": "550ff807bc960db0f62f8d9bfc2d4da052ba8e7ce6f0ac8b1c9754832e8c0093"
+      "count": 4511,
+      "sha256": "9397934b9dbde41431881613c7309c94cf4505f6f4c03d89930817699dd0245d"
     },
     "enums": {
       "count": 4,
@@ -74,28 +74,28 @@
       "sha256": "681146fb7b19ef18f03561a13eff172b8cf4db58ccea291c48c0a5389797d828"
     },
     "function_grants": {
-      "count": 3593,
-      "sha256": "364036239e7ef131d9652a9f4f58361ed76a88ffbda7b34778e13ea54a89d529"
+      "count": 3617,
+      "sha256": "899db0dd11e27fc870715064f66b6266f34e70a6c235cd60d81d61b63ff7216d"
     },
     "functions": {
-      "count": 2066,
-      "sha256": "627c2e4f12ae28b5fe03a649c84fd1aad121ca635cc2308f70f6c60772b8eb08"
+      "count": 2081,
+      "sha256": "798ab96b022cf16862f6eb35b736aa9f945a868946625bee7fd43bc9adc8000c"
     },
     "indexes": {
-      "count": 2921,
-      "sha256": "6c725f7c6b8ece3284545a56fe28ca67eaa83cc958a40ebdc4aefafdc771ee32"
+      "count": 2939,
+      "sha256": "4258d427ada2db807d7e2eeb8f81696cbf574ccdfbc238cb4134e5f5b8329a79"
     },
     "policies": {
       "count": 2560,
       "sha256": "e7161df11bbd05d022a672da671414b71ad3112aadc119a8e86ff7b43d6706a6"
     },
     "relation_grants": {
-      "count": 16603,
-      "sha256": "f9dbcccfd259902cb9b6bd8998b25438d7aae827a5fe3c2edce77ef56d5a4597"
+      "count": 16627,
+      "sha256": "9e74fae5e4833991204db414e55bd16883a55b205b1feceaaa6f42a21dfc0d53"
     },
     "relations": {
-      "count": 964,
-      "sha256": "e560cfa9e2cfea763a1fa385239b47cb0bc56d28f6a924ba33bd2320323158d5"
+      "count": 967,
+      "sha256": "755f4d25e1efe3e4edc79af0ebd1350a4d0127acfc466fbb983cebacd8b52a85"
     },
     "schema_grants": {
       "count": 155,
@@ -106,9 +106,9 @@
       "sha256": "46519c18e22977a4f9acd48e43c3a2136e5bc79583036fca942d3b6f7d0ebc05"
     },
     "triggers": {
-      "count": 1131,
-      "sha256": "6d8d4b9fcd0fd97cd95a03292b699b7e05f5e41fcb9e74edd55934eeccce76aa"
+      "count": 1137,
+      "sha256": "e03173c8653d28c5c1a410da8117456a299ea248cf21b9fcb5a49f8e9f6b381c"
     }
   },
-  "sha256": "540f95baa06c40827e02cae3b7ffc2090b3e206bd9c5a715001dbc50488e424b"
+  "sha256": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1"
 }
