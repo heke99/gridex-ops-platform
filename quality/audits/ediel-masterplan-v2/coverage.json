@@ -1047,8 +1047,22 @@
     {
       "id": "TR-03",
       "acceptance_id": "AT-TR-03",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/rawMimeArchive.ts",
+        "lib/ediel/transport/smimeTransportArchive.ts",
+        "lib/ediel/transport/verifiedCopy.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-03-archive-dispatch.test.ts",
+        "__tests__/ediel-raw-mime-archive.test.ts",
+        "__tests__/ediel-smime-archive-storage.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-archive-checkpoint.md"
+      ]
     },
     {
       "id": "TR-04",
@@ -2602,8 +2616,22 @@
     },
     {
       "id": "AT-TR-03",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/rawMimeArchive.ts",
+        "lib/ediel/transport/smimeTransportArchive.ts",
+        "lib/ediel/transport/verifiedCopy.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "__tests__/ediel-tr-03-archive-dispatch.test.ts",
+        "__tests__/ediel-raw-mime-archive.test.ts",
+        "__tests__/ediel-smime-archive-storage.test.ts",
+        "__tests__/ediel-smime-archive-send-guard.test.ts",
+        "__tests__/ediel-transport-copy-api.test.ts",
+        "scripts/test-ediel-ten-07-scoped-projection.cjs",
+        "scripts/ediel-transport-copy-sql-regression.mjs",
+        ".agent-memory/masterplan-codex-archive-checkpoint.md"
+      ]
     },
     {
       "id": "AT-TR-04",
