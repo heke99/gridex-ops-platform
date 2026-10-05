@@ -288,6 +288,42 @@ and capture inputs. Next: independent review of this two-file test-only delta,
 publish one new head and obtain genuine six-case native results plus mandatory
 actual-head gates. Own approvals remain unchanged; no local full-suite retry.
 
+## Genuine main #518 integration — 2026-10-05
+
+The published `d7cba77a` collection correction was independently approved before
+push: [535/5985923521](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-5985923521).
+New PR workflows were blocked after genuine main advanced to
+`9dc4a783a0c5e926596e3054a958c64e43efd490`. Root authorized merging that
+actual main into this branch. Both DB-02 shared Z06 preimages were verified
+against the primary owner's inputs; only the exact reviewed two-blob union
+from `d315464b7db62c43e455bc3bf8be5e2d8d2cf194` is adopted. Grammar SHA256
+`7c0c3d52f200ac4d07b45ae16d7262008c2cf83e3977135546d93858df6830fd`,
+wire SHA256
+`89cdd70fd5d9d14241d54d180fb58b712e419e09330b670c724bae6a2965ce24`.
+Shared independent review:
+[491/5986107796](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5986107796).
+The primary owner's actual 18/18 result is reused within this exact-byte scope;
+no independent fixture variant or duplicate run is introduced.
+
+Main's two staff forwards, runtime checksums, three tests, provenance and
+mandatory runner SQL guards enter unchanged. Fresh selected staff behavior is
+45/45 PASS across those three files; test/scripts types, full migration checks,
+specification 33/121/231, diff and explicit incoming/own byte equality PASS.
+DB-02 SQL, history checksum, native six-case reader/assertions, unit test,
+native config and coverage bytes remain exactly `d7cba77a`. All three generated
+outputs and the original raw DB-02 capture receipt also remain unchanged.
+
+The manifest retains the actual DB-02 223219 tail and complete capture/history.
+Incoming main manifest history is preserved by immutable Git commit/path/blob
+and SHA256 pointer (`ec3346fe4b0ebb28ca1054437f3434e3819120b6a192a9df730dd5b2ede208f3`).
+`composition_capture_pending=true` explicitly requires a fresh genuine capture
+of this combined prefix; neither historical capture is relabeled as current.
+Next: publish this genuine merge once, inspect replacement producers, verify
+and import their authentic capture as necessary, and obtain genuine six-case
+native outcomes plus mandatory actual-head gates. Own coverage remains
+unapproved; main merge remains held. No local full-suite retry or alternate
+native bootstrap is used.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.
