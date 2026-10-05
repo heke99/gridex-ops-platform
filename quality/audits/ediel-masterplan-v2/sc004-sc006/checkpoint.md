@@ -6,14 +6,14 @@ Owner `/root/review_ten06`; isolated branch
 [#5305986030533](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5986030533)
 and [#4915986061662](https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5986061662).
 Technical freeze `9c730fe0b08315a3cdf4ac22f875d550f8580cf8`, tree
-`1263d6ae769ad0fada94d06985dd0af59d3092d5`. Both scenarios await independent
-whole-literal review. No coverage approval, production, source authority,
-migration, native fixture or shared-memory change.
+`1263d6ae769ad0fada94d06985dd0af59d3092d5`. Both scenarios independently APPROVED
+at8ab; only SC004/SC006 coverage rows are promoted. No production, source authority,
+migration, native fixture, asserting input or shared-memory change.
 
 Skills: spec-to-code-compliance maps every frozen effect; using-git-worktrees
 isolates the two existing test paths; verification-before-completion binds
 executed assertions and exact historical source reuse; Supabase guidance applies
-to finite PostgreSQL consumers. Root will assign the existing independent
+to finite PostgreSQL consumers. Root assigned the existing independent
 reviewer under requesting-code-review. No broad audit, UI/performance tool,
 issuer implementation, delegation or production remediation is required.
 
@@ -44,11 +44,16 @@ SHA256 `e3d61b376c876c49fc2aed4f6ed61c6f9f16b8dfb110141a65fd94479c9ccb73`.
 The selected literal shared-permission case has no failure/error/skip children.
 All29 listed receipt/assignment/coordinator/grant/read sources are byte-exact;
 all2057 final committed SQL overload bodies match, including all120 relevant
-service/evidence/permission/ACK/binding owners. A broader transitive TS inventory
-found351/359 unchanged files. Eight later UNOC/transport/certificate changes are
-listed precisely in the receipt. They do not modify the reused effect owners;
-they prevent claiming a fresh complete current native chain or current transport
-verification. Native market/legal activation and current mandatory CI stay
+service/evidence/permission/ACK/binding owners. The initial359/351/8 transitive inventory omitted static re-export facade
+chains and was not exhaustive. Independent complete static from/import/require/
+re-export envelope finds697native(695TS+2JSON)/699current(697TS+2JSON),13changed
+existing modules and2 added outbound helpers. This envelope may include type or
+unexecuted imports; it is not an executed call graph. The reviewer read all13+2
+deltas and verified they run only in outbound construction/send, outside the
+actual end_assignment/current sealed beneficiary-reader/storage owners. Exact
+paths and graph hashes are retained in the corrected receipt and byte-exact
+independent record. The earlier wording is superseded; no fresh complete current
+native chain or transport verification is claimed. Native market/legal activation and current mandatory CI stay
 separate. No private admitted rows or synthetic producer were added.
 
 Fresh verification: actual public-caller9/9 PASS; supported SQL wrapper2/2 PASS
@@ -57,14 +62,26 @@ separate14 full-copy checks retained); tests TypeScript and scoped ESLint PASS;
 Node syntax/diff checks PASS; frozen spec integrity29 checks PASS, generated
 result restored. Initial default-environment wrapper childspawn EPERM is superseded
 by the same unchanged wrapper passing with authorized child/network permission.
-No assertion was weakened and no broad/full/native run was repeated. Coverage
-is byte-identical to base for all352 rows. Existing541/547 tags are retained,
+No assertion was weakened and no broad/full/native run was repeated. At the reviewed8ab freeze coverage
+was byte-identical to base for all352 rows. This independent approval delta
+promotes only SC004/SC006 and retains all other350 JSON rows exactly. Existing541/547 tags are retained,
 SC004/SC006 are discoverable in ordinary supported test inputs.
 
-Published draft [PR #551](https://github.com/heke99/gridex-ops-platform/pull/551)
-against actual main9dc at first published head3be7ce7f/tree01c9ef4b. This final
-publication-only update changes no technical input/source/coverage byte. Next:
-send the exact final head/tree/input hashes to root for independent entire-scenario
-review. Promote
-only these two rows after independent approval. Root owns current mandatory
-gates, main composition and merge; this packet is not a release approval.
+Published [PR #551](https://github.com/heke99/gridex-ops-platform/pull/551)
+against actual main9dc at first published head3be7ce7f/tree01c9ef4b. The preceding
+publication-only8ab update changed no technical input/source/coverage byte. This
+independent approval update changes only the two authorized coverage rows and
+review/scope documentation. WHOLE APPROVE for both scenarios at8ab/treeadb is
+published byte-exact in independent-review.md, SHA
+b0b1e1cc301bc596a8c75b776fdf0dfe15b41dbd84e7814c7af7f388bce95547.
+Fresh independent9caller/2wrapper PASS0SKIP and latest7migration body qualification
+close both complete frozen matrices. Only these two rows are now PASSED; all
+other350 rows and all8technical/29source inputs retain exact bytes. No old test
+or native run is repeated for this approval-only change.
+
+Root optional app attachment at~00:56UTC ended with a bounded10-second app RPC
+timeout. GitHub PR remains published/readable; this is not a native/workflow/CI
+failure or a card/test blocker. Root owns current mandatory gates, main
+composition and merge. Next: mark551 ready and inventory fresh530/491/open PR
+source/coverage/tag union before claiming the next two unowned scenarios.
+SC011/SC023 is now retained by env02 at5305986382740; SC003/SC005 belongs ten08.

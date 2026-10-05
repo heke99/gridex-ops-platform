@@ -1,5 +1,5 @@
 {
-  "purpose": "Full frozen SC004/SC006 evidence-only packet awaiting independent review; no coverage approval",
+  "purpose": "Whole frozen SC004/SC006 independently APPROVED at8ab; only two coverage rows promoted; technical/source/fixture bytes unchanged",
   "main_base_sha": "9dc4a783a0c5e926596e3054a958c64e43efd490",
   "branch": "codex/ediel-sc004-sc006-beneficiary-evidence-20261005",
   "claim_urls": [
@@ -10,7 +10,7 @@
     "SC-004",
     "SC-006"
   ],
-  "coverage_changed": false,
+  "coverage_changed": true,
   "production_migrations_source_authority_shared_memory_changed": false,
   "packet_inputs_sha256": {
     "__tests__/ediel-service-administration.test.ts": "7c9e8d9f595b1f9c4203762119acb376cd25bf1e3828b878215f46cad6fd214c",
@@ -927,7 +927,12 @@
         "equal": true
       }
     ],
-    "transitive_TS_qualification": {
+    "external_ports": [
+      "Synthetic issuer key and declared external issuer/representation facts, not genuine legal market custody",
+      "External SMTP provider mocked only; actual SQL owners/archives/review/canonical validation/physical ACK/storage/projections execute in original native run"
+    ],
+    "complete_scope": "Same actual market permission, independent archived/reviewed missions, one E66 accepted series/contract+physicalACK/two sealed grant scopes; end one real public assignment, ended grant denied, other current read succeeds, entire shared permission/upstream effects unchanged, zeroZ18 and provider calls remain1",
+    "limited_initial_transitive_inventory": {
       "total": 359,
       "unchanged": 351,
       "changed": [
@@ -981,13 +986,64 @@
         }
       ],
       "method": "Recursive local from/import/require resolution from native file, with normalized repo paths; compare exact Git source/current bytes",
-      "limit": "351 unchanged dependencies qualify receipt/assignment/coordinator/grant/read effects. Eight later upstream transport/UNOC/certificate changes do not modify those owners but no fresh complete current native chain is claimed."
+      "limit": "351 unchanged dependencies qualify receipt/assignment/coordinator/grant/read effects. Eight later upstream transport/UNOC/certificate changes do not modify those owners but no fresh complete current native chain is claimed.",
+      "correction": "The359/351/8 scan omitted static re-export facade chains and is NOT exhaustive. Retained solely as disclosed superseded discovery, not current complete qualification."
     },
-    "external_ports": [
-      "Synthetic issuer key and declared external issuer/representation facts, not genuine legal market custody",
-      "External SMTP provider mocked only; actual SQL owners/archives/review/canonical validation/physical ACK/storage/projections execute in original native run"
-    ],
-    "complete_scope": "Same actual market permission, independent archived/reviewed missions, one E66 accepted series/contract+physicalACK/two sealed grant scopes; end one real public assignment, ended grant denied, other current read succeeds, entire shared permission/upstream effects unchanged, zeroZ18 and provider calls remain1"
+    "independent_static_import_envelope": {
+      "native_graph_count": 697,
+      "current_graph_count": 699,
+      "common": 697,
+      "native_graph_changed_files": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/productionGuards.ts",
+        "lib/ediel/core/routeRegistry.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/routeProfileProductionReadiness.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/transport/smime.ts"
+      ],
+      "current_graph_added": [
+        "lib/ediel/transport/productionRecipient.ts",
+        "lib/ediel/transport/smtpEvidence.ts"
+      ],
+      "native_graph_removed": [],
+      "all_existing_changed": [
+        "lib/ediel/core/edifactEncoding.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/productionGuards.ts",
+        "lib/ediel/core/routeRegistry.ts",
+        "lib/ediel/prodat/builders/profileRenderer.ts",
+        "lib/ediel/prodat/render/segments.ts",
+        "lib/ediel/routeProfileProductionReadiness.ts",
+        "lib/ediel/security/outboundRecipientCertificate.ts",
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "lib/ediel/transport/index.part-1.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/transport/outboundAttempt.ts",
+        "lib/ediel/transport/smime.ts"
+      ],
+      "method": "Independent exhaustive static from/import/require/re-export envelope; includes type/unexecuted imports, not an executed call graph",
+      "native_language_counts": {
+        "TS": 695,
+        "JSON": 2
+      },
+      "current_language_counts": {
+        "TS": 697,
+        "JSON": 2
+      },
+      "qualification_limit": "Reviewer read all13 changedexistingTS+2 addedhelpers: outbound construction/send only, outside actual end_assignment/current sealed beneficiary-read/storage effects. Real effect-owner29source/120SQL qualification remains exact. No fresh complete-current-native/transport/legal/custody claim.",
+      "independent_evidence_sha256": {
+        "transitive_qualification": "df4e8f389eada7c23176a4fced39d78bed4ce66ad46394ab71dd537c47faae1a",
+        "native_graph": "683f81f3e2311e0a46fbe76a0654c5aff18bd5abc5de320db56025cdec3cd4f7",
+        "current_graph": "a6880e9997dc922ef3db44ed678b1587999bb58df9b654cb35b56ba633e39827"
+      }
+    }
   },
   "fresh_checks": [
     {
@@ -1030,13 +1086,49 @@
   "environment_note": "Initial wrapper child spawn EPERM under default process restrictions; same unchanged wrapper passes with authorized child/network permission. No assertion was weakened. Node24.19.0; no broad/full/native rerun.",
   "publication": {
     "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/551",
-    "draft": true,
+    "draft": false,
     "first_published_head": "3be7ce7f6d357bc0f6fdfbe2bde2ccbb1b12d3b5",
     "first_published_tree": "01c9ef4b646250f11103ae38630036e1fe7d98e0",
-    "independent_review": "PENDING entire SC004/SC006; root assigns existing independent reviewer",
+    "independent_review": "WHOLE SC004/SC006 APPROVE transferred by root; byteexact record published",
     "current_gates_merge": "Root-owned; no release or merge claim",
-    "final_doc_head": "Reported externally; only publication metadata changes from first published head, technical inputs/source/coverage unchanged"
+    "final_doc_head": "Reported externally; only review/scope documentation and independently approved two coverage rows change; technical/source/fixture bytes unchanged"
   },
   "technical_freeze_sha": "9c730fe0b08315a3cdf4ac22f875d550f8580cf8",
-  "technical_freeze_tree": "1263d6ae769ad0fada94d06985dd0af59d3092d5"
+  "technical_freeze_tree": "1263d6ae769ad0fada94d06985dd0af59d3092d5",
+  "coverage_approval_delta": {
+    "from_reviewed_head": "8ab7f81e9bd2b1da0a30d670492251a881e6cb55",
+    "promoted_only": [
+      "SC-004",
+      "SC-006"
+    ],
+    "other_350_rows": "exact JSON values unchanged",
+    "source_test_inputs": "All8 packet inputs and29 listed sources unchanged; frozen annex/register unchanged; only coverage hash superseded by independent approved rows",
+    "approved_coverage_sha256": "1ef4378bd8a8d2e1bf7a8c71c084202f3db55355db6b2e524c6e0163f5415875"
+  },
+  "independent_review": {
+    "reviewed_head": "8ab7f81e9bd2b1da0a30d670492251a881e6cb55",
+    "reviewed_tree": "adb7472944104fedcbb4cae9f899a2d2c55c20df",
+    "reviewer": "/root/sc007_sc066_review",
+    "verdict": {
+      "SC-004": "APPROVE entire frozen scenario",
+      "SC-006": "APPROVE entire frozen scenario"
+    },
+    "published_record": "quality/audits/ediel-masterplan-v2/sc004-sc006/independent-review.md",
+    "record_sha256": "b0b1e1cc301bc596a8c75b776fdf0dfe15b41dbd84e7814c7af7f388bce95547",
+    "independent_fresh_results": "actualpubliccaller9/9 +supportedSQLwrapper2/2 PASS0SKIP;29source120SQL/latest7migrationbodies qualified; current CI/main merge remain root-owned",
+    "approval_carry": "Only receipt scope correction, review publication and approved2row delta; source and all8technical input bytes unchanged"
+  },
+  "optional_app_attachment": {
+    "attempt": "Root tools.codex_app__attach_artifact ~2026-10-05 00:56UTC",
+    "outcome": "bounded Promise.race10s appRPCtimeout",
+    "scope": "Optional app attachment only; GitHub PR remains published/readable; not workflow/native/CI/card/test failure or blocker"
+  },
+  "approval_only_verification": {
+    "frozen_integrity": "Fresh29checksPASS; generatedresult restored",
+    "tag_registration": "ActualsupportedTAGregex maps SC004CJS/SC006ordinaryTS; all prior tags retained",
+    "all8inputs_all29sources_frozen_annex_register": "Exactbyte/hash equality toindependentlyapproved8ab",
+    "other350rows": "ExactJSONvalueequality",
+    "diff": "Freshgitdiff--checkPASS",
+    "old_test_native_repetition": "NONE for unchanged bytes; current mandatory headCI root-owned"
+  }
 }
