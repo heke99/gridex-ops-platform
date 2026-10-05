@@ -5,8 +5,8 @@
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37248135529",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
   "latest_migration": "20261004221605_ediel_test_original_outcome_conflict.sql",
-  "latest_migration_schema_effect": "Authentic current-prefix capture includes actual main 9dc4a783 staff prerequisites and the GOV-08 original-conflict forward. Relative to the prior authentic GOV-08 dump, exactly two publisher bodies add RC/RU-only isolation guards (six dump lines); all other fingerprint sections and generated types remain unchanged. Capture-only; final-head native, clean/upgrade replay and parity remain mandatory.",
-  "composition_capture_pending": false,
+  "latest_migration_schema_effect": "The retained authentic d315 capture remains qualified only for its historical isolation-guard prefix. The unpublished publisher lock-key correction canonicalizes integer step aliases in both existing advisory locks; fresh exact-prefix capture and mandatory native/clean/upgrade parity are pending. Generated outputs and historical capture receipt remain unchanged.",
+  "composition_capture_pending": true,
   "integrated_main_provenance": {
     "commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
     "manifest_path": "scripts/supabase-types-manifest.json",

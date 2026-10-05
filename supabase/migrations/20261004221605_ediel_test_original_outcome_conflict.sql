@@ -5,6 +5,8 @@
 -- Publishers require a fresh statement snapshot after the shared lock. PostgreSQL
 -- READ UNCOMMITTED has READ COMMITTED semantics; stale higher-isolation snapshots
 -- cannot safely inspect declarations in the opposite original table.
+-- Both original tables store an integer step. Use that same value in the
+-- existing shared lock so JSON numbers and equivalent strings cannot race.
 BEGIN;
 DO $fix$
 DECLARE target record;f record;needle text;guard text;body text;n integer:=0;
@@ -47,7 +49,8 @@ BEGIN
    CASE WHEN target.boundary='publisher' THEN $isolation$
  IF current_setting('transaction_isolation') NOT IN('read committed','read uncommitted')
  THEN RAISE EXCEPTION 'ediel_fixture_publisher_read_committed_required' USING ERRCODE='25000';END IF;
-$isolation$ ELSE '' END||needle||guard);
+$isolation$||replace(needle,$raw$(p_context->>'stepNo')$raw$,
+    $canonical$((p_context->>'stepNo')::integer)::text$canonical$) ELSE needle END||guard);
   EXECUTE replace(f.definition,f.prosrc,body);
   IF(SELECT to_jsonb(p)-'prosrc' FROM pg_proc p WHERE oid=f.oid) IS DISTINCT FROM f.metadata
    THEN RAISE EXCEPTION 'test_original_outcome_conflict_metadata_changed: %',target.signature;END IF;

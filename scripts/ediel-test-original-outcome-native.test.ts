@@ -1,6 +1,6 @@
 import {execFileSync,spawn} from 'node:child_process'
 import {createHash,randomUUID} from 'node:crypto'
-import {beforeAll,expect,it} from 'vitest'
+import {afterAll,beforeAll,expect,it} from 'vitest'
 import {supabaseService} from '@/lib/supabase/service'
 import {decisionNativeSql,decisionUser,literal} from './helpers/ediel-decision-original-native-fixture'
 import {nativeLockProcess,nativeLockProcessEnv} from './helpers/native-lock-process'
@@ -36,12 +36,76 @@ const authoritySql=`SELECT jsonb_build_object(
  'memberships',(SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.roleid,m.member),'[]'::jsonb) FROM pg_auth_members m
   WHERE m.roleid='gridex_ediel_fixture_authority_owner'::regrole OR m.member='gridex_ediel_fixture_authority_owner'::regrole))`
 
+type Membership={oid:number;roleid:number;member:number;grantor:number;admin_option:boolean;inherit_option:boolean;set_option:boolean}
+type NativeAuthority={authority:Context&{memberships:Membership[]};currentUser:string;sessionUser:string;currentRoleOid:number;
+ publisherRoleOid:number;serverVersion:number;canSet:boolean;publicUsage:boolean;privateUsage:boolean;publicSchema:unknown;roles:unknown}
+const nativeAuthoritySql=`SELECT jsonb_build_object('authority',(${authoritySql}),
+ 'currentUser',current_user,'sessionUser',session_user,'currentRoleOid',current_user::regrole::oid,
+ 'publisherRoleOid','gridex_ediel_fixture_authority_owner'::regrole::oid,
+ 'serverVersion',current_setting('server_version_num')::integer,
+ 'canSet',pg_has_role(current_user,'gridex_ediel_fixture_authority_owner','SET'),
+ 'publicUsage',has_schema_privilege('gridex_ediel_fixture_authority_owner','public','USAGE'),
+ 'privateUsage',has_schema_privilege('gridex_ediel_fixture_authority_owner','gridex_negative_fixtures','USAGE'),
+ 'publicSchema',(SELECT jsonb_build_object('oid',oid,'owner',nspowner,'acl',nspacl) FROM pg_namespace WHERE nspname='public'),
+ 'roles',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.oid) FROM pg_roles r WHERE rolname IN(current_user,'gridex_ediel_fixture_authority_owner')))`
+const nativeAuthority=()=>decisionNativeSql<NativeAuthority>(nativeAuthoritySql)
+let pristineAuthority:NativeAuthority|undefined,bridgeAttempted=false
+const ownBridgeRow=(row:Membership,before:NativeAuthority)=>row.roleid===before.publisherRoleOid&&
+ row.member===before.currentRoleOid&&row.grantor===before.currentRoleOid
+
+function installNativePublisherBridge(){
+ pristineAuthority=nativeAuthority()
+ const before=pristineAuthority
+ expect(before).toMatchObject({currentUser:'postgres',sessionUser:'postgres'})
+ if(!before.publicUsage||!before.privateUsage)throw Error('native_gov08_publisher_namespace_usage_required')
+ expect(before.serverVersion).toBeGreaterThanOrEqual(160000)
+ expect(before.authority.publisherRole).toMatchObject({rolcanlogin:false})
+ if(before.canSet)return
+ expect(before.authority.memberships.some(row=>row.roleid===before.publisherRoleOid&&row.member===before.currentRoleOid&&row.admin_option)).toBe(true)
+ expect(before.authority.memberships.filter(row=>ownBridgeRow(row,before))).toEqual([])
+ // Commit once before concurrent publishers start. A GRANT inside each A/B
+ // transaction would serialize pg_auth_members and conceal the product race.
+ bridgeAttempted=true
+ decisionNativeSql(`BEGIN;
+  GRANT gridex_ediel_fixture_authority_owner TO CURRENT_USER WITH SET TRUE GRANTED BY CURRENT_USER;
+  GRANT gridex_ediel_fixture_authority_owner TO CURRENT_USER WITH INHERIT FALSE GRANTED BY CURRENT_USER;
+  GRANT gridex_ediel_fixture_authority_owner TO CURRENT_USER WITH ADMIN FALSE GRANTED BY CURRENT_USER;
+  COMMIT;`)
+ const active=nativeAuthority(),added=active.authority.memberships.filter(row=>ownBridgeRow(row,before))
+ expect(added).toHaveLength(1)
+ expect(added[0]).toMatchObject({admin_option:false,inherit_option:false,set_option:true})
+ expect(active.canSet).toBe(true)
+ expect({...active,canSet:before.canSet,authority:{...active.authority,
+  memberships:active.authority.memberships.filter(row=>!ownBridgeRow(row,before))}}).toEqual(before)
+}
+
+function restoreNativePublisherBridge(){
+ const before=pristineAuthority
+ if(!before)return
+ // Inspect actual state even if exec timed out after a successful COMMIT.
+ // Never revoke the original creator's membership or any foreign grantor.
+ if(bridgeAttempted&&nativeAuthority().authority.memberships.some(row=>ownBridgeRow(row,before))){
+  decisionNativeSql(`BEGIN;
+   REVOKE gridex_ediel_fixture_authority_owner FROM CURRENT_USER GRANTED BY CURRENT_USER RESTRICT;
+   COMMIT;`)
+ }
+ expect(nativeAuthority()).toEqual(before)
+}
+
+afterAll(()=>restoreNativePublisherBridge())
+
 beforeAll(async()=>{
+ try{
  decisionNativeSql(`INSERT INTO public.companies(id,name,status) VALUES(${literal(companyId)},'SYNTHETIC native original-outcome tenant','active')`)
  actor=await decisionUser(companyId,['communication.write','communication.send'],'SyntheticNativeOutcome1!')
  decisionNativeSql(`INSERT INTO public.ediel_test_runs(id,company_id,environment,status,role_code,test_suite,test_case_code,approval_version,created_by)
   VALUES(${literal(runId)},${literal(companyId)},'test','draft','supplier','PRODAT','synthetic-native-outcome','synthetic-native-v1',${literal(actor.id)})`)
+ installNativePublisherBridge()
  authorityBefore=decisionNativeSql(authoritySql)
+ }catch(error){
+  try{restoreNativePublisherBridge()}catch(cleanupError){throw new AggregateError([error,cleanupError],'native_gov08_setup_and_cleanup_failed')}
+  throw error
+ }
 })
 
 it.each([{first:'positive' as const,second:'negative' as const,step:1},{first:'negative' as const,second:'positive' as const,step:2}])(
@@ -123,6 +187,75 @@ it.each(['REPEATABLE READ','SERIALIZABLE','READ COMMITTED','READ UNCOMMITTED'].f
   for(const result of cleanup)if(result.status==='rejected')throw result.reason
  }
 },35000)
+
+it.each([{first:'positive' as const,second:'negative' as const,step:31},{first:'negative' as const,second:'positive' as const,step:32}])(
+ 'native in-flight $first blocks zero-padded $second on the same stored step',async({first,second,step})=>{
+  expect(process.env.NEXT_PUBLIC_SUPABASE_URL).toBe('http://127.0.0.1:54321')
+  const before=originalRows(),firstContext=scope(first,step),secondContext={...scope(second,step),stepNo:`0${step}`}
+  const sessions=['first','alias'].map(label=>{
+   const marker=`gov08_alias_${label}_${randomUUID()}`
+   const child=spawn('psql',['postgresql://postgres:postgres@127.0.0.1:54322/postgres','-XAtq','-v','ON_ERROR_STOP=1','-v','VERBOSITY=verbose'],
+    {stdio:['pipe','pipe','pipe'],env:nativeLockProcessEnv()})
+   let stdout='',stderr=''
+   child.stdout.on('data',chunk=>{stdout+=String(chunk)});child.stderr.on('data',chunk=>{stderr+=String(chunk)})
+   const done=new Promise<{code:number|null;stdout:string;stderr:string}>((resolve,reject)=>{
+    const deadline=setTimeout(()=>reject(Error('native_gov08_alias_completion_timeout')),30000)
+    child.once('error',error=>{clearTimeout(deadline);reject(error)})
+    child.once('close',code=>{clearTimeout(deadline);resolve({code,stdout,stderr})})
+   })
+   void done.catch(()=>undefined)
+   const lock=nativeLockProcess(child,{marker,markerError:`native_gov08_alias_${label}_ready_timeout`,lifetimeMs:20000})
+   return {child,marker,lock,done,output:()=>stdout,error:()=>stderr}
+  })
+  const [a,b]=sessions
+  try{
+   a.child.stdin.write(`BEGIN ISOLATION LEVEL READ COMMITTED;SET LOCAL ROLE gridex_ediel_fixture_authority_owner;
+    SELECT to_jsonb(${publishSql(firstContext)});SELECT pg_backend_pid()::text||':'||${literal(a.marker)};\n`)
+   await a.lock.ready
+   b.child.stdin.write(`BEGIN ISOLATION LEVEL READ COMMITTED;SET LOCAL ROLE gridex_ediel_fixture_authority_owner;
+    SELECT pg_backend_pid()::text||':'||${literal(b.marker)};\n`)
+   await b.lock.ready
+   const pid=(session:typeof a)=>{
+    const found=session.output().match(new RegExp(`([0-9]+):${session.marker}`))
+    expect(found).not.toBeNull();return Number(found![1])
+   }
+   const aPid=pid(a),bPid=pid(b)
+   b.child.stdin.end(`SELECT to_jsonb(${publishSql(secondContext)});COMMIT;\n`)
+   const observe=()=>decisionNativeSql<{sameAdvisoryKey:boolean;blockers:number[]}>(`SELECT jsonb_build_object(
+    'sameAdvisoryKey',EXISTS(SELECT FROM pg_locks waiting JOIN pg_locks held
+     ON held.locktype=waiting.locktype AND held.database=waiting.database AND held.classid=waiting.classid
+      AND held.objid=waiting.objid AND held.objsubid=waiting.objsubid
+     WHERE waiting.pid=${bPid} AND held.pid=${aPid} AND waiting.locktype='advisory'
+      AND waiting.mode='ExclusiveLock' AND held.mode='ExclusiveLock' AND NOT waiting.granted AND held.granted),
+    'blockers',to_jsonb(pg_blocking_pids(${bPid})))`)
+   let waiting=observe()
+   const deadline=Date.now()+10000
+   while((!waiting.sameAdvisoryKey||!waiting.blockers.includes(aPid))&&Date.now()<deadline){
+    if(b.child.exitCode!==null)throw Error(`native_gov08_alias_exited_before_advisory_wait: ${b.error()}`)
+    await new Promise(resolve=>setTimeout(resolve,10));waiting=observe()
+   }
+   expect(waiting.sameAdvisoryKey).toBe(true)
+   expect(waiting.blockers).toContain(aPid)
+   expect(originalRows()).toEqual(before)
+   await a.lock.release('COMMIT')
+   expect(await a.done).toMatchObject({code:0,stderr:''})
+   const rejected=await b.done
+   expect(rejected.code).toBe(3)
+   expect(rejected.stderr).toMatch(new RegExp(`ERROR:\\s+P0001: ediel_${second}_fixture_original_conflict`))
+   const committed=originalRows(),original=committed.find(row=>row.step_no===step)
+   expect(committed).toHaveLength(before.length+1)
+   expect(committed.filter(row=>row.step_no!==step)).toEqual(before)
+   expect(original).toMatchObject({kind:first,company_id:companyId,run_id:runId,role_code:'supplier',
+    case_code:'synthetic-native-outcome',suite:'PRODAT',revision:'synthetic-native-v1',step_no:step,
+    expected_outcome:first,expected_diagnostic_codes:firstContext.expectedDiagnosticCodes,test_receiver_ediel_id:'TEST',
+    original_wire:raw,wire_sha256:wireHash,original_file_sha256:wireHash,
+    source_reference:firstContext.sourceReference,owner_decision_reference:firstContext.ownerDecisionReference})
+   expect(decisionNativeSql(authoritySql)).toEqual(authorityBefore)
+  }finally{
+   const cleanup=await Promise.allSettled(sessions.map(session=>session.lock.dispose()))
+   for(const result of cleanup)if(result.status==='rejected')throw result.reason
+  }
+ },35000)
 
 it('retained legacy contradictions hold at actual private/public reads, preparation and existing prepared witnesses',()=>{
  // Only the two original publisher bodies are temporarily restored. The real

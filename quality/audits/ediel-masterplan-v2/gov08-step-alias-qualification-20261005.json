@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "created_utc": "2026-10-05T16:58:24.217797+00:00",
+  "scope": "Publisher step alias lock correction; bounded owned PostgreSQL diagnostics and reviewed native fixture, not whole GOV08 approval.",
+  "source_before": "cfe7e00347ba738f5a800a942316d0ad620579d4",
+  "historical_capture_source": "d315464b7db62c43e455bc3bf8be5e2d8d2cf194",
+  "candidate_SQL_sha256": "9da0247941249dda75008e2ae1d88fc29a5321c086cd977d0e6cea6bfede9d25",
+  "native_candidate_sha256": "586ecc27099fa28f99405fa3516cfcd345963264eb666895c14dc8d164f4140f",
+  "red": {
+    "existing_cases": 2,
+    "orders": [
+      "positive then negative",
+      "negative then positive"
+    ],
+    "numeric_vs_zero_padded_string_same_stored_integer": true,
+    "genuine_contradictory_dual_commit": true,
+    "independent_qualification_receipt_sha256": "5802a1b72d22b8db8f2a6708a30e2c6b138c5ed5b96a3802bba0d2807e3a872d",
+    "public_receipt": "https://github.com/heke99/gridex-ops-platform/pull/533#issuecomment-5998766444",
+    "same_representation_controls": 2,
+    "controls_passed": 2,
+    "red_cases_repeated": false
+  },
+  "green": {
+    "new_alias_cases": 2,
+    "passed": 2,
+    "orders": [
+      {
+        "first": "positive",
+        "second": "negative",
+        "numeric_step": 19756283,
+        "string_step": "019756283",
+        "same_advisory_key_wait_verified": true,
+        "second_rejected_SQLSTATE": "P0001",
+        "retained_originals": 1
+      },
+      {
+        "first": "negative",
+        "second": "positive",
+        "numeric_step": 19756284,
+        "string_step": "019756284",
+        "same_advisory_key_wait_verified": true,
+        "second_rejected_SQLSTATE": "P0001",
+        "retained_originals": 1
+      }
+    ],
+    "receipt_sha256": "3bdfa9d03b5e345b129e4db289e3566ca1b354ad76363e3926233c74c50104b3",
+    "raw_log_sha256": "f7cc64feede86b442515c5c75e04db3de4ebd7623119219bbc8e7e4847efbf79",
+    "historical_original_rows_preserved": 7,
+    "six_effect_counters": {
+      "attempts": 0,
+      "messages": 0,
+      "negativeConsumptions": 0,
+      "positiveConsumptions": 0,
+      "negativePreparedWitnesses": 0,
+      "positivePreparedWitnesses": 0
+    },
+    "authority_unchanged_during_cases": true,
+    "inherited_case_label": "The raw case label says same representation; both recorded contexts and the top-level verdict qualify numeric versus zero-padded string aliases."
+  },
+  "candidate_application": {
+    "receipt_sha256": "66d423be6bf477adb755e84c315500557950050555e5a82ae75bf4ecce0381db",
+    "checked_private_functions": 17,
+    "changed_bodies": [
+      "publish_v1",
+      "publish_positive_v1"
+    ],
+    "other_15_bodies_byte_identical": true,
+    "all_pg_proc_metadata_identical": true,
+    "execution_scope": "Restore nine exact current-body predecessors by removing exactly their retained forward guards, then execute every candidate migration DO statement unchanged in one owned transaction. Only the two outer transaction lines are represented by the encompassing transaction. Not a full migration-ledger replay."
+  },
+  "targeted_checks": {
+    "finite_positive_original_checks": 89,
+    "finite_negative_fixture_checks": 20,
+    "migration_integrity": "PASS",
+    "specification_integrity": "33 originals / 121 rules / 231 contracts; PASS",
+    "diff_check": "PASS",
+    "native_scripts_types_and_scoped_lint": "PASS"
+  },
+  "native_fixture": {
+    "old_cases_byte_preserved": 12,
+    "new_in_flight_alias_cases": 2,
+    "temporary_setup_outside_publisher_transactions": true,
+    "exact_setup_restoration_reviewed": true,
+    "no_namespace_grant": true,
+    "actual_native_14": "NOT_RUN"
+  },
+  "historical_failures_retained": [
+    "Original control33 observer required unavailable activity fields; harness failure retained, independent controls use actual lock tables.",
+    "Initial finite-script invocations omitted their required local module variable and failed before any checks; configured invocations passed.",
+    "Candidate application first lacked local Docker socket access; no SQL ran before explicit owned network permission."
+  ],
+  "limits": [
+    "Owned isolated PostgreSQL17.5 with captured catalogue and explicit source-qualified platform bootstrap; no full migration ledger replay.",
+    "Original/source/owner decision references are explicitly synthetic; no authentic certification, counterparty custody, public wrapper success or market activation inferred.",
+    "Prior authentic generated outputs retained; current candidate capture, genuine native14, exact-head clean/upgrade checks and whole card review are pending."
+  ],
+  "coverage_promoted": false
+}
