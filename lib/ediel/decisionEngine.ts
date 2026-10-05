@@ -1,4 +1,5 @@
 import {selectedProdatAckFromPayload} from '@/lib/ediel/prodat/prodatIncomingSelectedAck'
+import {evaluateProdatTransactionReason} from '@/lib/ediel/prodat/prodatTransactionReason'
 import {permissionAckFieldsFromPayload} from '@/lib/ediel/prodat/prodatPermissionAckFields'
 import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'
 import {projectProdatDiagnostics} from '@/lib/ediel/prodat/prodatDiagnosticProjection'
@@ -293,14 +294,15 @@ export function decideProdatAperak(input: ProdatAperakDecisionInput): EdielEngin
   const knownPermissionErrors = permissionFields.applicationErrors
 
   const changeWire=tokenizeEdifact(rawPayload??'')
+  const transactionReasonFields=evaluateProdatTransactionReason({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una})
   const selectedFields=selectedProdatAckFromPayload(rawPayload,{meterChange:input.meterChange,deathStatus:input.deathStatus})
   const energyProjection=projectProdatDiagnostics(evaluateIncomingProdatEnergyProduct({rawSegments:changeWire.segments.map(t=>t.raw),una:changeWire.una}).issues)
   if(energyProjection.disposition.kind==='internal_review')throw Object.assign(new Error('PRODAT_APERAK_TEXT_REVIEW_REQUIRED'),{selectedFieldAssessment:selectedFields,permissionFieldAssessment:permissionFields,energyProjection})
   const energyErrors=energyProjection.applicationErrors
-  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...selectedFields.applicationErrors,...energyErrors]
-  if(permissionFields.disposition.kind==='internal_review'||selectedFields.disposition.kind==='internal_review')return {
+  const applicationErrors = [...businessErrors, ...knownPermissionErrors,...selectedFields.applicationErrors,...energyErrors,...transactionReasonFields.applicationErrors]
+  if(permissionFields.disposition.kind==='internal_review'||selectedFields.disposition.kind==='internal_review'||transactionReasonFields.disposition.kind==='internal_review')return {
     kind:'manual_review',ackFamily:'APERAK',outcome:null,messageText:'PRODAT_PERMISSION_ACK_REVIEW_REQUIRED',
-    applicationErrors,reason:JSON.stringify({permissionFields,selectedFields}),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
+    applicationErrors,reason:JSON.stringify({permissionFields,selectedFields,transactionReasonFields}),ruleKeys:['PRODAT_PERMISSION_ACK_REVIEW_REQUIRED'],
     classification:summarizeRuleProfile(classification),portalFeedback,expectedComparison:null,
   }
   if (portalFeedback?.expectedNegativeAperak && portalFeedback.actualWasPositiveAperak) {

@@ -12,6 +12,7 @@ export type EdifactEnvelopeIssueCode =
   | 'unz_count_mismatch' | 'envelope_reference_missing' | 'envelope_order_invalid'
   | 'duplicate_envelope_segment' | 'duplicate_message_reference'
   | 'syntax_tokenization_failed' | 'multi_message_interchange' | 'message_reference_length_invalid'
+  | 'unb_test_indicator_invalid'
 
 export type EdifactValidationIssue = {
   severity: 'error' | 'warning'
@@ -65,6 +66,15 @@ export function validateEdifactEnvelope(rawPayload: string | null | undefined): 
   if (unbs.length > 1 || unzs.length > 1) fail('duplicate_envelope_segment', 'Interchange måste ha exakt en UNB och en UNZ.')
   if ((unbs.length && segments[0]?.tag !== 'UNB') || (unzs.length && segments.at(-1)?.tag !== 'UNZ')) {
     fail('envelope_order_invalid', 'UNB ska inleda och UNZ ska avsluta interchange.')
+  }
+
+  // T §4.2.1: 0035 is a single literal1 for test; production omits it.
+  // Preserve pre-trim physical data so whitespace cannot become an omission.
+  for (const unb of unbs) {
+    const indicator = segmentComposite({ ...unb, raw: segmentUntrimmedRaw(unb) }, 11, una)
+    if (indicator.length !== 1 || !['', '1'].includes(indicator[0])) {
+      fail('unb_test_indicator_invalid', 'UNB/0035 ska vara kod1 för test eller utelämnas för produktion; kod0 är inte tillåten.')
+    }
   }
 
   const unbReference = scalar(unbs[0], 5, una)
