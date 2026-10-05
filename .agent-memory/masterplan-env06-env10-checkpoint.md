@@ -4,7 +4,7 @@
 - Branch: `claude/zealous-brown-1okb98`, worktree `/home/user/gridex-ops-platform`, base main `01b11f5`
 - Date: 2026-10-05
 - Claim: #530 comment 5991462511 (ENV-06, AT-ENV-06, ENV-10, AT-ENV-10)
-- Status: locally verified; PR pending (see "Next action")
+- Status: locally verified, under review — PR #576 (commit 84fa4d35f), READY #530 comment 5991879839; CI pending, not merged
 
 ## Verified defects (reproduced on 01b11f5 before the fix)
 
@@ -39,8 +39,10 @@
   PRODAT C502 field-matrix path).
 - Full `npx vitest run` (first pass, before the guard refactor): 1 fail / 10335 pass — the failure was
   `ediel-normative-authority-boundary` (core imported the PRODAT matrix); fixed by moving composition
-  into `lib/ediel/prodat/prodatReasonCodeRejection.ts`; guard test PASS afterwards. Second full run: see
-  PR / commit message.
+  into `lib/ediel/prodat/prodatReasonCodeRejection.ts`; guard test PASS afterwards.
+- Second full run (final code): 10349/10350; only failure `native-lock-process.test.ts`
+  (`native_lock_process_cleanup_timeout`, untouched file, passed in run 1 and 3/3 in isolation — load timeout).
+- `node scripts/ediel-masterplan-test-coverage.cjs --check` → rc=0, approved 208, tagged failing 0.
 - `npm run typecheck`, `npm run typecheck:tests`, `eslint` on changed files → PASS.
 - Mocks: rule-pack registry and Supabase service are mocked (no DB in these unit paths); the decisions
   asserted are produced by the real runtime decision, field matrix, AST and renderer code.
@@ -57,4 +59,4 @@
 
 ## Next action
 
-Commit, push, open PR, post READY on #530; drive CI green; then RELEASE/MERGED per contract.
+Owner: this session. Drive PR #576 CI green and address review; after merge post MERGED on #530 and add one handover.md line; then take the next free pair from #530.
