@@ -1,3 +1,11 @@
+# AT-P-04 — public completion checkpoint
+
+PR [#591](https://github.com/heke99/gridex-ops-platform/pull/591) merged on main at2026-10-05T15:33:17Z asb7a2daa3627f1f8f56055681ba5a8d78e902ad55. AT-P-04 is PASSED;352 ledger rows,225 approved IDs. Only this acceptance row changed and351 other rows remain preserved.
+
+Public handoff: [board530](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5997789707) and [retained503](https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5997792720). Full new execution/artifact receipts remain local.
+
+## Historical checkpoint before this merge
+
 # AT-P-04 parent applicability — current own checkpoint
 
 Status: LOCALLY_VERIFIED/independently APPROVED, test-only; only AT-P-04 now PASSED. PR/CI/main integration pending. CLAIM5305994967989. Branch codex/ediel-at-p04-parent-applicability-20261005, checkout/worktree /workspace/gridex-at-p04-parent-applicability, baseline actualmainfff486f822001d35970f163507b10e17c3692f58. One active own implementation item. Existing SC010 source9b50/checkpointe6e6 native10PASS stays separately retained, fullSC010 blocked on503 admission/capture; no ownership transfer.

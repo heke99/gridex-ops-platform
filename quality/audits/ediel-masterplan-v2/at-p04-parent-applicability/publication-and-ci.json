@@ -4,13 +4,13 @@
   "head": "bbf89d53f62b495739097601133bea30007d5dfb",
   "own_source_sha256": "6efc74bc2f5659d41965050763b27605e491ab3f49b3516b7346a88b18f96130",
   "board_ready_comment": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5995525959",
-  "current_main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
-  "current_main_approved": 213,
+  "current_main": "b7a2daa3627f1f8f56055681ba5a8d78e902ad55",
+  "current_main_approved": 225,
   "foreign_changed_files_since_own_base": 72,
   "changed_runtime_dependencies": [],
   "merge_tree_preview": "2a94781acaf4278df56d53e2ae986975cd763018",
   "merge_preview_conflicts": false,
-  "CI_status": "Remaining ordinary clean/native job111799783499 nowIN_PROGRESS observed14:31:53UTC; othercompletedchecksSUCCESS, no wholejobapprovaluntilterminalgreen.",
+  "CI_status": "PR591 merged; preceding detailed CI fields retain their original historical observation scope.",
   "CodeRabbit_status": "success",
   "branch_protection_read": {
     "status": 403,
@@ -18,7 +18,7 @@
     "conclusion": "Cannot infer configuredrequirednames; waitfor everyapplicablecurrenthead check to succeed, not just legacy statuscontexts."
   },
   "raw_console_receipts": "Raw diagnostic and baseline stdout have authentic finalblankline; fullgitdiff--check reports only those2EOFblanks. Source/coverage/checkpoint/review/verification/spec planning scoped gitdiff--check exit0. Preserve authenticraw receipts, do not relabelfullwhitespacecheckPASS.",
-  "main_integration": "NOT_MERGED",
+  "main_integration": "ACTUALLY_MERGED",
   "next_independent_work": "Scout+reviewer qualify complete unreserved acceptance/scenario consumer paths read-only; no newclaim/test/coveragechanges whilethisATactive.",
   "retained_SC010": "Immutableproducer570/9b50genuineancestorof5035be; all7pins/twoadmissionsqualified, authenticcaptureZIP37a62/nativeZIPe246independentreviewFINALe990. WholeboundedSC010behaviorwitnessed; sole503postimport/composedcanonical/native/clean-upgrade/currentheadgatespending. Evidence-onlycheckpoint3e104be14823e207c8f8f9b3aeb11c0912da9e6d publishedexistingcheckpointref; source5709b50unchanged.",
   "latest_main_recheck": {
@@ -145,5 +145,24 @@
     "report": "next-preflight/checkpoint-publication-custody-review.md",
     "sha256": "35bc754ccb5430da453870c83443423ea3b47bd5a879acefcc44bb5be9098179",
     "scope": "39SC+75ATownedmetadata allowlists, exactprobe/report refs and67scoutgzip+native log custody; no source/SQL/coverage/shared changes."
+  },
+  "public_completion_status": {
+    "status": "MERGED",
+    "PR": "https://github.com/heke99/gridex-ops-platform/pull/591",
+    "merge_commit": "b7a2daa3627f1f8f56055681ba5a8d78e902ad55",
+    "merged_at": "2026-10-05T15:33:17Z",
+    "acceptance_id": "AT-P-04",
+    "actual_approved_IDs": 225,
+    "ledger_rows": 352,
+    "other_ledger_rows_preserved": 351,
+    "board_handoff": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5997789707",
+    "retained_owner_handoff": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5997792720",
+    "status_scope": "Public PR/merge/ledger completion information; full new CI/artifact receipts retained locally",
+    "historical_previous_active_values": {
+      "current_main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+      "current_main_approved": 213,
+      "main_integration": "NOT_MERGED",
+      "CI_status": "Remaining ordinary clean/native job111799783499 nowIN_PROGRESS observed14:31:53UTC; othercompletedchecksSUCCESS, no wholejobapprovaluntilterminalgreen."
+    }
   }
 }
