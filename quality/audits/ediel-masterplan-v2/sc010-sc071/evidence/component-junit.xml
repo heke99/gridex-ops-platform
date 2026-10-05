@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="38" failures="0" errors="0" time="0.074115107">
+    <testsuite name="__tests__/ediel-beneficiary-projection-api.test.ts" timestamp="2026-10-05T08:59:34.752Z" hostname="64e5d94c31a4" tests="18" failures="0" errors="0" skipped="0" time="0.032480992">
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; uses the authenticated selected tenant and actor for the actual current-grant RPC" time="0.00988026">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; passes a valid declared purpose of 129 characters unchanged to the current grant evaluator" time="0.001199411">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; passes a valid declared purpose of 2000 characters unchanged to the current grant evaluator" time="0.001191514">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; holds invalid purpose before a grant read" time="0.001198736">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; holds invalid purpose before a grant read" time="0.00386646">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; holds invalid purpose before a grant read" time="0.000830946">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; preserves literal purpose and binds whitespace to the same exact cursor scope" time="0.003275453">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects scope overrides, raw fields and duplicate query values (companyId)" time="0.000798195">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects scope overrides, raw fields and duplicate query values (actorUserId)" time="0.00140629">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects scope overrides, raw fields and duplicate query values (raw_payload)" time="0.000833473">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects scope overrides, raw fields and duplicate query values (fields)" time="0.000590352">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; preserves unauthorized response and prevents missing selected tenant reads" time="0.000562442">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; never exposes owner diagnostics when a grant was revoked or version changed" time="0.000677349">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects a normalized invalid calendar timestamp (2026-02-29T00:00:00Z) before reading any source" time="0.00104965">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects a normalized invalid calendar timestamp (2026-09-31T00:00:00Z) before reading any source" time="0.00046161">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects a normalized invalid calendar timestamp (2026-09-01T24:00:00Z) before reading any source" time="0.000395334">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; rejects a normalized invalid calendar timestamp (2026-09-01T00:00:60Z) before reading any source" time="0.000407407">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-api.test.ts" name="beneficiary series API &gt; binds cursor position to tenant, user, series, grant version, purpose, fields and window" time="0.001885718">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-beneficiary-projection-provenance.test.ts" timestamp="2026-10-05T08:59:34.758Z" hostname="64e5d94c31a4" tests="10" failures="0" errors="0" skipped="0" time="0.015723307">
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; retains original DGI sender/contract/purpose without rewriting the received source as DDQ" time="0.005385002">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; requires fresh native provenance even when rows and a familiar grant UUID are present" time="0.001512914">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong purpose binding rather than returning a derivative" time="0.000427457">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong fields binding rather than returning a derivative" time="0.00172019">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong sourceRole binding rather than returning a derivative" time="0.00068636">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong contractHash binding rather than returning a derivative" time="0.000844021">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong grantVersion binding rather than returning a derivative" time="0.000360893">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; returns quality and its exact origin only for the separately granted quality projection" time="0.000767224">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; rejects unauthorized quality/raw row fields and strips private extra attributes" time="0.001065975">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; propagates current denial even after an earlier successful consumer receipt" time="0.000821693">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" timestamp="2026-10-05T08:59:34.760Z" hostname="64e5d94c31a4" tests="10" failures="0" errors="0" skipped="0" time="0.025910808">
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; evaluates identical reads twice through the real adapter and retains the exact tenant, actor and grant scope" time="0.011303399">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; propagates current ediel_grant_not_current and refuses both earlier data and data returned alongside an RPC error" time="0.001931053">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; propagates current ediel_beneficiary_forbidden and refuses both earlier data and data returned alongside an RPC error" time="0.001991037">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; treats an earlier successful cursor as a position and re-evaluates the same captured grant version for the next page" time="0.001834901">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; refuses to upgrade a captured request silently when the RPC returns a different grant version" time="0.001641808">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; reads the RPC outcome after asynchronous route parameters resolve rather than reusing a prior response" time="0.001502283">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; holds an in-flight RPC denial without returning a previous page or issuing an implicit retry" time="0.001026776">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; re-evaluates a different selected tenant and actor without returning an earlier beneficiary page" time="0.000997571">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; evaluates a later explicit request after denial without reusing the denied or the earlier successful result" time="0.001255562">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-010-071-grant-revalidation.test.ts" name="SC010/071 actual beneficiary consumer revalidation component &gt; refuses to carry a cursor from the old grant version into a new version before reading another source page" time="0.001007512">
+        </testcase>
+    </testsuite>
+</testsuites>
