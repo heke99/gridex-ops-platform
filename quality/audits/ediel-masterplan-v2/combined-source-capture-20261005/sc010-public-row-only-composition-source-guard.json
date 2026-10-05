@@ -1,0 +1,37 @@
+{
+  "kind": "Root original SC010 one-row source-only composition guard",
+  "verdict": "PASS",
+  "actual_main": "2964415adec9e36932583e95f8506437d262c507",
+  "prior_union": "e1be7fcba358746a6138b21032e7e4d702988bda",
+  "original_public_input": "29dce5f274248f22e20999224f68ee02ff074d3a",
+  "composed_source": "8f851413f483afce172e6d672213e94b5ffd3eb3",
+  "source_tree": "b021627e06f303749dda5a769607c3bfda65b41a",
+  "parents": [
+    "e1be7fcba358746a6138b21032e7e4d702988bda",
+    "29dce5f274248f22e20999224f68ee02ff074d3a"
+  ],
+  "owner_handoff": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-6001682970",
+  "coverage": {
+    "ordered_changed_ids_from_actual_main": [
+      "GOV-08",
+      "DB-02",
+      "SC-010",
+      "AT-GOV-08",
+      "AT-DB-02"
+    ],
+    "main_stored": 271,
+    "candidate_stored": 276,
+    "foreign_main_complete_rows_exact": 347,
+    "foreign_prior_union_complete_rows_exact": 351,
+    "SC010_complete_row_exact_original_public_input": true,
+    "metadata_and_order_preserved": true,
+    "SC071_preserved": true
+  },
+  "all_noncoverage_tracked_paths_exact_prior_union": true,
+  "capture_pending": true,
+  "limits": [
+    "Source-only intake, no native/whole/runtime/CI/capture execution",
+    "Original owner reports closed four-case qualification gap; no case reexecution or actual-main row admission claimed"
+  ],
+  "root_verification_note": "An initial diagnostic expected the five IDs in the wrong order. Inspection confirmed the actual ordered ledger, and the final guard uses that existing order without a source change."
+}

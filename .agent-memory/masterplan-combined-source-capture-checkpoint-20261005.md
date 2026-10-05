@@ -53,3 +53,28 @@ authors must reconcile to the first admitted fixture and canonical SC068/a7.
 Staff now publishes a249; the same sole source-intake reviewer qualifies only
 its changed generator/runtime inputs. Original Staff freeze/whole gates remain
 with the author. Held599 and private IMP05 remain excluded from this source.
+
+
+SC010 original row-only public input 29dce5f274248f22e20999224f68ee02ff074d3a
+is genuinely consumed once into source 8f851413f483afce172e6d672213e94b5ffd3eb3,
+tree b021627e06f303749dda5a769607c3bfda65b41a, with ordered parents e1be7fc
+and 29dce5f. Original owner handoff #5036001682970 closes its earlier individual
+native-case proof gap using four retained qualified cases; root does not rerun or
+invent those results. Only SC010 changes relative to the prior union: its entire
+row/evidence equals the original public proposal. Against actual main296 exactly
+GOV08/DB02, their AT rows and SC010 differ, main271 to candidate276; all347
+foreign complete rows, order, metadata and SC071 are preserved. All seven
+SC010 evidence paths and every noncoverage source path stay unchanged; SQL1075
+and the original generator/capture inputs are unchanged. Root source-only guard
+3abfbd87 records this intake. Independent resulting-source publication guard d26a0dce is READY for exact8f851413. Its immutable raw JSON is retained in the same owned audit directory.
+
+The latest Staff a249 protected-source freeze receipt 182b3f91 is retained
+byte-exact in this owned audit directory. It confirms preserved source inputs;
+original Staff owner release, canonical fixture reconciliation, native/whole
+qualification and final combined capture remain pending. IMP05 public author
+requested intake at #5036002558444. Root acknowledges bounded published-source
+routing at #5036002804058; its forward is not admitted and private analysis
+exports remain excluded. No actual main delivery, fullgate PASS or new capture
+is claimed. Next: publish the independently qualified row intake, consume exact
+qualified original-owner schema handoffs, freeze one final admitted source set,
+and perform the existing single genuine combined capture.
