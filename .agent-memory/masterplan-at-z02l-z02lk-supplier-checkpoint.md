@@ -1,3 +1,30 @@
+# Current published Z02 repair checkpoint — 2026-10-05
+
+ExistingPR593 now contains the bounded source repair at exact implementation
+4e98af7a33feffd013c20524887cc65424d98912, ready for review; source9d0146c9,
+unchangedb227 test, actual71PASS/0FAIL/0ERROR/0SKIP, scopedtypes/lint0/no warnings,
+independent differential approvalceb469c3. Explicit prior-to-edit claims
+5305996039657/5996102432; publication5305996347046/coordinator5035996349049.
+Originalbc2 RED50/4 is retained history. Whole/native/accepted-outer/ACK unchanged.
+Extra supplier static obsolete-nameFAIL1 is separately preserved/handed5035996143168.
+
+Actual fixed-head verify,quality-release-gates,browser-public,targeted-regressions
+and upgrade-migration-replay SUCCESS; clean/coverage/smoke/certificate stillneeded.
+No all-green/merge claim. This evidence-only branch retains historicalbc2 source
+bytes and references actual4e98 implementation; it is NOT the repaired CI candidate.
+No new PR/workflow or candidate head advance. d508 publication checkpoint preserved.
+
+Forward work during CI produced separate Z05#597 exact85049383:89PASS/0FAIL,
+independent20490ba2, scopedstatic0, actualmain36e adopted. Claims5996398059/5996702321;
+newCI pending, wholeunapproved. No duplicate SQL/native/ACK/helper/source projection.
+Peer now fresh read-only scouts next unownedreal seam, excludes allocatedZ04.
+Root qualifies currentmain preservation/remainingCI and sharedmerge order; #503
+retains native/capture/types/manifests and sole commonhandover. Next required action:
+read authentic current checks, fix only ownactualfailures, integrate greencomponent
+with foreignpreservation proof, continue next eligible work.
+
+## Historical checkpoint before the bounded source repair
+
 # AT-Z02L / AT-Z02LK supplier — 2026-10-05
 
 Current status: bounded RED handoff published as draft PR#593 at exact
