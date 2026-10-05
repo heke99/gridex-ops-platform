@@ -49,10 +49,10 @@ it('actual profile writes enforce parent/date/half-open/disabled/update boundari
  ${denies(row(randomUUID(),company,'2026-09-01','2026-08-01',false),'23514')}
  ${denies(`UPDATE ${table} SET valid_to='2025-12-31' WHERE id=${literal(first)};`,'23514')}
  ${row(randomUUID(),company,'2026-02-01','2026-02-01')}
- ${row(foreignProfile,foreign,'2026-06-01')}${row(testProfile,company,'2026-06-01',null,true,'test')}
+ ${row(foreignProfile,foreign,'2026-06-02')}${row(testProfile,company,'2026-06-03',null,true,'test')}
  ${denies(`UPDATE ${table} SET company_id=${literal(company)} WHERE id=${literal(foreignProfile)};`,'23P01')}
  ${denies(`UPDATE ${table} SET environment='production' WHERE id=${literal(testProfile)};`,'23P01')}
- UPDATE ${table} SET metadata='{"sameRow":true}',valid_from='2026-02-01' WHERE id=${literal(first)};
+ UPDATE ${table} SET metadata='{"sameRow":true}',valid_from='2026-02-02' WHERE id=${literal(first)};
  ${denies(`UPDATE ${table} SET valid_to=NULL WHERE id=${literal(first)};`,'23P01')}
  ${denies(row(randomUUID(),randomUUID(),'2026-01-01'),'23503')}
  ${denies(`INSERT INTO ${table}(company_id,environment,valid_from) VALUES(${literal(company)},'production',NULL);`,'23502')}

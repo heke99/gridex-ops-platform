@@ -356,6 +356,39 @@ have not executed. Next: publish this metadata/receipt checkpoint, independent
 capture review, genuine six-case results and mandatory actual-head gates.
 No whole-card promotion, local full retry or main merge is authorized yet.
 
+## Source-qualified native result and three-date repair — 2026-10-05
+
+Fresh exact-head API/artifact review on `99456309214d412b67f2222b0f69108124e94d48`
+replaces the historical pending status: run `37250368328`, clean/native job
+`111576581771`, artifact `11322940903`, ZIP SHA256
+`63bae11e38b5fd9d7b8db5bf1e86cd96df705382df00e15dfa510c0abefe2e3e`.
+Digest, CRC and genuine source SHA/tree verify. Own native result is **5 PASS /
+1 FAIL / 0 SKIP**. Installed constraints, both real repeatable-read commit and
+rollback cases, and both legacy preflights PASS. Combined DML fails with
+`expected_sqlstate_23P01, got 23505`; entire native report is 609 PASS / 1 FAIL /
+1 SKIP. Verify, quality, upgrade and other exact-head checks passed. This is not
+whole-card approval. The earlier capture import independently passed:
+[535/5986432283](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-5986432283).
+
+The original profile DDL preserves UNIQUE(company,environment,market,start).
+Two scope-move fixture starts coincide with the disabled June 1 row; its safe
+self-update also coincides with the empty February 1 row. The real uniqueness
+guard rejects first; this does not show accepted invalid production data.
+Root authorized only three dates: foreign June 2, test-environment June 3,
+self-update February 2. Expected SQLSTATEs, assertions, row counts and all other
+native source remain unchanged. Product SQL/history checksums do not change.
+Qualified original receipt and exact before/source Git pointer plus date diff:
+`quality/audits/ediel-masterplan-v2/db02/native-receipt-994563-20261005.json`.
+Before-edit scope/result:
+[535/5998905143](https://github.com/heke99/gridex-ops-platform/pull/535#issuecomment-5998905143).
+
+Next: non-destructive integration of freshly fetched genuine main, preserve all
+main coverage approvals and inspect generated/provenance differences, then
+publish one coherent source packet with ordinary exact-head gates. A changed
+capture prefix requires fresh authentic qualification. Corrected native cases
+are not claimed PASS until actually executed. No duplicate artifact download,
+local native bootstrap or local full-suite retry; root owns every main merge.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.
