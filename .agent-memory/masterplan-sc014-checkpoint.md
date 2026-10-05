@@ -1,11 +1,11 @@
 # SC-014 intake qualification — 2026-10-05
 
-Status: FROZEN — six-case current configured-CONTRL-route authority qualification is complete. The original four-case qualification is committed and preserved below; this extension is not whole-scenario approval or a confirmed normative violation. No tag, coverage row or production change; no agent commit, push, native/full execution or traffic.
+Status: FROZEN — seven actual current controls PASS, including genuine admitted-source fresh CONTRL kernel→current atomic SQL→persisted custody. Tests types, scoped lint and diff integrity PASS. The immutable six-case and original four-case receipts remain preserved below. No whole-scenario approval, confirmed normative violation, tag, coverage row or production change; no agent commit, push, native/full execution or traffic.
 
 ## Isolation and ownership
 
 - Branch: `codex/ediel-sc014-intake-qualification-20261005`.
-- Exact base: `9dc4a783a0c5e926596e3054a958c64e43efd490`; current HEAD preserving the original receipt: `f61de38711b5ee07cdea9d24fb3320db810d3bc3`.
+- Original exact base: `9dc4a783a0c5e926596e3054a958c64e43efd490`; original qualification receipt `f61de38711b5ee07cdea9d24fb3320db810d3bc3`. Current parent-owned adoption HEAD `51d8030becad68484915654f9e264423bbbf9562`, tree `640d2f80d06563246e7728312522dd264a164f4c`, parents `2cb0064257001d6bc6e95d6797586e39fa9e702a` and actual main `507e8bfa20606be31933eea1582066267ff2577a`.
 - Worktree: `/workspace/gridex-masterplan-sc014`; existing node_modules linked from SC022. Parent explicitly requested this new isolation.
 - Parent owns coordination/promotion/publication. SC014 qualification is reserved in #530 comment5986591063; SC055 is the other technical lane. Existing intake/P/SQL owners are retained.
 - Current authorization: this checkpoint and, only after a genuine schema/trigger/admission path is identified, new `__tests__/ediel-sc-014-unattributed-reception.test.ts`. No existing product, SQL, helper or owner test edits.
@@ -178,3 +178,80 @@ Additional exact source SHA256: guide migration `20261001034855_ediel_prodat_ape
 Bounded conclusion: under these explicit finite current inputs, configured route, current actor permission, technical endpoint, actual syntax and immutable guide provenance are available for the legitimate admitted control. They are not another demonstrated reason to hold this physical transport tuple. The actual unknown-legal raw original retains matching technical UNB/environment/current endpoint facts, but company:null is refused BEFORE canonical birth and therefore lacks the protected source identity through which actual syntax/guide/reply authority is consumed. That is a causal source-admission hypothesis, not an automatic whole-card violation or approval. It does not prove that a raw-mail ID itself has current protected send authority.
 
 Next action: parent independently reviews the final six-case packet against full TEN11/source-supported "where safely possible" and coordinates the existing intake/P owner before any repair. If prescribed ACK is established as safely possible, the minimal conditional boundary is the real unresolved producer/caller's source identity/environment/actor plus a forward protected technical-only admission witness preserving null legal attribution. Do not substitute mailbox company as legal/business owner, fabricate receivedProdatContext, relax the generic company guard, or rewrite ACK/kernel logic. Existing owner8490 one-line mailbox-ID scope remains retained. No further owned-file mutation, whole-scenario promotion or source fix until precise parent feedback.
+
+## Authorized single persisted-positive extension — scope recorded before editing
+
+- Parent read full SC014/TEN06/TEN11 and six-case source/effect matrix. Parent froze the six-case packet as `2cb0064257001d6bc6e95d6797586e39fa9e702a`, tree `142ebe438266fe9dad2ea24325a54881bccab078`, then adopted actual main507e conflict-free as `51d8030becad68484915654f9e264423bbbf9562`, tree `640d2f80d06563246e7728312522dd264a164f4c`. Those are parent commits; this agent makes no Git mutation. The packet still changes only these two owned files relative to507e.
+- Parent now authorizes ONLY one new known-source fresh CONTRL case through actual `prepareSourceAckDraft` → `createCanonicalAckMessage` → `persistAtomicOutboundAck` → current atomic/replay SQL. Assert actual persisted message, exact original guide binding, namespace/sealed hashes, creation receipt/event and protected source scope. Preserve all six assertions and zero attempted-business-access sensitivity. No accepted null-company row, seeded reply/creation receipt, fabricated atomic verdict, production/SQL/helper change, SEND bypass or side556 import.
+- Completed read-only next-seam note `/tmp/masterplan-sc014-persisted-contrl-seam.md`, SHA256 `1909cd382aa8b4afb4f05889f4bbe34e52b2f2625cf196744ae4162bbd353623`, names exact current kernel/atomic/private custody functions, migration identities and source hashes. It distinguishes SC069's finite atomic port and native direct-insert replay from the missing fresh current kernel→atomic proof. Downstream null-legal support is source-reviewed conditional on real admission, not an exercised unknown-source authority.
+- Next concrete action: extend only the existing owned SQL extractor/finite Supabase adapter with named actual RPC dispatch/current custody dependencies, then one genuine known-source positive using current WRITE-only PREPARE phase. Run the completed seven-case suite once, tests types and scoped lint; fixture setup failures remain fixture failures. If current graph dependencies require a broad new harness or counterfeit custody, stop and report exact missing seam. Parent retains all source-admission repair and scenario promotion decisions.
+
+## Final seventh persisted-positive receipt — frozen for parent review
+
+Final owned test SHA256: `60c45683eb5dfb86a494c6abbced392b962d55077058aab75f0ad706bde7283c`. Current HEAD remains parent-owned `51d8030becad68484915654f9e264423bbbf9562`; only this checkpoint and the same owned test differ. The source checksum inventory below is from this actual main507e adoption, not an old reconstructed migration chain.
+
+| Seventh-case effect | Actual executed producer/consumer and complete assertion | Qualification |
+| --- | --- | --- |
+| Genuine known-source authority before creation | Existing actual canonical birth/technical capture → real syntax validator → V2 syntax facet/full current guide capture. Real committed edition is installed before birth; private original guide binding is retained. | Uses the legitimate known-company control. No accepted null-company row, dummy source ID or copied guide/syntax verdict. |
+| Fresh physical positive through current kernel | Real `prepareSourceAckDraft` reads actual current retained originals and renders its real positive CONTRL. Real `createCanonicalAckMessage` performs current actor/profile/membership, source-correlation, replay, bytes-retention, technical evidence, route and actual fresh rulebook validation. Its returned wire equals the actual prepared draft exactly. | The finite named RPC transport dispatches actual public SQL. The protected WeakSet evidence is registered by the real reader. No kernel, validator, replay, guide or atomic result mock. |
+| Actual atomic persistence | Real `persistAtomicOutboundAck` invokes actual public atomic RPC → current `gridex_ediel_ack_replay.create_v1`, real graph/source locks, replay, current route recheck, actual canonical BEFORE contract, wire namespace BEFORE trigger and snapshot AFTER trigger. The actual persisted row JSON equals the kernel result. | Exactly one atomic RPC. Positive draft remains production-scoped in the local finite database; no queue/send/SMTP action is claimed. Customer/site/point/rulepack links null; no new ACK requests or national owner witness. |
+| Actual private custody | Private creation receipt, created event and namespace reservations start empty. Actual command produces exactly one receipt and created event with source/ACK IDs and SHA256, actor, company/environment, operation, family/outcome, null sequence and event linkage. Real namespace keys each have exact company/environment/reference/application/sender/ACK-hash reservation plus coverage. | No reply, namespace row, event, creation receipt or favorable atomic verdict seeded. Actual relevant private uniqueness constraints are installed. |
+| Retained read after creation | Actual V2 persisted technical reader → current retained-source/full namespace/source/hash/guide chain returns the exact persisted message and original captured evidence. | Uses the same actual actor with phase PREPARE. Finite permission service allows only communication.write; no SEND grant or admission bypass. The SEND/provider/certificate/traffic gate remains unexecuted. |
+| Unchanged business/source state | Original source and complete guide binding remain exact. Real loaded customers/sites/points/contracts/metering-permission table snapshots remain unchanged. Original finite foreign business/outbox snapshots remain unchanged and attempted-access ledger remains empty for every forbidden/undeclared business table. National owner witness/consumption tables remain empty. | Real domain tables in this lock graph are empty finite inputs, not native tenant-data proof. Original six assertions retain zero-access sensitivity and actual unresolved/null-company refusal. |
+
+### Exact finite ports and schema selection
+
+- Reuses the existing owned SQL definition extractor and finite Supabase Query adapter; adds named positional dispatch for seven actual ACK SQL ports plus the existing finite permission service. Undeclared RPC/query operations still fail closed; every attempted `from`/query is recorded before rejection.
+- The only substituted SQL bodies remain the existing SHA256 `extensions.digest` port (actual PostgreSQL SHA256 bytes) and exact finite permission service. Actual source, syntax, guide, route, current actor guards, replay, retention, kernel, atomic producer, canonical/namespace/snapshot triggers and custody readers are unmodified.
+- Actual lock helper bodies require their current auth/permission/service/bilateral/regulated/domain table universe. This case loads their exact current table definitions empty, retaining generated columns/CHECKs rather than deleting constraints. Exact current normalization/method-projection functions satisfy those DDL dependencies. `auth.users(id uuid)` is an explicitly empty external lock relation because the public schema snapshot excludes its DDL; it supplies no auth verdict. Actual user_profiles/membership/company guards execute on the finite positive actor inputs.
+- Current SQL CASE planning also requires actual common-header and national source reader definitions/rowtypes even though CONTRL selects the technical branch. Those are loaded unchanged with empty private relations; no national/common/business authority is granted or exercised.
+- Loads exact current wire allocation primary/unique constraints and the four relevant current message triggers (canonical contract, technical capture, namespace capture, rulepack snapshot), plus actual service-role schema usage grants. This is selected current PostgreSQL component execution, not a full native migration/FK/RLS/grant/concurrency installation or an immutability-tampering test.
+- No original shared helper/test/source/migration, source-owner mailbox-ID hunk or side556 content changed. No copied resolver, new validator, generic workflow, live mailbox, native/full run, certificate/provider/SMTP connection or actual business mutation.
+
+### Execution and false-positive record
+
+- Initial completed seven-case attempts: original six PASS; new fixture fails before completion on actual CHECK/generated-column dependencies (`gridex_metering_method_changes`, then public normalization functions). Subsequent iterations were restricted to the seventh case with `-t 'persists a fresh actual kernel CONTRL'`, preserving resource bounds rather than rerunning the six controls. Remaining setup requirements were the real service guard, actual schema usage grant, and real CASE-planned common/national reader/rowtype definitions. **These were fixture/setup failures, not product RED or repaired product defects.** Their actual definitions were loaded, not replaced or weakened.
+- First filtered genuine persisted positive PASS: `/tmp/masterplan-sc014-atomic-setup-seventh.log`, SHA256 `f9677ab28d2150f711297bcf9d452a238e978a66fae2ff40bb86f959ee51adab`; one selected case PASS, six deliberately skipped controls. This is not used as a seven-case receipt.
+- Complete seven-case run then PASS,5.85s. Tests types exposed only that the public `EdielMessageRow` interface omits the actual returned private `immutable_rendered_at` field. The assertion now reads that real JSON field through the existing `Row` type; no runtime or production behavior changed. Final exact-byte seven-case run: **7/7 PASS, zero skipped, exit0,5.93s tests /8.09s total**, `/tmp/masterplan-sc014-atomic-final-reviewed-seven.log`, SHA256 `5e10e39f2913f02cf67251e0f3a783b1589382ffd6473fc2c1316c762b109bc8`.
+- Exact final behavior command: `PATH=/tmp/masterplan-tr06-node-cache/_npx/d18f28baf1132559/node_modules/node/bin:$PATH NODE_OPTIONS='--max-old-space-size=6144 --require=./scripts/lib/unit-loopback-network-boundary.cjs' node --experimental-vm-modules node_modules/vitest/vitest.mjs run __tests__/ediel-sc-014-unattributed-reception.test.ts --maxWorkers=1`.
+- Final tests types: same Node22 PATH with `NODE_OPTIONS='--max-old-space-size=6144' node node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json`, exit0. Log `/tmp/masterplan-sc014-atomic-types-final.log` empty.
+- Final scoped lint: same Node22 PATH/memory setting `node node_modules/eslint/bin/eslint.js __tests__/ediel-sc-014-unattributed-reception.test.ts`, exit0. Log `/tmp/masterplan-sc014-atomic-lint-final.log` empty. Both final empty-log SHA256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `git diff --check` PASS; source files unchanged. No agent Git commit/push, remote post, tag/coverage/shared-memory edit or production fix.
+
+### Current exact producer/consumer bytes
+
+| Executed current source | SHA256 |
+| --- | --- |
+| `supabase/schema.sql` | `ed529f341c4d631b60d08016c18b4e2584ea592c2144f4f74d8735c0dfc6984d` |
+| `lib/ediel/core/kernel.ts` | `e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1` |
+| `lib/ediel/core/atomicAckPersistence.ts` | `39adcd02c5834798e72dd9ae34125b194650b98098256da3525c45d46ba32eca` |
+| `lib/ediel/ack/prepareSourceAckDraft.ts` | `1145b125d2a493374ba55f6ce2e35044a54fa1f30784194b5e6f9cbe485172ef` |
+| `lib/ediel/ack/technicalSyntaxAuthority.ts` | `fcebf7cddaa4652968f5a31887bbace2e44ae82befc6bb460894ee6078addd0e` |
+| `lib/ediel/ack/technicalSyntaxRoute.ts` | `2e8bf00c3e8bf3127313ad46ddd8d0e3c23abd13dfbdce4ffc7da0f7e2a68058` |
+| `lib/ediel/ack.ts` | `acb5019965de1f1f3fca47ee99b37b81e2e929ccc23589ae1a184764a1c74120` |
+| `lib/ediel/rulebook/validator.ts` | `ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1` |
+
+| Current critical SQL function | Extracted byte SHA256 |
+| --- | --- |
+| `public.ediel_create_outbound_ack_atomic_v1` | `3c975c20f88ab33d3ba8e4312e2ef99496313274f846e3c0a94951e41af32cd6` |
+| `gridex_ediel_ack_replay.create_v1` | `cf3652ccbc2eb9b2a9ff4b959d2bae215e43d3a59a24f7bb9b3b976754c1c7e7` |
+| `gridex_ediel_ack_replay.read_v1` | `67b0a479525ad03b38fab4de00de93574159c7bac0f73982dc75ea7d67efa466` |
+| `public.gridex_validate_ediel_message_contract` | `6473d330799cb3b59b42e12b8b25c9617e30b557decde8e5e39b8e4ec08595a8` |
+| `public.gridex_require_outbound_reply_basis_v1` | `8f861336de62829fab39461dde968a8a04f093f322638f544c4624e84e192fdc` |
+| `public.gridex_capture_ediel_rule_pack_snapshot` | `0a71c47335f79287a0dea46bd9cf168a364eb06900a57dda77cd2d0f676f69d2` |
+| `gridex_ediel_wire_namespace.reserve` | `0664b3df9e007834bfd57363e1184aeeffcb1e468890ef39d7e749fe9a673891` |
+| `gridex_ediel_wire_namespace.before_message_write` | `49c6f9f0af7c5a38688e6d829158985199210d72134abd537ea5c8d54d688da1` |
+| `gridex_ediel_technical_ack.retained_source_v1` | `8552434a93f6d8b6298b97f511090858ae138b9587b4e08f3fb02fa6699a20dc` |
+| `gridex_ediel_technical_ack.require_contrl_v1` | `117783ac79c2529b5100fb82057e7d5d4f1a6cf234f62bf550e7ced2bb504381` |
+| `gridex_ack_authority.read_outbound_originals_v1` | `20a05bc29c9d28d2ce9769c995eac4f86e5b68b54a04bffcee9003077d25e9ea` |
+| `gridex_ediel_duplicate_responses.read_business_original_v1` | `23a5e87c76f2f49d00d91d35dafc734bfe690c0f45a8a5d3a1d92d9f1af1dcab` |
+| `gridex_ediel_duplicate_responses.require_business_creation_outcome_v1` | `cb193f6d0709f667dc192e28078ddeafee635558228d6be65aa585493f621337` |
+| `gridex_ediel_ack_replay.require_readonly_guide_v2` | `040dfc8db877295d0fa5d57b05e2ff2935bb7bbf2fcf41b2810dc2984b8bf35c` |
+| `gridex_ediel_technical_ack.read_persisted_contrl_v2` | `7c748023e6347f3e806b675d43f7a7d7a70d4c9ee951c7027af651e359eb2c28` |
+| `public.ediel_read_persisted_technical_contrl_basis_v2` | `a7d352bdef161e415f4e01800bddc8651fcf8bb56e77492805d5508abad6604b` |
+
+The current migration identities and full read-only custody/source reconciliation remain in `/tmp/masterplan-sc014-persisted-contrl-seam.md` (SHA256 `1909cd382aa8b4afb4f05889f4bbe34e52b2f2625cf196744ae4162bbd353623`) and the earlier sections above. Critical actual SQL functions were byte-identical to published primary0796 at that read-only boundary; this does not claim adoption of its unrelated entire schema or source-owner mailbox changes.
+
+Bounded result: the missing genuine known-source fresh persisted CONTRL control now executes and passes through actual current TS and SQL custody. The unknown-legal raw original still fails canonical null-company birth BEFORE gaining its protected source ID. Source-reviewed downstream null-legal support remains conditional on genuine admission, not a successful unknown-legal ACK or full SC014 approval. The new positive removes a downstream fixture/custody uncertainty; it does not decide the normative TEN11 "where safely possible" obligation or authorize generic guard relaxation.
+
+Exact next action: freeze these two owned files for parent's independent source/effect review and any one requested focused immutable run. Parent retains full SC014 verdict, source-owner reconciliation and any precisely scoped future technical-only admission producer/contract proposal. Do not change existing intake/SQL/kernel, set mailbox company as legal/business attribution, synthesize receivedProdatContext, duplicate unpublished8490/side556, promote rows/tags or publish. No further owned mutation until concrete review feedback.

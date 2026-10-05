@@ -6,6 +6,8 @@ import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { EdielMailboxRow } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
+import type { EdielMessageRow } from '@/lib/ediel/types'
+import { createHash } from 'node:crypto'
 
 type Row = Record<string, unknown>
 const port = vi.hoisted(() => ({
@@ -14,6 +16,7 @@ const port = vi.hoisted(() => ({
   attemptedTables: [] as string[],
   errors: [] as Array<{ table: string; error: unknown }>,
   business: {} as Record<string, Row[]>,
+  rpcs: [] as Array<{ name: string; args: Row }>,
 }))
 
 vi.mock('@/lib/supabase/service', () => {
@@ -24,6 +27,7 @@ vi.mock('@/lib/supabase/service', () => {
     select(columns = '*', options?: { count?: string }) { this.columns = columns; this.exact = options?.count === 'exact'; return this }
     eq(key: string, value: unknown) { this.filters.push({ key, operator: '=', value }); return this }
     is(key: string, value: unknown) { this.filters.push({ key, operator: 'is', value }); return this }
+    not(key: string, operator: string, value: unknown) { if (operator !== 'is' || value !== null) throw Error('Undeclared NOT'); this.filters.push({ key, operator: 'is not', value }); return this }
     in(key: string, value: unknown[]) { this.filters.push({ key, operator: 'in', value }); return this }
     order() { return this }
     limit(maximum: number) { this.maximum = maximum; return this }
@@ -40,8 +44,8 @@ vi.mock('@/lib/supabase/service', () => {
         const parameters: unknown[] = []
         const parameter = (value: unknown) => { parameters.push(value); return `$${parameters.length}` }
         const column = (key: string) => { if (!/^[a-z_][a-z_0-9]*$/.test(key)) throw Error(`Undeclared column ${key}`); return `"${key}"` }
-        const where = this.filters.map(({ key, operator, value }) => operator === 'is'
-          ? value === null ? `${column(key)} is null` : (() => { throw Error('Undeclared IS') })()
+        const where = this.filters.map(({ key, operator, value }) => operator === 'is' || operator === 'is not'
+          ? value === null ? `${column(key)} ${operator} null` : (() => { throw Error('Undeclared IS') })()
           : operator === 'in' ? `${column(key)} in (${(value as unknown[]).map(parameter).join(',')})`
           : `${column(key)}=${parameter(value)}`).join(' and ')
         const predicate = where ? ` where ${where}` : ''
@@ -72,7 +76,16 @@ vi.mock('@/lib/supabase/service', () => {
       }).then(onfulfilled, onrejected)
     }
   }
-  return { supabaseService: { from: (table: string) => { port.attemptedTables.push(table); return new Query(table) }, rpc: () => { throw Error('Undeclared RPC') } } }
+  const rpc = async (name: string, args: Row) => {
+    port.rpcs.push({ name, args: structuredClone(args) })
+    const keys = rpcArguments[name]
+    if (!keys || !port.db) throw Error(`Undeclared RPC ${name}`)
+    try {
+      const data = await asService(async () => (await port.db!.query<{ value: unknown }>(`select public.${name}(${keys.map((_, index) => `$${index + 1}`).join(',')}) value`, keys.map(key => args[key] ?? null))).rows[0].value)
+      return { data, error: null }
+    } catch (error) { return { data: null, error } }
+  }
+  return { supabaseService: { from: (table: string) => { port.attemptedTables.push(table); return new Query(table) }, rpc } }
 })
 
 import { storeMailboxFetchMessage, listEdielMessageIdsForInboundEmails } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
@@ -80,6 +93,9 @@ import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProce
 import { parseEdifactPayload } from '@/lib/inbound-mail/edielEmailParser'
 import { validateEdifactSyntax } from '@/lib/ediel/core/syntaxValidator'
 import { assertEdielSmtpReadiness } from '@/lib/ediel/mailReadiness'
+import { prepareSourceAckDraft } from '@/lib/ediel/ack/prepareSourceAckDraft'
+import { createCanonicalAckMessage } from '@/lib/ediel/core/kernel'
+import { readPersistedEdielTechnicalContrlBasis } from '@/lib/ediel/ack/technicalSyntaxAuthority'
 import { ownerSource, OWNER, ownerId } from './helpers/sourceOwnerFixtures'
 
 const schema = readFileSync('supabase/schema.sql', 'utf8')
@@ -113,6 +129,17 @@ const guideEnd = guideSql.indexOf("'::jsonb value) edition;", guideStart)
 if (guideStart < 0 || guideEnd < 0) throw Error('Missing committed ACK guide projection')
 const guideInsert = guideSql.slice(guideStart, guideEnd + "'::jsonb value) edition;".length)
 const guideVersion = 'a30473a34535076e12e46386563adb3fa36431a0e7a245fc1be666c5737e8708'
+// Named finite transport only: every result is produced by current SQL below.
+const rpcArguments: Record<string, string[]> = {
+  gridex_actor_has_company_permission: ['p_actor_user_id', 'p_company_id', 'p_permission'],
+  gridex_read_outbound_acks_for_source_v2: ['p_source_message_id', 'p_ack_family', 'p_actor_user_id', 'p_phase'],
+  ediel_read_outbound_ack_replay_v1: ['p_company_id', 'p_environment', 'p_source_message_id', 'p_actor_user_id', 'p_ack_family', 'p_sequence_field', 'p_sequence_value'],
+  ediel_require_source_bytes_available_v1: ['p_company_id', 'p_source_message_id'],
+  ediel_require_technical_syntax_ack_basis_v2: ['p_company_id', 'p_message_id', 'p_actor_user_id', 'p_phase'],
+  ediel_read_technical_syntax_ack_route_v1: ['p_company_id', 'p_actor_user_id', 'p_source_message_id', 'p_smtp_from', 'p_smtp_host', 'p_smtp_port'],
+  ediel_create_outbound_ack_atomic_v1: ['p_company_id', 'p_environment', 'p_source_message_id', 'p_source_payload_hash', 'p_actor_user_id', 'p_ack_family', 'p_sequence_field', 'p_sequence_value', 'p_outcome', 'p_draft', 'p_common_smtp'],
+  ediel_read_persisted_technical_contrl_basis_v2: ['p_company_id', 'p_environment', 'p_ack_message_id', 'p_actor_user_id', 'p_phase'],
+}
 const mime = (wire: string) => `From: sender@example.invalid\r\nTo: configured@example.invalid\r\nMessage-ID: <sc014@example.invalid>\r\nContent-Type: application/edifact\r\n\r\n${wire}`
 
 async function rows(table: string) { return (await port.db!.query<Row>(`select * from ${table}`)).rows }
@@ -144,8 +171,54 @@ async function captureKnownSyntax() {
 async function configuredRoute(actorId = actor, smtp = assertEdielSmtpReadiness(), sourceId = OWNER.source) {
   return asService(async () => (await port.db!.query<{ value: Row }>('select public.ediel_read_technical_syntax_ack_route_v1($1,$2,$3,$4,$5,$6) value', [OWNER.company, actorId, sourceId, smtp.from, smtp.host, smtp.port])).rows[0].value)
 }
+async function installCurrentAtomicCustody() {
+  const db = port.db!
+  for (const namespace of ['auth', 'gridex_ack_authority', 'gridex_ediel_ack_replay', 'gridex_ediel_duplicate_responses', 'gridex_ediel_outbound_owner', 'gridex_ediel_common_header', 'gridex_ediel_wire_namespace', 'gridex_bilateral_prodat', 'gridex_regulated_supply', 'gridex_service_administration', 'gridex_metering_method_changes', 'gridex_prodat_object_batch', 'gridex_ediel_source_rules']) await db.exec(`create schema ${namespace}`)
+  // The public snapshot excludes auth.users. The current lock-only helper
+  // touches this empty external relation; it supplies no user/grant verdict.
+  await db.exec('create table auth.users(id uuid)')
+  for (const name of ['gridex_new_public_resource_reference', 'gridex_normalize_personal_number', 'gridex_normalize_facility_id', 'gridex_normalize_email', 'gridex_normalize_phone', 'gridex_normalize_metering_point_id']) await db.exec(definition('FUNCTION', `public.${name}(`))
+  // Actual CHECK dependencies of the graph's empty service-evidence table.
+  for (const name of ['canonical_tuple_projection_v1', 'requested_method_supported_v1']) await db.exec(definition('FUNCTION', `gridex_metering_method_changes.${name}(`))
+  const locks = ['gridex_ediel_ack_replay.lock_current_graph_v2', 'gridex_bilateral_prodat.lock_graph_v1', 'gridex_regulated_supply.lock_graph_v1', 'gridex_bilateral_prodat.lock_source_receipts_v1']
+  const lockTables = locks.flatMap(name => [...definition('FUNCTION', `${name}(`).matchAll(/LOCK TABLE ([\s\S]*?) IN SHARE(?: ROW EXCLUSIVE)? MODE;/g)].flatMap(match => match[1].split(',').map(table => table.trim())))
+  const custodyTables = ['gridex_ediel_ack_replay.creation_receipts', 'gridex_ediel_outbound_owner.witnesses', 'gridex_ediel_outbound_owner.consumptions',
+    'gridex_ediel_common_header.sources', 'gridex_ediel_common_header.negative_witnesses', 'gridex_ediel_common_header.negative_consumptions',
+    'gridex_ediel_duplicate_responses.intents', 'gridex_ediel_duplicate_responses.consumptions', 'gridex_ediel_wire_namespace.reservations', 'gridex_ediel_wire_namespace.coverage',
+    'gridex_ediel_ack_guide.established_prodat_acks', 'gridex_received_sources.prodat_mixed_object_receipts', 'gridex_ediel_source_rules.receipts', 'public.ediel_message_events']
+  for (const table of new Set([...lockTables, ...custodyTables])) {
+    if ((await db.query<{ present: boolean }>('select to_regclass($1) is not null present', [table])).rows[0].present) continue
+    await db.exec(definition('TABLE', `${table} (`))
+  }
+  // Namespace allocation's real conflict key and private immutable custody
+  // rows retain their actual primary/unique constraints from current schema.
+  for (const table of ['gridex_ediel_wire_namespace.reservations', 'gridex_ediel_wire_namespace.coverage', 'gridex_ediel_ack_replay.creation_receipts']) {
+    for (const match of schema.matchAll(new RegExp(`ALTER TABLE ONLY ${table.replaceAll('.', '\\.') }\\n[\\s\\S]*?;`, 'g'))) if (/ADD CONSTRAINT .* (PRIMARY KEY|UNIQUE) \(/.test(match[0])) await db.exec(match[0])
+  }
+  for (const name of [...locks, 'gridex_prodat_object_batch.require_service_v1', 'gridex_ack_authority.wire_v1', 'gridex_ediel_duplicate_responses.is_duplicate_ack_v1', 'gridex_ediel_duplicate_responses.allows_message_v1',
+    'gridex_ediel_technical_ack.retained_source_v1', 'gridex_ediel_technical_ack.require_contrl_v1', 'gridex_ack_authority.read_outbound_originals_v1', 'gridex_ediel_common_header.require_ack_v1', 'gridex_ediel_source_rules.require_v1',
+    'gridex_ediel_duplicate_responses.require_business_read_actor_v1', 'gridex_ediel_duplicate_responses.require_business_binding_v1', 'gridex_ediel_duplicate_responses.require_business_creation_outcome_v1',
+    'gridex_ediel_ack_guide.tail_populated_v1', 'gridex_ediel_ack_guide.validate_before_registered_responses_v1', 'gridex_ediel_ack_guide.validate_v1', 'gridex_ediel_ack_guide.validate_response_for_message_v1',
+    'gridex_ediel_ack_guide.qualify_err_reason_projection_v1', 'gridex_ediel_ack_guide.require_before_mixed_object_results_v1', 'gridex_ediel_ack_guide.require_before_prodat_scope_v1',
+    'gridex_ediel_ack_replay.require_readonly_prodat_ledger_v2', 'gridex_ediel_ack_replay.require_readonly_guide_v2', 'gridex_ediel_duplicate_responses.read_business_original_v1',
+    'gridex_ediel_duplicate_responses.matches_business_sequence_v1', 'gridex_ediel_ack_replay.read_v1', 'gridex_ediel_ack_replay.create_v1',
+    'gridex_ediel_wire_namespace.keys', 'gridex_ediel_wire_namespace.reserve', 'gridex_ediel_wire_namespace.before_message_write',
+    'public.gridex_require_outbound_reply_basis_v1', 'public.gridex_capture_ediel_rule_pack_snapshot', 'public.ediel_require_source_bytes_available_v1',
+    'public.gridex_read_outbound_acks_for_source_v2', 'public.ediel_read_outbound_ack_replay_v1', 'public.ediel_require_technical_syntax_ack_basis_v2', 'public.ediel_create_outbound_ack_atomic_v1',
+    'gridex_ediel_technical_ack.read_persisted_contrl_v2', 'public.ediel_read_persisted_technical_contrl_basis_v2']) await db.exec(definition('FUNCTION', `${name}(`))
+  for (const name of ['gridex_ack_authority', 'gridex_ediel_ack_replay']) {
+    const grant = `GRANT USAGE ON SCHEMA ${name} TO service_role;`
+    expect(schema).toContain(grant)
+    await db.exec(grant)
+  }
+  for (const trigger of ['ediel_wire_reference_namespace_before_write', 'ediel_messages_rule_pack_snapshot_trg']) {
+    const start = schema.indexOf(`CREATE TRIGGER ${trigger} `), end = schema.indexOf(';', start)
+    if (start < 0 || end < 0) throw Error(`Missing actual trigger ${trigger}`)
+    await db.exec(schema.slice(start, end + 1))
+  }
+}
 beforeEach(async () => {
-  port.queries = []; port.errors = []; port.attemptedTables = []
+  port.queries = []; port.errors = []; port.attemptedTables = []; port.rpcs = []
   port.business = {
     customers: [{ id: OWNER.customer, company_id: ownerId(999), personal_number: '001' }],
     customer_sites: [{ id: OWNER.site, company_id: ownerId(999), customer_id: OWNER.customer }],
@@ -279,5 +352,49 @@ describe('SC014 actual intake/admission qualification', () => {
     for (const changed of [{ ...smtp, from: 'old@example.invalid' }, { ...smtp, host: 'old.example.invalid' }, { ...smtp, port: 25 }]) await expect(configuredRoute(actor, changed)).rejects.toMatchObject({ message: 'ediel_technical_ack_route_count:0' })
     await expect(configuredRoute(ownerId(999))).rejects.toMatchObject({ message: 'ediel_negative_fixture_actor_not_authorized', code: '42501' })
     expect(await configuredRoute()).toMatchObject({ kind: 'technical_syntax_ack_route' })
+  })
+
+  it('persists a fresh actual kernel CONTRL through current atomic SQL and requalifies its immutable custody with WRITE-only PREPARE authority', async () => {
+    const basis = await captureKnownSyntax()
+    await installCurrentAtomicCustody()
+    const source = (await rows('public.ediel_messages'))[0] as unknown as EdielMessageRow
+    const beforeSource = structuredClone(source), beforeGuide = await rows('gridex_ediel_ack_guide.source_bindings'), beforeBusiness = structuredClone(port.business)
+    const domainTables = ['customers', 'customer_sites', 'metering_points', 'customer_contracts', 'metering_permissions']
+    const beforeDomain = await Promise.all(domainTables.map(table => rows(`public.${table}`)))
+    expect(await rows('gridex_ediel_ack_replay.creation_receipts')).toEqual([])
+    expect(await rows('public.ediel_message_events')).toEqual([])
+    expect(await rows('gridex_ediel_wire_namespace.reservations')).toEqual([])
+    const prepared = await prepareSourceAckDraft({ actorUserId: actor, sourceMessage: source, ackFamily: 'CONTRL', outcome: 'positive' })
+    expect(prepared.kind).toBe('draft')
+    if (prepared.kind !== 'draft') throw Error('Fresh actual draft required')
+    const ack = await createCanonicalAckMessage({ actorUserId: actor, sourceMessage: source, ackFamily: 'CONTRL', outcome: 'positive', draft: prepared.draft })
+    const ackHash = createHash('sha256').update(ack.raw_payload!).digest('hex')
+    expect(ack).toMatchObject({ company_id: OWNER.company, environment: 'production', direction: 'outbound', message_family: 'CONTRL', related_message_id: source.id, ack_outcome: 'positive', status: 'draft', immutable_payload_hash: ackHash,
+      canonical_rule_pack_id: null, customer_id: null, site_id: null, metering_point_id: null, requires_contrl: false, requires_aperak: false })
+    expect((ack as unknown as Row).immutable_rendered_at).toBeTruthy()
+    expect(ack.raw_payload).toBe(prepared.draft.rawPayload)
+    expect((await port.db!.query<{ value: Row }>('select to_jsonb(m) value from public.ediel_messages m where id=$1', [ack.id])).rows[0].value).toEqual(ack)
+    expect((await rows('public.ediel_messages')).find(row => row.id === source.id)).toEqual(beforeSource)
+    expect(await rows('gridex_ediel_ack_guide.source_bindings')).toEqual(beforeGuide)
+    expect(await rows('gridex_ediel_wire_namespace.coverage')).toEqual([expect.objectContaining({ source_message_id: ack.id, payload_sha256: ackHash, company_id: OWNER.company, environment: 'production' })])
+    const keys = (await port.db!.query<{ value: Row[] }>('select gridex_ediel_wire_namespace.keys($1) value', [ack.raw_payload])).rows[0].value
+    const reservations = await rows('gridex_ediel_wire_namespace.reservations')
+    expect(reservations).toHaveLength(keys.length)
+    for (const key of keys) expect(reservations).toContainEqual(expect.objectContaining({ source_message_id: ack.id, company_id: OWNER.company, environment: 'production', first_payload_sha256: ackHash, sender_namespace: key.sender, application_namespace: key.application, reference_kind: key.kind, wire_reference: key.value }))
+    const receipts = await rows('gridex_ediel_ack_replay.creation_receipts'), events = await rows('public.ediel_message_events')
+    expect(receipts).toHaveLength(1); expect(events).toHaveLength(1)
+    const [receipt] = receipts, [event] = events
+    expect(receipt).toMatchObject({ ack_message_id: ack.id, source_message_id: source.id, company_id: OWNER.company, environment: 'production', actor_user_id: actor, source_payload_hash: basis.sourceHash, ack_payload_hash: ackHash, event_id: event.id, family: 'CONTRL', outcome: 'positive', sequence_field: null, sequence_value: null })
+    expect(event).toMatchObject({ company_id: OWNER.company, ediel_message_id: ack.id, event_type: 'created', created_by: actor, event_payload: { sourceMessageId: source.id, sourceOperationId: receipt.source_operation_id, atomicOwner: true } })
+    const actual = await readPersistedEdielTechnicalContrlBasis({ companyId: OWNER.company, environment: 'production', ackMessageId: ack.id, expectedRawPayload: ack.raw_payload!, actorUserId: actor, phase: 'prepare' })
+    expect(actual.ackMessage).toEqual(ack)
+    expect(actual.evidence).toEqual(basis)
+    expect(port.rpcs.filter(call => call.name === 'ediel_create_outbound_ack_atomic_v1')).toHaveLength(1)
+    expect(port.rpcs.filter(call => call.name === 'ediel_read_persisted_technical_contrl_basis_v2')).toEqual([expect.objectContaining({ args: expect.objectContaining({ p_actor_user_id: actor, p_phase: 'prepare' }) })])
+    expect(port.business).toEqual(beforeBusiness)
+    expect(await Promise.all(domainTables.map(table => rows(`public.${table}`)))).toEqual(beforeDomain)
+    expect(port.attemptedTables.filter(table => !tables.includes(table) || Object.hasOwn(port.business, table))).toEqual([])
+    expect(await rows('gridex_ediel_outbound_owner.witnesses')).toEqual([])
+    expect(await rows('gridex_ediel_outbound_owner.consumptions')).toEqual([])
   })
 })
