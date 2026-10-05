@@ -78,6 +78,12 @@ One ownednativefile setup repair now source-reviewed at SHA14611ac1edc3a4c0795e2
 
 Source570isstill3ded withnewactualtargeted111747518286/run37305332981 SUCCESS at11:51:10:213approved/232taggreen/0fail, checkoutactual3ded confirmed. Earlierlocal799213/232/0 andold8c79/229remainseparate. Verifycurrent3dedactualmissingd0e4admission persists/root503 ownsadmission/authenticcapture. Next: commit/publishonlyownednativefix/receipt; sendexactnewproducerextractionSHAwithonlynativehashchanged to586; qualifyactualrepaired10-caseartifact. FullSC010stillNOT_APPROVED; finalcurrentrootgenerated/clean/upgrade/CIandintegrationneeded. Currentmain213totalsarecodeledgeronly; noourmerge/externalactivity.
 
+## Current published native repair dependency — 2026-10-05
+
+Existing sourcePR570 is now9b50b1b9a5aae19e9cabead09c92af4e0443c44c, the first containing the independently reviewed native14611ac1 repair. Source push is confirmed. New genuine source CI is running; old3ded213/232 and all earlier runs remain separately attributed. Historical first native run44992cdd is8PASS/2FAIL and its failed artifact remains intact. Repaired native is NOT_RUN. Existing nativeowner586 has concrete READY5994292830: fetch all six overlays from one immutable9b50 commit, five hashes unchanged824, only native14611ac1, migrationd0e4 unchanged. Our native-feedback-inputs.json now records this extraction pin and product baseline separately. No second native workflow, owner patch, stack or shared capture is created. Native owner is active and acknowledged its historical six successes and two owned failures; awaiting its exact pin update and actual rerun.
+
+This metadata-only follow-up is saved on the existing checkpoint ref without moving source9b50/restarting CI. Own source-review/types/lint pass does not establish repaired native atomicity. Current new-source ledger rows remain identical adopted505 (213approved/352); final root admission, canonical capture/clean-upgrade/currentCI and source integration remain pending.
+
 ## Historical component scope and ownership
 
 Own NEW test: `__tests__/ediel-sc-010-071-grant-revalidation.test.ts`.
