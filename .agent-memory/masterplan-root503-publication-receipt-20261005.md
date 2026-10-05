@@ -198,3 +198,24 @@ and already-public SC0102eefa6f0 exact65OWNdocs6004361913 through its retained
 queue after refreshing actual target preimages and qualification. This root
 creates no competing docsPR/tag/mainbaselineobserver. Actual main remainsb83
 with38uniqueACTUALmarkers; no additional actual-main delivery is invented.
+
+
+Execution update after direct user's finish-existing instruction: the earlier
+optional wait-for-old-clean plan is superseded by the necessary SAME612source
+cutover, publicly BEFORE6004436949/AFTER6004450130. Actual PR head is now public
+6d69aea8/baseb83/68diffpaths; normal773→6d fast-forward, noforce/newPR/manual
+retry or cancellation. The obsolete773 ordinary run is terminal: seven genuine
+SUCCESS, quality lintFAILURE, cleanCANCELLED22:28:10 after the source update;
+existing OPS cancel-in-progress unchanged. Indexed independent archive/local
+full-lint proof is retained, old failing/skipped results remain scoped and no
+old success/certificate transfers to6d. Actual terminal metadata is retained
+in owned pr612-public773-terminal-after-fixed-source-cutover.json.
+
+SAME original pr612_773_sole_ci_observer now holds the sole6d metadata-only lease,
+with four actual attempt1 producers37382624242OPS/37382624233full/37382624415
+browser/37382624365targeted. Initial eight actual required jobsRUNNING, ninth
+certificate notcreated; current all9 and actualmain delivery remain pending.
+Root will fresh-guard source/main/head/check identities and coordinate ONE
+normal expected-head merge when qualified; no duplicate observer or newrule.
+Combinedpublic34 source/captureinput prerequisites and solefinalMAINdoc/baseline
+adopter retain their existing owner scopes.
