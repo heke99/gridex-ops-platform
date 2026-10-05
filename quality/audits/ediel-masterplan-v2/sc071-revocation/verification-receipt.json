@@ -1,0 +1,179 @@
+{
+  "scope": "SC-071 bounded native projection/revocation test preparation; no whole-contract approval",
+  "recorded_at_utc": "2026-10-05T09:27:43.121662+00:00",
+  "branch": "codex/ediel-sc010-sc071-revocation-20261005",
+  "worktree": "/workspace/gridex-ediel-sc010-sc071-20261005",
+  "current_main_base": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "earlier_reviewed_base": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "source_carry": {
+    "changed_paths": [
+      ".agent-memory/handover.md",
+      ".agent-memory/open-blockers.md",
+      "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+      "__tests__/ediel-utilts-err-gateway.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json"
+    ],
+    "relevant_product_sql_fixture_config_helper_unchanged": true
+  },
+  "current_main_counts": {
+    "rules_verified": 91,
+    "acceptance_contracts_passed": 113,
+    "distinct_approved": 204
+  },
+  "coverage_edited": false,
+  "node_version": "v22.23.0",
+  "selected_checks": [
+    {
+      "command": "node22 node_modules/typescript/bin/tsc -p quality/audits/ediel-masterplan-v2/sc071-revocation/tsconfig.json --noEmit",
+      "exit_code": 0,
+      "log": "types.log"
+    },
+    {
+      "command": "node22 node_modules/eslint/bin/eslint.js scripts/ediel-sc-071-projection-revocation-native.test.ts quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts",
+      "exit_code": 0,
+      "log": "lint.log"
+    },
+    {
+      "command": "node22 scripts/check-ediel-masterplan-v2.cjs",
+      "exit_code": 0,
+      "log": "spec-integrity.log",
+      "original_files": 33,
+      "rules": 121,
+      "acceptance_contracts": 231,
+      "application_conformance_asserted": false
+    },
+    {
+      "command": "git diff --exit-code",
+      "exit_code": 0,
+      "meaning": "existing tracked files unchanged after canonical setup cleanup"
+    },
+    {
+      "command": "node scripts/check-agent-memory-git-state.cjs",
+      "exit_code": 0,
+      "campaign_complete": false
+    }
+  ],
+  "file_sha256": {
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts": "dfd7ae4e5b278d0c86904cda781ae4b8c1232d2aa1033022f4bb075d11853d1b",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/tsconfig.json": "57f6ed37a3d57981ef07cbb7b30a80ac6d3f3362763e07e543c4e3824519644f",
+    "quality/audits/ediel-masterplan-v2/sc071-revocation/independent-review.md": "52e45c842ec091c11c97e134140e9e87c33e218a2bbb51b5e249a9df82440e45"
+  },
+  "source_sha256": {
+    "lib/ediel/services/projection.ts": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+    "app/api/ediel/beneficiary/series/[seriesId]/route.ts": "820e3872046e1202a82bf8409deb06d5428323d08d9a4a9737c9183e09872474",
+    "scripts/ediel-source-owner-native.config.ts": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+    "scripts/fixtures/ediel-service-evidence-native.ts": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+    "scripts/helpers/native-lock-process.ts": "3e7f373e4124570ba86f06831e85dd60aa4c995221b057244a7ac505c1426621",
+    "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql": "23fea06eff8434656ec9e24957f22a1fca166b4e0b601646926bb1c48312c329",
+    "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql": "1f797a5f07f44bbebd80d557f786fd1d44cbf2803982ddae4ac018a0b7f1c74f",
+    "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql": "d02b7b3429991fc7af4fc6113a3d270ee1b9a3063b82d0230513f06a7e5b1ece"
+  },
+  "log_sha256": {
+    "types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "spec-integrity.log": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157",
+    "native-setup-failed.txt": "5082d995bf14ef1a3e61d544edae4fff8cd525e56132d0c8721445872ab9055a"
+  },
+  "independent_review": {
+    "bounded_static_component": "APPROVE",
+    "native_execution": "NOT_RUN",
+    "whole_sc071": "UNAPPROVED"
+  },
+  "native": {
+    "test_cases": 3,
+    "setup": "FAILED_BEFORE_DATABASE_REPLAY",
+    "execution": "NOT_RUN",
+    "reason": "Docker layer registration: no space left on device",
+    "canonical_setup": "source scripts/gridex-aud-003-clean-replay.sh",
+    "raw_redacted_setup_log_sha256": "c26be948f14c0a849c9a8878523ac330ea15f73bb3160da25f81b2627fb9da6d",
+    "cleanup": "canonical EXIT restoration, only five new unused images removed",
+    "shared_suite_include": "PENDING_COORDINATOR_CLEARANCE"
+  },
+  "failed_checks": [
+    {
+      "check": "initial specification integrity during native setup",
+      "outcome": "FAILED; canonical script temporarily held migration evidence; later passing check retained separately"
+    },
+    {
+      "check": "gh pr view 570 with baseRefOid",
+      "outcome": "FAILED: installed gh does not support this JSON field; corrected query confirmed exact head7a894c3b and draft/open state"
+    }
+  ],
+  "withdrawn_component": {
+    "scope": "six duplicate SC010 current-API tests",
+    "status": "SUPERSEDED_OUTSIDE_FINAL_PR",
+    "retained_owner_pr": 570,
+    "owner_head": "7a894c3b7938daf9bbbab7680f71ca5911aefc9c",
+    "used_as_native_or_whole_proof": false
+  },
+  "blocked_next_actions": [
+    {
+      "owner": "retained coordinator/native owner",
+      "action": "run selected config on the authentic canonical stack; clear shared include ownership if required"
+    },
+    {
+      "owner": "retained service/export source owner",
+      "action": "identify the existing queued/leased export consumer or explicitly assign missing first producer architecture/files; qualify current authority at read/send boundary"
+    }
+  ],
+  "candidate_ci": "NOT_YET_QUALIFIED",
+  "main_merge": "NOT_DONE",
+  "external_market_verification": "NOT_RUN",
+  "technical_freeze_commit": "b42fdc7a27064a286720fcbdaa66c97e4f7ed2b1",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/574",
+  "publication_status": "DRAFT_UNDER_REVIEW",
+  "prepublication_owned_path_check": {
+    "paths": 13,
+    "all_new_owned_paths": true,
+    "receipt_hashes_exact": true,
+    "credential_pattern_check": "PASS"
+  },
+  "resumed_work": {
+    "recorded_at_utc": "2026-10-05T09:59:43.729688+00:00",
+    "base_head": "af760c048fb07b0232e304ec2facd565e6b5951a",
+    "native_feedback_claim": 5992076279,
+    "optional_shared_include_request": 5991979879,
+    "new_workflow": ".github/workflows/ediel-sc071-native.yml",
+    "workflow_sha256": "415504aba370073521c904b3d397b7d1106276f30d23b307d935bf1967a663c3",
+    "static_actionlint": "PASS v1.7.12 checksum-qualified release",
+    "shell_python_syntax": "PASS",
+    "finite_wrapper_control_probe": "workflow-control-probe.json; synthetic orchestration only, no database/native qualification",
+    "production_search_inventory": "export-path-inventory.json; ten exact source hashes",
+    "independent_workflow_review": "native-feedback-review.md; initial P2 preserved and corrected",
+    "native_execution": "AWAITING_ACTUAL_CI",
+    "whole_sc071": "UNAPPROVED",
+    "shared_files_edited": false,
+    "reviewed_test_config_hashes_unchanged": true
+  },
+  "custody_correction": {
+    "recorded_at_utc": "2026-10-05T10:17:20.975351+00:00",
+    "current_main_base": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+    "main_adoption_commit": "3d31bf6785a0a40f88c0f57b51155c6bba0ab53f",
+    "current_main_counts": {
+      "rules_verified": 91,
+      "acceptance_contracts_passed": 114,
+      "distinct_approved": 205
+    },
+    "first_actual_run": {
+      "run": 37293845384,
+      "job": 111710327615,
+      "head": "f75cdd7d7c785a4ee28351d5819a82cae849a05e",
+      "result": "FAILED_CREDENTIAL_REFUSAL",
+      "artifacts": 0,
+      "native_counts": "NOT_QUALIFIED"
+    },
+    "workflow_sha256": "a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038",
+    "correction": "provide CLI SECRET_KEY format bytes through unchanged canonical scrub secrets input; retained credential refusal",
+    "canonical_redactor_edited": false,
+    "native_test_config_changed": false,
+    "actionlint_shell_python": "PASS",
+    "finite_wrapper_control": "3 PASS; synthetic ports, no database/native execution",
+    "independent_static_review": "APPROVE; 3 finite format controls PASS, no native proof",
+    "next_actual_native_run": "AWAITING_PUBLICATION",
+    "whole_sc071": "UNAPPROVED",
+    "sole_exporter_owner_claim": 5992097869,
+    "exporter_dependency": "IMPLEMENTATION_PENDING",
+    "coverage_edited": false
+  }
+}
