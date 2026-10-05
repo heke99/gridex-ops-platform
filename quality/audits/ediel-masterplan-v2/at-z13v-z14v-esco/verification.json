@@ -169,7 +169,16 @@
     "canonical-observation-main-60b2c7a7/baseline.edi": "cccbbd48b553db3c40c50055cfd4f16e918dd99424519e5b13fb1ba9b8879124",
     "canonical-observation-main-60b2c7a7/observations.json": "4961c31da4cf0669d87981e4fe43255bf624c5b3115c7023c98d96038506786b",
     "canonical-observation-main-60b2c7a7/missing222.edi": "3411f06cec08c7b455c81cd268b47e290dbb4bdb54d357fe562fe6fab4728300",
-    "main-60b2c7a7-supported-tagged-gate.log": "6abf8d31820e7ef83ddce25b8baa56e33001e110ba4f3db163e06736ece8fb8d"
+    "main-60b2c7a7-supported-tagged-gate.log": "6abf8d31820e7ef83ddce25b8baa56e33001e110ba4f3db163e06736ece8fb8d",
+    "main-d2adff9a-supported-tagged-gate.log": "6abf8d31820e7ef83ddce25b8baa56e33001e110ba4f3db163e06736ece8fb8d",
+    "main-498ebd1c-composition.json": "72749619c4dcd6d1266003d79e60786ca49ac0d5bf56a5afe3d8a47c604ec574",
+    "native-owner-proposal/proposal-v2-notes.md": "f60d57c1a9bc838bd00bf039bf2c9c1e1b107db47fb80be9af30abd2da0de554",
+    "native-owner-proposal/proposal-v2-review.json": "6b64e81dc622dc6cacb99b24d3aa491d2df3b74431e80d703755b9b7ca931aba",
+    "native-owner-proposal/proposal-v2.patch": "f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238",
+    "native-owner-proposal/superseded-v1-notes.md": "f0cba00c9909bec9bfa518dae969e36c4d12ff55255b4278067cef4519051ac0",
+    "native-owner-proposal/superseded-v1-review.md": "065bd0f9bf7b341bc63c239660ebc1f8b0e5485fb795f083fc843916ab38b4bf",
+    "native-owner-proposal/superseded-v1.patch": "bc70a3ab315ff0272a960959db04e95143c1eb84e0fe455f20b37656150f951b",
+    "native-owner-proposal/proposal-v2-review.md": "521557d7c1a4339641e4416a2c4b95c77d2b694c5adc188704976f1cfaaf64c3"
   },
   "mainAdoption": {
     "commit": "85b6d6602ab0d060a86702847641156470f73234",
@@ -236,5 +245,13 @@
     "docs/ediel/masterplan-v2/registers/prodat_fields.json": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
     "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6"
   },
-  "currentMainComposition": "main-60b2c7a7-composition.json"
+  "currentMainComposition": "main-60b2c7a7-composition.json",
+  "currentMainCompositionLatest": {
+    "metadata": "main-498ebd1c-composition.json",
+    "mainCommit": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+    "localGateExecutedMain": "d2adff9a1219125b6bccfed5aee4782243e09851",
+    "bounded28Unchanged": true,
+    "currentHeadCI": "PENDING_NEW_PUBLICATION",
+    "wholeRows": "Both NOT_EXECUTED/PARTIAL"
+  }
 }

@@ -1,0 +1,90 @@
+{
+  "previousPublishedHead": "95d706a216623ae08dec0de53ebbe56eaaaa5449",
+  "mainCommit": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+  "sourceWorkflowMain": "d2adff9a1219125b6bccfed5aee4782243e09851",
+  "mergeCommits": [
+    "d7c273f104d8ec4ca3ea306d98fa51910725dc96",
+    "0bcd57c0111f222753c3eee344aaea84c97fa08a"
+  ],
+  "conflicts": false,
+  "incoming505ToD2": [
+    "A\t.agent-memory/masterplan-imp05-recipient-binding-checkpoint.md",
+    "A\t.agent-memory/masterplan-ops03-checkpoint.md",
+    "A\t.agent-memory/masterplan-ops03-independent-review-checkpoint.md",
+    "A\t.agent-memory/masterplan-sc037-sc052-review-checkpoint.md",
+    "M\t.github/workflows/full-e2e.yml",
+    "M\t__tests__/ediel-certificate-trust-crypto.test.ts",
+    "A\t__tests__/ediel-ops-03-release-evidence.test.ts",
+    "A\t__tests__/ediel-recipient-address-binding.test.ts",
+    "M\t__tests__/ediel-recipient-preparation.test.ts",
+    "M\t__tests__/ediel-recipient-readiness.test.ts",
+    "M\t__tests__/helpers/syntheticEdielRecipientFixture.ts",
+    "M\tlib/ediel/security/outboundRecipientCertificate.ts",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-037-refutation.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-037.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-052-refutation.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/SC-052.md",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/baseline.json",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/main-ci-excerpts.json",
+    "A\tquality/audits/ediel-masterplan-v2/sc037-sc052-review-20261005/verification.json",
+    "M\tscripts/ediel-correction-context-native.test.ts",
+    "M\tscripts/gridex-full-production-e2e.cjs",
+    "M\tscripts/helpers/syntheticCertificateTrust.ts"
+  ],
+  "incomingD2To498": [
+    "M\t.agent-memory/handover.md",
+    "M\t__tests__/ediel-prodat-z04-persisted-ack.test.ts",
+    "M\tscripts/ediel-utilts-late-version-sql-regression.mjs"
+  ],
+  "bounded28InputsByteUnchanged": true,
+  "ownedProfileTestsAndPureProbeReused": {
+    "executedMain": "60b2c7a7d511c2b5f1b234da3851e1bf719b70f8",
+    "focusedPassed": 24,
+    "focusedSkipped": 0,
+    "canonicalOutputsByteIdentical": true,
+    "normativeProbeExit": 1,
+    "noNewFocusedOrProbeRun": true
+  },
+  "supportedGate": {
+    "executionCommit": "d7c273f104d8ec4ca3ea306d98fa51910725dc96",
+    "executionMain": "d2adff9a1219125b6bccfed5aee4782243e09851",
+    "exit": 0,
+    "rawLog": "main-d2adff9a-supported-tagged-gate.log",
+    "ids": 352,
+    "storedApproved": 213,
+    "taggedGreen": 234,
+    "taggedFailing": 0,
+    "untagged": 118,
+    "rawSHA256": "6abf8d31820e7ef83ddce25b8baa56e33001e110ba4f3db163e06736ece8fb8d",
+    "later498Qualification": "498 subsequently changes only two foreign test paths and one existing foreign handover. The raw local gate is a d2 composition run, not a 498 execution. New actual-head targeted CI must run the full supported gate; all-unit/coverage CI must execute untagged added recipient-address-binding/OPS03 tests.",
+    "storedCountWarning": "213 includes separately disputed SC036; no whole-row approval added here."
+  },
+  "nativeQualification": {
+    "old33Receipt": "Retained historicalcf72/85 only; current authentic updated-head clean replay/native artifact required.",
+    "changedBroaderDependencies": [
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "scripts/helpers/syntheticCertificateTrust.ts",
+      "scripts/ediel-correction-context-native.test.ts"
+    ],
+    "selected33CallGraph": "Independent reviewer finds selected33 ESCO paths do not call modified S/MIME certificate guard; their positive/replay delivery explicitly uses nodemailer-attachment, negative controls stop earlier. Synthetic trust helper is used only by correction-context suite sharing mandatory native config. No new native execution is claimed.",
+    "schemaFingerprintTypesUnchanged": true
+  },
+  "workflowReason": "Restack is necessary to pair the newly source-bound full-E2E certificate workflow with its corresponding runner and real checkout; prior95 eight successful checks are historical, not credit on the final updated head.",
+  "nativeOwnerProposal": {
+    "directory": "native-owner-proposal/",
+    "status": "APPROVED_PROPOSAL_ONLY",
+    "appliedToTarget": false,
+    "nativeExecution": "NOT_RUN",
+    "fullTypecheck": "NOT_RUN",
+    "CI": "NOT_RUN",
+    "revision1": "Preserved superseded, with Important oracle finding; never apply as approved.",
+    "revision2": "Fresh recorded validation/captured evidence required; every exception fails; only source-qualified structured application refusals plus full unchanged business snapshots can pass."
+  },
+  "preservation": {
+    "ownWholeRows": "NOT_EXECUTED/evidence unchanged; full-card peer verdicts PARTIAL",
+    "foreignPaths": "All imported main source/test/workflow/ledger/common-memory blobs retained exactly; own diff remains only NEW claimed paths.",
+    "sharedHandover": "No own append; existing foreign582 line imported. Sole572 append remains on9e63a602 for common coordinator carry.",
+    "rawWhitespace": "Unfiltered git diff --check may flag preserved raw log EOF and unified-patch blank context. Code/docs-filtered check excludes raw .log/.patch without trimming bytes."
+  },
+  "next": "Independent final metadata/proposal delta review; publish one non-force updated head and require all9 mandatory exact-head CI plus authentic native artifact. Fresh actual-main/head guard before ordinary merge, unique coordinator handover, then ownership-race-qualified VH pair."
+}
