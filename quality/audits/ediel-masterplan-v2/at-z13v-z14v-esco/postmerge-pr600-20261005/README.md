@@ -1,0 +1,13 @@
+# PR600 actual postmerge evidence
+
+PR600 actually merged at f7df744d58fb6677daa075f5613facb80c65db71 on 2026-10-05T17:36:37Z. Ordered parents are37b06fd31d91b23671c6f62fd459b6eb7635d605 and reviewed52a0e77cbf4816d2f55cfea083b29888632c374c; actual tree4050d46715dfc6699a71a298e1c42617e3823855 matches the inspected premerge guard. All175 owned documentation blobs and8055 foreign parent entries/modes/types were preserved; coverage is byte-exact. These are source preservation facts, not new whole-card/native/market approvals.
+
+The terminal CI record has nine mandatory successes on52a and four first-attempt successful workflow runs. One observer stopped; no reruns/native/capture/log/artifact downloads. CodeRabbit's success describes a skipped automated review. The existing independent documentation-carry review supplies the manual review. Terminal-pr.raw.json is the authentic earlier OPEN/unmerged read; actual-pr600-merged.raw.json is the authentic later MERGED read. Neither is rewritten.
+
+The original315-file local seal is preserved in its original custody directory. This finite public carrier includes selected own terminal raw checks, status, runs and PR metadata, not repeated poll payloads, foreign inventories or private analyses. All selected copies are byte-exact. publication-manifest.json binds copied files and the checkpoint prefix to immutable52a.
+
+The working-main-adoption receipt records one clean separate worktree from genuine8451f013/tree52bc0f6a, with583/589/600 ancestry,175own blobs and352distinct coverage IDs. Its254stored approvals are observations only. All four own whole V/VH rows remain NOT_EXECUTED/evidence[]. This working base has no final green PUSH-main/tag endorsement.
+
+Only this directory and an additive existing V checkpoint are published on the separate metadata ref codex/ediel-v-vh-pr600-postmerge-evidence-20261005. Source, tests, workflows, schema, coverage, prior audit bytes and common memory are unchanged. The prepared845 team worktree and closed600 source branch remain untouched. The common writer retains final eight-job PUSH-main window/tag and exactly-once handover; original600 request is5305998669478. This carrier creates no PR, source claim or second CI watcher. After the genuine final baseline is published, the team can adopt its verified descendant once.
+
+The common writer has since fulfilled the original600 handover exactly once on public checkpointc6c861916d04099007c4b30c2a184edadc8beb4d. Only our600 row was read for this receipt. This does not claim that the checkpoint metadata is alreadymain or that the finalmain/tag isgreen; no duplicate600handover is requested.

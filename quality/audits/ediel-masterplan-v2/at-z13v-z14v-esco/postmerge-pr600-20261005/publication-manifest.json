@@ -1,0 +1,101 @@
+{
+  "scope": "Own finite postmerge documentation publication only",
+  "directSourceParent": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+  "actualOwnMerge": "f7df744d58fb6677daa075f5613facb80c65db71",
+  "authorClaimComment": 6000071682,
+  "checkpointPath": ".agent-memory/masterplan-at-z13v-z14v-esco-checkpoint.md",
+  "checkpointOriginalBytes": 29524,
+  "checkpointOriginalSHA256": "442551014f7d40bbe3f9ac49b391246c9ecb5ab727a52f34e14cb41eea21d640",
+  "checkpointRetainsExactOriginalPrefix": true,
+  "copiedReceipts": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-merge-preservation.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-actual-merge-preservation.json",
+      "bytes": 1800,
+      "sha256": "c51372eb09898ebad3f519f0bb6ad74de4b2077c88e7629de391d9158595da7f",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-premerge-guard.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-final-premerge-guard.json",
+      "bytes": 129717,
+      "sha256": "b01c718fae314f56ec86d3d2c1d3c3029fd56f0273006734af0e38090980579d",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.md",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/final-receipt.md",
+      "bytes": 4170,
+      "sha256": "56a97a681cb08f06538e1184c8836e2815bfa212a3d5b4c6d278e666a4c5d320",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/final-receipt.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/final-receipt.json",
+      "bytes": 12949,
+      "sha256": "e47a582256b1a92b83124c51767e195da066d9eb4fc4f8dc8aa532345cafd8b0",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-checks.raw.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/terminal-checks.raw.json",
+      "bytes": 65163,
+      "sha256": "4af4ee92f42b4010613cb5e3d5a04b5630a05a452e1ca25ebb0e1e0e56665777",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-commit-status.raw.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/terminal-commit-status.raw.json",
+      "bytes": 5197,
+      "sha256": "7744749bf91bb8d77036d3f68a33596784612c09fa5b9abe9b78c31b5f538136",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-runs.raw.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/terminal-runs.raw.json",
+      "bytes": 52635,
+      "sha256": "c8076e07536aa125cbd3666aa83a6dac4810a72991967cc310013043e94710c1",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/terminal-pr.raw.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-ci/terminal-pr.raw.json",
+      "bytes": 17388,
+      "sha256": "8f9d889a2ca244e25cce76a15cd0dd98b6eaf2b53a30f60b6600c00cab6e8cef",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/actual-pr600-merged.raw.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/pr600-actual-merged.json",
+      "bytes": 18326,
+      "sha256": "c2974ea8373dbad19707eed3ac51d18c9a8cebff95b6d0bc4ec50ec3d6b71950",
+      "copiedByteExact": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/postmerge-pr600-20261005/working-main-adoption.json",
+      "sourceLocal": "/workspace/gridex-main-integration-coordination-20261005/own-team-working-main-adoption.json",
+      "bytes": 1583,
+      "sha256": "0682c63db3a5d12aa4e575dc91d81fb3d03da95d84849377bba518a8669a05ca",
+      "copiedByteExact": true
+    }
+  ],
+  "authoredReadmeSHA256": "3d9b33f1dd1880e4d0f18547b27f3b81078253490ec37f71cf509a9527700c76",
+  "noNewPRorSourceCI": true,
+  "finalGreenMainOrTagClaim": false,
+  "local315SealSHA256": "c20af474849d0a7e8f78f417e8b18dd6a1aff65c29c8df3d0f0dfe95af88874a",
+  "ownWholeRowsStillNotExecuted": true,
+  "commonHandoverFulfillment": {
+    "scope": "Immutable public shared checkpoint own600 exactly-once handover read only; not503source/native/CI or finalmain qualification",
+    "publishedCheckpoint": "c6c861916d04099007c4b30c2a184edadc8beb4d",
+    "path": ".agent-memory/handover.md",
+    "blob": "1ee1a39009ddaa2b41c182a7bcfb8c2715de4962",
+    "rawSHA256": "6724dc44f00022ac4dbec11d98c686627d6c4d3cee77ee8e6275313cf5755863",
+    "own600ExactMergeHandoverCount": 1,
+    "own600Lines": [
+      "- ACTUAL MAIN MERGE PR #600: `f7df744d58fb6677daa075f5613facb80c65db71`; tree `4050d46715dfc6699a71a298e1c42617e3823855`; parents `37b06fd31d91b23671c6f62fd459b6eb7635d605` + `52a0e77cbf4816d2f55cfea083b29888632c374c`; stored approvals 248. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/600)."
+    ],
+    "originalAuthorHandoverRequest": 5998669478,
+    "publicOwnerFulfillmentComment": 6000097089,
+    "notYetClaimedAsMainMetadataAdoption": true
+  }
+}
