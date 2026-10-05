@@ -1,0 +1,79 @@
+{
+  "observedAtUTC": "2026-10-05T13:25:10.121414+00:00",
+  "head": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "headTree": "7b95d8ae325b5a1ebc3d8ff6be4fa4feca2dd9ba",
+  "baseMain": "fff486f822001d35970f163507b10e17c3692f58",
+  "mergeable": true,
+  "mergeState": "clean",
+  "composedTree": "34e7a2c131f4f9be2a824cd44cdfba3ca3bb1ef5",
+  "all49OwnPathsAdded": true,
+  "allExistingMainBlobsPreserved": true,
+  "foreignMainPaths": 7600,
+  "mandatoryChecks": [
+    {
+      "name": "browser-public",
+      "id": 111761601136,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "smoke",
+      "id": 111761601680,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "coverage",
+      "id": 111761601212,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111761602426,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "verify",
+      "id": 111761872960,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111761872922,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 111761872672,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111761873089,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "pr-certificate",
+      "id": 111763926289,
+      "head_sha": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "deltaFromNativeExecutingSource": "Main adds11NEWF/G test/docs only; no selected profile or native/helper/config/package/schema/runtime/workflow changes. Independent mainFG37/currentV24 and gates reused; composedtagunion not rerun at this guard. Wholecards remainPARTIAL/NOT_EXECUTED.",
+  "ordinaryMergeOnly": "Expectedhead guarded; noadmin/override/force/branchdeletion"
+}
