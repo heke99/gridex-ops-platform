@@ -26,7 +26,6 @@ function ackColumns(parsed: ParsedEdifactEnvelope): Record<string, unknown> {
   if (classification.family === 'CONTRL') {
     return {
       contrl_status: negative ? 'rejected' : 'accepted',
-      syntax_status: negative ? 'rejected' : 'accepted',
       syntax_check_status: negative ? 'rejected' : 'accepted',
       ack_outcome: negative ? 'negative' : 'positive',
       failed_at: negative ? nowIso() : null,
@@ -37,7 +36,6 @@ function ackColumns(parsed: ParsedEdifactEnvelope): Record<string, unknown> {
 
   return {
     aperak_status: negative ? 'rejected' : 'accepted',
-    application_status: negative ? 'rejected' : 'accepted',
     functional_check_status: negative ? 'rejected' : 'accepted',
     ack_outcome: negative ? 'negative' : 'positive',
     failed_at: negative ? nowIso() : null,
