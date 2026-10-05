@@ -1,0 +1,64 @@
+{
+  "scope": "Qualified ordinary test receipts only; no whole-scenario, native or market acceptance inferred",
+  "head": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "run": 37287095697,
+  "job": 111688500429,
+  "status": "completed",
+  "conclusion": "success",
+  "source": "GitHub Actions original job log retrieved through GitHub connector",
+  "excerpts": [
+    "2026-10-05T09:02:33.1601564Z  \u2713 __tests__/ediel-supply-market-consumers.test.ts (18 tests) 10ms",
+    "2026-10-05T09:02:44.6228938Z  \u2713 __tests__/ediel-national-supply-rescission-operation.test.ts (17 tests) 19ms",
+    "2026-10-05T09:02:56.5228983Z  \u2713 __tests__/ediel-national-supply-rescission-intake-http.test.ts (14 tests) 32ms",
+    "2026-10-05T09:03:36.2356598Z  \u2713 __tests__/supplier-switch-activation-sweep.test.ts (2 tests) 14ms",
+    "2026-10-05T09:03:47.2617202Z  \u2713 __tests__/z02-atomic-worker-convergence.test.ts (3 tests) 4ms",
+    "2026-10-05T09:03:48.7110701Z  \u2713 __tests__/ediel-national-supply-rescission-business-watch.test.ts (3 tests) 13ms",
+    "2026-10-05T09:03:56.8283142Z  \u2713 __tests__/z02-raw-receipt-before-verification.test.ts (2 tests) 3ms",
+    "2026-10-05T09:03:59.7976732Z  Test Files  808 passed (808)",
+    "2026-10-05T09:03:59.8016297Z       Tests  10336 passed (10336)"
+  ],
+  "qualifiedInputs": [
+    {
+      "path": "__tests__/ediel-supply-market-consumers.test.ts",
+      "gitBlob": "900d0c8c17829f1ab16c00f0a771a88586ad3c2c",
+      "sha256": "13fbf9d00f4458dd9892b286193208f2b2b2cca8b05a9124c69c7572e0c89ea2"
+    },
+    {
+      "path": "__tests__/supplier-switch-activation-sweep.test.ts",
+      "gitBlob": "b72743cbc0095d30fcb51f32b88dce22130a9ad2",
+      "sha256": "671f24280cd3dd70f81e9b76d6ae2133d8945f643699310520ebce1fee6b7271"
+    },
+    {
+      "path": "__tests__/ediel-national-supply-rescission-operation.test.ts",
+      "gitBlob": "627d18748675dc4cb81d51c3e58be82d13b4d97a",
+      "sha256": "e6573ec5d13aefa492e61d006a6b7f0187f3089f57debaf1ca574eff6cfd72dc"
+    },
+    {
+      "path": "__tests__/ediel-national-supply-rescission-intake-http.test.ts",
+      "gitBlob": "ed365cd754d86cf9a2bb135d5b88c68e36bd767f",
+      "sha256": "56097ba35a693b7fc0aeae53dcb4b76fa973a359450df2eb25af956531e351c0"
+    },
+    {
+      "path": "__tests__/ediel-national-supply-rescission-business-watch.test.ts",
+      "gitBlob": "3663a70ae4524a4e5cece8c641d09c6fc9576a66",
+      "sha256": "bfaf141dad155bebda44804b8ddd1d15e5f990e412c9fa709a6da369bc008076"
+    },
+    {
+      "path": "__tests__/z02-atomic-worker-convergence.test.ts",
+      "gitBlob": "3f907152b99209db95d6028f0dd615efc44926c8",
+      "sha256": "c0bf09b951374e8fd3a8559687255a389b9d0acfc44becf92c8467ae068e2b08"
+    },
+    {
+      "path": "__tests__/z02-raw-receipt-before-verification.test.ts",
+      "gitBlob": "8cce979286b2bbc9b6360e07570aabe52ab37ded",
+      "sha256": "1c4e97f80647cd1b08fb2577ce28da06e7fadb6812cdec35a243d78cae3ca3ba"
+    }
+  ],
+  "checkoutEvidence": [
+    "2026-10-05T08:59:35.7789971Z   ref: 01b11f55af710c3e6aad1f5a433631a88c702047",
+    "2026-10-05T08:59:41.4450736Z [command]/usr/bin/git rev-parse --verify --quiet 01b11f55af710c3e6aad1f5a433631a88c702047^{object}",
+    "2026-10-05T08:59:41.4451620Z 01b11f55af710c3e6aad1f5a433631a88c702047",
+    "2026-10-05T08:59:41.9078504Z Note: switching to '01b11f55af710c3e6aad1f5a433631a88c702047'.",
+    "2026-10-05T08:59:41.9200699Z 01b11f55af710c3e6aad1f5a433631a88c702047"
+  ]
+}
