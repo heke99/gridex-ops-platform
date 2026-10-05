@@ -1513,8 +1513,16 @@
     },
     {
       "id": "SC-018",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
+        "scripts/ediel-sc-018-manual-service-context-sql-regression.mjs",
+        "scripts/test-ediel-sc-018-056-service-incident.cjs"
+      ]
     },
     {
       "id": "SC-019",
@@ -1875,8 +1883,15 @@
     },
     {
       "id": "SC-056",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/checkpoint.md",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/verification-receipt.json",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
+        "scripts/ediel-fresh-business-incident-native.test.ts"
+      ]
     },
     {
       "id": "SC-057",
