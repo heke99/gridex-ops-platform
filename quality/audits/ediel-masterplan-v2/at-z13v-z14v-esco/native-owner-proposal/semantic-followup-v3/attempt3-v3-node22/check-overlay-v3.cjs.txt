@@ -1,0 +1,53 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto')
+const repo='/workspace/gridex-ediel-at-z13v-z14v-esco-20261005'
+const receiptRoot='/tmp/gridex-z14-native-owner-proposal-semantic-check'
+const out=path.join(receiptRoot,'attempt3-v3-node22')
+fs.mkdirSync(out,{recursive:true})
+const provenance=JSON.parse(fs.readFileSync(path.join(receiptRoot,'git-provenance-before.json'),'utf8'))
+const target=path.join(repo,'scripts/ediel-service-evidence-native.test.ts')
+const candidate='/tmp/gridex-z14-native-owner-proof-v3/scripts/ediel-service-evidence-native.test.ts'
+const patch='/tmp/gridex-z14-native-owner-proof-v3.patch'
+const sha=b=>crypto.createHash('sha256').update(b).digest('hex')
+const expected={base:'a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee',candidate:'a82ca826ae7b9ab25ff83bf7b4af5c0fa42533edf543ac808f30ae9b1909d0c3',patch:'d473e4ebc134e60cf6f5088ef8dc116bff671a643a90e002a1a42781ef09ac1d'}
+const original=fs.readFileSync(target),replacement=fs.readFileSync(candidate,'utf8'),patchBytes=fs.readFileSync(patch)
+if(sha(original)!==expected.base||sha(Buffer.from(replacement))!==expected.candidate||sha(patchBytes)!==expected.patch)throw Error('exact_proposal_input_hash_mismatch')
+process.chdir(repo)
+const compilerPath=require.resolve('typescript',{paths:[repo]}),ts=require(compilerPath)
+const startedAt=new Date().toISOString(),configPath=path.join(repo,'tsconfig.scripts.json'),reads=new Map(),configDiagnostics=[]
+const record=(file,data,kind)=>{if(data!==undefined)reads.set(path.resolve(file),{path:path.resolve(file),sha256:sha(Buffer.isBuffer(data)?data:Buffer.from(data)),kind})}
+const parsed=ts.getParsedCommandLineOfConfigFile(configPath,{}, {...ts.sys,onUnRecoverableConfigFileDiagnostic:d=>configDiagnostics.push(d),readFile:file=>{const s=ts.sys.readFile(file);record(file,s,'config');return s}})
+if(!parsed)throw Error('real_tsconfig_parse_failed')
+const options=parsed.options
+if(options.noEmit!==true||options.strict!==true)throw Error('unexpected_project_compiler_options')
+if(!parsed.fileNames.some(f=>path.resolve(f)===target))throw Error('existing_native_target_not_in_real_scripts_tsconfig')
+const host=ts.createCompilerHost(options,true),normalRead=host.readFile.bind(host),normalGet=host.getSourceFile.bind(host)
+let overlayReads=0,overlaySources=0
+host.readFile=file=>{if(path.resolve(file)===target){overlayReads++;record(file,replacement,'virtual-native-source');return replacement}const s=normalRead(file);record(file,s,'real-source');return s}
+host.getSourceFile=(file,language,onError,fresh)=>{if(path.resolve(file)===target){overlaySources++;record(file,replacement,'virtual-native-source');return ts.createSourceFile(file,replacement,language,true,ts.ScriptKind.TS)}return normalGet(file,language,onError,fresh)}
+host.writeFile=()=>{throw Error('compiler_emit_is_not_authorized')}
+const program=ts.createProgram({rootNames:parsed.fileNames,options,host,projectReferences:parsed.projectReferences})
+const diagnostics=[...configDiagnostics,...parsed.errors,...ts.getPreEmitDiagnostics(program)]
+const serialize=d=>{const start=d.file&&d.start!==undefined?d.file.getLineAndCharacterOfPosition(d.start):null;return {code:d.code,category:ts.DiagnosticCategory[d.category],file:d.file?path.resolve(d.file.fileName):null,line:start?start.line+1:null,column:start?start.character+1:null,length:d.length??null,message:ts.flattenDiagnosticMessageText(d.messageText,'\n')}}
+const all=diagnostics.map(serialize),errors=all.filter(d=>d.category==='Error'),exitCode=errors.length?1:0
+const formatHost={getCanonicalFileName:f=>f,getCurrentDirectory:()=>repo,getNewLine:()=>ts.sys.newLine}
+const formatted=ts.formatDiagnostics(diagnostics,formatHost)
+fs.writeFileSync(path.join(out,'diagnostics.json'),JSON.stringify(all,null,2)+'\n')
+fs.writeFileSync(path.join(out,'diagnostics.txt'),formatted)
+fs.writeFileSync(path.join(out,'semantic-result.json'),JSON.stringify({diagnosticCount:all.length,errorCount:errors.length,exitCode,compilerVersion:ts.version,nodeVersion:process.version,onlyVirtualPath:target,candidateSHA256:expected.candidate},null,2)+'\n')
+for(const sf of program.getSourceFiles())record(sf.fileName,sf.text,path.resolve(sf.fileName)===target?'virtual-native-source':'compiled-source')
+const sources=[...reads.values()].sort((a,b)=>a.path.localeCompare(b.path))
+const snapshot=f=>({path:f,sha256:sha(fs.readFileSync(f))})
+const lock=JSON.parse(fs.readFileSync(path.join(repo,'package-lock.json'),'utf8'))
+const packagePaths=['typescript','vitest','@types/node'].map(name=>{const f=require.resolve(name+'/package.json',{paths:[repo]});const p=JSON.parse(fs.readFileSync(f,'utf8'));return {name,version:p.version,path:f,sha256:sha(fs.readFileSync(f)),lock:lock.packages?.['node_modules/'+name]??null}})
+const targetSource=program.getSourceFile(target)
+if(!targetSource||sha(Buffer.from(targetSource.text))!==expected.candidate||!overlaySources)throw Error('compiled_source_not_exact_proposal')
+if(sha(fs.readFileSync(target))!==expected.base)throw Error('retained_source_changed_during_read')
+const receipt={scope:'Standard TypeScript semantic static check with only one existing native source read overlay; no test/module/native/DB/provider execution',startedAt,endedAt:new Date().toISOString(),repository:repo,head:provenance.head,targetBlob:provenance.targetBlob,provenanceSource:path.join(receiptRoot,'git-provenance-before.json'),command:process.argv,execArgv:process.execArgv,execPath:process.execPath,nodeVersion:process.version,nodeExecutableSHA256:sha(fs.readFileSync(process.execPath)),compiler:{path:compilerPath,version:ts.version,sha256:sha(fs.readFileSync(compilerPath))},standardCommand:'npm run typecheck:scripts -> tsc --noEmit -p tsconfig.scripts.json',configPath,compilerOptions:options,rootNames:parsed.fileNames,rootCount:parsed.fileNames.length,sourceFileCount:program.getSourceFiles().length,projectReferences:parsed.projectReferences??[],overlay:{target,candidate,patch,expected,overlayReads,overlaySources,compiledSourceSHA256:sha(Buffer.from(targetSource.text)),onlyVirtualPath:target},fixedInputs:['tsconfig.json','tsconfig.scripts.json','package.json','package-lock.json','scripts/ediel-source-owner-native.config.ts','scripts/fixtures/ediel-service-evidence-native.ts'].map(f=>snapshot(path.join(repo,f))),packages:packagePaths,diagnosticCount:all.length,errorCount:errors.length,targetErrorCount:errors.filter(d=>d.file===target).length,nonTargetErrorCount:errors.filter(d=>d.file!==target).length,exitCode,emitPerformed:false,nativeExecution:'NOT_RUN',ordinaryBaselineFullTypecheck:'NOT_RUN',sourceInputManifestSHA256:sha(Buffer.from(JSON.stringify(sources))),driverSHA256:sha(fs.readFileSync(__filename))}
+fs.writeFileSync(path.join(out,'source-input-manifest.json'),JSON.stringify(sources,null,2)+'\n')
+fs.writeFileSync(path.join(out,'diagnostics.json'),JSON.stringify(all,null,2)+'\n')
+fs.writeFileSync(path.join(out,'diagnostics.txt'),formatted)
+fs.writeFileSync(path.join(out,'receipt.json'),JSON.stringify(receipt,null,2)+'\n')
+fs.writeFileSync(path.join(out,'compiler-options.json'),JSON.stringify(options,null,2)+'\n')
+console.log(JSON.stringify({head:receipt.head,compiler:ts.version,node:process.version,rootCount:receipt.rootCount,sourceFileCount:receipt.sourceFileCount,overlayReads,overlaySources,errorCount:errors.length,targetErrorCount:receipt.targetErrorCount,nonTargetErrorCount:receipt.nonTargetErrorCount,exitCode}))
+if(formatted)console.log(formatted)
+process.exitCode=exitCode

@@ -1,0 +1,44 @@
+{
+  "retainedTargetSHA256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+  "fixedInputs": [
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.json",
+      "expectedSHA256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1",
+      "observedSHA256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1",
+      "same": true
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/tsconfig.scripts.json",
+      "expectedSHA256": "f8a0d7dfd7b623ee83735e6912a739a1ee19fe7372c88cce4d98a4c725e95ba0",
+      "observedSHA256": "f8a0d7dfd7b623ee83735e6912a739a1ee19fe7372c88cce4d98a4c725e95ba0",
+      "same": true
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/package.json",
+      "expectedSHA256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "observedSHA256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "same": true
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/package-lock.json",
+      "expectedSHA256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "observedSHA256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "same": true
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/ediel-source-owner-native.config.ts",
+      "expectedSHA256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "observedSHA256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a",
+      "same": true
+    },
+    {
+      "path": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005/scripts/fixtures/ediel-service-evidence-native.ts",
+      "expectedSHA256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "observedSHA256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "same": true
+    }
+  ],
+  "noRepositoryEditsByThisTask": true,
+  "nativeExecution": "NOT_RUN",
+  "ordinaryBaselineFullTypecheck": "NOT_RUN"
+}

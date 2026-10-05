@@ -1,3 +1,13 @@
+## Qualified unapplied proposal follow-up — 2026-10-05T14:19:25.993436+00:00
+
+Existing missing222/326 proposal-v2 is now semantically FAIL9, all own target errors/0 elsewhere: the last visible callback overload makes projection's Awaited<ReturnType<typeof qualify>> void. Earlier parse/transpile success is not semantic approval. Original v1/v2 artifacts, initial Node24 receipt-only EPERM/no-verdict and actual Node22v2 diagnostics are preserved exactly.
+
+Unapplied v3 changes only the two overload-declaration order lines. Actual standard strict/noEmit TypeScript5.9.3/Node22.23.0 program PASS0/exit0 (113roots/1591sources);1685 input paths/options/compiler/fixture/head match, only virtual candidate SHA changes. Exact patchd473e4eb/candidatea82ca826; independent final peer3527cae6 APPROVE_PROPOSAL_ONLY. Native/DB/provider/product-import/baseline fulltype/lint/currentnativeCI for this proposal NOT_RUN; retained targeta544/blob9435 never edited. Both wholeVcards remainPARTIAL/NOT_EXECUTED.
+
+All42 original receipt files/1115730bytes and final manifest7f90bce8 are durably retained in native-owner-proposal/semantic-followup-v3/ with exact mapping/hashes. Candidate and compiler-driver copies use .txt suffixes to prevent new discovery/execution; no alternative native harness. Full exact-patch publication to PR503 was automatically rejected as sensitive external egress and NOT_EXECUTED; raw rejection and prepared concrete handoff are preserved. Safer user-contract-authorized530 status/hash-only handoff actuallyposted5996337761; retained owner can correct its already-published V583 proposal order and verify exact new hashes before authorized apply. No bypass or indirect full-payload posting, no closed583push or589head/CIrestart.
+
+Next root completes589 (sole reader observedall9b7mandatoryCIgreen; finalreceipt/currentmain guard pending), delivers independent50005SC051/068review, and follows fresh ownership scout. Existing source/native owner alone applies/executes v3 when its real prerequisites qualify. Prior V583 actualmergea8 and its separate authentic executingd1native33 remain correctly attributed in the historical section below; no currentv3native claim.
+
 # Current V checkpoint — actually merged
 
 Agent `/root` team; branch `codex/ediel-at-z13v-z14v-esco-20261005`; worktree `/workspace/gridex-ediel-at-z13v-z14v-esco-20261005`. PR583 actually merged at2026-10-05T13:27:24Z as `a8c991c1672d97cb03486a15ca34a16d1b2814e3`, parents `683b3e60b67f71293cd44c14d591f877474f0f88` and reviewed/published `d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a`; actual tree `4acbd9b92cc689382aaa28e10468b609f6d135c4`. This postmerge documentation is local only; no closed-PR status push or CI rerun.

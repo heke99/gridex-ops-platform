@@ -1,0 +1,11 @@
+{
+  "shellCommand": "/tmp/gridex-ediel-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node --max-old-space-size=4096 /tmp/gridex-z14-native-owner-proposal-semantic-check/check-overlay-v3.cjs",
+  "cwd": "/workspace/gridex-ediel-at-z13v-z14v-esco-20261005",
+  "toolSessionId": 13428,
+  "toolExitCode": 0,
+  "readOnlyApplyCheck": {
+    "shellCommand": "git apply --check /tmp/gridex-z14-native-owner-proof-v3.patch",
+    "exitCode": 0
+  },
+  "driverSHA256": "8aad3d655fb091785803169016f098cf51b07d18c74040a646df62029a45f312"
+}
