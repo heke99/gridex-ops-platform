@@ -1,0 +1,31 @@
+{
+  "atUTC": "2026-10-05T14:25:55.656856+00:00",
+  "PR": 589,
+  "actuallyMerged": true,
+  "actualMerge": "93d6defed00e6873b58559e0a9fffe9e67d72855",
+  "merged_at": "2026-10-05T14:24:49Z",
+  "parents": [
+    "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "b7acb387c4132c7885e84bd1d7197f3ec5a0143f"
+  ],
+  "actualTree": "f49ae22d0deb1d41ab0f6695a370067f6ed663cd",
+  "independentlyExpectedTree": "f49ae22d0deb1d41ab0f6695a370067f6ed663cd",
+  "preservedForeignEntries": 7689,
+  "addedOwnedEntries": 34,
+  "currentNativeInventoried3063Unchanged": true,
+  "selectedNativeExecutionStillAttributedTo": "d1a782157f8bfe62cdb6dcb91c6039e68bc6d79a",
+  "wholeVH": "PARTIAL/NOT_EXECUTED",
+  "closedHeadPush": "NOT_PERFORMED",
+  "latestFetchedMain": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "coverageCounts": {
+    "NOT_VERIFIED": 24,
+    "VERIFIED": 92,
+    "PARTIAL": 22,
+    "PASSED": 125,
+    "NOT_EXECUTED": 89
+  },
+  "storedApproved": 217,
+  "coverageIds": 352,
+  "all4WholeVandVHRows": "NOT_EXECUTED/evidence[]",
+  "firstCoverageParse": "Initial generic keys did not read this schema: no count claimed; corrected explicit actual rules+acceptance_contracts352"
+}
