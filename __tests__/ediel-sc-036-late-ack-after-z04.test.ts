@@ -32,13 +32,19 @@ const run=(family:'APERAK'|'CONTRL')=>applyCanonicalInboundAckStatusUpdate({comp
  meteringPointMatch:{status:'unmatched',candidates:[]} as never,inboundEmailMessageId:'mail'})
 
 beforeEach(()=>{db.rows={outbound_requests:[{id:'outbound-1',company_id:'company',status:'confirmed',response_payload:{z04:'kept'}}],
- supplier_switch_requests:[{id:'switch-1',company_id:'company',status:'accepted'}]}})
+ supplier_switch_requests:[{id:'switch-1',company_id:'company',status:'accepted'}],
+ ediel_messages:[{id:'z03-out',company_id:'company',direction:'outbound',outbound_request_id:'outbound-1',message_code:'Z03',status:'sent',aperak_status:null,ack_outcome:null,acknowledged_at:null}]}})
 
 it('both fixtures are classified as positive ACKs',()=>{for(const f of ['APERAK','CONTRL'] as const)expect(classifyCanonicalInboundAck(ack(f)),JSON.stringify(ack(f))).toMatchObject({outcome:'positive'})})
 it.each(['APERAK','CONTRL'] as const)('a late positive %s after Z04 keeps the confirmed business status and Z04 payload',async family=>{
  await run(family)
  expect(db.rows.outbound_requests[0]).toMatchObject({status:'confirmed',response_payload:{z04:'kept'}})
  expect(db.rows.supplier_switch_requests[0].status).toBe('accepted')
+ // The late ACK completes the ACK columns on the own Z03 original.
+ const z03=db.rows.ediel_messages.find(r=>r.id==='z03-out')!
+ expect(z03).toMatchObject({ack_outcome:'positive',failed_at:null})
+ expect(z03.acknowledged_at).toEqual(expect.any(String))
+ expect(family==='APERAK'?z03.aperak_status:z03.contrl_status).toBe('accepted')
 })
 it('before any business response the positive APERAK still records application acceptance',async()=>{
  db.rows.outbound_requests[0]={id:'outbound-1',company_id:'company',status:'sent',response_payload:null}
