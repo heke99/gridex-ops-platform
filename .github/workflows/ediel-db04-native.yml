@@ -1,0 +1,80 @@
+name: Ediel DB-04 native query plans
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['claude/magical-cerf-55zxau']
+    paths:
+      - 'scripts/ediel-transport-data-query-plan-native.test.ts'
+      - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
+      - '.github/workflows/ediel-db04-native.yml'
+  pull_request:
+    paths:
+      - 'scripts/ediel-transport-data-query-plan-native.test.ts'
+      - 'quality/audits/ediel-masterplan-v2/db04-query-plan/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/ediel-db04-native.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ediel-db04-native-${{ github.ref }}
+  cancel-in-progress: true
+
+# Measures real EXPLAIN (ANALYZE) plans after canonical clean replay.
+jobs:
+  db04-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Install the PostgreSQL client for the canonical replay server
+        shell: bash
+        run: |
+          set -euo pipefail
+          server_major="$(python3 -c "import re,pathlib;print(re.search(r'^major_version\s*=\s*(\d+)', pathlib.Path('supabase/config.toml').read_text(), re.M).group(1))")"
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq "postgresql-client-$server_major"
+          echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
+      - name: Run the query-plan measurement after canonical clean replay
+        shell: bash
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
+        run: |
+          set -euo pipefail
+          mkdir -p db04-working
+          export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/db04-native-status.json"
+          bash <<'NATIVE' 2>&1 | tee db04-working/session.log
+          set -euo pipefail
+          source scripts/gridex-aud-003-clean-replay.sh > db04-working/replay.log 2>&1
+          supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          npx vitest run \
+            --config quality/audits/ediel-masterplan-v2/db04-query-plan/native.config.ts \
+            --reporter=default 2>&1 | tee db04-working/native.log
+          NATIVE
+      - name: Keep the measured plans
+        if: always()
+        run: grep -h '"kind":"ediel_transport_data_native_query_plans"' db04-working/native.log > db04-working/plans.json || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: db04-query-plans
+          path: db04-working/plans.json

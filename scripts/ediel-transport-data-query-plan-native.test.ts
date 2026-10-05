@@ -1,3 +1,4 @@
+// masterplan: DB-04, AT-DB-04
 import {execFileSync} from 'node:child_process'
 import {randomUUID} from 'node:crypto'
 import {expect,it} from 'vitest'
@@ -7,6 +8,7 @@ import {closureFixture} from '../__tests__/helpers/closureWireFixtures'
 type PlanNode={['Node Type']:string;['Actual Rows']:number;['Index Name']?:string;Plans?:PlanNode[]}
 type Explain={Plan:PlanNode;['Execution Time']:number;['Planning Time']:number}
 const literal=(value:string)=>"'"+value.replaceAll("'","''")+"'"
+const nodeTypes=(node:PlanNode):string[]=>[node['Node Type'],...(node.Plans??[]).flatMap(nodeTypes)]
 const indexes=(node:PlanNode):string[]=>[...(node['Index Name']?[node['Index Name']]:[]),...(node.Plans??[]).flatMap(indexes)]
 
 /** Full disposable PostgreSQL schema only. These raw inbound originals are
@@ -83,6 +85,8 @@ it('measures actual tenant/environment/actor/deadline/reference and object/perio
   // index; both are bounded index scans (rows and time asserted below/above).
   const accepted=key==='objectPeriodVersion'?[expected[key],'meter_reading_series_company_period_idx']:[expected[key]]
   expect(indexes(evidence.plans[key].Plan).some(name=>accepted.includes(name)),JSON.stringify(indexes(evidence.plans[key].Plan))).toBe(true)
+  // A measured plan, not mere index existence: no sequential scan may serve the filtered access path.
+  expect(nodeTypes(evidence.plans[key].Plan).filter(type=>type==='Seq Scan'),key).toEqual([])
   expect(evidence.plans[key]['Execution Time']).toBeLessThan(500)
  }
 
