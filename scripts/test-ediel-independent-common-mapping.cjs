@@ -1,3 +1,4 @@
+// masterplan: SC-072
 // SC-072: a real shared builder/decoder mapping fault must fail an independent
 // physical-wire oracle even while its own roundtrip and service syntax pass.
 // Source: T24.A rev6, section4.2 pp24-25, immutable original SHA below.

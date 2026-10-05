@@ -389,6 +389,42 @@ capture prefix requires fresh authentic qualification. Corrected native cases
 are not claimed PASS until actually executed. No duplicate artifact download,
 local native bootstrap or local full-suite retry; root owns every main merge.
 
+## Corrected native fixture on genuine main a248 — 2026-10-05
+
+Atomic three-date repair is `a55a57c6968c112fa3eb0f31f9109a0ea37cb85e`.
+Reverse substitution proves all other native bytes, assertions, SQLSTATEs and
+counts equal the qualified 994 source. The genuine fetched main parent is
+`a24885d52275f832307329b92bcfaef95fca8cb2`, including merged ENV-02. No
+non-destructive integration reset, cherry-pick or other-owner source fix is used.
+
+Main's full coverage file is preserved byte-for-byte; DB-02/AT-DB-02 remain
+NOT_VERIFIED/NOT_EXECUTED. Migration history retains every main entry and the
+unchanged own 223219 checksum; native configuration retains every main include
+and exactly one own six-case include. Own production SQL, unit test and corrected
+native source equal the atomic repair. The already reviewed two shared Z06
+blobs still equal `d315464b`; its exact 18-case source scope is retained without
+another duplicate run.
+
+Incoming main schema/fingerprint are authentic historical baseline bytes, not
+a hand-composed merge of snapshots. Types remain `4f5713d6`; incoming schema
+SHA256 `df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6`,
+fingerprint file
+`10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7`.
+Incoming main capture/provenance is preserved; the complete prior own manifest
+remains reachable through immutable a55 commit/path/blob/hash. Actual newest
+registered replay tail is `20261005020000_ediel_production_contract_ack_confirmation.sql`.
+`composition_capture_pending=true` explicitly requires fresh genuine capture of
+main plus the own profile guard and corrected fixture. No earlier receipt is
+relabeled as this source prefix.
+
+Selected actual profile tests 25/25, full test/scripts types, migration checks,
+scoped native/config lint, specification 33/121/231 and own diff/byte checks PASS.
+Inherited main audit-log whitespace remains unchanged; own diff against main
+passes. No local full/native chain or artifact re-download. Next: publish one
+coherent merge head, genuine owner capture/import and actual corrected six-case
+native outcome plus mandatory current-head gates. Coverage promotion and main
+merge remain held under root authority.
+
 Skill routing: Supabase boundary guidance, spec-to-code compliance, source
 review, fp-check and verification-before-completion apply to this bounded
 inventory. Postgres best practices/testing activate for an authorized repair.

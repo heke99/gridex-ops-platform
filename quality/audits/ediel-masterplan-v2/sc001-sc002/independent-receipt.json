@@ -1,0 +1,509 @@
+{
+  "schema": "independent-whole-scenario-review-v1",
+  "head": "01fa51f991d95e63c3a16c94ce0f2643fa34ac7d",
+  "tree": "affeefa94325bbe2eb66e362311500ad060ab582",
+  "base": "507e8bfa20606be31933eea1582066267ff2577a",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/557",
+  "verdicts": {
+    "SC-001": "APPROVE",
+    "SC-002": "APPROVE"
+  },
+  "frozenLiteralScenarios": [
+    {
+      "id": "SC-001",
+      "name": "Egen tenant med DDQ",
+      "given": "Tenant A har legal aktör A, DDQ-profil och giltigt leveransavtal. B har annan aktör.",
+      "when": "A beställer Z03L.",
+      "expected": "Partsidentitet A på wire, 23-DDQ-PRODAT, rätt objekt och L/Z22.",
+      "prohibited": "Gridex-id ersätter inte A:s aktör; ingen data från B.",
+      "rule_ids": [
+        "TEN-02",
+        "TEN-05",
+        "ENV-06"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    },
+    {
+      "id": "SC-002",
+      "name": "Egen tenant med DGI",
+      "given": "Tenant B har egen legal ESCO-identitet och DSO-/kundavtal.",
+      "when": "B beställer Z13V.",
+      "expected": "B:s juridisk aktör och 23-DGI-PRODAT; separat tillståndsärende.",
+      "prohibited": "Ingen Z03 och inget Gridex-ombud antas.",
+      "rule_ids": [
+        "TEN-02",
+        "ESCO-01"
+      ],
+      "layer": "Integration/E2E",
+      "execution_status": "Inte körd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "technicalInput": [
+    {
+      "path": "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+      "sha256": "a4b0074360b3e5eddd5f890da453c4c46ed3bf94e000568fafc4181dda993f3c"
+    }
+  ],
+  "ownerReceiptSha256": "baa2ba25edfd65e63783bf20ebc710fc8a90996ac39af69378999e98003eed29",
+  "qualification": {
+    "head": "01fa51f991d95e63c3a16c94ce0f2643fa34ac7d",
+    "tree": "affeefa94325bbe2eb66e362311500ad060ab582",
+    "base": "507e8bfa20606be31933eea1582066267ff2577a",
+    "fileInputs": [
+      {
+        "group": "frozenInputs",
+        "path": "docs/ediel/masterplan-v2/annex/D_Acceptanskontrakt.md",
+        "sha256": "5acc706bd5f328daf1878ebf0311488ac01db7bd5a2d97520b766548c1923912",
+        "equal": true
+      },
+      {
+        "group": "frozenInputs",
+        "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+        "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+        "equal": true
+      },
+      {
+        "group": "frozenInputs",
+        "path": "docs/ediel/masterplan-v2/registers/rules.json",
+        "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+        "equal": true
+      },
+      {
+        "group": "technicalInputs",
+        "path": "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+        "sha256": "a4b0074360b3e5eddd5f890da453c4c46ed3bf94e000568fafc4181dda993f3c",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/flows/prodatSwitch.ts",
+        "sha256": "9ae579c5acd42927894479d0a833c1560cda190ab72f37eaf69a4559f27cb3eb",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/flows/prodatServicePermission.ts",
+        "sha256": "ce265b0dd0985d1b15eac1f7c58b0c14c9ce9762da6812d3f6f62077bfd15f4c",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/intent/switchRenderGateway.ts",
+        "sha256": "a1de335c98cf210b24e3a1c3f5fed89c9844a5d42a5df5a4e2f4335330a13b13",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/intent/renderGateway.ts",
+        "sha256": "aaa06c9f2762eac28e4e7a53aba31dfeb93b8cbe549a2f2a675d728a84e1d59f",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/intent/renderers/servicePermission.ts",
+        "sha256": "f3d9532c6fc20bbbfff9a5116128272aa15c15f04da749465d9e413520ed7b29",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/intent/intentEngine.ts",
+        "sha256": "b56e03cb0fc92835fbfd49812224015bdd7d27348b84a2bfa178965276c02829",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/administration.ts",
+        "sha256": "19a87f00e6bd16b7d983a42dd7d148b98349281550cbe74e779c4019fc389ee8",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/authorization.ts",
+        "sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/commands.ts",
+        "sha256": "bf1619bd0eac22fdf65183f308f23204a700be1b443e571212c6846b86c4ef16",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/permissionOrigin.ts",
+        "sha256": "7b06e95ef84ef762d538cf7938bb60a019c210531701ff95f0af3cade31a5062",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/requestTiming.ts",
+        "sha256": "de31ae0973f8ae5385eff4fe557d621a3d96f4203d92a831b2e43ac78ab51f2a",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/services/reporting.ts",
+        "sha256": "ad3eb1339a1dd0a4e03482745d8c54611b3f9d042c50af29b7fa80297c70061c",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/prodat/compatAdapter.ts",
+        "sha256": "731278945699538b10ea70f49426fe20f6c034efdd3cb47c3fbb0bf84d1b8537",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/prodat/engine.ts",
+        "sha256": "eddc1e0d6a72d0aa0affd62192c471b795e7faf153509e0d517ccc5d36646514",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/prodat/parser.ts",
+        "sha256": "2deb1745cf6054b8ea7741b63d5acbcc9f62ea81e10f2001556bb8ee4c25354e",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/prodat.ts",
+        "sha256": "a8278f7ccbe759608fa8ea33fc1951ce62b3e916adab9b1e4f7ba9c88bafcfd1",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/production/contractRequestedMethodSource.ts",
+        "sha256": "85a19426acaf93800c20330514ee8a3a798196990ebc3158c4b7dc0367a82f31",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/production/brpFieldSource.ts",
+        "sha256": "169cf824ceac83e190478806bccf3406fab3b033021d417f4a4336bf934b8f62",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/core/edifactTokenizer.ts",
+        "sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/core/versionRegistry.ts",
+        "sha256": "ec62231af36ecde38a8377662ca6586e8846170b617e3e51e1eded27c915aa68",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/flows/routeDecisionContext.ts",
+        "sha256": "cf2a1c5fc0d52ffb9af23d5bf9195b8fc8f1e1061e9257439ff05bfa7227b3cb",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/flows/shared.ts",
+        "sha256": "e555e45fee1762e2b19cba794354207ae170f62f7f49230f06ca31f815f74f49",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/core/kernel.ts",
+        "sha256": "e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/intent/applicationReferencePolicy.ts",
+        "sha256": "ed146c86becb4ae0c5358bc7d1e580a6c1e9feeac2c59dcd75c0e2dea2db2c1f",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "lib/ediel/rulebook/canonicalEdielFacade.ts",
+        "sha256": "d395ebef617da8181879605aaf486cae889950316af7e1967d83525ece6a2d8f",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "scripts/ediel-service-evidence-native.test.ts",
+        "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "scripts/ediel-source-owner-native.test.ts",
+        "sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "scripts/helpers/ediel-normal-switch-native-fixture.ts",
+        "sha256": "8ec16f3136b976a687e90c84456ab2acab615fcdb037bee8e4d2acd9197c982a",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+        "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8",
+        "equal": true
+      },
+      {
+        "group": "sourceInputs",
+        "path": "supabase/schema.sql",
+        "sha256": "ed529f341c4d631b60d08016c18b4e2584ea592c2144f4f74d8735c0dfc6984d",
+        "equal": true
+      }
+    ],
+    "staticEnvelope": {
+      "method": "Recursive literal static from/import/require including re-exports; filesystem resolution of alias/relative .ts/.tsx/.json/index modules. This conservative envelope is not a runtime call graph; computed imports are not asserted exhaustively. External package files are excluded.",
+      "files": 725,
+      "unchanged": 723,
+      "changed": [
+        "lib/ediel/sources/correctionOutboundDispatch.ts",
+        "lib/ediel/transport/outboundAttempt.ts"
+      ],
+      "allDeclaredHashesChecked": true,
+      "computedImportsExhaustive": false
+    },
+    "sqlOwnerBodies": [
+      {
+        "function": "public.ediel_bind_switch_original_v1",
+        "sha256": "04cede5ca697acfdc800a16729fc8897c06c37012286c1f475a68e45f82e0c84",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_coordinate_service_permission_v1",
+        "sha256": "5ebfa3180d67375f56f0d20c0d10e6c016c26566fb1dfb01bb1614fada325ada",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_resolve_service_permission_command_v1",
+        "sha256": "280258f1314a8eaf795327ab375f155cd8c0139644f566ae90bff96fdeb6bb8c",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_service_permission_origin_v1",
+        "sha256": "be559657dbac13e3b0bb7ad30cdf57fce94ff4c29e8a4c5a9e1aef732bacfe62",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_reserve_service_permission_origin_v1",
+        "sha256": "d00e2ca92326c12abe9ff7aa32b0ab6b622d91996c18f8515042028c85efb1c8",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_contract_metering_request_source_v1",
+        "sha256": "417718f4c63b3c4992f8f4d52536462c9ffacc08cbe3d21447961e757a9ccc0c",
+        "equal": true
+      },
+      {
+        "function": "public.ediel_brp_field_source_v1",
+        "sha256": "81258f515df8da050cb9c65025f67aef6c69ee5c41aa6bc0d6ebdca20b57c4d0",
+        "equal": true
+      },
+      {
+        "function": "gridex_service_permission.current_request_timing_v1",
+        "sha256": "9400f1b4dcf3c1dcf7dcd55630182ddf7ebf8ed11202ead8cdd0dd87cb3017ae",
+        "equal": true
+      },
+      {
+        "function": "gridex_service_permission.resolve_before_request_timing_v1",
+        "sha256": "785269c60a6592b664f87c64f58e11afb94d83a56c61f4dd2ada7ae2285d0d0e",
+        "equal": true
+      },
+      {
+        "function": "public.gridex_actor_has_company_permission",
+        "sha256": "5ff30a78ce0a034311faf9e7c49c9c3a6ca5c2856636b6a5dd1633c3ff73ddf9",
+        "equal": true
+      },
+      {
+        "function": "public.gridex_assert_supplier_switch_ready",
+        "sha256": "e7d9e49ec3b12a97652d579e4b53a0ef2e70866eb347af7fefae911d6e55a8af",
+        "equal": true
+      }
+    ],
+    "selectedNativeCases": [
+      {
+        "classname": "scripts/ediel-service-evidence-native.test.ts",
+        "name": "genuine archived/reviewed V scope, sent Z13, native Z14, published grant, accepted storage and atomic ACK; missing approval has zero effects",
+        "time": "7.880162645"
+      },
+      {
+        "classname": "scripts/ediel-source-owner-native.test.ts",
+        "name": "the actual saved normal Z03 requests both ACKs and persists their pending deadline under a scoped actor",
+        "time": "4.531370179"
+      }
+    ],
+    "nativeRawJunitSha256": "03c923add726f3798a8f446fbb66042c9864a527e8cc428edec72f72e09b5153",
+    "nativeSchemaByteEqual": true,
+    "ownerRawUnitJUnitSha256": "c5afcc76e03021d1d9e66fb3dffddc96358cb3752cf7637c187f67f089550b4d",
+    "reviewerUnitLogSha256": "bf686cc490d488920d269d88c2ca1df687ceab2cd00f61c60c835ecaa76367e3",
+    "errors": []
+  },
+  "nativeCustody": {
+    "run": {
+      "id": 37248883530,
+      "head_sha": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3",
+      "head_tree": "2ac7762dd261c3b09e8bff83fecb118fb262decd",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37248883530"
+    },
+    "artifact": {
+      "id": 11321572417,
+      "name": "gridex-rem-002-clean-replay",
+      "size_in_bytes": 16049895,
+      "url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11321572417",
+      "archive_download_url": "https://api.github.com/repos/heke99/gridex-ops-platform/actions/artifacts/11321572417/zip",
+      "expired": false,
+      "created_at": "2026-10-05T01:52:18Z",
+      "expires_at": "2027-01-03T00:47:39Z",
+      "updated_at": "2026-10-05T01:52:18Z",
+      "digest": "sha256:b2cbd4a6e42414711644c917bfc3bd97344a0d538328a6ca6ba72785aac0bd10",
+      "workflow_run": {
+        "id": 37248883530,
+        "repository_id": 1190539955,
+        "head_repository_id": 1190539955,
+        "head_branch": "claude/cool-tesla-2pmyua",
+        "head_sha": "0796a57181657d0c2b55dc4437f3ad5c6c8d88c3"
+      }
+    },
+    "independent_local_zip": "/workspace/attachments/8767c390-369a-4c3d-a4d1-66b831e05184/primary0796-clean-green.zip",
+    "zip_sha256": "b2cbd4a6e42414711644c917bfc3bd97344a0d538328a6ca6ba72785aac0bd10",
+    "review_limit": "Selected source-qualified normal Z03 and V service permission witnesses only; the artifact's full suite result is authenticated without being reused as blanket current whole-scenario approval."
+  },
+  "nativeJob": {
+    "id": 111572220948,
+    "name": "clean-migration-replay",
+    "status": "completed",
+    "conclusion": "success",
+    "run_id": 37248883530,
+    "logs_url": null,
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 1
+      },
+      {
+        "name": "Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 2
+      },
+      {
+        "name": "Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 3
+      },
+      {
+        "name": "Run npm ci",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 4
+      },
+      {
+        "name": "Run supabase/setup-cli@v1",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 5
+      },
+      {
+        "name": "Install a PostgreSQL client matching the replay server",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 6
+      },
+      {
+        "name": "Clean empty-database replay and verify generated types",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 7
+      },
+      {
+        "name": "Redact disposable credentials from native and browser evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 8
+      },
+      {
+        "name": "Upload clean-replay evidence",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 9
+      },
+      {
+        "name": "Post Run actions/setup-node@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 17
+      },
+      {
+        "name": "Post Run actions/checkout@v4",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 18
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success",
+        "number": 19
+      }
+    ]
+  },
+  "freshReviewerVerification": {
+    "command": "node node_modules/vitest/vitest.mjs run __tests__/ediel-sc-001-002-own-market-identity.test.ts --maxWorkers=1 --reporter=dot",
+    "node": "22.23.3",
+    "exitCode": 0,
+    "tests": 8,
+    "pass": 8,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "log": "/workspace/agent-review-checkpoints/sc001-sc002-current-unit8.log",
+    "logSha256": "bf686cc490d488920d269d88c2ca1df687ceab2cd00f61c60c835ecaa76367e3"
+  },
+  "reviewRecord": {
+    "path": "/workspace/agent-review-checkpoints/sc001-sc002-independent-review.md",
+    "sha256": "3abb01d530a79606f6e6be61970f00a1d463043475018905ccb8f7b591995739"
+  },
+  "explicitFinitePorts": [
+    "scoped membership/profile/outbound request DB rows",
+    "current permission/contract/BRP/coordination/source/read/reservation/binding RPC results",
+    "selected customer export context",
+    "current canonical rule/route source result",
+    "intent/outbound request/finalization/link/event persistence",
+    "queue entry"
+  ],
+  "actualExecution": [
+    "both public callers",
+    "both gateways",
+    "real intent validation",
+    "real tenant actor authorization",
+    "real contract/BRP result scope guards",
+    "captured service request timing guard",
+    "protocol reference allocation",
+    "actual PRODAT physical builders/engine",
+    "envelope codec",
+    "tokenizer/parser"
+  ],
+  "limits": [
+    "Fresh authority/DB/persistence/queue facts are finite substitutes; native selected witnesses supply actual unchanged local archive/review/permission/original owners.",
+    "Synthetic tenant/legal/issuer/representation/source/network registry/BRP registry ground/masterdata and method declarations/manual POA/UTILTS issuer and reviewed history ground remain upstream fixture bootstrap, not authentic external custody.",
+    "Exactly two archived transport refactor files differ native0796->final507; both read, below literal public-origination/physical legal identity/permission effects. No full-current transport/native or market-release claim.",
+    "Only SC001/SC002 approval; no production/schema/authority/source/shared-memory/coverage edit or native rerun by reviewer. Root owns final CI/publication/main."
+  ]
+}

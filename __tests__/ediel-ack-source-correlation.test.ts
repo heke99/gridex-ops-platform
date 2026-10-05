@@ -1,3 +1,6 @@
+// masterplan: TEN-13, AT-TEN-13
+// masterplan: ACK-06, AT-ACK-06
+// masterplan: SC-013
 import {describe, expect, it} from 'vitest'
 import {EdifactEnvelopeCodec} from '@/lib/ediel/core/edifactEnvelopeCodec'
 import {qualifyInboundAckSourceCandidates, readInboundAckSourceCorrelation, type AckCorrelationMessage} from '@/lib/ediel/ack/sourceCorrelation'

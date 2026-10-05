@@ -1,0 +1,41 @@
+# OPS03 independent retained review
+
+Reviewer `/root/ack01_precheck`; producer/test owner `/root/tr06_spec_review`; root owns source window, publication, coverage and CI. Worktree `/workspace/gridex-masterplan-ops03-inventory-56192d16`, branch `codex/ediel-ops03-release-evidence-20261004`, base main `56192d16d1eac7fb0e716a3e2770bac8e58be115`. Carried-forward ownership #5305985281037; no new rule claim. This is the reviewer's own checkpoint only: no edits to source, tests or owner's checkpoint; no commits/push/comments/coverage/tags.
+
+Status: **revised artifact/provenance component APPROVE, frozen 2026-10-04 23:17 UTC; whole OPS03/AT remains NOT_VERIFIED/NOT_EXECUTED**. The initial optional declarative-complete candidate was REQUEST_CHANGES. Its unsupported receipt path is removed; approval now covers actual same-workflow report/log/JUnit artifact wiring and explicit partial qualification only. No broad/native rerun.
+
+Literal OPS03/AT was reread: separate document coverage, unit, integration, tenant-E2E, transport and TGT evidence; lock release to exact head and test multiple tenants, DDQ, DGI and cross-tenant assignments; valid spec JSON is not production E2E or formal Ediel approval. An informational assembled certificate must not be represented as proving absent channels/cases.
+
+Immutable main561 source facts, read directly via `git show HEAD`:
+
+- `scripts/gridex-full-production-e2e.cjs` SHA256 `17ecf7b388fbf663b7cb241c455014efb47123482257650f78e68d802c120726` executes declared commands and writes actual `gridex-e2e-report.json`, redacted per-step logs and `gridex-e2e-junit.xml`. The base report has no source head.
+- `.github/workflows/full-e2e.yml` SHA256 `14dd9f7cff1cf54dbd4575165b9048638c64ea1be4de7e6ee81a95184ece4779` checks out exact event head for producer jobs. Coverage uploads summary/LCOV. PR/nightly certificate copies `needs.*` statuses into GREEN without downloading runner/coverage artifacts.
+- `scripts/gridex-tenant-runtime-e2e.mjs` SHA256 `0f782fc04c2bb5e64d48658c9f6c510f995a7b925e6f416a628de3e920158350` produces actual staging `gridex-tenant-runtime-e2e.json`, two distinct operational/disposable tenant IDs and executed provisioning/lifecycle/invitation/contract checks. It has no DDQ/DGI or cross-tenant assignment case. Distinct tenant provisioning alone does not prove cross-tenant business effects.
+- `scripts/gridex-real-customer-e2e.mjs` SHA256 `722f31353a201a7a8f408f1ff416a2e979cdfec62ac0f51aeac34b7e30676fbb` produces actual `gridex-real-customer-e2e.json`, one protected tenant/customer fingerprint and graph checks; outbound is prohibited. It does not prove live transport or TGT.
+
+Confirmed initial boundary: the custom optional receipt format is supplied only in finite FS/git/child/declarative assembly tests, with no actual CI producer, input or artifact download. Hashing supplied JSON case declarations cannot establish that DDQ/DGI/cross-tenant cases ran. Synthetic publisher/receipt labels are not execution authority. No whole OPS03 approval from those positives.
+
+Revised review must establish actual producer output and downstream workflow download/input, actual checked-out head binding (including stale/missing/dirty/mismatch refusals), raw artifact/report/log/JUnit hash integrity and class separation. Executed stage statuses and business/counterparty scopes cannot be inferred from filenames, step descriptions or supplied metadata. Unknown integration/tenant/transport/TGT and missing DDQ/DGI/cross-assignment evidence must stay missing/held; job success or skipped stages are not evidence of those effects. The ordinary CI job result and partial qualification verdict must remain distinguishable.
+
+Separate recipient lane is now published #539 at `748171c68c32e58f5bcbd77350353c3142488866`, tree `e011626aea8e83227deee91c1c217726be0317b4`. Core six producer/tests retain original frozen hashes. Root independently approved only recipient/address component, reused qualified P date fixture and ran actual 10102 unit tests with zero skips; no whole IMP05/AT/registered-address/history/fanout/return-path/native/market claim. Published IMP05 checkpoint will not be edited by this reviewer during CI.
+
+## Revised frozen component and fresh independent evidence
+
+Frozen producer `scripts/gridex-full-production-e2e.cjs` SHA256 `7e9df3202d9d63809377f39f9236fc5b2b65146399154fa534d3992b6137c882`; workflow `.github/workflows/full-e2e.yml` SHA256 `50409111bf3440b2e74df6e06f1bea48e9c8cb7039732b192a23303cb5c82054`; final 37-case `__tests__/ediel-ops-03-release-evidence.test.ts` SHA256 `c7fe1e40255cbf4a2333820044f8cf121e0ab38b4cb857146fe246fee7c251cb`. These source/workflow bytes remained unchanged across the final two test-only nightly controls. Owner's checkpoint is independently maintained and is not modified by this reviewer.
+
+- The actual runner captures Git checkout head/tree/clean state before and after execution, plus GitHub run/attempt. It hashes its own report, orchestration JUnit and every redacted step log into `gridex-executed-evidence.json`; source drift or missing Git cannot qualify the emitted artifact.
+- PR/nightly certificate jobs download the existing same-run producer artifact names at exact checkout head. The actual consumer verifies fixed mode, head/tree, cleanliness, run/attempt, completed successful report/result counts and every indexed file hash. Missing, stale, dirty, wrong-mode, foreign-run/attempt, corrupt or failed artifacts remain unqualified. No optional declarative receipt can supply execution authority.
+- The ordinary existing CI GREEN/RED result remains job-status based and distinguishable from artifact qualification. A qualified execution proves `runner_step_exit_status` only. All six evidence levels remain missing, scope IDs remain empty, DDQ/DGI/cross-tenant cases remain false, `codeEvidence` stays `incomplete`, `fullCardVerification` stays `NOT_VERIFIED`, and formal Ediel/live counterparty claims stay false.
+- Final two controls execute the actual nightly certificate shell with three actual VM-produced mode artifact byte sets, then omit runtime while retaining independently qualified full/real siblings. Every would-be runner child command, including full Vitest and staging/real-customer scripts, is intercepted at the finite declared child port. These tests do not execute those business scripts, native staging, transport or TGT. Earlier 2 RED/35 controls reflected the smoke-only test download helper's limitation, not a producer defect.
+
+Fresh independent focused command, run from this worktree under Node 22.23.3 and the existing CI loopback boundary:
+
+```sh
+PATH=/tmp/masterplan-tr06-node-cache/_npx/d18f28baf1132559/node_modules/node/bin:$PATH NODE_OPTIONS='--max-old-space-size=6144 --require=./scripts/lib/unit-loopback-network-boundary.cjs' node node_modules/vitest/vitest.mjs run __tests__/ediel-ops-03-release-evidence.test.ts --maxWorkers=1 --reporter=verbose > /tmp/masterplan-ops03-independent-final-37.log 2>&1
+```
+
+Result: exit 0, 1 file / **37 of 37 PASS**, started 2026-10-04 23:17:00 UTC, duration 1.42s. Log SHA256 `e392db3db5a2221f5f036bc5a249f9a52fca417b6acc30a024ba140f24366556`. Earlier independent frozen 35-case run also passed; log `/tmp/masterplan-ops03-independent-producer.log` SHA256 `f2465b388830ddaf9aaee1a53952917e749db4715fb95f2eb15c68ed0f1bc42d`. Producer syntax and diff whitespace checks passed on the same frozen source; owner reports focused lint/test types pass. No broad or native execution is inferred from these checks.
+
+Literal full-card limits remain material: independent document/unit/integration/tenant/transport/TGT publishers and real multiple-tenant DDQ/DGI/cross-assignment case authorities are not unified. The consumer deliberately declines to synthesize them from filenames, command labels or declared JSON. Thus this component is reviewable and approved while the complete card, formal certification and market readiness remain held. No tags, rule/AT/scenario coverage rows or shared memory were changed.
+
+Next action: root may publish the bounded component and this frozen independent review receipt. Root retains CI/integration/coverage and any whole-card promotion. Continue only read-only SC066/SC069 ownership/effect inventory; no new scenario claim or source/test change without an explicit release.

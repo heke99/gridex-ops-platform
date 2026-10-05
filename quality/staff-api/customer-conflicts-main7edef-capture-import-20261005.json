@@ -1,0 +1,125 @@
+{
+  "status": "PASS_CAPTURE_ONLY",
+  "import_applied": true,
+  "verified_at_utc": "2026-10-05T07:05:03.439298+00:00",
+  "pr": 553,
+  "source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
+  "remote_head": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",
+  "tree": "64b001c1a440a60c3fa18b288cf70e1ee5aa69f7",
+  "workflow_run": 37274735111,
+  "workflow_run_attempt": 1,
+  "artifact_id": 11330260370,
+  "archive_sha256": "f088892d9c1a439899d090681c03bd59b75150e7b9d5022ef899406293801072",
+  "metadata_sha256": "f66456410a4b6f54b5909b708e81934c7c4dae64def7442b2e3bd736d8bc485a",
+  "artifact_expires_at": "2026-10-19T06:57:54Z",
+  "exact_four_members_crc_and_published_digest_verified": true,
+  "all_eight_frozen_inputs_verified": true,
+  "latest_replay_migration": {
+    "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+    "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+  },
+  "schema_delta": {
+    "function_changes": [
+      {
+        "function": "public.gridex_customer_contact_change_v1",
+        "source_migration": "20261005004623_customer_contact_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "4c00ce8bffa2f89fe5627c05c2c05020e50046be5b4b08b01f9ca7e99c39b3e2",
+        "qualified_after_body_sha256": "dcc59600b4daa4a3dc25b5ff531ace5c9b4b6a7834408ed5751b5d82657bea54",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      },
+      {
+        "function": "public.gridex_decide_customer_identity_change_v1",
+        "source_migration": "20261005010327_customer_identity_version_conflict_http409.sql",
+        "qualified_before_body_sha256": "e91471965c7b4989c1c81a679e4c828656ddf0b997eb2d3e92731a76158ab272",
+        "qualified_after_body_sha256": "075b242bf2891fbe4cb5eaeaae043e97a6173fa27b3304ff1e719e28038618a0",
+        "only_change": "expected business-conflict SQLSTATE 40001 -> PT409"
+      }
+    ],
+    "all_other_schema_bytes_equal": true
+  },
+  "exact_source_migrations": [
+    {
+      "name": "20261005004623_customer_contact_version_conflict_http409.sql",
+      "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+    },
+    {
+      "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+      "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+    }
+  ],
+  "immutable_p08_source": {
+    "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+    "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+  },
+  "replay_tail_derived_from_complete_registration_union": true,
+  "whole_current_prefix_source_bindings": {
+    "20261004175536_ediel_dsn_encoded_source_identity.sql": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985",
+    "20261004205603_staff_customer_retention_read_prerequisite.sql": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1",
+    "20261004205816_support_attachment_quarantine_carrier.sql": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594",
+    "20261005004623_customer_contact_version_conflict_http409.sql": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+    "20261005010327_customer_identity_version_conflict_http409.sql": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
+    "20261005020000_ediel_production_contract_ack_confirmation.sql": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+  },
+  "migration_registration_union": {
+    "authenticated_input_paths": [
+      "scripts/migration-history-manifest.json",
+      "scripts/migration-history-manifest.additions.json",
+      "scripts/migration-history-manifest.runtime.additions.json"
+    ],
+    "unique_registration_count": 1066,
+    "identical_duplicate_count": 136,
+    "conflicting_hashes_refused": true,
+    "new_forward_runtime_only_binding_retained": true
+  },
+  "fingerprint_delta": {
+    "canonical_sha256": "a183679d86a31305e60b2e1625f666adee3ff1faa442e03a3be2fe55b7ff901e",
+    "only_changed_section": "functions",
+    "all_counts_equal": true
+  },
+  "generated_outputs": [
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
+      "bytes": 3679044,
+      "raw_bytes_equal_to_prior": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "df4a353f3f2bb1bfd4eb0f4be99c76ee89a65ffb98bdc345f78c6924e5e65df6",
+      "bytes": 11186197,
+      "raw_bytes_equal_to_prior": false
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "10a1a07a4678506462e037be4f23c8f2dab729dc560addb219892ef57830dac7",
+      "bytes": 3625,
+      "raw_bytes_equal_to_prior": false
+    }
+  ],
+  "raw_capture_receipt_sha256": "262d8c78df06088c4fe59469283b4c2c92a04ba645812d6b4ad7f6a922f2a412",
+  "prior_manifest_sha256": "c8b6b97924597d79e41ec5408de168516ecacf947a2b90ea0567e3e6ffe92825",
+  "prior_current_capture_preserved_compactly": true,
+  "existing_inherited_main_provenance_preserved": true,
+  "inherited_main_provenance_fields": [
+    "upstream_main_manifest",
+    "superseded_capture",
+    "capture_artifact",
+    "inherited_main7edef_current_prefix_verification",
+    "inherited_main7edef_composition_note",
+    "inherited_main7edef_latest_migration_schema_effect",
+    "staff_previous_capture_before_main7edef",
+    "inherited_capture_artifact_scope"
+  ],
+  "inherited_main_provenance_canonical_sha256": "53353cbf942a11ab935b371921fa7e637122632e5679f35155711dee709932b7",
+  "whole_main_origin_manifest_sha256": "5ad83d6f5ec472c7652bba72d609b30fb45950858bdced14eb6c2c251077e70f",
+  "whole_staff_origin_manifest_sha256": "bcb0f051439ce1e139b82b20de356335d189d8105fef9a19b5d57466657938cb",
+  "all_nine_main_origin_fields_preserved_exactly": true,
+  "main_origin_fields_canonical_sha256": "6a39f4701f00f8df7e0acd31bace4a39fed504cfc5ddd217025c6aadac1a3df0",
+  "compact_staff_origin_preserved_exactly": true,
+  "no_entire_manifest_nested_again": true,
+  "qualification": "Capture-only. Fresh exact-head full native/browser/upgrade/parity/application CI remains mandatory after import.",
+  "native_tests": "NOT_RUN",
+  "browser_tests": "NOT_RUN",
+  "type_schema_comparison": "NOT_RUN",
+  "upgrade_parity": "NOT_RUN"
+}

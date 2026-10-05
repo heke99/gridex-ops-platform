@@ -1,0 +1,7 @@
+{
+  "step": "pre-manifest input path check",
+  "status": "FAILED",
+  "assertedWrongPath": "lib/ediel/rulebook/prodatIncomingReportingPurpose.ts",
+  "actualImportedPath": "lib/ediel/prodat/prodatIncomingReportingPurpose.ts",
+  "meaning": "Root typo corrected from actual import; no missing implementation or product failure. No partial manifest was emitted."
+}

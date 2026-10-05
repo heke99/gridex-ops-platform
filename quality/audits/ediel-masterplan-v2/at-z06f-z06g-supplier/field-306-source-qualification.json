@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "source_base": "fff486f822001d35970f163507b10e17c3692f58",
+  "finding": "Inherited F/G native fixture field306 writes CCI Z07/CAV E22; retained original P26.A page60/122 witnesses authorize Z11/Z12. Current canonical descriptor has correct locator but no allowedValues; validator skips empty code list.",
+  "classification": "Documented source-input/code-list qualification gap; NOT a reproduced native failure.",
+  "owner": "Retained #503 fixture/native/source coordinator and canonical P owner; no shared-file edits authorized or made here.",
+  "source_witnesses": [
+    {
+      "reference": "P page60 table2",
+      "text": "Installationsstatus, fält306 / Z11 Closed / Z12 Active"
+    },
+    {
+      "reference": "P page122 table1 / retained extracts line1445 and1502",
+      "text": "306 Installation status Installationsstatus Giltiga koder: Z11, Z12"
+    }
+  ],
+  "source_version": "P PRODAT26.A / APERAK16.B, effective2026-04-01 and2016-12-01, document updated2026-06-30",
+  "recorded_original_pdf_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "original_pdf_bytes_available": false,
+  "original_pdf_rehashed_or_visually_inspected": false,
+  "retained_page_text_hashes_verified": true,
+  "historical_source_provenance_manifest_match": [
+    {
+      "manifest": "quality/audits/ediel-masterplan-v2/f3-permission-prior-flow-source-20260920.evidence.json",
+      "manifest_blob": "fc19aac33cf20e16b62d16e1532375a59a4ed670",
+      "manifest_sha256": "219090eb7419796126f6d00b0aeac891583d2c61339876dac865e1def57a675c",
+      "text_record_key": "$.artifacts[7]",
+      "text_path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt",
+      "text_sha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d",
+      "text_bytes": 99929,
+      "recorded_original_pdf_key": "originalPdf.sha256",
+      "recorded_original_pdf_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "original_pdf_path_absent": true,
+      "text_rehashed_match": true
+    },
+    {
+      "manifest": "quality/audits/ediel-masterplan-v2/f3-permission-ack-source-20260920.evidence.json",
+      "manifest_blob": "e017a13aa401562cd337797a32e0c567aa3ef474",
+      "manifest_sha256": "0e6ff6432afbdc3c73f8523b6a498c0ab6d2f15e11da0af534b09dd3f9e5d95f",
+      "text_record_key": "$.immutableArtifacts[15]",
+      "text_path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "text_sha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6",
+      "text_bytes": 102742,
+      "recorded_original_pdf_key": "source.sha256",
+      "recorded_original_pdf_sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+      "original_pdf_path_absent": true,
+      "text_rehashed_match": true
+    }
+  ],
+  "no_available_later_supplement_authorizing_E22": true,
+  "precedence": "Effective national guidance outranks fixture/DB projection/legacy behavior; available p60/p122 agree. No conflicting appendix condition authorizes E22.",
+  "source_pins": [
+    {
+      "path": "docs/ediel/masterplan-v2/annex/B_PRODAT_falt_och_villkor.md",
+      "blob": "b06fa7851fd85687a31208dfc528639c491d9e72",
+      "sha256": "f126a477440d852d9f15f6e725e391065a93685e5c38dba70542b0ab6526313e"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/source_tables.json",
+      "blob": "64af8011348a7cea889b3275a2d31eba8f60bd07",
+      "sha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+      "blob": "aa6e094d548300609ded7eb680c1fe288a6dd4be",
+      "sha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d"
+    },
+    {
+      "path": "docs/ediel/CANONICAL_SOURCE_INVENTORY.md",
+      "blob": "d798e00322bbf9766ef2a70c033e1b3d3e454bd3",
+      "sha256": "831de1729d58cd4f739ea37a77b54fafc5a5debc89ff79a79f809d3a163624ff"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-prior-flow-source-20260920/original-pdf-relevant-pages.txt",
+      "blob": "4d81406717bc1f9396348540dba232022be9ad4a",
+      "sha256": "2c47643e08f555df3a53f1983fcd4bd6c51c698b08f65762e5097ee3eebdf23d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/permission-ack-source-20260920/original-relevant-pages.txt",
+      "blob": "b2adb13747e52d9930afb5b4cd89ce075fada35c",
+      "sha256": "444c11045bdd5a9e1a6bd7735f16e13a42e5f03ed01eafe4e8a4d14053b91db6"
+    },
+    {
+      "path": "__tests__/helpers/structuralOwnerFixtures.ts",
+      "blob": "2e8699e1073c639a4bf511dbf27a55c9ca9184d6",
+      "sha256": "8c9fe5dd58432b0847c4e75ac0801471bb514c7a1a8d90e77167cd874e09b77d"
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "blob": "36d4a8074da29f231e0b1121e88267385154e99e",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa",
+      "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9"
+    },
+    {
+      "path": "lib/ediel/rulebook/fieldMatrix.ts",
+      "blob": "fc541d91021427f0daa7c2f681f4590c07850454",
+      "sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098"
+    }
+  ],
+  "requested_owner_action": "Qualify original witnesses and any applicable later source, then address existing fixture and canonical value checks together with genuine guide-valid and invalid-code contrasts. Retain one fixture/canonical path and real capture/permissions.",
+  "new_file_change": "Comments qualify inherited input; executable TypeScript printer output is byte-identical to initially linted/typechecked code. No value substitution, assertion weakening, native/source change or rerun.",
+  "review_scope": "Initial bounded static APPROVE narrowed: proposal/design only; inherited E22 input is not an approved guide-valid positive control.",
+  "native": "NOT_RUN",
+  "whole_acceptance": "HELD",
+  "coverage": "Both rows remain NOT_EXECUTED/evidence empty; no tags or promotions"
+}

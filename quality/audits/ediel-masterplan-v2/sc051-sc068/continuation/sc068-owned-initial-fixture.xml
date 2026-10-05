@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="8" failures="1" errors="0" time="2.980988369">
+    <testsuite name="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" timestamp="2026-10-05T13:49:02.983Z" hostname="c8313f035683" tests="8" failures="1" errors="0" skipped="0" time="2.980988369">
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;sender_ediel_id&quot;:&quot;91100&quot;} before any new authority/provider" time="0.009881129">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;receiver_ediel_id&quot;:&quot;91109&quot;} before any new authority/provider" time="0.001050144">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual public production send holds a test reference identity {&quot;application_reference&quot;:&quot;23-TGT-PRODAT&quot;} before any new authority/provider" time="0.000852263">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied catalog_evidence diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.115618027">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 a copied historical_replay diagnostic policy cannot mint an operative final owner through the public inbound consumer" time="0.030190823">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 actual historical accepted-original repair cannot re-enter the provider after today changes to a test identity" time="0.00154229">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 historical sent status without an actual accepted journal never creates new production traffic" time="0.00076563">
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-068-reference-authority-boundary.test.ts" name="SC-068 unchanged TEST original is held by actual production admission and customer-effect source capture before any business sink" time="2.818991993">
+            <failure message="function public.ediel_is_qualified_retention_transition_v1(public.ediel_messages, public.ediel_messages) does not exist" type="error">
+error: function public.ediel_is_qualified_retention_transition_v1(public.ediel_messages, public.ediel_messages) does not exist
+ ❯ be.$r ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10
+ ❯ be.za ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15
+ ❯ be.parse ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24
+ ❯ ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/src/pglite.ts:398:27
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2608882
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2609769
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:5283187
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:366756
+ ❯ invoke_v ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/release/pglite.js:9:389209
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:368873
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 507, severity: &apos;ERROR&apos;, code: &apos;42883&apos;, detail: undefined, hint: &apos;No function matches the given name and argument types. You might need to add explicit type casts.&apos;, position: undefined, internalPosition: &apos;80&apos;, internalQuery: &apos;TG_OP=\&apos;UPDATE\&apos; AND OLD.raw_payload IS NOT NULL AND NEW.raw_payload IS NULL AND public.ediel_is_qualified_retention_transition_v1(OLD,NEW)&apos;, where: &apos;PL/pgSQL function gridex_received_sources.seal_utilts_insert_v1() line 3 at IF&apos;, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: &apos;parse_func.c&apos;, routine: &apos;ParseFuncOrColumn&apos;, query: &apos;INSERT INTO public.ediel_messages(id,company_id,environment,direction,message_family,message_code,raw_payload,message_received_at,message_standard,status)\n        VALUES($1,$2,$3,\&apos;inbound\&apos;,\&apos;UTILTS\&apos;,\&apos;E66\&apos;,$4,$5,\&apos;edifact\&apos;,\&apos;received\&apos;)&apos;, params: [ &apos;00000000-0000-0000-0000-000000000069&apos;, &apos;00000000-0000-0000-0000-000000000001&apos;, &apos;test&apos;, &apos;UNA:+.? \&apos;\nUNB+UNOC:3+91100:ZZ+21660:ZZ+260831:1811+260831181101++23-DDQ-E66-T++1++1\&apos;\nUNH+1+UTILTS:D:02B:UN:E5SE5A\&apos;\nBGM+E66::260+GRIDEX2607E66MSG001+9+AB\&apos;\nDTM+137:202610011811:203\&apos;\nDTM+735:?+0200:406\&apos;\nMKS+23+E02::260\&apos;\nNAD+MS+91100:SVK:260\&apos;\nNAD+MR+21660:SVK:260\&apos;\nNAD+DDQ\&apos;\nIDE+24+GRIDEX2607E66001\&apos;\nLOC+172+735999260731000007::9\&apos;\nLOC+239+TES:SVK:260\&apos;\nLIN+++8716867000030:::9\&apos;\nDTM+324:202607010000202607010015:719\&apos;\nDTM+597:202607010020:203\&apos;\nDTM+354:15:806\&apos;\nSTS+7++E88::260\&apos;\nMEA+AAZ++KWH\&apos;\nCCI+++E12::260\&apos;\nCAV+E17::260\&apos;\nSEQ++1\&apos;\nQTY+136:500\&apos;\nDTM+597:202607010000:203\&apos;\nSTS+7++21::260\&apos;\nUNT+24+1\&apos;\nUNZ+1+260831181101\&apos;&apos;, &apos;2026-10-01T20:00:00Z&apos; ], queryOptions: undefined }
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>

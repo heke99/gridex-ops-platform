@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "reviewer": "Codex sc053-sc054-review-20261005",
+  "claim": 5991944915,
+  "main": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+  "main_tree": "b8d41fd2b75c0b5f375f483353ebca1a4ea90c2a",
+  "qualified_ci_head": "445bf50942818495f7edc09f52a2288be81ad176",
+  "run": 37281693425,
+  "quality_job": 111671247914,
+  "clean_job": 111671247602,
+  "artifact": 11334955859,
+  "artifact_sha256": "33b1207eb2efda48feebfaa7c048bc6e1f0f7a7ea9f863e36aed79bd10b0f597",
+  "native_report_sha256": "ca5fc23a667f91a8e538c53a85bf6386a08f91f9f6dd554891d7802256b02ec1",
+  "installed_schema_sha256": "9503739ad30e653e2b220ecd18ec955c830cd8245601427d1f00cbd645d338aa",
+  "unchanged_inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/MASTERMASTERPLAN_v2.md",
+      "local_blob": "3a28cf23dd1de441803a90dbd96bc98de3a9f4e1",
+      "main_blob": "3a28cf23dd1de441803a90dbd96bc98de3a9f4e1",
+      "ci_blob": "3a28cf23dd1de441803a90dbd96bc98de3a9f4e1"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "local_blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "main_blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "ci_blob": "2108c9c297457c288364b9ed669809aedd21e21e"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "local_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "main_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "ci_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+      "local_blob": "aa6e094d548300609ded7eb680c1fe288a6dd4be",
+      "main_blob": "aa6e094d548300609ded7eb680c1fe288a6dd4be",
+      "ci_blob": "aa6e094d548300609ded7eb680c1fe288a6dd4be"
+    },
+    {
+      "path": "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+      "local_blob": "86348b5d6964c0a1c1fa9300d288e9d4dbb03c98",
+      "main_blob": "86348b5d6964c0a1c1fa9300d288e9d4dbb03c98",
+      "ci_blob": "86348b5d6964c0a1c1fa9300d288e9d4dbb03c98"
+    },
+    {
+      "path": "__tests__/ediel-u-09-estimate-never-actual.test.ts",
+      "local_blob": "f153939e966d53fb29a523ec4c295290ecfa31d2",
+      "main_blob": "f153939e966d53fb29a523ec4c295290ecfa31d2",
+      "ci_blob": "f153939e966d53fb29a523ec4c295290ecfa31d2"
+    },
+    {
+      "path": "__tests__/ediel-utilts-positive-ack-authority.test.ts",
+      "local_blob": "e86fe5829355d36551b09c3a7ff77e3231561f92",
+      "main_blob": "e86fe5829355d36551b09c3a7ff77e3231561f92",
+      "ci_blob": "e86fe5829355d36551b09c3a7ff77e3231561f92"
+    },
+    {
+      "path": "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+      "local_blob": "4c476dc9720deeda7b334918c290cb9dfd41943e",
+      "main_blob": "4c476dc9720deeda7b334918c290cb9dfd41943e",
+      "ci_blob": "4c476dc9720deeda7b334918c290cb9dfd41943e"
+    },
+    {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "local_blob": "3fea9bff6ce3ba221ae73d8167cfb4ed583608c6",
+      "main_blob": "3fea9bff6ce3ba221ae73d8167cfb4ed583608c6",
+      "ci_blob": "3fea9bff6ce3ba221ae73d8167cfb4ed583608c6"
+    },
+    {
+      "path": "scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
+      "local_blob": "84459833028312cd73a6fb924ab45cb9b6326229",
+      "main_blob": "84459833028312cd73a6fb924ab45cb9b6326229",
+      "ci_blob": "84459833028312cd73a6fb924ab45cb9b6326229"
+    },
+    {
+      "path": "scripts/ediel-utilts-decimal-sql-regression.mjs",
+      "local_blob": "2c7a1d0dc43ca65eb932b5ff977e0616a9532562",
+      "main_blob": "2c7a1d0dc43ca65eb932b5ff977e0616a9532562",
+      "ci_blob": "2c7a1d0dc43ca65eb932b5ff977e0616a9532562"
+    },
+    {
+      "path": "scripts/test-ediel-utilts-series-and-err-ack.cjs",
+      "local_blob": "ac0be108ea35cefdce7388c82f3664de485ee4cb",
+      "main_blob": "ac0be108ea35cefdce7388c82f3664de485ee4cb",
+      "ci_blob": "ac0be108ea35cefdce7388c82f3664de485ee4cb"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionSinks.ts",
+      "local_blob": "a02499646425d830ee9a3d5b67837c0bf456b29a",
+      "main_blob": "a02499646425d830ee9a3d5b67837c0bf456b29a",
+      "ci_blob": "a02499646425d830ee9a3d5b67837c0bf456b29a"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "local_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+      "main_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160",
+      "ci_blob": "e0b5618ca796930b122864f9880ac33cdd3ed160"
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionContract.ts",
+      "local_blob": "bd98e9705438b763f5c073904957d7223bb99b0a",
+      "main_blob": "bd98e9705438b763f5c073904957d7223bb99b0a",
+      "ci_blob": "bd98e9705438b763f5c073904957d7223bb99b0a"
+    },
+    {
+      "path": "lib/ediel/utilts/transactionPersistence.ts",
+      "local_blob": "05c1667a9168cab37d7dcc3466e536b964eb3cfd",
+      "main_blob": "05c1667a9168cab37d7dcc3466e536b964eb3cfd",
+      "ci_blob": "05c1667a9168cab37d7dcc3466e536b964eb3cfd"
+    },
+    {
+      "path": "lib/ediel/utilts/quantityUnitScope.ts",
+      "local_blob": "fe3f993bbada07d26e052854b22da2746e273483",
+      "main_blob": "fe3f993bbada07d26e052854b22da2746e273483",
+      "ci_blob": "fe3f993bbada07d26e052854b22da2746e273483"
+    },
+    {
+      "path": "lib/ediel/utilts/canonicalObservationScope.ts",
+      "local_blob": "cfaf16f3aed6228e8049efe71867be7f458bacdc",
+      "main_blob": "cfaf16f3aed6228e8049efe71867be7f458bacdc",
+      "ci_blob": "cfaf16f3aed6228e8049efe71867be7f458bacdc"
+    },
+    {
+      "path": "lib/ediel/metering/meteringQualityMapper.ts",
+      "local_blob": "98a0e2360d3615c4cf61d8a49dee8ebfeff7fc5f",
+      "main_blob": "98a0e2360d3615c4cf61d8a49dee8ebfeff7fc5f",
+      "ci_blob": "98a0e2360d3615c4cf61d8a49dee8ebfeff7fc5f"
+    },
+    {
+      "path": "lib/ediel/utilts/positiveAckAuthority.ts",
+      "local_blob": "623a77eca5095da7a0b9b9b94662b8ad5a7c3593",
+      "main_blob": "623a77eca5095da7a0b9b9b94662b8ad5a7c3593",
+      "ci_blob": "623a77eca5095da7a0b9b9b94662b8ad5a7c3593"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-1.ts",
+      "local_blob": "c2083462a6bd7a96416fd556e00e9d2a5932c458",
+      "main_blob": "c2083462a6bd7a96416fd556e00e9d2a5932c458",
+      "ci_blob": "c2083462a6bd7a96416fd556e00e9d2a5932c458"
+    },
+    {
+      "path": "lib/ediel/flows/utiltsDataRequest.part-2.ts",
+      "local_blob": "3f9efc34ee5638071ed3843adb23392229ad5ea6",
+      "main_blob": "3f9efc34ee5638071ed3843adb23392229ad5ea6",
+      "ci_blob": "3f9efc34ee5638071ed3843adb23392229ad5ea6"
+    },
+    {
+      "path": "lib/metering/normalizeMeteringValues.ts",
+      "local_blob": "8e2ede8bf4e41815776056269367b0102ab9632a",
+      "main_blob": "8e2ede8bf4e41815776056269367b0102ab9632a",
+      "ci_blob": "8e2ede8bf4e41815776056269367b0102ab9632a"
+    },
+    {
+      "path": "lib/cis/db-data.ts",
+      "local_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9",
+      "main_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9",
+      "ci_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9"
+    },
+    {
+      "path": "lib/billing/sourceBasis.ts",
+      "local_blob": "6abc85d1252df0596f4be4aa82e5f32e2321805b",
+      "main_blob": "6abc85d1252df0596f4be4aa82e5f32e2321805b",
+      "ci_blob": "6abc85d1252df0596f4be4aa82e5f32e2321805b"
+    },
+    {
+      "path": "lib/billing/billingGate.ts",
+      "local_blob": "8c66a7858a5fb1935c26c19d7db37b4a7a716b97",
+      "main_blob": "8c66a7858a5fb1935c26c19d7db37b4a7a716b97",
+      "ci_blob": "8c66a7858a5fb1935c26c19d7db37b4a7a716b97"
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "local_blob": "bb4bcc96ddde1cba7cbf5728cb83ed2ca8db6029",
+      "main_blob": "bb4bcc96ddde1cba7cbf5728cb83ed2ca8db6029",
+      "ci_blob": "bb4bcc96ddde1cba7cbf5728cb83ed2ca8db6029"
+    },
+    {
+      "path": "lib/billing/meterValueBillingMatcher.ts",
+      "local_blob": "0c57c031ff55830062e6ef795a4d8593856dba16",
+      "main_blob": "0c57c031ff55830062e6ef795a4d8593856dba16",
+      "ci_blob": "0c57c031ff55830062e6ef795a4d8593856dba16"
+    },
+    {
+      "path": "lib/ediel/operations/ackSlaMonitor.ts",
+      "local_blob": "21feeed90654267e05d34514ecd939cedb73b06a",
+      "main_blob": "21feeed90654267e05d34514ecd939cedb73b06a",
+      "ci_blob": "21feeed90654267e05d34514ecd939cedb73b06a"
+    },
+    {
+      "path": "lib/ediel/transport/index.part-2.ts",
+      "local_blob": "7bb8a9fa9817315b926740633ae1c96e3287a77e",
+      "main_blob": "7bb8a9fa9817315b926740633ae1c96e3287a77e",
+      "ci_blob": "7bb8a9fa9817315b926740633ae1c96e3287a77e"
+    },
+    {
+      "path": "lib/ediel/core/kernel.ts",
+      "local_blob": "e768195621f24838e59274ea09b50031d00a978f",
+      "main_blob": "e768195621f24838e59274ea09b50031d00a978f",
+      "ci_blob": "e768195621f24838e59274ea09b50031d00a978f"
+    },
+    {
+      "path": "supabase/migrations/20260928181500_utilts_held_retry_stable_reservation.sql",
+      "local_blob": "ce22a8efdfc5946200a437341b3c9a04fd3439c4",
+      "main_blob": "ce22a8efdfc5946200a437341b3c9a04fd3439c4",
+      "ci_blob": "ce22a8efdfc5946200a437341b3c9a04fd3439c4"
+    },
+    {
+      "path": "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "local_blob": "54f229dbd0d06321cdd65f0c6c75efe43566c379",
+      "main_blob": "54f229dbd0d06321cdd65f0c6c75efe43566c379",
+      "ci_blob": "54f229dbd0d06321cdd65f0c6c75efe43566c379"
+    },
+    {
+      "path": "supabase/migrations/20260930161718_ediel_utilts_e30_energy_source_and_null_quality.sql",
+      "local_blob": "b123eb1d27a3c8fc138f631a87642b56119fd0fd",
+      "main_blob": "b123eb1d27a3c8fc138f631a87642b56119fd0fd",
+      "ci_blob": "b123eb1d27a3c8fc138f631a87642b56119fd0fd"
+    },
+    {
+      "path": "supabase/migrations/20260923150649_ediel_utilts_bound_sink_authority.sql",
+      "local_blob": "06e95b0e7c4f808ac1db9c871aff65d14177174a",
+      "main_blob": "06e95b0e7c4f808ac1db9c871aff65d14177174a",
+      "ci_blob": "06e95b0e7c4f808ac1db9c871aff65d14177174a"
+    },
+    {
+      "path": "supabase/migrations/20260923154221_ediel_utilts_existing_billing_binding.sql",
+      "local_blob": "46144aa2057619283f85ee67369670256fa9497c",
+      "main_blob": "46144aa2057619283f85ee67369670256fa9497c",
+      "ci_blob": "46144aa2057619283f85ee67369670256fa9497c"
+    },
+    {
+      "path": "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql",
+      "local_blob": "1019be993c88ef43bf6d55ad933466c1957bb3de",
+      "main_blob": "1019be993c88ef43bf6d55ad933466c1957bb3de",
+      "ci_blob": "1019be993c88ef43bf6d55ad933466c1957bb3de"
+    },
+    {
+      "path": "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+      "local_blob": "73b587392d510cd0d08bbf6792676c6196cb1ec9",
+      "main_blob": "73b587392d510cd0d08bbf6792676c6196cb1ec9",
+      "ci_blob": "73b587392d510cd0d08bbf6792676c6196cb1ec9"
+    },
+    {
+      "path": "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "local_blob": "dfbd9ddcf033db527003b44b6289ab319b29b84a",
+      "main_blob": "dfbd9ddcf033db527003b44b6289ab319b29b84a",
+      "ci_blob": "dfbd9ddcf033db527003b44b6289ab319b29b84a"
+    },
+    {
+      "path": "supabase/migrations/20260522_db1_schema_repair_backfill_foundation.sql",
+      "local_blob": "1b61618b6793dc93f24b5fcd6221efe8c6b71997",
+      "main_blob": "1b61618b6793dc93f24b5fcd6221efe8c6b71997",
+      "ci_blob": "1b61618b6793dc93f24b5fcd6221efe8c6b71997"
+    },
+    {
+      "path": "package.json",
+      "local_blob": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+      "main_blob": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+      "ci_blob": "7e8140606986b98e6acfe71415ce8fa38bad3784"
+    },
+    {
+      "path": "package-lock.json",
+      "local_blob": "b247061206a317aeb7302f50d469117555d0b62f",
+      "main_blob": "b247061206a317aeb7302f50d469117555d0b62f",
+      "ci_blob": "b247061206a317aeb7302f50d469117555d0b62f"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "local_blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+      "main_blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41",
+      "ci_blob": "5ace1f0d67781425ced4fda1aa4a12b66f82ea41"
+    },
+    {
+      "path": ".github/workflows/ops-hardening.yml",
+      "local_blob": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f",
+      "main_blob": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f",
+      "ci_blob": "3062a6a4631ff6bf4fe24272124c4a08f5a2594f"
+    },
+    {
+      "path": "supabase/migrations/20260923191510_ediel_utilts_consumer_content_identity.sql",
+      "local_blob": "9812e108c46cd1025e8870ef848b1c311079fa8f",
+      "main_blob": "9812e108c46cd1025e8870ef848b1c311079fa8f",
+      "ci_blob": "9812e108c46cd1025e8870ef848b1c311079fa8f"
+    }
+  ],
+  "component_native_cases": 4,
+  "scope": "SC053/054 remain PARTIAL. Source and unchanged executed component qualification only; no new product or scenario test.",
+  "local_checks": [
+    {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "exit": 0,
+      "result": "33 originals / 121 rules / 231 contracts; references only"
+    },
+    {
+      "command": "node --check scripts/ediel-utilts-u04-u14-effects-sql-regression.mjs",
+      "exit": 0
+    },
+    {
+      "command": "node --check scripts/ediel-utilts-decimal-sql-regression.mjs",
+      "exit": 0
+    }
+  ],
+  "local_behavior": "NOT_RUN",
+  "local_limitations": "PGlite/Vitest/canonicalNode22 missing; prior failure and configured proxy issue preserved in #573's own receipt. No new runtime behavior executed.",
+  "installed_view_scope": "Actual replay artifact definition; failed/pending-required precedence before ack_overdue established. No complete absence of another watchdog or production failure reproduced.",
+  "owners": "Claude scenario/source/test/coverage; retained billing/DB/native/timer/source coordinator and integrator keep existing producer/shared-file/main responsibility",
+  "initial_main": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "initial_main_tree": "cc0b6412e13c04f6baa3413957c7b609aeba74be",
+  "adopted_current_main_ledger": {
+    "initial_blob": "0ee4c287fd6526198ec6ac9c5e3d06c508f8d766",
+    "qualified_ci_blob": "0ee4c287fd6526198ec6ac9c5e3d06c508f8d766",
+    "current_blob": "fd898365c46f95c15479adbdf895ce9e7fc64a0a",
+    "changed_approval": "SC-036 PARTIAL→PASSED in merged #568",
+    "reviewed_scenarios": "SC053/054 remain PARTIAL"
+  },
+  "main_adoption": {
+    "actual_commit": "0dab92006d2ce17db21774e17d983b9a407b1a47",
+    "merge": "#568",
+    "first_parent": "01b11f55af710c3e6aad1f5a433631a88c702047",
+    "changes": [
+      ".agent-memory/handover.md",
+      "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
+      "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json",
+      "scripts/ediel-p-11-z04-order-sql-regression.mjs"
+    ],
+    "proof": "None of the45 non-ledger pinned source/dependency/witness paths changed. Authentic signed main commit and exact main tree reconstructed locally; all main changes adopted unchanged.",
+    "retained_initial_local_commit": "6b9bc16e7696326131f0af62b3aac39e1dd27c21"
+  }
+}
