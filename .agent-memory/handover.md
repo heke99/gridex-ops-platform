@@ -1,3 +1,11 @@
+## Actual source deliveries — 2026-10-05T18:34:44Z
+
+Actual604/605/503 are recorded once with direct GitHub parent/tree custody. Root503's actual tree matches its independent latest-main prediction; nine mandatory checks and real completed native/F3/type/schema/upgrade terminals succeeded. Existing native skips and the old19 individually UNKNOWN identities remain attributed honestly. Current f88e88fb is a working source base. SC068's retained carrier, production-full residuals, later foreign SQL union and one final common baseline/tag remain unfinished and separately owned.
+
+- ACTUAL MAIN MERGE PR #604: `737f48438e8ba806c34882988b5feadaaeb0369e`; tree `ccc88ffeb62572aebcd93891f5adfc7774af0ae6`; parents `99676683338e11e60666345782609a822de9181e` + `29f3ba39f07f624ad8b0d2b6424b94df7ade49a0`; existing owner source/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/604).
+- ACTUAL MAIN MERGE PR #605: `8a072448f2b6a1d77e9dad343f4cb07136ac7260`; tree `0176b380b4909307982b4cfa0f5d91d3c78d5d27`; parents `737f48438e8ba806c34882988b5feadaaeb0369e` + `7397c48913fef494840d6227c59535d79b3cd56c`; existing owner source/CI qualification retained. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/605).
+- ACTUAL MAIN MERGE PR #503: `f88e88fb70ca4edcaf65c40c9bba8bda4f70b2af`; tree `14729bfdbe56f67149d51e227e25d7274aa4025e`; parents `8a072448f2b6a1d77e9dad343f4cb07136ac7260` + `9132a6ed4649e8b17aba4270417c649939c3e0c4`; all nine exact-head mandatory checks SUCCESS, stored approvals 254→260, all 346 foreign rows preserved. [Original PR](https://github.com/heke99/gridex-ops-platform/pull/503).
+
 ## Actual documentation deliveries — 2026-10-05T18:15:00Z
 
 Actual601/602 are recorded exactly once from GitHub commit/PR custody, consuming retained requests5306000092590/6000168488. Current996 is a working base; the separate SC068 fixture correction remains author-exclusive and pending actual admission. Frozen913 remains8/9 with authentic clean running. Final common baseline/tag writer is unchanged.

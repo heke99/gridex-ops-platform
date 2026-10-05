@@ -1,0 +1,32 @@
+{
+  "scope": "Authenticated existing API replacement deliveries; original serial operators own source and CI qualification",
+  "actual_main": "8a072448f2b6a1d77e9dad343f4cb07136ac7260",
+  "actual_tree": "0176b380b4909307982b4cfa0f5d91d3c78d5d27",
+  "deliveries": [
+    {
+      "pr": 604,
+      "actual_merge": "737f48438e8ba806c34882988b5feadaaeb0369e",
+      "tree": "ccc88ffeb62572aebcd93891f5adfc7774af0ae6",
+      "parents": [
+        "99676683338e11e60666345782609a822de9181e",
+        "29f3ba39f07f624ad8b0d2b6424b94df7ade49a0"
+      ],
+      "merged_at": "2026-10-05T18:25:07Z",
+      "published_head": "29f3ba39f07f624ad8b0d2b6424b94df7ade49a0"
+    },
+    {
+      "pr": 605,
+      "actual_merge": "8a072448f2b6a1d77e9dad343f4cb07136ac7260",
+      "tree": "0176b380b4909307982b4cfa0f5d91d3c78d5d27",
+      "parents": [
+        "737f48438e8ba806c34882988b5feadaaeb0369e",
+        "7397c48913fef494840d6227c59535d79b3cd56c"
+      ],
+      "merged_at": "2026-10-05T18:27:38Z",
+      "published_head": "7397c48913fef494840d6227c59535d79b3cd56c"
+    }
+  ],
+  "root503_source": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "root503_actual_merge": "PENDING_FINAL_GUARDS",
+  "current_main_green_baseline": "NOT_CLAIMED"
+}
