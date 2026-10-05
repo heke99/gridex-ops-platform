@@ -88,9 +88,11 @@ and all4members/8inputhashes/rawoutputhashes/source tree verified. Raw types/sch
 fingerprint imported; all nonfunction sections unchanged. Aggregate migration
 check now PASS. The pilot's type/upgrade failures were the expected old artifacts;
 its test typing issue is fixed with exact port mocks, fulltesttypes and28affected
-tests PASS, runtime/SQL unchanged. Active next action: commit/publish reviewed
-import and test correction, then pass final required native clean/upgrade/schema
-CI. Do not call capture-only native acceptance. Source receipt84tests:
+tests PASS, runtime/SQL unchanged. Source/import are committed at46ecb047e/afee0739f. Current merge incorporates
+other agents’ main85b6d6602 qualification updates; their changes are tests,
+receipts and memory, with no migration or production-function delta. Active
+next action: publish this final combined source and pass required native
+clean/upgrade/schema CI. Do not call capture-only native acceptance. Source receipt84tests:
 quality/staff-api/independent-onboarding-evidence-20261005/manifest.json.
 
 After source CI: Prod dependency closure additionally must resolve genuine
@@ -100,3 +102,11 @@ company/admin question remains unanswered. Only then dedicated enrollment,
 registered Auth redirect allowlist, actual own invitation delivery/acceptance
 and independent Vercel project/domain assignment. Never replay all old OPS
 migrations or auto-merge legacy website support tickets.
+
+Latest source checks: independent native artifact/test delta review PASS;
+aggregate migration check/types/hash PASS; app types after raw import PASS;
+full test types and affected acceptance28/28 PASS. Immutable raw capture and
+previous manifest origins are preserved. Final API remains draft until required
+CI is green. Portal source54b406d remains green in remote support/verify/contract
+CI. All new-task hosted writes are still zero and Gridex/admin information is
+still required for any enrollment.

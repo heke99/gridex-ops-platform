@@ -12,7 +12,8 @@
     "database_contract_hardening": "PASS",
     "generated_types": "PASS_AUTHENTIC_BYTES_IMPORTED_AGGREGATE_MIGRATION_CHECK",
     "app_types_after_import": "PASS",
-    "full_test_types_after_correction": "PASS"
+    "full_test_types_after_correction": "PASS",
+    "full_test_types_after_main85b6_merge": "PASS"
   },
   "files": {
     "gridex-support-api-docs-final.log": "ac37492795f4b22a6081ad46f01a4c062f527b7e3f33ef0e153aa89af6051695",
@@ -33,7 +34,8 @@
     "app-types-after-import.log": "d61bcb853872bcfa3e424b49249cdc82eef14fa02679f2d32c2df50cb790d945",
     "full-test-types-after-correction.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "acceptance-after-typing-correction.log": "293914c0508e777c87fdddb7d60781167630ffdcf59ae712dbb6a6923b0e393c",
-    "staff-onboarding-native-capture-independent-review.json": "d4ef5fab3c0a09380688d45a3b56e23330b237052fa2974cf6c47a9d7ac07235"
+    "staff-onboarding-native-capture-independent-review.json": "d4ef5fab3c0a09380688d45a3b56e23330b237052fa2974cf6c47a9d7ac07235",
+    "combined-main-test-types.log": "7c4a49bd020047814a408e7d86238c340f2cd6995e6c3318156bbdfdc1d1d6ef"
   },
   "next_action": "Pass final local checks and independent artifact review, then publish the import/test-typing correction and pass required full native clean/upgrade/schema CI.",
   "normalized_logs": {

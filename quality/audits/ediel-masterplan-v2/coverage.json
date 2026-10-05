@@ -1674,8 +1674,11 @@
     },
     {
       "id": "SC-036",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+        "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+        "scripts/test-ediel-p-11-z04-order.cjs",
         "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
         "lib/inbound-mail/inboundStatusUpdater.ts",
@@ -1719,8 +1722,14 @@
     },
     {
       "id": "SC-042",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts"
+      ]
     },
     {
       "id": "SC-043",
@@ -1768,8 +1777,9 @@
     },
     {
       "id": "SC-048",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
         "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.ts"
       ]
@@ -1785,7 +1795,7 @@
     },
     {
       "id": "SC-050",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
         "__tests__/ediel-utilts-runtime-cutoff.test.ts",
@@ -1847,8 +1857,14 @@
     },
     {
       "id": "SC-058",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-058-market-smtp-isolation.test.ts",
+        "lib/actor-registry/registryMarketSource.ts",
+        "lib/ediel/prodat/z01LegalParties.ts",
+        "scripts/ediel-registry-market-sql-regression.mjs",
+        "supabase/migrations/20261001103439_ediel_registry_current_actor_source_guards.sql"
+      ]
     },
     {
       "id": "SC-059",
@@ -1937,8 +1953,14 @@
     },
     {
       "id": "SC-069",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-069-scope-inbound.test.ts",
+        "lib/ediel/scopedCapabilityReadiness.ts",
+        "lib/ediel/flows/inboundProcessing.ts",
+        "lib/ediel/productionReadiness.part-3.ts",
+        "supabase/migrations/20260930161907_ediel_readiness_current_source_scope.sql"
+      ]
     },
     {
       "id": "SC-070",
@@ -1952,8 +1974,13 @@
     },
     {
       "id": "SC-072",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-independent-common-mapping.cjs",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/syntaxValidator.ts",
+        "docs/ediel/masterplan-v2/registers/source_manifest.json"
+      ]
     },
     {
       "id": "AT-GOV-01",
