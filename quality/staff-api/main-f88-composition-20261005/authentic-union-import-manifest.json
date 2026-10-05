@@ -35,7 +35,7 @@
   "local_checks": {
     "db_migrations_integrity_legal_contract_hardening_generated_types": "PASS",
     "app_scripts_tests_typechecks": "PASS",
-    "diff_check": "PASS_SCOPED_AGAINST_CURRENT_MAIN"
+    "diff_check": "PASS_SOURCE_AND_QA_AGAINST_COMPOSED_PILOT"
   },
   "evidence_sha256": {
     "f88-union-capture-pilot-source-witness.json": "44a151d5e31f8423f0d024018d31bbabfab25a4cfff8f85acf06fdcbd4981b97",
@@ -50,15 +50,22 @@
     "tenant-classification-final-dc2-upgrade-independent-review.json": "e6c4bec19ee79b6775c5cf5a85a9c0051c1788d30cbf6d5d4ae9fe5298f6ebda",
     "tenant-classification-final-dc2-superseded-native-status.json": "50aced41d49fbf521feceabf16b55cf7d35719f2491f6f53e0cdd5698952dcf4",
     "f88-union-capture-pilot-ci-cancellation.json": "1931b46b964bf5f25f2e2d3bd323323a4f09a85eb99979d24dc5daa233d5fd2a",
-    "main-f88-union-local-db-check.log": "5ca9ecabc27602172abfa9d70ad7f3f466aa7efeac88231601a84e03ef218c05",
-    "main-f88-union-local-app-typecheck.log": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
-    "main-f88-union-local-scripts-typecheck.log": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
-    "main-f88-union-local-tests-typecheck.log": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+    "main-f88-union-local-db-check.log.gz": "30d7c75266bc59ffc6fd665a8da803d944256aa98c1bfaddad3923af49e55614",
+    "main-f88-union-local-app-typecheck.log.gz": "7edcfbbd0bf1e1019cd1c2bc5231bfcb69bcba71ce79dfa3694c0a9b1b3aacd0",
+    "main-f88-union-local-scripts-typecheck.log.gz": "3816cf7dfd97af589157140a002c8ad376d6b3a90da336680ac446250de8dffa",
+    "main-f88-union-local-tests-typecheck.log.gz": "0bcf566071c7c2df0fbeb630d7fea7bea738064cc7908b57a32388d021369fcd"
   },
   "historical_scope": "dc2 other10 CI and true-ancestor upgrade remain historical; clean CANCELLED_SUPERSEDED is not PASS or failure. Both full main/dc2 manifests and exact preimportcff manifest are immutable history.",
   "pending": [
     "Fresh final exact-source mandatory13 CI checks, including native clean, true ancestor upgrade, raw3/type/schema parity."
   ],
   "hosted_writes": 0,
-  "live_support_domain_activated": false
+  "live_support_domain_activated": false,
+  "lossless_local_log_sources_sha256": {
+    "main-f88-union-local-db-check.log.gz": "5ca9ecabc27602172abfa9d70ad7f3f466aa7efeac88231601a84e03ef218c05",
+    "main-f88-union-local-app-typecheck.log.gz": "4b1d0b478880d5443bfb6d57f349e9abc225f248df8c966d105dba22aaf1cbfc",
+    "main-f88-union-local-scripts-typecheck.log.gz": "122902ab9bb4622846143a7b4d89493b7734657820f4cf78d01aea55a4e9701f",
+    "main-f88-union-local-tests-typecheck.log.gz": "b215537d20de45f7a64cbd824e9e37d0715a4b39d3e0780f59355d2e037b4656"
+  },
+  "log_preservation_note": "Exact raw local verification logs preserved losslessly as deterministic gzip; raw SHA256 retained. The earlier plain-log EOF-whitespace diff report was corrected without changing any runtime, SQL, capture input or generated output."
 }
