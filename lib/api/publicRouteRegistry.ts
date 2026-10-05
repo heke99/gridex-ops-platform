@@ -34,6 +34,8 @@ const CUSTOMER_PORTAL_READ_SCOPES = [
 
 /** Canonical source for the public V1 endpoint catalogue and developer documentation. */
 const RAW_PUBLIC_API_ROUTES: PublicApiRouteDefinition[] = [
+  { method: 'GET', path: '/api/v1/openapi/staff-onboarding-v1.json', scopes: [], description: 'Independent additive staff onboarding contract; separate from the frozen Staff API release.', rateLimitClass: 'read' },
+  { method: 'POST', path: '/api/v1/staff-onboarding/invitations/accept', scopes: ['staff_users.write'], description: 'Explicitly accept the registered client invitation with verified production Auth and a single-use signed staff assertion.', idempotencyRequired: true, rateLimitClass: 'write' },
   { method: 'GET', path: '/api/v1/openapi/staff-v1.json', scopes: [], description: 'Current OpenAPI specification for staff integrations.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/website-integration-v1.json', scopes: [], description: 'Immutable Website Integration OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },
   { method: 'GET', path: '/api/v1/openapi/2026-10-04.1/customer-portal-v1.json', scopes: [], description: 'Immutable Customer Portal OpenAPI release 2026-10-04.1.', rateLimitClass: 'read' },

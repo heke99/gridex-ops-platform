@@ -1,0 +1,113 @@
+{
+  "status": "PASS_BOUNDED_SOURCE_REVIEW_NATIVE_ACCEPTANCE_PENDING",
+  "created_at_utc": "2026-10-05T10:36:23.849150+00:00",
+  "scope": "Independent read-only authored-source and focused real-SQL review; no production calls, schema apply, real invitation or email; files not yet declared frozen by author.",
+  "ops_repository": "/workspace/gridex-support-portal-ops",
+  "ops_head_at_review": "a0537cadd644ee3544e6c78faed6263afe4ba119",
+  "ops_source_sha256": {
+    "lib/auth/staffInvitationRouting.ts": "2fe3631e769655a568f62b3c4f2fa4e69768dd1f29d424540884fcaa0d3b72fc",
+    "lib/auth/companyInvitationFlow.ts": "e7938a4a41c5b70a1e4e1c174f3d1706dedc8fe9f44b0a62b50e255d315d7c9c",
+    "lib/staff-api/onboarding.ts": "bb58369cd02370ac3d8eb5d22966e0a685f4b3d89e1ab9872a110e7f22b735bd",
+    "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+    "scripts/staff-onboarding-acceptance-regression.sql": "15e922b1e7f705038e1b2b490bfc562754560e93d38a93fa94c30f254dd77d84",
+    "scripts/lib/staff-onboarding-sql-fixture.cjs": "c5a9a98bcd345b19d566021a64cdfbc6f5cba8930f99cbdda8507c6a7a211c9e",
+    "__tests__/staff-onboarding-sql.test.ts": "104865ed4ec6ceb1faaf9e841ec64406926252a1ac878eb87b63642b2d26bdea",
+    "__tests__/staff-onboarding-machine-auth.test.ts": "c72eb2d3cbe0c7c971d5d501ba3cdbeab189010f7cd853f11b98ae4679887dd4",
+    "__tests__/staff-onboarding-acceptance.test.ts": "276e547bdb1fe13ffb94b5fdc846a67f1a21e35b261cf0408963fe1e26dc79ae",
+    "__tests__/staff-invitation-routing.test.ts": "106115a8bf3b3b3e3d34f9acf26d0ba11218b289d7871f324cd98439a90bf836",
+    "__tests__/staff-onboarding-contract.test.ts": "5d6f35e3396902d8ebe05bff8f992a73410baa5572afcc4c85bd1d12af77d117",
+    "docs/openapi/staff-onboarding-v1.json": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff",
+    "app/api/v1/staff-onboarding/invitations/accept/route.ts": "957604a9c5fac1fb6ffd029d8bd683b1d656c35b0dc32c1329f68abce0e883d9",
+    "app/api/v1/openapi/staff-onboarding-v1.json/route.ts": "1e6fb75442a3b186ec25a0d3564dfd39443a0f3eaec5f55b649bd43d50ada273",
+    "lib/api/publicRouteRegistry.ts": "ea96156806c0038d4c05b5d2764c11afbfd073cc2cd26e4a67423ecd1f481c9b",
+    "scripts/check-openapi-runtime-parity.cjs": "084ee2301b3d909ace1cbfb685bf67144ff0f08979e3a63194d0bbff376a8c85",
+    ".github/workflows/ops-hardening.yml": "c3b15cf790d35fea6c809f8065f0534ba5d9f8fb15021db2e9750f2cf6268f7d"
+  },
+  "support_repository": "/workspace/gridex-support123-web",
+  "support_source_sha256": {
+    "apps/support/lib/invitation.ts": "05c01a56758de585df63e3611631afc594594821be68fdb555a295ef504f7d14",
+    "apps/support/app/auth/invitation/actions.ts": "2b9aa84f338b44d9f1641fb2dabbb18312a720db48f7a73adad343cc52e804ac",
+    "apps/support/app/auth/invitation/page.tsx": "7fa5f9542c00a4303d108e7b37c04adc34d2e9f711f1472da65f6ceb50482032",
+    "apps/support/components/InvitationForm.tsx": "be473346c338b6e0bd38b45abf9f22dc1f9e46c6842931a80752b59047b81421",
+    "tests/support-onboarding.test.mjs": "6535aa653c052734d7ffb3cdd83c309334901dc6f9e86c560e5d86216214363c",
+    "apps/support/lib/session.ts": "e48709cb33ff68848504040c4b8970c67d99bee9f71d24d7623cf46651e94c9f",
+    "apps/support/lib/auth-config.ts": "c745da983d29e3075bc0089010a3c3b141bf8e4472dea30d3c05f23a4fb4817f",
+    "apps/support/proxy.ts": "220006f6566df5aef05df7c3b9c626682c9ea7e16977d9c4a3503895b25ac6f0",
+    "apps/support/next.config.ts": "4021da758534333656f4265d0e3bf3ca1c7f7db9b9c38b6a838d356ce7aeab3e"
+  },
+  "current_evidenced_critical_or_important_blockers": [],
+  "resolved_findings": [
+    {
+      "id": "anonymous_invalid_body_audit",
+      "evidence": "Original invalid body/key processing preceded machine auth and actual logIntegrationApiRequest wrote non-401 anonymous requests. Current source authenticates first and audits only a verified client. Author genuine RED/GREEN logs retained; independent actual-logger bounded corrected case PASS.",
+      "scope": "Handler and actual audit sink ordering."
+    },
+    {
+      "id": "native_client_provider_freshness",
+      "evidence": "Legacy canonical acceptance did not recheck machine-client/provider authority. New service-only wrapper locks company, current client/provider/Auth/invitation and checks exact snapshots, expiry, revocation, staff purpose, confirmed email/UUID, active profile, registered origin and durable originating client/channel before unchanged canonical writer.",
+      "scope": "Source and author actual-function embedded SQL; native concurrency pending."
+    },
+    {
+      "id": "new_namespace_machine_auth",
+      "evidence": "Actual old machine function denied pure staff client at new route with api_client_not_launch_ready. New machine function changes only exact family predicate and acceptance staff_users.write mapping; six independent real-SQL before/after assertions PASS, old credential core unchanged.",
+      "receipt": "/tmp/gridex-staff-review/staff-onboarding-route-auth-independent.json",
+      "function_sha256": "ebc987978e2484d0ff5ed8f8cb1f459b148644d5a08d1dd8dedee3218795b66b"
+    },
+    {
+      "id": "empty_rpc_secret_snapshot",
+      "evidence": "Current machine RPC intentionally omits secret_hash; apiAuth constructs empty client.secret_hash. Current onboarding hashes exact credential already accepted by the same existing parser/hash helper; never restores stored hash output. Author 2 genuine RED/26 controls then GREEN30 logs inspected."
+    },
+    {
+      "id": "legacy_acceptance_bypass",
+      "evidence": "Legacy action previously accepted a staff_api invitation through old canonical RPC. Current legacy action loads durable binding and rejects staff_api before Auth/canonical acceptance, including accepted status. New ownportal first-password update precedes one API POST. Author genuine RED2/22 then GREEN54 logs inspected; OPS control retained.",
+      "lock_order_scope": "Former same-invitation legacy invitation->company vs new company->invitation cycle is excluded at the application entry point for staff_api invitations. No claim about arbitrary trusted service_role direct calls or full native concurrency."
+    },
+    {
+      "id": "native_company_active_flag",
+      "evidence": "New wrapper now rechecks both current company status active and is_active true under company lock; prepared native regression includes is_active=false refusal."
+    }
+  ],
+  "verified_source_properties": [
+    "Early configured service-project/expected-project guard precedes machine auth, limiter, audit and canonical writes.",
+    "API request body admits only invitation token; company, user, actor, client, provider and assigned role derive from verified authoritative sources.",
+    "Real Prod Auth getUser(accessToken), confirmed email and UUID must match signed provider subject and delivered invitation identity; real shared verifier enforces signature, issuer, audience, finite issued/expiry times and unused durable staff JTI.",
+    "Native wrapper is SECURITY DEFINER search_path pg_catalog, browser roles revoked, service role only; canonical acceptance owns membership/role/audit/domain/outbox and stable idempotency.",
+    "Verification snapshots and credential digest are excluded from canonical request/audit receipts; accepted replay does not reactivate disabled membership/role.",
+    "New namespace/spec/version is separate; immutable Staff API 2026-10-04.1 JSON byte equality verified.",
+    "Portal GET renders form without acceptance; own host-only Auth cookie, server-only signing secret, strict fixed Prod target and bounded attested response; explicit password update precedes one API mutation; fresh proof on retry with stable idempotency.",
+    "Temporary password provisioning is retired in current worker. Editable user_metadata rotation flag remains advisory; this is not an authoritative mandatory rotation proof for all existing accounts."
+  ],
+  "author_logs_inspected_sha256": {
+    "staff-onboarding-unauthenticated-audit-red.log": "93cb5563a29d46beec80df52b36a767435a4948e73d2d3d572119659784156d6",
+    "staff-onboarding-unauthenticated-audit-green.log": "d157d43faafb600a615330de5acf831258be4dc2d3ba1a87e5f463e2148204ad",
+    "staff-onboarding-secret-snapshot-red.log": "f664e0a0975f54e4676c24a2f482e3d040d26724ec1719437614d591978f2334",
+    "staff-onboarding-secret-snapshot-green.log": "cce04176b3d617169f8b58a248ee79847ddb991675cb7ca7eaebfa859fd145d4",
+    "staff-onboarding-legacy-bypass-red.log": "577b06772615afdd3b438e524567654964f1364d70ca438cd4e984c0a6183dd5",
+    "staff-onboarding-legacy-bypass-green.log": "a9f89b348b3108af113901323ff43b4bdc14fd15c2105ebb1563e677149542eb",
+    "staff-onboarding-native-source-green.log": "5322532b6dbf3338f64b76ab9dd9e9b5274259a3b192f04a0fc671caff7a751b",
+    "support-onboarding-password-first-red.log": "a224255c163b17e1a59e4256a0ecb5945c4f6cf6a2eb14a18a356acf01d8354e",
+    "support-onboarding-password-first-green.log": "a2b45b6d84721ebfdbe3eb45071f5481e2d4cda480ca1c8a132881e2ada6e118",
+    "staff-onboarding-credential-order-corrected-independent.log": "4b113d883e66166661a89de255f219ae7da3f9a6598a76786dd7562b870cb107"
+  },
+  "independent_executions": [
+    {
+      "scope": "Corrected anonymous invalid body boundary with actual logger and synthetic DB sink",
+      "checks": 1,
+      "result": "PASS",
+      "note": "Earlier reviewer snapshot was already corrected; its FAIL was expectation/timing mismatch and is not historical defect RED."
+    },
+    {
+      "scope": "Actual credential fixture/current old machine function/new authored machine function",
+      "checks": 6,
+      "result": "PASS_LOCAL_ACTUAL_SQL_BEFORE_AFTER",
+      "receipt_sha256": "3229b5d8d02ace86119dbca499af8c36e9ca31c42c7e565afac84798b1a0e199"
+    }
+  ],
+  "qualification_pending": [
+    "Final author freeze/hash reconciliation",
+    "Fresh genuine native clean replay and role/schema/concurrency qualification",
+    "Real gridex-prod dependency alignment and independently qualified deployment/target binding",
+    "Actual provider/client enrollment and invitation/email delivery"
+  ],
+  "prohibited_actions_performed": false
+}

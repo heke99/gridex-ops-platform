@@ -3,6 +3,8 @@ import type { User } from '@supabase/supabase-js'
 import { supabaseService } from '@/lib/supabase/service'
 import { acceptCompanyInvitationAccess } from '@/lib/auth/companyUserAccess'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { loadInvitationCommandBinding, loadRegisteredStaffInvitationClient, registeredStaffOnboardingOrigin, staffInvitationAcceptUrl, staffInvitationCallbackOrigin } from '@/lib/auth/staffInvitationRouting'
+import { ApiInputError } from '@/lib/api/strictRequest'
 import {
   findAuthUserByEmail,
   getBaseAppUrl,
@@ -159,8 +161,10 @@ export async function deliverCompanyInvitationIntent(input: {
   channel?: 'ops' | 'staff_api'
   apiClientId?: string | null
 }) {
-  const acceptUrl = buildAcceptUrl(input.token)
-  const authRedirectTo = `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(input.token)}`)}`
+  // Resolve the immutable originating client before any Auth/email/profile write.
+  const portalOrigin = await staffInvitationCallbackOrigin(input.companyId, input.invitationId)
+  const acceptUrl = portalOrigin ? staffInvitationAcceptUrl(portalOrigin, input.token) : buildAcceptUrl(input.token)
+  const authRedirectTo = portalOrigin ? acceptUrl : `${getBaseAppUrl()}/auth/callback?next=${encodeURIComponent(`/auth/company-invite?token=${encodeURIComponent(input.token)}`)}`
   try {
     const authResult = await createOrResolveInvitedAuthUser({
       email: input.email,
@@ -254,6 +258,10 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
   if (!email) throw new Error('E-post saknas.')
   if (!input.actorUserId) throw new Error('Verifierad aktör krävs för tenantinbjudan.')
 
+  const portalClient = input.channel === 'staff_api'
+    ? await loadRegisteredStaffInvitationClient(input.companyId, input.apiClientId ?? '') : null
+  const portalOrigin = portalClient ? registeredStaffOnboardingOrigin(portalClient, input.companyId, input.apiClientId ?? '') : null
+
   const idempotencyKey = input.idempotencyKey || `tenant-invitation:${input.companyId}:${hashCompanyInvitationToken(`${email}:${input.roleKey}`)}`
   const { data, error } = await supabaseService.rpc('canonical_create_tenant_invitation', {
     p_command: {
@@ -287,7 +295,7 @@ export async function provisionCompanyInvitation(input: CompanyInviteInput): Pro
     email,
     wasCreated: false,
     invitationToken: intent.token,
-    acceptUrl: buildAcceptUrl(intent.token),
+    acceptUrl: portalOrigin ? staffInvitationAcceptUrl(portalOrigin, intent.token) : buildAcceptUrl(intent.token),
     emailSent: false,
     emailError: null,
   }
@@ -329,6 +337,10 @@ export async function getCompanyInvitationByToken(token: string): Promise<Compan
 export async function acceptCompanyInvitationByToken(token: string) {
   const invitation = await getCompanyInvitationByToken(token)
   if (!invitation) throw new Error('Inbjudningslänken är ogiltig eller saknar aktiv token.')
+  const binding = await loadInvitationCommandBinding(invitation.company_id, invitation.id)
+  if (binding.channel === 'staff_api') {
+    throw new ApiInputError('Den här personalinbjudan måste accepteras i den egna supportportalen.', 'staff_invitation_requires_independent_portal', 403)
+  }
 
   const email = normalizeEmail(invitation.email)
   const supabase = await createSupabaseServerClient()

@@ -58,10 +58,40 @@ origin routing plus separately versioned onboarding API, new tests/docs and
 limited registry/parity changes. Root owns web UI/config/browser runner/docs/source
 publication. No duplicate shared-file editing.
 
-Current next actions: finish independent onboarding's explicit Auth+assertion+
-canonical acceptance and all bounded tests; independent security review; final
-source qualification and reviewable PRs. Prod dependency closure additionally must
-resolve broad platform_runtime_readiness (never fake is_ready), actual Gridex/admin
-mapping, nativeProd-shapedSQLqualification, and proper runtime Prod configuration.
-Only then enrollment/live acceptance/domain assignment. Never replay all old OPS
+Final independent onboarding addition (2026-10-05): registered same-company
+origin and existing leased delivery; separate 2026-10-05.1 acceptance API;
+verified Prod Auth + fresh staff assertion; password-before-grant portal form;
+service-only locked native authority wrapper; legacy OPS acceptance refusal;
+exact machine-auth route opt-in and predecessor body hash guard. Profile status
+is a snapshot, not a global profile-writer serialization claim. New company
+reads/inserts use tenant helpers. No duplicate worker or automatic write retry.
+
+Final source qualification: OPS 84 targeted tests PASS, app types and scoped
+lint/tenant ratchet/API docs PASS. Web 56 tests (including8own-invitation tests),
+17 Chromium checks/zero JS errors, scoped types/lint, production support build
+11dynamic paths PASS. Existing website contract preflight, types and complete
+launch tests PASS after managed contract/type sync to published2026-10-04.1.
+Baseline48/15evidence remains preserved; new receipts are separate addenda.
+
+Publication: OPS draftPR578 https://github.com/heke99/gridex-ops-platform/pull/578;
+web draftPR45 https://github.com/heke99/gridex-web/pull/45. Web final code54b406d
+already published; OPS new source is awaiting its source commit/push. Both PRs
+are attached to this chat. No production migration, account/provider/client,
+Auth callback setting, real email, environment change or domain move occurred.
+
+Active next action: authentic generated artifacts. Frozen SQL forward SHA256
+ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492 is registered;
+checksum integrity1067files and contract hardening PASS, but db:types:check
+correctly fails new migration tail. Publish reviewed draft source to obtain
+real clean-replay type/schema artifacts, commit their exact bytes/manifests,
+then pass required final native clean/upgrade/schema CI. Do not hand-edit
+artifacts or call old schema current. Source receipt84tests:
+quality/staff-api/independent-onboarding-evidence-20261005/manifest.json.
+
+After source CI: Prod dependency closure additionally must resolve genuine
+platform_runtime_readiness (never fake is_ready), actual Gridex/admin mapping,
+Prod-shaped SQL qualification and correct runtime Prod configuration. Required
+company/admin question remains unanswered. Only then dedicated enrollment,
+registered Auth redirect allowlist, actual own invitation delivery/acceptance
+and independent Vercel project/domain assignment. Never replay all old OPS
 migrations or auto-merge legacy website support tickets.

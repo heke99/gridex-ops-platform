@@ -48,6 +48,8 @@ const specs = [
   JSON.parse(fs.readFileSync('docs/openapi/website-integration-v1.json', 'utf8')),
   JSON.parse(fs.readFileSync('docs/openapi/customer-portal-v1.json', 'utf8')),
   JSON.parse(fs.readFileSync('docs/openapi/staff-v1.json', 'utf8')),
+  // Independent additive onboarding contract: never part of the frozen staff release.
+  JSON.parse(fs.readFileSync('docs/openapi/staff-onboarding-v1.json', 'utf8')),
 ]
 const failures = []
 const operations = []
