@@ -1,3 +1,4 @@
+// masterplan: SC-011, SC-023
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {applyPermissionMarketSource, type PermissionObjectDisposition, type PermissionMarketTransitionResult} from '@/lib/ediel/permissions/permissionMarketTransition'
 import {applyInboundZ15PermissionState} from '@/lib/ediel/flows/prodatPermissionLifecycle'
