@@ -1,0 +1,633 @@
+{
+  "claim": 5994688282,
+  "base": "fff486f822001d35970f163507b10e17c3692f58",
+  "baseTree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "historicalReportsAt": "87cb025d37cedd0361ef3581daac73fb8b326c28",
+  "liveInventoriesAt": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+  "rootFinalBoard530": 5994668222,
+  "rootFinalBoard491": 5994197574,
+  "reportHashes": {
+    "ownership-scout.md": "e2eeee7ea904f770cbdf4071d15833737e12e7375e785215979f777540164d9c",
+    "ownership-final-race.md": "0a52114d3cc67b13afac61a784ecf00a987112ddec35f0af2da7b7c3e1a4fc38",
+    "l-finite-boundary.md": "61bb0609154f2a41b351ad9339f5bd97d3a89a1505008c3c8d90e7fb53fa4432",
+    "lk-discriminating-oracle.md": "04631fc609f7610caed8436789e87b8db351b7d43aa318bf2372f754b4cbf49c"
+  },
+  "inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "gitBlob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "historical87Sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "gitBlob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "historical87Sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+      "sha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "gitBlob": "aa6e094d548300609ded7eb680c1fe288a6dd4be",
+      "historical87Sha256": "ae5561799f6c81d78a139e4f5f82e74228bb765369fc6876668ae99ac338892d",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_message_cases.json",
+      "sha256": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "gitBlob": "4625a655050293519733f46156afd1bcc20ac397",
+      "historical87Sha256": "77c5023457d8e405d6a560b2d2515679c2d7b59bf968800f35c16070e5f8eeee",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_fields.json",
+      "sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "gitBlob": "e7defb1949c41a5bc221cffbdc52775a996e43d4",
+      "historical87Sha256": "e1248f8f4ec025aa5d71e3b3249ee70b6e9e0d8e0e48a4ec6f0db11e31178354",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/annex/source_tables.json",
+      "sha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728",
+      "gitBlob": "64af8011348a7cea889b3275a2d31eba8f60bd07",
+      "historical87Sha256": "a23e928bdbe7e4bd514df99c789482023aea1d2f70f2a26f4a7ae5c05c973728",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24",
+      "gitBlob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+      "historical87Sha256": "4307875af0390036489d81ec325b698fc9270a3506bfcbaea26e61d839e768fc",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/flows/prodatCustomerMasterdata.ts",
+      "sha256": "e55251ee640d25bc93995e54eabed92bf5df8579a43a2b181521a89f695f3f81",
+      "gitBlob": "82f6690159a7d500c395a4915a91e6e992e7ecc9",
+      "historical87Sha256": "e55251ee640d25bc93995e54eabed92bf5df8579a43a2b181521a89f695f3f81",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/intent/renderGateway.ts",
+      "sha256": "aaa06c9f2762eac28e4e7a53aba31dfeb93b8cbe549a2f2a675d728a84e1d59f",
+      "gitBlob": "c66ee8274acf9d17787e6fe6835eebd22521d0c4",
+      "historical87Sha256": "aaa06c9f2762eac28e4e7a53aba31dfeb93b8cbe549a2f2a675d728a84e1d59f",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/intent/renderers/customerMasterdataZ01.ts",
+      "sha256": "63a4dadcc251153a15fd29cf52ae65694776ad5295899d4e2c45baf35e712cb6",
+      "gitBlob": "adde8a46bb3d812f8aee72041aef80b09e1daf32",
+      "historical87Sha256": "63a4dadcc251153a15fd29cf52ae65694776ad5295899d4e2c45baf35e712cb6",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/customer-operations/customerSiteProcessContext.ts",
+      "sha256": "db2b4fc94e452a221a3857240708c1891d3008fc85ec9a7e78da04309859a281",
+      "gitBlob": "2697bed8d8a249c11847c6b697448945f4ac3852",
+      "historical87Sha256": "db2b4fc94e452a221a3857240708c1891d3008fc85ec9a7e78da04309859a281",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/z01LegalParties.ts",
+      "sha256": "c3282798a5402948736452a81363a869b1ad75eb59dace27025f040745c01362",
+      "gitBlob": "b67b2ec76685b424c43af006d859b5994d414ffa",
+      "historical87Sha256": "c3282798a5402948736452a81363a869b1ad75eb59dace27025f040745c01362",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/render/dates.ts",
+      "sha256": "25b2cd8c56b4cb7c824c6ed6c6ecc8783b8843212387f4cb08223fc157b40505",
+      "gitBlob": "79dfbfbc420fa3157d95e5a7bd5319fcd2a301f6",
+      "historical87Sha256": "25b2cd8c56b4cb7c824c6ed6c6ecc8783b8843212387f4cb08223fc157b40505",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/render/dateSegments.ts",
+      "sha256": "d89e340f6638a8633f405af3a1fc14ccb260363900caac6fe0d10f1d7e802bd8",
+      "gitBlob": "5e6a297e8a255550463fdebb50bf8a7c4cf14534",
+      "historical87Sha256": "d89e340f6638a8633f405af3a1fc14ccb260363900caac6fe0d10f1d7e802bd8",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDateFields.ts",
+      "sha256": "5dcc9d8aff057bef42fa974f9cb3cc71da3f1b2f9e04edba3a238738420705cb",
+      "gitBlob": "4a8f6d91671867e942dc52c17a47f060bbb14caa",
+      "historical87Sha256": "5dcc9d8aff057bef42fa974f9cb3cc71da3f1b2f9e04edba3a238738420705cb",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-z01-api-original-first.test.ts",
+      "sha256": "1e5e65d2cfd6641b48ea6d1b7b1f142a8d6eccc1be5754b6a2414d12f4edf1ae",
+      "gitBlob": "685522193e1c7042e4988e5e0083445b4295e3b1",
+      "historical87Sha256": "1e5e65d2cfd6641b48ea6d1b7b1f142a8d6eccc1be5754b6a2414d12f4edf1ae",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-z01-intent-reference-gateway.test.ts",
+      "sha256": "d8dee2da68ac74182007ba1ada2cf1c2793e740016c120d5ca80d5f6e65e04a7",
+      "gitBlob": "bc7058192c73015808bfa701af0b76f93c46a754",
+      "historical87Sha256": "d8dee2da68ac74182007ba1ada2cf1c2793e740016c120d5ca80d5f6e65e04a7",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-facility-lookup-identity.test.ts",
+      "sha256": "94fe2a4ff20abd44e14c984e964218ec563f457f685e2fe32f5aa2fa9bd1463b",
+      "gitBlob": "43a846cf84cbce5470afe78727cccd01e8ce3981",
+      "historical87Sha256": "94fe2a4ff20abd44e14c984e964218ec563f457f685e2fe32f5aa2fa9bd1463b",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-customer-masterdata-actual-source-chain.test.ts",
+      "sha256": "fbf2217bdca466e43471f3f7b0453d1fed4a0c1e006b37da5f36279b57996902",
+      "gitBlob": "284a1069d90b619f457b3bc6d17b630543015fe8",
+      "historical87Sha256": "fbf2217bdca466e43471f3f7b0453d1fed4a0c1e006b37da5f36279b57996902",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-customer-masterdata-draft.test.ts",
+      "sha256": "8d77f81c16a74abe3cb4ceacb3da0a56be134d66720fb1f865e1d46164b244b0",
+      "gitBlob": "5cb457b0390016d8a10b4d3f6ca0dd5eb87c8512",
+      "historical87Sha256": "8d77f81c16a74abe3cb4ceacb3da0a56be134d66720fb1f865e1d46164b244b0",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/ediel-z01-canonical-process-group-regression.test.ts",
+      "sha256": "d62b51feaa37836f3d7e4d14f48ae7d5f96c57f2439d830088aab89ef3baae31",
+      "gitBlob": "8ab82656e8fc9166b7b472e92cf441914dfbb23f",
+      "historical87Sha256": "d62b51feaa37836f3d7e4d14f48ae7d5f96c57f2439d830088aab89ef3baae31",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/z01-parallel-sla-watchdog.test.ts",
+      "sha256": "8109db49e9370180275ee2b15ac4273888c6385b56f0a0388631f5a289983eb2",
+      "gitBlob": "3a893200107093929c67b26b719b6505e614feee",
+      "historical87Sha256": "8109db49e9370180275ee2b15ac4273888c6385b56f0a0388631f5a289983eb2",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "9f1b78b4b99a7b1dfad26649ced506fd72667d5f619b113cac354b8ccad0fa96",
+      "gitBlob": "e913ffd31156a2f41fbe73324a9f4f669ece1511",
+      "historical87Sha256": "9f1b78b4b99a7b1dfad26649ced506fd72667d5f619b113cac354b8ccad0fa96",
+      "qualification": "EXACT"
+    },
+    {
+      "path": ".agents/skills/writing-plans/SKILL.md",
+      "sha256": "72190c88b2b5a67a96b91d66aa72b9161913e10e8769da3f28a226f4cc7b99d0",
+      "gitBlob": "dd2702b8bab0dbe6b6824d8d00669be44fbb8be7",
+      "historical87Sha256": "72190c88b2b5a67a96b91d66aa72b9161913e10e8769da3f28a226f4cc7b99d0",
+      "qualification": "EXACT"
+    },
+    {
+      "path": ".agents/skills/full-e2e-verification/SKILL.md",
+      "sha256": "e56d901a2760b281cf93213b446ef2968a1cf45ea9eaefc361a5b80e4d63d180",
+      "gitBlob": "9cec0a45b8a22b813c620f3dbc1444062e287a48",
+      "historical87Sha256": "e56d901a2760b281cf93213b446ef2968a1cf45ea9eaefc361a5b80e4d63d180",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_conditional_cells.json",
+      "sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "gitBlob": "5f61cd75b6660f2ec00c8ae2d11b965c7ea0f3f1",
+      "historical87Sha256": "55d44fcf337b5a7c9508c50bd25b9f204128ae2939ee36e49e74072b031a4b5d",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json",
+      "sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "gitBlob": "99b41fb2e9ee073254fde59319259585376939eb",
+      "historical87Sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/flows/shared.ts",
+      "sha256": "e555e45fee1762e2b19cba794354207ae170f62f7f49230f06ca31f815f74f49",
+      "gitBlob": "9f14a26a319a11fd2a0c41786209bf9770cd943d",
+      "historical87Sha256": "e555e45fee1762e2b19cba794354207ae170f62f7f49230f06ca31f815f74f49",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/flows/routeDecisionContext.ts",
+      "sha256": "cf2a1c5fc0d52ffb9af23d5bf9195b8fc8f1e1061e9257439ff05bfa7227b3cb",
+      "gitBlob": "2e491d37374800e23c61b90944be55886bbced77",
+      "historical87Sha256": "cf2a1c5fc0d52ffb9af23d5bf9195b8fc8f1e1061e9257439ff05bfa7227b3cb",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/intent/intentEngine.ts",
+      "sha256": "b56e03cb0fc92835fbfd49812224015bdd7d27348b84a2bfa178965276c02829",
+      "gitBlob": "c9b04a6a2c0226012a795b63f023ecde394e0bb2",
+      "historical87Sha256": "b56e03cb0fc92835fbfd49812224015bdd7d27348b84a2bfa178965276c02829",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/intent/noPlaceholderGuard.ts",
+      "sha256": "33a5f8b0a4a040ca5911557659036939c64ce0d3649c4457a85de73fdcb0daab",
+      "gitBlob": "8448ac5f9552130abd900044c3e9841b2b268b3f",
+      "historical87Sha256": "33a5f8b0a4a040ca5911557659036939c64ce0d3649c4457a85de73fdcb0daab",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/customer-operations/z01Prerequisites.ts",
+      "sha256": "0a63b2b582b9a62fb88367157451bc2c2e88cd18359ed918b8367edafe3bbd59",
+      "gitBlob": "9bd90e2f25687aba358f085ee552d622ee95608d",
+      "historical87Sha256": "0a63b2b582b9a62fb88367157451bc2c2e88cd18359ed918b8367edafe3bbd59",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/cis/db-shared.ts",
+      "sha256": "289de6560100e5d6b2b8db620dfc093228fa62c5460b9e71b64fe5cc5bc351c2",
+      "gitBlob": "c35689366be9f9cfd3d4c3613a3d55debd3154bf",
+      "historical87Sha256": "289de6560100e5d6b2b8db620dfc093228fa62c5460b9e71b64fe5cc5bc351c2",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/cis/db-data.ts",
+      "sha256": "5299216751a3f5e644b0917197fd5ed493c8c69ece86426cf9979d9856e22464",
+      "gitBlob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9",
+      "historical87Sha256": "5299216751a3f5e644b0917197fd5ed493c8c69ece86426cf9979d9856e22464",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/cis/db-outbound.ts",
+      "sha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a",
+      "gitBlob": "1ec9079d4fc7d7f64968fca4ca1b959619bfa5ac",
+      "historical87Sha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/tenant/governance.ts",
+      "sha256": "3473e7f4dd497b377af05d1bb07c9c88f14b04a6a994b220eafbf938becd0ebe",
+      "gitBlob": "799ee9b97d1ed9f5681b597ff382ae1930dcdc5a",
+      "historical87Sha256": "3473e7f4dd497b377af05d1bb07c9c88f14b04a6a994b220eafbf938becd0ebe",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "gitBlob": "b575ca3514627d6d09751be01e4088db58ccc650",
+      "historical87Sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/actor-registry/registryMarketSource.ts",
+      "sha256": "67e1f758203b88161989286e24e20b552b77c08ae2cbcdd161d8a13ce712c4a6",
+      "gitBlob": "d6753f44052df001abcc06ecb5453a3b33c1c85d",
+      "historical87Sha256": "67e1f758203b88161989286e24e20b552b77c08ae2cbcdd161d8a13ce712c4a6",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/production/customerMasterdataSource.ts",
+      "sha256": "ff6a2521f1ac31661ca47d87144f8f9c683638a417990321c79ca3d7c69f7e8b",
+      "gitBlob": "f4a040b2e058f89fbbede5e181fdfb3bd2d04d0e",
+      "historical87Sha256": "ff6a2521f1ac31661ca47d87144f8f9c683638a417990321c79ca3d7c69f7e8b",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/production/customerLifeEventExport.ts",
+      "sha256": "b59d16d7a36b59d10e29f523798fe6ac86ca0fa0d706a27f54855c89698836a4",
+      "gitBlob": "24a82970e2f95dd12c175903f5a920ea9d502b53",
+      "historical87Sha256": "b59d16d7a36b59d10e29f523798fe6ac86ca0fa0d706a27f54855c89698836a4",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/customerIdentity.ts",
+      "sha256": "37fbcf7e62de8d10f82f8c8d78c8b9390f4a9d7341131e87442c801a487b3c23",
+      "gitBlob": "bfb41b9e8ea2d7db2e5773f5d262aa6164bad538",
+      "historical87Sha256": "37fbcf7e62de8d10f82f8c8d78c8b9390f4a9d7341131e87442c801a487b3c23",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/customerMasterdataAuthority.ts",
+      "sha256": "2ca8db38937fbf890d307f4ad5e3b86396b68153dddcbd39600ebe9171d4156c",
+      "gitBlob": "9204dba6c306c99aa56b0508c75197dd03894876",
+      "historical87Sha256": "2ca8db38937fbf890d307f4ad5e3b86396b68153dddcbd39600ebe9171d4156c",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/customerMasterdataDraft.ts",
+      "sha256": "630ac102a90d3b79161dfe933838f8eaef07bc7552f3488d9d281635a4992534",
+      "gitBlob": "7f7d4f5f6a44613195abe3c902f5b939d95c2e9f",
+      "historical87Sha256": "630ac102a90d3b79161dfe933838f8eaef07bc7552f3488d9d281635a4992534",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/z01WireReferences.ts",
+      "sha256": "9725507394ab36a27a5152977e61f05ea90decf268b43401b432ab7f5dbab2f6",
+      "gitBlob": "a0aacdc87971f07db5e516d9f6314481bfa72070",
+      "historical87Sha256": "9725507394ab36a27a5152977e61f05ea90decf268b43401b432ab7f5dbab2f6",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/z01OriginalReplay.ts",
+      "sha256": "7e881114e224ada6f69e8c05534f8d5fe6ad205cc3e032a2af89a0612158c78c",
+      "gitBlob": "e61fbb41b8c33bdbc94bce46f37a7a517e90631a",
+      "historical87Sha256": "7e881114e224ada6f69e8c05534f8d5fe6ad205cc3e032a2af89a0612158c78c",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/engine.ts",
+      "sha256": "eddc1e0d6a72d0aa0affd62192c471b795e7faf153509e0d517ccc5d36646514",
+      "gitBlob": "a8cd175f21e96fb9185aec628fcf1a561f1023ab",
+      "historical87Sha256": "eddc1e0d6a72d0aa0affd62192c471b795e7faf153509e0d517ccc5d36646514",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/builders/profileRenderer.ts",
+      "sha256": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95",
+      "gitBlob": "acb51bf381d003bff15c79325ee23a754dc8dd16",
+      "historical87Sha256": "7d5eff3c51ecb817a1378d55e5821dc437017e41849bb256671d15db16471c95",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/builders/z01.ts",
+      "sha256": "05e3393a562c7f224082551d35ee974f8fb6bba624c0659989e30ef16a5c34d1",
+      "gitBlob": "402259f76535a2a69d1260a2606223da02c314fa",
+      "historical87Sha256": "05e3393a562c7f224082551d35ee974f8fb6bba624c0659989e30ef16a5c34d1",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "gitBlob": "36d4a8074da29f231e0b1121e88267385154e99e",
+      "historical87Sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/messages.ts",
+      "sha256": "1bcfe177db9e7fad4a25342ce82a7c9b1cc5904428df26e2cf84ab9a9d02faa1",
+      "gitBlob": "021a5fa870482ca3c67a20b48c38b6634d5795c7",
+      "historical87Sha256": "1bcfe177db9e7fad4a25342ce82a7c9b1cc5904428df26e2cf84ab9a9d02faa1",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+      "sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+      "gitBlob": "d909b4918756b08122ca8bd6c35f2b7477d1b844",
+      "historical87Sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/edifactTokenizer.ts",
+      "sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+      "gitBlob": "918528433f1c2574e1e77f8ddc8b4a1f6292be3f",
+      "historical87Sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+      "sha256": "f6c620626a859ea40f14990b5c2c778d175c26121965d1907d8398936b0a6668",
+      "gitBlob": "256c30d48f314c927ffefed8047d856e218f445f",
+      "historical87Sha256": "f6c620626a859ea40f14990b5c2c778d175c26121965d1907d8398936b0a6668",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/versionRegistry.ts",
+      "sha256": "ec62231af36ecde38a8377662ca6586e8846170b617e3e51e1eded27c915aa68",
+      "gitBlob": "d13001c67598ce3ccdcce57f1b3d914604f26eec",
+      "historical87Sha256": "ec62231af36ecde38a8377662ca6586e8846170b617e3e51e1eded27c915aa68",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/ackPolicy.ts",
+      "sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f",
+      "gitBlob": "94d75b1c3dc4120a09d331afbcdaabaf2a0b8e1e",
+      "historical87Sha256": "daf2d4ad8b31b67263217f51590baae7f0039a629c24fcff42d13f7c7d40282f",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/kernel.ts",
+      "sha256": "e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1",
+      "gitBlob": "e768195621f24838e59274ea09b50031d00a978f",
+      "historical87Sha256": "e375037eccec1bd140faeee524b86cc5ff9eec8b165e63c0cc9e8f4dcd5cc7b1",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/kernelLegacy.ts",
+      "sha256": "b6680e10b8b743678b895804661a6e497740893bf778b274b871bfa34c3bab21",
+      "gitBlob": "7310ae00ef55e89ea85ef785a7f2540a7baf871d",
+      "historical87Sha256": "b6680e10b8b743678b895804661a6e497740893bf778b274b871bfa34c3bab21",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/routeRegistry.ts",
+      "sha256": "e9e36c9c2b99b2cb8086523b9ad0787830ce7777e5773c5c3de8d00d9f75441a",
+      "gitBlob": "58e8d70a8e9e1d82d549c6da2022335eb7d11dce",
+      "historical87Sha256": "e9e36c9c2b99b2cb8086523b9ad0787830ce7777e5773c5c3de8d00d9f75441a",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/core/outboundOwnerWitness.ts",
+      "sha256": "a26cdec3e3c861aeffb3de18ef5e3d8d3fbd311d17106b3c3171c3d43657f0f6",
+      "gitBlob": "147b499f4518c0b00f2b0bd2438d8829bd589db9",
+      "historical87Sha256": "a26cdec3e3c861aeffb3de18ef5e3d8d3fbd311d17106b3c3171c3d43657f0f6",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/rulebook/validator.ts",
+      "sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1",
+      "gitBlob": "7d836f24e076e737f3bf82afe0ebddb1e3f7b7dd",
+      "historical87Sha256": "ac9806db14070125224d0d6e78293374e17b3a3bd1714cc4675d897401a62ec1",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+      "sha256": "5b1d47c9379aa22ba8bc0df60de6fb158ef3f54c882951a9107bf7c618009976",
+      "gitBlob": "43029ecaf5cb96fd2a2c97899f239d4f2ed3a474",
+      "historical87Sha256": "5b1d47c9379aa22ba8bc0df60de6fb158ef3f54c882951a9107bf7c618009976",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "gitBlob": "536495dd2bedb6a5e9b5144c84aaa34d3067892e",
+      "historical87Sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/db.ts",
+      "sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0",
+      "gitBlob": "0771e4a820f7a9563bd5856b2d080a3fe83a6507",
+      "historical87Sha256": "45a44daa8eec2beca4e0fe70f40f4d0a9a09165df29f8025246704519e1cd1f0",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/outbox/createOutboxItem.ts",
+      "sha256": "412d05c89423ca9bee10fc7f18941b5c1e463b892ea796ca170f8909fd5b304a",
+      "gitBlob": "0d463441a0c9ba4bf2ec301b1496c24886e4a291",
+      "historical87Sha256": "412d05c89423ca9bee10fc7f18941b5c1e463b892ea796ca170f8909fd5b304a",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/fixtures/ediel-pinned-prodat-read-boundary.ts",
+      "sha256": "312e22f112119e9dde93471920bb1edf3c265fbf7a0b76156c22012468606aee",
+      "gitBlob": "5168d1562c1663c3a95e226008af5a8aa7b5b1d7",
+      "historical87Sha256": "312e22f112119e9dde93471920bb1edf3c265fbf7a0b76156c22012468606aee",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "__tests__/helpers/sourceOwnerFixtures.ts",
+      "sha256": "bbe5f5f5b60976aa8eefedf0196557f6d5a13cdc58e49e859e7d7a6c763f8620",
+      "gitBlob": "96d589b1e172164cb8ff21ffb1a7180afdf4f7a5",
+      "historical87Sha256": "bbe5f5f5b60976aa8eefedf0196557f6d5a13cdc58e49e859e7d7a6c763f8620",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/prodat/render/registers.ts",
+      "sha256": "522f50623554a41bab738f3ded72bad2a37e997c6039a6b08bc4f51556a5d9c5",
+      "gitBlob": "651a82293f2f039ce3d8e53d59bd83ec09f1c047",
+      "historical87Sha256": "522f50623554a41bab738f3ded72bad2a37e997c6039a6b08bc4f51556a5d9c5",
+      "qualification": "EXACT"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "sha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+      "gitBlob": "4bcaea5ab6c28496194cfb6e4b358ea8cfa88822",
+      "historical87Sha256": "72ab4f6836154c74a4dcd8e3fefec92fc31bb5da6800318707b591f51f44bf0e",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "sha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+      "gitBlob": "55b59cce1055b5c63718a10c572c095e72488b59",
+      "historical87Sha256": "a53ff6e8e95d3d65cfe02f95afaedf3ac7d67a26241aea9fe6b2009a97fd1174",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "sha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+      "gitBlob": "26c4ed40a5a8d7e4a78361a7249e24253e80b485",
+      "historical87Sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "gitBlob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c",
+      "historical87Sha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    }
+  ],
+  "deltasFromHistorical87": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "sha256": "802c6a5ffccb19a511db0e6b4c534d817412f6cf482b253965a261c082456a24",
+      "gitBlob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+      "historical87Sha256": "4307875af0390036489d81ec325b698fc9270a3506bfcbaea26e61d839e768fc",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "gitBlob": "b575ca3514627d6d09751be01e4088db58ccc650",
+      "historical87Sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "sha256": "b262d687f3d9a5eb0c7fa196c790040d5ae2fc9a123b5c3d6bd014bda11b509f",
+      "gitBlob": "4bcaea5ab6c28496194cfb6e4b358ea8cfa88822",
+      "historical87Sha256": "72ab4f6836154c74a4dcd8e3fefec92fc31bb5da6800318707b591f51f44bf0e",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "sha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+      "gitBlob": "55b59cce1055b5c63718a10c572c095e72488b59",
+      "historical87Sha256": "a53ff6e8e95d3d65cfe02f95afaedf3ac7d67a26241aea9fe6b2009a97fd1174",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/security/outboundRecipientCertificate.ts",
+      "sha256": "b3419901ddc27a9c5c5fc3286a0b0c7fd04e5ee088e121187dd05fad124248e7",
+      "gitBlob": "26c4ed40a5a8d7e4a78361a7249e24253e80b485",
+      "historical87Sha256": "9cf5532503dec87e454af5ffb811323103f9075944cb23a4cfd5cde6fc9c9f7f",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "gitBlob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c",
+      "historical87Sha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "qualification": "CHANGED_AT_AUTHENTIC_MAIN"
+    }
+  ],
+  "completeLiterals": [
+    {
+      "id": "AT-Z01L-SUPPLIER",
+      "name": "Meddelandefall Z01L",
+      "given": "SUPPLIER; Kund/fullmakt, anl\u00e4ggning, n\u00e4tomr\u00e5de och avtalad tillt\u00e4nkt start enligt f\u00e4ltprofil.",
+      "when": "Beh\u00f6rig kontroll av kundens n\u00e4tavtalsuppgifter inf\u00f6r m\u00f6jlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+      "expected": "23-DDQ-PRODAT; BGM=Z01; f\u00e4lt223=Z22; CONTRL; Z02 eller negativ APERAK. AB kan beg\u00e4ras men positiv APERAK \u00e4r ingen startsp\u00e4rr.; Skapa uppgifts\u00e4rende och bevakning; ingen leveransaktivering.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-f\u00e4lt, felaktig korrelation eller mutation ska inte verkst\u00e4llas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte k\u00f6rd mot systemet",
+      "evidence": ""
+    },
+    {
+      "id": "AT-Z01LK-SUPPLIER",
+      "name": "Meddelandefall Z01LK",
+      "given": "SUPPLIER; Kund/fullmakt, anl\u00e4ggning, n\u00e4tomr\u00e5de och avtalad tillt\u00e4nkt start enligt f\u00e4ltprofil.",
+      "when": "Beh\u00f6rig kontroll av kundens n\u00e4tavtalsuppgifter inf\u00f6r m\u00f6jlig start; inte obligatoriskt om korrekta uppgifter redan finns.",
+      "expected": "23-DDQ-PRODAT; BGM=Z01; f\u00e4lt223=Z23; CONTRL; Z02 eller negativ APERAK. AB kan beg\u00e4ras men positiv APERAK \u00e4r ingen startsp\u00e4rr.; Skapa uppgifts\u00e4rende och bevakning; ingen leveransaktivering.",
+      "prohibited": "Fel roll, fel riktning, saknade R/D-f\u00e4lt, felaktig korrelation eller mutation ska inte verkst\u00e4llas.",
+      "rule_ids": [
+        "TEN-05",
+        "P-01",
+        "ENV-06"
+      ],
+      "layer": "Planerat meddelande-/rollprov",
+      "execution_status": "Inte k\u00f6rd mot systemet",
+      "evidence": ""
+    }
+  ],
+  "coverageEdited": false,
+  "wholeApproval": false,
+  "localDependenciesInstalled": false,
+  "runtimeTestsExecuted": false,
+  "inventoryArchive": {
+    "schemaVersion": 1,
+    "archive": "open-pr-inventory.json.gz",
+    "archiveSha256": "65a7f9e72903fa9bdb7e6f484efe5546f3dff8c8ece695767077786850563a06",
+    "uncompressedSha256": "637c254d337aa38184afb49e3f323a3af00d3a503b5cc19c83d9a3544ead78e1",
+    "uncompressedBytes": 394106,
+    "compressedBytes": 57905,
+    "rawSource": "/tmp/gridex-open-pr-head-paths-20261005-final.json",
+    "rawSourcePreserved": true,
+    "compression": "gzip mtime0, decompression byte equality verified",
+    "openPRCount": 69,
+    "totalPaths": 5378,
+    "observedAt": "2026-10-05T12:36:32.644Z",
+    "historicalSnapshotMain": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+    "claimBaseMain": "fff486f822001d35970f163507b10e17c3692f58",
+    "publication": "NOT_PUBLISHED: automatic approval review rejected complete inventory upload",
+    "localPath": ".superpowers/sdd/2026-10-05-z01l-z01lk-supplier/local-evidence/open-pr-inventory.json.gz"
+  },
+  "presentationNormalization": [
+    {
+      "name": "ownership-final-race.md",
+      "originalPath": "/tmp/gridex-next-profile-final-race.md",
+      "originalSha256": "54d02889887b834035e6fb4e352d54dd3c1e5ee7d709ef8592d1feb6d6e867d1",
+      "publicSha256": "0a52114d3cc67b13afac61a784ecf00a987112ddec35f0af2da7b7c3e1a4fc38",
+      "change": "remove one extra EOF blank line; text facts unchanged"
+    },
+    {
+      "name": "ownership-scout.md",
+      "originalPath": "/tmp/gridex-next-profile-ownership-scout.md",
+      "originalSha256": "bf1aebd3d59b59242fdcd7ead1d841eb256248660a8711cc1d8aa3f463d8d38c",
+      "publicSha256": "e2eeee7ea904f770cbdf4071d15833737e12e7375e785215979f777540164d9c",
+      "change": "remove one extra EOF blank line; text facts unchanged"
+    }
+  ],
+  "localEvidenceHashes": {
+    ".superpowers/sdd/2026-10-05-z01l-z01lk-supplier/local-evidence/open-pr-inventory.json.gz": "65a7f9e72903fa9bdb7e6f484efe5546f3dff8c8ece695767077786850563a06"
+  }
+}

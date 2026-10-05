@@ -1,0 +1,100 @@
+{
+  "old_head": "cdeeee07036da027ea840123f4f951ab32690395",
+  "old_path": "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-a8-actor-import-probe.cjs",
+  "archive_byte_exact": true,
+  "functional_body_and_assertions_byte_exact_after_line7": true,
+  "source_inputs_byte_exact": true,
+  "output_byte_exact": true,
+  "old_sha256": "e99f2370ee047927488cd79014e7db004b5a41b4144d2566c0002eb42ced018f",
+  "archive_sha256": "e99f2370ee047927488cd79014e7db004b5a41b4144d2566c0002eb42ced018f",
+  "esm_sha256": "8f1ef64e20799dfa9f9eb7fa61dd7fb7066b922e5129e6fbb2319d11875ce7a9",
+  "source_inputs_sha256": "f928c7016021ddbaa0ad2961a2e7cd4ecade40248708c901c49d47479569993b",
+  "output_sha256": "cdc4ebb560a754623040ef070f66340c565fc98556a2ed611728db2855713c26",
+  "status": "SCOPED_REPAIR_APPROVED_READY_FOR_SAME_PR_PUBLICATION",
+  "owner": "/root/sc015_sc016_gate_failure",
+  "root_publication_owner": "/root",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 559,
+  "failed_run_id": 37320249172,
+  "failed_job_id": 111797193129,
+  "failed_command": "npm run lint",
+  "failed_rule": "@typescript-eslint/no-require-imports",
+  "failed_errors": 5,
+  "failed_warnings": 125,
+  "local_same_file_red_exit": 1,
+  "esm_same_probe_exit": 0,
+  "esm_scoped_lint_exit": 0,
+  "full_lint": "PASS",
+  "old_receipt_historical_ref": "cdeeee07036da027ea840123f4f951ab32690395",
+  "old_receipt_path": "quality/audits/ediel-masterplan-v2/sc015-sc016/current-main-actor-import-receipt.json",
+  "old_receipt_sha256": "2d9bdb4d4b102ea18a1b24227b98ccd590f9e4cc6ff9df5c1e9c801ab94b3ca0",
+  "archive_path": "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-a8-actor-import-probe.cjs.txt",
+  "esm_path": "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-a8-actor-import-probe.mjs",
+  "first_failed_lint_excerpt_sha256": "6478228a9186cdea9586a859b6dd691822a7cec5cc4b32cda36a604be120927a",
+  "claims_before_edits": {
+    "559": 5996196519,
+    "530": 5996200918
+  },
+  "next_action": "Publish reviewed repair to the existing #559 branch, verify exact Git/REST head/tree, freeze for root current-main preservation and all nine required new-head CI gates before merge.",
+  "verified_at_utc": "2026-10-05T14:16:26.919586+00:00",
+  "full_lint_exit": 0,
+  "full_lint_errors": 0,
+  "full_lint_warnings": 125,
+  "root_independent_source_review": "APPROVE_SCOPE_ESM_BINDINGS_AND_EXACT_ARCHIVE_BODY_INPUT_OUTPUT",
+  "production_test_sql_shared_config_changed": false,
+  "new_head_ci": "NOT_YET_PUBLISHED",
+  "verification_commands": [
+    "Node22 node_modules/eslint/bin/eslint.js <old historical CJS path> -> exit1, five forbidden require imports",
+    "Node22 sc015-sc016-a8-actor-import-probe.mjs -> exit0; output byte-equal to original JSON",
+    "Node22 node_modules/eslint/bin/eslint.js <new ESM path> -> exit0",
+    "Node22 PATH npm run lint -> exit0, zero errors and 125 inherited warnings"
+  ],
+  "retained_failed_proof": {
+    "source_run_id": 37320249172,
+    "source_job_id": 111797193129,
+    "run_attempt": 1,
+    "head_sha": "cdeeee07036da027ea840123f4f951ab32690395",
+    "head_tree": "4db8f812a992f3d2b028940963aaa3fac1623c15",
+    "job_conclusion": "failure",
+    "failed_step": "npm run lint",
+    "error_count": 5,
+    "warning_count": 125,
+    "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37320249172/job/111797193129",
+    "excerpt_path": "evidence/cde-gate-failure-lint-ci.log",
+    "excerpt_sha256": "6478228a9186cdea9586a859b6dd691822a7cec5cc4b32cda36a604be120927a"
+  },
+  "artifacts": [
+    {
+      "path": "sc015-sc016-a8-actor-import-probe.cjs.txt",
+      "sha256": "e99f2370ee047927488cd79014e7db004b5a41b4144d2566c0002eb42ced018f"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe.mjs",
+      "sha256": "8f1ef64e20799dfa9f9eb7fa61dd7fb7066b922e5129e6fbb2319d11875ce7a9"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe-inputs.json",
+      "sha256": "f928c7016021ddbaa0ad2961a2e7cd4ecade40248708c901c49d47479569993b"
+    },
+    {
+      "path": "sc015-sc016-a8-actor-import-probe.json",
+      "sha256": "cdc4ebb560a754623040ef070f66340c565fc98556a2ed611728db2855713c26"
+    },
+    {
+      "path": "evidence/cde-gate-failure-lint-ci.log",
+      "sha256": "6478228a9186cdea9586a859b6dd691822a7cec5cc4b32cda36a604be120927a"
+    },
+    {
+      "path": "evidence/cde-gate-repair-full-lint.log",
+      "sha256": "b955ddb480fa18a1a2e0b55dc3d9afab569ca1590cac72c74ab813dfeadfe89e"
+    },
+    {
+      "path": "evidence/cde-gate-repair-scoped-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "evidence/cde-gate-repair-probe-output.json",
+      "sha256": "cdc4ebb560a754623040ef070f66340c565fc98556a2ed611728db2855713c26"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+
+ RUN  v4.1.9 /workspace/gridex-at-p04-parent-applicability
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts (42 tests | 3 failed | 39 skipped) 350ms
+     × V requires exactly child 316 while its parent remains present 191ms
+     × V requires exactly child 316 while its parent remains present 91ms
+     × V requires exactly child 316 while its parent remains present 64ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > V requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > V requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > V requires exactly child 316 while its parent remains present
+AssertionError: expected [ { scope: 'prodat_dependent', …(6) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "blocking": true,
++     "code": "PRODAT_DEPENDENT_FIELD_FORMAT_INVALID",
++     "description": "Z14:END_USER_GROUP, P26.A §2.2 s.16–22 / §2.6: angiven part innehåller ogiltiga eller oanvända komponenter.",
++     "fieldPath": "NAD+UD",
++     "scope": "prodat_dependent",
++     "severity": "error",
++     "title": "PRODAT Z14 följer inte källregeln",
++   },
++ ]
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:84
+     95|       const result = canonical(payload, 'N', request)
+     96|       expect(forField(result.issues, field).some(issue => issue.blocki…
+     97|       expect(result.issues.filter(issue => forField([issue], field).le…
+       |                                                                                    ^
+     98|       expect(canonical(original, 'N', request).issues).toEqual([])
+     99|       expect({ body, request }).toEqual(before)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 39 skipped (42)
+   Start at  13:20:13
+   Duration  2.72s (transform 1.67s, setup 33ms, import 2.11s, tests 350ms, environment 0ms)
+

@@ -1,0 +1,33 @@
+{
+  "scope": "Exact current production actor function under existing SC016 functionConsumers binding; finite denied SDK input; no SQL/native rerun",
+  "before": {
+    "ref": "f2081c55c86061ec3feb1cff0f93789da89f84cc",
+    "addClass": false,
+    "bodySha256": "0a0562b95cbb20118b09eeb5f709efb476617a6b7d01e3bfe898dab6fd4582a3",
+    "errorName": "Error",
+    "message": "ediel_tenant_actor_forbidden",
+    "disposition": null,
+    "expectedForeignActorRegex": true
+  },
+  "after": {
+    "ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "addClass": false,
+    "bodySha256": "4f163e5274e616ee7ced0411c0ad894ad72e41d1a7323db2f92f3fa84ab97dd1",
+    "errorName": "ReferenceError",
+    "message": "EdielExecutionFailure is not defined",
+    "disposition": null,
+    "expectedForeignActorRegex": false
+  },
+  "qualified": {
+    "ref": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "addClass": true,
+    "bodySha256": "4f163e5274e616ee7ced0411c0ad894ad72e41d1a7323db2f92f3fa84ab97dd1",
+    "errorName": "EdielExecutionFailure",
+    "message": "ediel_tenant_actor_forbidden",
+    "disposition": {
+      "kind": "security_quarantine",
+      "code": "EDIEL_TENANT_ACTOR_FORBIDDEN"
+    },
+    "expectedForeignActorRegex": true
+  }
+}

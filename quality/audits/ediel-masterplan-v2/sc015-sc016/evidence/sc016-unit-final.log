@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc015-sc016
+
+ ✓ __tests__/ediel-sc-016-partial-permission-membership.test.ts (3 tests) 2986ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  02:37:44
+   Duration  3.20s (transform 28ms, setup 23ms, import 20ms, tests 2.99s, environment 0ms)
+
+JUNIT report written to /tmp/sc016-unit-final.xml
