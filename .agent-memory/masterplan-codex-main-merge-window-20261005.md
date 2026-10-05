@@ -29,3 +29,17 @@ All five drafts were closed without merge and their remote branches still point 
 Machine evidence and byte-exact original receipts: [`delivery-proof.json`](../quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/delivery-proof.json). Fresh JSON, actual Git parent/tree/ledger checks and original specification integrity (33 files, 121 rules, 231 contracts) pass. Source code, coverage, frozen specification and central memory files are unchanged.
 
 Next: root reviews and merges this docs PR. Agents start further work from the actual latest main, retain existing owner claims and consult #530 before taking an unowned part. This document remains a fixed historical snapshot when main advances.
+
+## Later delivery continuation — fixed main 38aa7345, 2026-10-05
+
+The entire original seven-delivery snapshot above remains byte-exact. Eight later actual deliveries are recorded additively: #607, #603, #609, #541, #515, #531, #517 and #547. Fixed main is 38aa73454b724040f6aaf4339e7feab226ce3ecd, tree 64c93f935436a0c30db27fb86b5451d414984116.
+
+Fresh local metadata checks validate all 16 original final gate/delivery JSON receipts, actual merge parents/trees/ancestry and nine retained root-qualified job/run/workflow bindings per source head. No CI, tests, native runs, capture or artifacts were repeated. All other main file modes, types and blobs remain unchanged.
+
+At this fixed snapshot the ledger contains **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules** and **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL acceptance contracts**. These counts are stored implementation statuses, not all-rule, production or full-main GREEN qualification.
+
+#520/#610 correction qualification remains pending; #533/#535 joint current-main capture and final gates remain pending with the sole writer; #599 remains held. Existing owners and prior full-card/native source boundaries remain intact.
+
+Exact receipts, source-bound counts and SHA index: [continuation-20261005/README.md](../quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/README.md).
+
+Next: root independently reviews and publishes this one metadata ref, then the retained common writer adopts it. No competing PR, tag or common handover is created by this worker.

@@ -1,0 +1,65 @@
+{
+  "at": "2026-10-05T19:34:33.735420+00:00",
+  "pr": 517,
+  "head": "cd93fac133c240f56f208ad43dab1ec4075433fc",
+  "actual_main_before": "4a0deb0eae2e09b398697d1e80d492e1ce32c6a3",
+  "expected_merge_tree": "9be6b33c087e79d5da1ce325282880872fec45b9",
+  "source_guard": "/tmp/gridex-root-final-main-guards-20261005/receipts/run-20261005T193434400685Z-4a0deb0e/summary-4a0deb0e.json",
+  "observer_snapshot_at": "2026-10-05T19:30:36.177379+00:00",
+  "ordinary_nine_success": {
+    "pr-certificate": {
+      "job": 111924146632,
+      "run": 37354556521,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "smoke": {
+      "job": 111913544462,
+      "run": 37354556521,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "coverage": {
+      "job": 111913544409,
+      "run": 37354556521,
+      "workflow": ".github/workflows/full-e2e.yml",
+      "conclusion": "success"
+    },
+    "upgrade-migration-replay": {
+      "job": 111913543704,
+      "run": 37354556374,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "verify": {
+      "job": 111913543660,
+      "run": 37354556374,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "clean-migration-replay": {
+      "job": 111913543615,
+      "run": 37354556374,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "quality-release-gates": {
+      "job": 111913542891,
+      "run": 37354556374,
+      "workflow": ".github/workflows/ops-hardening.yml",
+      "conclusion": "success"
+    },
+    "browser-public": {
+      "job": 111913541570,
+      "run": 37354556159,
+      "workflow": ".github/workflows/browser-quality-e2e.yml",
+      "conclusion": "success"
+    },
+    "targeted-regressions": {
+      "job": 111913541284,
+      "run": 37354556255,
+      "workflow": ".github/workflows/ediel-masterplan-v2.yml",
+      "conclusion": "success"
+    }
+  }
+}
