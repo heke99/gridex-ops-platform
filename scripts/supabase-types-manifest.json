@@ -1,24 +1,24 @@
 {
   "generated_types": "supabase/database.types.ts",
-  "generated_at": "2026-10-04T22:32:26.697877+00:00",
-  "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37239978364",
+  "generated_at": "2026-10-05T03:53:02.967401+00:00",
+  "generated_with": "supabase-cli-2.101.0-native-clean-replay-capture-run37260943445",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261004220429_ediel_switch_original_guard_private_owner.sql",
-  "latest_migration_schema_effect": "Sole Claude P08 private confirmation owner at020000 plus all five root recovery/private-owner forwards and current TR04/main507 source. Retained root generated artifacts are not yet a capture of this combined prefix; fresh authentic capture is mandatory.",
-  "composition_capture_pending": true,
+  "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+  "latest_migration_schema_effect": "Authentic combined-prefix capture includes sole Claude P08 private confirmation table/trigger and all five root recovery/private-owner forwards; public generated types are byte-identical. Capture alone does not execute native/browser/current upgrade-parity gates.",
+  "composition_capture_pending": false,
   "capture": {
     "purpose": "capture_only",
-    "captured_at": "2026-10-04T22:32:26.697877+00:00",
-    "checkout_sha": "05c6e8b7e8a4399ec0e5e50358eb6d9e2231f72e",
-    "checkout_tree": "8c75872a750318fc90e45145116c99d4e42f5b93",
-    "workflow_run_id": "37239978364",
+    "captured_at": "2026-10-05T03:53:02.967401+00:00",
+    "checkout_sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "checkout_tree": "c1a15c0597cb32995b81a8a621d865afc3eeb96e",
+    "workflow_run_id": "37260943445",
     "workflow_run_attempt": "1",
     "supabase_cli_version": "2.101.0",
     "postgres_server_version": "17.6",
     "pg_dump_version": "pg_dump (PostgreSQL) 17.11 (Ubuntu 17.11-1.pgdg24.04+2)",
     "latest_replay_migration": {
-      "name": "20261004220429_ediel_switch_original_guard_private_owner.sql",
-      "sha256": "2fa019efcbf3df9f687595ce057ab2e58f4427b424611c0943006f13811766ad"
+      "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
     },
     "schema_names": [
       "gridex_ack_authority",
@@ -76,18 +76,18 @@
       "gridex_utilts_issuer",
       "public"
     ],
-    "schema_fingerprint": "dc144e708063131be437ac82ad9730f86a971ee182f9c3874ed57cfcd4a9c08a",
+    "schema_fingerprint": "6ae86b71da37f26a0d61793ecd72277f4ecd8ed66ad642764d78ef23d601dc87",
     "artifact_sha256": {
       "database.types.ts": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-      "schema.sql": "117ced74ea6228814b246c9b19ecc672520055ded4886bbf1e0ea7a22ed35d6f",
-      "schema.fingerprint.json": "d401087fdd50e8f37de85d8946017f7546352b6974a6e62da061be3fba80f517"
+      "schema.sql": "54a78fe9d04b87f961a11cf168af535670305c4a9335408110dab613a4caacb6",
+      "schema.fingerprint.json": "b04d843015d09146488a2c24a2bded67df9c3963ebe33caffd6ca303c42dbd44"
     },
     "input_sha256": {
       "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
-      "scripts/migration-history-manifest.json": "c96bcd39b28ab6d8f9fd44cb9e0bd2da5dd717d19c77e175588f008cd09b1332",
+      "scripts/migration-history-manifest.json": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30",
       "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
-      "scripts/migration-history-manifest.runtime.additions.json": "a30e2dd5e2a6fc60b0136750591548abc9a0e17be4b459022506f1f3936a962d",
-      "scripts/supabase-types-manifest.json": "408d5bdabcfb6fe915ca66f09058ea19e93539f7c6113180540331ef2743637b",
+      "scripts/migration-history-manifest.runtime.additions.json": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09",
+      "scripts/supabase-types-manifest.json": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
       "scripts/apply-supabase-types-nullability-overrides.cjs": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa",
       "scripts/gridex-schema-snapshot.cjs": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71",
       "supabase/config.toml": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
@@ -98,7 +98,7 @@
     "upgrade_parity": "NOT_RUN",
     "required_gate": "OPS hardening clean/upgrade replay and parity remain mandatory"
   },
-  "composition_note": "Root composes source-exact fcff, current TR04 4b/main507 and sole Claude 1db. Original root/main/TR04/primary capture attribution is retained through immutable provenance pointers. No generated schema is hand-merged. Final combined-prefix capture and current mandatory replay/native/browser/upgrade/parity gates are pending.",
+  "composition_note": "Authentic producer329 capture imported byte-exact after source-only current-main/sole-Claude adoption. All producer replay inputs and all migration bytes are unchanged before import. Parent captures remain immutable provenance; current mandatory clean/upgrade/native/browser/parity/release gates remain pending on the next published head.",
   "upstream_main_manifest": {
     "commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
     "path": "scripts/supabase-types-manifest.json",
@@ -108,7 +108,7 @@
     "purpose": "immutable provenance pointer; not a new combined-prefix capture"
   },
   "current_prefix_verification": {
-    "kind": "mandatory_actual_composed_head_proof",
+    "kind": "authentic_capture_imported_current_mandatory_gates_pending",
     "latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
     "retained_root_manifest": {
       "commit": "6b0e6a218f09efae230a01682beaf6af1d9104f1",
@@ -134,7 +134,11 @@
       "Bind actual checkout head/tree, all eight actual replay inputs, latest migration and all three generated raw bytes.",
       "Import only genuine changed capture bytes; do not relabel retained root/main receipts.",
       "Mandatory exact-head clean and upgrade native/browser/schema/type/parity and application release checks pass."
-    ]
+    ],
+    "capture_producer_sha": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "capture_producer_tree": "c1a15c0597cb32995b81a8a621d865afc3eeb96e",
+    "pre_import_source_commit": "bf936cf08adbdbd356bdfaad29c45c131573a1d6",
+    "input_scope": "Receipt input hashes bind producer329 and byte-identical pre-import sourcebf936cf0. The types manifest changes solely to import capture/provenance metadata; this does not relabel producer or run current native/browser/upgrade/parity."
   },
   "upstream_tr04_manifest": {
     "commit": "4b2245416df6d268c48db32ff6f01915396af94d",
@@ -148,5 +152,29 @@
     "git_blob": "c7ba6b65869478f1ec234b6bfa667241925dc637",
     "sha256": "2cceb0077be2c9a5223381f96d5e59a4ce800010870585caa57281267fa1f940"
   },
-  "source_latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql"
+  "source_latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
+  "pre_import_manifest": {
+    "commit": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "3cf54cb3ba13ce304cf581c41059e687fe72f071",
+    "sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9",
+    "purpose": "Original root capture history and producer input, before capture metadata replacement; immutable Git provenance."
+  },
+  "upstream_primary_side_manifest_current": {
+    "commit": "8904457f2aa72cc09ebcd094ad852445a557ce3e",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "5dc4514735e3f3f76d95d524748f30a13e9a7287",
+    "sha256": "71b54e3bb196e25ef86388cb14f30821f778bb60ad4a06eeadaef2bac786532a",
+    "purpose": "Sole owner current-main/scenario reconciliation provenance; does not supersede authentic combined capture."
+  },
+  "capture_artifact": {
+    "artifact_id": 11325200901,
+    "workflow_run_id": 37260943445,
+    "workflow_job_id": 111607846726,
+    "job_conclusion": "success",
+    "github_actions_digest": "sha256:9353629de11059586e05caf1957d35e31d6e382a22f8b704d21feac380cfb657",
+    "zip_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture.zip",
+    "raw_receipt_path": "artifacts/masterplan-v2/ediel-root503-329-composed-capture-receipt.json",
+    "raw_receipt_sha256": "cb3d361a01e7e311dcff36cd499fdcea1586ef7e22d85e10587278c1cb2bd13d"
+  }
 }

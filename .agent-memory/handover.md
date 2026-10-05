@@ -1258,3 +1258,11 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-05 #556: SC-035 and SC-037 downgraded to PARTIAL after review (gaps in open-blockers).
 - 2026-10-05 #556: SC-048 downgraded to PARTIAL after review.
 - 2026-10-05 #556: SC rows → PARTIAL; #556 now carries rule cards + fixes only.
+
+2026-10-05 root: #501 merged6f6c9d87 after exact4b required greens; actual merge tree equals qualified4b, no production migration.
+
+2026-10-05 root: #558 SC055 mergedf9576530 after whole approval/current-green/actualmaincf395 carry; retained all prior evidence, checked tree47877d9d.
+
+2026-10-05 root: #552 SC021 mergedeacb6c7c after whole approval/current-green/actualmainf957 carry; retainedSC055/all main evidence, checked treecb633a04.
+
+2026-10-05 root: #554 SC022 mergedf86a0c5d after whole approval/current-green/actualmaineacb carry; retainedSC021/SC055/all main evidence, checked tree060d81a9; main190/352.
