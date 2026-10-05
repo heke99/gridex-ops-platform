@@ -117,7 +117,16 @@
       "action": "identify the existing queued/leased export consumer or explicitly assign missing first producer architecture/files; qualify current authority at read/send boundary"
     }
   ],
-  "candidate_ci": "NOT_YET_PUBLISHED",
+  "candidate_ci": "NOT_YET_QUALIFIED",
   "main_merge": "NOT_DONE",
-  "external_market_verification": "NOT_RUN"
+  "external_market_verification": "NOT_RUN",
+  "technical_freeze_commit": "b42fdc7a27064a286720fcbdaa66c97e4f7ed2b1",
+  "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/574",
+  "publication_status": "DRAFT_UNDER_REVIEW",
+  "prepublication_owned_path_check": {
+    "paths": 13,
+    "all_new_owned_paths": true,
+    "receipt_hashes_exact": true,
+    "credential_pattern_check": "PASS"
+  }
 }

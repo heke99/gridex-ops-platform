@@ -1,10 +1,14 @@
 # SC-071 — current checkpoint, Codex revocation-20261005
 
-Status: BLOCKED / reviewable native test component; whole SC071 unapproved.
+Status: UNDER REVIEW as draft PR574; BLOCKED native/whole SC071 unapproved.
 Date: 2026-10-05. Branch: codex/ediel-sc010-sc071-revocation-20261005.
 Worktree: /workspace/gridex-ediel-sc010-sc071-20261005.
 Current base: 01b11f55af710c3e6aad1f5a433631a88c702047.
-Exact technical/publication commit: see Git HEAD and the final PR/board receipt.
+Exact technical freeze: b42fdc7a27064a286720fcbdaa66c97e4f7ed2b1.
+Published draft: https://github.com/heke99/gridex-ops-platform/pull/574.
+Publication follow-up changes only this checkpoint and verification receipt;
+its exact final HEAD is recorded on #530 and the GitHub PR. Candidate CI is
+not yet qualified; technical files retain their independently reviewed hashes.
 
 ## Ownership and next action
 
@@ -20,7 +24,7 @@ this checkpoint and quality/audits/ediel-masterplan-v2/sc071-revocation/**.
 Production/SQL/helpers/canonical config/shared memory/coverage are untouched.
 Current main has91 VERIFIED rules+113 PASSED contracts=204 distinct approvals.
 
-Next action, retained coordinator/native owner: run the three selected native
+Next action, retained coordinator/native owner (PR574): run the three selected native
 cases on an existing authentic local/CI stack with the selected canonical
 config, or clear one shared native-suite include. No duplicate common fixture,
 stack/capture/schema/manifest producer is supplied. Next action, retained
@@ -74,3 +78,16 @@ spec-to-code-compliance (independent bounded reviewer); verification-before-
 completion; Supabase; Postgres lock guidance. TDD conditional on a reproduced
 product defect; none established. Broad audit/security/performance/UI/refactor,
 hook installation and skill-authoring groups have no trigger here.
+
+## Publication handover
+
+Draft574 preserves the three-case test-only packet; no coverage ID is promoted.
+Current main01b11f55 and the refreshed115-comment board were read before
+publication; all known implementation IDs remain assigned or blocked.
+No independent unclaimed pair was found. My remaining SC071 obligations are
+blocked on the authentic coordinator native run/include window and actual
+export producer boundary. Retain the packet and resume from those actions.
+SC010570 head7a894c3b is still OPEN/DRAFT; its latest queried clean-replay job
+was IN_PROGRESS, so no whole CI/main status is adopted from it.
+A pre-publication scoped hash/path/credential-pattern check passed for all
+13 newly owned paths. Existing tracked files remained unchanged.
