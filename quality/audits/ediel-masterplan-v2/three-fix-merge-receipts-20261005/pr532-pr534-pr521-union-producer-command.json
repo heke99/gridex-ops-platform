@@ -1,0 +1,28 @@
+{
+  "kind": "ONCE_ONLY_CHANGED_MAIN_PRODUCER_REGRESSION_COMPLEMENT",
+  "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "cwd": "/workspace/gridex-ediel-main-union-qualification-20261005",
+  "argv": [
+    "/tmp/ediel-sc010-sc071-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "/workspace/gridex-ediel-main-union-qualification-20261005/node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/ediel-utilts-decision-reuse.test.ts",
+    "__tests__/ediel-version-time-anchors.test.ts",
+    "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+    "__tests__/ediel-env02-positional-ast.test.ts",
+    "__tests__/ediel-env08-fixed-normal-time.test.ts",
+    "--maxWorkers=1",
+    "--no-file-parallelism",
+    "--reporter=default",
+    "--reporter=junit",
+    "--outputFile.junit=/workspace/ediel-session-inventory-20261005/pr532-pr534-pr521-union-producer-junit.xml"
+  ],
+  "selectedFileSha256": {
+    "__tests__/ediel-utilts-decision-reuse.test.ts": "ff83e1704621d56fe43b34b8763e18406415094f0cc650ecac4487a9012a071f",
+    "__tests__/ediel-version-time-anchors.test.ts": "f9d6d5f1e693426aa8c6dc97352285aaddb7ec113f1b321128bb9a17b4605fb5",
+    "__tests__/ediel-utilts-issuer-identity-runtime.test.ts": "732e4869d9a10c97556bf4f60ed05b65ca179f353380efbf21be72f93729ad78",
+    "__tests__/ediel-env02-positional-ast.test.ts": "10ae20dc9163d9d21abab57543fe9c7ebe591a9ee566ce75b882d7e370a5ec15",
+    "__tests__/ediel-env08-fixed-normal-time.test.ts": "046d0f13ba642e2f5c89d22f7598c947ad139773bf050c0ba3d94c7ac4eba7bb"
+  },
+  "reason": "Qualified changed ENV02 CAV/UNA reader and ENV08 fixed-CET producer plus existing guide/syntax/anchor consumers; no duplicate cases from preceding8-file181PASS packet."
+}

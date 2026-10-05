@@ -1,0 +1,133 @@
+{
+  "recorded_at": "2026-10-05T17:32:02.106630+00:00",
+  "clock_observation_utc": "2026-10-05T17:32:02.106630+00:00",
+  "clock_authority": "Execution environment UTC wall clock at completed GitHub metadata/check read; initial toolclock17:21:53UTC retained in chat.",
+  "repository": "heke99/gridex-ops-platform",
+  "pr": 532,
+  "expected_head": "c89d003f20b48942130486387536df06880ab98e",
+  "published_head": "c89d003f20b48942130486387536df06880ab98e",
+  "published_head_verified_equal": true,
+  "github_state": "open",
+  "draft": false,
+  "merged": false,
+  "all_nine_terminal_success": true,
+  "required_contexts": [
+    {
+      "name": "verify",
+      "id": 111872270706,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:41:25Z",
+      "completed_at": "2026-10-05T16:43:20Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342343016/job/111872270706",
+      "run_id": 37342343016,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111872270293,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:47:57Z",
+      "completed_at": "2026-10-05T16:52:09Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342342571/job/111872270293",
+      "run_id": 37342342571,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "browser-public",
+      "id": 111872270304,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:41:54Z",
+      "completed_at": "2026-10-05T16:43:19Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342342765/job/111872270304",
+      "run_id": 37342342765,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111872270880,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:48:26Z",
+      "completed_at": "2026-10-05T16:55:34Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342343016/job/111872270880",
+      "run_id": 37342343016,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 111872270263,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:38:56Z",
+      "completed_at": "2026-10-05T17:31:40Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342343016/job/111872270263",
+      "run_id": 37342343016,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111872270614,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:40:15Z",
+      "completed_at": "2026-10-05T16:49:51Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342343016/job/111872270614",
+      "run_id": 37342343016,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "coverage",
+      "id": 111872284499,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:42:48Z",
+      "completed_at": "2026-10-05T16:47:54Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342344673/job/111872284499",
+      "run_id": 37342344673,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "smoke",
+      "id": 111872284827,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:50:25Z",
+      "completed_at": "2026-10-05T16:52:19Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342344673/job/111872284827",
+      "run_id": 37342344673,
+      "prior_same_head_check_ids": []
+    },
+    {
+      "name": "pr-certificate",
+      "id": 111878321326,
+      "head_sha": "c89d003f20b48942130486387536df06880ab98e",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:55:42Z",
+      "completed_at": "2026-10-05T16:55:53Z",
+      "job_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37342344673/job/111878321326",
+      "run_id": 37342344673,
+      "prior_same_head_check_ids": []
+    }
+  ],
+  "all_check_runs_count": 19,
+  "complete_page": true,
+  "observation_method": "Direct read-only GitHub REST PR metadata + exactcommit check-runs filter=latest/per_page100; newest created check ID for each of the nine fixed contexts. No status-only or certificate-derived success.",
+  "retained_source_owner": "DB03 original author/root;503 retains canonical/native/capture owner",
+  "scope_limits": [
+    "CI statuses only; no new source/whole-contract/native/capture/current-main approval.",
+    "Root must perform its final expected-head/current-main/review/mergeability mutationsguard.",
+    "No rerun,push,comment,merge or checkout/index/source modification by watcher."
+  ]
+}

@@ -1,0 +1,158 @@
+{
+  "kind": "BYTE_EXACT_OWN_RECEIPT_CUSTODY_ONLY",
+  "sourceMain": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "files": [
+    {
+      "path": "pr532-carry-publication.json",
+      "bytes": 412,
+      "sha256": "e905c94bc7b924ef0ed3e71beb4510df67a4a43e9b30ad1824e398cfd50a9d4f"
+    },
+    {
+      "path": "pr534-carry-publication.json",
+      "bytes": 406,
+      "sha256": "9d708e610f5e61ad93a30fbe399f9dc09da96965c4fbd3f79e77bfbdf0a4b092"
+    },
+    {
+      "path": "pr521-carry-publication.json",
+      "bytes": 406,
+      "sha256": "8358b39ee5587f218bd9581ca9ebc10bb075dbd001f674f350b2040cf50483fb"
+    },
+    {
+      "path": "pr532-actual-postmerge-receipt.json",
+      "bytes": 2636,
+      "sha256": "2585b5b316fd551e9cd711f0d20c1a14343daefe5ea735c43e45c2e36a5665ae"
+    },
+    {
+      "path": "pr534-actual-postmerge-receipt.json",
+      "bytes": 1911,
+      "sha256": "bd0bc452b898e3993ba2dbaaac41c331b3c12123db5ca0d6da4e87e75cc8b6a5"
+    },
+    {
+      "path": "pr521-actual-postmerge-receipt.json",
+      "bytes": 1812,
+      "sha256": "11d0f91932e39442bac64f220588b540e70ed9db25bd66d41a046ad7f27a72a7"
+    },
+    {
+      "path": "pr532-final-premerge-guard.json",
+      "bytes": 1894,
+      "sha256": "bd756a62fc70b392bd4ffb4d12a769ece09b16e45a418d459a63fe261c509d15"
+    },
+    {
+      "path": "pr532-final-premerge-f7-guard.json",
+      "bytes": 2177,
+      "sha256": "64a766872ac993d0e45288c1ba32142151a1362baa712a6f6e93b277a839eb88"
+    },
+    {
+      "path": "pr534-final-premerge-guard.json",
+      "bytes": 1452,
+      "sha256": "528c5d0de1846032d862c2f18f4af21b54d20ad03313ca3d1f2f73368b730fd7"
+    },
+    {
+      "path": "pr521-final-premerge-guard.json",
+      "bytes": 1256,
+      "sha256": "4eeaca19961ea3ae330ef73abfe876bbad0ee052fe1fd180539519b85bac443d"
+    },
+    {
+      "path": "pr532-exact-head-nine-ci-terminal.json",
+      "bytes": 5435,
+      "sha256": "01d295ae5afdc1e58eb4d16d5a97eb64531344fa7b814d78a1013ea5dea6bb58"
+    },
+    {
+      "path": "pr534-exact-head-nine-ci-terminal.json",
+      "bytes": 5444,
+      "sha256": "8cd95ec8ed9ee7e991cf5f39bbad88a6b4efef1d8b5f337f7dee4c53424f83fd"
+    },
+    {
+      "path": "pr521-exact-head-nine-ci-terminal.json",
+      "bytes": 5460,
+      "sha256": "5e0cd92d73f192752ca1aa85c26cc927ad358a3788c6594f43927138a2127337"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-runtime-receipt.json",
+      "bytes": 470,
+      "sha256": "646d6dd635901a7912519d961e57cffe288328060f09f9c1017105818ae3d1a2"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-producer-runtime-receipt.json",
+      "bytes": 525,
+      "sha256": "81d5ec00a07d54d20ce2cf1eebbaf5edfa663b181e6379170f476419f17679e4"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-command.json",
+      "bytes": 2438,
+      "sha256": "0abfabb1ac4f643714100215241453746aafa5570143016bbb739f3159259e7a"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-producer-command.json",
+      "bytes": 1721,
+      "sha256": "5a7e8517e56ec7533b2a4b5298b4991a722c0f185f323d1bba8d2c2aaa4d39b3"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-junit.xml",
+      "bytes": 41178,
+      "sha256": "4340c3718612d4a6835605099ad4c49b54b9852a8d1c1c213f96b13ba41dde2a"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-producer-junit.xml",
+      "bytes": 29701,
+      "sha256": "1099ef1c6106c91ba842ff8cbd1979ee5e9d7da2228195d6649f095963529f7d"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-run.log",
+      "bytes": 937,
+      "sha256": "76ed0cbbd8f1efe3a2b84e8ff7bd2a8f153574ed002f6a02c5f2d989bcc607e6"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-producer-run.log",
+      "bytes": 702,
+      "sha256": "3bf10b5168bb3e08e90be1648130edef48d590db6171bd09fd049bcbba9a0fdc"
+    },
+    {
+      "path": "pr532-current-main-1657-independent-receipt.json",
+      "bytes": 26861,
+      "sha256": "0b985e5f7eb7b6564c8398b32ed190b876b2ae4a14350369d2e8777d5dfb683b"
+    },
+    {
+      "path": "pr534-current-main-1657-0e4248c7-b7bfb88d.json",
+      "bytes": 16370,
+      "sha256": "0e84568679d7b72f434fc558e7803abb6a7c21da1f4f5e9d8db993259290f5e0"
+    },
+    {
+      "path": "pr521-current-main-1657-receipt.json",
+      "bytes": 17188,
+      "sha256": "f02b328f5b12c49fa0a7b1bcbade640a45a0b73e6c596fd065bbace2943d0b5c"
+    },
+    {
+      "path": "pr532-pr534-pr521-union-independent-runtime-review.json",
+      "bytes": 12997,
+      "sha256": "826060335894e5c2b0402f6585969f4938c2496e0e53502ceb542c08c69e62e7"
+    },
+    {
+      "path": "pr532-pr534-pr521-current-main-union-preview.json",
+      "bytes": 2251,
+      "sha256": "438e0b0211d076bf928814caf60d87d222559e6489c571b5f557afab473d70b8"
+    },
+    {
+      "path": "pr532-pr534-pr521-826-current-main-requalification.json",
+      "bytes": 2052,
+      "sha256": "0676d0ebfe45b2f97e0e1d2a4f442802211a22d0d08122c17e64d306e5fd95f9"
+    },
+    {
+      "path": "pr532-pr534-pr521-826-full-foreign-preservation.json",
+      "bytes": 1295,
+      "sha256": "fabecf455d7c618fbdc72ee9debbb5577e62197c38e35c5e4ca513be681baf7b"
+    },
+    {
+      "path": "three-fix-actual-merged-batch-8451.json",
+      "bytes": 2097,
+      "sha256": "3698ba53c3e17a32054fba88d6507b10f0807e34ae8ae291a328d91f746359a0"
+    },
+    {
+      "path": "pr521-postmerge-coverage-raw-sha-qualification.json",
+      "bytes": 332,
+      "sha256": "bc9c95cf7c22c6876dcf589c6ac8d7b5bbc8156dd99635c94c1cd3a5a5d74b92"
+    }
+  ],
+  "notAnAcceptanceOrCurrentMainCICertificate": true,
+  "excludes": "Broad/other-owner/private/native capture artifacts; only owned finite test logs and exact merge/check metadata."
+}

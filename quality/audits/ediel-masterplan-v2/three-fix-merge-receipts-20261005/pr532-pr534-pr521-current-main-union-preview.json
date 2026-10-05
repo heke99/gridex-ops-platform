@@ -1,0 +1,53 @@
+{
+  "observedAt": "2026-10-05T17:02:30.564138+00:00",
+  "kind": "LOCAL_UNPUBLISHED_INTEGRATION_PREVIEW_ONLY",
+  "main": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+  "preview": "32c46da4fa7ae34b0e419e2710d81e3c93a124a8",
+  "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "chain": [
+    {
+      "pr": 532,
+      "leftParent": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+      "rightParent": "c89d003f20b48942130486387536df06880ab98e",
+      "tree": "5509d9efbdf82d8b09f3ffb0cb9368bba54dd162",
+      "localPreviewObject": "13c0f0d44d0447f08f5d499fb55acabde2947500"
+    },
+    {
+      "pr": 534,
+      "leftParent": "13c0f0d44d0447f08f5d499fb55acabde2947500",
+      "rightParent": "b7bfb88dae9fc4f77807b618f953812a72412578",
+      "tree": "e85384d1b7761c8d5ddec40bc227be309104bd8b",
+      "localPreviewObject": "96aa68dbee1356171224157fa75e6d515ae5c118"
+    },
+    {
+      "pr": 521,
+      "leftParent": "96aa68dbee1356171224157fa75e6d515ae5c118",
+      "rightParent": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+      "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+      "localPreviewObject": "32c46da4fa7ae34b0e419e2710d81e3c93a124a8"
+    }
+  ],
+  "changedPaths": [
+    ".agent-memory/ediel-db06-checkpoint.md",
+    ".agent-memory/ediel-gov06-checkpoint.md",
+    ".agent-memory/masterplan-db03-checkpoint.md",
+    "__tests__/billing-canonical-gate.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts",
+    "lib/ediel/flows/utiltsCanonicalValidation.ts",
+    "lib/ediel/utiltsEngine.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-billing-source-sql-regression.mjs"
+  ],
+  "foreignEntriesPreserved": 8039,
+  "foreignCoverageRowsPreserved": 346,
+  "coverageDistinctIds": 352,
+  "coverageStoredApprovals": 245,
+  "nativeOrWholePromotionClaimed": false,
+  "worktree": "/workspace/gridex-ediel-main-union-qualification-20261005"
+}

@@ -1,0 +1,194 @@
+{
+  "recorded_at": "2026-10-05T17:02:15.035462+00:00",
+  "scope": "Read-only current-main final integration qualification of existing PR521",
+  "published_head": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+  "prior_adopted_main": "de6d22bea64cf2b8810969cb87924128176ebab1",
+  "actual_fetched_main": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+  "main_guard": "origin/main exact immutable0e4248c at receipt; no ref mutation by this reviewer",
+  "preview_tree": "7be32272c35596643c7bc54321001ae64a8229c5",
+  "merge_tree_exit": 0,
+  "merge_conflicts": [],
+  "main_delta_paths": [
+    ".agent-memory/ediel-gov06-checkpoint.md",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+    "lib/ediel/flows/utiltsCanonicalValidation.ts",
+    "lib/ediel/utiltsEngine.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "foreign_main_entries_preserved": 8047,
+  "foreign_rows_and_ordered_evidence_exact": 350,
+  "ordered_own_rows_exact_published_head": true,
+  "context_pointer_in_both_own_rows_exact_once": true,
+  "original_frozen_own_three_paths_exact": true,
+  "other_four_own_paths_exact_published_head": true,
+  "selected_own_evidence_input_pins": [
+    {
+      "path": "lib/ediel/core/messagePolicy.ts",
+      "sha256": "47b340deff43dbb03ec7aeb44088237a8f08344d2a93b04801afa6af59ae4eab",
+      "candidate_blob": "7a38184dcc62e15ce81cd464c4eb7d8e749e464c",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "candidate_blob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c",
+      "same_as_published_head": true,
+      "same_as_original_freeze": false
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "sha256": "76db397c94abaac66f4473a6b9480d7dacd1bf216403d63fd0ac12665809daf1",
+      "candidate_blob": "6b4f4ab1f33c499d1f60d0d3175939601e3f4859",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "sha256": "f0878d542222594c3f9e6800ec06c6ef439cda49207d8a060e7f73a4f658425f",
+      "candidate_blob": "a97d86ddf1b3032a90d158bfefc2565d4d785581",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "__tests__/ediel-version-time-anchors.test.ts",
+      "sha256": "f9d6d5f1e693426aa8c6dc97352285aaddb7ec113f1b321128bb9a17b4605fb5",
+      "candidate_blob": "bf8f0fd962b86f9146d8630fbabaa7d86a62d571",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-decision-reuse.test.ts",
+      "sha256": "ff83e1704621d56fe43b34b8763e18406415094f0cc650ecac4487a9012a071f",
+      "candidate_blob": "31062663a6d3edb045c903125e7ffe7da79de151",
+      "same_as_published_head": true,
+      "same_as_original_freeze": false
+    },
+    {
+      "path": "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+      "sha256": "0fa1134c833245ac72fa20cfe59f1443298df5bd89e86018460ee4d058dea07a",
+      "candidate_blob": "619e34a75d077d1533665a6d10c7366c8627197f",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+      "sha256": "732e4869d9a10c97556bf4f60ed05b65ca179f353380efbf21be72f93729ad78",
+      "candidate_blob": "c9a08088f17542b71e2bb449720b93d5e9f07dce",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "__tests__/ediel-final-canonical-utilts-owner.test.ts",
+      "sha256": "322f3b8631c45794bc79b8e8fa9fe1199e4bea5d14a67cc96c6c57b230a6597e",
+      "candidate_blob": "a8e1f7c41425b17e8b8e98fd7551712ea25cd7d8",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/context.md",
+      "sha256": "9bc75f4b3e9de8f3737ce75434d0de63ca3d7c5a3a1516a77e694b45088b5897",
+      "candidate_blob": "7cd4b67285328c517cb55cea66424224d1f3a8ce",
+      "same_as_published_head": true,
+      "same_as_original_freeze": true
+    }
+  ],
+  "frozen_specs_and_reference_main_entries_preserved": 36,
+  "coverage_main_sha256": "0b4aed9bcb6016a9acf7d3bb584c79c98c6587678878a13362ba82cd5731a8c3",
+  "coverage_preview_sha256": "d5c74ebc468f22aed3ac3e2cde1df5d062d8eb7036941415830abff78600a040",
+  "stored_approved_on_actual_main": 239,
+  "stored_approved_on_preview": 241,
+  "main_advance_total_paths": 107,
+  "main_advance_product_dependency_count": 4,
+  "actual_changed_product_dependencies": [
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "owner": "IMP-01 #519",
+      "kind": "Separate registry-import producer; no changed own UTILTS time-input path",
+      "change": "Fresh unreadable Company rejects batch before apply",
+      "interface_scope": "No registry source import occurs in declared finite GOV06 processor ports; actual import/source authority retains original owner",
+      "oldmain_sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "current_main_sha256": "c791d06a6f988aa578efea5405ce4f67fe51339fcd4b3d4a498ec0138344df3b",
+      "oldmain_blob": "01b98e24b97376b020ad61a5b2173f4e48d50884",
+      "current_main_blob": "f5330c123c3bc6a30b17778364f6c092966f97da",
+      "preview_blob": "f5330c123c3bc6a30b17778364f6c092966f97da",
+      "current_main_preserved_exact": true,
+      "patch": "diff --git a/lib/actor-registry/parseActorRegistryXml.ts b/lib/actor-registry/parseActorRegistryXml.ts\nindex 01b98e24..f5330c12 100644\n--- a/lib/actor-registry/parseActorRegistryXml.ts\n+++ b/lib/actor-registry/parseActorRegistryXml.ts\n@@ -112,7 +112,7 @@ export function parseActorRegistryXml(xml:string):ParsedActorRegistryActor[]{\n         const edielId=normalizeEdielId(keys.EdielId??field(c,['EdielId','EdielID','EDIELID','Ediel','PartyId'])??attr(c,['edielId','edielID','partyId']))\n         const orgNumber=normalizeOrgNumber(keys.OrgNo??field(c,['OrgNo','OrgNumber','OrganizationNumber','OrganisationNumber','CompanyRegistrationNumber'])??attr(c,['orgNo','orgNumber','organizationNumber']))\n         const eic=normalizeEic(keys.EIC??field(c,['EIC','EicCode'])??attr(c,['eic','eicCode']))\n-        if(!name&&!edielId&&!orgNumber&&!eic)continue\n+        if(!name&&!edielId&&!orgNumber&&!eic)throw new Error(`actor_registry_xml_identity_required:record_${actors.length+1}`)\n         const rawRoles=descendants(c,['Role','ActorRole','MarketRole']).map(value=>field(node(value),['Code','Name','Value'])??text(value)).filter((role):role is string=>Boolean(role))\n         const attributeRole=attr(c,['role','actorRole','marketRole']);if(attributeRole)rawRoles.push(attributeRole)\n         const roles=uniqueStrings(rawRoles.map(normalizeRole))\n"
+    },
+    {
+      "path": "lib/ediel/core/canonicalEdifactAst.ts",
+      "owner": "ENV-02 #508",
+      "kind": "Reached canonical AST dependency",
+      "change": "cciCavMap now uses physical component0, preserves empty first slot and decodes selected UNA once; later CAV components cannot supply first value",
+      "interface_scope": "runtimeDecision/canonicalMessage facts used by canonical/time-policy consumers; GOV06 owned guards unchanged",
+      "oldmain_sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+      "current_main_sha256": "d8739ee26ed0ca284f157a33e20b0be90ee8355b3c1a720dc6dcffe4c6fc2ce8",
+      "oldmain_blob": "0bc609c2838452538e9aa09fefe6ccfc5b6ec284",
+      "current_main_blob": "3d1749e0ed4b3ff0454adcdcdcd98d3f35af56d7",
+      "preview_blob": "3d1749e0ed4b3ff0454adcdcdcd98d3f35af56d7",
+      "current_main_preserved_exact": true,
+      "patch": "diff --git a/lib/ediel/core/canonicalEdifactAst.ts b/lib/ediel/core/canonicalEdifactAst.ts\nindex 0bc609c2..3d1749e0 100644\n--- a/lib/ediel/core/canonicalEdifactAst.ts\n+++ b/lib/ediel/core/canonicalEdifactAst.ts\n@@ -148,10 +148,9 @@ function cciCavMap(\n       continue\n     }\n     if (segment.tag !== 'CAV' || !current) continue\n-    const components = canonicalComposite(segment, 1, una)\n-      .map((part) => clean(part)?.toUpperCase() ?? null)\n-      .filter((part): part is string => Boolean(part))\n-    const value = components[0] ?? null\n+    // C889 positions are part of the wire contract. An omitted first value\n+    // cannot acquire a later code/list/free-text component's meaning.\n+    const value = canonicalFirstComponent(segment, 1, una)?.toUpperCase() ?? null\n     if (value) result[current] = [...(result[current] ?? []), value]\n   }\n \n"
+    },
+    {
+      "path": "lib/ediel/core/canonicalMessage.ts",
+      "owner": "ENV-02 #508",
+      "kind": "Reached time-policy canonical parser dependency",
+      "change": "Non-PRODAT cciCavSubtype reads tokenized segmentComposite first slot with selected UNA and retains exact empty CCI class boundary",
+      "interface_scope": "messagePolicy.resolveEdielMessageTimeAnchors calls parseCanonicalMessageRow; DTM-based anchor extraction code unchanged but canonical parsing dependency advanced",
+      "oldmain_sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+      "current_main_sha256": "e63db4f992b3fba6ab4438cbd296c7592b6f82f3cf2503e14e83581a3f91fff9",
+      "oldmain_blob": "13b3d58361f33c2975ccd0c102d87f366a473677",
+      "current_main_blob": "615d710347493f106196e8811ea78908c776019c",
+      "preview_blob": "615d710347493f106196e8811ea78908c776019c",
+      "current_main_preserved_exact": true,
+      "patch": "diff --git a/lib/ediel/core/canonicalMessage.ts b/lib/ediel/core/canonicalMessage.ts\nindex 13b3d583..615d7103 100644\n--- a/lib/ediel/core/canonicalMessage.ts\n+++ b/lib/ediel/core/canonicalMessage.ts\n@@ -75,10 +75,6 @@ function splitComposite(value: string | null | undefined): string[] {\n   return splitEdifactComponents(value).map((part) => part.trim())\n }\n \n-function firstComponent(value: string | null | undefined): string | null {\n-  return cleanString(splitComposite(value)[0] ?? null)\n-}\n-\n function element(rawSegment: string | null | undefined, index: number): string | null {\n   const value = splitEdifactElements(rawSegment)[index]?.trim() ?? ''\n   return value.length > 0 ? value : null\n@@ -161,15 +157,16 @@ function dtmValue(rawSegments: readonly string[], qualifier: string): string | n\n   return cleanString(parts[1] ?? null)\n }\n \n-function cciCavSubtype(rawSegments: readonly string[]): string | null {\n-  for (let index = 0; index < rawSegments.length; index += 1) {\n-    const segment = rawSegments[index]\n-    if (!segment?.toUpperCase().startsWith('CCI++')) continue\n-    const cciCode = firstComponent(element(segment, 2))\n-    const next = rawSegments[index + 1]\n-    if (!next?.toUpperCase().startsWith('CAV+')) continue\n-    const cavParts = splitComposite(element(next, 1))\n-    const value = cleanString(cavParts.find((part) => /^[A-Z0-9]{1,8}$/.test(part)) ?? cavParts[0] ?? null)\n+function cciCavSubtype(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): string | null {\n+  for (let index = 0; index < segments.length; index += 1) {\n+    const segment = segments[index]\n+    if (segment.tag !== 'CCI' || segment.elements[1] !== '') continue\n+    const cciCode = cleanString(segmentComposite(segment, 2, una)[0])\n+    const next = segments[index + 1]\n+    if (next?.tag !== 'CAV') continue\n+    // Read the physical value slot once. Other C889 components cannot supply\n+    // a missing subtype or replace literal separator/release data in that slot.\n+    const value = cleanString(segmentComposite(next, 1, una)[0])\n     if (cciCode && value) return value.toUpperCase()\n   }\n   return null\n@@ -267,7 +264,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d\n     messageCode,\n     subtype: family === 'PRODAT'\n       ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null\n-      : cciCavSubtype(rawSegments),\n+      : cciCavSubtype(facts.segments, una),\n     direction,\n     version: cleanString(segmentComposite(facts.unh, 2, una)[4]),\n     applicationReference: sourceApplication.length === 1 ? cleanString(sourceApplication[0]) : null,\n"
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "owner": "ENV-08 #516",
+      "kind": "Imported UTILTS processor/outbound draft dependency",
+      "change": "formatDateTime203 delegates to existing prodatDate203 fixed-CET helper; old offset-stripping normalizeDate removed",
+      "interface_scope": "utiltsDataRequest.part-2 imports buildUtiltsOutboundDraft; actual inbound retained-coherence guards do not call format203, generated outbound/date boundary can require current composition qualification",
+      "oldmain_sha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c",
+      "current_main_sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740",
+      "oldmain_blob": "9e9feb704da20042cc62a06c106b3abd23301c03",
+      "current_main_blob": "d31719181c83d137d40d9308ac0e83c352958da1",
+      "preview_blob": "d31719181c83d137d40d9308ac0e83c352958da1",
+      "current_main_preserved_exact": true,
+      "patch": "diff --git a/lib/ediel/utilts.ts b/lib/ediel/utilts.ts\nindex 9e9feb70..d3171918 100644\n--- a/lib/ediel/utilts.ts\n+++ b/lib/ediel/utilts.ts\n@@ -14,6 +14,7 @@ import {\n } from '@/lib/ediel/classify'\n import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'\n import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'\n+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'\n import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'\n import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'\n import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'\n@@ -215,23 +216,10 @@ function sanitize(value?: string | null): string {\n   return (value ?? '').replace(/['+]/g, ' ').trim()\n }\n \n-function normalizeDate(value?: string | null): string | null {\n-  if (!value) return null\n-  const trimmed = value.trim()\n-  if (!trimmed) return null\n-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(trimmed)) {\n-    return `${trimmed}T00:00`\n-  }\n-  if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/.test(trimmed)) {\n-    return trimmed\n-  }\n-  return trimmed\n-}\n-\n function formatDateTime203(value?: string | null): string | null {\n-  const normalized = normalizeDate(value)\n-  if (!normalized) return null\n-  return normalized.replace(/[-:T]/g, '').replace(/Z$/, '').slice(0, 12)\n+  // U \u00a73.6.1 uses the same fixed UTC+1 wall clock as PRODAT. Explicit\n+  // instants must be converted; offset-free market dates stay literal.\n+  return prodatDate203(value)\n }\n \n function formatPeriod719(start?: string | null, end?: string | null): string | null {\n"
+    }
+  ],
+  "new_sql_native_harness_packages_configs_frozen_source_changes": false,
+  "diff_check_against_main_exit": 0,
+  "meaningful_changed_dependency_verification_scope": {
+    "status": "NOT_EXECUTED_BY_THIS_READ_ONLY_REVIEWER",
+    "reason": "Explicit no rerun/no duplicate native/log task; original b740/c1/9f execution and separately merged ENV02/ENV08 runs retain exact source scope. Static merge compatibility is not composed runtime proof.",
+    "minimum_existing_suites_on_preview": [
+      "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+      "__tests__/ediel-utilts-decision-reuse.test.ts",
+      "__tests__/ediel-version-time-anchors.test.ts",
+      "__tests__/ediel-env02-positional-ast.test.ts",
+      "__tests__/ediel-env08-fixed-normal-time.test.ts",
+      "__tests__/ediel-local-failure-disposition.test.ts"
+    ],
+    "focus": "Retained positive2026 policy/2027 replay/2030 wallclock, all9 missing/incoherent-anchor refusals before matching/linking/RPC, physical syntax precedence; ENV02 empty-first-CAV/selected-UNA source contrasts and ENV08 explicit-offset/midnight wire-to-anchor consumption. Reuse these suites; no new producer/harness/capture/claim."
+  },
+  "existing_ci_status_input_from_root": {
+    "observed_at": "2026-10-05T16:57:00Z",
+    "head": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+    "success": 4,
+    "in_progress": 4,
+    "certificate": "queued",
+    "status_source": "Root fresh exact-head snapshot; no independent new CI/log read in this final integration review",
+    "all_nine_green": false
+  },
+  "static_verdict": "APPROVE_STATIC_PRESERVATION_ONLY",
+  "runtime_composition_claim": false,
+  "source_edit_push_merge_claim_ci_native_log_operation": false,
+  "historical_initial_preview": {
+    "main": "7a016db1c174ee1fedaeba1dfdb32b2ebe5155d7",
+    "tree": "ec84e0563d0e9ce67221782fe657b4d145cadfae",
+    "qualification": "Historical initial read only; superseded by explicit fetched0e4248c binding"
+  },
+  "next_action": "Root obtains actual nine required greens and decides meaningful changed-dependency combined verification on this exact preview before ordinary expected-head merge; refresh current-main preservation if main advances."
+}

@@ -1,0 +1,13 @@
+{
+  "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "exitCode": 0,
+  "tests": 181,
+  "uniqueCases": 181,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "finishedAt": "2026-10-05T17:03:30.587921+00:00",
+  "junitSha256": "4340c3718612d4a6835605099ad4c49b54b9852a8d1c1c213f96b13ba41dde2a",
+  "logSha256": "76ed0cbbd8f1efe3a2b84e8ff7bd2a8f153574ed002f6a02c5f2d989bcc607e6",
+  "limits": "Bounded finite existing-test composition only; no native or whole promotion."
+}

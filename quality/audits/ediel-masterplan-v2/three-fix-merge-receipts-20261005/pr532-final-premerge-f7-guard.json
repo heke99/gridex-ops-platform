@@ -1,0 +1,41 @@
+{
+  "observedAt": "2026-10-05T17:39:33.390535+00:00",
+  "pr": 532,
+  "expectedHead": "c89d003f20b48942130486387536df06880ab98e",
+  "actualMainBefore": "f7df744d58fb6677daa075f5613facb80c65db71",
+  "expectedMergeTree": "8ce07f82dc1349bd64add6d14873291f93365df2",
+  "changedPaths": [
+    ".agent-memory/masterplan-db03-checkpoint.md",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "foreignModeTypeBlobExact": 8226,
+  "foreignOrderedRowsExact": 350,
+  "ownRowsExactPublishedHead": true,
+  "mainStoredApprovals": 248,
+  "previewStoredApprovals": 250,
+  "scratchAbsent": true,
+  "runtimePacket": "297 unique PASS on full three-fix future union; not an executed claim on this immediate individual preview",
+  "currentDeltaSince826": [
+    ".agent-memory/ediel-env07-checkpoint.md",
+    ".agent-memory/masterplan-gov05-checkpoint.md",
+    ".agent-memory/masterplan-imp02-checkpoint.md",
+    "__tests__/ediel-accepted-guide-package.test.ts",
+    "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+    "__tests__/ediel-env07-outbox-separation.test.ts",
+    "__tests__/ediel-guide-transition-selection.test.ts",
+    "__tests__/ediel-prodat-interchange-batching.test.ts",
+    "__tests__/ediel-registry-market-source.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/test-ediel-unb-ack-request.cjs"
+  ],
+  "reachedInputReuseQualified": true,
+  "allNineTerminalReceiptSha256": "01d295ae5afdc1e58eb4d16d5a97eb64531344fa7b814d78a1013ea5dea6bb58",
+  "independent532Sha256": "0b985e5f7eb7b6564c8398b32ed190b876b2ae4a14350369d2e8777d5dfb683b",
+  "independentUnionSha256": "826060335894e5c2b0402f6585969f4938c2496e0e53502ceb542c08c69e62e7",
+  "wholeOrNativePromotion": false,
+  "guardMainMovedBeforeMutation": "Prior37guard correctly stopped before APImerge when other allocated author delivered600",
+  "newDelta": "175 owned600metadata paths only; coverage and all reached source/test/config/pkg inputs byte-exact37. Prior/source/9CI/peer receipts reused."
+}

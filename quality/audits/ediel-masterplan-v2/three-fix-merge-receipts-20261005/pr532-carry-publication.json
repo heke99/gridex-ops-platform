@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-05T16:38:03.371688+00:00",
+  "pr": 532,
+  "head": "c89d003f20b48942130486387536df06880ab98e",
+  "remote_branch": "codex/ediel-db03-validation-inventory-20261004",
+  "fast_forward_only": true,
+  "previous_head": "857ca4075a3980b42834e4fa8f83b5cc6ae9e7f3",
+  "independent_review": "pr532-carry-cleanup-independent-review.json",
+  "requiredCI": "PENDING new exact head; no old green inference"
+}

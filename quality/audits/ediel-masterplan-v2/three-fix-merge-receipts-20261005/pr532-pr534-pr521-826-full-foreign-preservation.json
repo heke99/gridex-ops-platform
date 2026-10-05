@@ -1,0 +1,28 @@
+{
+  "observedAt": "2026-10-05T17:10:57.463439+00:00",
+  "actualMain": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "combinedPreviewTree": "961230beba67847cbcd7fce765ce552203689a8d",
+  "changedPaths": [
+    ".agent-memory/ediel-db06-checkpoint.md",
+    ".agent-memory/ediel-gov06-checkpoint.md",
+    ".agent-memory/masterplan-db03-checkpoint.md",
+    "__tests__/billing-canonical-gate.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts",
+    "lib/ediel/flows/utiltsCanonicalValidation.ts",
+    "lib/ediel/utiltsEngine.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-billing-source-sql-regression.mjs"
+  ],
+  "foreignModeTypeBlobEntriesExact": 8041,
+  "allThreeScratchPathsAbsent": true,
+  "coverageMetadataExact": true,
+  "foreignOrderedRowsExact": 346,
+  "localPreviewOnly": true,
+  "runtimeInputEqualityQualifiedBy": "pr532-pr534-pr521-826-current-main-requalification.json"
+}

@@ -1,0 +1,14 @@
+{
+  "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "exitCode": 0,
+  "tests": 116,
+  "uniqueCases": 116,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0,
+  "jointTotalUnique": 297,
+  "finishedAt": "2026-10-05T17:05:19.640163+00:00",
+  "junitSha256": "1099ef1c6106c91ba842ff8cbd1979ee5e9d7da2228195d6649f095963529f7d",
+  "logSha256": "3bf10b5168bb3e08e90be1648130edef48d590db6171bd09fd049bcbba9a0fdc",
+  "limits": "Existing changed-main producer complements only; no native SQL, physical ACK, market or whole promotion."
+}

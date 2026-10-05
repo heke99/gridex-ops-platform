@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-05T16:40:06.705334+00:00",
+  "pr": 521,
+  "head": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+  "remote_branch": "codex/ediel-gov06-explicit-time-decision-20261004",
+  "fast_forward_only": true,
+  "previous_head": "c1cac7c0ee253bab2fc53ff308517498b13cee92",
+  "independent_review": "pr521-root-independent-review.json",
+  "requiredCI": "PENDING new exact head; no old green inference"
+}

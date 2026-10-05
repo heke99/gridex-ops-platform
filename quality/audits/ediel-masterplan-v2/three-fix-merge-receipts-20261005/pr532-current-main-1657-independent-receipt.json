@@ -1,0 +1,398 @@
+{
+  "recorded_at": "2026-10-05T17:01:17.750394+00:00",
+  "scope": "Independent final read-only PR532 current-main static tree/foreign preservation and narrow producer-delta qualification",
+  "verdict": "APPROVE_BOUNDED_STATIC_CURRENT_MAIN_CARRY",
+  "head": "c89d003f20b48942130486387536df06880ab98e",
+  "main": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+  "main_tree": "34091802c5a3a1e149624d6c1957dc16a7d10258",
+  "source_carry_old_main": "de6d22bea64cf2b8810969cb87924128176ebab1",
+  "original_approved_head": "857ca4075a3980b42834e4fa8f83b5cc6ae9e7f3",
+  "union_tree": "5509d9efbdf82d8b09f3ffb0cb9368bba54dd162",
+  "merge_tree_exit": 0,
+  "merge_tree_conflicts": [],
+  "union_difference_vs_main": [
+    ".agent-memory/masterplan-db03-checkpoint.md",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "own_four_nonledger_mode_blob_exact_head_and_original": [
+    ".agent-memory/masterplan-db03-checkpoint.md",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts"
+  ],
+  "three_accidental_tmp_reintroduced": false,
+  "removed_accidental_paths": [
+    "scripts/.ediel-ten-08-10-consumer.tmp.mjs",
+    "scripts/.ediel-ten-08-10-outer.tmp.mjs",
+    "scripts/.ediel-ten-08-10-runner.tmp.mjs"
+  ],
+  "foreign_main_paths_mode_blob_exact": 8047,
+  "foreign_complete_rows_ordered_evidence_exact": 350,
+  "all_352_row_ids_order_exact": true,
+  "ledger_nonrow_metadata_exact_main": true,
+  "own_two_rows_exact_approved_head": [
+    {
+      "group": "rules",
+      "id": "DB-03",
+      "main": {
+        "id": "DB-03",
+        "acceptance_id": "AT-DB-03",
+        "status": "NOT_VERIFIED",
+        "evidence": []
+      },
+      "union": {
+        "id": "DB-03",
+        "acceptance_id": "AT-DB-03",
+        "status": "VERIFIED",
+        "evidence": [
+          "lib/ediel/utilts/transactionPersistence.ts",
+          "lib/ediel/utilts/consumptionContract.ts",
+          "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+          "lib/ediel/sources/structuralSourceSelection.ts",
+          "lib/ediel/sources/datedSourceMeasurements.ts",
+          "lib/billing/underlayEngine.ts",
+          "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+          "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+          "__tests__/ediel-utilts-transaction-persistence.test.ts",
+          "__tests__/ediel-utilts-consumption-contract.test.ts",
+          "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+          "__tests__/ediel-source-decision-timeline.test.ts",
+          "__tests__/ediel-structural-source-wire.test.ts",
+          "__tests__/ediel-structural-source-selection.test.ts",
+          "__tests__/ediel-dated-source-measurements.test.ts",
+          "__tests__/ediel-source-owner-runtime.test.ts",
+          "scripts/ediel-utilts-late-version-sql-regression.mjs",
+          "scripts/ediel-billing-source-sql-regression.mjs",
+          "scripts/ediel-source-owner-native.test.ts",
+          "scripts/ediel-utilts-consumption-native.test.ts",
+          ".agent-memory/masterplan-db03-checkpoint.md"
+        ]
+      }
+    },
+    {
+      "group": "acceptance_contracts",
+      "id": "AT-DB-03",
+      "main": {
+        "id": "AT-DB-03",
+        "status": "NOT_EXECUTED",
+        "evidence": []
+      },
+      "union": {
+        "id": "AT-DB-03",
+        "status": "PASSED",
+        "evidence": [
+          "lib/ediel/utilts/transactionPersistence.ts",
+          "lib/ediel/utilts/consumptionContract.ts",
+          "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+          "lib/ediel/sources/structuralSourceSelection.ts",
+          "lib/ediel/sources/datedSourceMeasurements.ts",
+          "lib/billing/underlayEngine.ts",
+          "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+          "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+          "__tests__/ediel-utilts-transaction-persistence.test.ts",
+          "__tests__/ediel-utilts-consumption-contract.test.ts",
+          "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+          "__tests__/ediel-source-decision-timeline.test.ts",
+          "__tests__/ediel-structural-source-wire.test.ts",
+          "__tests__/ediel-structural-source-selection.test.ts",
+          "__tests__/ediel-dated-source-measurements.test.ts",
+          "__tests__/ediel-source-owner-runtime.test.ts",
+          "scripts/ediel-utilts-late-version-sql-regression.mjs",
+          "scripts/ediel-billing-source-sql-regression.mjs",
+          "scripts/ediel-source-owner-native.test.ts",
+          "scripts/ediel-utilts-consumption-native.test.ts",
+          ".agent-memory/masterplan-db03-checkpoint.md"
+        ]
+      }
+    }
+  ],
+  "selected_input_pins": [
+    {
+      "path": "lib/ediel/utilts/transactionPersistence.ts",
+      "head_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+      "main_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+      "union_sha256": "f752f366e9faadb96666bc1dd875f46bb55e431e4a2823fb98d0964af8a66fa0",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "lib/ediel/utilts/consumptionContract.ts",
+      "head_sha256": "d89623bac597774debf45019c21bae5a0421fc6b3687575048509e07645f2f2e",
+      "main_sha256": "d89623bac597774debf45019c21bae5a0421fc6b3687575048509e07645f2f2e",
+      "union_sha256": "d89623bac597774debf45019c21bae5a0421fc6b3687575048509e07645f2f2e",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "lib/ediel/sources/receivedSourceDecisionTimeline.ts",
+      "head_sha256": "6f884ee55db2dc6272df3eb2a98128d37179947e75bc01bdc3be643fa67e9110",
+      "main_sha256": "6f884ee55db2dc6272df3eb2a98128d37179947e75bc01bdc3be643fa67e9110",
+      "union_sha256": "6f884ee55db2dc6272df3eb2a98128d37179947e75bc01bdc3be643fa67e9110",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "lib/ediel/sources/structuralSourceSelection.ts",
+      "head_sha256": "d93878be93505d1c7ffb4c9c4c15e54d7494376624e5aa03364d2cc9cfda8b5d",
+      "main_sha256": "d93878be93505d1c7ffb4c9c4c15e54d7494376624e5aa03364d2cc9cfda8b5d",
+      "union_sha256": "d93878be93505d1c7ffb4c9c4c15e54d7494376624e5aa03364d2cc9cfda8b5d",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "lib/ediel/sources/datedSourceMeasurements.ts",
+      "head_sha256": "1a20067ff516d6104c1b513d40dda7bda3cd31e9e71ba43222260b7ff93d3cd9",
+      "main_sha256": "1a20067ff516d6104c1b513d40dda7bda3cd31e9e71ba43222260b7ff93d3cd9",
+      "union_sha256": "1a20067ff516d6104c1b513d40dda7bda3cd31e9e71ba43222260b7ff93d3cd9",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "head_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "main_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "union_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "supabase/migrations/20261003150200_ediel_utilts_late_version_and_err_ack_dispatcher.sql",
+      "head_sha256": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05",
+      "main_sha256": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05",
+      "union_sha256": "7de2d13b0e1fc080ebf782339d74b32b36d0056537715629a03f6332127bdd05",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "head_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "main_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "union_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-transaction-persistence.test.ts",
+      "head_sha256": "896b446d60fab1d3dbdbf53219abf54eb6dcf99a648300c0571b6274829e3e1c",
+      "main_sha256": "affcadefc1fb59e939d32817414e1d4ab5c5ccc17ad46a70e1cd6a76fd698aa7",
+      "union_sha256": "896b446d60fab1d3dbdbf53219abf54eb6dcf99a648300c0571b6274829e3e1c",
+      "head_main_equal": false,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-consumption-contract.test.ts",
+      "head_sha256": "cc5f524b390d9d412d9afc06e7f43748ff174111c909fdc727262edbd132ed08",
+      "main_sha256": "cc5f524b390d9d412d9afc06e7f43748ff174111c909fdc727262edbd132ed08",
+      "union_sha256": "cc5f524b390d9d412d9afc06e7f43748ff174111c909fdc727262edbd132ed08",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-persistence-sideeffects.test.ts",
+      "head_sha256": "08855a110a97ef4336c34b481d549c80ae83574920e8b2c8a5f6949dcf875675",
+      "main_sha256": "08855a110a97ef4336c34b481d549c80ae83574920e8b2c8a5f6949dcf875675",
+      "union_sha256": "08855a110a97ef4336c34b481d549c80ae83574920e8b2c8a5f6949dcf875675",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-source-decision-timeline.test.ts",
+      "head_sha256": "8369ed9d3ed4d6b71ba3009a6bcf18d8f2581a176b5ef8562c4fbda9555f60f2",
+      "main_sha256": "567eada59bd2a9a4947774aaf950ee19beb03d232fe700bb130c250c8c9f740b",
+      "union_sha256": "8369ed9d3ed4d6b71ba3009a6bcf18d8f2581a176b5ef8562c4fbda9555f60f2",
+      "head_main_equal": false,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-structural-source-wire.test.ts",
+      "head_sha256": "363aecfdffc4e141ed2646bd6cbd51f3f2b5cfd3de2e7cdb3195aea97f3cbe08",
+      "main_sha256": "363aecfdffc4e141ed2646bd6cbd51f3f2b5cfd3de2e7cdb3195aea97f3cbe08",
+      "union_sha256": "363aecfdffc4e141ed2646bd6cbd51f3f2b5cfd3de2e7cdb3195aea97f3cbe08",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-structural-source-selection.test.ts",
+      "head_sha256": "7c4ea43a84e030535dce7bc23bc09d77060fbf35fe704257b8afbf6b87054264",
+      "main_sha256": "40d364db15cdc54ca99e6b5f428c3bf39bb58f2abf1662f873a683766adec188",
+      "union_sha256": "7c4ea43a84e030535dce7bc23bc09d77060fbf35fe704257b8afbf6b87054264",
+      "head_main_equal": false,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-dated-source-measurements.test.ts",
+      "head_sha256": "3fee1b93500200394becaf79d4127db556af0540c19bc16f760b4798266846c1",
+      "main_sha256": "3fee1b93500200394becaf79d4127db556af0540c19bc16f760b4798266846c1",
+      "union_sha256": "3fee1b93500200394becaf79d4127db556af0540c19bc16f760b4798266846c1",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "__tests__/ediel-source-owner-runtime.test.ts",
+      "head_sha256": "4de1348c3c4c37589e50fa50f2f26d6a2830a6e64642999f5891f8874d8787ea",
+      "main_sha256": "4de1348c3c4c37589e50fa50f2f26d6a2830a6e64642999f5891f8874d8787ea",
+      "union_sha256": "4de1348c3c4c37589e50fa50f2f26d6a2830a6e64642999f5891f8874d8787ea",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "scripts/ediel-utilts-late-version-sql-regression.mjs",
+      "head_sha256": "0297ca8ae761507dba874b956dd8d451a1ef9cf81c42f7825752091c6cf9913b",
+      "main_sha256": "0297ca8ae761507dba874b956dd8d451a1ef9cf81c42f7825752091c6cf9913b",
+      "union_sha256": "0297ca8ae761507dba874b956dd8d451a1ef9cf81c42f7825752091c6cf9913b",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "head_sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "main_sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "union_sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.test.ts",
+      "head_sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+      "main_sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+      "union_sha256": "91842969f73d20c5d66095cef98cb99e4e47433d3d52d9d41c4ee07668e3814a",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    },
+    {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "head_sha256": "0e89b550c5a54c377c70bc08656f6297775322f736545a45ca0b0030b16f8246",
+      "main_sha256": "0e89b550c5a54c377c70bc08656f6297775322f736545a45ca0b0030b16f8246",
+      "union_sha256": "0e89b550c5a54c377c70bc08656f6297775322f736545a45ca0b0030b16f8246",
+      "head_main_equal": true,
+      "union_preserves_main_or_owned_head": true
+    }
+  ],
+  "non_owned_selected_input_deltas": [],
+  "new_actual_main_transitive_producer_inputs": [
+    {
+      "path": "lib/ediel/core/canonicalEdifactAst.ts",
+      "head_sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+      "main_union_sha256": "d8739ee26ed0ca284f157a33e20b0be90ee8355b3c1a720dc6dcffe4c6fc2ce8",
+      "actual_change": "diff --git a/lib/ediel/core/canonicalEdifactAst.ts b/lib/ediel/core/canonicalEdifactAst.ts\nindex 0bc609c2..3d1749e0 100644\n--- a/lib/ediel/core/canonicalEdifactAst.ts\n+++ b/lib/ediel/core/canonicalEdifactAst.ts\n@@ -148,10 +148,9 @@ function cciCavMap(\n       continue\n     }\n     if (segment.tag !== 'CAV' || !current) continue\n-    const components = canonicalComposite(segment, 1, una)\n-      .map((part) => clean(part)?.toUpperCase() ?? null)\n-      .filter((part): part is string => Boolean(part))\n-    const value = components[0] ?? null\n+    // C889 positions are part of the wire contract. An omitted first value\n+    // cannot acquire a later code/list/free-text component's meaning.\n+    const value = canonicalFirstComponent(segment, 1, una)?.toUpperCase() ?? null\n     if (value) result[current] = [...(result[current] ?? []), value]\n   }\n \n"
+    },
+    {
+      "path": "lib/ediel/core/canonicalMessage.ts",
+      "head_sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+      "main_union_sha256": "e63db4f992b3fba6ab4438cbd296c7592b6f82f3cf2503e14e83581a3f91fff9",
+      "actual_change": "diff --git a/lib/ediel/core/canonicalMessage.ts b/lib/ediel/core/canonicalMessage.ts\nindex 13b3d583..615d7103 100644\n--- a/lib/ediel/core/canonicalMessage.ts\n+++ b/lib/ediel/core/canonicalMessage.ts\n@@ -75,10 +75,6 @@ function splitComposite(value: string | null | undefined): string[] {\n   return splitEdifactComponents(value).map((part) => part.trim())\n }\n \n-function firstComponent(value: string | null | undefined): string | null {\n-  return cleanString(splitComposite(value)[0] ?? null)\n-}\n-\n function element(rawSegment: string | null | undefined, index: number): string | null {\n   const value = splitEdifactElements(rawSegment)[index]?.trim() ?? ''\n   return value.length > 0 ? value : null\n@@ -161,15 +157,16 @@ function dtmValue(rawSegments: readonly string[], qualifier: string): string | n\n   return cleanString(parts[1] ?? null)\n }\n \n-function cciCavSubtype(rawSegments: readonly string[]): string | null {\n-  for (let index = 0; index < rawSegments.length; index += 1) {\n-    const segment = rawSegments[index]\n-    if (!segment?.toUpperCase().startsWith('CCI++')) continue\n-    const cciCode = firstComponent(element(segment, 2))\n-    const next = rawSegments[index + 1]\n-    if (!next?.toUpperCase().startsWith('CAV+')) continue\n-    const cavParts = splitComposite(element(next, 1))\n-    const value = cleanString(cavParts.find((part) => /^[A-Z0-9]{1,8}$/.test(part)) ?? cavParts[0] ?? null)\n+function cciCavSubtype(segments: readonly EdifactTokenizedSegment[], una: EdifactServiceStringAdvice): string | null {\n+  for (let index = 0; index < segments.length; index += 1) {\n+    const segment = segments[index]\n+    if (segment.tag !== 'CCI' || segment.elements[1] !== '') continue\n+    const cciCode = cleanString(segmentComposite(segment, 2, una)[0])\n+    const next = segments[index + 1]\n+    if (next?.tag !== 'CAV') continue\n+    // Read the physical value slot once. Other C889 components cannot supply\n+    // a missing subtype or replace literal separator/release data in that slot.\n+    const value = cleanString(segmentComposite(next, 1, una)[0])\n     if (cciCode && value) return value.toUpperCase()\n   }\n   return null\n@@ -267,7 +264,7 @@ function parseEdifactCanonical(rawPayload: string, direction: EdielMessageRow['d\n     messageCode,\n     subtype: family === 'PRODAT'\n       ? prodatCharacteristicValue('223', facts.segments, parseUna(rawPayload))?.toUpperCase() ?? null\n-      : cciCavSubtype(rawSegments),\n+      : cciCavSubtype(facts.segments, una),\n     direction,\n     version: cleanString(segmentComposite(facts.unh, 2, una)[4]),\n     applicationReference: sourceApplication.length === 1 ? cleanString(sourceApplication[0]) : null,\n"
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "head_sha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c",
+      "main_union_sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740",
+      "actual_change": "diff --git a/lib/ediel/utilts.ts b/lib/ediel/utilts.ts\nindex 9e9feb70..d3171918 100644\n--- a/lib/ediel/utilts.ts\n+++ b/lib/ediel/utilts.ts\n@@ -14,6 +14,7 @@ import {\n } from '@/lib/ediel/classify'\n import { buildCanonicalOutboundReferences } from '@/lib/ediel/core/referenceRegistry'\n import { resolveCanonicalOutboundVersion } from '@/lib/ediel/core/versionRegistry'\n+import { prodatDate203 } from '@/lib/ediel/prodat/render/dates'\n import { parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'\n import type { CanonicalUtiltsTransaction } from '@/lib/ediel/utilts/canonicalObservationScope'\n import {utiltsDefaultAlphabetSegment} from '@/lib/ediel/utilts/errSourceCopy'\n@@ -215,23 +216,10 @@ function sanitize(value?: string | null): string {\n   return (value ?? '').replace(/['+]/g, ' ').trim()\n }\n \n-function normalizeDate(value?: string | null): string | null {\n-  if (!value) return null\n-  const trimmed = value.trim()\n-  if (!trimmed) return null\n-  if (/^\\d{4}-\\d{2}-\\d{2}$/.test(trimmed)) {\n-    return `${trimmed}T00:00`\n-  }\n-  if (/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}/.test(trimmed)) {\n-    return trimmed\n-  }\n-  return trimmed\n-}\n-\n function formatDateTime203(value?: string | null): string | null {\n-  const normalized = normalizeDate(value)\n-  if (!normalized) return null\n-  return normalized.replace(/[-:T]/g, '').replace(/Z$/, '').slice(0, 12)\n+  // U §3.6.1 uses the same fixed UTC+1 wall clock as PRODAT. Explicit\n+  // instants must be converted; offset-free market dates stay literal.\n+  return prodatDate203(value)\n }\n \n function formatPeriod719(start?: string | null, end?: string | null): string | null {\n"
+    },
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "head_sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "main_union_sha256": "c791d06a6f988aa578efea5405ce4f67fe51339fcd4b3d4a498ec0138344df3b",
+      "actual_change": "diff --git a/lib/actor-registry/parseActorRegistryXml.ts b/lib/actor-registry/parseActorRegistryXml.ts\nindex 01b98e24..f5330c12 100644\n--- a/lib/actor-registry/parseActorRegistryXml.ts\n+++ b/lib/actor-registry/parseActorRegistryXml.ts\n@@ -112,7 +112,7 @@ export function parseActorRegistryXml(xml:string):ParsedActorRegistryActor[]{\n         const edielId=normalizeEdielId(keys.EdielId??field(c,['EdielId','EdielID','EDIELID','Ediel','PartyId'])??attr(c,['edielId','edielID','partyId']))\n         const orgNumber=normalizeOrgNumber(keys.OrgNo??field(c,['OrgNo','OrgNumber','OrganizationNumber','OrganisationNumber','CompanyRegistrationNumber'])??attr(c,['orgNo','orgNumber','organizationNumber']))\n         const eic=normalizeEic(keys.EIC??field(c,['EIC','EicCode'])??attr(c,['eic','eicCode']))\n-        if(!name&&!edielId&&!orgNumber&&!eic)continue\n+        if(!name&&!edielId&&!orgNumber&&!eic)throw new Error(`actor_registry_xml_identity_required:record_${actors.length+1}`)\n         const rawRoles=descendants(c,['Role','ActorRole','MarketRole']).map(value=>field(node(value),['Code','Name','Value'])??text(value)).filter((role):role is string=>Boolean(role))\n         const attributeRole=attr(c,['role','actorRole','marketRole']);if(attributeRole)rawRoles.push(attributeRole)\n         const roles=uniqueStrings(rawRoles.map(normalizeRole))\n"
+    }
+  ],
+  "unchanged_reached_helpers_runtime_engine_native_config_dependencies": [
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad"
+    },
+    {
+      "path": "__tests__/helpers/sourceDecisionTimelineFixtures.ts",
+      "sha256": "69ff36c19f59f4a68828b17479c150c23f8631f7271349ee0238c45240abb051"
+    },
+    {
+      "path": "__tests__/helpers/sourceOwnerFixtures.ts",
+      "sha256": "bbe5f5f5b60976aa8eefedf0196557f6d5a13cdc58e49e859e7d7a6c763f8620"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "sha256": "ff0fe04f6888c0257dde773216173f1c12b0ea6708b1025a6af163499558f6f6"
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.part-1.ts",
+      "sha256": "45b3f3e38b19f4075d5011888a336945068300fb549f73f5dea04eaf818a64bc"
+    },
+    {
+      "path": "lib/ediel/core/edifactTokenizer.ts",
+      "sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f"
+    },
+    {
+      "path": "package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.config.ts",
+      "sha256": "2be924cdef2231ec7cd11bcc1839aa59849340a1c7c02e286b7843fdfa487c3a"
+    }
+  ],
+  "producer_effect_review": [
+    {
+      "paths": [
+        "lib/ediel/core/canonicalEdifactAst.ts",
+        "lib/ediel/core/canonicalMessage.ts"
+      ],
+      "provenance": "Merged ENV02, preserved verbatim in union.",
+      "effect": "CAV positions retain the first physical value instead of borrowing later C889 components; generic CCI subtype now uses tokenized UNA-aware elements and preserves required empty element1/element2 guard.",
+      "owned_probe_bridge": "Existing unchanged energyHandoff fixture uses default UNA, CCI+++E12/E22 and CAV+E17/E27 with a nonempty first value. Old/new cciCavMap selects the same physical E17/E27; generic subtype cciCode at element2 remains empty for CCI+++ and yields null in both. Tokenizer, runtime engines, contract/persistence and all20 selected inputs other than own tags stay exact. No new case output or invalidation of these bounded successful-path assertions is demonstrated by this source delta.",
+      "limit": "No execution on composed union is claimed; separate ENV02 full-control/native source owners retain malformed/alternate-UNA proof. Do not infer all532production/native chains unchanged."
+    },
+    {
+      "paths": [
+        "lib/ediel/utilts.ts"
+      ],
+      "provenance": "Merged ENV08, preserved verbatim in union.",
+      "effect": "Outbound draft formatDateTime203 now calls existing prodatDate203 for fixed UTC+1.",
+      "owned_probe_bridge": "The three532owned suites use fixed inbound wire or fixed DTO/persistence/scoped decisions; they do not call buildUtiltsOutboundDraft or outbound period/date formatting. Parser/transaction extraction hunks are unchanged. No additional outbound/native rerun is warranted solely for these532tag/carry changes.",
+      "limit": "ENV08 source owner retains actual outbound-boundary proof; full union CI must still complete."
+    },
+    {
+      "paths": [
+        "lib/actor-registry/parseActorRegistryXml.ts"
+      ],
+      "provenance": "Merged IMP01, preserved verbatim in union.",
+      "effect": "Unreadable actor record now throws explicit identity-required instead of silently continuing.",
+      "owned_probe_bridge": "No registry XML producer is reached by the three532owned existing suites; all reached source fixtures/selectors are unchanged.",
+      "limit": "Do not claim a new import/registry integration proof."
+    }
+  ],
+  "runtime_or_native_execution_by_reviewer": false,
+  "existing_ci_report": {
+    "authority": "Parent tool report only, not independently reread by this static review",
+    "head": "c89d003f20b48942130486387536df06880ab98e",
+    "nine_required": "8SUCCESS; clean-replay111872270263 stillRUNNING",
+    "all_nine_green": "NOT_QUALIFIED; genuine terminal clean must be observed before merge"
+  },
+  "whole_contract_promotion_by_reviewer": false,
+  "current_main_whole_runtime_or_native_approval": false,
+  "unnecessary_rerun": "No new broad/native/behavior suite recommended by these tag-only owned changes and source-qualified successful-fixture bridge. If any relevant byte changes after this exactmain/head, perform a new narrow delta check. Existing exacthead cleanCI remains necessary.",
+  "checkout_index_HEAD_before_after_unchanged": {
+    "HEAD": "c89d003f20b48942130486387536df06880ab98e",
+    "index_tree": "ad291440082e6d7630513e05d5cc05066673650d",
+    "status": ""
+  },
+  "receipt_refs": [
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/pr532-local-carry-cleanup-receipt.json",
+      "sha256": "9dae06fa41eee781296d5d89359a841bae0accca8def8a241ed29095c43ed337"
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/pr532-carry-cleanup-independent-review.json",
+      "sha256": "ed008784fdc964f9e8cdd0815b2194eb596587260fde1f8b6030495c4b3a8ecc"
+    },
+    {
+      "path": "/workspace/ediel-session-inventory-20261005/pr532-readonly-readiness-proof.json",
+      "sha256": "8c710fee30b249a23f10aca330736575d15c3bb654b627f6e98b3473d90153b0"
+    }
+  ]
+}

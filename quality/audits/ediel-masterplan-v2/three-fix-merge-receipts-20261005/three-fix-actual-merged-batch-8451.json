@@ -1,0 +1,58 @@
+{
+  "observedAt": "2026-10-05T17:46:40.617073+00:00",
+  "kind": "THREE_EXISTING_PR_FIXES_ACTUALLY_MERGED_POSTVERIFIED",
+  "main": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+  "tree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+  "storedApprovals": 254,
+  "distinctIDs": 352,
+  "remainingNotApproved": 98,
+  "batch": [
+    {
+      "pr": 532,
+      "actualMerge": "117f02fae50bef27e50008058cdeee1a49993dde",
+      "parents": [
+        "f7df744d58fb6677daa075f5613facb80c65db71",
+        "c89d003f20b48942130486387536df06880ab98e"
+      ],
+      "tree": "8ce07f82dc1349bd64add6d14873291f93365df2",
+      "head": "c89d003f20b48942130486387536df06880ab98e",
+      "foreignEntries": 8226,
+      "foreignRows": 350,
+      "allNinePASS": true
+    },
+    {
+      "pr": 534,
+      "actualMerge": "258066a7ac85c7a346fb05b66675c861c5e4aa60",
+      "parents": [
+        "117f02fae50bef27e50008058cdeee1a49993dde",
+        "b7bfb88dae9fc4f77807b618f953812a72412578"
+      ],
+      "tree": "764a5d7a911b8e833e77c5e61445cdce34f566bd",
+      "head": "b7bfb88dae9fc4f77807b618f953812a72412578",
+      "foreignEntries": 8225,
+      "foreignRows": 350,
+      "allNinePASS": true
+    },
+    {
+      "pr": 521,
+      "actualMerge": "8451f013837c8b4b198ad2c5490cc2a54ab847ff",
+      "parents": [
+        "258066a7ac85c7a346fb05b66675c861c5e4aa60",
+        "9f20a3c7cc33c41e1af639fb5cc6176134920872"
+      ],
+      "tree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+      "head": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+      "foreignEntries": 8228,
+      "foreignRows": 350,
+      "allNinePASS": true
+    }
+  ],
+  "runtimeUniqueQualified": 297,
+  "sourceConfigPackageModeBlobExactToRuntime": 3032,
+  "selectedRuntimeFilesExact": 13,
+  "mainPushEightGates": "NOT_YET_OBSERVED_TERMINAL; not a certified green baseline",
+  "tagCreated": false,
+  "commonWriter": "retained serial baseline/handover writer only",
+  "newRuleClusterStarted": false,
+  "scopeLimits": "No full native/storage/ACK/market or new whole scenario inferred from the bounded runtime. Accepted existing rows are exact qualified published heads."
+}

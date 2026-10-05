@@ -1,0 +1,30 @@
+{
+  "observedAt": "2026-10-05T17:45:04.833353+00:00",
+  "pr": 521,
+  "expectedHead": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+  "actualMainBefore": "258066a7ac85c7a346fb05b66675c861c5e4aa60",
+  "expectedMergeTree": "52bc0f6a130ca9d974de8ef579104bed42eb10e2",
+  "changedPaths": [
+    ".agent-memory/ediel-gov06-checkpoint.md",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+    "lib/ediel/flows/utiltsCanonicalValidation.ts",
+    "lib/ediel/utiltsEngine.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "foreignModeTypeBlobExact": 8228,
+  "foreignOrderedRowsExact": 350,
+  "allOtherCoverageMetadataExact": true,
+  "ownRowsExactHead": true,
+  "contextPointersEachOnce": true,
+  "frozenOwn3BlobsExactB740": true,
+  "mainStoredApprovals": 252,
+  "previewStoredApprovals": 254,
+  "runtimePriorTestedTree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "runtimeReuseQualified": true,
+  "all13SelectedTestsByteExact": true,
+  "producerConfigPackageModeBlobExact": 3032,
+  "runtimeUniquePASS": 297,
+  "independentReceiptSha256": "f02b328f5b12c49fa0a7b1bcbade640a45a0b73e6c596fd065bbace2943d0b5c",
+  "allNineReceiptSha256": "5e0cd92d73f192752ca1aa85c26cc927ad358a3788c6594f43927138a2127337",
+  "wholeOrNativePromotion": false
+}

@@ -1,0 +1,266 @@
+{
+  "recorded_at": "2026-10-05T17:18:01.317112+00:00",
+  "reviewer": "/root/merge_queue_carry_review",
+  "scope": "Independent read-only existing PR532+534+521 finite current-main runtime and826source-carry review",
+  "verdict": "APPROVE",
+  "blocking_findings": [],
+  "runtime_tested_tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "current_main_pin": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "qualified_preview_tree": "961230beba67847cbcd7fce765ce552203689a8d",
+  "exact_pr_heads": {
+    "532": "c89d003f20b48942130486387536df06880ab98e",
+    "534": "b7bfb88dae9fc4f77807b618f953812a72412578",
+    "521": "9f20a3c7cc33c41e1af639fb5cc6176134920872"
+  },
+  "runtime_packets": [
+    {
+      "packet": "union",
+      "executed_tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+      "exit_code": 0,
+      "test_cases": 181,
+      "unique_cases": 181,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "suite_counts": {
+        "__tests__/billing-canonical-gate.test.ts": 11,
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts": 10,
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts": 8,
+        "__tests__/ediel-source-decision-timeline.test.ts": 52,
+        "__tests__/ediel-structural-source-selection.test.ts": 45,
+        "__tests__/ediel-utilts-processor-decision-reuse.test.ts": 10,
+        "__tests__/ediel-utilts-s02-required-scope.test.ts": 28,
+        "__tests__/ediel-utilts-transaction-persistence.test.ts": 17
+      },
+      "junit_sha256": "4340c3718612d4a6835605099ad4c49b54b9852a8d1c1c213f96b13ba41dde2a",
+      "log_sha256": "76ed0cbbd8f1efe3a2b84e8ff7bd2a8f153574ed002f6a02c5f2d989bcc607e6",
+      "selected_test_pins": [
+        {
+          "path": "__tests__/billing-canonical-gate.test.ts",
+          "sha256": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+          "sha256": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+          "sha256": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-source-decision-timeline.test.ts",
+          "sha256": "8369ed9d3ed4d6b71ba3009a6bcf18d8f2581a176b5ef8562c4fbda9555f60f2",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-structural-source-selection.test.ts",
+          "sha256": "7c4ea43a84e030535dce7bc23bc09d77060fbf35fe704257b8afbf6b87054264",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+          "sha256": "0fa1134c833245ac72fa20cfe59f1443298df5bd89e86018460ee4d058dea07a",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+          "sha256": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-utilts-transaction-persistence.test.ts",
+          "sha256": "896b446d60fab1d3dbdbf53219abf54eb6dcf99a648300c0571b6274829e3e1c",
+          "test_body_tags_blob_identical": true
+        }
+      ]
+    },
+    {
+      "packet": "producer",
+      "executed_tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+      "exit_code": 0,
+      "test_cases": 116,
+      "unique_cases": 116,
+      "failures": 0,
+      "errors": 0,
+      "skips": 0,
+      "suite_counts": {
+        "__tests__/ediel-env02-positional-ast.test.ts": 55,
+        "__tests__/ediel-env08-fixed-normal-time.test.ts": 31,
+        "__tests__/ediel-utilts-decision-reuse.test.ts": 14,
+        "__tests__/ediel-utilts-issuer-identity-runtime.test.ts": 7,
+        "__tests__/ediel-version-time-anchors.test.ts": 9
+      },
+      "junit_sha256": "1099ef1c6106c91ba842ff8cbd1979ee5e9d7da2228195d6649f095963529f7d",
+      "log_sha256": "3bf10b5168bb3e08e90be1648130edef48d590db6171bd09fd049bcbba9a0fdc",
+      "selected_test_pins": [
+        {
+          "path": "__tests__/ediel-env02-positional-ast.test.ts",
+          "sha256": "10ae20dc9163d9d21abab57543fe9c7ebe591a9ee566ce75b882d7e370a5ec15",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-env08-fixed-normal-time.test.ts",
+          "sha256": "046d0f13ba642e2f5c89d22f7598c947ad139773bf050c0ba3d94c7ac4eba7bb",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-utilts-decision-reuse.test.ts",
+          "sha256": "ff83e1704621d56fe43b34b8763e18406415094f0cc650ecac4487a9012a071f",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-utilts-issuer-identity-runtime.test.ts",
+          "sha256": "732e4869d9a10c97556bf4f60ed05b65ca179f353380efbf21be72f93729ad78",
+          "test_body_tags_blob_identical": true
+        },
+        {
+          "path": "__tests__/ediel-version-time-anchors.test.ts",
+          "sha256": "f9d6d5f1e693426aa8c6dc97352285aaddb7ec113f1b321128bb9a17b4605fb5",
+          "test_body_tags_blob_identical": true
+        }
+      ]
+    }
+  ],
+  "both_packets_disjoint_by_classname_and_full_testname": true,
+  "selected_files_disjoint": true,
+  "selected_files": 13,
+  "combined_unique_pass": 297,
+  "combined_failure_error_skip": [
+    0,
+    0,
+    0
+  ],
+  "changed_between_tested_and826preview": [
+    ".agent-memory/masterplan-env10-checkpoint.md",
+    "__tests__/ediel-env10-family-release-locators.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "runtime_source_package_config_mode_type_blob_paths_identical": 3846,
+  "all_old_tracked_entries_except_three_declared_delta_exact": 8053,
+  "selected_dependency_pins": [
+    {
+      "path": "package.json",
+      "mode_type_blob": "100644 blob 7e8140606986b98e6acfe71415ce8fa38bad3784",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "equal_both_trees": true
+    },
+    {
+      "path": "package-lock.json",
+      "mode_type_blob": "100644 blob b247061206a317aeb7302f50d469117555d0b62f",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "equal_both_trees": true
+    },
+    {
+      "path": "vitest.config.ts",
+      "mode_type_blob": "100644 blob 704630e71883fdc027fedfba1ff96a5215470160",
+      "sha256": "5745fb70262f40a2a1a6b00223cf112f2696c7253c9387ef5a641b3c2790ae64",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalEdifactAst.ts",
+      "mode_type_blob": "100644 blob 3d1749e0ed4b3ff0454adcdcdcd98d3f35af56d7",
+      "sha256": "d8739ee26ed0ca284f157a33e20b0be90ee8355b3c1a720dc6dcffe4c6fc2ce8",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalMessage.ts",
+      "mode_type_blob": "100644 blob 615d710347493f106196e8811ea78908c776019c",
+      "sha256": "e63db4f992b3fba6ab4438cbd296c7592b6f82f3cf2503e14e83581a3f91fff9",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "mode_type_blob": "100644 blob d31719181c83d137d40d9308ac0e83c352958da1",
+      "sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/core/messagePolicy.ts",
+      "mode_type_blob": "100644 blob 7a38184dcc62e15ce81cd464c4eb7d8e749e464c",
+      "sha256": "47b340deff43dbb03ec7aeb44088237a8f08344d2a93b04801afa6af59ae4eab",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "mode_type_blob": "100644 blob 9f2e3c7e36affec21f1430a3beb165fac2e5242c",
+      "sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/utiltsEngine.ts",
+      "mode_type_blob": "100644 blob 6b4f4ab1f33c499d1f60d0d3175939601e3f4859",
+      "sha256": "76db397c94abaac66f4473a6b9480d7dacd1bf216403d63fd0ac12665809daf1",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/flows/utiltsCanonicalValidation.ts",
+      "mode_type_blob": "100644 blob a97d86ddf1b3032a90d158bfefc2565d4d785581",
+      "sha256": "f0878d542222594c3f9e6800ec06c6ef439cda49207d8a060e7f73a4f658425f",
+      "equal_both_trees": true
+    },
+    {
+      "path": "lib/ediel/prodat/render/dates.ts",
+      "mode_type_blob": "100644 blob 79dfbfbc420fa3157d95e5a7bd5319fcd2a301f6",
+      "sha256": "25b2cd8c56b4cb7c824c6ed6c6ecc8783b8843212387f4cb08223fc157b40505",
+      "equal_both_trees": true
+    },
+    {
+      "path": "tsconfig.json",
+      "mode_type_blob": "100644 blob 60bca066cc72efd2a8303216c1e3a425c8aea097",
+      "sha256": "caa1e74f72eaa627680ae4d7a7affc041d56e8c53766940aaac4ac1d319ad7d1",
+      "equal_both_trees": true
+    },
+    {
+      "path": "tsconfig.app.json",
+      "mode_type_blob": "100644 blob 490aa11dcfd96363739b3f4fc9838227754f6f2b",
+      "sha256": "4951053f05a928c16fea1f538ef1e991afa52882a49c77dc334016e6b6818793",
+      "equal_both_trees": true
+    },
+    {
+      "path": "tsconfig.tests.json",
+      "mode_type_blob": "100644 blob 7f108393c2f3fc9efb40adf67cf99b8cddc0912f",
+      "sha256": "e3df00bd55e19b00575db62c283fb35ff291182c3185a580a7ab4235ae06c51c",
+      "equal_both_trees": true
+    }
+  ],
+  "runtime_reuse_qualified": true,
+  "new_env10_test_not_selected_in_either_command": true,
+  "actual826_foreign_mode_type_blob_entries_preserved": 8041,
+  "actual826_foreign_ordered_rows_preserved": 346,
+  "all_six_owned_coverage_rows_exact_tested_tree": true,
+  "all_current_main_owned_evidence_retained_in_order": true,
+  "context_in_both_gov06_rows_exact_once": true,
+  "three_accidental_scratch_paths_absent": true,
+  "coverage_top_metadata_exact_current_main": true,
+  "coverage_distinct_ids": 352,
+  "actual826_approved_count": 241,
+  "preview_approved_count": 247,
+  "artifact_hashes": {
+    "pr532-pr534-pr521-union-command.json": "0abfabb1ac4f643714100215241453746aafa5570143016bbb739f3159259e7a",
+    "pr532-pr534-pr521-union-runtime-receipt.json": "646d6dd635901a7912519d961e57cffe288328060f09f9c1017105818ae3d1a2",
+    "pr532-pr534-pr521-union-exit.json": "554393c3f17965ed525ffed8749211aecb5b78f7f8ee98371a85dc1bb56e5e64",
+    "pr532-pr534-pr521-union-junit.xml": "4340c3718612d4a6835605099ad4c49b54b9852a8d1c1c213f96b13ba41dde2a",
+    "pr532-pr534-pr521-union-run.log": "76ed0cbbd8f1efe3a2b84e8ff7bd2a8f153574ed002f6a02c5f2d989bcc607e6",
+    "pr532-pr534-pr521-union-producer-command.json": "5a7e8517e56ec7533b2a4b5298b4991a722c0f185f323d1bba8d2c2aaa4d39b3",
+    "pr532-pr534-pr521-union-producer-runtime-receipt.json": "81d5ec00a07d54d20ce2cf1eebbaf5edfa663b181e6379170f476419f17679e4",
+    "pr532-pr534-pr521-union-producer-exit.json": "cd8cd279755e573405cfec0a1b7a424d3fffa3237e43a6e570ca0d4c82282ad7",
+    "pr532-pr534-pr521-union-producer-junit.xml": "1099ef1c6106c91ba842ff8cbd1979ee5e9d7da2228195d6649f095963529f7d",
+    "pr532-pr534-pr521-union-producer-run.log": "3bf10b5168bb3e08e90be1648130edef48d590db6171bd09fd049bcbba9a0fdc",
+    "pr532-pr534-pr521-current-main-union-preview.json": "438e0b0211d076bf928814caf60d87d222559e6489c571b5f557afab473d70b8",
+    "pr532-pr534-pr521-826-current-main-requalification.json": "0676d0ebfe45b2f97e0e1d2a4f442802211a22d0d08122c17e64d306e5fd95f9",
+    "pr532-pr534-pr521-826-full-foreign-preservation.json": "fabecf455d7c618fbdc72ee9debbb5577e62197c38e35c5e4ca513be681baf7b"
+  },
+  "evidence_limits": {
+    "finite_component_runtime": "297 existing actual application/producer tests; configured DB/RPC/link/source/transport/native IO ports retain their explicit substituted scopes",
+    "native_sql_storage_physical_ack_capture": "Not executed by these two runs; original authenticated native receipts retain their own exact source/head/run/custody, and new required clean gates remain independent",
+    "whole_card": "No new whole-card status promotion or wider acceptance conclusion arises from297cases. Six carried approved rows retain original independent complete-card approvals; foreign rows untouched.",
+    "source_carry": "826 new ENV10 test/doc/coverage delta changes no selected executable input; exact receipts reused without another test run.",
+    "merge_qualification": "This approval does not waive fresh exact-head nine required greens, terminal clean and current-main guard before ordinary merge."
+  },
+  "later_main_deltas": "Any later #514/other remote merge is outside immutable826pin. No fetch/CIwatch was performed; qualify its actual source/path/evidence delta separately before claiming later-base readiness.",
+  "new_runs_or_fetch_or_ciwatch_or_repo_mutation": false,
+  "no_common_memory_edit": true
+}

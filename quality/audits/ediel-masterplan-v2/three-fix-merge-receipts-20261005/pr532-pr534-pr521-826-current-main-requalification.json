@@ -1,0 +1,54 @@
+{
+  "observedAt": "2026-10-05T17:07:17.632899+00:00",
+  "actualMain": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+  "mainStoredApprovals": 241,
+  "individualPreviews": [
+    {
+      "pr": 532,
+      "tree": "43069d4d12ae323f739c4d3ccdcf531517dd0f99"
+    },
+    {
+      "pr": 534,
+      "tree": "259a840b5e9ca74c3910f057f605a67bb0f646f3"
+    },
+    {
+      "pr": 521,
+      "tree": "4a94755240e5d5cb099da4311019917483b34b81"
+    }
+  ],
+  "combinedUnpublishedChain": [
+    {
+      "pr": 532,
+      "mainOrPreviewParent": "826779dd798e81c0f2a0a854fb3cb810ddbc5598",
+      "head": "c89d003f20b48942130486387536df06880ab98e",
+      "tree": "43069d4d12ae323f739c4d3ccdcf531517dd0f99",
+      "localUnpublishedPreview": "eb4b32735d692b143917509c234b7c72fddf0341"
+    },
+    {
+      "pr": 534,
+      "mainOrPreviewParent": "eb4b32735d692b143917509c234b7c72fddf0341",
+      "head": "b7bfb88dae9fc4f77807b618f953812a72412578",
+      "tree": "7649a6c6e922ea5f84d1771ed7b19dfc6af281f8",
+      "localUnpublishedPreview": "a0698d20931f10766882f274c81d71826143b9d3"
+    },
+    {
+      "pr": 521,
+      "mainOrPreviewParent": "a0698d20931f10766882f274c81d71826143b9d3",
+      "head": "9f20a3c7cc33c41e1af639fb5cc6176134920872",
+      "tree": "961230beba67847cbcd7fce765ce552203689a8d",
+      "localUnpublishedPreview": "c05937b44f457e8161d26182daec3a55129813db"
+    }
+  ],
+  "combinedTree": "961230beba67847cbcd7fce765ce552203689a8d",
+  "runtimeTestedPriorTree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "deltaSinceRuntimeTree": [
+    ".agent-memory/masterplan-env10-checkpoint.md",
+    "__tests__/ediel-env10-family-release-locators.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "runtimeReuseQualified": true,
+  "reason": "Only ENV10 new own test/checkpoint and own2 coverage rows; every source, package, config, selected test and body unchanged between prior and new combined trees. Both bounded packets reuse exact executable inputs.",
+  "runtimeUnique": 297,
+  "nativeOrWholePromotion": false,
+  "foreignCoverageRowsPreserved": 346
+}

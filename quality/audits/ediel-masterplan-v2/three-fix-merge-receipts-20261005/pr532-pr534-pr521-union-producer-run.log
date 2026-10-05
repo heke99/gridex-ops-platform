@@ -1,0 +1,15 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-main-union-qualification-20261005
+
+ ✓ __tests__/ediel-env08-fixed-normal-time.test.ts (31 tests) 642ms
+ ✓ __tests__/ediel-utilts-decision-reuse.test.ts (14 tests) 268ms
+ ✓ __tests__/ediel-env02-positional-ast.test.ts (55 tests) 87ms
+ ✓ __tests__/ediel-utilts-issuer-identity-runtime.test.ts (7 tests) 191ms
+ ✓ __tests__/ediel-version-time-anchors.test.ts (9 tests) 61ms
+
+ Test Files  5 passed (5)
+      Tests  116 passed (116)
+   Start at  17:05:11
+   Duration  8.46s (transform 3.95s, setup 55ms, import 6.15s, tests 1.25s, environment 2ms)
+
+JUNIT report written to /workspace/ediel-session-inventory-20261005/pr532-pr534-pr521-union-producer-junit.xml

@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-05T17:42:39.046680+00:00",
+  "pr": 534,
+  "expectedHead": "b7bfb88dae9fc4f77807b618f953812a72412578",
+  "actualMainBefore": "117f02fae50bef27e50008058cdeee1a49993dde",
+  "expectedMergeTree": "764a5d7a911b8e833e77c5e61445cdce34f566bd",
+  "localMergeTreeConflictFree": true,
+  "changedPaths": [
+    ".agent-memory/ediel-db06-checkpoint.md",
+    "__tests__/billing-canonical-gate.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-billing-source-sql-regression.mjs"
+  ],
+  "foreignModeTypeBlobExact": 8225,
+  "foreignOrderedRowsExact": 350,
+  "allOtherCoverageMetadataExact": true,
+  "ownRowsExactHead": true,
+  "allOwnNonCoverageBlobsExactPublished": true,
+  "mainStoredApprovals": 250,
+  "previewStoredApprovals": 252,
+  "nativeSQLBodyReceipt": "Existing50SQL/assertion receipt bounded to unchanged script/five captured migration inputs; no new native run",
+  "runtimePacket": "297uniquePASS on full prospective three-fix union; immediate534tree not claimed runtime executed",
+  "independentReceiptSha256": "0e84568679d7b72f434fc558e7803abb6a7c21da1f4f5e9d8db993259290f5e0",
+  "allNineReceiptSha256": "8cd95ec8ed9ee7e991cf5f39bbad88a6b4efef1d8b5f337f7dee4c53424f83fd",
+  "wholeOrNativePromotion": false
+}

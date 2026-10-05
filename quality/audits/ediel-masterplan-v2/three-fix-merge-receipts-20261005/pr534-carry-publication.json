@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-05T16:36:59.564120+00:00",
+  "pr": 534,
+  "head": "b7bfb88dae9fc4f77807b618f953812a72412578",
+  "remote_branch": "codex/ediel-db06-billing-basis-inventory-20261004",
+  "fast_forward_only": true,
+  "previous_head": "b77125811deab1311dc9a5fe2ef4b7ee94a98268",
+  "independent_review": "pr534-root-independent-review.json",
+  "requiredCI": "PENDING new exact head; no old green inference"
+}

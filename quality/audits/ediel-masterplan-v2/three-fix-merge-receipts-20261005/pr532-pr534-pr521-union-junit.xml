@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="181" failures="0" errors="0" time="1.02276797">
+    <testsuite name="__tests__/billing-canonical-gate.test.ts" timestamp="2026-10-05T17:03:30.508Z" hostname="7547c6d9e08f" tests="11" failures="0" errors="0" skipped="0" time="0.041379667">
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; allows only complete, current and business-covered lineage" time="0.02474685">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; blocks Z04C-like missing supply and incomplete Ediel lineage" time="0.00070999">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; cannot turn an omitted source row or a cached eligible flag into source authority" time="0.002916189">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 21 even when estimated values were requested" time="0.001218099">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 56 even when estimated values were requested" time="0.0010335">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 46 even when estimated values were requested" time="0.001140227">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 113 even when estimated values were requested" time="0.001044265">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 125 even when estimated values were requested" time="0.001282391">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds unknown quality and a quantity that lost its exact string" time="0.001637551">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; preserves an exact quantity beyond the safe integer range" time="0.001316834">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; bills an ended supply period up to its end date, never an open-ended one" time="0.002423205">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-beneficiary-projection-provenance.test.ts" timestamp="2026-10-05T17:03:30.512Z" hostname="7547c6d9e08f" tests="10" failures="0" errors="0" skipped="0" time="0.01856474">
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; retains original DGI sender/contract/purpose without rewriting the received source as DDQ" time="0.005927307">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; requires fresh native provenance even when rows and a familiar grant UUID are present" time="0.001749386">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong purpose binding rather than returning a derivative" time="0.001168278">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong fields binding rather than returning a derivative" time="0.00114341">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong sourceRole binding rather than returning a derivative" time="0.000582335">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong contractHash binding rather than returning a derivative" time="0.000330641">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong grantVersion binding rather than returning a derivative" time="0.000304352">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; returns quality and its exact origin only for the separately granted quality projection" time="0.001252005">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; rejects unauthorized quality/raw row fields and strips private extra attributes" time="0.001868642">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; propagates current denial even after an earlier successful consumer receipt" time="0.001234965">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-canonical-policy-batch-regression.test.ts" timestamp="2026-10-05T17:03:30.516Z" hostname="7547c6d9e08f" tests="8" failures="0" errors="0" skipped="0" time="0.033171248">
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; resolves every supported PRODAT message/subtype combination from the canonical registry" time="0.022305788">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; preserves catalog coverage while root hints cannot qualify date/reporting/meter-change conditions" time="0.003106228">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; keeps Z04:319 undetermined for a wrong-code subtype despite complete byCell flags" time="0.00047489">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; preserves the Z01 ACK exception while allowing negative application rejection" time="0.001598539">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; enforces the S08 live-use cutoff without breaking historical replay" time="0.001199811">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; locks the UTILTS 25-A-3/25-A-4 cutover and two-week inbound grace window" time="0.000516278">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; maps every canonical supplier-facing UTILTS profile to an explicit non-ignored business outcome" time="0.001197532">
+        </testcase>
+        <testcase classname="__tests__/ediel-canonical-policy-batch-regression.test.ts" name="canonical Ediel policy batch regression &gt; keeps S02 forecast out of billing and E31 out of individual-customer scope" time="0.000626743">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-source-decision-timeline.test.ts" timestamp="2026-10-05T17:03:30.518Z" hostname="7547c6d9e08f" tests="52" failures="0" errors="0" skipped="0" time="0.155140194">
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="projects a witnessed unavailable assessment without inventing source authority" time="0.004967591">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="empty bounded read is not complete market history" time="0.001528995">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="uses predecessor order, not equal assessment timestamps, witness order or input order" time="0.003627481">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="a witnessed unavailable correction supersedes the earlier recorded assessment" time="0.005798258">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="never retroactively grants visibility for null" time="0.004396665">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="never retroactively grants visibility for 2026-09-22T12:00:00.000002Z" time="0.001402997">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="accepts witness at exact cutoff using all six fractional digits" time="0.00437236">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="equivalent offset cutoff is compared as an instant without rewriting the caller spelling" time="0.004669581">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="a future assessment cannot change the historical predecessor" time="0.005684649">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="unproven successor visibility blocks fallback to an older witnessed assessment" time="0.005160719">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="a fully witnessed successor can replace an unwitnessed predecessor without using its authority" time="0.005146161">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on foreign company" time="0.001201557">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on foreign environment" time="0.002816689">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on wrong cutoff" time="0.001592832">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on bad capture date" time="0.000590871">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on capture before cutoff" time="0.000665584">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on unsupported coverage" time="0.004763931">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on wrong count" time="0.001197233">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on unknown top field" time="0.003890235">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on future source receipt" time="0.002277703">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on future source capture" time="0.000673908">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on capture before ledger" time="0.000459494">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on raw hash mismatch" time="0.001475431">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on facts hash mismatch" time="0.00051608">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on orphan" time="0.002079387">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on cycle" time="0.000752306">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on missing witness id" time="0.001371133">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on witness before assessment" time="0.002475002">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on assessment before capture" time="0.000760842">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on invalid effective month in assessment time" time="0.001234018">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on unknown assessment field" time="0.000702319">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on forged accepted status without actual owners" time="0.002021656">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on missing physical object" time="0.000696797">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects the whole readset on foreign physical object" time="0.000629024">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects fork" time="0.006507589">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects two roots" time="0.00147998">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects duplicate id" time="0.002244748">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects backward assessment clock" time="0.003815899">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects disconnected cycle" time="0.003392041">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="a late malformed second source never discloses the first good source" time="0.001345881">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="cross-source predecessor and reused witness ids fail closed" time="0.003374946">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="source rows without assessment/receipt/payload remain unavailable rather than approved" time="0.00053147">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="SQL incomplete readset does not expose a prefix or snapshot authority" time="0.00065117">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="an authentic pre-ledger cutoff with zero captured sources is explicit incomplete history" time="0.000177158">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="caps per-source assessment history without keeping a partial chain" time="0.029614896">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="caps payload bytes before any tokenization" time="0.00511408">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="transport corruption cannot be repaired with a caller approved flag" time="0.002309744">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="IO retains original company/environment and all cutoff microseconds" time="0.004734001">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="IO failure stays unavailable and never leaks transport error details" time="0.001062972">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="invalid caller scope never reaches the privileged RPC" time="0.000128586">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects a coercible environment before issuing any snapshot read" time="0.00302091">
+        </testcase>
+        <testcase classname="__tests__/ediel-source-decision-timeline.test.ts" name="rejects a coercible object disposition instead of exporting a non-string enum" time="0.001504387">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-structural-source-selection.test.ts" timestamp="2026-10-05T17:03:30.527Z" hostname="7547c6d9e08f" tests="45" failures="0" errors="0" skipped="0" time="0.02183395">
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; P-15 a future supplier keeps structure received before its start, valid only from the start and never by receipt time" time="0.00456588">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; selects source products and exact quarter measurement by valid time, independent of receipt order" time="0.00153462">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; keeps each omitted unchanged measurement tied to its actual predecessor, without inventing unknown values" time="0.000683107">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; selects the approved full baseline for the requested interval" time="0.000497132">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not hide incomplete readComplete evidence" time="0.000651682">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not hide incomplete unresolvedSources evidence" time="0.000175596">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; never claims a pre-ledger business lifecycle was captured" time="0.000326667">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; requires the initiating outbound message after capture began" time="0.000340781">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not extend a dated baseline backwards" time="0.000790295">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not extend coverage beyond the committed supply end" time="0.00031961">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not accept an unwitnessed source" time="0.000394519">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not use approval first visible after the receipt cutoff" time="0.000153594">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not promote an accepted but undated Z04 business facet into completeness" time="0.000152966">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; cannot borrow another objectId" time="0.000107821">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; cannot borrow another identityAgency" time="0.000089354">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; cannot borrow another legalSender" time="0.000120368">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; cannot borrow another legalReceiver" time="0.00007827">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; uses Z06F register changes without changing the meter" time="0.000563113">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; a Z06F may omit the unchanged meter number, not the new register inventory" time="0.000312978">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not copy an absent later register from register one or the old state" time="0.00026823">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; a Z06F cannot substitute a new meter" time="0.000262889">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; Z06E does not supersede structural fields" time="0.000236234">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; Z06G preserves omitted unchanged register identities from its proven predecessor" time="0.000330836">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; Z06G cannot silently change the register identity" time="0.000469503">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; a Z10 replaces the entire new-meter inventory, including two-to-one changes" time="0.000519541">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; uses the old source, not old fields in Z10, for a closing interval" time="0.00029503">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; selects the old source for E30 last-stand at the exact boundary" time="0.000269777">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; selects the new source for first-stand at the exact boundary" time="0.000225602">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; retains both states when a reported interval spans a meter exchange" time="0.000242426">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; validates a supplied old meter against the actual predecessor" time="0.000195993">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; an unapproved relevant change is a gap, not permission to revive the baseline" time="0.000299932">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; an unreviewed correction with a later proposed date cannot revive its possible predecessor" time="0.000152216">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; a future unapproved change does not contaminate an earlier interval" time="0.001467627">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; a rejected source does not replace the last approved source" time="0.000320438">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; arrival and UUID ordering do not select between effective dates" time="0.000288431">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; unrelated sources with the same effective instant remain ambiguous" time="0.000190977">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; function 5 alone does not identify a superseded message" time="0.00010023">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; uses a reviewed explicit correction instead of its predecessor" time="0.000315705">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; an explicit correction can correct the effective date, not just the payload" time="0.000230914">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; does not infer replacement from a shared LI case reference" time="0.000175866">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; binds the corrected predecessor sourceMessageId" time="0.000122174">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; binds the corrected predecessor assessmentId" time="0.000086454">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; binds the corrected predecessor payloadHash" time="0.000083489">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; rejects correction forks instead of choosing newest approval" time="0.000354259">
+        </testcase>
+        <testcase classname="__tests__/ediel-structural-source-selection.test.ts" name="dated structural-source replacement &gt; rejects correction cycles" time="0.000195689">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-utilts-processor-decision-reuse.test.ts" timestamp="2026-10-05T17:03:30.533Z" hostname="7547c6d9e08f" tests="10" failures="0" errors="0" skipped="0" time="0.277472471">
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; uses the same selected policy before and after tenant object matching" time="0.097151125">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local missing time anchors before matching or linking" time="0.022585038">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local reference date before matching or linking" time="0.025618986">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local admission calendar date before matching or linking" time="0.018300394">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local invalid admission instant before matching or linking" time="0.020145788">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local invalid replay instant before matching or linking" time="0.018940525">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local document date before matching or linking" time="0.020454568">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local business date before matching or linking" time="0.018494709">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local delivery period before matching or linking" time="0.016804057">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-processor-decision-reuse.test.ts" name="UTILTS metering processor retained decision &gt; denies an incoherent local local ingress instant before matching or linking" time="0.016821368">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-utilts-s02-required-scope.test.ts" timestamp="2026-10-05T17:03:30.536Z" hostname="7547c6d9e08f" tests="28" failures="0" errors="0" skipped="0" time="0.377253882">
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean S02 owns two distinct forecast points/quantities and no billing contract, own first=true" time="0.069751109">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean S02 owns two distinct forecast points/quantities and no billing contract, own first=false" time="0.025148035">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-point&apos; is its own guide rejection beside a clean sibling, own first=true" time="0.020194013">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-point&apos; is its own guide rejection beside a clean sibling, own first=false" time="0.020493971">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-quantity&apos; is its own guide rejection beside a clean sibling, own first=true" time="0.009980147">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-quantity&apos; is its own guide rejection beside a clean sibling, own first=false" time="0.011988345">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-both&apos; is its own guide rejection beside a clean sibling, own first=true" time="0.013900186">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;missing-both&apos; is its own guide rejection beside a clean sibling, own first=false" time="0.007098952">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="a real zero forecast remains an own QTY135 value" time="0.007242872">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 wrong-qualifier quantity cannot fill its own required observation QTY135" time="0.009439444">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 before-sequence quantity cannot fill its own required observation QTY135" time="0.004754112">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 agency89 guide syntax retains an internal hold when physical point authority is unavailable" time="0.009423542">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean physical S02 outranks absent/stale row application reference null" time="0.008758999">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean physical S02 outranks absent/stale row application reference 23-DDQ-E66-S" time="0.006314885">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean physical S02 outranks stale row association E5SE9X at both guide boundaries" time="0.008629603">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="clean physical S02 outranks stale row association E5SE4A at both guide boundaries" time="0.006611368">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="the actual raw UTILTS validator accepts clean S02 without row policy metadata" time="0.025100318">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="missing canonical physical membership cannot erase existing mandatory guide refusals" time="0.004208654">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="unsupported physical association remains a structured guide refusal" time="0.012670957">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 missing MKS cannot use transaction content to fill its own message header" time="0.016723284">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 foreign-only MKS cannot use transaction content to fill its own message header" time="0.00398571">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 diagnostic validation preserves unrelated admission failures" time="0.002450122">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;clean&apos; header cannot bypass a held capability request" time="0.003786565">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;wrong-association&apos; header cannot bypass a held capability request" time="0.003783918">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="S02 &apos;wrong-family&apos; header cannot bypass a held capability request" time="0.001444097">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="own second monthly SEQ requires its own QTY135=null, independent of first quantity and sibling" time="0.005814645">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="own second monthly SEQ requires its own QTY135=333, independent of first quantity and sibling" time="0.007618235">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-s02-required-scope.test.ts" name="raw validation selects the actual E66 wire and still rejects an explicit conflicting row policy" time="0.043960183">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-utilts-transaction-persistence.test.ts" timestamp="2026-10-05T17:03:30.542Z" hostname="7547c6d9e08f" tests="17" failures="0" errors="0" skipped="0" time="0.097951818">
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; keeps SG5 field 512 and field 532 as separate UTC instants in their respective series" time="0.08672939">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; synthesizes stable transaction ids that match the SQL persistence fallback" time="0.00100494">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; does not turn a missing physical IDE+24 into an ACK target" time="0.000527268">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; tenant match builder synthesizes the same null-id fallback used by persistence/ACK" time="0.001977706">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; joins synthesized null-id matches so meteringPointId is retained" time="0.000439439">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; keeps accepted siblings and rejected transaction dispositions independent" time="0.002274965">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E66 to actual persistence" time="0.000500417">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E30 to actual persistence" time="0.000267328">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps S07 to actual persistence" time="0.000443102">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps S03 to aggregate persistence" time="0.00017857">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps S04 to aggregate persistence" time="0.000133049">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E31 to aggregate persistence" time="0.000074293">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps S05 to aggregate persistence" time="0.000350559">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E72 to request persistence" time="0.000162747">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E73 to request persistence" time="0.000082985">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps E74 to request persistence" time="0.000141091">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-transaction-persistence.test.ts" name="UTILTS transaction persistence payload &gt; maps S06 to request persistence" time="0.000209595">
+        </testcase>
+    </testsuite>
+</testsuites>

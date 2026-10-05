@@ -1,0 +1,37 @@
+{
+  "kind": "LOCAL_FINITE_EXISTING_SUITES_CURRENT_MAIN_UNION",
+  "observedAt": "2026-10-05T17:03:21.278690+00:00",
+  "cwd": "/workspace/gridex-ediel-main-union-qualification-20261005",
+  "head": "32c46da4fa7ae34b0e419e2710d81e3c93a124a8",
+  "tree": "be23f7706844f79d815c3f2ca8319b96e98020af",
+  "argv": [
+    "/tmp/ediel-sc010-sc071-npm-cache/_npx/b9d87a63db2d0ec3/node_modules/node/bin/node",
+    "/workspace/gridex-ediel-main-union-qualification-20261005/node_modules/vitest/vitest.mjs",
+    "run",
+    "__tests__/ediel-source-decision-timeline.test.ts",
+    "__tests__/ediel-structural-source-selection.test.ts",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts",
+    "__tests__/billing-canonical-gate.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts",
+    "--maxWorkers=1",
+    "--no-file-parallelism",
+    "--reporter=default",
+    "--reporter=junit",
+    "--outputFile.junit=/workspace/ediel-session-inventory-20261005/pr532-pr534-pr521-union-junit.xml"
+  ],
+  "nodeVersion": "v22.23.0",
+  "selectedFileSha256": {
+    "__tests__/ediel-source-decision-timeline.test.ts": "8369ed9d3ed4d6b71ba3009a6bcf18d8f2581a176b5ef8562c4fbda9555f60f2",
+    "__tests__/ediel-structural-source-selection.test.ts": "7c4ea43a84e030535dce7bc23bc09d77060fbf35fe704257b8afbf6b87054264",
+    "__tests__/ediel-utilts-transaction-persistence.test.ts": "896b446d60fab1d3dbdbf53219abf54eb6dcf99a648300c0571b6274829e3e1c",
+    "__tests__/billing-canonical-gate.test.ts": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+    "__tests__/ediel-utilts-processor-decision-reuse.test.ts": "0fa1134c833245ac72fa20cfe59f1443298df5bd89e86018460ee4d058dea07a"
+  },
+  "limits": "No native SQL/storage, physical ACK, legal market or whole acceptance claim. Existing assertions are reused to test the changed current-main composition once."
+}

@@ -1,0 +1,18 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-main-union-qualification-20261005
+
+ ✓ __tests__/ediel-utilts-s02-required-scope.test.ts (28 tests) 377ms
+ ✓ __tests__/ediel-structural-source-selection.test.ts (45 tests) 22ms
+ ✓ __tests__/ediel-source-decision-timeline.test.ts (52 tests) 155ms
+ ✓ __tests__/ediel-canonical-policy-batch-regression.test.ts (8 tests) 33ms
+ ✓ __tests__/ediel-utilts-transaction-persistence.test.ts (17 tests) 98ms
+ ✓ __tests__/ediel-utilts-processor-decision-reuse.test.ts (10 tests) 277ms
+ ✓ __tests__/billing-canonical-gate.test.ts (11 tests) 41ms
+ ✓ __tests__/ediel-beneficiary-projection-provenance.test.ts (10 tests) 19ms
+
+ Test Files  8 passed (8)
+      Tests  181 passed (181)
+   Start at  17:03:21
+   Duration  8.71s (transform 3.46s, setup 95ms, import 6.01s, tests 1.02s, environment 1ms)
+
+JUNIT report written to /workspace/ediel-session-inventory-20261005/pr532-pr534-pr521-union-junit.xml

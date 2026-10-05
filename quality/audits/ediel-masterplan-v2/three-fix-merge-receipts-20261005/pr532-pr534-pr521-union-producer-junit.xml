@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="116" failures="0" errors="0" time="1.248744004">
+    <testsuite name="__tests__/ediel-env02-positional-ast.test.ts" timestamp="2026-10-05T17:05:19.576Z" hostname="7547c6d9e08f" tests="55" failures="0" errors="0" skipped="0" time="0.087338638">
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; retains omitted CAV positions and literal service characters through render and parse" time="0.031260952">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; does not promote a later CAV component to the missing first slot (&apos;fourth and fifth populated&apos;)" time="0.003403535">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; does not promote a later CAV component to the missing first slot (&apos;second populated&apos;)" time="0.000831179">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; does not promote a later CAV component to the missing first slot (&apos;all omitted&apos;)" time="0.000656772">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; decodes the actual first CAV value once and keeps later positions separate" time="0.000449107">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; keeps a missing first CAV slot absent in the actual DELFOR canonical message projection" time="0.00223345">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; keeps a missing first CAV slot absent in the actual QUOTES canonical message projection" time="0.000625706">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; keeps a missing first CAV slot absent in the actual MSCONS canonical message projection" time="0.000631156">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the literal first CAV slot instead of searching later code-shaped values for DELFOR" time="0.00097177">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the literal first CAV slot instead of searching later code-shaped values for QUOTES" time="0.000902498">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the literal first CAV slot instead of searching later code-shaped values for MSCONS" time="0.000458203">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;populated class&apos;)" time="0.000530374">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;whitespace class&apos;)" time="0.00025129">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;structured empty class&apos;)" time="0.000433227">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; preserves physical PRODAT objects/registers and original spans without relabelling later registers" time="0.003058964">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; keeps UTILTS transactions/observations physically scoped with their original tokens and spans" time="0.001029314">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; uses actual PRODAT field slots instead of the legacy CAV first-nonempty fallback" time="0.005690049">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 :+?&apos; &gt; counts the decoded an14 reference including literal release/service characters, never the escape prefixes" time="0.001810394">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; retains omitted CAV positions and literal service characters through render and parse" time="0.003935728">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; does not promote a later CAV component to the missing first slot (&apos;fourth and fifth populated&apos;)" time="0.000509711">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; does not promote a later CAV component to the missing first slot (&apos;second populated&apos;)" time="0.000314305">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; does not promote a later CAV component to the missing first slot (&apos;all omitted&apos;)" time="0.000472259">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; decodes the actual first CAV value once and keeps later positions separate" time="0.000205197">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; keeps a missing first CAV slot absent in the actual DELFOR canonical message projection" time="0.000348395">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; keeps a missing first CAV slot absent in the actual QUOTES canonical message projection" time="0.000216492">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; keeps a missing first CAV slot absent in the actual MSCONS canonical message projection" time="0.000249968">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the literal first CAV slot instead of searching later code-shaped values for DELFOR" time="0.004277725">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the literal first CAV slot instead of searching later code-shaped values for QUOTES" time="0.000267102">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the literal first CAV slot instead of searching later code-shaped values for MSCONS" time="0.001713659">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;populated class&apos;)" time="0.000350308">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;whitespace class&apos;)" time="0.000330731">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;structured empty class&apos;)" time="0.000213448">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; preserves physical PRODAT objects/registers and original spans without relabelling later registers" time="0.001362336">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; keeps UTILTS transactions/observations physically scoped with their original tokens and spans" time="0.001888157">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; uses actual PRODAT field slots instead of the legacy CAV first-nonempty fallback" time="0.001684912">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 *;!~ &gt; counts the decoded an14 reference including literal release/service characters, never the escape prefixes" time="0.000398885">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; retains omitted CAV positions and literal service characters through render and parse" time="0.001312728">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; does not promote a later CAV component to the missing first slot (&apos;fourth and fifth populated&apos;)" time="0.00035249">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; does not promote a later CAV component to the missing first slot (&apos;second populated&apos;)" time="0.000260655">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; does not promote a later CAV component to the missing first slot (&apos;all omitted&apos;)" time="0.000550686">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; decodes the actual first CAV value once and keeps later positions separate" time="0.000321312">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; keeps a missing first CAV slot absent in the actual DELFOR canonical message projection" time="0.000288705">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; keeps a missing first CAV slot absent in the actual QUOTES canonical message projection" time="0.000180859">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; keeps a missing first CAV slot absent in the actual MSCONS canonical message projection" time="0.000359706">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the literal first CAV slot instead of searching later code-shaped values for DELFOR" time="0.000238473">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the literal first CAV slot instead of searching later code-shaped values for QUOTES" time="0.000171813">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the literal first CAV slot instead of searching later code-shaped values for MSCONS" time="0.000167429">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;populated class&apos;)" time="0.000240986">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;whitespace class&apos;)" time="0.000173308">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves the subtype reader&apos;s existing empty CCI class boundary (&apos;structured empty class&apos;)" time="0.000221872">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; preserves physical PRODAT objects/registers and original spans without relabelling later registers" time="0.00122248">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; keeps UTILTS transactions/observations physically scoped with their original tokens and spans" time="0.000711089">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; uses actual PRODAT field slots instead of the legacy CAV first-nonempty fallback" time="0.001242433">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="ENV-02 ^|!% &gt; counts the decoded an14 reference including literal release/service characters, never the escape prefixes" time="0.000483378">
+        </testcase>
+        <testcase classname="__tests__/ediel-env02-positional-ast.test.ts" name="rejects a dangling release instead of truncating the final value" time="0.00116942">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-env08-fixed-normal-time.test.ts" timestamp="2026-10-05T17:05:19.589Z" hostname="7547c6d9e08f" tests="31" failures="0" errors="0" skipped="0" time="0.64164809">
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 source-preserving UTC storage preparation &gt; writes fixed-CET UTC with original offset, format and business date for 2026-03-29" time="0.064118915">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 source-preserving UTC storage preparation &gt; writes fixed-CET UTC with original offset, format and business date for 2026-10-25" time="0.017111735">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 source-preserving UTC storage preparation &gt; round-trips PRODAT fixed-CET minute 202603290230 without DST guessing" time="0.001364041">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 source-preserving UTC storage preparation &gt; round-trips PRODAT fixed-CET minute 202610250230 without DST guessing" time="0.000889666">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 source-preserving UTC storage preparation &gt; retains the declared foreign offset exception and never applies a second offset to an instant" time="0.000432726">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-03-29: actual profile accepts 96 and rejects 92 instead of a local-DST day" time="0.078741775">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-03-29: actual profile accepts 96 and rejects 96 instead of a local-DST day" time="0.044286892">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-03-29: actual profile accepts 96 and rejects 100 instead of a local-DST day" time="0.069490171">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-10-25: actual profile accepts 96 and rejects 92 instead of a local-DST day" time="0.058304122">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-10-25: actual profile accepts 96 and rejects 96 instead of a local-DST day" time="0.069716156">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 fixed-CET days have 96 quarters across Swedish DST transitions &gt; 2026-10-25: actual profile accepts 96 and rejects 100 instead of a local-DST day" time="0.053168995">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-07-01T10:15:59Z to fixed CET while UNB uses Swedish local time" time="0.041380402">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-01-01T10:15:59Z to fixed CET while UNB uses Swedish local time" time="0.011163132">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-03-29T01:30:00Z to fixed CET while UNB uses Swedish local time" time="0.0085959">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-10-25T01:30:00Z to fixed CET while UNB uses Swedish local time" time="0.005911523">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-07-01T22:30:00Z to fixed CET while UNB uses Swedish local time" time="0.009744854">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the creation instant 2026-12-31T23:30:00Z to fixed CET while UNB uses Swedish local time" time="0.00467958">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts explicit instant periods and preserves market wall dates: 2026-07-01T00:00:00Z" time="0.005952175">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts explicit instant periods and preserves market wall dates: 2026-07-01T00:00:00+02:00" time="0.00425153">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts explicit instant periods and preserves market wall dates: 2026-07-01T00:00" time="0.005214923">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts explicit instant periods and preserves market wall dates: 2026-07-01" time="0.004235241">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts explicit instant periods and preserves market wall dates: 2026-07-01T00:00:00+01:00" time="0.010040201">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the E66 registration instant to the declared fixed CET clock" time="0.004406485">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; converts the E73 registration instant to the declared fixed CET clock" time="0.003814938">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; PRODAT also separates the payload and UNB creation clock for 2026-07-01T10:15:00Z" time="0.022322525">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; PRODAT also separates the payload and UNB creation clock for 2026-01-01T10:15:00Z" time="0.0096486">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; PRODAT also separates the payload and UNB creation clock for 2026-07-01T22:30:00Z" time="0.007847226">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; PRODAT also separates the payload and UNB creation clock for 2026-12-31T23:30:00Z" time="0.00443418">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; does not invent a minute from invalid period/registration 2026-07-02T24:00" time="0.004877821">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; does not invent a minute from invalid period/registration 2026-02-30T00:00" time="0.007946991">
+        </testcase>
+        <testcase classname="__tests__/ediel-env08-fixed-normal-time.test.ts" name="ENV08 physical outbound payload and local UNB clocks &gt; does not invent a minute from invalid period/registration not-a-date" time="0.004224309">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-utilts-decision-reuse.test.ts" timestamp="2026-10-05T17:05:19.595Z" hostname="7547c6d9e08f" tests="14" failures="0" errors="0" skipped="0" time="0.267877536">
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; keeps document date 2026-09-30 separate from admission date 2026-10-01" time="0.071762162">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; keeps document date 2026-10-01 separate from admission date 2026-09-30" time="0.022950275">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; keeps document date 2026-09-29 separate from admission date 2026-09-30" time="0.0189444">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; uses genuine admission for direct runtime calls: document 2026-09-30, receipt 2026-10-01" time="0.017311756">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; uses genuine admission for direct runtime calls: document 2026-10-01, receipt 2026-09-30" time="0.012998389">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; uses genuine admission for direct runtime calls: document 2026-09-29, receipt 2026-09-30" time="0.008196657">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; rejects an incomplete retained decision instead of selecting a new processability profile" time="0.016672544">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; passes the already selected policy to actual metering processing" time="0.021920057">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; derives a direct call from the same genuine ingress authority" time="0.017882647">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS decision reuse across document and receipt dates &gt; retains the selected policy on the non-billing branch" time="0.01501017">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS selected reference survives registry verification &gt; runtime preserves document date 2026-09-30 separately from selected admission 2026-10-01" time="0.020618927">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS selected reference survives registry verification &gt; runtime preserves document date 2026-10-01 separately from selected admission 2026-09-30" time="0.008602916">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS selected reference survives registry verification &gt; public validator retains E66 reference on 2026-09-30" time="0.009715759">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-decision-reuse.test.ts" name="UTILTS selected reference survives registry verification &gt; public validator retains E66 reference on 2026-10-01" time="0.002286001">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" timestamp="2026-10-05T17:05:19.597Z" hostname="7547c6d9e08f" tests="7" failures="0" errors="0" skipped="0" time="0.190537645">
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="a proven issuer BGM203 collision is a header42/noACW before every functional check" time="0.059324397">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="a proven issuer505 collision remains in its physical ownIDE scope, leaving sibling national scope independent" time="0.025075499">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="missing issuer/history/retention proof holds eligibleIDE locally without a national code or positive response" time="0.018134167">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="keeps known own505negative while missing full historical coverage holds only the eligible sibling" time="0.016149662">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="does not allow a token-free or copied-token final owner to authorize this actual runtime" time="0.026408403">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="guideOnly remains observation and physical syntax rejection precedes namespace findings" time="0.013750228">
+        </testcase>
+        <testcase classname="__tests__/ediel-utilts-issuer-identity-runtime.test.ts" name="keeps every earlier physical header error and stops505 after header203 rejects the message" time="0.029659048">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-version-time-anchors.test.ts" timestamp="2026-10-05T17:05:19.599Z" hostname="7547c6d9e08f" tests="9" failures="0" errors="0" skipped="0" time="0.061342095">
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; uses receipt rather than the sender document date after the October transition" time="0.030146964">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; uses Stockholm calendar dates for a physical receipt instant" time="0.001870826">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; uses recorded local persistence when receipt is missing, never document time" time="0.002041895">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; does not silently replace an invalid recorded receipt with document time" time="0.00251027">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; holds an inbound row with no recorded ingress or persistence time" time="0.00158347">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; rechecks queued outbound content at the current pre-send instant" time="0.00456645">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; captures document, ingress, measurement and replay separately and freezes the decision" time="0.00773804">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="source-owned version admission time &gt; preserves an explicit assessment instant as an explicit time anchor" time="0.001243814">
+        </testcase>
+        <testcase classname="__tests__/ediel-version-time-anchors.test.ts" name="local time context hold &gt; does not manufacture an external APERAK code for a missing local admission timestamp" time="0.007280766">
+        </testcase>
+    </testsuite>
+</testsuites>

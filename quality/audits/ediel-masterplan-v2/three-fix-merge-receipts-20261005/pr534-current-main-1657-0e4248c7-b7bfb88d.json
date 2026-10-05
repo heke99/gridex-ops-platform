@@ -1,0 +1,305 @@
+{
+  "recorded_at": "2026-10-05T17:03:20.065476+00:00",
+  "pr": 534,
+  "pr_head": "b7bfb88dae9fc4f77807b618f953812a72412578",
+  "actual_fetched_main": "0e4248c78054b63bf99f0854af2fb3f57431bfff",
+  "candidate_original_adopted_main": "de6d22bea64cf2b8810969cb87924128176ebab1",
+  "original_candidate_receipt": "/workspace/ediel-session-inventory-20261005/pr534-local-tag-union-review-packet.json",
+  "mode": "READ_ONLY; git merge-tree unpublished objects only; worktree/index/refs untouched",
+  "merge_tree_exit": 0,
+  "merge_preview_tree": "6934b340d98e387467448e3c68bb73716ea94546",
+  "candidate_vs_main_owned_paths": [
+    ".agent-memory/ediel-db06-checkpoint.md",
+    "__tests__/billing-canonical-gate.test.ts",
+    "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+    "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+    "__tests__/ediel-utilts-s02-required-scope.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "scripts/ediel-billing-source-sql-regression.mjs"
+  ],
+  "owned_path_manifest": [
+    {
+      "path": ".agent-memory/ediel-db06-checkpoint.md",
+      "preview_blob": "4c74152d4cc09cab436f728b29d24ebd84e39473",
+      "preview_sha256": "b4932b423d38a02c3f4c3f2d54ffdeb69ff5c6838c5241c136375ed47049745f",
+      "head_sha256": "b4932b423d38a02c3f4c3f2d54ffdeb69ff5c6838c5241c136375ed47049745f",
+      "equals_head": true
+    },
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "preview_blob": "31887826f76ff1df40186a79b83f580d210b1af7",
+      "preview_sha256": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+      "head_sha256": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+      "equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "preview_blob": "71cd917dcec8d7e251cfb8d6ed281e2aa7c5b6ed",
+      "preview_sha256": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+      "head_sha256": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+      "equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+      "preview_blob": "c3f88fa028288ae30f606694a28dba6e56dc8721",
+      "preview_sha256": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+      "head_sha256": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+      "equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+      "preview_blob": "46c1020ed6765684956f2484582ed532d3e67e9b",
+      "preview_sha256": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+      "head_sha256": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+      "equals_head": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+      "preview_blob": "b12199158d743c2449430bfab587967469cc482b",
+      "preview_sha256": "70f34861a234e0dc4e41aa17ab624b7932a9eaf927d585c40b49d2ab684e31b2",
+      "head_sha256": "ff552c7ff2b8ec93b03b422c2b2c3fb5f5332b2e6c6f9f63c0c46e00ed4a788c",
+      "equals_head": false
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "preview_blob": "3ab2d0568600b504a893d86ba245ab6c043f2c30",
+      "preview_sha256": "174f9f309fc18f93f2996e6365e1eba6158f75c12f5e0c600825fa00893bffdd",
+      "head_sha256": "174f9f309fc18f93f2996e6365e1eba6158f75c12f5e0c600825fa00893bffdd",
+      "equals_head": true
+    }
+  ],
+  "foreign_main_paths_count": 8045,
+  "foreign_main_paths_changed": [],
+  "protected_prod_schema_workflow_paths_count": 3033,
+  "protected_foreign_bytes_exact_current_main": true,
+  "foreign_coverage_rows_count": 350,
+  "foreign_rows_order_and_ordered_evidence_exact_main": true,
+  "own_coverage_rows_exact_head": [
+    {
+      "id": "DB-06",
+      "acceptance_id": "AT-DB-06",
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
+    },
+    {
+      "id": "AT-DB-06",
+      "status": "PASSED",
+      "evidence": [
+        "lib/billing/sourceBasis.ts",
+        "lib/billing/billingGate.ts",
+        "lib/billing/underlayEngine.ts",
+        "lib/billing/invoiceReadiness.ts",
+        "lib/ediel/utilts/inboundBusinessOutcome.ts",
+        "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+        "scripts/ediel-billing-source-sql-regression.mjs",
+        "__tests__/billing-canonical-gate.test.ts",
+        "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+        "__tests__/ediel-utilts-s02-required-scope.test.ts",
+        "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+        ".agent-memory/ediel-db06-checkpoint.md"
+      ]
+    }
+  ],
+  "current_main_approved_count": 239,
+  "preview_approved_count": 241,
+  "diff_check_exit": 0,
+  "selected_DB06_evidence_pins": [
+    {
+      "path": "lib/billing/sourceBasis.ts",
+      "head_sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "current_main_sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "preview_sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "preview_equals_head": true
+    },
+    {
+      "path": "lib/billing/billingGate.ts",
+      "head_sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "current_main_sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "preview_sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "preview_equals_head": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "head_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "current_main_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "preview_sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "preview_equals_head": true
+    },
+    {
+      "path": "lib/billing/invoiceReadiness.ts",
+      "head_sha256": "9df48fecd5db16b441bd83c573e698b97b0608d18e1f5948309afe8ae22874d2",
+      "current_main_sha256": "9df48fecd5db16b441bd83c573e698b97b0608d18e1f5948309afe8ae22874d2",
+      "preview_sha256": "9df48fecd5db16b441bd83c573e698b97b0608d18e1f5948309afe8ae22874d2",
+      "preview_equals_head": true
+    },
+    {
+      "path": "lib/ediel/utilts/inboundBusinessOutcome.ts",
+      "head_sha256": "4e8b99524a41d57e9f5de2b524df1a3952d707dcf1da418a16ae0c98d304bf87",
+      "current_main_sha256": "4e8b99524a41d57e9f5de2b524df1a3952d707dcf1da418a16ae0c98d304bf87",
+      "preview_sha256": "4e8b99524a41d57e9f5de2b524df1a3952d707dcf1da418a16ae0c98d304bf87",
+      "preview_equals_head": true
+    },
+    {
+      "path": "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "head_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "current_main_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "preview_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "preview_equals_head": true
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "head_sha256": "174f9f309fc18f93f2996e6365e1eba6158f75c12f5e0c600825fa00893bffdd",
+      "current_main_sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "preview_sha256": "174f9f309fc18f93f2996e6365e1eba6158f75c12f5e0c600825fa00893bffdd",
+      "preview_equals_head": true
+    },
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "head_sha256": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+      "current_main_sha256": "bdc6b9869186bf50d9cb0f938832bd6598f4d66b3f356e80b1e6e30da0cf5f67",
+      "preview_sha256": "f744ee31f2ff538b63adf95afb0f4ad2c3025c165e5c0dfc5b60602deec7a3ac",
+      "preview_equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+      "head_sha256": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+      "current_main_sha256": "ed197deabafa1b940d418d37b763e149bc7b1c0447fbe3187facb6d08ffa351b",
+      "preview_sha256": "d9aea17510c334bacf65207d25b2d0ec45aaa6335fcb87c1fc424b7feac7c84b",
+      "preview_equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+      "head_sha256": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+      "current_main_sha256": "cb0d97ff6f1c047dcd82e00f951dd02e6ef24e944b5a75762da7bc58126928f6",
+      "preview_sha256": "5a59dfc5047bb44ba7640fc7b9ca142d69734906059b97fc573a927645590a07",
+      "preview_equals_head": true
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "head_sha256": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+      "current_main_sha256": "ccf695eb99eec9eb4448de1cdf4aee691a21eac7bfbb18e2760472b88568184f",
+      "preview_sha256": "478661412397865cc582fb0d6e4b3b1a47a98816827a6774957dc5e6b8aee0c6",
+      "preview_equals_head": true
+    },
+    {
+      "path": ".agent-memory/ediel-db06-checkpoint.md",
+      "head_sha256": "b4932b423d38a02c3f4c3f2d54ffdeb69ff5c6838c5241c136375ed47049745f",
+      "current_main_sha256": null,
+      "preview_sha256": "b4932b423d38a02c3f4c3f2d54ffdeb69ff5c6838c5241c136375ed47049745f",
+      "preview_equals_head": true
+    }
+  ],
+  "existing_DB06_sql_readFile_source_pins": [
+    {
+      "path": "supabase/migrations/20260716010000_contract_billing_end_to_end_completion.sql",
+      "head_sha256": "681f2061678aa4c22075d730925367a824400a9bd9c58f71281c9e182dee9014",
+      "main_sha256": "681f2061678aa4c22075d730925367a824400a9bd9c58f71281c9e182dee9014",
+      "preview_sha256": "681f2061678aa4c22075d730925367a824400a9bd9c58f71281c9e182dee9014",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20260901152500_canonicalize_billing_underlay_stockholm_period_semantics.sql",
+      "head_sha256": "1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd",
+      "main_sha256": "1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd",
+      "preview_sha256": "1722e8bda642ca12c2ca2f337aaaf929bde83ecf82955979d4c671554c2abcbd",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "head_sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e",
+      "main_sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e",
+      "preview_sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "head_sha256": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34",
+      "main_sha256": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34",
+      "preview_sha256": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34",
+      "unchanged": true
+    },
+    {
+      "path": "supabase/migrations/20260930175405_ediel_billing_qualified_exact_source_basis.sql",
+      "head_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "main_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "preview_sha256": "d80425e30c5137468ac8c4a6487195644c76ec65e8a03f7fbfcc15f516495dad",
+      "unchanged": true
+    }
+  ],
+  "changed_current_main_producers": [
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "head_sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "current_main_sha256": "c791d06a6f988aa578efea5405ce4f67fe51339fcd4b3d4a498ec0138344df3b",
+      "preview_sha256": "c791d06a6f988aa578efea5405ce4f67fe51339fcd4b3d4a498ec0138344df3b",
+      "preview_exact_current_main": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalEdifactAst.ts",
+      "head_sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+      "current_main_sha256": "d8739ee26ed0ca284f157a33e20b0be90ee8355b3c1a720dc6dcffe4c6fc2ce8",
+      "preview_sha256": "d8739ee26ed0ca284f157a33e20b0be90ee8355b3c1a720dc6dcffe4c6fc2ce8",
+      "preview_exact_current_main": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalMessage.ts",
+      "head_sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+      "current_main_sha256": "e63db4f992b3fba6ab4438cbd296c7592b6f82f3cf2503e14e83581a3f91fff9",
+      "preview_sha256": "e63db4f992b3fba6ab4438cbd296c7592b6f82f3cf2503e14e83581a3f91fff9",
+      "preview_exact_current_main": true
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "head_sha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c",
+      "current_main_sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740",
+      "preview_sha256": "c4bf1caecd6607783860072d3ddd2ca606516b46ecb32c34c7c4044c396a3740",
+      "preview_exact_current_main": true
+    }
+  ],
+  "four_existing_DB06_suite_bodies": [
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "body_sha256": "08ec9ff9b05b4f5bed8ee0a03d238b51de4a8389f2d8525a8b8ecace430aa5ea",
+      "body_unchanged_candidate_and_current_main": true
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "body_sha256": "a56f18479206a17144eaecc4782dcab81463ad605912896f6c6d8b7ce25ef161",
+      "body_unchanged_candidate_and_current_main": true
+    },
+    {
+      "path": "__tests__/ediel-canonical-policy-batch-regression.test.ts",
+      "body_sha256": "ed197deabafa1b940d418d37b763e149bc7b1c0447fbe3187facb6d08ffa351b",
+      "body_unchanged_candidate_and_current_main": true
+    },
+    {
+      "path": "__tests__/ediel-utilts-s02-required-scope.test.ts",
+      "body_sha256": "7a70832dec55762bafc77082a63ed4bda80f700edfab34463917334c51a4edbf",
+      "body_unchanged_candidate_and_current_main": true
+    }
+  ],
+  "new_related_source_limits": {
+    "canonicalEdifactAst.ts": "Actual S02/valid E66 runtime parses shared AST. Current508 CAV value-slot/source-safe change is preserved exactly. E66 helper first values E17/E27 retained; missing-first CAV behavior is its own508 evidence. Root one shared current union run required for current joined execution; no inferred prior-head current-source PASS.",
+    "canonicalMessage.ts": "Current508 tokenized generic CCI/CAV subtype join preserved exactly; no second parser or substitute.",
+    "utilts.ts": "Current516 fixed-CET formatDate203 renderer change preserved. DB06 S02 and E66 controls assemble static physical wire; they exercise parse/runtime rather than new outbound date rendering.",
+    "parseActorRegistryXml.ts": "Current519 unreadable registry company diagnostic preserved; outside the four DB06 runtime scopes."
+  },
+  "CI_snapshot": "/workspace/ediel-session-inventory-20261005/pr534-current-main-1657-ci-snapshot.json",
+  "required_CI": "8/9 SUCCESS at snapshot; exact-head clean111871818860 IN_PROGRESS. No current all9 claim.",
+  "integration_execution": "Root owns ONE shared actual0e4+532+534+521 union run of existing relevant suites. This receipt only proves source/tag/foreign-preservation and unchanged ownSQL inputs; final rootguard should bind real unionrun receipt.",
+  "whole_approval_limits": "Original full-card DB06 review/finite SQL/qualified native custody limits retained; no new native capture, market/invoice activation, source-authority or whole-card promotion inferred.",
+  "remote_head_guard": "Fresh API headb7bfb88d before this receipt; publication already performed by root, no child mutation."
+}
