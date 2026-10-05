@@ -1,0 +1,179 @@
+{
+  "status": "PASS_EXACT_111DD_UPGRADE_ARTIFACT_ONLY_CLEAN_NATIVE_PENDING",
+  "verified_at_utc": "2026-10-05T17:25:50.998235+00:00",
+  "candidate": {
+    "source": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "tree": "ff908d0b3e3ad364e82e4097a4a86903d80e0de9",
+    "run_id": 37345274729
+  },
+  "verifier": {
+    "path": "/tmp/gridex-staff-review/verify-staff-prerequisite-native-upgrade.py",
+    "sha256": "80701be6b26205ac9712812e5ac579adfc5feb458e7415c0a98a5cded7a7bff6",
+    "verify_upgrade_executions": 1
+  },
+  "whole_manifest_count": 1069,
+  "latest_forward": {
+    "name": "20261005160940_classify_tenant_staff_external_identity_tables.sql",
+    "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+  },
+  "old_c6bf_sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+  "upgrade": {
+    "artifact": {
+      "path": "/workspace/attachments/3e09b0a2-4d40-45ce-88d3-61a8375b8fb6/gridex-tenant-classification-upgrade-final-111dd.zip",
+      "metadata_path": "/tmp/gridex-staff-review/tenant-classification-final-upgrade-artifact-metadata.json",
+      "name": "gridex-rem-002-upgrade-replay",
+      "id": 11360649237,
+      "run_id": 37345274729,
+      "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+      "sha256": "a92440caaa5cc96cdae8249e1d58c5da0f428c34e37f055e2f26e6bd202b159d",
+      "bytes": 8138261,
+      "member_count": 25,
+      "expiry_digest_size_crc_and_names_verified": true
+    },
+    "main_upgrade": {
+      "base": "53bf989b0ad402bb2ce151c186eea31f1ec9cf03",
+      "actual_git_ancestor": true,
+      "historical_committed_inputs_preserved": 644,
+      "forward_count": 423,
+      "manifest_delta_and_execution_sequence_equal": true
+    },
+    "branch_upgrade": {
+      "base": "c8f666d9bf61f84816c2f295dc44442167f0b75a",
+      "historical_committed_inputs_preserved": 886,
+      "pending_count": 181,
+      "contract_sha256": "06d80168658bf156f485f55f4efada0dc0fd58dbf74d51e91e012f909e91026d",
+      "manifest_delta_and_execution_sequence_equal": true,
+      "importer_identity_preserved": true,
+      "qualification": "Captured branch receipts/current checksum bindings and local base bytes; no source-witness fetch or independent replay; no deployment-ledger claim."
+    },
+    "generated_outputs": [
+      {
+        "path": "supabase/database.types.ts",
+        "members": [
+          "rem002-upgrade/clean/database.types.ts",
+          "rem002-upgrade/upgraded/database.types.ts",
+          "rem002-upgrade/applied-txt-branch/upgraded/database.types.ts"
+        ],
+        "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+        "bytes": 3703558,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": true,
+        "exact_frozen_redactor_equal": true
+      },
+      {
+        "path": "supabase/schema.sql",
+        "members": [
+          "rem002-upgrade/clean/schema/schema.sql",
+          "rem002-upgrade/upgraded/schema/schema.sql",
+          "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.sql"
+        ],
+        "sha256": "582697cf26b9e1f80385acccc7faf746056a90f339825828d10e0b038fb81e97",
+        "bytes": 11240622,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": false,
+        "exact_frozen_redactor_equal": true
+      },
+      {
+        "path": "supabase/schema.fingerprint.json",
+        "members": [
+          "rem002-upgrade/clean/schema/schema.fingerprint.json",
+          "rem002-upgrade/upgraded/schema/schema.fingerprint.json",
+          "rem002-upgrade/applied-txt-branch/upgraded/schema/schema.fingerprint.json"
+        ],
+        "sha256": "88b75acd506095b549976305c90d5b8272a1bc44206c92e77d45f65097655701",
+        "bytes": 2981,
+        "three_raw_outputs_equal": true,
+        "committed_raw_equal": false,
+        "exact_frozen_redactor_equal": true
+      }
+    ],
+    "redactor": {
+      "path": "scripts/gridex-redact-native-evidence.py",
+      "sha256": "db285c16dc62542028d497e805a5d8315ed6183ead8d9564982ea1a80164fb74"
+    },
+    "retained_sources": [
+      {
+        "prefix": "rem002-upgrade/",
+        "sha256": "047a83f9e20b114d72695c7b18dee3db6f5b8bb9f7cbdb8d50e7c2694dae2237",
+        "raw_equal": true
+      },
+      {
+        "prefix": "rem002-upgrade/applied-txt-branch/",
+        "sha256": "979d991c69736fa7f72283ba1771ec4bf66cd09da5bfd22a512cdb4d24f78ec8",
+        "raw_equal": true
+      }
+    ],
+    "junit": [
+      {
+        "member": "rem002-upgrade/utilts-catalog-upgrade-junit.xml",
+        "sha256": "33f5cbe48a7a244de3500c7cb378e69f80885ded0900b90819ad67464db2ef48",
+        "cases": 141,
+        "passes": 1,
+        "skipped": 140,
+        "class_counts": {
+          "scripts/ediel-utilts-consumption-native.test.ts": 141
+        },
+        "repeated_case_labels": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "member": "rem002-upgrade/applied-txt-branch/utilts-catalog-upgrade-junit.xml",
+        "sha256": "33601fd6b15a31f14ec742fd69cb0d9a73d7f2b8bc89040f92ebd7111b833d79",
+        "cases": 141,
+        "passes": 1,
+        "skipped": 140,
+        "class_counts": {
+          "scripts/ediel-utilts-consumption-native.test.ts": 141
+        },
+        "repeated_case_labels": 1,
+        "failures": 0,
+        "errors": 0
+      }
+    ],
+    "catalogs": [
+      {
+        "member": "rem002-upgrade/upgraded/utilts-catalog.json",
+        "sha256": "d76ab13039c4c5c67c7fea23516a0d967bec6e98f9caf69516fcd9bcd0d4b289",
+        "phase": "upgrade",
+        "head_tree_bound": true,
+        "owner_migrations_bound": 8,
+        "upgrade_oid_preserved": true
+      },
+      {
+        "member": "rem002-upgrade/applied-txt-branch/upgraded/utilts-catalog.json",
+        "sha256": "7521a186a8dd4358831cb95f094b6885179de2d5545ebfa67220d3d0a6f70421",
+        "phase": "upgrade",
+        "head_tree_bound": true,
+        "owner_migrations_bound": 8,
+        "upgrade_oid_preserved": true
+      }
+    ],
+    "upgrade_skips_scope": "Only the catalog-filtered native case executes in each upgrade report; broad native/browser coverage comes from the distinct clean artifact."
+  },
+  "canonical_fingerprints": [
+    {
+      "prefix": "rem002-upgrade/clean/",
+      "canonical": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+      "sha256": "88b75acd506095b549976305c90d5b8272a1bc44206c92e77d45f65097655701"
+    },
+    {
+      "prefix": "rem002-upgrade/upgraded/",
+      "canonical": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+      "sha256": "88b75acd506095b549976305c90d5b8272a1bc44206c92e77d45f65097655701"
+    },
+    {
+      "prefix": "rem002-upgrade/applied-txt-branch/upgraded/",
+      "canonical": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+      "sha256": "88b75acd506095b549976305c90d5b8272a1bc44206c92e77d45f65097655701"
+    }
+  ],
+  "qualification": "Authentic upgrade artifact source/ancestor/prefix/retained-state/parity proof only. Independent clean/native/browser and all mandatory CI still pending. Uploaded schema/fingerprint match exact frozen evidence-redactor output; raw byte equality is reported separately for each output.",
+  "reviewer_scope": {
+    "github_downloads_for_this_artifact": 1,
+    "native_or_upgrade_replays": 0,
+    "hosted_calls": 0,
+    "source_edits": 0
+  }
+}
