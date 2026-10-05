@@ -1,0 +1,165 @@
+{
+  "purpose": "independent_read_only_component_review",
+  "reviewed_at": "2026-10-05T00:17:50.155662+00:00",
+  "components": {
+    "TR08-543": {
+      "checkout": "/workspace/gridex-review-tr08-543",
+      "commit": "9d69e5892db18f451245a0ab7102a9a67bedeaca",
+      "tree": "188dbefbf64f7ef0b49a59f5301c35242f515a81",
+      "diff_base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "verdict": "BLOCKED as authoritative all-hop TLS/SPF verifier; finite storage/parser component partial",
+      "clean_status": "",
+      "changed_files": {
+        ".agent-memory/decisions.md": {
+          "git_blob": "db2d001180d65316cbf4466a92c7ca4bf214186c",
+          "sha256": "324f1bd1f91fafbf21ab71a153d4d11f1e7fdcbb85bd38a4c321840ede97682d"
+        },
+        ".agent-memory/handover.md": {
+          "git_blob": "c85633b0dca7d47a55ff0466f1cab720e99a4f5d",
+          "sha256": "b61e8f4d22ad7a346c86af1e3b6f5262440974ef1bdc9a3840ec03fc67f5a31c"
+        },
+        "__tests__/ediel-tr-08-relay-trace.test.ts": {
+          "git_blob": "309605eb00d55abcc347e09a1b64315a22cf34ea",
+          "sha256": "1602276a48ca59c74964d69340f1dc88d55fadaa656451ed7a79d60800ca07ca"
+        },
+        "lib/ediel/mailReadiness.ts": {
+          "git_blob": "ff3602c27b244975fbf89b48d5d865f6d78bba01",
+          "sha256": "52f4768f9a96f09f03424ece09a71afe2ad52a001508e3a61f9fac5b02515991"
+        },
+        "lib/ediel/transport/relayTrace.ts": {
+          "git_blob": "76576622731e8a0e16ffab190703bdf83af55251",
+          "sha256": "a245ee3b69dea529ced9e5cd3e6a3b61e9b792d7a3e7005f7799c8864e419360"
+        },
+        "quality/audits/ediel-masterplan-v2/captures/tr-08-relay-trace-capture-receipt-20261004.json": {
+          "git_blob": "bbec7bd6aaf542b93d0f16208273c536b2adae9f",
+          "sha256": "57ca9ecc0e8328a76831601eb6e75ce71ab09e440a4de21ce743800d1bacebb9"
+        },
+        "quality/audits/ediel-masterplan-v2/coverage.json": {
+          "git_blob": "8a890f4003fcef254532c314b1f5f1fe436ccb7c",
+          "sha256": "32fa6668b0775601583044a00fae406fc8f4cc082721eee52bd7f6bf58f45863"
+        },
+        "scripts/ediel-tr-08-relay-trace-probe.mjs": {
+          "git_blob": "5c02d672fe1e052aff40b92a97ba2b269c41bc1a",
+          "sha256": "6667d8e9bfbcbab25c67152b70400335fcd9b6869d16b4af868ec34a649f2f39"
+        },
+        "scripts/ediel-tr-08-relay-trace-sql-regression.mjs": {
+          "git_blob": "ba44ffdad3a0178984799ba4afbd452e1bda409a",
+          "sha256": "f0352911f95b2bedd088678c0f3dbb5ef3717f027d731eb9c5bba3ac3c5e459f"
+        },
+        "scripts/ediel-transport-exception-native.test.ts": {
+          "git_blob": "e5a7effc568b444d750a2f9d6d8e2366eedbba66",
+          "sha256": "883acdce94d7c9e1755ea1689cc146e44f26b9527975601931a9f49c146f716d"
+        },
+        "scripts/migration-history-manifest.runtime.additions.json": {
+          "git_blob": "be616bea44a34ce1c311985beed1e8fd8d4e0f34",
+          "sha256": "736f4d6f47b758656d8bfa2d89338c9362797ff261908bb8f70304fc15f92ad2"
+        },
+        "scripts/supabase-types-manifest.json": {
+          "git_blob": "91dedc5be2f51897b8de23ee9e8c5340c2b088a6",
+          "sha256": "0a2e39d7370fbf42e11aff4a9a31ec8e038c541a1d63238953734d84d00bfe2e"
+        },
+        "supabase/database.types.ts": {
+          "git_blob": "fbe9a95c5b78be78ed003b361e1150d90644479a",
+          "sha256": "962179e6d4efe6fac3a4cb8f333bd5f3f4245cb6897ff90bcb5b2571bc3d8627"
+        },
+        "supabase/migrations/20261004190000_ediel_tr08_relay_trace_evidence.sql": {
+          "git_blob": "4632983c9f069f6fdbee746734fab64a3393dba8",
+          "sha256": "2e0320dbce6e9d7bb503df6ae1d73bd03a95b84e767f86b50ce965f6e26bb9f4"
+        },
+        "supabase/schema.fingerprint.json": {
+          "git_blob": "5a60d5eabfb7fc5461659ba861f8486e0e8f37cd",
+          "sha256": "a2ef74fff06d5cd27f59a9c86df7fdabf16c2696009b9bbc7785a5150eb96c1e"
+        },
+        "supabase/schema.sql": {
+          "git_blob": "806e3c589804a359b2eef7bce90f8625c645be9f",
+          "sha256": "caafbaf7934f718cebabaa1dc69b1adb1c5fc8b5234a7e0fe426c163d779011a"
+        }
+      }
+    },
+    "TR09-536": {
+      "checkout": "/workspace/gridex-review-tr09-536",
+      "commit": "a37830b3adb0f13bcf73753551d589bc33c8c9d9",
+      "tree": "3ece31490fbc90a835a1414e5906e5d17f3053c5",
+      "diff_base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "verdict": "APPROVE bounded all-family production encryption component; whole TR09 pending separate current native/crypto proof",
+      "clean_status": "",
+      "changed_files": {
+        ".agent-memory/decisions.md": {
+          "git_blob": "72ba50ed74125e0f5601c21d65eea51e7a63675c",
+          "sha256": "0636fdd93b5f84bb66e94cc790de5209a2cbbaa085c3100fe92c4a94511edefb"
+        },
+        ".agent-memory/handover.md": {
+          "git_blob": "daeeace6db9e9a43b22b2d954d4c0c0f8774fc3b",
+          "sha256": "ef49d18786eef6e7a0038d87b8d9cff79bfd9484c9128a1bd6fac2e7552e1388"
+        },
+        "__tests__/ediel-tr-09-production-smime-all-families.test.ts": {
+          "git_blob": "4aa02bee409dc835cf25a67e139b6164e658d97e",
+          "sha256": "945c1759da01f843630bb954b40971f08c0b63795c06d45d4fefb89a211d7d3d"
+        },
+        "__tests__/ediel-tr-09-transport-exception-stage-db.test.ts": {
+          "git_blob": "577e778382a2b785b77356105b301f71c1ceb740",
+          "sha256": "30adc7d66245381661be1b6f0bef8baf331015da52a5a7e03474cd803e5866d6"
+        },
+        "lib/ediel/sendContextConsistency.ts": {
+          "git_blob": "f86b47d1a2fd62ed1f99327c82cf60786f0efaff",
+          "sha256": "8d859e45b443307936eea52f2ba96bdf90c53901d3b93ab51b86f17512557260"
+        },
+        "lib/ediel/transport/exception/productionEncryption.ts": {
+          "git_blob": "e534bf3d0aa47fcdb90f58eba235687021b727c6",
+          "sha256": "97717c4fd23de44dfc78a0d52e6a58404141a68de557229ccfde5f8694c74193"
+        },
+        "lib/ediel/transport/index.part-1.ts": {
+          "git_blob": "37fbf0d91a4c23256c0c667043f13aa15f3b9831",
+          "sha256": "340216a1de59fc1cdae7d3a9e1ebd8f8761f991f52ab52509e363b1fd0beba87"
+        },
+        "lib/ediel/transport/index.part-2.ts": {
+          "git_blob": "3ce58f33b52a4dac3c59afaa82079579b9c860ff",
+          "sha256": "3f255778dfb26958b3665dd622fd44b1aa015a2e79386a6b3f452e5d86d00c57"
+        },
+        "quality/audits/ediel-masterplan-v2/coverage.json": {
+          "git_blob": "422063b52e353fe245a9a4a28debd236d831e47a",
+          "sha256": "6136c08eeae75a67578bfd3c59c91e3a1fe5d5ef2fa529d7ca7ed3f834884e05"
+        },
+        "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md": {
+          "git_blob": "cd680bdc52013177cb7d51f17af4883a3f52ae40",
+          "sha256": "bc0bb523395bdb6c0bc427620d376584e78785c608bbb9da34bbff5b6d513693"
+        },
+        "scripts/migration-history-manifest.json": {
+          "git_blob": "efc7355f4dc998bf9c7736a2838ff31acd986ddc",
+          "sha256": "12cab146ed12a9797d5d0bd0f2e0bd0ccae14973cc88bbd571f4ca1455f06c7b"
+        },
+        "scripts/supabase-types-manifest.json": {
+          "git_blob": "786e77b470a2a106d11a899005c375346ef8a8ba",
+          "sha256": "4d2c318b5500c16ef516e411382f5e4f92fcf30a40c63b98707c776d927b4118"
+        },
+        "supabase/migrations/20261004180000_ediel_tr09_production_smime_all_families.sql": {
+          "git_blob": "48a3eb587869fecf7cdb23cba97b6d376ac0bc95",
+          "sha256": "de72053d36c743c4ac9e141fe3b1fef543577d69ea3f8ef16ec6bad091984c36"
+        },
+        "supabase/schema.sql": {
+          "git_blob": "ac7c149cb92ebee0babedc7b616002049d246ffe",
+          "sha256": "a2a694883fcd62cca59dd87df3145536b4605a846e9399198e0fff88dc8cbdcc"
+        }
+      }
+    }
+  },
+  "logs": {
+    "/tmp/tr08-543-independent-pure.log": "4510f8e9365c71672587116323ffc8c2d37b6724e05e847a2b021e5c73b4694c",
+    "/tmp/tr09-536-independent-targeted.log": "b0ca1e662580bbded0dbc5b2e9353a106c5128b39d388534c1ee09a44891a339",
+    "/tmp/tr08-543-independent-edge-verdicts.log": "b218a115c436d38b6a00d8f4825cd0728f673a660daf0d89f4f01d9409b8d267",
+    "/tmp/tr08-543-independent-sql-boundary.log": "441013f8766d211e4d1c66a31e328d3200ef7e820557ba112b7673c7c79ca73c"
+  },
+  "qualification": "No owner edits; no external SMTP/IMAP, credentials, source publisher, native replay, full suite or deployment executed. Existing finite upstream authority/DB/matching ports remain declared.",
+  "previous_crl_compatibility": {
+    "1c6a5decf726d87d6d0070d3a1a37abd85b73414": {
+      "path": "lib/ediel/transport/exception/previousCrl.ts",
+      "sha256": "3580ac481bdba5d88e09e45426866e9f1bd4b8f23a941e2597755dac9f77c6d4",
+      "git_blob": "0457fdf38dc505a365375f72818703bf3f6d2290"
+    },
+    "a1378a7b5f55d0ff73e29b5301750a7069eaf81e": {
+      "path": "lib/ediel/transport/exception/previousCrl.ts",
+      "sha256": "cbef40c3fd84be9b12e15d707f67eef32fe499296a40ceb3db887401267d31e3",
+      "git_blob": "61d654c2320bdf111cba66d3a2641dc87793f956"
+    }
+  }
+}

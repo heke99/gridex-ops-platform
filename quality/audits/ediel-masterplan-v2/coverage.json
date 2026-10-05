@@ -1092,8 +1092,20 @@
     {
       "id": "TR-09",
       "acceptance_id": "AT-TR-09",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/transport/exception/source.ts",
+        "lib/ediel/transport/exception/previousCrl.ts",
+        "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql",
+        "scripts/ediel-transport-exception-native.test.ts",
+        "scripts/ediel-tr-09-reserve-source-native.test.ts",
+        "__tests__/ediel-transport-exception-crl.test.ts",
+        "__tests__/ediel-tr-08-first-hop-tls.test.ts",
+        "artifacts/masterplan-v2/ediel-tr09-native-red-1c6a.zip",
+        "artifacts/masterplan-v2/ediel-tr09-native-green-60eb.zip",
+        ".agent-memory/masterplan-codex-tr09-reserve-test-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr09-reserve-complete-approval-20261005.md"
+      ]
     },
     {
       "id": "TR-10",
@@ -2614,8 +2626,20 @@
     },
     {
       "id": "AT-TR-09",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/transport/exception/source.ts",
+        "lib/ediel/transport/exception/previousCrl.ts",
+        "supabase/migrations/20261001000609_ediel_source_owned_temporary_transport_exceptions.sql",
+        "scripts/ediel-transport-exception-native.test.ts",
+        "scripts/ediel-tr-09-reserve-source-native.test.ts",
+        "__tests__/ediel-transport-exception-crl.test.ts",
+        "__tests__/ediel-tr-08-first-hop-tls.test.ts",
+        "artifacts/masterplan-v2/ediel-tr09-native-red-1c6a.zip",
+        "artifacts/masterplan-v2/ediel-tr09-native-green-60eb.zip",
+        ".agent-memory/masterplan-codex-tr09-reserve-test-receipt.json",
+        "quality/audits/ediel-masterplan-v2/tr09-reserve-complete-approval-20261005.md"
+      ]
     },
     {
       "id": "AT-TR-10",

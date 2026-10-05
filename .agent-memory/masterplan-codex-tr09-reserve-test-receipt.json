@@ -12,7 +12,7 @@
   "new_native_file": "scripts/ediel-tr-09-reserve-source-native.test.ts",
   "new_native_sha256": "a9eda811376ac85b0c2199955e9db3838bf62e95977a768f44e7acdaea8202fe",
   "new_native_cases": 9,
-  "new_native_execution": "GENUINE_CONSUMER_RED_1C6A_SIGNATURE_REPAIR_PENDING_NATIVE",
+  "new_native_execution": "GENUINE_CURRENT_HEAD_60EB_9_PASS_0_FAIL_ERROR_SKIP",
   "verification": {
     "tests_types": "PASS",
     "scripts_types": "PASS",
@@ -30,7 +30,7 @@
     "real certificate PKIX/CRL/OpenSSL S/MIME consumer",
     "exact private deviation/alarm and immutable originals"
   ],
-  "whole_TR09_card": "UNRESOLVED_PENDING_SIGNATURE_REPAIR_GENUINE_NATIVE_AND_REVIEW",
+  "whole_TR09_card": "APPROVED_COMPLETE_FROZEN_CODE_BEHAVIOR_AT_60EB",
   "all_relay_hops_and_authentic_market_evidence": "NOT_PROVIDED",
   "ordinary_required_gates": "NOT_REPLACED",
   "genuine_native_runs": [
@@ -130,6 +130,73 @@
         "authentic_market_evidence": "NOT_PROVIDED"
       },
       "junit_sha256": "b21486a34865a5d7f7f40c930ed7aff1d706f6286843d22d90047de0641d0f0e"
+    },
+    {
+      "checkout_sha": "60eb2d8b5ac908b698cdbb8cfcd42ca932e88af6",
+      "checkout_tree": "ad66104edaf255456850750d4946046bb54cfa40",
+      "run_id": 37246724581,
+      "job_id": 111565970467,
+      "artifact_id": 11318864302,
+      "artifact_path": "artifacts/masterplan-v2/ediel-tr09-native-green-60eb.zip",
+      "artifact_sha256": "7b42a87e6c43adf3d5569dc525af0470aeb3c4f3deeb8429e0732a6643e6c212",
+      "receipt_head_tree_scope_all_input_hashes": "MATCH",
+      "native_exit_code": 0,
+      "total": 13,
+      "passed": 13,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "existing_native_passed": 4,
+      "new_native_passed": 9,
+      "actual_cli_version": "OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+      "actual_cli_diagnostic_contrast": {
+        "valid": {
+          "status": 0,
+          "stdout": "",
+          "stderr": "verify OK\n"
+        },
+        "invalid": {
+          "status": 0,
+          "stdout": "",
+          "stderr": "verify failure\n"
+        }
+      },
+      "no_unhandled_errors": true,
+      "input_receipt": {
+        "purpose": "supplemental_actual_native_feedback",
+        "checkout_sha": "60eb2d8b5ac908b698cdbb8cfcd42ca932e88af6",
+        "checkout_tree": "ad66104edaf255456850750d4946046bb54cfa40",
+        "workflow_run_id": "37246724581",
+        "native_exit_code": 0,
+        "input_sha256": {
+          "scripts/ediel-transport-exception-native.test.ts": "9d7a33e0a8b40d7a0af53b28c828d51429d4c4d1b38fe193622ee777afc08882",
+          "scripts/ediel-tr-09-reserve-source-native.test.ts": "a9eda811376ac85b0c2199955e9db3838bf62e95977a768f44e7acdaea8202fe",
+          ".github/workflows/ediel-recovery-native.yml": "f7009661c7db0988fff3f4446b148997c2038e0a0213a58d4813374611d8282f",
+          "lib/inbound-mail/inboundStatusUpdater.ts": "aabdd68ad40d93a26c28e2306cf128a5ad29d9939e9442a605b8c864904c1657",
+          "scripts/ediel-source-owner-native.config.ts": "563d0ede9aca30fdd83cf4a94f212777ea000a407a5a63fb6a86d53c6b5e4065",
+          "scripts/gridex-aud-003-clean-replay.sh": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18",
+          "scripts/migration-history-manifest.json": "c96bcd39b28ab6d8f9fd44cb9e0bd2da5dd717d19c77e175588f008cd09b1332",
+          "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+          "scripts/migration-history-manifest.runtime.additions.json": "a30e2dd5e2a6fc60b0136750591548abc9a0e17be4b459022506f1f3936a962d"
+        },
+        "test_scope": [
+          "scripts/ediel-transport-exception-native.test.ts",
+          "scripts/ediel-tr-09-reserve-source-native.test.ts"
+        ],
+        "ordinary_required_gates": "NOT_REPLACED",
+        "schema_capture": "NOT_RUN",
+        "browser_tests": "NOT_RUN",
+        "upgrade_parity": "NOT_RUN",
+        "authentic_market_evidence": "NOT_PROVIDED"
+      },
+      "junit_sha256": "1462d8547f94a80c9b611cda689b52f29e7073eaf59fae62e0bd6e32ca6ab550",
+      "log_sha256": "467b964944b1e499452f02f703f46b99f54e50a355c22d5abdb7793d9f766efd",
+      "scope_limits": [
+        "synthetic X500/CDP/issuer/relay/counterparty originals",
+        "mocked external SMTP port, no actual external mail",
+        "standalone crypto-only60eb; does not prove a future composed prefix",
+        "ordinary required full native/upgrade/parity/browser/schema capture not replaced"
+      ]
     }
   ],
   "signature_repair": {
@@ -146,7 +213,7 @@
       "skipped": 0,
       "types": "PASS",
       "lint": "PASS",
-      "genuine_native_after_repair": "PENDING_CI"
+      "genuine_native_after_repair": "PASS_13_OF_13_AT_EXACT_60EB"
     },
     "boundaries": [
       "unit authority/current-source RPC remains explicitly finite",
@@ -156,7 +223,7 @@
     ],
     "independent_review": {
       "component": "APPROVE",
-      "whole_TR09": "PENDING_GENUINE_CURRENT_HEAD_NATIVE13_AND_MATRIX",
+      "whole_TR09": "APPROVE_COMPLETE_FROZEN_TR09_AND_AT_TR09_AT_60EB",
       "exact_reviewed_local_commit": "a1378a7b5f55d0ff73e29b5301750a7069eaf81e",
       "current_source_native_blobs": "IDENTICAL_TO_REVIEWED_A137",
       "review_file": "quality/audits/ediel-masterplan-v2/tr-09-b167-independent-source-review.md",
@@ -178,5 +245,33 @@
     "commit": "1c6a5decf726d87d6d0070d3a1a37abd85b73414",
     "tree": "8eeb2cd7b129ef2ca339fd1b059385d3bb65f552",
     "no_primary_calendar_or_U10_source_coverage_delta": true
+  },
+  "related_component_reviews": {
+    "review_file": "quality/audits/ediel-masterplan-v2/transport-543-536-independent-review.md",
+    "review_sha256": "7acdfdb5e5a96ba81a763e8c9e4cafc97f74c0840ef0b28bed3a476ed40463f3",
+    "receipt_file": "quality/audits/ediel-masterplan-v2/transport-543-536-independent-receipt.json",
+    "receipt_sha256": "fdfc54d04d541082b7147855e428eabc9ae032b530a876060be0bda77f7566bc",
+    "TR09_536": "BOUNDED_ALL_FAMILY_COMPONENT_APPROVE_46_FINITE_PASS_NOT_YET_COMPOSED",
+    "TR08_543": "BLOCKED_AUTHORITATIVE_VERIFIER_THREE_ACTUAL_COUNTEREXAMPLES",
+    "whole_TR08": "UNPROVEN"
+  },
+  "complete_independent_approval": {
+    "review_file": "quality/audits/ediel-masterplan-v2/tr09-reserve-complete-approval-20261005.md",
+    "review_sha256": "979b4bfafbae3d14352bd9de67268c29ba778319fe737f63165ed9e149104e66",
+    "reviewer": "Codex root",
+    "exact_commit": "60eb2d8b5ac908b698cdbb8cfcd42ca932e88af6",
+    "exact_tree": "ad66104edaf255456850750d4946046bb54cfa40",
+    "published_review": "https://github.com/heke99/gridex-ops-platform/pull/545#issuecomment-5986108163",
+    "scope": "complete frozen TR09/AT code-behavior criterion only; no TR08, external source authenticity, main merge, market activation or final-candidate gate approval"
+  },
+  "approval_delta_verification": {
+    "rows": "ONLY_TR09_AND_AT_TR09_OTHER_350_UNCHANGED",
+    "frozen_spec_integrity": "PASS_33_ORIGINALS_121_RULES_231_CONTRACTS",
+    "native_9_inputs": "BYTE_IDENTICAL_EXACT60EB",
+    "technical_source": "BYTE_IDENTICAL_EXACT60EB",
+    "ordinary_scanner_tag_file": "__tests__/ediel-transport-exception-crl.test.ts",
+    "ordinary_scanner_tag_metadata": "TOP_COMMENT_ONLY_ACTUAL7_TEST_BODY_BYTE_IDENTICAL_TO_VERIFIED60EB",
+    "repeat_native_full_crypto_units": "NOT_RUN_NOT_REQUIRED_FOR_METADATA_ONLY_APPROVAL_DELTA",
+    "ci_final_candidate": "PENDING"
   }
 }

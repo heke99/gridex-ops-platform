@@ -218,3 +218,63 @@ Next: publish this crypto-only correction immediately for genuine13; root
 owns full current-head source/matrix review and ordinary mandatory gates.
 Repaired genuine native13 is PENDING, TR08 full-card UNPROVEN. No TR08/TR09
 approval/coverage promotion and no next rule implementation started.
+
+
+Genuine repaired crypto-only proof — 2026-10-05 UTC:
+
+Published exact head `60eb2d8b5ac908b698cdbb8cfcd42ca932e88af6`, tree
+`ad66104edaf255456850750d4946046bb54cfa40`, direct parent1c6a. Run37246724581/
+job111565970467/artifact11318864302 completed SUCCESS. Original raw ZIP is
+retained byte-exact at `artifacts/masterplan-v2/ediel-tr09-native-green-60eb.zip`;
+SHA256 `7b42a87e6c43adf3d5569dc525af0470aeb3c4f3deeb8429e0732a6643e6c212`
+matches GitHub digest. Receipt exact head/tree/two selected files/all nine
+input hashes/run ID/native_exit0 match independently calculated inputs.
+Raw JUnit:13/13 PASS,0 FAIL/ERROR/SKIP; existing4 and all new9 PASS, no
+unhandled errors. Actual OpenSSL3.0.13 logs valid/bad verification both exit0,
+with `verify OK` versus `verify failure`; actual corrupt-signature consumer
+now holds before any operation/alarm/provider entry/SMTP. This is genuine
+native owner/crypto proof with synthetic X500/CDP/issuer/relay/counterparty
+originals and mocked external SMTP. It does not establish authentic market
+custody, later-hop TLS/SPF or a future composed schema/source prefix.
+
+The current standalone repair is verified; whole TR09/AT remains PENDING
+parent independent full-matrix review and source composition. Actual #536
+all-family enforcement is not in60eb. Its independently approved46 finite
+component cases and #543's BLOCKED authoritative trace verifier review are
+retained byte-exact in the quality packet (review7acdfdb5e5a96ba81a763e8c9e4cafc97f74c0840ef0b28bed3a476ed40463f3,
+receipt fdfc54d04d541082b7147855e428eabc9ae032b530a876060be0bda77f7566bc).
+TR08 whole-card remains UNPROVEN. Parent owns meaningful approval/source
+publication and coverage; no docs-only push, second trace implementation,
+full suite/native repeat or unsupported acceptance promotion.
+
+
+Complete frozen-card independent approval — 2026-10-05 UTC:
+
+Root independently checked the full TR09/AT criterion, actual current owners,
+authentic exact60eb native13 and every positive/refusal/rollback/replay/history
+assertion. Complete frozen code-behavior APPROVE is published at PR545
+comment5986108163. Byte-exact approval review SHA256
+`979b4bfafbae3d14352bd9de67268c29ba778319fe737f63165ed9e149104e66` is
+retained in `quality/audits/ediel-masterplan-v2/tr09-reserve-complete-approval-20261005.md`.
+This supersedes the prior pending full-card verdict. Only TR-09 VERIFIED and
+AT-TR-09 PASSED are promoted; the other350 ledger rows and all production/
+native/config/workflow/frozen source bytes remain unchanged. This packet is
+ready for CI, not DONE or a main/product-release approval. Ordinary final
+same-candidate gates remain pending and root owns composition with current
+staff/main, primary calendar and accepted536 owner-policy source. Broader
+all-family S/MIME is separate stricter owner policy, not an invented additional
+reserve condition blocking the frozen TR09 approval. WholeTR08 remains
+UNPROVEN and its external/provider/all-hop/SPF lane is explicitly paused;
+543 remains the sole trace implementation owner.
+
+Next bounded candidate pair: SC-003 and SC-005, subject to fresh incremental
+GitHub530/491/open-PR ownership inventory and public per-path claims before
+edits. Reuse actual existing qualified service/permission/projection/ACK paths;
+no primary TEN/ESCO/P/ACK takeover and no ten06 SC004/006-owned file edits.
+No new scenario is claimed or implemented in this approval delta.
+
+Ordinary scanner registration: added only the TR09/AT comment atop existing
+`__tests__/ediel-transport-exception-crl.test.ts`; its actual seven-test body
+is byte-identical to the independently verified source. Native tag/mandatory
+registration and all nine proof inputs remain unchanged. Row/spec/tag/diff
+invariants PASS; no native/full/crypto repeat for metadata-only approval.
