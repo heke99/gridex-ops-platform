@@ -78,3 +78,23 @@ exports remain excluded. No actual main delivery, fullgate PASS or new capture
 is claimed. Next: publish the independently qualified row intake, consume exact
 qualified original-owner schema handoffs, freeze one final admitted source set,
 and perform the existing single genuine combined capture.
+
+
+Existing public4aa source genuinely adopts actual606 mainb83 at5d513072f986eef6afedd4a2b7ef7caf9ff1b884, ordered
+parents4aa+b83. All eleven incoming source/document/test postimages equal actual
+main; all previous owned packet entries, source delta and receipts are unchanged.
+All foreign mode/type/blob tuples and347foreign complete coverage rows/main
+metadata are exact. SQL1073historical+two originalGovDBforwards=1075, eight
+generator inputs/full origins/rawgenerated/historicalNOT_RUN unchanged. Candidate
+276 versus main271 retains only five previously owned complete rows, including
+original SC010 and unchanged SC071. Prior independent d26 proof is reused within
+that preserved scope, no repeated source/native/whole/control run.
+
+Current Staff4dc carriesb83 but original canonicalSC068/source/native/input
+release remains pending. IMP05 original author acknowledged unchanged6ca HOLD
+and owns corrective work; no held forward or private report is admitted here.
+Capture remains pending; no intermediate1075run. Next: publish this existing
+source-only carry, consume only qualified current original-owner handoffs, then
+one final genuine combined capture and normal guarded delivery. User explicitly
+limits the wave to finishing already-active agent work, integrating and documenting
+the resulting main baseline; do not select new Masterplan rules afterwards.
