@@ -398,7 +398,7 @@ export async function createOrUpdateInboundProdatCase(params: {
   if(structural){
     if(!application||application.headerDecision!=='accepted')throw new Error('structural_apply_complete_own_application_required')
   }else{
-    const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload)})
+    const registerIssues = validateProdatRegisterPayload({code:source.messageCode ?? '',rawSegments:source.rawSegments,una:parseUna(params.message.raw_payload),direction:params.message.direction==='outbound'?'outbound':'inbound'})
     if (registerIssues.some(issue => issue.blocking)) throw new Error('PRODAT_REGISTER_STRUCTURE_INVALID: ' + registerIssues.map(issue=>issue.description).join(' | '))
   }
   const parsed = parseInboundProdatBusinessData(params.message)
