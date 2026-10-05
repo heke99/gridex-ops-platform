@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="10" failures="2" errors="0" time="65.351013251">
+    <testsuite name="scripts/ediel-sc-010-beneficiary-export-native.test.ts" timestamp="2026-10-05T11:57:45.654Z" hostname="runnervm8df0l" tests="4" failures="2" errors="0" skipped="0" time="44.543632913">
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 real enqueue → real grant revoke → lease → blocked internal export preserves originals, receipts, history and zero result payload" time="4.135345156">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 authorized internal result retains actual DGI provenance; later revocation prevents reading its cached values" time="3.762525842">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 lease expires during a real &apos;results&apos; write lock wait and rolls back result, completion and receipt together" time="18.349768795">
+            <failure message="expected { code: &apos;57014&apos;, details: null, …(2) } to match object { message: StringContaining{…} }
+(3 matching properties omitted from actual)" type="AssertionError">
+AssertionError: expected { code: &apos;57014&apos;, details: null, …(2) } to match object { message: StringContaining{…} }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   &quot;message&quot;: StringContaining &quot;ediel_export_lease_not_current&quot;,
++   &quot;message&quot;: &quot;canceling statement due to statement timeout&quot;,
+  }
+
+ ❯ scripts/ediel-sc-010-beneficiary-export-native.test.ts:144:60
+            </failure>
+        </testcase>
+        <testcase classname="scripts/ediel-sc-010-beneficiary-export-native.test.ts" name="SC010 lease expires during a real &apos;jobs&apos; write lock wait and rolls back result, completion and receipt together" time="18.294220341">
+            <failure message="expected { code: &apos;57014&apos;, details: null, …(2) } to match object { message: StringContaining{…} }
+(3 matching properties omitted from actual)" type="AssertionError">
+AssertionError: expected { code: &apos;57014&apos;, details: null, …(2) } to match object { message: StringContaining{…} }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   &quot;message&quot;: StringContaining &quot;ediel_export_lease_not_current&quot;,
++   &quot;message&quot;: &quot;canceling statement due to statement timeout&quot;,
+  }
+
+ ❯ scripts/ediel-sc-010-beneficiary-export-native.test.ts:144:60
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="scripts/ediel-sc-071-projection-revocation-native.test.ts" timestamp="2026-10-05T11:57:45.658Z" hostname="runnervm8df0l" tests="6" failures="0" errors="0" skipped="0" time="20.807380338">
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation COMMIT serializes before projection, including a retained page" time="4.030343471">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="writer-first real grant revocation ROLLBACK serializes before projection, including a retained page" time="3.38348377">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="reader-first transaction blocks the actual revoke command, then subsequent reads refuse both versions" time="3.195492499">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual leased export waits for grant writer COMMIT before its internal result commit" time="3.385225355">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual leased export waits for grant writer ROLLBACK before its internal result commit" time="3.435393017">
+        </testcase>
+        <testcase classname="scripts/ediel-sc-071-projection-revocation-native.test.ts" name="SC071 actual export result transaction commits before waiting revoke; later reads cannot disclose its retained page" time="3.37457721">
+        </testcase>
+    </testsuite>
+</testsuites>

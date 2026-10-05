@@ -9,6 +9,7 @@ vi.mock('@/lib/ediel/db', () => ({ createEdielMessageEvent: io.events, getEdielM
 vi.mock('@/lib/ediel/tenant/sourceLegalContext', () => ({ requireEdielInboundLegalContext: io.identity }))
 vi.mock('@/lib/ediel/tenant/resolveInboundTenant', () => ({
   extractMarketActorEdielIdFromRawPayload: () => null,
+  inboundLegalReceiverEdielId: (_rawPayload: unknown, receiver: string | null) => receiver ?? null,
   tenantResolutionForStorage: (resolution: unknown) => resolution,
   resolveInboundTenantFromIdentifiers: async () => ({ status: 'resolved', companyId: 'tenant-a', evidence: [{ companyId: 'tenant-a', source: 'transport_route', score: 200, details: {} }], candidateCompanyIds: ['tenant-a'], reasons: [], warnings: [] }),
 }))

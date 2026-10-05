@@ -1,0 +1,130 @@
+{
+  "review_baseline": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "latest_main_observed": {
+    "sha": "01b11f55af710c3e6aad1f5a433631a88c702047",
+    "tree": "cc0b6412e13c04f6baa3413957c7b609aeba74be",
+    "verified_rules": 91,
+    "passed_contracts": 113,
+    "approved_total": 204,
+    "total": 352
+  },
+  "baseline_to_latest_changes": [
+    ".agent-memory/handover.md",
+    ".agent-memory/open-blockers.md",
+    "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
+    "__tests__/ediel-utilts-err-gateway.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "source_carry": "The main advance merges #563 and changes two unrelated scenario test files, coverage and shared memory. All production/fixture/test inputs named in the two review input-hash tables are unchanged in the compare result. Observed test receipts remain attributed to their exact985 checkout.",
+  "conclusions": [
+    {
+      "id": "SC-031",
+      "status": "PARTIAL retained",
+      "finding": "P2 bounded actual register-wrapper error reproduced; canonical inbound leaf ignores valid extra213 but case wrapper loses direction and blocks it.",
+      "independent_refutation": "SC034 reviewer re-traced signature, mode/direction separation, raw parse, Z01 case branch and unconditional caller; not refuted within bounded scope.",
+      "unverified": [
+        "authenticated actual case/DB execution",
+        "negative or positive physical ACK emission in this reproduction",
+        "persistent business-data mutation"
+      ]
+    },
+    {
+      "id": "SC-034",
+      "status": "PARTIAL retained",
+      "finding": "Existing national field314 code and P-APERAK27 enforcement have qualified ordinary evidence; missing global wrong-order/first2 consumer persistence assertions and discriminating native sibling proof.",
+      "confirmed_product_defect": false
+    }
+  ],
+  "local_checks": [
+    {
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "exit": 0,
+      "result": "33 original files;121 rules;231 contracts; specification/evidence references only"
+    },
+    {
+      "command": "node --experimental-vm-modules /tmp/gridex-sc031-review-probe.cjs",
+      "exit": 0,
+      "result": "2 syntax-valid controls; baseline caller clear; extra213 inbound matrix ignored but exact register wrapper blocked; authentic local source modules with existing committed-JSON loader"
+    },
+    {
+      "command": "Python SHA256 checks of review tables",
+      "result": "SC03144 andSC03417 input files match exactly"
+    }
+  ],
+  "historical_failed_checks": [
+    {
+      "command": "git ls-remote origin refs/heads/main",
+      "result": "failed: proxy8080 unreachable (also after current readiness reports network enforced)"
+    },
+    {
+      "command": "gh auth status",
+      "result": "failed for configured token; no credential values read or printed"
+    },
+    {
+      "command": "initial Python review input-hash validator",
+      "result": "FAILED because SC031 uses a fenced JSON hash map and initial parser only accepted Markdown table rows; no hash mismatch observed. Corrected parser now verifies SC03144+SC03417 input hashes."
+    },
+    {
+      "command": "first exact remote Git commit import",
+      "result": "Initial +0000 author/committer offset assumption did not match Git SHA; no local branch or file changed. Trying actual +0200 offsets matched713b781 exactly; imported that exact object and advanced only the own branch with expected-old-ref check."
+    },
+    {
+      "command": "Node guarded capture wrong-HEAD refusal check",
+      "result": "FAILED before assertion: sandbox spawnSync git EPERM even though stdout reports own c25a1a73; source syntax passes, original evidence unchanged; no assertion success claimed."
+    }
+  ],
+  "publication_method": "GitHub connector GitData API can publish the exact inspected documentation tree; no force update or source-owner edits.",
+  "remaining_owner_actions": {
+    "Claude_source_owner": "Fix explicit inbound direction propagation and preserve ignored-field non-effects in existing case/source lane; add only missing complete scenario assertions.",
+    "retained_coordinator": "Preserve shared source/capture ownership; obtain current native receipt and address observed8/73 release failure in existing release/staff lanes; integrate only with required current review/CI."
+  },
+  "review_report_verification": {
+    "SC-031.md": {
+      "input_count": 44,
+      "sha256": "5b92d91090332996be03f750cb5a2e82d4373f5f250bb6006cf06b29ffa76960"
+    },
+    "SC-034.md": {
+      "input_count": 17,
+      "sha256": "19aa3cecb1f544770335d659abcb9ce885cd8136a8f870b6ff1c40744c5f6111"
+    }
+  },
+  "publication": {
+    "pull_request": "https://github.com/heke99/gridex-ops-platform/pull/571",
+    "status": "draft_under_review",
+    "verified_report_commit": "713b781781695fef56db01818ab70e3761539d14",
+    "verified_tree": "6ceff9327654313f74f8609676f5c5adcea11a5b",
+    "local_remote_tree_byte_identical": true,
+    "merge_performed": false,
+    "new_head_ci_verified": false
+  },
+  "review_corrections": {
+    "reviewed_head": "c25a1a73af5bb48b1daffc58c0c31df2f48724a7",
+    "comment_ids": [
+      4182770465,
+      4182770486
+    ],
+    "original_executed_source": {
+      "path": "quality/audits/ediel-masterplan-v2/sc031-sc034-review-20261005/sc031-probe-executed-source.txt",
+      "sha256": "d65352eb6fa7d82b880df37607ac465ab8172307b1a65f8f6bf87fc867a65ac9"
+    },
+    "original_observation_sha256": "ee5676704702449e4713b8ee86e96fb7fa06379a4c097bf16098916f68b642dc",
+    "historical_report_hashes": {
+      "SC-031.md": {
+        "input_count": 44,
+        "sha256": "ed7046f55788c15b26c4f0a8194e644318545fdee60d7fb99f4b99f1115751fe"
+      },
+      "SC-034.md": {
+        "input_count": 17,
+        "sha256": "f87f733e37a617238e8ef58e25c2c7e11fc5874907eb1c6e351d4ce621d0f536"
+      }
+    },
+    "guarded_recipe_full_probe_rerun": false,
+    "scope": "Historical baseline wording and capture provenance only; source, tests, coverage and original probe observation unchanged.",
+    "verification": [
+      "node --check via stdin: PASS",
+      "Actual Node invocation: blocked by sandbox spawnSync git EPERM at initial revision check; no module evaluation or evidence write",
+      "Exact executed source d65352... and original observation ee567670... retained",
+      "Masterplan references integrity:33 files/121rules/231contracts; no application conformance asserted"
+    ]
+  }
+}

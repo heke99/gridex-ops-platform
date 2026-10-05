@@ -1,0 +1,29 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z15v-z15vh-esco-20261005
+
+ ❯ __tests__/ediel-at-z15vh-esco-profile.test.ts (21 tests | 1 failed) 167ms
+   × Z15VH retains the manual correlation hold with finite S18 wire history and no outgoing Z18VH 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-z15vh-esco-profile.test.ts > Z15VH retains the manual correlation hold with finite S18 wire history and no outgoing Z18VH
+AssertionError: expected 'accepted' to be 'manual_review' // Object.is equality
+
+Expected: "manual_review"
+Received: "accepted"
+
+ ❯ __tests__/ediel-at-z15vh-esco-profile.test.ts:118:47
+    116|   expect(requestDecision.policy).toMatchObject({ code: 'Z13', subtype:…
+    117|   expect(request.raw_payload).toContain('DTM+91:202609180000:203')
+    118|   expect(requestDecision.applicationDecision).toBe('manual_review')
+       |                                               ^
+    119|   expect(requestDecision.issues).toEqual(expect.arrayContaining([
+    120|     expect.objectContaining({ code: 'PRODAT_REPORTING_UNDETERMINED', p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 41 passed (42)
+   Start at  11:28:35
+   Duration  1.70s (transform 2.24s, setup 38ms, import 2.77s, tests 313ms, environment 0ms)
