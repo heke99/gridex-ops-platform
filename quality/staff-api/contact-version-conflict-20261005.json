@@ -1,5 +1,5 @@
 {
-  "status": "IMPLEMENTED_TARGETED_VERIFIED_FINAL_CAPTURE_NATIVE_CI_PENDING",
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_PRIOR_CAPTURE_RETAINED_MAIN_INTEGRATION_CAPTURE_PENDING",
   "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
   "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
   "production_evidence": {
@@ -53,14 +53,16 @@
       "test-driven-development",
       "using-git-worktrees",
       "supabase",
-      "verification-before-completion"
+      "verification-before-completion",
+      "full-e2e-verification"
     ],
     "reason": "Confirmed SQL/RPC retry bug, isolated fix, test-first reproduction, migration and exact deployed acceptance.",
     "conditional": [
       "finishing-a-development-branch",
       "requesting-code-review"
     ],
-    "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change."
+    "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change.",
+    "verification_config": "PROJECT_E2E.yaml read; apply security/isolation/contract and release gates to the authorized Personal API S1-S5 scope. Unrelated company/market-rule scenarios are outside this task."
   },
   "release_gates": "Authentic current-prefix capture, exact final-head mandatory CI/native/upgrade, guarded merge, exact production deployment, apply ONLY the two new conflict forwards once, and complete synthetic acceptance/finally cleanup remain required. Already installed migrations remain unchanged.",
   "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim.",
@@ -91,11 +93,36 @@
       "log_sha256": "7fb6ff153087e19207538cd255986ac0eed36cefc0338d0b44af941d1ec64ff4"
     },
     "independent_fp_check_sha256": "d169203ce70ac90a3cdc4c935d99dbee3074f491383858eaed31f5589f3e078c",
-    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old\u2192newcoverage into reapply-only."
+    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old→newcoverage into reapply-only.",
+    "independent_final_unit_quality_review_sha256": "533b0fabe105ae47fac17ce33cbad27aa0f91665e34798431a080856e5fd8e3b"
   },
   "targeted_total": {
     "passed": 70,
     "total": 70,
     "files": 3
+  },
+  "authentic_capture": {
+    "status": "PASS_CAPTURE_ONLY_IMPORTED",
+    "workflow_run": 37250665118,
+    "artifact_id": 11321221097,
+    "source_commit": "9f8f0832ec6a32c1f0071846946e1fe2c5bdc824",
+    "remote_head": "7c862e548d27df454af28ac6e08a04dd664318fe",
+    "tree": "95158b16af078d2b608c0b745e93991b284ba696",
+    "archive_sha256": "029bf2c38b839cc1e0be19491a8d7043544ffdc4915eafb05d014a68514d9131",
+    "independent_review_sha256": "00afbd55e82e1a09fff699c72b8b32480c8fedf8165bda4760e5cde165ed1646",
+    "import_receipt": "quality/staff-api/contact-version-http409-capture-import-20261005.json",
+    "raw_receipt": "quality/staff-api/contact-version-http409-capture-receipt-20261005.json",
+    "scope": "Raw generated artifacts imported unchanged after full source/digest/tree/input verification. Entire schema changes only the two pinned business-conflict SQLSTATE lines. Types remain byte-identical. Fresh resulting-head native/browser/upgrade and full CI still mandatory.",
+    "qualification": "Valid historical7c frozen-prefix capture only. It does not qualify later composition with main507e8bfa; all prior verification assertions retain their original exact source identity."
+  },
+  "main_integration": {
+    "main_commit": "507e8bfa20606be31933eea1582066267ff2577a",
+    "main_tree": "20b492198c7b4bdbb5bec1634a42ee5cec978d47",
+    "preserved_all_unrelated_main_changes": true,
+    "raw_generated_baseline_source": "507e8bfa20606be31933eea1582066267ff2577a",
+    "new_inherited_migration": "20261004170000_ediel_service_resolve_permission_request_timing.sql",
+    "prior_staff_import_source": "15329eb3fbb4bf0a2cbd7edc5c37ddac621ed42e",
+    "capture": "NOT_RUN_FOR_INTEGRATED_PREFIX",
+    "fresh_final_head_CI": "NOT_RUN"
   }
 }
