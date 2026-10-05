@@ -4169,5 +4169,44 @@
     ],
     "otherRowsUnchanged": 350,
     "noSourceTestsNativeRerun": true
+  },
+  "evidenceReferenceCorrection": {
+    "supersededApprovalHead": "56c4a894ce80ceb2f0f75755f17e8fa6e14cdacd",
+    "reason": "Actual npm ediel:masterplan-v2:integrity requires every evidence[] entry to be an existing repository file path; approval prose had been appended incorrectly. Exact installed Node22 gate reproduced ENOENT on both owner packets before correction.",
+    "changedIds": [
+      "SC-001",
+      "SC-002"
+    ],
+    "preservedApprovalNarratives": {
+      "SC-001": [
+        "Independent whole SC-001 APPROVE at PR55701fa51f991d95e63c3a16c94ce0f2643fa34ac7d/treeaffeefa94325bbe2eb66e362311500ad060ab582/base507e8bfa: fresh actual public caller/gateway/source-result guards/physical builder8PASS0SKIP; full expected/prohibited/denial scope and qualified currentprimary0796 selected native source/permission/original witnesses. Auth/source/DB/persistence/queue finite ports and all synthetic native upstream legal/issuer/bootstrap facts declared. Code/scenario approval only; exact-head mandatoryCI/composition/merge and external market/source custody are separate."
+      ],
+      "SC-002": [
+        "Independent whole SC-002 APPROVE at PR55701fa51f991d95e63c3a16c94ce0f2643fa34ac7d/treeaffeefa94325bbe2eb66e362311500ad060ab582/base507e8bfa: fresh actual public caller/gateway/source-result guards/physical builder8PASS0SKIP; full expected/prohibited/denial scope and qualified currentprimary0796 selected native source/permission/original witnesses. Auth/source/DB/persistence/queue finite ports and all synthetic native upstream legal/issuer/bootstrap facts declared. Code/scenario approval only; exact-head mandatoryCI/composition/merge and external market/source custody are separate."
+      ]
+    },
+    "fileReferencesOnly": true,
+    "other350RowsAndMetadataExactlyPreserved": true,
+    "technicalSourceFrozenLiteralsIndependentRecordsByteEqual": true,
+    "runtimeSqlNativeFullSuitesRepeated": false,
+    "currentCoverageSha256": "2133ca76a910d9aeb02211f6724e342ee7ea278e3f74336312f43833b8980c66",
+    "verification": {
+      "nodeVersion": "22.23.3",
+      "command": "node scripts/check-ediel-masterplan-v2.cjs",
+      "passed": true,
+      "originalFiles": 33,
+      "rules": 121,
+      "acceptanceContracts": 231,
+      "applicationConformanceAsserted": false,
+      "productionReadinessAsserted": false,
+      "diffCheckPassed": true,
+      "onlyOwnedRowsInvalidProseRemoved": [
+        "SC-001",
+        "SC-002"
+      ],
+      "other350RowsMetadataExact": true,
+      "onlyOwnCoverageCheckpointReceiptChanged": true,
+      "runtimeSqlNativeFullSuitesRepeated": false
+    }
   }
 }
