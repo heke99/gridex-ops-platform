@@ -1,3 +1,7 @@
+// masterplan: SC-006
+// The actual public caller executes; coordinator/actor/transport ports below
+// are substituted. Real shared-permission effects are separately proved by
+// the source-qualified genuine #497 literal SC005/006 native case.
 import {beforeEach,describe,it,expect,vi} from 'vitest'
 const mocks=vi.hoisted(()=>({actor:vi.fn(),rpc:vi.fn(),z13:vi.fn(),z18:vi.fn(),coordinate:vi.fn()}))
 vi.mock('@/lib/supabase/service',()=>({supabaseService:{rpc:mocks.rpc}}))
@@ -38,5 +42,25 @@ describe('actual service administration boundary',()=>{
   vi.clearAllMocks()
   await expect(executeEdielServiceAdministration({...own,command:{...command,fields:{...command.fields,purpose:purpose+'a'}}})).rejects.toThrow()
   expect(mocks.rpc).not.toHaveBeenCalled()
+ })
+ it.each(['assignment_ended','market_termination_required'] as const)('ends only the selected internal assignment through the actual caller (%s), without automatically originating Z18',async status=>{
+  const command={action:'end_assignment',assignmentId:uid(4),expectedVersion:3}
+  const result={status,permissionId:uid(5)}
+  mocks.coordinate.mockResolvedValue(result)
+  await expect(executeEdielServiceAdministration({...own,command})).resolves.toBe(result)
+  expect(mocks.actor).toHaveBeenCalledWith({...own,permission:'metering.write'})
+  expect(mocks.coordinate).toHaveBeenCalledExactlyOnceWith({...command,providerCompanyId:own.companyId,actorUserId:own.actorUserId,command:'end_assignment'})
+  expect(mocks.actor.mock.invocationCallOrder[0]).toBeLessThan(mocks.coordinate.mock.invocationCallOrder[0])
+  expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.z13).not.toHaveBeenCalled();expect(mocks.z18).not.toHaveBeenCalled()
+ })
+ it('denies a revoked actor before ending an assignment or originating a market termination',async()=>{
+  mocks.actor.mockRejectedValue(new Error('membership revoked'))
+  await expect(executeEdielServiceAdministration({...own,command:{action:'end_assignment',assignmentId:uid(4),expectedVersion:3}})).rejects.toThrow('membership revoked')
+  expect(mocks.coordinate).not.toHaveBeenCalled();expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.z13).not.toHaveBeenCalled();expect(mocks.z18).not.toHaveBeenCalled()
+ })
+ it('preserves a current coordinator denial instead of converting it into an automatic Z18',async()=>{
+  mocks.coordinate.mockRejectedValue(new Error('ediel_assignment_version_stale'))
+  await expect(executeEdielServiceAdministration({...own,command:{action:'end_assignment',assignmentId:uid(4),expectedVersion:3}})).rejects.toThrow('ediel_assignment_version_stale')
+  expect(mocks.coordinate).toHaveBeenCalledOnce();expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.z13).not.toHaveBeenCalled();expect(mocks.z18).not.toHaveBeenCalled()
  })
 })
