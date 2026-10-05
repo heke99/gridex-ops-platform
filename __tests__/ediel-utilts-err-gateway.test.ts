@@ -1,3 +1,4 @@
+// masterplan: U-13, AT-U-13
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
@@ -252,6 +253,14 @@ it('keeps a leading own-ID functional ERR separate from its trimmed positive sib
  expect(f.acks().filter(row=>row.message_family==='CONTRL')).toHaveLength(1)
 })
 
+it('U-13 an outgoing UTILTS ERR always uses message function 9 and acknowledgement request AB',async()=>{
+ const f=seed([{reference:'OWN B',outcome:'processability_rejected'}])
+ await f.finalize()
+ const err=f.acks().find(row=>row.message_family==='UTILTS_ERR')!
+ const wire=EdifactEnvelopeCodec.decode(String(err.raw_payload)),bgm=wire.segments.find(s=>s.tag==='BGM')!
+ expect(segmentComposite(bgm,1,wire.una)[0]).toBe('ERR')
+ expect([segmentComposite(bgm,3,wire.una)[0],segmentComposite(bgm,4,wire.una)[0]]).toEqual(['9','AB'])
+})
 it('SC-045 finalizes one header-negative APERAK without inventing an original IDE reference', async () => {
   const f = seed([
     { reference: 'HEADER-OK', outcome: 'accepted' },

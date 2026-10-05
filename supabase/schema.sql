@@ -29995,6 +29995,72 @@ BEGIN
 END $$;
 
 --
+-- Name: resolve_before_request_timing_v1(uuid, uuid, uuid, bigint, uuid); Type: FUNCTION; Schema: gridex_service_permission; Owner: -
+--
+
+CREATE FUNCTION gridex_service_permission.resolve_before_request_timing_v1(p_company_id uuid, p_assignment_id uuid, p_actor_user_id uuid, p_expected_version bigint, p_permission_id uuid) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $$
+DECLARE a public.ediel_service_assignments%rowtype;p public.metering_permissions%rowtype;owner public.ediel_service_assignments%rowtype;owner_id uuid;owner_scope bigint;owner_snapshot jsonb;assessment jsonb;original uuid;original_row public.ediel_messages%rowtype;
+BEGIN
+ IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'ediel_service_manual_service_required' USING ERRCODE='42501';END IF;
+ PERFORM gridex_service_administration.require_manual_actor_v1(p_company_id,p_actor_user_id);
+ IF p_assignment_id IS NULL OR p_permission_id IS NULL OR p_expected_version IS NULL OR p_expected_version<1 THEN RAISE EXCEPTION 'ediel_service_permission_command_scope_required';END IF;
+ SELECT * INTO STRICT a FROM public.ediel_service_assignments WHERE company_id=p_company_id AND id=p_assignment_id;
+ -- Discover only an immutable origin; lock its actual source before assignments
+ -- and permission rows, matching the provider's source-before-projection order.
+ SELECT o.message_id INTO original FROM gridex_service_permission.origins o WHERE o.company_id=p_company_id AND o.permission_id=p_permission_id AND o.message_code='Z13';
+ IF original IS NOT NULL THEN SELECT * INTO original_row FROM public.ediel_messages WHERE company_id=p_company_id AND id=original FOR SHARE;END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(a.company_id::text||':'||a.environment||':'||a.provider_actor_id::text||':'||a.customer_id::text||':'||a.dso_actor_id::text||':'||a.mode,0));
+ IF (SELECT o.message_id FROM gridex_service_permission.origins o WHERE o.company_id=p_company_id AND o.permission_id=p_permission_id AND o.message_code='Z13') IS DISTINCT FROM original THEN RETURN jsonb_build_object('status','held','missing',ARRAY['permission_original_changed_retry_required']);END IF;
+ SELECT * INTO STRICT a FROM public.ediel_service_assignments WHERE company_id=p_company_id AND id=p_assignment_id FOR SHARE;
+ IF a.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'ediel_assignment_version_stale';END IF;
+ assessment:=public.ediel_service_assignment_assessment_v1(a.company_id,a.id);
+ IF assessment->>'status' IS DISTINCT FROM 'authorized' THEN RETURN assessment;END IF;
+ SELECT * INTO STRICT p FROM public.metering_permissions WHERE company_id=p_company_id AND id=p_permission_id FOR SHARE;
+ IF p.customer_id IS DISTINCT FROM a.customer_id OR NOT EXISTS(SELECT FROM public.ediel_assignment_permission_links l WHERE l.company_id=a.company_id AND l.assignment_id=a.id AND l.permission_id=p.id) THEN RAISE EXCEPTION 'ediel_service_manual_permission_not_linked';END IF;
+ PERFORM s.id FROM public.metering_permission_sites s WHERE s.company_id=a.company_id AND s.metering_permission_id=p.id ORDER BY s.id FOR SHARE;
+ IF p.status IN ('active','approved','partially_approved','z14_received') THEN
+  IF gridex_service_administration.permission_matches_assignment_v1(a,p) IS NOT TRUE
+   OR EXISTS(SELECT FROM unnest(a.object_ids) object_id CROSS JOIN unnest(a.product_ids) product_id WHERE NOT EXISTS(SELECT FROM public.metering_permission_sites s WHERE s.company_id=a.company_id AND s.metering_permission_id=p.id AND s.customer_id=a.customer_id AND s.facility_id=object_id AND s.status IN('approved','active') AND s.metadata->>'source'='inbound_prodat_z14' AND s.metadata->>'edielMessageId'=coalesce(p.inbound_z14_message_id,p.source_z14_message_id)::text AND s.metadata->>'mode'=CASE a.mode WHEN 'V' THEN 'S17' ELSE 'S18' END AND s.metadata->>'product'=product_id AND s.start_at IS NOT NULL AND a.data_start>=s.start_at AND (s.end_at IS NULL OR (a.data_end IS NOT NULL AND a.data_end<=s.end_at)) AND (s.permission_end_at IS NULL OR s.permission_end_at>now())))
+   THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_source_approved_compatible_permission']);END IF;
+  RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','approved','accessGranted',false);
+ END IF;
+ IF (p.status IN('draft','z13_ready','z13_sent','waiting_for_customer_approval')) IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_permission_request_state']);END IF;
+ SELECT r.assignment_id,r.scope_basis_version,r.scope INTO owner_id,owner_scope,owner_snapshot FROM gridex_service_administration.permission_request_owners r WHERE r.company_id=a.company_id AND r.permission_id=p.id;
+ IF owner_id IS NULL THEN
+  -- An existing genuinely reserved/bound source origin is a retained owner.
+  -- A parsed metadata assignment_id or today's sole link is not historical proof.
+  SELECT o.assignment_id,(o.basis->>'scopeBasisVersion')::bigint,o.message_id INTO owner_id,owner_scope,original FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.message_code='Z13';
+ ELSE
+  SELECT o.message_id INTO original FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.message_code='Z13';
+ END IF;
+ IF owner_id IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['prospective_or_original_permission_request_owner']);END IF;
+ SELECT * INTO owner FROM public.ediel_service_assignments WHERE company_id=a.company_id AND id=owner_id FOR SHARE;
+ IF NOT FOUND OR owner.scope_basis_version IS DISTINCT FROM owner_scope OR (owner_snapshot IS NOT NULL AND gridex_service_administration.scope_v1(owner) IS DISTINCT FROM owner_snapshot)
+  OR owner.environment IS DISTINCT FROM a.environment OR owner.provider_actor_id IS DISTINCT FROM a.provider_actor_id OR owner.customer_id IS DISTINCT FROM a.customer_id OR owner.dso_actor_id IS DISTINCT FROM a.dso_actor_id OR owner.mode IS DISTINCT FROM a.mode OR owner.purpose IS DISTINCT FROM a.purpose
+  OR NOT(a.object_ids<@owner.object_ids AND a.product_ids<@owner.product_ids AND a.field_sets<@owner.field_sets) OR a.data_start<owner.data_start OR (owner.data_end IS NOT NULL AND (a.data_end IS NULL OR a.data_end>owner.data_end)) OR public.ediel_service_assignment_assessment_v1(a.company_id,owner.id)->>'status' IS DISTINCT FROM 'authorized'
+  THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_compatible_permission_request_owner']);END IF;
+ IF p.outbound_z13_message_id IS NOT NULL OR p.source_z13_message_id IS NOT NULL THEN
+  IF original IS NULL OR p.outbound_z13_message_id IS DISTINCT FROM original OR p.source_z13_message_id IS DISTINCT FROM original OR original_row.id IS DISTINCT FROM original OR original_row.company_id IS DISTINCT FROM a.company_id OR original_row.environment IS DISTINCT FROM a.environment OR original_row.direction IS DISTINCT FROM 'outbound' OR original_row.message_family IS DISTINCT FROM 'PRODAT' OR original_row.message_code IS DISTINCT FROM 'Z13' OR original_row.customer_id IS DISTINCT FROM a.customer_id OR NOT EXISTS(SELECT FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.assignment_id=owner.id AND o.message_id=original_row.id AND o.intent_id=original_row.intent_id AND o.message_code='Z13') THEN RETURN jsonb_build_object('status','held','missing',ARRAY['immutable_owned_pending_permission_original']);END IF;
+  -- This sole canonical owner compares the saved bytes to the prospective
+  -- immutable witness. It does not select a new rule or alter the old original.
+  PERFORM gridex_ediel_outbound_owner.require_v1(a.company_id,original);
+  IF original_row.status='draft' AND owner.id=a.id THEN
+   -- Only the exact first owner's bound draft can resume the canonical gateway
+   -- after a pre-queue crash. A different beneficiary never queues that request.
+   PERFORM r.id FROM public.outbound_requests r WHERE r.company_id=a.company_id AND r.id=original_row.outbound_request_id FOR SHARE;
+   IF original_row.outbound_request_id IS NULL OR NOT EXISTS(SELECT FROM public.outbound_requests r WHERE r.company_id=a.company_id AND r.id=original_row.outbound_request_id AND r.customer_id=a.customer_id AND r.source_type='manual' AND r.source_id=original_row.intent_id AND r.request_type='metering_access' AND r.operation_id=p.id AND r.payload->>'servicePermissionCommandKey'=original_row.intent_id::text AND r.payload->>'environment'=a.environment) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['owned_bound_first_draft_request']);END IF;
+   RETURN jsonb_build_object('status','permission_required','permissionId',p.id,'messageId',original,'intentId',original_row.intent_id,'outboundRequestId',original_row.outbound_request_id);
+  END IF;
+  RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','pending','messageId',original,'accessGranted',false);
+ END IF;
+ IF owner.id IS DISTINCT FROM a.id THEN RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','pending','accessGranted',false);END IF;
+ RETURN jsonb_build_object('status','permission_required','permissionId',p.id);
+END $$;
+
+--
 -- Name: actor_v1(uuid, uuid, text); Type: FUNCTION; Schema: gridex_supply_rescission; Owner: -
 --
 
@@ -45741,63 +45807,18 @@ END $$;
 CREATE FUNCTION public.ediel_resolve_service_permission_command_v1(p_company_id uuid, p_assignment_id uuid, p_actor_user_id uuid, p_expected_version bigint, p_permission_id uuid) RETURNS jsonb
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'pg_catalog'
-    AS $$
-DECLARE a public.ediel_service_assignments%rowtype;p public.metering_permissions%rowtype;owner public.ediel_service_assignments%rowtype;owner_id uuid;owner_scope bigint;owner_snapshot jsonb;assessment jsonb;original uuid;original_row public.ediel_messages%rowtype;
-BEGIN
+    SET "TimeZone" TO 'UTC'
+    AS $$DECLARE timing jsonb;BEGIN
  IF current_setting('role',true) IS DISTINCT FROM 'service_role' AND session_user<>'service_role' THEN RAISE EXCEPTION 'ediel_service_manual_service_required' USING ERRCODE='42501';END IF;
- PERFORM gridex_service_administration.require_manual_actor_v1(p_company_id,p_actor_user_id);
  IF p_assignment_id IS NULL OR p_permission_id IS NULL OR p_expected_version IS NULL OR p_expected_version<1 THEN RAISE EXCEPTION 'ediel_service_permission_command_scope_required';END IF;
- SELECT * INTO STRICT a FROM public.ediel_service_assignments WHERE company_id=p_company_id AND id=p_assignment_id;
- -- Discover only an immutable origin; lock its actual source before assignments
- -- and permission rows, matching the provider's source-before-projection order.
- SELECT o.message_id INTO original FROM gridex_service_permission.origins o WHERE o.company_id=p_company_id AND o.permission_id=p_permission_id AND o.message_code='Z13';
- IF original IS NOT NULL THEN SELECT * INTO original_row FROM public.ediel_messages WHERE company_id=p_company_id AND id=original FOR SHARE;END IF;
- PERFORM pg_advisory_xact_lock(hashtextextended(a.company_id::text||':'||a.environment||':'||a.provider_actor_id::text||':'||a.customer_id::text||':'||a.dso_actor_id::text||':'||a.mode,0));
- IF (SELECT o.message_id FROM gridex_service_permission.origins o WHERE o.company_id=p_company_id AND o.permission_id=p_permission_id AND o.message_code='Z13') IS DISTINCT FROM original THEN RETURN jsonb_build_object('status','held','missing',ARRAY['permission_original_changed_retry_required']);END IF;
- SELECT * INTO STRICT a FROM public.ediel_service_assignments WHERE company_id=p_company_id AND id=p_assignment_id FOR SHARE;
- IF a.version IS DISTINCT FROM p_expected_version THEN RAISE EXCEPTION 'ediel_assignment_version_stale';END IF;
- assessment:=public.ediel_service_assignment_assessment_v1(a.company_id,a.id);
- IF assessment->>'status' IS DISTINCT FROM 'authorized' THEN RETURN assessment;END IF;
- SELECT * INTO STRICT p FROM public.metering_permissions WHERE company_id=p_company_id AND id=p_permission_id FOR SHARE;
- IF p.customer_id IS DISTINCT FROM a.customer_id OR NOT EXISTS(SELECT FROM public.ediel_assignment_permission_links l WHERE l.company_id=a.company_id AND l.assignment_id=a.id AND l.permission_id=p.id) THEN RAISE EXCEPTION 'ediel_service_manual_permission_not_linked';END IF;
- PERFORM s.id FROM public.metering_permission_sites s WHERE s.company_id=a.company_id AND s.metering_permission_id=p.id ORDER BY s.id FOR SHARE;
- IF p.status IN ('active','approved','partially_approved','z14_received') THEN
-  IF gridex_service_administration.permission_matches_assignment_v1(a,p) IS NOT TRUE
-   OR EXISTS(SELECT FROM unnest(a.object_ids) object_id CROSS JOIN unnest(a.product_ids) product_id WHERE NOT EXISTS(SELECT FROM public.metering_permission_sites s WHERE s.company_id=a.company_id AND s.metering_permission_id=p.id AND s.customer_id=a.customer_id AND s.facility_id=object_id AND s.status IN('approved','active') AND s.metadata->>'source'='inbound_prodat_z14' AND s.metadata->>'edielMessageId'=coalesce(p.inbound_z14_message_id,p.source_z14_message_id)::text AND s.metadata->>'mode'=CASE a.mode WHEN 'V' THEN 'S17' ELSE 'S18' END AND s.metadata->>'product'=product_id AND s.start_at IS NOT NULL AND a.data_start>=s.start_at AND (s.end_at IS NULL OR (a.data_end IS NOT NULL AND a.data_end<=s.end_at)) AND (s.permission_end_at IS NULL OR s.permission_end_at>now())))
-   THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_source_approved_compatible_permission']);END IF;
-  RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','approved','accessGranted',false);
+ PERFORM gridex_service_permission.lock_request_writer_v1();
+ timing:=gridex_service_permission.current_request_timing_v1(p_company_id,p_assignment_id,p_actor_user_id,p_expected_version,false);
+ IF timing->>'status' IS DISTINCT FROM 'authorized' THEN RETURN jsonb_build_object('status','held','permissionId',NULL,'missing',timing->'missing');END IF;
+ -- A recorded immutable request binds this assignment scope to one permission.
+ IF timing->>'permissionId' IS NOT NULL AND timing->>'permissionId' IS DISTINCT FROM p_permission_id::text THEN
+  RETURN jsonb_build_object('status','held','permissionId',NULL,'missing',ARRAY['immutable_service_request_permission_mismatch']);
  END IF;
- IF (p.status IN('draft','z13_ready','z13_sent','waiting_for_customer_approval')) IS NOT TRUE THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_permission_request_state']);END IF;
- SELECT r.assignment_id,r.scope_basis_version,r.scope INTO owner_id,owner_scope,owner_snapshot FROM gridex_service_administration.permission_request_owners r WHERE r.company_id=a.company_id AND r.permission_id=p.id;
- IF owner_id IS NULL THEN
-  -- An existing genuinely reserved/bound source origin is a retained owner.
-  -- A parsed metadata assignment_id or today's sole link is not historical proof.
-  SELECT o.assignment_id,(o.basis->>'scopeBasisVersion')::bigint,o.message_id INTO owner_id,owner_scope,original FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.message_code='Z13';
- ELSE
-  SELECT o.message_id INTO original FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.message_code='Z13';
- END IF;
- IF owner_id IS NULL THEN RETURN jsonb_build_object('status','held','missing',ARRAY['prospective_or_original_permission_request_owner']);END IF;
- SELECT * INTO owner FROM public.ediel_service_assignments WHERE company_id=a.company_id AND id=owner_id FOR SHARE;
- IF NOT FOUND OR owner.scope_basis_version IS DISTINCT FROM owner_scope OR (owner_snapshot IS NOT NULL AND gridex_service_administration.scope_v1(owner) IS DISTINCT FROM owner_snapshot)
-  OR owner.environment IS DISTINCT FROM a.environment OR owner.provider_actor_id IS DISTINCT FROM a.provider_actor_id OR owner.customer_id IS DISTINCT FROM a.customer_id OR owner.dso_actor_id IS DISTINCT FROM a.dso_actor_id OR owner.mode IS DISTINCT FROM a.mode OR owner.purpose IS DISTINCT FROM a.purpose
-  OR NOT(a.object_ids<@owner.object_ids AND a.product_ids<@owner.product_ids AND a.field_sets<@owner.field_sets) OR a.data_start<owner.data_start OR (owner.data_end IS NOT NULL AND (a.data_end IS NULL OR a.data_end>owner.data_end)) OR public.ediel_service_assignment_assessment_v1(a.company_id,owner.id)->>'status' IS DISTINCT FROM 'authorized'
-  THEN RETURN jsonb_build_object('status','held','missing',ARRAY['current_compatible_permission_request_owner']);END IF;
- IF p.outbound_z13_message_id IS NOT NULL OR p.source_z13_message_id IS NOT NULL THEN
-  IF original IS NULL OR p.outbound_z13_message_id IS DISTINCT FROM original OR p.source_z13_message_id IS DISTINCT FROM original OR original_row.id IS DISTINCT FROM original OR original_row.company_id IS DISTINCT FROM a.company_id OR original_row.environment IS DISTINCT FROM a.environment OR original_row.direction IS DISTINCT FROM 'outbound' OR original_row.message_family IS DISTINCT FROM 'PRODAT' OR original_row.message_code IS DISTINCT FROM 'Z13' OR original_row.customer_id IS DISTINCT FROM a.customer_id OR NOT EXISTS(SELECT FROM gridex_service_permission.origins o WHERE o.company_id=a.company_id AND o.permission_id=p.id AND o.assignment_id=owner.id AND o.message_id=original_row.id AND o.intent_id=original_row.intent_id AND o.message_code='Z13') THEN RETURN jsonb_build_object('status','held','missing',ARRAY['immutable_owned_pending_permission_original']);END IF;
-  -- This sole canonical owner compares the saved bytes to the prospective
-  -- immutable witness. It does not select a new rule or alter the old original.
-  PERFORM gridex_ediel_outbound_owner.require_v1(a.company_id,original);
-  IF original_row.status='draft' AND owner.id=a.id THEN
-   -- Only the exact first owner's bound draft can resume the canonical gateway
-   -- after a pre-queue crash. A different beneficiary never queues that request.
-   PERFORM r.id FROM public.outbound_requests r WHERE r.company_id=a.company_id AND r.id=original_row.outbound_request_id FOR SHARE;
-   IF original_row.outbound_request_id IS NULL OR NOT EXISTS(SELECT FROM public.outbound_requests r WHERE r.company_id=a.company_id AND r.id=original_row.outbound_request_id AND r.customer_id=a.customer_id AND r.source_type='manual' AND r.source_id=original_row.intent_id AND r.request_type='metering_access' AND r.operation_id=p.id AND r.payload->>'servicePermissionCommandKey'=original_row.intent_id::text AND r.payload->>'environment'=a.environment) THEN RETURN jsonb_build_object('status','held','missing',ARRAY['owned_bound_first_draft_request']);END IF;
-   RETURN jsonb_build_object('status','permission_required','permissionId',p.id,'messageId',original,'intentId',original_row.intent_id,'outboundRequestId',original_row.outbound_request_id);
-  END IF;
-  RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','pending','messageId',original,'accessGranted',false);
- END IF;
- IF owner.id IS DISTINCT FROM a.id THEN RETURN jsonb_build_object('status','reuse_permission','permissionId',p.id,'marketPermissionState','pending','accessGranted',false);END IF;
- RETURN jsonb_build_object('status','permission_required','permissionId',p.id);
+ RETURN gridex_service_permission.resolve_before_request_timing_v1(p_company_id,p_assignment_id,p_actor_user_id,p_expected_version,p_permission_id);
 END $$;
 
 --
@@ -184082,6 +184103,12 @@ REVOKE ALL ON FUNCTION gridex_service_permission.require_requested_method_v1(m p
 
 REVOKE ALL ON FUNCTION gridex_service_permission.reserve_v1(c uuid, aid uuid, actor uuid, expected_version bigint, code text, pid uuid, iid uuid) FROM PUBLIC;
 GRANT ALL ON FUNCTION gridex_service_permission.reserve_v1(c uuid, aid uuid, actor uuid, expected_version bigint, code text, pid uuid, iid uuid) TO service_role;
+
+--
+-- Name: FUNCTION resolve_before_request_timing_v1(p_company_id uuid, p_assignment_id uuid, p_actor_user_id uuid, p_expected_version bigint, p_permission_id uuid); Type: ACL; Schema: gridex_service_permission; Owner: -
+--
+
+REVOKE ALL ON FUNCTION gridex_service_permission.resolve_before_request_timing_v1(p_company_id uuid, p_assignment_id uuid, p_actor_user_id uuid, p_expected_version bigint, p_permission_id uuid) FROM PUBLIC;
 
 --
 -- Name: FUNCTION actor_v1(c uuid, actor uuid, mode text); Type: ACL; Schema: gridex_supply_rescission; Owner: -
