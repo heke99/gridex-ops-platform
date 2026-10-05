@@ -3,10 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseInboundEmailContent } from '@/lib/inbound-mail/edielEmailParser'
 import { splitMimeParts } from '@/lib/inbound-mail/edielMailboxPoller.part-1'
 import { processInboundEmailMessage } from '@/lib/inbound-mail/edielInboundProcessor'
+import { isDeliveryStatusNotification } from '@/lib/inbound-mail/dsnClassifier'
 import { ensureDiagnosticEdielMessagesForInboundEmails, listEdielMessageIdsForInboundEmails } from '@/lib/inbound-mail/edielMailboxPoller.part-2'
 
 const mocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), task: vi.fn(), tenant: vi.fn() }))
-vi.mock('@/lib/supabase/service', () => ({ supabaseService: { from: mocks.from } }))
+vi.mock('@/lib/supabase/service', () => ({ supabaseService: {
+  from: mocks.from,
+  rpc: async (name: string, args: Record<string, unknown>) => {
+    if (name !== 'ediel_read_unattributed_technical_intake_v1') throw new Error(`Undeclared DSN fixture RPC: ${name}`)
+    expect(args).toEqual({ p_inbound_email_message_id: 'mail1', p_source_message_id: null, p_actor_user_id: null })
+    // This ordinary mail has no protected technical birth; null grants no authority.
+    return { data: null, error: null }
+  },
+} }))
 vi.mock('@/lib/inbound-mail/inboundStatusUpdater', () => ({
   updateInboundEmailProcessingStatus: mocks.update,
   createParseResult: vi.fn(), createInboundEdielMessage: vi.fn(),
@@ -42,6 +51,20 @@ describe('DSN classification before EDIFACT extraction', () => {
     const wrapped = `Content-Type: multipart/mixed; boundary=outer\r\n\r\n--outer\r\nContent-Type: message/rfc822\r\n\r\n${report()}\r\n--outer--\r\n`
     expect(splitMimeParts(wrapped).rawEdifactPayload).toBeNull()
     expect(parseInboundEmailContent({ rawEmail: wrapped })).toBeNull()
+  })
+  it.each(["UTF-8''outer", "UTF-8''outer%2Dboundary"])(
+    'classifies a forwarded DSN before extracting its returned original through RFC2231 boundary*=%s', encoded => {
+      const boundary = decodeURIComponent(encoded.replace("UTF-8''", ''))
+      const wrapped = `Content-Type: multipart/mixed; boundary*=${encoded}\r\n\r\n--${boundary}\r\nContent-Type: message/rfc822\r\n\r\n${report()}\r\n--${boundary}--\r\n`
+      expect(isDeliveryStatusNotification(wrapped)).toBe(true)
+      expect(splitMimeParts(wrapped)).toMatchObject({ rawEdifactPayload: null, attachments: [] })
+      expect(parseInboundEmailContent({ rawEmail: wrapped, attachmentText: edi })).toBeNull()
+    },
+  )
+  it('holds an uninspectable multipart wrapper before a returned business original can be extracted', () => {
+    const wrapped = `Content-Type: multipart/mixed; boundary*=UTF-8''outer%ZZ\r\n\r\n--outer%ZZ\r\nContent-Type: message/rfc822\r\n\r\n${report()}\r\n--outer%ZZ--\r\n`
+    expect(isDeliveryStatusNotification(wrapped)).toBe(true)
+    expect(parseInboundEmailContent({ rawEmail: wrapped, attachmentText: edi })).toBeNull()
   })
   it.each(['delivery-status', 'global-delivery-status'])('recognizes %s with folded MIME headers', (type) => {
     expect(parseInboundEmailContent({ rawEmail: report(type) })).toBeNull()

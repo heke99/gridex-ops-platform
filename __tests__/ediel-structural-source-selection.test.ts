@@ -1,3 +1,4 @@
+// masterplan: P-15, AT-P-15, DB-03, AT-DB-03
 import { describe, expect, it } from 'vitest'
 import { selectStructuralSources, type StructuralCoverage, type StructuralSelectionInput, type StructuralVersion } from '@/lib/ediel/sources/structuralSourceSelection'
 
@@ -23,6 +24,12 @@ const selected = (query: StructuralSelectionInput) => { const result=selectStruc
 const unavailable = (query: StructuralSelectionInput) => expect(selectStructuralSources(query).status).toBe('unavailable')
 
 describe('dated structural-source replacement',()=>{
+  it('P-15 a future supplier keeps structure received before its start, valid only from the start and never by receipt time',()=>{
+    const future=version('future-baseline',10);future.availableAt=at(3);future.coverage!.validFrom=at(10);future.coverage!.baselineSourceMessageId='future-baseline'
+    future.wire.contractStartMinute='202610100100'
+    expect(selected(input([future],11,12)).states).toMatchObject([{sourceMessageId:'future-baseline'}])
+    unavailable(input([future],4,5))
+  })
   it('selects source products and exact quarter measurement by valid time, independent of receipt order',()=>{
     const baseline=version('baseline',2),change=version('quarter',4,'Z06',['901'])
     baseline.measurements={productCode:'L917',measurementMethod:'Z03',reportingFrequency:'H',settlementMethod:'Z31'}

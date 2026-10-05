@@ -1,0 +1,112 @@
+{
+  "basis": "fff486f822001d35970f163507b10e17c3692f58",
+  "proposalDraftV1SHA256": "fa06a8d865f47068f5c2c34c959aa12bbed5f472bd2103163af89afd4195d796",
+  "basisManifestSHA256": "3e67d105624101dc67a59946db866daff1bc230f87df2e947e41e87819c3ca89",
+  "manifestMatchedBlobs": 36,
+  "readOnlyRepoStatus": "",
+  "tests_native_database_provider_ci": "NOT_RUN",
+  "findings": [
+    {
+      "id": "VH-NATIVE-COVERAGE-BOUND",
+      "classification": "OBSERVATION_GAP",
+      "refs": [
+        "scripts/ediel-service-evidence-native.test.ts:60,74-88,237-261",
+        "__tests__/helpers/utiltsErrGatewayFixture.ts:18-40",
+        "__tests__/helpers/utiltsObservationHandoff.ts:42-47"
+      ],
+      "fact": "June-September VH scoped acceptance persists one July quarter-hour source; no requested-period completeness result asserted."
+    },
+    {
+      "id": "VH-END-PLAN-BOUND",
+      "classification": "OWNER_OBSERVATION_GAP_NOT_NATIVE_REPRODUCED_DEFECT",
+      "refs": [
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql:154-200,221-223",
+        "docs/ediel/masterplan-v2/registers/state_transitions.json:485-499"
+      ],
+      "fact": "Own permission/sites/end receipt are persisted; body contains no requested-window history job/coverage reader or separate follow-up outcome."
+    },
+    {
+      "id": "VH-PROJECTION-BOUND",
+      "classification": "EXISTING_SCOPE_BOUNDARY",
+      "refs": [
+        "lib/ediel/services/projection.ts:5-62",
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:230-275",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql:7-69"
+      ],
+      "fact": "One accepted native series with current grants/source and immutable provenance, not an arbitrary requested-period completeness API."
+    },
+    {
+      "id": "VH-COVERAGE-CALLER-SEARCH",
+      "classification": "BOUNDED_OWNER_SEARCH_NO_MATCH",
+      "searched": [
+        "lib",
+        "app",
+        "supabase/migrations",
+        "scripts/*native.test.ts"
+      ],
+      "terms": [
+        "history_job",
+        "historical_job",
+        "history_plan",
+        "historical_plan",
+        "reporting_plans",
+        "historical+plan/job wording"
+      ],
+      "qualification": "No supported equivalent identified in searched code and traced callers; literal absence alone is not global absence proof."
+    },
+    {
+      "id": "VH-PURE-LIFECYCLE-REFUTED",
+      "classification": "DROP_AS_PERSISTED_JOB_PROOF",
+      "refs": [
+        "lib/ediel/stateMachines/prodatLifecycle.ts:174-219,273-306",
+        "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts:214-239,377-379"
+      ],
+      "fact": "Generic pure decision/legacy metadata is not persisted interval completeness/history-job approval."
+    },
+    {
+      "id": "VH-CLOSURE-PROJECTION",
+      "classification": "RETAINED_OWNER_POLICY_QUESTION",
+      "refs": [
+        "supabase/migrations/20261001015846_ediel_service_scope_grant_set_and_projection_entry.sql:254-269"
+      ],
+      "fact": "Current projection requires active approved parent/site; no promised post-end VH access/retention semantics."
+    }
+  ],
+  "historicalNativeReceipt": {
+    "head": "7cf4524428868b99a342cd6fc2b0d062b234e47d",
+    "run": 37289047220,
+    "job": 111694842956,
+    "selectedTests": 33,
+    "requalificationAtCurrentMain": "NOT_RUN",
+    "changedProductionPaths": [
+      "lib/ediel/core/runtimeDecision.ts",
+      "lib/ediel/inboundCases.ts",
+      "lib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "lib/ediel/security/outboundRecipientCertificate.ts",
+      "lib/ediel/services/authorization.ts"
+    ]
+  },
+  "ackDependencySHA256": "ccb3d62f58b046a4dc674fe40793da552a5c9a39d914c60433ce327e44d1ead9",
+  "proposalRevision3SHA256": "b7d70f658950cf04a02079edbdc3cc2fdb7cbe71cea8c03afb72861cb08af40f",
+  "proposalOracleCorrections": [
+    {
+      "draft": 1,
+      "sha256": "fa06a8d865f47068f5c2c34c959aa12bbed5f472bd2103163af89afd4195d796",
+      "refs": [
+        "original P p57 field217",
+        "lib/ediel/rulebook/canonicalEdielFacade.ts:223-227",
+        "scripts/ediel-service-evidence-native.test.ts:159-161"
+      ],
+      "finding": "Unqualified hourly positive oracle paired source methodZ04 with default60:806; fixed with explicitlydeclared15:806/eight cells, not universal national rejection."
+    },
+    {
+      "draft": 2,
+      "sha256": "9d812b2802310e87f2a51357e4ab1b4634709ed46941987f48417650cb0a4d9d",
+      "refs": [
+        "__tests__/helpers/utiltsObservationHandoff.ts:12",
+        "supabase/migrations/20261001041152_ediel_periodic_dgi_reason_source_review.sql:251-257"
+      ],
+      "finding": "Inherited physical+0200 disagrees with declared+0100 window; fixedby explicitpre-insert+0100 and observing actualcontract local/offset/instant basis."
+    }
+  ]
+}

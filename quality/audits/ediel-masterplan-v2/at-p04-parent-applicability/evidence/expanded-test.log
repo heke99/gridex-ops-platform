@@ -1,0 +1,113 @@
+
+ RUN  v4.1.9 /workspace/gridex-at-p04-parent-applicability
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts (42 tests | 21 failed) 1409ms
+     ✓ actual DGI/N A13 is valid without parents or positive fields 87ms
+     ✓ actual DGI/N A76 is valid without parents or positive fields 77ms
+     × V requires exactly child 316 while its parent remains present 60ms
+     × V requires exactly child 233 while its parent remains present 36ms
+     × V requires exactly child 234 while its parent remains present 32ms
+     × VH requires exactly child 316 while its parent remains present 36ms
+     × VH requires exactly child 233 while its parent remains present 38ms
+     × VH requires exactly child 234 while its parent remains present 60ms
+     ✓ N refuses empty UD without requiring its absent children 6ms
+     ✓ N refuses populated UD without requiring its absent children 3ms
+     ✓ N refuses empty IT without requiring its absent children 2ms
+     ✓ N refuses populated IT without requiring its absent children 3ms
+     × each mixed positive/N object keeps its own parent obligation and fields 59ms
+     ✓ a second complete message cannot supply the first message parent children 112ms
+     ✓ actual DGI/N A13 is valid without parents or positive fields 40ms
+     ✓ actual DGI/N A76 is valid without parents or positive fields 39ms
+     × V requires exactly child 316 while its parent remains present 36ms
+     × V requires exactly child 233 while its parent remains present 30ms
+     × V requires exactly child 234 while its parent remains present 26ms
+     × VH requires exactly child 316 while its parent remains present 28ms
+     × VH requires exactly child 233 while its parent remains present 33ms
+     × VH requires exactly child 234 while its parent remains present 41ms
+     ✓ N refuses empty UD without requiring its absent children 2ms
+     ✓ N refuses populated UD without requiring its absent children 2ms
+     ✓ N refuses empty IT without requiring its absent children 2ms
+     ✓ N refuses populated IT without requiring its absent children 2ms
+     × each mixed positive/N object keeps its own parent obligation and fields 38ms
+     ✓ a second complete message cannot supply the first message parent children 93ms
+     ✓ actual DGI/N A13 is valid without parents or positive fields 30ms
+     ✓ actual DGI/N A76 is valid without parents or positive fields 31ms
+     × V requires exactly child 316 while its parent remains present 28ms
+     × V requires exactly child 233 while its parent remains present 29ms
+     × V requires exactly child 234 while its parent remains present 32ms
+     × VH requires exactly child 316 while its parent remains present 30ms
+     × VH requires exactly child 233 while its parent remains present 32ms
+     × VH requires exactly child 234 while its parent remains present 29ms
+     ✓ N refuses empty UD without requiring its absent children 3ms
+     ✓ N refuses populated UD without requiring its absent children 2ms
+     ✓ N refuses empty IT without requiring its absent children 2ms
+     ✓ N refuses populated IT without requiring its absent children 2ms
+     × each mixed positive/N object keeps its own parent obligation and fields 54ms
+     ✓ a second complete message cannot supply the first message parent children 77ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > V requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > V requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > V requires exactly child 234 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > VH requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > VH requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > VH requires exactly child 234 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > V requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > V requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > V requires exactly child 234 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > VH requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > VH requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > VH requires exactly child 234 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > V requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > V requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > V requires exactly child 234 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > VH requires exactly child 316 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > VH requires exactly child 233 while its parent remains present
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > VH requires exactly child 234 while its parent remains present
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:97:83
+     95|       const result = canonical(payload, 'N', request)
+     96|       expect(forField(result.issues, field).some(issue => issue.blocki…
+     97|       expect(result.issues.every(issue => forField([issue], field).len…
+       |                                                                                   ^
+     98|       expect(canonical(original, 'N', request).issues).toEqual([])
+     99|       expect({ body, request }).toEqual(before)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/21]⎯
+
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 :+?' > each mixed positive/N object keeps its own parent obligation and fields
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 *;!~ > each mixed positive/N object keeps its own parent obligation and fields
+ FAIL  __tests__/ediel-at-p04-parent-applicability.test.ts > AT-P-04 ^|!% > each mixed positive/N object keeps its own parent obligation and fields
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ __tests__/ediel-at-p04-parent-applicability.test.ts:128:83
+    126|       const result = canonical(payload, 'N', request)
+    127|       expect(forField(result.issues, field).some(issue => issue.blocki…
+    128|       expect(result.issues.every(issue => forField([issue], field).len…
+       |                                                                                   ^
+    129|     }
+    130|     const noCountry = omitChild(body, '316')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/21]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  21 failed | 21 passed (42)
+   Start at  13:19:28
+   Duration  2.84s (transform 981ms, setup 26ms, import 1.22s, tests 1.41s, environment 0ms)
+
+JUNIT report written to /workspace/gridex-at-p04-parent-applicability/quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/evidence/expanded-junit.xml

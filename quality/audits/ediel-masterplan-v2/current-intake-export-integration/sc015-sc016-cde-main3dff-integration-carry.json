@@ -1,0 +1,38 @@
+{
+  "scope": "Minimum read-only main evolution and exact merge-tree ledger/source carry; #559 patch authored by this reviewer so root still owns independent new-patch approval",
+  "pr": 559,
+  "head": "cdeeee07036da027ea840123f4f951ab32690395",
+  "headTree": "4db8f812a992f3d2b028940963aaa3fac1623c15",
+  "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "previousQualifiedMain": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "mergeTree": "f55e9e4bba199225fc907f47a19ef1f00a469794",
+  "createdAtUTC": "2026-10-05T13:55:19.027768+00:00",
+  "mainDeltaPaths": [
+    "__tests__/ediel-sc-001-002-own-market-identity.test.ts",
+    "__tests__/ediel-sc-018-056-independent-service-and-incident.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json",
+    "quality/audits/ediel-masterplan-v2/sc001-sc002/checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc001-sc002/independent-review.md",
+    "quality/audits/ediel-masterplan-v2/sc001-sc002/verification-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc018-sc056/checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-receipt.json",
+    "quality/audits/ediel-masterplan-v2/sc018-sc056/independent-review.md",
+    "quality/audits/ediel-masterplan-v2/sc018-sc056/verification-receipt.json",
+    "scripts/ediel-sc-018-manual-service-context-sql-regression.mjs",
+    "scripts/test-ediel-sc-018-056-service-incident.cjs"
+  ],
+  "mainEvolution": "Only merged SC001/002+SC018/056 test/evidence/coverage packets; no production/SQL schema/capture/frozen/helper changes. All selected reached current source/SQL bodies retain prior qualification.",
+  "foreign350RowsAndEvidenceExact": true,
+  "onlyDeltaIds": [
+    "SC-015",
+    "SC-016"
+  ],
+  "mainApproved": 217,
+  "mergedApproved": 219,
+  "currentMainNewPacketsAllPreserved": true,
+  "actualPatchReview": "551 complete prior independent code effects APPROVE carried; 559 original whole f208 approval retained, tiny new module-loader binding and real10PASS0skip authored+verified here, independent root patch review/mandatory checks still required.",
+  "noFullNativeOrBehaviorRerun": true,
+  "noAdditionalOwnerWorktreeMutation": true,
+  "next": "Root confirms exact remote head/current main, actual new-head mandatoryCI and performs actual merge; do not use old0bef greens for559."
+}

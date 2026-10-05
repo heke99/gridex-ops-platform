@@ -1,0 +1,355 @@
+{
+  "main": "82eccf0bbd1262f9d18b5f0da21cc7c06fd94c26",
+  "packets": {
+    "529": {
+      "head": "a272a04660b52701aae683a6d37e3702a1472ecf",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "tree": "b11cf0e6cd7024c51dcb1519a4fbeafc3463ee94",
+      "rows": [
+        {
+          "path": ".agent-memory/handover.md",
+          "headBlob": "2f9a03cb8da122838f2efdbf4241570b083f0ca8",
+          "mainBlob": "b1e0cef508eded2d01abdf2f8dd91b14a4f50651",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "__tests__/ediel-imp-02-03-registry-normalization.test.ts",
+          "headBlob": "c31a198748bb16f704f495983e88e0914c9a7a21",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 181,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "__tests__/ediel-imp-03-reviewed-snapshot-apply.test.ts",
+          "headBlob": "bfce2a88d6dfb974c835f1af1ac327403b3ddc90",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 82,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "__tests__/helpers/edielRegistryProbeBridge.mjs",
+          "headBlob": "a0f3e1d9d829d42edbdaadf0ef9fa574acaac3b2",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 7,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "app/admin/ediel/actors/actions.ts",
+          "headBlob": "0610129edddf918d3287fe1584168d3f6552065e",
+          "mainBlob": "7986265c7c4bd5bd8af7fa2c9ef6ca776f76dfcc",
+          "identical": false,
+          "additions": 22,
+          "deletions": 6,
+          "status": "modified"
+        },
+        {
+          "path": "app/admin/ediel/actors/page.tsx",
+          "headBlob": "7088405490fe43cbb7c2f356d9b7e4fdda7bbfb7",
+          "mainBlob": "34cd8dcc134f6365261324fc3f47d6dcb57cd4f7",
+          "identical": false,
+          "additions": 5,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/partyRegistry.ts",
+          "headBlob": "658573be09609f73179dee4d53722959b24558f0",
+          "mainBlob": "97e5df8dd3b04e600827d30a18521a08858dfcd6",
+          "identical": false,
+          "additions": 3,
+          "deletions": 99,
+          "status": "modified"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "headBlob": "a430232b40e120864fbcea1e294cb4d17ac89f69",
+          "mainBlob": "7b2714a3de8fba2f55e592a9345b4cdbcfba6871",
+          "identical": false,
+          "additions": 42,
+          "deletions": 8,
+          "status": "modified"
+        }
+      ]
+    },
+    "537": {
+      "head": "8cf8cc914beb07723e7efc6f747dc0f996364389",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "tree": "70e3d9f4c66f463c04ac0c37e5ea0b5b17dec586",
+      "rows": [
+        {
+          "path": ".agent-memory/handover.md",
+          "headBlob": "1178ba1baf834c049305c840d224dfdba01f9a04",
+          "mainBlob": "b1e0cef508eded2d01abdf2f8dd91b14a4f50651",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "__tests__/ediel-masterplan-gov-05-gov-06.test.ts",
+          "headBlob": "d073f3baccfe14c32aafafd9621e15fe6225e123",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 148,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "lib/ediel/core/messagePolicy.ts",
+          "headBlob": "ee8abba69eabae9fd2c68e8ca2a05bb47fcb1820",
+          "mainBlob": "7a38184dcc62e15ce81cd464c4eb7d8e749e464c",
+          "identical": false,
+          "additions": 29,
+          "deletions": 5,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/core/runtimeDecision.ts",
+          "headBlob": "dfb0fc4bcc606329a631e99c227e00fc8b1f6890",
+          "mainBlob": "9f2e3c7e36affec21f1430a3beb165fac2e5242c",
+          "identical": false,
+          "additions": 2,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+          "headBlob": "5e0d7b065a73b86f335f2947d9a92084cb74ba2f",
+          "mainBlob": "18a4b4359d40d9972e06b5b438a65e5f699815fa",
+          "identical": false,
+          "additions": 8,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/utiltsEngine.ts",
+          "headBlob": "dcb96a488dfa52d9f85290ca8c3c02669b4b3517",
+          "mainBlob": "007d8270d467ff7bddbb0f7ca65beed722d6071e",
+          "identical": false,
+          "additions": 12,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "headBlob": "aa1fc9da64c8251430f0d44bcb02b0b13db34145",
+          "mainBlob": "7b2714a3de8fba2f55e592a9345b4cdbcfba6871",
+          "identical": false,
+          "additions": 26,
+          "deletions": 8,
+          "status": "modified"
+        }
+      ]
+    },
+    "538": {
+      "head": "1578d763b6cccc0af19abfa10d89bd1d0aa7524c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "tree": "38af0476f9b212d1c4d948c5fc55d02eabd99308",
+      "rows": [
+        {
+          "path": ".agent-memory/handover.md",
+          "headBlob": "fbabff6ca056315a1e04ef37884483a3489fc4a1",
+          "mainBlob": "b1e0cef508eded2d01abdf2f8dd91b14a4f50651",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "__tests__/db-01-communication-routes-expand.test.ts",
+          "headBlob": "0e98ac8b7909cb18f74f30d21c497e4cbf3bc1a0",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 96,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "scripts/migration-history-manifest.json",
+          "headBlob": "5ac431cb3f6bf7b73fe886786b905b6b4f67b942",
+          "mainBlob": "cf68fcdfb2c573e115fdd6aebba8a597bf06c379",
+          "identical": false,
+          "additions": 5,
+          "deletions": 4,
+          "status": "modified"
+        },
+        {
+          "path": "supabase/migrations/20261004180000_db01_communication_routes_expand.sql",
+          "headBlob": "ea558e6647494e46f93f42115fbcd738c976b522",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 83,
+          "deletions": 0,
+          "status": "added"
+        }
+      ]
+    },
+    "540": {
+      "head": "1eb4560b1038a3df23ba3032f080c77efb5a5e2c",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "tree": "401ca7183a42fa3f022c221b3157dea1e455fd0f",
+      "rows": [
+        {
+          "path": ".agent-memory/decisions.md",
+          "headBlob": "c07bed01a9c1ffcdbb178290474969f7a0d01160",
+          "mainBlob": "788ec65b6939046d623b8412d1c8e0d0fcb00658",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": ".agent-memory/handover.md",
+          "headBlob": "48cc993cd081ea1f9ce62092f9914347f444e614",
+          "mainBlob": "b1e0cef508eded2d01abdf2f8dd91b14a4f50651",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "__tests__/ediel-gov-01-normative-rule-metadata.test.ts",
+          "headBlob": "e70bdd0071d3b23a643ad9e5a1f8352e0d39e018",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 157,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+          "headBlob": "2f66b68401fdde3328b38fcaa9ff3b8f5c079187",
+          "mainBlob": "43029ecaf5cb96fd2a2c97899f239d4f2ed3a474",
+          "identical": false,
+          "additions": 0,
+          "deletions": 16,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/rulebook/guideRegistry.ts",
+          "headBlob": "5de7de7530fac0ff975cf0944a53425074bbfa4b",
+          "mainBlob": "09bf46623bc63226b7cb04d8d74d64c291a1f567",
+          "identical": false,
+          "additions": 38,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "lib/ediel/rulebook/normativeRuleMetadata.ts",
+          "headBlob": "20f2ef51ecbe2f45b7e91358ce199d842a8bdd4c",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 183,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+          "headBlob": "a312fe8f7fd05a4e06dfeea131cc25cfadd9aff6",
+          "mainBlob": "7b2714a3de8fba2f55e592a9345b4cdbcfba6871",
+          "identical": false,
+          "additions": 12,
+          "deletions": 4,
+          "status": "modified"
+        }
+      ]
+    },
+    "542": {
+      "head": "c250c94124c6af7fd39c7b716b617bee997d56b9",
+      "base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+      "tree": "a5f334881da963914c4bfbddbc555a0cfb7e26d3",
+      "rows": [
+        {
+          "path": ".agent-memory/decisions.md",
+          "headBlob": "52937d8a50155a091bd1da4d6d36718303db06bb",
+          "mainBlob": "788ec65b6939046d623b8412d1c8e0d0fcb00658",
+          "identical": false,
+          "additions": 5,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": ".agent-memory/handover.md",
+          "headBlob": "06f483663f7fe60ecb6cb95c9815ca815c7c28be",
+          "mainBlob": "b1e0cef508eded2d01abdf2f8dd91b14a4f50651",
+          "identical": false,
+          "additions": 1,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": ".github/workflows/tenant-integrity-regression.yml",
+          "headBlob": "37918f05d3c8b586674ac9a46e65d2daa421d72a",
+          "mainBlob": "231bdd5c1c299aaa0c9f498f6f0c80736b9ae98c",
+          "identical": false,
+          "additions": 22,
+          "deletions": 1,
+          "status": "modified"
+        },
+        {
+          "path": "__tests__/tenant-fk-ratchet.test.ts",
+          "headBlob": "01d7983fc397b350271345e17897ae72cc951782",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 78,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "package.json",
+          "headBlob": "b71f1ca06d2a79f82120994d2df6838c800bfcaf",
+          "mainBlob": "7e8140606986b98e6acfe71415ce8fa38bad3784",
+          "identical": false,
+          "additions": 2,
+          "deletions": 0,
+          "status": "modified"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/db-01-db-02-plan.md",
+          "headBlob": "191c0c573a89fb626479c9a889c69bc27125d6a7",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 87,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "quality/audits/ediel-masterplan-v2/tenant-fk-baseline.json",
+          "headBlob": "8835638f4d2668f422f166e774bdf43aae006d86",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 7074,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "scripts/sql/tenant-fk-inventory.sql",
+          "headBlob": "0c256c496ad1864d77ca30cf6e2f36f1e01b9f7b",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 67,
+          "deletions": 0,
+          "status": "added"
+        },
+        {
+          "path": "scripts/tenant-fk-inventory.mjs",
+          "headBlob": "34d1a4fcd0768823f1670dea25b2bd2b490dfbed",
+          "mainBlob": null,
+          "identical": false,
+          "additions": 142,
+          "deletions": 0,
+          "status": "added"
+        }
+      ]
+    }
+  }
+}

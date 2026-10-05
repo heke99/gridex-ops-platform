@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="32" failures="0" errors="0" time="0.171912075">
+    <testsuite name="__tests__/billing-canonical-gate.test.ts" timestamp="2026-10-05T13:59:08.905Z" hostname="c8313f035683" tests="11" failures="0" errors="0" skipped="0" time="0.094550515">
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; allows only complete, current and business-covered lineage" time="0.04172479">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; blocks Z04C-like missing supply and incomplete Ediel lineage" time="0.000795487">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; cannot turn an omitted source row or a cached eligible flag into source authority" time="0.007577093">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 21 even when estimated values were requested" time="0.006186707">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 56 even when estimated values were requested" time="0.003908395">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 46 even when estimated values were requested" time="0.004484033">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 113 even when estimated values were requested" time="0.004635455">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds source nonapproved quality 125 even when estimated values were requested" time="0.00263665">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; holds unknown quality and a quantity that lost its exact string" time="0.003918868">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; preserves an exact quantity beyond the safe integer range" time="0.003769573">
+        </testcase>
+        <testcase classname="__tests__/billing-canonical-gate.test.ts" name="canonical billing gate &gt; bills an ended supply period up to its end date, never an open-ended one" time="0.009556128">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/ediel-beneficiary-projection-provenance.test.ts" timestamp="2026-10-05T13:59:08.913Z" hostname="c8313f035683" tests="10" failures="0" errors="0" skipped="0" time="0.033204443">
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; retains original DGI sender/contract/purpose without rewriting the received source as DDQ" time="0.01789616">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; requires fresh native provenance even when rows and a familiar grant UUID are present" time="0.002359936">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong purpose binding rather than returning a derivative" time="0.00218316">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong fields binding rather than returning a derivative" time="0.001569215">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong sourceRole binding rather than returning a derivative" time="0.001389997">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong contractHash binding rather than returning a derivative" time="0.000697131">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; holds actual wrong grantVersion binding rather than returning a derivative" time="0.0010253">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; returns quality and its exact origin only for the separately granted quality projection" time="0.000717797">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; rejects unauthorized quality/raw row fields and strips private extra attributes" time="0.001104849">
+        </testcase>
+        <testcase classname="__tests__/ediel-beneficiary-projection-provenance.test.ts" name="actual beneficiary projection provenance adapter &gt; propagates current denial even after an earlier successful consumer receipt" time="0.001261004">
+        </testcase>
+    </testsuite>
+    <testsuite name="__tests__/tenant-ediel-identity-completeness.test.ts" timestamp="2026-10-05T13:59:08.922Z" hostname="c8313f035683" tests="11" failures="0" errors="0" skipped="0" time="0.044157117">
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="reports exact-count completeness only after each actual bounded query confirms it" time="0.012687857">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="withholds identity evidence on missing, truncated or over-budget count null" time="0.002680469">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="withholds identity evidence on missing, truncated or over-budget count 0" time="0.000392583">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="withholds identity evidence on missing, truncated or over-budget count 2" time="0.000749464">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="withholds identity evidence on missing, truncated or over-budget count 8193" time="0.000495103">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="rejects duplicate physical rows instead of accepting a falsely complete set" time="0.00158672">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="SC-009 routes the sourced 82150 agent for legal62110 only through the actual current explicit delegation" time="0.014144223">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="SC-009 holds the same sourced technical/SMTP recipient with missing delegation evidence" time="0.003162493">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="SC-009 holds the same sourced technical/SMTP recipient with expired delegation evidence" time="0.002268778">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="SC-009 holds the same sourced technical/SMTP recipient with ambiguous delegation evidence" time="0.001765516">
+        </testcase>
+        <testcase classname="__tests__/tenant-ediel-identity-completeness.test.ts" name="SC-009 holds the same sourced technical/SMTP recipient with wrong_transport delegation evidence" time="0.001618285">
+        </testcase>
+    </testsuite>
+</testsuites>

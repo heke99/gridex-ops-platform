@@ -1,4 +1,5 @@
 import { supabaseService } from '@/lib/supabase/service'
+import { EdielExecutionFailure } from '@/lib/ediel/core/failureDisposition'
 import type { EdielServiceAssessment } from './types'
 
 /** The server reads scoped evidence and current actor facts. UI booleans are never authority. */
@@ -29,8 +30,8 @@ export async function assertEdielTenantActor(input: {
   ])
   // Schema/network errors remain errors, even if another permission succeeded.
   for (const result of [membership, profile, ...permissionResults]) if (result.error) throw result.error
-  if(!membership.data||membership.data.company_id!==input.companyId||membership.data.user_id!==input.actorUserId||membership.data.status!=='active'||membership.data.is_active!==true||!membership.data.accepted_at||!profile.data||profile.data.id!==input.actorUserId||profile.data.user_status!=='active')throw new Error('ediel_tenant_actor_forbidden')
-  if (!permissionResults.some(result => result.data === true)) throw new Error('ediel_tenant_permission_forbidden')
+  if(!membership.data||membership.data.company_id!==input.companyId||membership.data.user_id!==input.actorUserId||membership.data.status!=='active'||membership.data.is_active!==true||!membership.data.accepted_at||!profile.data||profile.data.id!==input.actorUserId||profile.data.user_status!=='active')throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_TENANT_ACTOR_FORBIDDEN'},'ediel_tenant_actor_forbidden')
+  if (!permissionResults.some(result => result.data === true)) throw new EdielExecutionFailure({kind:'security_quarantine',code:'EDIEL_TENANT_PERMISSION_FORBIDDEN'},'ediel_tenant_permission_forbidden')
 }
 
 export type EdielTenantActorPermission = 'communication.read'|'communication.write'|'ediel_testing.write'|'ediel.send'|'communication.send'|'metering.read'|'metering.write'|'customers.write'

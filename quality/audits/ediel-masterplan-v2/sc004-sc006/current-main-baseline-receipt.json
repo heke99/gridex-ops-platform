@@ -1,0 +1,53 @@
+{
+  "scope": "Actual local current-main baseline results; current GitHub gates still pending",
+  "created_at": "2026-10-05T13:40:57.339969+00:00",
+  "main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "node": "22.23.3",
+  "source_carry_sha256": "f53682e1783eb391634fb7aa7953457b4f359cdb02a820b89e654a902c34889e",
+  "commands": [
+    {
+      "name": "frozen_integrity",
+      "log": "current-main-integrity.log",
+      "exit_code": 0,
+      "sha256": "50d989fcc0602b49768d22523164a361c42975fe7b8545af249c9445cb9f2157"
+    },
+    {
+      "name": "tests_types",
+      "log": "current-main-tests-types.log",
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "scoped_lint",
+      "log": "current-main-scoped-lint-stdout.json",
+      "exit_code": 0,
+      "sha256": "3006a489dd2805579f5e5e011eb5efbd3cb569773064a36f5c512a55896f878c",
+      "raw_text_sha256": "06197c45e47dfbd70ed11d0cbdb97c9cfa367b752138f3916749ffc99ece1320"
+    },
+    {
+      "name": "first_tagged_runner_failure",
+      "log": "current-main-tagged-coverage-runner-failed-stdout.json",
+      "exit_code": 1,
+      "sha256": "9f173db43f9048fe6bbf822020b0c8dfc8f6df59331e5f443b7a06b1b8b5401f",
+      "raw_text_sha256": "a0a40bde372d661fa5523ced3f62946b5c3aaa9f783db5d834dff2696addf9b3"
+    },
+    {
+      "name": "corrected_full_tagged_check",
+      "log": "current-main-tagged-coverage.log",
+      "exit_code": 0,
+      "sha256": "b12bab5e07ccf1bfa309c827d6805c57fb15a3421f1846a55a8c2441d9b5804c"
+    }
+  ],
+  "tagged_check": {
+    "ids": 352,
+    "approved": 215,
+    "tagged_green": 241,
+    "tagged_failing": 0,
+    "untagged": 111
+  },
+  "runner": "Unchanged full checker and loopback-only NODE_OPTIONS; temporary npx launcher adds only supported maxWorkers=2. First minWorkers option failure retained. No source/assertion/selection/CI guard changed.",
+  "lint_limit": "Existing CJS wrapper ignored by repository ESLint pattern; no lint claim for that path. Tagged runner executed wrapper.",
+  "independent_final_review": "PENDING",
+  "current_head_mandatory_github_ci": "PENDING",
+  "diff_check_scope": "PR-relative pinned main a8 to candidate. Adopted main contains earlier foreign whitespace; foreign evidence bytes are preserved. Two own captured texts use JSON envelopes with exact raw_text and independent raw_text SHA to preserve capture without introducing blank EOF lines."
+}

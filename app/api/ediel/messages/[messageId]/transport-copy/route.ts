@@ -26,6 +26,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ mes
     }
     const result = await readEdielTransportCopies(scope)
     return NextResponse.json({ status: result.status, authorizesResend: false, deliveryProven: false,
+      reconciliationCases: (result.reconciliationCases ?? []).map(row => ({caseId: row.caseId, attemptId: row.attemptId, lane: row.lane,
+        originalHash: row.originalHash, mimeSha256: row.mimeSha256, enteredAt: row.enteredAt, openedAt: row.openedAt,
+        reason: row.reason, status: row.status, observedClassification: row.observedClassification, observedAt: row.observedAt,
+        authorizesResend: false, deliveryProven: false})),
       copies: result.copies.map(copy => ({ attemptId: copy.attemptId, mimeSha256: copy.mimeSha256, mimeLength: copy.mimeLength,
         rfcMessageId: copy.rfcMessageId, enteredAt: copy.enteredAt, observedAt: copy.observedAt, smtpClassification: copy.smtpClassification })) }, { headers })
   } catch (error) {

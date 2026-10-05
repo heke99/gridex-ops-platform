@@ -1,0 +1,1235 @@
+{
+  "schema": "gridex-independent-sc013-sc020-final-carry/v1",
+  "reviewer": "/root/sc004_sc006_integrate",
+  "created_at": "2026-10-05T14:24:37.359676+00:00",
+  "verdict": "APPROVE_CURRENT_SOURCE_AND_UNION_CARRY",
+  "head": "99af21336aac95c7df6ab9e788ae42d0c6e92dea",
+  "tree": "96ab21e23880f0cbb8dee1886aede037ced73f37",
+  "actual_main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+  "merge_tree": "d825212a323389d8a357299d24d21344db98e57f",
+  "source_merge": "986586b09256036cf38e2efa91759cbbf23ccca7",
+  "source_merge_tree": "ac85a1bbb87b54240b255a451a8e43e25fe42df7",
+  "original_whole_approval": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985754345",
+  "original_approved_head": "c4513ddac5e49a262114b3e05d0bb4728ae791ab",
+  "previous_owner_head": "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+  "owner_current_receipt": {
+    "path": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/verification-receipt.json",
+    "sha256": "029ccc90751aa440a8feb64f850a4594d386c8f0232dbba948d130e2c63069d5"
+  },
+  "asserting_inputs": [
+    {
+      "path": "__tests__/ediel-ack-source-correlation.test.ts",
+      "sha256": "e43ec6d9fea610cbe9a88b26ff03c1a8f5dea82a74212adcc66c1849ee9ea75c",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "tag union"
+    },
+    {
+      "path": "__tests__/ediel-permission-market-consumers.test.ts",
+      "sha256": "b0fc53b0b99fde4cf8b0e2f85d46a781986db2d766a119f85de28153d09a316b",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "none"
+    },
+    {
+      "path": "__tests__/ediel-permission-process-order.test.ts",
+      "sha256": "cc4c80107affb0945573229d0f0d8fc10d90d0366c3dba38376ffea88a65499e",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "none"
+    },
+    {
+      "path": "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+      "sha256": "d662d470150d6118a1ee8403eeeffe80743bda61c3aa83555fc56abfab3ddf07",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "exact existing main mock export"
+    },
+    {
+      "path": "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+      "sha256": "e54cb238017f26d02dad4cb6402a805159d3a8a7aaaeaeb15c36d22e8e0041ab",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "none"
+    },
+    {
+      "path": "scripts/ediel-service-administration-sql-regression.mjs",
+      "sha256": "9f6b4c8f4a5e88cb23d0e884add4cf5201a6b9e4a36abd9ecbe0b1c30702d8bd",
+      "original_assertions_unchanged": true,
+      "permitted_delta": "none"
+    }
+  ],
+  "selected_sources": [
+    {
+      "path": "lib/ediel/core/edifactEnvelopeCodec.ts",
+      "current_sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+      "original_sha256": "92834d6d359a15b85e8244683de7a4c9df3075403918a7cc088930ef495095ed",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/edifactTokenizer.ts",
+      "current_sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+      "original_sha256": "11b8b0546e794a2fe60c9aeaf6c3d811e9e6ca0e5a777171b4064a6679ced93f",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/edifactValidation.ts",
+      "current_sha256": "fde3d220220ee541e6e6b884921a1289eedcf14afa1f7e99a416e565c8cb0fcd",
+      "original_sha256": "fde3d220220ee541e6e6b884921a1289eedcf14afa1f7e99a416e565c8cb0fcd",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalMessage.ts",
+      "current_sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+      "original_sha256": "d74394e5574a1b54dca57b73fb2f7fbb44b7b0087a727743e1e79361414f983f",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/canonicalEdifactAst.ts",
+      "current_sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+      "original_sha256": "d005f2dc03c40ada838079e8d5090f4b40217155d4b0b1f16d59892f3f2249d2",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/tenantResolver.ts",
+      "current_sha256": "b4fd81cb0d4faaac51c89357eba34a1c51058a3d4a06a32da002086720a0bf7a",
+      "original_sha256": "72e2bfcefc8c218426434ae908f3f59cdca815de581e48f4d622dd0a04f8e702",
+      "exact_main": true,
+      "exact_original": false
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "current_sha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "original_sha256": "0a4fee017c2633d8b34efbb59d3b06e45aede744d3ff9da6296a21a1ea8f29e8",
+      "exact_main": true,
+      "exact_original": false
+    },
+    {
+      "path": "lib/ediel/tenant/sourceLegalContext.ts",
+      "current_sha256": "571695a3cd4c8dc7f103b52c977b5963fac568c14b17bc62b60a018b17c149d1",
+      "original_sha256": "571695a3cd4c8dc7f103b52c977b5963fac568c14b17bc62b60a018b17c149d1",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/ack/sourceCorrelation.ts",
+      "current_sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+      "original_sha256": "bb7802b824ee632e2244ac916fde0cd0282cdcb6f964b54a71d26b96af571653",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/ack/inboundAckOutcome.ts",
+      "current_sha256": "c4b01a8cc22456b05ab274b3a2266d47529aff35201ce5b204b76c0b831dac35",
+      "original_sha256": "c4b01a8cc22456b05ab274b3a2266d47529aff35201ce5b204b76c0b831dac35",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/ack/committedInboundAck.ts",
+      "current_sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "original_sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundAckProcessing.ts",
+      "current_sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "original_sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/permissions/permissionMarketTransition.ts",
+      "current_sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+      "original_sha256": "b6f950695a5042a6e6102ad795f9cc8c6cb86c256cbc90bdd7f0c37a1c140111",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/permissions/permissionEngine.ts",
+      "current_sha256": "20e6bd0634a4cb77edd2fe475f26f73051a58c211858f28e55f0b4d1d5685113",
+      "original_sha256": "20e6bd0634a4cb77edd2fe475f26f73051a58c211858f28e55f0b4d1d5685113",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/permissions/permissionStateMachine.ts",
+      "current_sha256": "00f4ad43fee09d40c0eccde85bbf464381e3dfe01a8160c3e742958cb76aa460",
+      "original_sha256": "00f4ad43fee09d40c0eccde85bbf464381e3dfe01a8160c3e742958cb76aa460",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/permissions/z14HandleResponse.ts",
+      "current_sha256": "c329a427e2c302afe283a74dc4975d90e802b6cdc9bea368e32f102b2e32172b",
+      "original_sha256": "c329a427e2c302afe283a74dc4975d90e802b6cdc9bea368e32f102b2e32172b",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/permissions/z15HandleTermination.ts",
+      "current_sha256": "44b0855c564b7ea54dc217ee619a69fe3b671be69eaae6c929d660bf7d92e6b1",
+      "original_sha256": "44b0855c564b7ea54dc217ee619a69fe3b671be69eaae6c929d660bf7d92e6b1",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/inbound/productionInboundDecisionEngine.ts",
+      "current_sha256": "5cf2b724cf081ce4a5043ad02a1ff63104853b673c3f47ee81d7ff9a387201c8",
+      "original_sha256": "5cf2b724cf081ce4a5043ad02a1ff63104853b673c3f47ee81d7ff9a387201c8",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatRegisterGroups.ts",
+      "current_sha256": "142e9e441e6a94708841dec9aaddb9656b091aa04536c00ec358a6b59bcfe291",
+      "original_sha256": "142e9e441e6a94708841dec9aaddb9656b091aa04536c00ec358a6b59bcfe291",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "current_sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "original_sha256": "d172c213c5713e613b02760538136ebf3de373cfd56b39bb08d851f273bf38ba",
+      "exact_main": true,
+      "exact_original": false
+    },
+    {
+      "path": "lib/ediel/core/failureDisposition.ts",
+      "current_sha256": "05af6463754ccd524c1cbfc3ee214e5d9f7911228f8aef2e9cf0c7b90a2e2e5c",
+      "original_sha256": "05af6463754ccd524c1cbfc3ee214e5d9f7911228f8aef2e9cf0c7b90a2e2e5c",
+      "exact_main": true,
+      "exact_original": true
+    },
+    {
+      "path": "lib/ediel/core/runtimeDecision.ts",
+      "current_sha256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce",
+      "original_sha256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "exact_main": true,
+      "exact_original": false
+    }
+  ],
+  "selected_sql_bodies": [
+    {
+      "signature": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "exact_original": true,
+      "complete_definition_sha256": "7c6c9121a6d7516c12864170f407bbd3bfb1135a3d6f1c9e29da2d894a5de629",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.require_current_esco_storage_v1(c uuid, env text, sourceid uuid, transactions jsonb)",
+      "body_sha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+      "exact_original": true,
+      "complete_definition_sha256": "0757b6aeafdc7240f27b1d09b6c10cff5e73b78dcb584ef1f707f02d279e04c4",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.ediel_beneficiary_series_page_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "exact_original": true,
+      "complete_definition_sha256": "c8b1b5ea0fd3008d4d8c9fe8339c4fea063942c2e8cad5c0689a9bceb3e91991",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_apply_inbound_ack_source_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid)",
+      "body_sha256": "e3d2bd2b046b902c08f4dc53ee6354d4b21b0ab9202263e93de821911286cd30",
+      "exact_original": true,
+      "complete_definition_sha256": "f77902ef116a610933d0f0c3043bc040ae0fd8d58cc1f6cdaebcc0338f95111c",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "c08d23455d13301454b7e7b7968bbcd80c13d0a13ba4567ed00d04dd4cfa7f48",
+      "exact_original": true,
+      "complete_definition_sha256": "095f2a506e72358c60c701049f97c9a00c9146578f2e68d6ae0dc89ce0c1853e",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_read_inbound_ack_source_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid)",
+      "body_sha256": "7341fe46a60564bbabd5b805ae02fdfc36f07a3610d9091be5a9f8216a30b2f6",
+      "exact_original": true,
+      "complete_definition_sha256": "83752a281cc6b4d69c831a83cac7077e2477e3609a8a6f77aaf0f5d64afd4095",
+      "complete_definition_attributes_body_exact_original": true
+    }
+  ],
+  "unchanged_transitive_selected_sql_bodies": [
+    {
+      "signature": "gridex_ack_authority.apply_before_committed_replay_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid)",
+      "body_sha256": "7482e25868191ddd281963bb990d671868944b7d90905beb1afbcae873f013a9",
+      "complete_definition_sha256": "2646e88cabf86fe06c1b5ae75af2a6403a611d048152f9e746fca2d674fe4548",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_before_physical_outcomes_v1(c uuid, e text, aid uuid, o uuid, actor uuid)",
+      "body_sha256": "55ff9447eee61e5b095df4e3c4008e269787810edce11d8e10498075a71759ef",
+      "complete_definition_sha256": "3377ee4e448e4d2da54e1e4445441df4929eb94b5c71ce9919eb3db87b28c6c5",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_before_prodat_unused_document_v1(p_company uuid, p_environment text, p_ack uuid, p_original uuid, p_actor uuid)",
+      "body_sha256": "6006ae5ec56be51cf05cf3dd9c1b2f991b3d14ede9f75711bf4f795893ebc236",
+      "complete_definition_sha256": "fc2d6d14f7e1fca6dc108e3b963d058bde3fced795135709baf66d170d8c9081",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_before_received_err_response_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid)",
+      "body_sha256": "a9f7b2e738ab35577d54f4f66755af883367e44319d32691638ea2842b586586",
+      "complete_definition_sha256": "fa24c2a2fbfc25ebcf891c90305e97df650b0b5ca3bfba2843382505daa3032f",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_before_reference_profile_v1(p_company uuid, p_environment text, p_ack uuid, p_original uuid, p_actor uuid)",
+      "body_sha256": "c7930c4d41c6b3fc11f8a3519c7580e3deaa6e9e501f5cf063a78f141cf78fe8",
+      "complete_definition_sha256": "b3ca6fa0b517f1c67a05e5227ce2d88223f160e3a2d4a1165de1354d7c3224b7",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_before_unused_unh_v1(c uuid, e text, aid uuid, o uuid, actor uuid)",
+      "body_sha256": "e280a4feb06551c735885a42a829677b52dbab268356517cf401d5383d88b488",
+      "complete_definition_sha256": "e532e5b19098c96f30f1d219d46007dcb5e29075a1f5fc1596de1d4f72189656",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.apply_v1(c uuid, env text, ack_id uuid, source_id uuid, actor uuid)",
+      "body_sha256": "00fd6d4d1056f60b9fe48e32d860e55d56043dc160f18cff7bad0e0d2ff719b2",
+      "complete_definition_sha256": "b245bb5bf14ddcde814de6bd7d135b703414e76157890c7d0bfc3cecd6c14731",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_expected_physical_scope_keys_v1(raw text, source_id uuid)",
+      "body_sha256": "ac3b6bd28871bb8bc5477b4869e118a5102f0c97ee125a018c2b42bd3a2924b6",
+      "complete_definition_sha256": "1ed2501753960c133f15eb357eaa67528927096eb5e1d77bab57fa087b47bb13",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_physical_outcomes_v1(raw text, source_raw text, source_id uuid)",
+      "body_sha256": "d94c9316f92ba6cb0fa1f50eb52db61525d8a8a657b2cb917a65397cef104f87",
+      "complete_definition_sha256": "7039515757c139ad10fd5c2db2fc6925ce4ac7abd7c525654e0b891bee3884f0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_physical_scope_key_v1(source_id uuid, line_index integer, li text)",
+      "body_sha256": "a36df1a1dec07f7481631ff9ff146bc3ebafca962d5daf7382925ba08ac8faaa",
+      "complete_definition_sha256": "1bfe1082a69e14c2521db734e4edd387ecd99326207dcc00adebd4742e0a0933",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_physical_scoped_outcomes_v1(raw text, source_raw text)",
+      "body_sha256": "e686167a5300c9ae577131b4934559dd3c2d6675deb276663f94f3af65be3fa7",
+      "complete_definition_sha256": "aedfd67d331edf0fa0be244e09f318db6d7c8c97f6dcb618922b4d84e03ce6d3",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_physical_source_objects_v1(raw text)",
+      "body_sha256": "b092e856a4fea385123f00b0f46675624b695653f83b7008020818a0f38e02eb",
+      "complete_definition_sha256": "d5efb3d7a10a7e4ede474f7820c42585e934dd464da9f9a003c51e284fc11c64",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.prodat_physical_source_projection_version_v1()",
+      "body_sha256": "a4a33c0cf8bea451ccff371b0971849cabc862162436f6c16d72e3c8f4270e2e",
+      "complete_definition_sha256": "2a49857c0e250ba02b6aebb55f7fbada356fc247674da18d07ad079f38cfcafb",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.read_committed_v1(p_company uuid, p_environment text, p_ack uuid, p_actor uuid)",
+      "body_sha256": "41c78bfe5165a9da984c188e7021a6e7a535b4d8dc4768b0883e479cd2b4b2a2",
+      "complete_definition_sha256": "1a65c0b9173de705fcabbc5a87b206dcf958a57578442881bdc20da6c40f3822",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.require_physical_actor_v1(c uuid, actor uuid, write_required boolean)",
+      "body_sha256": "7c1bdeb89a864797a64a14f8828e323e58deda9eaf2aff028fa2063579b00434",
+      "complete_definition_sha256": "6a35c9dedad9cf8197911dd8bd1d17e072635c05c98cf9cf6b147ef752b6d51e",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.source_match_v1(a jsonb, s jsonb)",
+      "body_sha256": "0c31dfa9a8ce626e61cfe585f88ce2bbee52f49d095d0df9728906659bd3dc93",
+      "complete_definition_sha256": "08587f0efb525a1b6ec1f48afaab674d1a4d29ae4efc15e3b43ce604f9f78407",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ack_authority.wire_v1(p_raw text)",
+      "body_sha256": "0c7aa4436e8dcff8835c11d1d69319f1d92c20f064471d229bbb4f859310deb8",
+      "complete_definition_sha256": "e41eca414c363ecd98889e682b212a72938a734734d7d0994bb52c6453726834",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_bilateral_customer_sources.classified_scoped_permission_wallclock_v1(c uuid, actor uuid, wanted text)",
+      "body_sha256": "68d299835d530e1b71b8814296ee3ef2e04df70f425cf3661393659eb3c51dfe",
+      "complete_definition_sha256": "debb7ba6fdfd68bac85b7de265acd3bcb6429a9eb831610df890a20be83f5d04",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_customer_life_events.inbound_context_object_is_qualified_v1(c uuid, source_id uuid, receipt_id uuid, object_scope jsonb)",
+      "body_sha256": "63572944654baf5049f442249bd22d7d885a63fd4dc581d50c865ea82b01825a",
+      "complete_definition_sha256": "cf4aa1140a6675694d5665566e6451da7e8f4758bbe77aac76f1596754df0404",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_customer_life_events.wire_partition_v1(raw text)",
+      "body_sha256": "036b9a2dc2f9c006777b86537caee0fafc831697ddd0a0d1e7d54f5fec15ad9d",
+      "complete_definition_sha256": "56ee175b5e3486abe49c2b4281b757d9fb97aaa96485fc5df3fe659f6765fee2",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.bind_source_before_registered_scope_v1(m public.ediel_messages, p_kind text, p_basis jsonb)",
+      "body_sha256": "4bbb11ae8a28684feffdfa420ca24fc77372705e8e8dbe59851397e75be3f1c2",
+      "complete_definition_sha256": "64e722d8eb97da27b8c8d86a4cec5d17bfb1c656eec9ccf94ecad033a3e33637",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.bind_source_v1(m public.ediel_messages, p_kind text, p_basis jsonb)",
+      "body_sha256": "682a9c9f616004705d597d84d94e5442a36b2e32edac6db90ebc884e27af1b47",
+      "complete_definition_sha256": "faa04421e8c14045026918cad7c7f4a2bbb3499b390df7ec1b7f40fc750b601b",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.message_reference_profile_violation_v1(p_raw text)",
+      "body_sha256": "6da31bc3083871e6d87b7ba7721235438a81314684ff6d33faf7e5f327fda636",
+      "complete_definition_sha256": "b184c960f5fceeee26c5f168039a771ccc7b7bc07bfb1ddf0ef92c263e13b4c0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.projection_before_err_reason_scopes_v1(p_source_version text)",
+      "body_sha256": "a16f53e3fcddbf4880fd18396a593da16024817e70bf5e12e661fb1b2e9a9cea",
+      "complete_definition_sha256": "25e387b0f1e0a75364c2d5dacc28b0f7deac90858d8e60311320fbdc57597e33",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.projection_for_original_v1(p_source_version text)",
+      "body_sha256": "2cce0d93f8b1b7fc3ecb4a8538386e4567f661025e4386dc77b8928a12ce43f6",
+      "complete_definition_sha256": "7599c790dd6dca429f3e68d7af6449818ed7158522ac7e7f1f94c7d3822f1bab",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.require_message_reference_profile_v1(p_raw text, p_qualification jsonb DEFAULT NULL::jsonb)",
+      "body_sha256": "fa63e10bcee3b6c3536ce385f469be9e2b3ce4584a1b605e0e9957fffe0d4747",
+      "complete_definition_sha256": "4d8f814c4907cf3f943b35af7ec6ffef3a986b37742b78f5e297422e146c0b0c",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.require_prodat_unused_document_v1(p_raw text)",
+      "body_sha256": "3a88355bf1c5f5a5ef20439df6363b979f05e86147acead9c03000acdbc0156f",
+      "complete_definition_sha256": "4e044ea2cf83953c834ad711b4239544154ce390e50d4e52cee2c8ec5b1e5b8c",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.require_registered_basis_v1(m public.ediel_messages, p_kind text, p_basis jsonb, p_projection jsonb)",
+      "body_sha256": "8fce40d86fea1ecf9ef4a4c7d6dfd5852cafd655beea5fa99e911b0cb9340fca",
+      "complete_definition_sha256": "1bcde8a6af56738cae089c4e00bd8a6e67b7ce6c5fcb97ee7adcd1cbf2d6b6a0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.require_unused_unh_v1(p_raw text, p_direction text DEFAULT 'outbound'::text, p_qualification jsonb DEFAULT NULL::jsonb)",
+      "body_sha256": "bf87c385f821a3db5672451093a544be2bf17938c5a8583470ecf6719640df52",
+      "complete_definition_sha256": "7244b9b5345a44af7519b3488b4730f1a60606726c146d1e143f4db4e7e0ade0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.unused_unh_violation_v1(p_raw text, p_direction text DEFAULT 'outbound'::text)",
+      "body_sha256": "fa35356f1697ff48aa7ab6f48ab7428f8352debe8d2c5cf9ceb1a9e14606ee92",
+      "complete_definition_sha256": "c747f4bc1648b436fda6afcc6b8dd04c11fe609cec15e9ecc8ecfa4ede013ddb",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_guide.utilts_reference_constraints_v1()",
+      "body_sha256": "fba545b7e9b69365c83d92d27e8efdb2b5cba4a673f5d13a1d33bec36c976f1f",
+      "complete_definition_sha256": "6c30da25f32d42e1f5874059b095728ae20d3b78c54aa2ea9ad50d36cd13a349",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "complete_definition_sha256": "7c6c9121a6d7516c12864170f407bbd3bfb1135a3d6f1c9e29da2d894a5de629",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.current_service_grant_set_v2(c uuid, env text, ctx jsonb, sender text, point text, product text, v_period_start timestamp with time zone, v_period_end timestamp with time zone, contract jsonb, only_grant_ids uuid[] DEFAULT NULL::uuid[])",
+      "body_sha256": "e922f03d93748fb2677eed6ca2f224f1f88a8e7716c9c3a8a75ee8f7f8c18353",
+      "complete_definition_sha256": "c07260b87084f6ceca809a2b28a8a9412bbc9fe69f4994b39957b0748138298d",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.lock_current_graph_v2()",
+      "body_sha256": "75d3cba19b5a346914933fca2345250cd98667fa07c37e35930a3a02fc4cf321",
+      "complete_definition_sha256": "07a073f746e882bcc5bfcc522d43da72024c1512e5c2b95963a79fdb8e643b2a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.require_current_source_role_v2(c uuid, env text, source_id uuid)",
+      "body_sha256": "d2f6006b69f21372d3c6c4e5d003d67f47c96cef40d3c7fe78502288738a0bb4",
+      "complete_definition_sha256": "b201a23c568d267a528829ddaddfc123ba4d5f9702937cd22a6a9d9be9bcb5bc",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_inbound_context.require_ack_v1(ack public.ediel_messages, source public.ediel_messages)",
+      "body_sha256": "6adb9e6278b2795b628ce096839b0bc460415076748b2b1f68fcdd8ed862f625",
+      "complete_definition_sha256": "0f84c4155e028b3cb81da3d0dd6cd933a9fee71b352b91fb1a82f22b0101f52f",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_inbound_context.require_before_received_err_response_v1(p_company_id uuid, p_message_id uuid)",
+      "body_sha256": "28bfb3d62f0febd41b6d00ca15f2465acba99561ef3a22b815bc7b3313e36747",
+      "complete_definition_sha256": "f7df6125d7399087df0c98a7ab975a7f971fdee9373fcbbf8de8df64a16cec59",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_inbound_context.require_v1(p_company_id uuid, p_message_id uuid)",
+      "body_sha256": "cbe143898d419b07ea3bbe21384bc7ef3281989c9c909ca976fb9e7fb2ba2ad5",
+      "complete_definition_sha256": "a601baa59ecbe8d8fc6bfc1cd7c2a2d40d855bab7f1d144aef541661cc7db509",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.actor_current_v1(c uuid, actor uuid, review boolean)",
+      "body_sha256": "9b0a02755ffcf12472b4262eead7f19f5393414b3649115ab5674a1421e188b7",
+      "complete_definition_sha256": "5eef341b22ad8cf01e4f457a1eb445aec86eac4bc35ce49c17b70ae0650607ee",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.assignment_assessment_basis_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "b3a07ba3abcd26908a45c5c4f66764afaab89bcb23cc221805ef8b5899a6f306",
+      "complete_definition_sha256": "4364997490d833bba21c58a0a83fd31c393ea3e23dad69ff9f31a1306c6826f7",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.current_periodic_reason_agreement_v1(a public.ediel_service_assignments, app text, sender text, receiver text)",
+      "body_sha256": "4d376bc28ebcba09af0591823959f17fc8001de6b278ef773d0a01985899268d",
+      "complete_definition_sha256": "a3f58aea49cbfe9369731c37be44a1f0e9869e34d593a7b7c74846caf4d2c133",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.evidence_basis_v1(e public.ediel_service_evidence)",
+      "body_sha256": "8f4a40cb12bdd683a9f391fb9d1b747b761ced7a46c0d29699171f1ea8b0005c",
+      "complete_definition_sha256": "d107d02a623c3578df8b308f5496023a692ec0295248d276aaa7736e03f29813",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.evidence_receipt_row_v1(e public.ediel_service_evidence)",
+      "body_sha256": "17249994029269afc653ac9b20a8d5b2e12602744af5d8b81ef601540f9dc215",
+      "complete_definition_sha256": "9c98cd43cefc283e8343b959c57b1585d65a3ca5e8fabf4e720f7ba389b7273b",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.evidence_terms_v1(e public.ediel_service_evidence)",
+      "body_sha256": "126aaeb930833491df99398b0106a8e59b142dc09756ee050eed17527dd95680",
+      "complete_definition_sha256": "f6353ad07470ab51c4a0287c14e76ea3aaebca8a9c3e960f76fc042c4633616a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.lock_evidence_graph_v1()",
+      "body_sha256": "476262c087991e614eb6835db624ff159c80a9c4acdec6407eb11603dd9a6871",
+      "complete_definition_sha256": "6a6fc2cf8c98244431ebec0a082f93f454499ab8f89694c4b9774057f84a286a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.lock_periodic_reason_graph_v1(writing boolean DEFAULT false)",
+      "body_sha256": "4f2b02976263077e65fb0db39f8567d2f519445321af0bd4735045c14aface12",
+      "complete_definition_sha256": "076748bb83cf405dfe5e6165e32ac0f8334f3f3b19d4ed0307c364eac9e9243b",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.periodic_reason_projection_v1(c uuid, env text, sourceid uuid)",
+      "body_sha256": "908cdfba2df3fcc7c1a540e2037d9f993d76433c62c58e05db4eba2d74614602",
+      "complete_definition_sha256": "70d008a308c1f4a9e82a3caf5012ebb76632d7e07e4191fe6f8d1fc7633ddc49",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.receipt_current_v1(a gridex_ediel_services.artifacts)",
+      "body_sha256": "4abed418be1617027a113025cacda3908915a292cacf3ef06e8019cdbcee0cd8",
+      "complete_definition_sha256": "b38630c486d2894561fc27a18623d2027ce1e8a57d7529498cbbb54b01715aed",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.receipt_hmac_sha256_v1(payload bytea, key bytea)",
+      "body_sha256": "13482d7882183583edb5c713c79671c5308eee6092bb67df2fe9159911a19f3d",
+      "complete_definition_sha256": "366a70e5f820cbb253dd2da234265a302f8e276aee0d2a61c647056fae5cca1f",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.require_periodic_outcome_v1(c uuid, sourceid uuid, transactionid text, disposition text, issues jsonb)",
+      "body_sha256": "56a7566b82bf66460eb6f4a6f7728546951a51d84fe9c591beff419f834b62ca",
+      "complete_definition_sha256": "4df2c9d4424c484eb37d51e61d593d57a2278bc0f2cf837fb4a29b068c2ef125",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.require_periodic_reason_v1(c uuid, env text, sourceid uuid, transactionid text)",
+      "body_sha256": "d7cd12c95b7a76bd986fb4a7623eff9d7f3eb6eaf4b6e4f4a7f02178e01e8c8c",
+      "complete_definition_sha256": "e315561a6f7ad35db65dffcf132371d248810f659240a902ff59aa37572c0a96",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.review_current_v1(e public.ediel_service_evidence)",
+      "body_sha256": "d6225f3ba10fa567ee0505851b88d79c3970e7e9b3ecab986d348548c4680439",
+      "complete_definition_sha256": "d2528b157b749ae7a8db24b0684e7aafcc0bca47206a63f8745b207685a9af3b",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.scoped_review_permission_v1(c uuid, actor uuid)",
+      "body_sha256": "1bbcfb3ab23d599c41fb2b22a30e97d027f0a5ed42e01a66e5a40407361fcb74",
+      "complete_definition_sha256": "41a595dadda6ee704526c030963894eb96905751277e4068543c84be49edaced",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_services.signed_periodic_reason_claims_v1(artifact gridex_ediel_services.artifacts)",
+      "body_sha256": "5677a7e29733f32f7b4be9ad7b8ef26f739bc63fbc722de4482b41618a02bf6f",
+      "complete_definition_sha256": "902f89c9c327382fed6d0b3259261417051d1bd1ae4ee6777ce4e432ecee5ee0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_source_rules.read_ack_source_before_basis_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid)",
+      "body_sha256": "6eb4d2950aaf1d0c2aee171d33e5891d7861e4be35eb1b570625491757ec420d",
+      "complete_definition_sha256": "1d1bafaef098df45dc02b009dd8e7e6249a033aafc2c5841beeaae50b790d1a0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_source_rules.require_v1(p_company_id uuid, p_message_id uuid)",
+      "body_sha256": "72abd8818b2d5c4599c903597575913f661a5577fdcc7ddedeacf8766e5a414b",
+      "complete_definition_sha256": "5b570b14aefb7037eb56d62a5778aceab48ec7791ca6a183c03f3bce9514d1d6",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_ediel_technical_ack.require_current_endpoint_v1(evidence jsonb)",
+      "body_sha256": "b6d41be457f6b9ff59307147b51c756aef850adff86064a5cddfed5647593658",
+      "complete_definition_sha256": "d741a52eb75195e00cc29bf0fb621c099c6460fb2ed10b06b1fcad03c8521012",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_err_response.capture_v1(p_company uuid, p_environment text, p_source uuid)",
+      "body_sha256": "328e34c1906298624b9432747c367183c469a2470e0c7bc67a1a531d8894b261",
+      "complete_definition_sha256": "ce704dfda08aa97c7de1a729f493131ea66141b8f17f4475334ef6fbe2290d81",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_err_response.require_v1(p_company uuid, p_environment text, p_source uuid)",
+      "body_sha256": "54de4a5d52c4498042d9def9c108d05dab3cc8d61ea6c3648938f7d39a8c8b25",
+      "complete_definition_sha256": "e6799307619effa8ceb4db21c26015cb81da26bbb6756529f13f99dfc68506fc",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_reading_expectations.capture_source_v1(c uuid, env text, msg uuid)",
+      "body_sha256": "bf8d210d24717fd405acabcc554940d7a0a914418c14c9f3ca7bfd899f783e26",
+      "complete_definition_sha256": "e809df870906925f443b463326087a5a8cc90898601dafacae352cd7bfec3408",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_reading_expectations.consider_utilts_source_v1(c uuid, env text, msg uuid)",
+      "body_sha256": "6276b7ad8caed18cf53a55283360d0173464525ec0936af66d678e5954b646a3",
+      "complete_definition_sha256": "201570a54415aa0530b477c8f93ca8930e674b6e7316d383544873eae11df5d8",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_reading_expectations.instant_v1(value text, format text, offset_minutes integer)",
+      "body_sha256": "aa939b5c6680765ef9dc869cd06203d4c133302254b70c9c0ff666bd9e12004b",
+      "complete_definition_sha256": "bc32416961eb3b107d0ec9360922bc10defbf5765fb37687595dda502660c9f5",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_reading_expectations.source_contracts_v1(c uuid, env text, msg uuid)",
+      "body_sha256": "0bac62c12547ab4b4feab624b6e4584d68991aa7226fe4ecf51a5fccd5c54ed7",
+      "complete_definition_sha256": "484b32d5ebd7385b3696ef2e02a852a25cfbd5c91ad89e9f88de6bfc7ae3d0a1",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.applied_structural_method_objects_v1(c uuid, msg uuid)",
+      "body_sha256": "adb89bd3fe19d338e63c6af47f1f968549b00d5d77c5fb58ce5ac0d3381d9e68",
+      "complete_definition_sha256": "3f2477cc0a0dc75831f129010821e8dd8a6d284304ab38d3112c4979a4c478f5",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.closure_wire_tokens_v2(p_raw text)",
+      "body_sha256": "91b5c33533f4f2fdd6e4644ad136d9d6e65104a29aa602febb5540fe5e7ad9b1",
+      "complete_definition_sha256": "c71c4050a7ec09907df39c5c23489cd2872ce2967420ea19484e4b8d8601f55d",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.permission_date_v1(p_value text)",
+      "body_sha256": "d2cf581ff756f1ed0498d342ccdb1952861d584b9e6a65b1b173b63c74df2267",
+      "complete_definition_sha256": "1081137dce09e5357070b0af013158739f55dc60266c42f082a6cc920c7ae274",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.permission_partition_wire_v1(raw text)",
+      "body_sha256": "d9ea09e1b14ece9b4412986d63201f8cc102fa6784d1599c71c46889051f43ca",
+      "complete_definition_sha256": "7b37ae1b974ed7bc3dd8023e4da5f074e0eb7c2393aadbf07105af2f5dac0ded",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.permission_time_v1(p_value text)",
+      "body_sha256": "70a1c80c5b39789edc303b5b4ea9bf7ea2d485c8ac6b2bf0677a81d574184413",
+      "complete_definition_sha256": "06f116ed449ae54ed1ebf674f9257b05d28d776eabcc08e260b5701b59a90b1a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.prodat_application_object_accepted_v1(c uuid, source_id uuid, canonical_id uuid, object_scope jsonb)",
+      "body_sha256": "1dd677ad165f2964cb9dbaa029a12a67c192cb36c60006c48ac02ecb7a13a503",
+      "complete_definition_sha256": "78d2b7a10b1343a84e10aa8541f587849cc499d17737ca9325b277d993dfabcc",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.require_prodat_application_objects_v1(c uuid, source_id uuid)",
+      "body_sha256": "a947d00ded6e6772384f4ebff6b1871d5a65c4515d20db32f6dd7a8a4cb4198a",
+      "complete_definition_sha256": "543a5433f616a3f966571c353a53a667a5ba6b4e1e192c78103dd47eb913cde1",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.require_utilts_transaction_before_issuer_v1(p_company uuid, p_source uuid, p_transaction text, p_disposition text, p_response text, p_issue_codes jsonb)",
+      "body_sha256": "7c9351af2d42d0fbebedb8659a2391efe05bf653c7c4ca4c4bd17d7e24a23c7d",
+      "complete_definition_sha256": "df93fc64271f156b98dc799801bcd21d3d44bf965dba8982f516060136a60e44",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.require_utilts_transaction_v1(p_company uuid, p_source uuid, p_transaction text, p_disposition text, p_response text, p_issue_codes jsonb)",
+      "body_sha256": "ffd0f1ec6ece49d8d565836434ebd835134ae4c8aada8cc19786078c887a1158",
+      "complete_definition_sha256": "a25a777762ac67ee3122be5da247cd01e6c4a29f3ed0e771f3d847c228e58161",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.structural_effect_matches_v1(c uuid, env text, source_id uuid, assessment_id uuid, customer uuid, site uuid, point uuid, period uuid, object_id text, agency text, cutoff timestamp with time zone)",
+      "body_sha256": "d95ad996aa480887e6ba36937a2905d1426d3f7c489f9463a8444a9c5fafc9db",
+      "complete_definition_sha256": "72d01806cdb69d8c68e19a41247cde88bac3ff2ee49f0a286ce7a7ceca55bb97",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.validate_prodat_application_v1(raw text, facts jsonb, facet jsonb, response jsonb)",
+      "body_sha256": "4280ae9964cd6e6dedf9ab79fbd89e2297dd33631237b68c39268541e96c7a9d",
+      "complete_definition_sha256": "0c0d56024cbac03858e91260328285cfb4900644925c3dc38ed8a863a5800d8a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.validate_prodat_application_v2(c uuid, source_id uuid, raw text, facts jsonb, facet jsonb, response jsonb, source_function jsonb)",
+      "body_sha256": "67d5e8265915114d98584282e57539623a7b0a3114ba74e455a44391b5f73997",
+      "complete_definition_sha256": "350d44385704eeee210f18f88ad2cf3dee48dac14b6ac5b0b0f68b1ab24d2fb9",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.validate_prodat_source_function_v1(c uuid, source_id uuid, raw text, facts jsonb, facet jsonb)",
+      "body_sha256": "294a3c3089727fed1f0eb9b9ad08c7feec15b92be89b78b343db02e6e33eee0d",
+      "complete_definition_sha256": "0a62b2df15d62f743b907d79739d8a97c2ccdfe4ccf42636d8dfb05f55728d10",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.validate_utilts_transactions_v1(raw text, projection jsonb)",
+      "body_sha256": "a77b07d56ca55f956c9042f41218e53d94fee1a9c923f001e0078a5751cf59b7",
+      "complete_definition_sha256": "1893069b2298c8a16ad009f806a87f70551a604cd8c192084c6b496dab944cbd",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_received_sources.wire_tokens_bounded_v1(p_raw text, p_max_lines integer)",
+      "body_sha256": "8da7f8a2f2300faab024d8f8246ce81d4408b16bd889403cd13aa30603b39a71",
+      "complete_definition_sha256": "32fa96d4fb69fd658ac5e9180c734c5a9eae06f01ecfba8eeb05bedc4cdd38d0",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_service_administration.permission_matches_assignment_v1(a public.ediel_service_assignments, p public.metering_permissions)",
+      "body_sha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937",
+      "complete_definition_sha256": "319ad61df0383224bd11c24e5fac7b4f70cbbba17a84be00d7b32aac2533eee1",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_service_administration.scope_v1(a public.ediel_service_assignments)",
+      "body_sha256": "8ac01ef5b2288c43c9a719d28fffe4c1f6a9ed59ee3336fb12a54b6c432bad05",
+      "complete_definition_sha256": "5f75117b82bfe0993f8e2a360d59a50fa48838087fb5b936f2e55e52024b4cd9",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.absolute_v1(v jsonb)",
+      "body_sha256": "90e0e47ef31ef0f8b613397e604df0303ed0b9700ce5b6b1d755bdcb37191dae",
+      "complete_definition_sha256": "89fd5f0157f6638e2acfd9894bc056cff2bb97d973e359e4d645ae88d2c4131e",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.canonical_decimal_v2(value text, decimal_mark text DEFAULT '.'::text)",
+      "body_sha256": "12e9229b3ab1e640d54c3bf2815eefc29f35fca6adca665a4426b374cd92371b",
+      "complete_definition_sha256": "745dfe5d09663823aee5861e0e453906ac59560e0fc083c5f0337fe13b93b2b5",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.decimal_rules_v1(tokens jsonb, tx text, decimal_mark text DEFAULT '.'::text)",
+      "body_sha256": "40ccff2e50f113e4413db74cf8fb10183e3de5e2d52c58c38a1553169438147c",
+      "complete_definition_sha256": "a497ef0488e384b498fa8786e781fd37e2e54b6875c194875891a501586f8555",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.esco_local_time_v1(value text, offset_value text)",
+      "body_sha256": "8627749aa0ac928f282befe5f786aced5af1c119311d9f1c7b85a52ff44c5c8e",
+      "complete_definition_sha256": "bb604b8b192fb7db404795621ded04704ecd85f1bf2c9023435ef87e8ce33d31",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.exact_keys_v1(v jsonb, k text)",
+      "body_sha256": "a02289cbcfa0f637909c1c978140d6a899bc05e33d7d5cf29683c38ab42a4802",
+      "complete_definition_sha256": "705c64b93b22e8e883aaacffa675cc2cb3153d23a14e7bfa27cae2c5f2653dd1",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.legacy_retry_item_v1(item jsonb)",
+      "body_sha256": "0586242e8d8a449a35293146067a449aeadf21689b2da5f304f438a05117224a",
+      "complete_definition_sha256": "d02b7b16f3a41418bd98594f0653f759a4f0ad4324d3a95066530ac2fd8fcfeb",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.lock_storage_graph_v1()",
+      "body_sha256": "f949ad8d5c5001995de611181e09b7ca37759e901640c9724b416150d65a2c3e",
+      "complete_definition_sha256": "357339063e3750fb3de969e4369a3af157cd4793c96d47ae0d564dbae710939d",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.persist_consumption_before_actor_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb)",
+      "body_sha256": "a3c729f3a25b58ecdeb2a8acb3b4e844fde74a3ca21201db76011a887d7fcb82",
+      "complete_definition_sha256": "9c8185a32586dbc7577ea1113c36aefb21e771f8870a40022b6b540c27f9001a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.persist_consumption_before_precision_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb)",
+      "body_sha256": "2771766988ac40df2613f603e474333469a53a8a08545a1706a2f42fc7d6316f",
+      "complete_definition_sha256": "82c2528e15cc284f4d953e61e5f6ff1530f3c688313557394fb2f29cd8789c04",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.persist_series_legacy_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb)",
+      "body_sha256": "45c99b287b87a59dfee6c8e36289bd4d9da630a1b31c0db5e98ee23e08d300a1",
+      "complete_definition_sha256": "cc6625dd172bfa5cbb5cab071ffdf4d27f7957cb8a9f4747ad531aa9e250ff4a",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.persist_series_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb)",
+      "body_sha256": "c36437d8c703996de84ddfe16cf3cf94113642632d959f6f8c98309dd95a3d82",
+      "complete_definition_sha256": "3cfc2c65530e161c0d35ac1df2587f1023a3f528f032509c05587c4c4108fe41",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.persist_series_v2(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_transactions jsonb)",
+      "body_sha256": "73a63ece72366c2223f8abe17b333ed2639a5c3e86f1cfed04640fcb28ca2f66",
+      "complete_definition_sha256": "fa40a875198b87ec27852012fc68774286f0a8aadff456458ee156db0ed2f319",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.preserve_committed_projection_v1(c uuid, env text, sid uuid, transactions jsonb)",
+      "body_sha256": "89bdfa7571f08a39a4c2b9cac41ead54ef854a3b9d78281d93f9e564a1029e62",
+      "complete_definition_sha256": "11b813122359917e8a38ece4390ff94db03a4206318be4ac346372f113620d89",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.require_current_esco_storage_v1(c uuid, env text, sourceid uuid, transactions jsonb)",
+      "body_sha256": "1c30339d0297b5a067793e43d2d021b04adddcb7506ceae54988ce32101785a0",
+      "complete_definition_sha256": "0757b6aeafdc7240f27b1d09b6c10cff5e73b78dcb584ef1f707f02d279e04c4",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.require_execution_actor_v1(p_company_id uuid, p_actor_user_id uuid)",
+      "body_sha256": "ab4f81cc5a4073ad93d4e8e88a07687a59f80e008d92aecd233bf5c075015085",
+      "complete_definition_sha256": "786900db317deee0323310f66eb684c59f250847705d1eb5116a39499ae673d4",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.source_context_v1(s public.ediel_messages)",
+      "body_sha256": "646702274ee5a7c104faee659d7fd135e9e75e3411f8ea6c50d10393805394e1",
+      "complete_definition_sha256": "39289c4b0072dd480aaf61656a94a85b68be278358b438c1b5e0c4849f584e47",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.stored_contract_v1(p_company uuid, p_source uuid, p_transaction text)",
+      "body_sha256": "74030ca2d73c52e6318a38544ad24b0d5b1a4bdc22cefa5287d7b728c10562ed",
+      "complete_definition_sha256": "11de04c3af4dd571693cfe8b249d3a30fc163848a78d1e7aee287ab3c093a7b6",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.supported_point_v1(tokens jsonb, transaction_id text)",
+      "body_sha256": "0b0ff39f582d548c70c06e7e158d219ee9976db7b2686abf5e504608a0b21aa8",
+      "complete_definition_sha256": "723513591c2d37c4aa4ad0ceacb924001c9d9842ee171ceee224db5fc2e1952b",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.unowned_regulating_object_v1(tokens jsonb, transaction_id text)",
+      "body_sha256": "f2639e556c4e9a8b84baeb80490b4ebf37a88f31814d8f188c2b921c80472967",
+      "complete_definition_sha256": "705a45a0e8071e41fbf40d0f26cba773099aff24fe61f6a3fc791de8a6208b59",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.valid_rejected_item_v3(item jsonb)",
+      "body_sha256": "e6a0d681ebef3e0512cd8a0b714043111580b2073d534d69991562191529d142",
+      "complete_definition_sha256": "580ea5ce23f64586522617cdfd538dafeddf8f4edd4db67e1b48759d207ae8b1",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.valid_transaction_reference_v2(value text)",
+      "body_sha256": "cbb4c2e17341328e7ddd29bf0c5921d52fef5aa76ed608cf9f604e33705ab3c0",
+      "complete_definition_sha256": "9d9c5f173f6018153bda533c10de28636d7b6446ab77986af4f48fe78f9c9dcb",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.validate_contract_base_v1(c jsonb)",
+      "body_sha256": "3ffb440822b6da78b9c53603fb4671d83ead250f1d3dee97fc9af07f3d1b895a",
+      "complete_definition_sha256": "2e300077db79723c4b4149d23e8445ff8fdc77151f4b1a1c567d3d72ee72b43c",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.validate_contract_v1(c jsonb)",
+      "body_sha256": "a2a4caefe7b2a0de50d8366fc9f69b205ff36332b711f3ec1bccdb7dc12e2d61",
+      "complete_definition_sha256": "1826839164cda498a44641d6fc221b56e28f81e02bb3220491ffe022aec143b8",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.validate_decimal_source_v2(tokens jsonb, item jsonb, decimal_mark text)",
+      "body_sha256": "7d662281527e7a1717fe3aa3e848c8c7041e6a649d1749dd7684aa7f49ed7ccc",
+      "complete_definition_sha256": "c07ea2aca8f1f2db4ba62fa996d7b895abb38fcfca02cd108a1a6f1a7ead6d58",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.validate_legacy_contract_v1(c jsonb)",
+      "body_sha256": "3327c9a969853008910be0f6751c60803e28ac590d3c9de925b93b5083d09373",
+      "complete_definition_sha256": "2408139df70a18269e3464d22f4ab281f4087ed893bd6b5a061560cf18ac9063",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.validate_rejected_contract_v3(c jsonb)",
+      "body_sha256": "ca3091e92287336b926bd6c93c9ff5f22741c31be51667fd50e59f56ecbc4764",
+      "complete_definition_sha256": "1ab2f15925a3c4408857549613d47d5bc61aa299c1881f9633fb60d9d2aa4e24",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_binding.wire_tokens_v1(p_raw text)",
+      "body_sha256": "5ab1c1f6c18e19c8cc4861809d8615c3b5c5d77a52f16dd3bb39dec060f30cde",
+      "complete_definition_sha256": "515e76d92c3e50875c6ee6b06c22a6b2d32a46a4dc5f3037eb0a52da85985270",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_issuer.lock_namespace_v1(p_namespace uuid)",
+      "body_sha256": "f4f1b37a16a523c00eac5ad4a4373a0b0f732d68ed87c67a7d433fed4d510e05",
+      "complete_definition_sha256": "48b83ee7e73ce695db67ba9389ffbbf3d132dd7a0737d68fd8faef94733ed1d7",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_issuer.read_v1(p_company uuid, p_source uuid)",
+      "body_sha256": "7e277675c969a9a084d33fc87b521ec05cfcb51acf2bdf03a9c735a9510a71a1",
+      "complete_definition_sha256": "c9d15e0fb7792611743f1fbdaeed10e3a451cca2afeaef00d268bba516b64f96",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "gridex_utilts_issuer.require_first_effect_v1(p_company uuid, p_source uuid, p_transaction text, p_disposition text, p_issue_codes jsonb)",
+      "body_sha256": "88df6aadd7cf9485bca67e5ea68722d39b8ec53fc4432a1f16f9b73c8fc64014",
+      "complete_definition_sha256": "531bc192e6c17efb5b050f6ec39d2569b47d1c89d3edf0c43dea20b99c5b8f41",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.ediel_beneficiary_series_page_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "complete_definition_sha256": "c8b1b5ea0fd3008d4d8c9fe8339c4fea063942c2e8cad5c0689a9bceb3e91991",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.ediel_permission_source_is_current_v1(p_company_id uuid, p_permission_id uuid, p_source_z14_message_id uuid)",
+      "body_sha256": "30a99caef7fa0c122e787364c4af259ef597bbebb4208b194943039c3be2d833",
+      "complete_definition_sha256": "2e8e55de27cd81681cea8afd2d43e7d0567e016371f41c7a9cb35c795c83d678",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.ediel_service_assignment_assessment_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "22afa6337ee3f7d5cb1d9bc4f188937aa58082e40214f19f0b8435d2a6befac2",
+      "complete_definition_sha256": "b8effe6f6d7b6e5c1b8a97054d2a85f80e97df44ed84e773f10536dbd0fda834",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_actor_has_company_permission(p_actor_user_id uuid, p_company_id uuid, p_permission text)",
+      "body_sha256": "5ff30a78ce0a034311faf9e7c49c9c3a6ca5c2856636b6a5dd1633c3ff73ddf9",
+      "complete_definition_sha256": "1cc4af3a4ce60b2ee1133771542f708cdbd492ddd533d2af02b137c893d5b4b8",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_apply_inbound_ack_source_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid, p_source_message_id uuid, p_actor_user_id uuid)",
+      "body_sha256": "e3d2bd2b046b902c08f4dc53ee6354d4b21b0ab9202263e93de821911286cd30",
+      "complete_definition_sha256": "f77902ef116a610933d0f0c3043bc040ae0fd8d58cc1f6cdaebcc0338f95111c",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_get_user_permissions_in_company(p_user_id uuid, p_company_id uuid)",
+      "body_sha256": "2bfa46b41f5eb5c8419806d3d222c418911e9871e7096bee09cbf4173eeacfc2",
+      "complete_definition_sha256": "bbc206d16b1993c105f8ad0ee616da5c340a4f10dd2955d1e37400b868e5b8df",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_normalize_platform_role(p_role text)",
+      "body_sha256": "c58835cf271bbec89e91f520b50d3edd024e1dcf731a38bd34b1937241d5d8f6",
+      "complete_definition_sha256": "85f4be9f53f94ccb99573ed9db5a29c676657b763458dd3a31f792a8d60bb531",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_persist_utilts_consumption_v1(p_company_id uuid, p_environment text, p_source_message_id uuid, p_message_code text, p_raw_payload text, p_transactions jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "c08d23455d13301454b7e7b7968bbcd80c13d0a13ba4567ed00d04dd4cfa7f48",
+      "complete_definition_sha256": "095f2a506e72358c60c701049f97c9a00c9146578f2e68d6ae0dc89ce0c1853e",
+      "complete_definition_attributes_body_exact_original": true
+    },
+    {
+      "signature": "public.gridex_read_inbound_ack_source_v1(p_company_id uuid, p_environment text, p_ack_message_id uuid)",
+      "body_sha256": "7341fe46a60564bbabd5b805ae02fdfc36f07a3610d9091be5a9f8216a30b2f6",
+      "complete_definition_sha256": "83752a281cc6b4d69c831a83cac7077e2477e3609a8a6f77aaf0f5d64afd4095",
+      "complete_definition_attributes_body_exact_original": true
+    }
+  ],
+  "retained_installed_migration_inputs": [
+    {
+      "path": "supabase/migrations/20260923135706_ediel_utilts_consumption_binding_v1.sql",
+      "sha256": "c6376a62644efe24a733a872410d48d6f74372e68d4c0c56db03fd2a6380df7e"
+    },
+    {
+      "path": "supabase/migrations/20260928130148_utilts_mixed_172_175_consumption_fence.sql",
+      "sha256": "5e896e4c3cfedeca84f7906005fbaeb491df50ebc019622b1731b4be823fa965"
+    },
+    {
+      "path": "supabase/migrations/20260930143025_ediel_service_assignment_grants_v1.sql",
+      "sha256": "f02c4a03e9da65d945516406d62611c0ab37dd3220418f961b662c3ea0449fa1"
+    },
+    {
+      "path": "supabase/migrations/20260930144205_ediel_permission_source_atomic_transitions.sql",
+      "sha256": "99b0d6fda03afe1ecb9a8b3814a18d3127e657f1aaa3fbfd76543da7473124fa"
+    },
+    {
+      "path": "supabase/migrations/20260930145350_ediel_utilts_exact_decimal_contract_v2.sql",
+      "sha256": "ca1cd3b567659672def326ef82c6972cb1225b68e2e30cb1075a97defd545e34"
+    },
+    {
+      "path": "supabase/migrations/20260930150622_utilts_positive_ack_own_dm_scope.sql",
+      "sha256": "92949650d20d714d005f797600bcf57f13e46735d7e05db6fa24a0e116f80321"
+    },
+    {
+      "path": "supabase/migrations/20260930162005_ediel_service_permission_origination_v1.sql",
+      "sha256": "a6035a99da12ea91942896868971baa50c20ecf36974600c19206f8d9c49fa79"
+    },
+    {
+      "path": "supabase/migrations/20260930184042_ediel_service_administration_commands_v1.sql",
+      "sha256": "c14ed560924522b748e879e1187b7e7793d95ea2ae69e9a97cda7b727f93a689"
+    },
+    {
+      "path": "supabase/migrations/20260930191608_ediel_utilts_source_precision_guards.sql",
+      "sha256": "fce10b5b24515ae658adf9399581db89fc2e0f5be4348351e78f45eacc2bcfe3"
+    },
+    {
+      "path": "supabase/migrations/20260930231633_ediel_service_permission_authentic_agreement_reference.sql",
+      "sha256": "f769f77de088b02f6484133ea5afa1df2fa6fbbc3b0f26adb280e504ac8b1b50"
+    },
+    {
+      "path": "supabase/migrations/20260930231958_ediel_atomic_ack_owner_persistence.sql",
+      "sha256": "8cdd3bb9cdc6e8b08a68f5e6335e21fe752b82c2cfbd890a9ac5b2f07437ead9"
+    },
+    {
+      "path": "supabase/migrations/20260930235816_ediel_service_permission_source_requested_method.sql",
+      "sha256": "a1bd74ef686f14861093b688939f6199d46539a1c9853db75d74a1ba844524ae"
+    },
+    {
+      "path": "supabase/migrations/20261001003807_ediel_utilts_esco_pre_storage_scope.sql",
+      "sha256": "8c3eee67916b213ce3d73a728d5839bf64c990bd37caa987dc595ebeffe5c1cb"
+    }
+  ],
+  "preservation": {
+    "foreign_main_paths_exact": 7682,
+    "foreign_ledger_rows_and_ordered_evidence_exact": 350,
+    "all_top_level_ledger_metadata_exact": true,
+    "only_row_deltas": [
+      "SC-013",
+      "SC-020"
+    ],
+    "own_rows_exact_prior_owner": true,
+    "foreign_deleted_paths": 0,
+    "pr_relative_paths": [
+      ".agent-memory/masterplan-sc013-sc020-checkpoint.md",
+      "__tests__/ediel-ack-source-correlation.test.ts",
+      "__tests__/ediel-permission-market-consumers.test.ts",
+      "__tests__/ediel-permission-process-order.test.ts",
+      "__tests__/ediel-tenant-qualified-ack-routing.test.ts",
+      "quality/audits/ediel-masterplan-v2/coverage.json",
+      "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+      "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+      "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt",
+      "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-head-gates.json",
+      "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/verification-receipt.json",
+      "scripts/ediel-esco-pre-storage-sql-regression.mjs",
+      "scripts/ediel-service-administration-sql-regression.mjs"
+    ],
+    "original_rules_and_acceptance_registers_exact": true,
+    "all_production_schema_helper_native_workflow_bytes_exact_actual_main": true
+  },
+  "execution_receipts_read_only": {
+    "current_focused": {
+      "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs Node22 vitest run four owned tagged suites --maxWorkers=2",
+      "pass": 53,
+      "files": 4,
+      "failure": 0,
+      "error": 0,
+      "skip": 0,
+      "exitCode": 0,
+      "rawOriginalLogSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+      "committedLogNormalization": "Terminal blank lines removed; original raw stdout kept separately and hash-bound. All53 case results and counts unchanged.",
+      "committedLogSha256": "3026f3b169c6587e42ed0f6e36488df32af48030fecfeedee86b62bf53739cf3",
+      "committedLogPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+      "originalRawLogArchive": {
+        "path": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+        "sha256": "4996a6e622604939bb8e91d68eae1eee0bb05893ed62f998dd263831c86062a7",
+        "members": 1,
+        "crcValid": true,
+        "memberSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+        "meaning": "Actual ordinary Vitest stdout only; not native or GitHub artifact custody."
+      }
+    },
+    "current_other_gates": {
+      "focused": {
+        "command": "NODE_OPTIONS=--require=./scripts/lib/unit-loopback-network-boundary.cjs Node22 vitest run four owned tagged suites --maxWorkers=2",
+        "pass": 53,
+        "files": 4,
+        "failure": 0,
+        "error": 0,
+        "skip": 0,
+        "exitCode": 0,
+        "rawOriginalLogSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+        "committedLogNormalization": "Terminal blank lines removed; original raw stdout kept separately and hash-bound. All53 case results and counts unchanged.",
+        "committedLogSha256": "3026f3b169c6587e42ed0f6e36488df32af48030fecfeedee86b62bf53739cf3",
+        "committedLogPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/current-main-focused.log",
+        "originalRawLogArchive": {
+          "path": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/focused-stdout.zip",
+          "sha256": "4996a6e622604939bb8e91d68eae1eee0bb05893ed62f998dd263831c86062a7",
+          "members": 1,
+          "crcValid": true,
+          "memberSha256": "439edf3aea065ded42541c9a00f0db864c167d29d2f123bfc250b7c3905b50ef",
+          "meaning": "Actual ordinary Vitest stdout only; not native or GitHub artifact custody."
+        }
+      },
+      "types": {
+        "command": "Node22 tsc --noEmit -p tsconfig.tests.json --max-old-space-size=4096",
+        "exitCode": 0,
+        "stdoutBytes": 0
+      },
+      "lint": {
+        "command": "Node22 eslint four owned tagged suites",
+        "exitCode": 0,
+        "stdoutBytes": 0
+      },
+      "spec": {
+        "command": "Node22 scripts/check-ediel-masterplan-v2.cjs",
+        "exitCode": 0,
+        "originalFiles": 33,
+        "rules": 121,
+        "acceptanceContracts": 231
+      },
+      "diff": {
+        "command": "git diff --check main3dff sourceMerge9865",
+        "exitCode": 0,
+        "inheritedMainOnlyWhitespaceKept": "Old-to-main diff reports existing whitespace in foreign evidence/patch files; actual own delta against main is clean. No foreign proof file was reformatted."
+      },
+      "prerequisiteFailure": {
+        "command": "Initial vitest command rejected unsupported --minWorkers before collecting any tests; corrected CLI reran once",
+        "executedCases": 0,
+        "sourceChanges": 0
+      }
+    },
+    "retained_sql": {
+      "standaloneAdmin": "49PASS at exactc451, old logSHA15f5fd3ba566d59bf81f55994ea9173806124c415f8ea71ecc3ccf41434e4b25; installed immutable migration inputs and same assertion file unchanged.",
+      "store": "Original23STORE/24archive/23positiveACK sections retained with exact own script/migration inputs.",
+      "readBoundary": "Executed retained184042 reader; current15846 filtered reader retains same permission-phase predicate, and current35402 wrapper delegates it first. Neither latest whole wrapper/native replay nor RLS/concurrency/external custody is newly executed.",
+      "knownNestedFailure": "Old nested ANJ agreementReference undefined vsSOURCE-DECLARED-ANJ remains explicitly historical RED; no assertion/helper was removed, waived or truncated; no full nested rerun."
+    },
+    "tests_reexecuted_by_reviewer": 0,
+    "native_reexecuted_by_reviewer": 0,
+    "full_tag_reruns_by_reviewer": 0
+  },
+  "effect_carry": {
+    "SC013": "Actual codec/global physical original selection/ACK tenant resolver still choose B over colliding A namespace and stronger A hint; complete A source/request and B original unchanged. Only exact main helper mock export is added. It is an explicitly finite SDK/identity port; actual helper is implemented in main and current ACK physical families use transport receiver. The mocked identity must not be treated as genuine legal/custody proof.",
+    "SC020": "Actual positive Z13 APERAK source consumer and production classifier register receipt only; no Z14 or permission/site/supply/grant activation. APERAK is rejected before permission activation RPC. Original separate finite READ quantity123.45 active\u2192z13_sent refusal and original STORE23 remain unchanged. Retained reader/current filtered predicate and first delegation match; no execution of latest whole receipt wrapper/native/RLS/concurrency/issuer authority is inferred.",
+    "shared_current_deltas": "Current tenantLegalReceiver helper affects PRODAT/UTILTS missing/ambiguous NAD fallback; actual tested ACK families retain receiver semantics. Actor/permission denial constructors now use actual imported EdielExecutionFailure; predicates/messages/query ordering unchanged, no AST extraction or duplicate class binding. Runtime failure-disposition/internal_review delta does not change selected positive ACK classification. All source/helper bytes exact main.",
+    "new_migration_scope": "Seven main-only forwards retained; P08 trigger requires own outbound PRODAT Z09 positive APERAK and returns early for other code/family/direction, so selected Z13 positive receipt and SC013 routing cannot authorize it. No selected SQL owner or its reached SQL dependency body changed."
+  },
+  "historical_failures_retained": {
+    "old_nested_ANJ": "RED unchanged agreementReference undefined vs SOURCE-DECLARED-ANJ; no original assertion waived/truncated; no full nested reexecution.",
+    "old_exact_head_clean": {
+      "head": "dc77ef07ca05feefc852cddfcfe663cbccd07eb8",
+      "run": 37245473877,
+      "job": 111562395535,
+      "selectedFailure": "ediel-z06f-reading-followup-native next-day observation_interval_unresolved",
+      "excerptPath": "quality/audits/ediel-masterplan-v2/sc013-sc020-integration/old-clean-selected-failure.txt",
+      "excerptOnly": true,
+      "resolutionPath": "Genuine current main includes sole upstream0796 normalized-clock correction; new combined-head clean required. No duplicate source/calendar patch or old allgreen claim."
+    },
+    "current_clean": "Sole upstream declared-offset calendar production correction adopted byte-exact; old Z06F test/fixture unchanged, no duplicate repair. New exact-head CI required."
+  },
+  "limitations": [
+    "Independent integration carry extends original whole approval within its finite source/SDK/SQL boundaries only.",
+    "Historical49READ/23STORE are retained execution, not fresh latest entire SQL/native schema replay.",
+    "Current nine GitHub gates and main merge remain root responsibilities; source carry approval does not itself approve main merge.",
+    "No owner worktree edit, push, commit, merge, shared memory/capture/schema/scanner rewrite or duplicate test execution."
+  ],
+  "adopted_main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "adopted_main_merge_tree": "96ab21e23880f0cbb8dee1886aede037ced73f37",
+  "fresh_main_composition": {
+    "fresh_api_and_git_main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+    "qualified_at": "2026-10-05T14:27:59.706060+00:00",
+    "merge_tree": "d825212a323389d8a357299d24d21344db98e57f",
+    "conflict_free": true,
+    "adopted_to_current_main_only_additions": [
+      ".agent-memory/masterplan-at-z01l-z01lk-supplier-checkpoint.md",
+      ".agent-memory/masterplan-at-z13vh-z14vh-esco-checkpoint.md",
+      "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts",
+      "__tests__/ediel-at-z13vh-esco-profile.test.ts",
+      "__tests__/ediel-at-z14vh-esco-profile.test.ts",
+      "docs/superpowers/plans/2026-10-05-z01l-z01lk-supplier.md",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/baseline.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/documentation-check-receipt.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/implementation-dispatch.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/implementation-receipt.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/implementation-report.md",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/inventory-publication-review.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/l-finite-boundary.md",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/lk-discriminating-oracle.md",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/open-pr-inventory-receipt.json",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/ownership-final-race.md",
+      "quality/audits/ediel-masterplan-v2/at-z01l-z01lk-supplier/ownership-scout.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/claim.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/exact-candidate-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/execution-environment-attempts.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/final-spec-integrity.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/final-tests-types.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/final-z13vh-lint.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/first-scoped-lint.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/first-tests-types.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/implementation-scope.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/independent-code-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/independent-z13vh-requirement-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/independent-z14vh-requirement-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/manifest-initial-failure.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/ownership-before-claim.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/ownership-prepublication.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/publication-whitespace-initial.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/raw-whitespace-initial.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/retained-owner-dependencies/ack-continuation-review.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/retained-owner-dependencies/ack-owner-continuation.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/retained-owner-dependencies/ack-source-review.md",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/technical-candidate-supported-gate.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/technical-candidate-supported-gate.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/verification.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/whitespace-qualification.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-final-tests.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-final-tests.xml",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-first-tests.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-first-tests.xml",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z14vh-first-tests.json",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z14vh-first-tests.log",
+      "quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z14vh-first-tests.xml"
+    ],
+    "all_new_main_paths_exact_in_composition": true,
+    "foreign_main_paths_exact_in_composition": 7730,
+    "foreign_rows_evidence_metadata_exact": 350,
+    "current_main_ledger_exact_adopted_main": true,
+    "selected_sources_schema_and_reached_sql_definitions_exact_current_main": true,
+    "main_approved_markers": 217,
+    "composed_approved_markers": 219
+  },
+  "public_coordination": {
+    "board_comments_read": 267,
+    "read_only_review_claim": "https://github.com/heke99/gridex-ops-platform/pull/548#issuecomment-5996385944",
+    "owner_freeze": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5996210913",
+    "latest_pr_api_head": "99af21336aac95c7df6ab9e788ae42d0c6e92dea",
+    "latest_pr_api_merged": false
+  },
+  "record_status": "FINAL frozen after fresh7b API/git composition; immutable after publication"
+}

@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-05T17:27:07.543156+00:00",
+  "pr": 522,
+  "head": "b828f32fcd98c2af797f781d9902482a14fe0784",
+  "actual_main_before": "fd429e5dc042a01a2fd86ccf9875b31dc5e212c7",
+  "expected_merge_tree": "59c478ef38697b72ba63a8af7cbc9c360516ae25",
+  "coverage_changed_only": [
+    "GOV-05",
+    "AT-GOV-05"
+  ],
+  "all_foreign_rows_metadata_order_preserved": true,
+  "scope_paths": [
+    ".agent-memory/masterplan-gov05-checkpoint.md",
+    "__tests__/ediel-accepted-guide-package.test.ts",
+    "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+    "__tests__/ediel-guide-transition-selection.test.ts",
+    "quality/audits/ediel-masterplan-v2/coverage.json"
+  ],
+  "reviewed_tests_exact": "9ce24ba46aec8ed1686258701ff45606918de66b",
+  "tests_repeated": false
+}

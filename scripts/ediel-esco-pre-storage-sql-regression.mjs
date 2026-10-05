@@ -47,6 +47,7 @@ const extension=String.raw`
  await probe("UPDATE user_permissions SET is_active=false WHERE user_id='"+reviewer+"'",/unique_current_grant_required/)
  await probe("INSERT INTO gridex_ediel_services.issuer_revocations VALUES('key','"+keyid+"','SYNTHETIC REVOKED',repeat('a',64),now())",/unique_current_grant_required/)
  await probe("UPDATE metering_permission_sites SET end_at='2026-06-30'",/unique_current_grant_required/)
+ await probe("UPDATE metering_permissions SET status='z13_sent'",/unique_current_grant_required/)
  await probe("UPDATE tenant_actor_roles SET valid_to=now()",/current_captured_role_unavailable/)
  await probe("UPDATE esco_facet_fixture SET allowed=false",/actual_source_facet_unavailable/)
  const noEffect=await storageEffects()

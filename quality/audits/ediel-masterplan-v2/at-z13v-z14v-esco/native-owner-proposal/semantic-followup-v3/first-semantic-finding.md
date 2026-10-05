@@ -1,0 +1,11 @@
+Original published v2 fails the standard semantic check.
+
+Exact candidate b7f01003fdff96b28964c6c511b79b9c7d4b913e01c3d4b72fc33f1f0f035b8f and patch f9367af5dbaf5f83eb5c8c2266efad27121770426169eef2d2c825795ffc6238 were read through a CompilerHost overlay only for the existing native target. The actual tsconfig.scripts.json and extended tsconfig.json, unchanged include/exclude, noEmit/strict/skipLibCheck/moduleResolution=bundler/paths options, TypeScript5.9.3 and cached Node22.23.0 were used (113 roots,1591 sourcefiles). No emit, native/product module execution or ordinary baseline typecheck was run.
+
+Actual usable attempt2 exits1 with9 errors, all target;0non-target. Candidate146 declares the normal qualify overload returning Promise<NativeQualification>;147 then declares mandatory onReceived returning Promise<void>. Existing unchanged projection at426 uses Awaited<ReturnType<typeof qualify>>, which sees the last visible overload's void return. Consequences: two TS2339 grantId accesses at428 and seven TS2345 NativeQualification-to-void calls at444/460/479/496. This is a proposal-introduced type contract failure at existing callers, not an infrastructure inclusion error or an independent product defect. No baseline rerun is needed for this attribution.
+
+Candidate-only proposed v3 correction: swap the two visible overload declaration lines so the mandatory callback overload stays available and the final normal overload preserves the existing ReturnType contract. No function implementation, callback body, fixture bytes, field/assertion/refusal oracle, grant hook or source authority changes. Generate only new v3 artifacts after independent peer source review; preserve all published v2 bytes and first failure.
+
+Attempt1 under Node24.19.0 computed diagnostics but failed during ancillary receipt child_process git collection (spawnSync EPERM) before persisting them. Its exit1 is a receipt-collection failure without a semantic verdict; raw driver/tooloutput preserved separately. Attempt2 removes that /tmp-only dependency and persists diagnostics before further metadata.
+
+Scope remains static proposal qualification only. Native/DB/provider/product imports, runtime cases, lint, ordinary baseline fulltypecheck, current native composition and whole V/VH approval: NOT_RUN. Repository source/config/package/fixture changes by this check: NONE.

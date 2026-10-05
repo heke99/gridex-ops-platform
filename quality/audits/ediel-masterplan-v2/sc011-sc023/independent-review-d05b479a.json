@@ -1,0 +1,78 @@
+{
+  "verifiedAt": "2026-10-05T17:11:37.594675+00:00",
+  "sourceHead": "d05b479a8c960f148fe2da9ac3304c593161e17c",
+  "sourceTree": "5bdac72c571844394f4be4117287cd4155edf388",
+  "ownedFileSha256": {
+    ".agent-memory/masterplan-sc011-sc023-checkpoint.md": "61a9c044b98d2889fd5153f7ea149ed810bc92ab7c7671bafb898fce0c8f4cd6",
+    "__tests__/ediel-permission-own-partition.test.ts": "820e7f559da9983732554964e76deaaaa6fb0e26c7936884eba83d278396c9c9",
+    "scripts/ediel-partial-permission-source-sql-regression.mjs": "b2ebe8b4bc776dfccc4daa32f87a20682c3d688c64d37e3cc60bf11764268c1d",
+    "scripts/ediel-service-grant-set-sql-regression.mjs": "bf796a115fd275fbc31a2fa988db9e8a30e12e2d23c7db7f2cf2724a3a5abf29"
+  },
+  "reviewPath": "/tmp/gridex-sc011-sc023-independent-review-d05b479a.md",
+  "reviewSha256": "8378cefded196c4f651e3b798b72e60a6f28bcfd554e8c911b11994244be4636",
+  "verdict": {
+    "SC-011": "APPROVE complete implementation behavior for frozen contract",
+    "SC-023": "HELD history-job completion, coverage inspection, authenticated DDQ delivery unproved"
+  },
+  "separateAtScenarioIdsExist": false,
+  "originalP": {
+    "path": "/tmp/gridex-gov03-prodat-original.pdf",
+    "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+    "pages": 140,
+    "pageReviewed": 139,
+    "retainedExtractionSha256": "901992f0524cc7f226198aca39274bfdb3fcea279bc97661f1aa17e0c679bce6"
+  },
+  "actualSourceFunctions": [
+    {
+      "function": "public.ediel_apply_permission_source_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "f2a756a47d1f8813b01c317ce71585dcfecbacf354e7a48e8a76f6cc33637f3b"
+    },
+    {
+      "function": "public.ediel_permission_source_is_current_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "30a99caef7fa0c122e787364c4af259ef597bbebb4208b194943039c3be2d833"
+    },
+    {
+      "function": "gridex_received_sources.apply_permission_group_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "ca4e39ec32b07f4a7578fc80cfc89778da069eb596755ac80495351aa1184d58"
+    },
+    {
+      "function": "gridex_received_sources.committed_permission_effects_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "9668d24a82262caf46e70de379f97b47760293ad9821ac2fd3bc50e71b9fac63"
+    },
+    {
+      "function": "gridex_service_administration.permission_matches_assignment_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "cf5b2aa22020a46aef8eb345f45b9e8a53edc8e53dac3daab6cc9a8cbebe0937"
+    },
+    {
+      "function": "public.ediel_service_administration_command_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "cf396b368bd04ac291d33cfdde28d4b2f0f0a81c0dbf980419406d48bb261179"
+    },
+    {
+      "function": "public.ediel_beneficiary_series_page_v1",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c"
+    },
+    {
+      "function": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2",
+      "sourceEqualsCaptured": true,
+      "bodySha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff"
+    }
+  ],
+  "ownerReceiptsReusedWithoutDuplicateRuns": {
+    "/tmp/gridex-sc011-sc023-main-a248-function-qualification.json": "04993d65c55dc93e84dd8edfe580b08ef5e2030cb6f90c06838b2f236ea4fe16",
+    "/tmp/gridex-sc011-sc023-main-a248-partial-source.log": "0cdf113722f9b874eab248fddf8aaaad310c20cf3ebbe5a9a0e2b3e65907f132",
+    "/tmp/gridex-sc011-grant-source-final.log": "2f88c00bf2452d34e7c0ceb71efe6ef04dc795bd1e86597d56649388fc75dddf",
+    "/tmp/gridex-sc011-sc023-main-a248-scoped-ts.log": "9ae39fc8b53fb2a01e54258f92bf194e2857a436e84e4c180386a82e971f21d4",
+    "/tmp/gridex-sc011-sc023-main-a248-esco04-07.log": "69259b4a2ded5f040befc1fa53619f91c395af4c25ecc88ae1242ec05f030c0d",
+    "/tmp/gridex-sc011-sc023-main-a248-tagged-gate-final.log": "def69299b192a99efe1b6366b00ded550406febcd44545105fbc8f6d675688c5"
+  },
+  "scope": "Read-only complete literal/effect/source review; no repo/schema/coverage/API-grant/production mutation; no new tests/native/broad run; parent owns promotion/CI/merge",
+  "newCodeAdjustmentRequired": false,
+  "runtimeLimit": "Actual product functions with explicitly finite canonical/legal/accepted-source/review/storage/actor ports; no authentic native/GoTrue/market/legal/DDQ claim"
+}

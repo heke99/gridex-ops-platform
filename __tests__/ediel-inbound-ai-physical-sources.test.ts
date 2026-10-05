@@ -1,7 +1,14 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 const io = vi.hoisted(() => ({row: {} as Record<string, unknown>, attachments: [] as Record<string, unknown>[],
   limits: [] as number[], register: vi.fn(), status: vi.fn(), parse: vi.fn(), task: vi.fn()}))
-vi.mock('@/lib/supabase/service', () => ({supabaseService: {from: (table: string) => {
+vi.mock('@/lib/supabase/service', () => ({supabaseService: {
+  rpc: async (name: string, args: Record<string, unknown>) => {
+    if (name !== 'ediel_read_unattributed_technical_intake_v1') throw new Error(`Undeclared AI fixture RPC: ${name}`)
+    expect(args).toEqual({p_inbound_email_message_id: 'mail1', p_source_message_id: null, p_actor_user_id: '30000000-0000-4000-8000-000000000001'})
+    // These ordinary sources have no protected technical birth; null grants no authority.
+    return {data: null, error: null}
+  },
+  from: (table: string) => {
   const result = () => ({data: table === 'inbound_email_messages' ? io.row : io.attachments, error: null})
   return {select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockReturnThis(),
     limit: vi.fn((value: number) => {io.limits.push(value); return Promise.resolve(result())}),

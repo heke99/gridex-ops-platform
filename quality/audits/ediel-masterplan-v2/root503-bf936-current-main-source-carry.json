@@ -1,0 +1,245 @@
+{
+  "decision": "APPROVE_BOUNDED_SOURCE_CARRY",
+  "producer_parent": "329b079ff4aecde8164d5be057ffaf37e2334d9c",
+  "owner_main_merge": "6facb45b665bb00063a7076883c3702d4697b7e6",
+  "reviewed_commit": "bf936cf08adbdbd356bdfaad29c45c131573a1d6",
+  "reviewed_tree": "5aedd096a1bf226f0ee4311598da89cb0db3542b",
+  "sole_owner": "8904457f2aa72cc09ebcd094ad852445a557ce3e",
+  "main": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "path_counts": {
+    "first_stage": 14,
+    "second_stage": 7,
+    "unique": 20,
+    "non_coverage_handover_exact_parent": 18
+  },
+  "source_exact": [
+    {
+      "path": ".agent-memory/checkpoint.json",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "d054f1ee54d31d423c1bc0dba9731b72657db2e3948bda7f77f54cc8015f30c2"
+    },
+    {
+      "path": ".agent-memory/current-task.md",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "69647e9c074d91ad35980c7e172e113db314fb8cfc3bddde9b699817fab77d57"
+    },
+    {
+      "path": ".agent-memory/masterplan-sc021-checkpoint.md",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "dc6cde407d82ea1a9b36995fb19fdddfa4dff5a2fb307adf0cbbb7bd2f451811"
+    },
+    {
+      "path": ".agent-memory/masterplan-sc022-checkpoint.md",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "538696df6f1b05c88f838ba998bec52c041b2a6ff5f41e7aea1c452c3079da06"
+    },
+    {
+      "path": ".agent-memory/masterplan-sc055-checkpoint.md",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "55b0c14f1f93a5f233bf9aa804b5b04f54830d5a481f3bf69e58f1c7e7c69b33"
+    },
+    {
+      "path": ".agent-memory/open-blockers.md",
+      "exact_parent": [
+        "owner890"
+      ],
+      "sha256": "a9176379bc516d33ce0af929292deab5783e815f2befb7e232189f2b8e93db03"
+    },
+    {
+      "path": "__tests__/ediel-db-01-party-registry-no-parallel-route.test.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "50f865b428529e349c4f26df39ba6fedc511279be1fccb42d18a2d4be8223481"
+    },
+    {
+      "path": "__tests__/ediel-imp-04-env-03-utilts-envelope.test.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "e1651ce0bf9840b88711207145b62400bcad058cc108ddc727f31b3d460b8384"
+    },
+    {
+      "path": "__tests__/ediel-sc-021-denial-state-ack-effects.test.ts",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "0375ff5aa01b41b94b481100d1840332b15b92d20a9133daaea085989f0e965e"
+    },
+    {
+      "path": "__tests__/ediel-sc-022-overdue-contact-effects.test.ts",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "bff7df749eff39bbac079a9da6ad942101764bbff0cfbf1511eb6ba779a2b045"
+    },
+    {
+      "path": "__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts",
+      "exact_parent": [
+        "mainf86"
+      ],
+      "sha256": "e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746"
+    },
+    {
+      "path": "app/admin/ediel/actors/actions.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "ac81f859715bcaf58e75582c28bd16a1c29a14a4e33537638776a31db132270f"
+    },
+    {
+      "path": "app/admin/ediel/actors/page.tsx",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "e6e47e2216743c3b56191f83ebd8f4b7e59dc47b385d4efa98f953d9d77dda0c"
+    },
+    {
+      "path": "lib/ediel/partyRegistry.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "5a9faaabcadf18a22fba499c2d8d251cedd438cd902e0e07d40db24d173e7780"
+    },
+    {
+      "path": "lib/ediel/testing/selftest.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "d02fbd587a547735925e538a490e20519d48d636ce36f3725c0c804b506cb5e6"
+    },
+    {
+      "path": "lib/ediel/utilts.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "91cffa7caa8361fceee693d481c7245ebf9e6595e1d7b9fbb30b80ee8834326c"
+    },
+    {
+      "path": "lib/inbound-mail/smokeTests.ts",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "3a3d47bb37873519d6c4807eff8b049e6ed6fe46ce2519f9446ef9c1175f4d7d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/pr426-rule-review/FINDINGS.md",
+      "exact_parent": [
+        "owner890",
+        "mainf86"
+      ],
+      "sha256": "8411a66664d6f46ceec4209a20aff5a19cd00b557ca3aad5ebb39d1880e091ed"
+    }
+  ],
+  "eight_capture_inputs_before_import_byte_exact329": [
+    {
+      "path": "scripts/gridex-aud-003-clean-replay.sh",
+      "sha256": "fd28ec70ce1fff7392f282dd0029b2499ba2b24d6ab4cc4a13a11a758bf3aa18"
+    },
+    {
+      "path": "scripts/migration-history-manifest.json",
+      "sha256": "fcf80f0719b134c4973c5e582a55d94978ea9f3ea9a4214de47d6292b3133a30"
+    },
+    {
+      "path": "scripts/migration-history-manifest.additions.json",
+      "sha256": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1"
+    },
+    {
+      "path": "scripts/migration-history-manifest.runtime.additions.json",
+      "sha256": "54566df9eeb725bf4d61bdd9b6a279988894a3fcc55ae53bb02432dada7a7f09"
+    },
+    {
+      "path": "scripts/supabase-types-manifest.json",
+      "sha256": "33c1cd59105372f39b27e1611289f019051c3e8001307cb810a427ac17e573b9"
+    },
+    {
+      "path": "scripts/apply-supabase-types-nullability-overrides.cjs",
+      "sha256": "c9ce102f76fa02634b7e725136da85e05daa1ce4e532d7bd9f3e507d65f8ceaa"
+    },
+    {
+      "path": "scripts/gridex-schema-snapshot.cjs",
+      "sha256": "540b19028c593587e480e32d9843bf13e907ad63db140f16600e9e64e1531a71"
+    },
+    {
+      "path": "supabase/config.toml",
+      "sha256": "b70b0dc8885304790bb5f0b019c7a5b83e4f48f23d7cf1bc2e4b859e913e0919"
+    }
+  ],
+  "main_approved_rows_and_evidence_exact": 190,
+  "intermediate_parent_markers": 201,
+  "current_parent_markers": 204,
+  "approval_markers_are_not_new_whole_approvals": true,
+  "frozen_ids": 352,
+  "all_evidence_sets_exact_parent_union": true,
+  "root_approved_card_rows_exact329": [
+    "TR-05",
+    "AT-TR-05",
+    "SC-040",
+    "TR-10",
+    "AT-TR-10",
+    "SC-063"
+  ],
+  "partial_rows_exact_owner890": [
+    "SC-031",
+    "SC-034",
+    "SC-038",
+    "SC-043",
+    "SC-044",
+    "SC-045",
+    "SC-046",
+    "SC-047",
+    "SC-048",
+    "SC-050",
+    "SC-053",
+    "P-08",
+    "AT-P-08",
+    "SC-035",
+    "SC-036",
+    "SC-037"
+  ],
+  "protected_code_and_sql_exact329": [
+    "supabase/migrations/20261004202548_ediel_recovery_text_original_reference_alignment.sql",
+    "supabase/migrations/20261004204256_ediel_worker_lease_current_provider_entry.sql",
+    "supabase/migrations/20261004204835_ediel_unknown_transport_reconciliation_cases.sql",
+    "supabase/migrations/20261004214144_ediel_received_ack_validation_private_original_read.sql",
+    "supabase/migrations/20261004220429_ediel_switch_original_guard_private_owner.sql",
+    "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+    "lib/inbound-mail/inboundStatusUpdater.ts",
+    "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
+    "lib/ediel/matching.ts",
+    "lib/ediel/recovery/prodatRecovery.ts",
+    "scripts/ediel-tr-05-recovery-native.test.ts",
+    "scripts/ediel-tr-10-reconciliation-native.test.ts",
+    "scripts/ediel-ack-first-reception-native.test.ts",
+    "lib/ediel/transport/index.part-1.ts",
+    "lib/ediel/config.ts",
+    "lib/ediel/sendContextConsistency.ts"
+  ],
+  "handover": "All nonempty329/890/f86 lines retained; formatting/insertion means do not claim whole-file byte identity",
+  "consumer_relevance": "Active route/config/transport use only retained partyRegistry security/isAgt and clean/upper, source-exact; removed alternate route resolver/admin path notused by worker/recovery. IMP04 changed outboundUTILTS fallback is statically imported through generic graph but source-bound Z03/H/TR05 recovery PRODAT path does not invoke it; changed selftest/smoke functions not called. Actual root preparation/current-owner/provider/archive/claim/reconcile source remains unchanged.3scenario packages only tests/checkpoints/ownrows.",
+  "capture_import": "sc007 separately qualifies dirty genuine capture artifact/import; this packet reviews committed sourcebf936 beforeimport, not final staged capture bytes",
+  "no_source_memory_coverage_edits": true,
+  "no_test_native_full_capture_gate_repeat": true,
+  "remaining": "Current final-head mandatory gates and separately qualified capture import; neither inferred from preserved source/parents",
+  "created_at": "2026-10-05T04:36:10.757034+00:00"
+}

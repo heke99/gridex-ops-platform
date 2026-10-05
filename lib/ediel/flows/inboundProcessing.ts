@@ -10,6 +10,7 @@ import {createHash} from 'node:crypto';
 import {assertEdielTenantActor} from '@/lib/ediel/services/authorization';
 import {readCommittedInboundAck} from '@/lib/ediel/ack/committedInboundAck';
 import {prepareSourceAckDraft} from '@/lib/ediel/ack/prepareSourceAckDraft';
+import {readUnattributedTechnicalIntake} from '@/lib/ediel/inbound/receptions';
 import {createReceivedErrApplicationAcks} from '@/lib/ediel/flows/receivedErrApplicationAcks';
 import {loadCustomerLifeEventValidationContext} from '@/lib/ediel/production/lifeEventSource';
 import {applyInboundCustomerLifeEvent} from '@/lib/ediel/flows/inboundCustomerLifeEvent';
@@ -834,6 +835,14 @@ export async function processInboundEdielMessage(params: {
 
   if (!message) throw new Error("Ediel-meddelandet hittades inte");
 
+  // The private born disposition is permanent and precedes any legal patch.
+  // Its read failure cannot be treated as an ordinary source or an ACK basis.
+  const protectedIntake = message.direction==='inbound' && message.company_id===null
+    && message.message_standard==='edifact' && ['PRODAT','UTILTS'].includes(message.message_family)
+    ? await readUnattributedTechnicalIntake({actorUserId,sourceMessageId:message.id,
+      sourcePayloadHash:createHash('sha256').update(message.raw_payload ?? '', 'utf8').digest('hex'),environment:message.environment})
+    : null;
+
   if(message.direction==='inbound' && ['CONTRL','APERAK','UTILTS_ERR'].includes(message.message_family)){
     // A protected old own receipt is read before current route/guide/runtime
     // loaders and public projection writes. Legacy summaries stay unknown.
@@ -905,6 +914,13 @@ export async function processInboundEdielMessage(params: {
       await createAckBlockedEvent({actorUserId,sourceMessage:message,ackFamily:'CONTRL',
         reason:formatErrorMessage(error,'Teknisk kvittens kunde inte kvalificeras.')});
     }
+  }
+
+  if(protectedIntake) {
+    await createEdielMessageEvent({actorUserId,edielMessageId:message.id,eventType:'manual_note',eventStatus:'warning',
+      message:'Tekniskt original behålls i skyddad staging utan juridisk tenant eller affärseffekt.',
+      payload:{disposition:protectedIntake.disposition,authorizesBusinessEffect:false}});
+    return message;
   }
 
   if (!isActiveEdielMessageFamily(message.message_family)) {

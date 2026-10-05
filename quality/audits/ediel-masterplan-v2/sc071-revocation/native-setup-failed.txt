@@ -1,0 +1,5 @@
+Native setup NOT_COMPLETED; native tests NOT_RUN.
+Raw setup-log SHA256: c26be948f14c0a849c9a8878523ac330ea15f73bb3160da25f81b2627fb9da6d
+[GRIDEX-REM-002 replay] preflight: 59 foundation inputs, 9 substitutions, 3 noncanonical exclusions, 20 interleaved artifacts, 961 canonical timestamped files
+failed to display json stream: failed to register layer: no space left on device
+Only five new unused images removed; existing tracked source restored.
