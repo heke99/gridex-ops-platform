@@ -107,3 +107,38 @@ IMP05 public intake routing #5036002804058 requests the original author public
 whole/source/native handoff; the forward is not yet admitted and private exports
 remain excluded. Root asks the retained Staff oracle correction author for an
 explicit two-hunk intake release through existing612 at #5786002824872.
+
+
+AFTER SC010 intake: final public combined4aa69216f0e37ba53ec78ee5c733a8a839f2696b
+retains genuinely merged source8f851413 and independent publication READY
+record d26a0dcec7f9eb2cec14ad313c18ea71fb4b63c05d7da9e50b2a3293c99704d1.
+Original author row29d/evidence is exact; all351 prior-union and347 actual-main
+foreign complete rows remain exact. Candidate276 versus actualmain271 is prepared
+source, not delivered coverage. SQL1075/eight generator inputs are unchanged.
+The peer/root guards and Staff182b input receipt are byte-exact on that public
+combined branch. Root AFTER routing is #5306002775538, updated in place.
+
+Original public IMP05 author answered #5036002925920; new public-only current-target
+review returns SOURCE_HOLD at1f8 versus296/8f. Forward05130401 requires original
+company_id=c, while actual protected-intake05043923 creates a legally unattributed
+NULL original with a separate technical endpoint. The existing real positive
+CONTRL contract preserves that birth. The author's owned-C fixture does not cover
+this current boundary. Exact source-only citations and original-author prerequisite
+are returned #5036003057061; no test/replay or original private report is reused.
+Unchanged6ca forward and IMP05/AT rows are not admitted. Original writer owns a
+compatible source freeze; root then chooses/registers the prefix and captures once.
+
+Prospective Staff preflight is complete, finite and input-only: frozen public
+combined4aa + Staffa249, commonbase38aa, one merge-tree normal exit1. Three conflicts
+are ENV07 fixture, customer-cases page and types manifest. ENV07 must preserve
+actual first608 while the same Staff author combines its permission gates with
+608's customer-cases UI. Clean SC068 auto-merge selects Staff's differing variant;
+its complete actual-main fixture must be retained by the canonical owner. Generated
+raw3 automatically select historical Staffcff1076 bytes, which are not1078 parity.
+Native registration and complete manifest histories need their retained origin
+boundaries. Receipt3dbaa06e is preserved byte-exact in this owned documentation
+queue; temporary conflicted treee331 is not publishable merged source, source
+admission or author freeze. Original Staff/capture/native/CI/serial owners remain
+retained. Next: obtain original compatible source/input handoffs, cut over existing
+612 once its packets are ready, and finish qualified ordinary merges before the
+existing common baseline writer certifies the new main. No new baseline/tag claim.
