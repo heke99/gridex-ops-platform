@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "status": "DIRECT_EXISTING_STATIC_CHECKER_27_PASS",
+  "owner": "/root/sc004_sc006_integrate",
+  "allocation": "Public5306001957294 /6086001959480; root sole-checker writer lease after peer V3 READY. UI/product608 and ENV07/610 retained.",
+  "base": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+  "base_tree": "64c93f935436a0c30db27fb86b5451d414984116",
+  "changed_executable_path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+  "before_sha256": "ac132d48a4dde43e2e3a5d3ab168b26562e76b2bfaf4ef975202b3ad61551c66",
+  "after_sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+  "proposal": {
+    "fragment_sha256": "5b50512282bdf215d340f94e9715427cb9d4921ee3869e2a89ee45e212879b12",
+    "projected_runner_sha256": "0df7fbf3a741da0c6efefc1b74d18df4745435753d3c8a407ffbc835bef1b0f1",
+    "peer_ready_sha256": "d8f8430cc4035ff896b81323fd1cbfaabbd79d3409d56f7666d0b8be183ec218"
+  },
+  "preservation": {
+    "actual_assertions_before_after": 27,
+    "other_assertions_byte_exact": 26,
+    "same_original_label": true,
+    "complete_base_reconstruction_byte_exact": true,
+    "original_EOF_preserved": true,
+    "preapply_17_SHA_and_blob_pins_exact": true,
+    "remaining_16_source_inputs_after_write_unchanged": true,
+    "product_UI_SQL_native_fixture_coverage_shared_memory_changes": 0
+  },
+  "guard_contract": "Actual unique value facade default export -> actual named exported page -> sole final direct return/native rootdiv -> direct billing conditional/SectionAnchor/card. Real value imports, no page-local/top-level UI binding shadow, no type-only/default competition, unique attrs without spread/duplicates and exact customer/data props. No attrs/callback/dead Boolean traversal. Bounded static characterization only.",
+  "source_qualification": {
+    "source_record_raw_sha256": "6400895556da20fe3051ca5e6d7119acc993f37219aa4e24a67620cc6c38ccd0",
+    "scope": "Real page/component/tenant-visible tab/status/link and current customer-company/actor read/approval/send boundary source-qualified in archived immutable17-pin record; no browser/native/provider execution claimed.",
+    "preapply_raw_sha256": "2ce37463124a4a2420663505326ad11e8b658999d3f8401fddcb12446b92e448"
+  },
+  "checks": {
+    "node22_syntax": {
+      "actual_exit": 0,
+      "raw_entry": "node22-syntax.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "existing_direct_CJS": {
+      "runs": 1,
+      "actual_exit": 0,
+      "assertions_OK": 27,
+      "FAIL": 0,
+      "skips": 0,
+      "command": "Node22.23.3 scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "raw_entry": "direct-final-result.log",
+      "raw_sha256": "885c0697deebd8cc937f6fbb70a146048b0489ec17228b7b0dd86b3a8f6246ea",
+      "actual_tool_metadata_entry": "actual-execution-tool-result.json",
+      "later_assertions": "All27 executed and passed; none inferred or skipped."
+    },
+    "source_diff_check": {
+      "actual_exit": 0,
+      "raw_entry": "source-diffcheck.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "final_staged_diff_check": {
+      "actual_exit": 0,
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-final-diffcheck.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "historical_boundary": {
+    "original_chain_producer": "3251d20a8b9fe0294367977dca49de65aabe7513",
+    "actual_original_first_child": "11OK then FAIL customer page exposes the billing business surface; remaining child unreached under&&.",
+    "raw_sha256": "91fba2f22ac1f5bdcfcb505c8cd656b58455ca3dccabd026747346ad00b3ff4a",
+    "old_RED_rerun": false,
+    "main845_full_supplier_first_cause": "UNKNOWN until original sole full reader evidence; do not relabel325/561a failures.",
+    "supplier_fullchain_green_claim": false
+  },
+  "raw_evidence": {
+    "archive": "raw-evidence.zip",
+    "archive_sha256": "e4b7082a6fc6f588404e495a4b30dfcc180bae22b4ab733985aaa8d133fb80ea",
+    "index": "raw-evidence-index.json",
+    "index_sha256": "d6ad5b05688c7e79cad266c322290353b755670c991df61972aa3fc61a536ebf",
+    "entry_count": 14,
+    "byte_exact": true,
+    "normalization": "None; archived raw source/HOLDv1v2/READYv3/historicalRED/actual output retain exact original bytes."
+  },
+  "source_inputs": [
+    {
+      "path": "scripts/gridex-supplier-ombud-business-automation-regression.cjs",
+      "git_blob": "314f9c1f8f496f1811869069706395e65b33131d",
+      "sha256": "ac132d48a4dde43e2e3a5d3ab168b26562e76b2bfaf4ef975202b3ad61551c66"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.tsx",
+      "git_blob": "a1406ab680e5d09b7856a243d4885fe01e06554f",
+      "sha256": "0a5fa04dc76bd7022da9d56d34f661d8253b5d93d9437715f45fa79a09e7a962"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "git_blob": "296e0039c409fed61a13a891313a97cafb42ba55",
+      "sha256": "79efa21a185685a4ef12276ec6af4daff51f0ac268cbd21227fc1ea1929d27d4"
+    },
+    {
+      "path": "app/admin/customers/[id]/page.part-1.tsx",
+      "git_blob": "20c061c5db5e604e870774df81138ffccd618674",
+      "sha256": "08d9f7e00d8609e65471097775cc2dc5a560218675f2fe1e12be9b309ff30358"
+    },
+    {
+      "path": "components/admin/customers/CustomerBillingMeteringCard.tsx",
+      "git_blob": "877631ce8ca23b502086b2088bc9f5dd02315c28",
+      "sha256": "c860ed450637f41fc43ba72592cae6227d1db224381cee9af3ff9783955717d5"
+    },
+    {
+      "path": "components/admin/customers/billing-metering/shared.tsx",
+      "git_blob": "afc5d5964c8b329f7d4f1c48e1eaed6657af02b5",
+      "sha256": "f8d5edabd9355abfbab271ee949b5d00ae1365484ecd93bc98f184de05bf86b9"
+    },
+    {
+      "path": "lib/cis/db.ts",
+      "git_blob": "c9218f0c6ea320c33d4533ab428df3dcb626765c",
+      "sha256": "6dd58a8234456890d390387ac1badd04e936d96adc2e474ba8c24e18f59d9f0f"
+    },
+    {
+      "path": "lib/cis/db-data.ts",
+      "git_blob": "bd700d3a9a6ee6f2f292f379cc5d297549f667b9",
+      "sha256": "5299216751a3f5e644b0917197fd5ed493c8c69ece86426cf9979d9856e22464"
+    },
+    {
+      "path": "lib/cis/db-outbound.ts",
+      "git_blob": "1ec9079d4fc7d7f64968fca4ca1b959619bfa5ac",
+      "sha256": "f061ca0f0c005861cd9c3a56f13ef6e59daf6264cce96607c4970c824865b05a"
+    },
+    {
+      "path": "lib/admin/guards.ts",
+      "git_blob": "2850dcc28d699c593a7acabd95bb986080998a37",
+      "sha256": "ac7cb38d188e18672e294ac662c3e4401e4167d9cf9e61846c960a954ffc10ca"
+    },
+    {
+      "path": "lib/tenant/adminScope.ts",
+      "git_blob": "293e7897629990ce1d9256dc0d8fc17134871c59",
+      "sha256": "ceea0f50ef043fc2a89384a9d6eacd6b1c45d7f1c35a917f0faceaaa25c1083e"
+    },
+    {
+      "path": "lib/tenant/scope.ts",
+      "git_blob": "c468c2d3bc6a2f97791db73ac33907f747a3b272",
+      "sha256": "dad0d989403d00ea5bc5e72c86e2a6eae69ba0edadb0a2853214087dc8bd8910"
+    },
+    {
+      "path": "app/admin/billing/page.tsx",
+      "git_blob": "7cde8d764ed125343c4d8fe1df5d0a4bdebf18cd",
+      "sha256": "ce8a9688680969b48111b6a2e199b4a04c11cdef253eaa1c68a74d1302db9c8c"
+    },
+    {
+      "path": "app/admin/billing/actions.ts",
+      "git_blob": "f2c01b5be7b931438cce6bcc3046b009ace6fccf",
+      "sha256": "4214d6be8787168bbc4ecdd89a0012d03a4757bf39904e501fbf8a4982a07585"
+    },
+    {
+      "path": "lib/auth/requirePermissionServer.ts",
+      "git_blob": "2794abffaa4207941b6ed6ea5bcb77feac5f5f89",
+      "sha256": "52372b8fec00993e1e152ef6735b761ec93690049bfb2c116ea358f96d9e6736"
+    },
+    {
+      "path": "lib/billing/invoiceReviewData.ts",
+      "git_blob": "d15e77b2d3554bb4917843d7756afc46271537a5",
+      "sha256": "1fcbceb9a2482f5f2a0ef95ab441ffb28bc7f869a313193c9f7552c0152929cb"
+    },
+    {
+      "path": "lib/billing/invoiceApprovedDispatch.ts",
+      "git_blob": "e63aecb07c6d9909bf3dab533274ae7a2d601950",
+      "sha256": "532608401c20578e22c0fddaa4934d7954347a4f38b6aaa02797db0b7fbfbd4c"
+    }
+  ],
+  "actions": {
+    "direct_checker_runs": 1,
+    "test_harness_or_mutation_probes": 0,
+    "full_supplierchain_oldRED_native_browser_CI_capture_runs": 0,
+    "GitHub_mutations": 0,
+    "new_PR_or_merge": false,
+    "network_fetches": 0
+  },
+  "handoff": "Local source commit only; root adopts current-main source and publishes the next shared checker-intake. Frozen612 source and UI/product608/ENV07-610 leases untouched. No whole-rule/whole supplier approval claimed.",
+  "source_inputs_basis": "PRE-APPLY authentic38aa pins; sole checker after-SHA is separately recorded, other16 remain exact."
+}
