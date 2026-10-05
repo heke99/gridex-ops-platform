@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "observedAtUtc": "2026-10-05T14:42:47.803153+00:00",
+  "status": "LOCAL_UNPUBLISHED_BOUNDED_IMPLEMENTATION",
+  "native": "NOT_RUN",
+  "wholeAcceptance": "HELD",
+  "publishedPr": 588,
+  "publishedHead": "7453605e27b313309240184e8bd5f664bc156b8a",
+  "publishedTree": "8603b59df91d0b8dfcba5f940f44dcdf588f5cf5",
+  "publishedCodeCaseCount": 4,
+  "localAuthoredCodeCaseCount": 6,
+  "executedNativeCaseCount": 0,
+  "allocationComment": 5995812046,
+  "postedBeforeImplementationComment": 5996407394,
+  "helper": {
+    "baselineBlob": "05eb94364ebac1e27b72773495a4b2baeead09c6",
+    "patchSha256": "b705390993dcb28fe9cf3fecdbaae52e6f17bfdeb7b70e995db0381a9d7c5da8",
+    "implementedBlob": "bdc078bbae5f52955c1e2a7544babeb92bf41c41",
+    "exactPostedPatchApplied": true,
+    "carryOwner": "retained root #503, once; no competing helper publication"
+  },
+  "files": [
+    {
+      "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+      "sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1"
+    },
+    {
+      "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+      "sha256": "0dbef8cd9005c01cade8bb90621f5cb504e273c0e1f6afb2e6992d9f3baab18b"
+    },
+    {
+      "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+      "sha256": "443b06fddfc0f617165a5d86c2de2b45d921707e694a7a0ce6cf22c7e456e4ca"
+    }
+  ],
+  "staticResults": [
+    {
+      "name": "lint",
+      "command": [
+        "/workspace/.cache/gridex-npm-20261005/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "node_modules/eslint/bin/eslint.js",
+        "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+        "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+        "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts"
+      ],
+      "runtimeVersion": "v22.23.3",
+      "startedAtUtc": "2026-10-05T14:38:29.119970+00:00",
+      "finishedAtUtc": "2026-10-05T14:38:31.425688+00:00",
+      "exitCode": 0,
+      "log": "extension-lint.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "files": [
+        {
+          "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+          "sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1"
+        },
+        {
+          "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+          "sha256": "0dbef8cd9005c01cade8bb90621f5cb504e273c0e1f6afb2e6992d9f3baab18b"
+        },
+        {
+          "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+          "sha256": "443b06fddfc0f617165a5d86c2de2b45d921707e694a7a0ce6cf22c7e456e4ca"
+        }
+      ],
+      "frozenFilesUnchanged": true,
+      "scope": "Changed-code static verification only; native NOT_RUN, whole acceptance HELD."
+    },
+    {
+      "name": "types",
+      "command": [
+        "/workspace/.cache/gridex-npm-20261005/_npx/d18f28baf1132559/node_modules/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "-p",
+        "tsconfig.scripts.json"
+      ],
+      "runtimeVersion": "v22.23.3",
+      "startedAtUtc": "2026-10-05T14:38:29.124145+00:00",
+      "finishedAtUtc": "2026-10-05T14:38:49.423803+00:00",
+      "exitCode": 0,
+      "log": "extension-types.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "files": [
+        {
+          "path": "scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts",
+          "sha256": "65e2b6c559e187d864ece902ade76e49fe25dcea31ee9c20d4c08058c75cbdf1"
+        },
+        {
+          "path": "scripts/ediel-at-z06f-supplier-acceptance-native.test.ts",
+          "sha256": "0dbef8cd9005c01cade8bb90621f5cb504e273c0e1f6afb2e6992d9f3baab18b"
+        },
+        {
+          "path": "scripts/ediel-at-z06g-supplier-acceptance-native.test.ts",
+          "sha256": "443b06fddfc0f617165a5d86c2de2b45d921707e694a7a0ce6cf22c7e456e4ca"
+        }
+      ],
+      "frozenFilesUnchanged": true,
+      "scope": "Changed-code static verification only; native NOT_RUN, whole acceptance HELD."
+    }
+  ],
+  "review": {
+    "reviewer": "root (not implementation writer z06_memory_native_map)",
+    "verdict": "APPROVE bounded unexecuted source/helper/test design",
+    "scope": "Complete F file and complete G delta, all helper hunks, actual latest-canonical review requirements, receipt/expectation schema, persisted physical ignored binding and dated-source reader. No independent human/native/transport approval.",
+    "findings": [
+      "Defaults and hard canonical/review gates preserved; raw transform precedes genuine capture and existing UNT count repair.",
+      "Actual processor is followed by actual authorized structural review; own first effects remain absent until case approval.",
+      "Actual receipt/batch binds original hash, current canonical/object assessments, own first LIN and F expectation; G expectation remains absent.",
+      "Physical UD retains original bytes and six actual stored ignored-field occurrences validated through the existing production physical binding.",
+      "Actual dated-source reader exercises linked original/canonical/ignored facets; no mocked source, SQL, case, ACK, outbox or consumer effect.",
+      "Foreign tenant/actor/graph/LIN and actual permission DENY precede first effect; deleting only one identified disposable DENY restores existing permissions for same-original positive contrast.",
+      "Existing node-mailer synthetic external acceptance proves no real delivery or legal/transport authority.",
+      "Retained replay must preserve source, originals, ledgers, business, receipts, expectations, ACK/outbox and event evidence, allowing documented case timestamps only."
+    ]
+  },
+  "additionalReviewedSourcePins": [
+    {
+      "path": "lib/ediel/sources/datedSourceMeasurements.ts",
+      "sha256": "1a20067ff516d6104c1b513d40dda7bda3cd31e9e71ba43222260b7ff93d3cd9",
+      "blob": "9f39dea02f0f673e1d4359d9bd069afa52e8e081"
+    },
+    {
+      "path": "lib/ediel/core/receivedProdatIgnoredFieldBinding.ts",
+      "sha256": "6a93a38cd50fa02ffaef785c16b13f12e9a2a8a9eeccf50130e53f7bcff54021",
+      "blob": "4704296de848104b0f87a7f8c18c784353c5bacc"
+    },
+    {
+      "path": "lib/ediel/sources/receivedSourceOwnerSession.ts",
+      "sha256": "0409aba6c78da3afac1a9f8810d4d58036c1ba1e4ecbe33a13f5cb89aea40b74",
+      "blob": "67bf8e399c8b65b8d7ae8b6312c3f5b048c3a9e7"
+    },
+    {
+      "path": "lib/ediel/sources/reviewReceivedStructuralSource.ts",
+      "sha256": "75b84c41c28563a60acb0d95b8bd6b0f41c30e6399c66c8270da7e5db80ec470",
+      "blob": "101084c46f0d0f8af47ab5c1a75128fe2e2e2dc5"
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "8ea6ffc72ff5d2bcfab1e89979afd4f35f1d103ce09247578a5cf34c99f502b2",
+      "blob": "50289095b8565a1cdc3c3fb555f1c832c11b9fa5"
+    },
+    {
+      "path": "lib/ediel/inboundCases.ts",
+      "sha256": "6b36cf0b6067d840f840dbed3f69810519264cef4626bb86d7ba1df0eba5475d",
+      "blob": "55b59cce1055b5c63718a10c572c095e72488b59"
+    },
+    {
+      "path": "lib/ediel/prodat/prodatFieldDiagnostic.ts",
+      "sha256": "0d6201c22e4f02953003dae853d5c0ae95332879c6e31dc758f6c41c0a218c15",
+      "blob": "a0b1fbc843244db56ff8ba723bd3539c3b5061af"
+    },
+    {
+      "path": "supabase/migrations/20261001011232_ediel_partial_prodat_structural_owner_effects.sql",
+      "sha256": "9867489d81c902cb4cc49a1ca468e82ca88f577a9ce3b52bb4d158cdaa89c245",
+      "blob": "3dfd322f54f256b769ab95ee81670a16c324982f"
+    },
+    {
+      "path": "supabase/migrations/20261001042609_ediel_source_owned_z06f_reading_followup.sql",
+      "sha256": "0eeb5bc5daaddc0ebd17e6fbe3f6f7964fbfaad9773a631dc9b7cd5321cb5fe5",
+      "blob": "33f102c9c7cb7e0c845ab439ba5144245caaae49"
+    },
+    {
+      "path": "package.json",
+      "sha256": "48a22ef6a0d0389d41fe079043845fb61372263d842ad8de83d09b4e754a3878",
+      "blob": "7e8140606986b98e6acfe71415ce8fa38bad3784"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "93ab57ed8646227fbfd7e45b3df908c3a6411729d0170c3fcca2c02b54f48627",
+      "blob": "b247061206a317aeb7302f50d469117555d0b62f"
+    }
+  ],
+  "pinScope": "Selected inspected contracts, not a complete transitive dependency closure.",
+  "heldPrerequisites": [
+    "Retained field306 fixture/code-list qualification: inherited E22 versus original P26.A Z11/Z12.",
+    "Genuine source admission and future original mailbox birth/current route qualification.",
+    "Retained native registration and existing owned stack holding state.",
+    "Malformed/rejected capture, stored direction and unknown public facts are outside the allocated accepted-input seam.",
+    "Complete source-qualified F/UTILTS fulfillment and every expected/prohibited whole-contract clause."
+  ],
+  "ownCoverage": "NOT_EXECUTED with empty evidence; no machine tags or coverage promotion.",
+  "receiptReuse": "These are new changed-code static checks. Older static receipts and published745 CI do not qualify the local new code.",
+  "codeDiffCheckExit": 0
+}

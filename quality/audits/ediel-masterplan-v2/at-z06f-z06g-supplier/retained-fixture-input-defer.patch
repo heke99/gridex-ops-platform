@@ -1,0 +1,49 @@
+diff --git a/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts b/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts
+index 05eb94364ebac1e27b72773495a4b2baeead09c6..bdc078bbae5f52955c1e2a7544babeb92bf41c41 100644
+--- a/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts
++++ b/scripts/helpers/ediel-z06f-reading-followup-native-fixture.ts
+@@ -8,6 +8,7 @@
+ import {createBilateralSourceOperator} from './ediel-bilateral-customer-native-fixture'
+ import {z06fNativeStructureWire,z06fNativeReadingWire,type Z06fNativeReadingOptions} from './ediel-z06f-reading-followup-native-wire'
+ import {utiltsNativeSourceFixture} from '../../__tests__/helpers/utiltsNativeSourceFixture'
++import {recountEdifactUnt} from '../../__tests__/helpers/recountEdifactUnt'
+ import {registerUtiltsIssuer,seedUtiltsIssuerHistoryGround} from './utiltsConsumptionParties'
+ import {tokenizeEdifact,segmentSourceSpan} from '@/lib/ediel/core/edifactTokenizer'
+ import {reviewReceivedStructuralSource} from '@/lib/ediel/sources/reviewReceivedStructuralSource'
+@@ -23,6 +24,14 @@
+ import {prepareUtiltsConsumptionContracts} from '@/lib/ediel/utilts/consumptionPreparation'
+ import {buildUtiltsTransactionPersistencePayload,persistUtiltsTransactionResults} from '@/lib/ediel/utilts/transactionPersistence'
+ import type {EdielMessageRow} from '@/lib/ediel/types'
++
++export type Z06fNativeChangeOptions={
++ // Public synthetic wire input only, before real stamping/capture/validation.
++ transformRaw?:(raw:string)=>string
++ deferFirstApply?:boolean
++ // Observation after real canonical/owner review; receives an isolated original.
++ beforeFirstApply?:(original:Readonly<EdielMessageRow>)=>void|Promise<void>
++}
+ 
+ function stampTest(raw:string,reference:string){
+  const t=tokenizeEdifact(raw),unb=t.segments.find(x=>x.tag==='UNB')!,span=segmentSourceSpan(unb)!,parts=unb.raw.split(t.una.dataElementSeparator)
+@@ -45,8 +54,9 @@
+   const result=await supabaseService.from('ediel_messages').select('*').eq('id',id).single();expect(result.error).toBeNull()
+   const message=result.data as EdielMessageRow;expect(message.message_received_at).toBeTruthy();return message
+  }
+- const change=async(kind:'F'|'G'='F',document=randomUUID().replaceAll('-',''))=>{
+-  const raw=z06fNativeStructureWire(f,kind,document)
++ const change=async(kind:'F'|'G'='F',document=randomUUID().replaceAll('-',''),options:Z06fNativeChangeOptions={})=>{
++  const originalRaw=z06fNativeStructureWire(f,kind,document)
++  const raw=options.transformRaw?recountEdifactUnt(options.transformRaw(originalRaw)):originalRaw
+   const message=await capture(raw,'PRODAT','Z06',`PRODAT:Z06:${kind}:26.A:r3`),decision=await resolveCanonicalRuntimeDecisionWithRegistry(message)
+   expect([decision.syntaxDecision,decision.applicationDecision,decision.functionalDecision],JSON.stringify(decision.issues)).toEqual(['accepted','accepted','accepted'])
+   const recorded=await recordReceivedSourceValidation({original:message,validated:message,resolvedCompanyId:f.companyId,decision});expect(recorded.status).toBe('recorded');
+@@ -55,7 +65,8 @@
+   const owner=createReceivedSourceOwnerSession(recorded);expect(owner).not.toBeNull();await owner!.finish()
+   expect(await reviewReceivedStructuralSource({companyId:f.companyId,environment:'test',sourceMessageId:message.id,reviewerUserId:operator.id,confirmedOriginal:true,replacesSourceMessageId:null})).toMatchObject({status:'recorded',sourceDisposition:'accepted'})
+   const apply=()=>approveSafeMasterdataChanges({edielMessageId:message.id,actorUserId:operator.id})
+-  expect(await apply()).toMatchObject({status:'applied',appliedCount:1})
++  if(options.beforeFirstApply)await options.beforeFirstApply(structuredClone(message))
++  if(!options.deferFirstApply)expect(await apply()).toMatchObject({status:'applied',appliedCount:1})
+   return {message,apply}
+  }
+  const reading=async(options:Z06fNativeReadingOptions={})=>{
