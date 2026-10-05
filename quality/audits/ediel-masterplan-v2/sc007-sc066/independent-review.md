@@ -1,14 +1,116 @@
 # Independent SC-007 / SC-066 review checkpoint
 
-Reviewer `/root/sc007_sc066_review`, 2026-10-04 UTC. Independent review only;
+Reviewer `/root/sc007_sc066_review`, 2026-10-04/05 UTC. Independent review only;
 owner `/root/review_ten06` retains all implementation. Root owns GitHub,
 coverage, composition and integration. No owner/shared memory, source, tests,
 schema, authority, push or merge changes are authorized for this reviewer.
 
-Status: frozen dc3 independently reviewed; SC066 current-consumer evidence
-gap must be repaired by owner before approval. Current parent base #541 is
+Status: **SC007 APPROVED; SC066 APPROVED at corrected fd0c3613**. The earlier
+dc3 request-changes verdict and its source evidence remain historical below;
+the complete corrected-card verdict in the next section supersedes it.
+Current parent base #541 is
 `fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c`, actual main baseline
 `56192d16d1eac7fb0e716a3e2770bac8e58be115`.
+
+## Corrected freeze: complete independent SC066 approval — 2026-10-05
+
+**SC-066: APPROVE, entire frozen expected/prohibited code-behavior criterion,
+on PR547 head `fd0c361398d7ddb5dbaffdd08cab28c185baf53e`, tree
+`106bed84c098bdc411f4d5377f9b703ef8a08a08`.**
+**SC-007: prior complete APPROVE retained by exact unchanged source/input
+qualification.** No remaining literal criterion blocker was found. Root owns
+only the matching card promotion, independent verdict publication, required
+current-head CI and main composition/merge. This review does not certify final
+personal-source reception/storage, external legal/customer/market custody,
+native RLS/concurrency or unrelated scenarios.
+
+Independent read-only GitHub GET confirms exact fd0 head and fbd base. Fetched
+owner branch into the existing detached ordinary clone and checked out that
+immutable commit. Owner worktree stayed untouched. Actual correction from dc3
+has only one asserting input change: existing embedded AI SQL probe. Other
+delta is own packet/log/previous-review publication plus the already-approved
+SC007 row. All351 other coverage rows equal dc3; SC066 remains NOT_EXECUTED at
+the reviewed freeze until root promotes it. lib/app/supabase/shared-memory
+diff empty. Detached checkout clean before and after execution.
+
+Exact corrected input SHA256:
+`fe868fc03d45ee03b661e177b8605db9ed5930f2c3be40946a4b29fde8320249`.
+Exact packet receipt SHA256:
+`307b12b7c64f85268f017627f9585432072539fdf5f00339897fdde0dee36b6c`.
+Committed owner's wrapper log SHA256:
+`6a9f62bdd6a7443d886f00a752f1819ef070d496b98da15b1b09dbcbe4907f7c`.
+All seven packet input hashes and all16 production-source hashes independently
+match Git blobs. Six unchanged asserting inputs, all16 production owners,
+full frozen acceptance register and annex are byte-identical dc3 -> fd0.
+The published prior independent review equals this external record's prior
+edition byte-for-byte; no old positive inference hides the original finding.
+No unchanged47TS/scoped17/copy14/native suite was rerun.
+
+Fresh reviewer command on Node22.23.3, narrow child network permission and
+repository loopback preload:
+`node --test scripts/test-ediel-ai-history-and-reconciliation.cjs`
+—**1/1 PASS,0 failures/errors/skips,exit0**. Exact log
+`/workspace/agent-review-checkpoints/sc066-current-consumer-wrapper.log`,SHA256
+`73dac7996ef5a381e521b277f6940c88527c622f0f65db2f5cfc851a5eb14478`.
+The unchanged supported wrapper executes the SAME corrected SQL script and
+requires child exit0 plus the six-table/investigation completion marker.
+`git diff --check dc3..HEAD` and exact no-production-delta checks exit0.
+
+The corrected probe extracts whole committed CREATE statements without
+editing their bodies, installs actual final bridge/auth/header/reconciliation
+owners, and compares actual pg_proc prosrc to those migration bodies and the
+final committed schema. I independently extracted all8 referenced definitions
+from their migrations and final schema and rechecked their exact body SHA256s;
+the fresh wrapper then executed all installed-body assertions successfully.
+The unchanged real import trigger remains enabled and is exercised: its
+bridge chain produces the observed extra purpose scope call. No current
+consumer or import guard is replaced by an authorization stub.
+
+| Current actual definition | Independently matched trimmed body SHA256 |
+|---|---|
+| guard_import_v1 | bb1540e3250b760289997c406948b42d82c08b3c2b5299f32c6008389f14c7f7 |
+| current_decision_v1 | 5240b267c0c0a517b98d7749cb379ef24fc5cfd8abfed8eaedf925406d0be277 |
+| current_purpose_decision_v1 | 47c16e778a733eb07a6ed5876d3158cbe80f22f0dd19819a1e87139850635715 |
+| authorize_purpose_phase_v1 | 83dbce896518560043ead79a55e01eac2f2b05e66d9b03877dd1e872ae5fae35 |
+| current_purpose_decision_for_phase_v1 | 01498b3afa5be72dcb99266c313a4145495406c93dfc4e20332c22f8a1ee8768 |
+| purpose_decision_after_actor_v1 | ab6d802498a98f52f8351a0c8f2cf288ab8f76dec03a9869ef38394de0b32825 |
+| header_company_basis_v1 | 820748b4460a6a7b673eaf847791426c418e1718d687f97cf4cc73e5a0a64340 |
+| reconcile_source_v1 | bef7a445874b7a7d8870b45a54e435ae954e26528c488c8e61ca2f72ef33f0d1 |
+
+All belong to gridex_ai_processing. The final header/reconcile statements are
+from01023514, replacing the older174145 definitions that caused the finding.
+Five current bridge/auth statements come from201813/220942/224737/020550;
+guard_import is unchanged actual165219 owner. The actual application adapter,
+public service wrapper and inbound/export callers retain the read-only traced
+reachability documented below; current bodies are no longer older helpers.
+
+### Full SC066 literal/effect closure at fd0
+
+| Exact full literal obligation | Independent asserting behavior and reachable actual owner | Result and precise boundary |
+|---|---|---|
+| Given installation changed during period AND delivery is partial | Unchanged history case explicitly represents Oct01–Nov01 request, Oct05–25 delivery and Oct10 address transition. It calls real projectAiListHistory with finite dated source/readset business input. | PASS, prior fresh dc3 execution carries only after exact fixture/producer source equality. Private history/source custody is substituted. |
+| When export period data; expected correct details and validity | Actual history result enters real intent renderer, normal qualified header reader object and actual outbound physical CSV producer. Asserted two actual CSV rows preserve exact GSRN/customer/address and Oct05–10/Oct10–25 boundaries,22 columns/final delimiter and source provenance. Forged prefilled intent rows excluded; fresh origin-read failure holds. Actual loadAiListOriginBasis and renderAndQueueAiList read-only trace calls the same project/renderer/producer. | PASS; origin/headerRPC/source business inputs are explicit ports. Export correctness is actual serialized output, not metadata or unused helper. Final original/storage/transport owners remain outside executed scenario boundary. |
+| Given an incoming list differs from database; when load reconciliation | Corrected probe supplies a sealed company-owned source and exact raw hash: own known GSRN has actual grid_area WRONG against NET; foreign GSRN exists only in foreign tenant. The current installed reconcile_source_v1 called through its actual private SQL entry checks current actor/purpose/network ports; import guard calls real current bridge/auth chain. Application sealed-source adapter and public RPC delegation stay source-identical to traced current callers. | PASS. Named read actor, purpose consumer/current scope and network facts are finite upstream ports. No arbitrary caller match rows or private purpose artifact/review/origin authority is seeded. |
+| Expected discrepancies lead to investigation | Current consumer creates exactly2 own open investigations with exact import/import-row/company links, reason and physical imported columns; known row current_values equals exact owned point/customer/site/grid-area/network state, foreign-only row current_values empty. Own import status review_required, row/discrepancy counts2, and source hash/import/result receipt bound. | PASS on actual final SQL body. Real import guard remains enabled, actual extra bridge scope call asserted. Reduced schemas and synthetic source are disclosed. |
+| Prohibited automatic overwrite of masterdata | Actual current import and exact replay preserve every complete own+foreign row across6 protected tables: customers,customer_sites,metering_points,contracts,customer_contracts,supplier_switch_requests. Original source remains unchanged. Unchanged operator decision adapter assertions call only own scoped investigation update with audit, never masterdata/RPC writer, for all3 explicit decisions. | PASS. All12 full declared-schema rows retained; not a completeness claim about deployed schema/trigger/native RLS behavior. Current owner body writes imports/rows/investigations/receipt and own import status only. |
+| Source evidence and replay preserve the expected investigation | Current successful calls are asserted in exact order: read actor; purpose origination/test; current AI reconciliation/test scope; network company54321/test; actual import-trigger bridge scope. Missing read, missing/unqualified purpose, denied purpose consumer and denied network each hold. Fault on second row rolls back all4 outcome tables. Exact replay returns identical result with only current read actor call even when purpose/network held; denied current read still refuses replay. Source/receipt/investigation whole rows and six snapshots stay identical. | PASS. Current exact consumer/replay effects executed without obsolete decision/header stubs. |
+
+The bootstrap165219 message storage gate is explicitly tested held, then
+disabled only inside this disposable probe for the synthetic sealed source
+insertion. That is the fixture's upstream source setup. The final personal
+source reception/storage owner is NOT executed or claimed. SC066 requires
+period export, discrepant-list investigation and no masterdata overwrite;
+this bounded approval covers those complete effects at their actual owners.
+It does not silently infer the separate reception/legal/retention/storage
+approval from a seeded source or FK decision. The unqualified decision row
+supplies existing receipt/import FK identity only, and the named current
+upstream purpose/network facts remain declared substitutes.
+
+**Original SC066-CURRENT-CONSUMER evidence finding: CLOSED by owner correction
+and fresh independent current-wrapper execution.** No further code/test
+change is requested. Next belongs to root: publish this exact independent
+verdict, promote only SC066, and apply required current-head CI/integration
+gates. SC007 stays approved and the350 unrelated statuses stay untouched.
 
 ## Routing and scope
 

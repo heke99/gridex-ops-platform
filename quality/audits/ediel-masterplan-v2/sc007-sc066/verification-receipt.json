@@ -1,5 +1,5 @@
 {
-  "purpose": "Complete frozen SC-007 independently approved; SC-066 current-consumer correction ready for independent full-scenario review",
+  "purpose": "Complete frozen SC-007 and SC-066 independently approved with source-qualified finite-consumer proofs",
   "stacked_base_sha": "fbd76d6dfadf9ae9b06d75629f0a4ddef47bb61c",
   "main_source_baseline": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
   "owner_claim_url": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985559317",
@@ -180,7 +180,10 @@
     "spec_integrity_log_sha256": "0a65612f87a0de698e7fa73719c580f2f2e27ff22652d7ae3ce05417a95f42a3",
     "historical_obsolete_ai_sql_log_sha256": "17edaa4379dabfe639a69d942d82fd50263dd9c15db5e9427030bde840dc90f7",
     "supported_tag_discovery": "PASS actual ordinary tag-discovery patterns: SC007 API test + scoped17/separatecopy14 wrapper; SC066 history/decision tests + corrected current consumer wrapper; all existing IDs resolve. Full tag runner not repeated.",
-    "source_and_row_invariants": "PASS7 input/16 production hashes; six other technical inputs unchanged dc3;14 qualified native bodies unchanged; independent review byte-exact; onlySC007changed,351 rows unchanged; lib/app/supabase/shared-memory diff empty"
+    "source_and_row_invariants": "PASS7 input/16 production hashes; six other technical inputs unchanged dc3;14 qualified native bodies unchanged; independent review byte-exact; onlySC007changed,351 rows unchanged; lib/app/supabase/shared-memory diff empty",
+    "evidence_only_approval_invariants": "Fresh PASS7 technical inputs/16 production sources exact fd0, byte-exact updated independent record, supported SC007/SC066 tags resolve, onlySC066 row changes/351 rows exact, diff clean; no unit/full/native repetition",
+    "approval_spec_integrity": "Fresh verify_spec.py PASS29 checks; own generated result restored",
+    "approval_spec_integrity_log_sha256": "0a65612f87a0de698e7fa73719c580f2f2e27ff22652d7ae3ce05417a95f42a3"
   },
   "substitution_boundaries": [
     "Existing simplified structural source/readset business declarations remain finite chronology dependencies, not private owner receipts",
@@ -199,26 +202,35 @@
       "reviewed_head": "dc3b733562ec36d0d94458247f3546b3ca5bdc94",
       "reviewer": "/root/sc007_sc066_review",
       "record": "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
-      "record_sha256": "16fedae2c9bf6ded68e4cc68847e45cbb6de8af3c30636f513d33151cfe78144",
+      "record_sha256": "ca582b18097871cad37440924337c69fb44db49cf9c5bc1fc4a6a691899792d7",
       "public_review": "https://github.com/heke99/gridex-ops-platform/pull/547#issuecomment-5985697401",
       "asserting_inputs_unchanged_from_approved_head": true,
-      "coverage_status": "PASSED"
+      "coverage_status": "PASSED",
+      "retained_in_current_review": "fd0c361398d7ddb5dbaffdd08cab28c185baf53e"
     },
     "SC-066": {
-      "verdict": "PENDING independent review of current-consumer correction",
-      "prior_review": "REQUEST CHANGES only stale SQL-consumer evidence, not established product defect",
-      "coverage_status": "NOT_EXECUTED"
+      "verdict": "APPROVE complete frozen code-behavior criterion",
+      "reviewed_head": "fd0c361398d7ddb5dbaffdd08cab28c185baf53e",
+      "reviewed_tree": "106bed84c098bdc411f4d5377f9b703ef8a08a08",
+      "reviewer": "/root/sc007_sc066_review",
+      "record": "quality/audits/ediel-masterplan-v2/sc007-sc066/independent-review.md",
+      "record_sha256": "ca582b18097871cad37440924337c69fb44db49cf9c5bc1fc4a6a691899792d7",
+      "public_review": "https://github.com/heke99/gridex-ops-platform/pull/547#issuecomment-5985865262",
+      "independent_current_ai_wrapper": "Fresh Node22.23.3 supported wrapper1/1 PASS0FAIL0ERROR0SKIP, exit0; unchanged other inputs qualified without rerun",
+      "independent_current_ai_wrapper_log_sha256": "73dac7996ef5a381e521b277f6940c88527c622f0f65db2f5cfc851a5eb14478",
+      "coverage_status": "PASSED"
     },
     "other_coverage_rows_unchanged": 351
   },
-  "next_action": "Independent reviewer checks exact newly published current-function source/input hashes, reruns only changed AI wrapper and decides complete SC066; root retains mandatory CI/composition/merge",
+  "next_action": "Publish evidence-only SC066 approval and mark PR547 ready; root retains mandatory current-head CI/composition/merge. Inventory latest ownership before reserving any next two scenarios.",
   "publication": {
     "pull_request_url": "https://github.com/heke99/gridex-ops-platform/pull/547",
     "base_pull_request": 541,
     "technical_freeze_sha": "c7121808bc2dbcbe3b63eff6ee68d4118b0b834e",
     "technical_freeze_tree": "7c9a220f2edd797b04069cd1ca175a217369b6b9",
-    "status": "Immutable current-consumer correction packet; SC007 independently approved and promoted alone; SC066 remains pending new freeze review",
-    "independently_reviewed_predecessor_sha": "dc3b733562ec36d0d94458247f3546b3ca5bdc94"
+    "status": "Both complete scenarios independently approved; evidence-only SC066 approval delta; technical inputs preserved",
+    "independently_reviewed_predecessor_sha": "dc3b733562ec36d0d94458247f3546b3ca5bdc94",
+    "approved_current_consumer_freeze_sha": "fd0c361398d7ddb5dbaffdd08cab28c185baf53e"
   },
   "current_sql_consumer_definitions": [
     {
@@ -286,6 +298,13 @@
     "public.gridex_actor_has_company_permission": "Existing declared finite permission port; actual membership/profile/auth bridge bodies execute"
   },
   "coverage_changes": [
-    "SC-007"
-  ]
+    "SC-007",
+    "SC-066"
+  ],
+  "current_approval_delta": {
+    "from_head": "fd0c361398d7ddb5dbaffdd08cab28c185baf53e",
+    "only_row": "SC-066",
+    "other_rows_unchanged": 351,
+    "technical_inputs_unchanged": true
+  }
 }
