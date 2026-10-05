@@ -1,0 +1,40 @@
+
+ RUN  v4.1.9 /workspace/gridex-masterplan-sc057-sc059
+
+stdout | __tests__/ediel-sc-057-registry-import-lifecycle.test.ts
+RED same installed market owner: current tenant/registry legal alias absent
+
+ ❯ __tests__/ediel-sc-057-registry-import-lifecycle.test.ts (8 tests | 8 skipped) 1634ms
+     ↓ previews the actual XML without changing actor/role/market/route/source state
+     ↓ imports identical bytes twice without duplicating any of17 public/private relations
+     ↓ previews all three later contradictory PRODAT addresses as explicit route changes
+     ↓ keeps all old/new routes and history, markets and roles, holding both sides of each contradiction
+     ↓ ends the actual controlled apply with terminal status and held readiness
+     ↓ records blocking terminal zero-route preview and denies apply without source or masterdata effects
+     ↓ rolls back an interrupted real owner after transient running and earlier mutations, leaving no unattended run
+     ↓ denies unauthorized apply and executes four exact current captured owner bodies
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/ediel-sc-057-registry-import-lifecycle.test.ts [ __tests__/ediel-sc-057-registry-import-lifecycle.test.ts ]
+error: column "completed_at" does not exist
+ ❯ be.$r ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10
+ ❯ be.za ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15
+ ❯ be.parse ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24
+ ❯ ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/src/pglite.ts:398:27
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2608882
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:2609769
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:5283187
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:366756
+ ❯ invoke_v ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/release/pglite.js:9:389209
+ ❯ null.<anonymous> wasm:/wasm/021cbcb2:1:368873
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 skipped (8)
+   Start at  04:47:47
+   Duration  2.05s (transform 158ms, setup 23ms, import 179ms, tests 1.63s, environment 0ms)
+
+JUNIT report written to /tmp/sc057-owned-first.xml
