@@ -1894,8 +1894,14 @@
     },
     {
       "id": "SC-041",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/ackPolicy.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/prodat/buildProdat.ts",
+        "scripts/test-ediel-unb-ack-request.cjs"
+      ]
     },
     {
       "id": "SC-042",
