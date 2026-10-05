@@ -29,7 +29,7 @@ async function seed(){
  INSERT INTO public.user_permissions(user_id,company_id,permission_id,permission_key)
  SELECT ${literal(reviewer)},${literal(f.companyId)},id,key FROM public.permissions WHERE key='communication.write';`)
  // TR-08: allRelayHopsVerified must name a verified, persisted read-back trace (synthetic headers only).
- const probe='probe-'+randomUUID(),traceHeaders=['Received: from relay.example.invalid (relay.example.invalid [192.0.2.20]) by mx.example.invalid with ESMTPS id b (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384); Sun, 4 Oct 2026 12:00:02 +0200',
+ const probe='probe-'+randomUUID(),traceHeaders=['Received: from smtp.own.example.invalid (smtp.own.example.invalid [192.0.2.10]) by mx.example.invalid with ESMTPS id b (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384); Sun, 4 Oct 2026 12:00:02 +0200',
   'Received: from app.example.invalid ([198.51.100.5]) by smtp.own.example.invalid with ESMTPSA id d (TLSv1.2:ECDHE-RSA-AES256-GCM-SHA384); Sun, 4 Oct 2026 12:00:00 +0200',
   'Authentication-Results: mx.example.invalid; spf=pass','X-Gridex-Relay-Probe: '+probe,''].join('\r\n')
  const trace=verifyRelayTrace({rawHeaders:traceHeaders,probeId:probe,ownHosts:['smtp.own.example.invalid']})
