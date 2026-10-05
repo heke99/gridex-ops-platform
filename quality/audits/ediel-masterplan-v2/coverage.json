@@ -1674,8 +1674,11 @@
     },
     {
       "id": "SC-036",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+        "scripts/ediel-p-11-z04-order-sql-regression.mjs",
+        "scripts/test-ediel-p-11-z04-order.cjs",
         "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
         "lib/inbound-mail/inboundStatusUpdater.ts",
@@ -1719,8 +1722,14 @@
     },
     {
       "id": "SC-042",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-042-aperak-family-separation.test.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/utiltsEngine.ts",
+        "lib/ediel/ack.ts",
+        "lib/ediel/rulebook/ackGuidePolicy.ts"
+      ]
     },
     {
       "id": "SC-043",
@@ -1953,8 +1962,13 @@
     },
     {
       "id": "SC-072",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "scripts/test-ediel-independent-common-mapping.cjs",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/syntaxValidator.ts",
+        "docs/ediel/masterplan-v2/registers/source_manifest.json"
+      ]
     },
     {
       "id": "AT-GOV-01",
