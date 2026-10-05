@@ -1,8 +1,8 @@
 # SC-022 overdue task and tracking checkpoint
 
-State: FROZEN candidate evidence, pending independent parent review. No formal
-SC/rule/AT status, coverage row or source changed. Root owns approval,
-publication and CI and authorized a commit of these two owned files only.
+State: whole SC-022 code-contract APPROVE after parent complete-literal review
+and independent exact-source execution. Only this scenario is promoted; related
+rule/AT rows remain unchanged. Root owns publication, final-head CI and merge.
 
 Reservation #530 comment5985947570; sole SC-022 lane alongside peer SC-021.
 Source-owner reconciliation request #491 comment5985994137; no existing-file
@@ -189,3 +189,12 @@ No new delegation.
 Next: parent independently executes exact frozen two-file commit in detached
 checkout, reviews full SC-022 and latest main 9dc byte qualification, then decides
 approval/tag/coverage/publication. Until then leave all packet bytes unchanged.
+
+
+## Root independent approval — 2026-10-05
+
+Frozen two-file `ac23157f6a95f3c533052302a92d94e43d0859c1`, tree `4508759f369162a192c92c1e5a1a45372423dc97`, was inspected against the complete given/when/expected/prohibited and the actual separate SMTP/ACK writers, two scheduler entrypoints and task/customer/status reader. Detached exact-commit reviewer ran only the four focused cases once: **4/4 PASS**, no skips. Original test/checkpoint SHA256 values remained unchanged before/after; review checkout clean. Independent log `/tmp/masterplan-sc022-independent-four.log`, SHA256 `9e34b831468831a9ec218bb75df45a539d38dd9292593f661abd137deca7ead3`.
+
+Whole SC022 code APPROVE: actual source watch expires at its qualified calendar deadline; real task writer/reader persists and exposes exact source/request/customer/site/point tracing, distinct from the display-only sweep. No fabrication/approval/resend or permission/source/outbox rewrite. A recent request has no task; earlier permitted proactive tracking retains the pending business watch; missing actual acceptance and foreign reader scope refuse. Explicit contact/tracking is satisfied by the asserted persisted operator tracking; no external contact/send or UI renderer is asserted. Accepted SMTP and positive-ACK source projections/auth/schema remain declared finite inputs, not claimed native authority.
+
+Promotion adds only the first-line SC-022 tag, this scenario's PASSED evidence row and this owned checkpoint receipt; all assertions and every other row byte stay unchanged. No whole ESCO06/OPS02/AT promotion, monthly variant, foreign coverage, new source/helper or alternate workflow. Next: supported tag/spec checks, isolate publication on actual current main with byte-identical relevant source, then all nine actual-head gates and retained common merge window.

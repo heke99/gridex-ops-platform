@@ -1,3 +1,4 @@
+// masterplan: SC-022
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { PGlite } from '@electric-sql/pglite'

@@ -1095,8 +1095,16 @@
     },
     {
       "id": "SC-022",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-022-overdue-contact-effects.test.ts",
+        "lib/ediel/businessExpectations.ts",
+        "lib/ediel/operations/businessExpectationSweep.ts",
+        "lib/ediel/operations/processNextAction.ts",
+        "lib/inbound-mail/inboundOverdueMonitor.ts",
+        "lib/operations/db.part-1.ts",
+        "supabase/migrations/20260930154712_ediel_source_bound_business_expectations_v1.sql"
+      ]
     },
     {
       "id": "SC-023",
