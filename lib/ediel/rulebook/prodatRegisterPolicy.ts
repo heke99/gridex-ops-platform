@@ -166,9 +166,11 @@ export function validateProdatRegisterPolicy(input: {
 export function validateProdatRegisterPayload(input: {
   code:string; rawSegments:readonly string[]; una?:EdifactServiceStringAdvice;
   facts?:ProdatDependentConditionFacts; requireConditions?:boolean; applicationReference?:string|null;
+  /** P119: a received message ignores X/D-false fields instead of rejecting them. */
+  direction?:'inbound'|'outbound';
 }): EdielRulebookIssue[] {
   const rules = canonicalProdat26AFieldRules(input.code).filter(rule => prodatRegisterFieldScope(rule.fieldNumber ?? '') === 'local')
-  const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse'},rules)
+  const issues = validateFieldMatrixPayload({family:'PRODAT',code:input.code,rawSegments:input.rawSegments,una:input.una,mode:'parse',direction:input.direction},rules)
   if (input.requireConditions) issues.push(...validateProdatRegisterPolicy({...input,rules,requireIndependentInventory:true}).issues)
   return issues
 }
