@@ -1,4 +1,4 @@
-// masterplan: P-11, AT-P-11
+// masterplan: P-11, AT-P-11, SC-037
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { getSupplierSwitchActivationReadiness } from '@/lib/operations/supplierSwitchActivation'

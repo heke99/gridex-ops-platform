@@ -17,6 +17,8 @@ DECLARE
   res jsonb;
   v text;
   n integer;
+  stale_before jsonb;
+  stale_after jsonb;
 BEGIN
   INSERT INTO public.companies(id,name,status) VALUES(c,'F12 synthetic A','active'),(other_c,'F12 synthetic B','active');
   INSERT INTO public.customers(id,company_id,customer_number,name,customer_type,personal_number,invoice_email,billing_street,billing_postal_code,billing_city)
@@ -117,10 +119,29 @@ BEGIN
   INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,affected_contract_count,recipient_email,token_hash,expires_at,status)
   VALUES(c,customer,'personal_number','19121212-1212','20000101-0008','Gammal begäran',staff,true,1,'kund@example.test',repeat('b',64),now() + interval '1 day','pending_customer_approval')
   RETURNING id INTO req;
+  SELECT jsonb_build_object(
+    'customer', (SELECT to_jsonb(snapshot_row) FROM public.customers snapshot_row WHERE id=customer AND company_id=c),
+    'request', (SELECT to_jsonb(snapshot_row) FROM public.customer_identity_change_requests snapshot_row WHERE id=req AND company_id=c),
+    'events', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY id),'[]'::jsonb) FROM public.customer_identity_change_events snapshot_row WHERE customer_id=customer AND company_id=c),
+    'audit', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY id),'[]'::jsonb) FROM public.audit_logs snapshot_row WHERE company_id=c),
+    'billing_revisions', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY revision),'[]'::jsonb) FROM public.customer_billing_profile_revisions snapshot_row WHERE customer_id=customer AND company_id=c)
+  ) INTO stale_before;
   BEGIN
     PERFORM public.gridex_decide_customer_identity_change_v1(c, req, 'applied', 'customer', NULL);
     RAISE EXCEPTION 'F12 stale request applied';
-  EXCEPTION WHEN serialization_failure THEN NULL; END;
+  EXCEPTION WHEN SQLSTATE 'PT409' THEN
+    IF SQLERRM IS DISTINCT FROM 'identity_change_stale' THEN RAISE; END IF;
+  END;
+  SELECT jsonb_build_object(
+    'customer', (SELECT to_jsonb(snapshot_row) FROM public.customers snapshot_row WHERE id=customer AND company_id=c),
+    'request', (SELECT to_jsonb(snapshot_row) FROM public.customer_identity_change_requests snapshot_row WHERE id=req AND company_id=c),
+    'events', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY id),'[]'::jsonb) FROM public.customer_identity_change_events snapshot_row WHERE customer_id=customer AND company_id=c),
+    'audit', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY id),'[]'::jsonb) FROM public.audit_logs snapshot_row WHERE company_id=c),
+    'billing_revisions', (SELECT coalesce(jsonb_agg(to_jsonb(snapshot_row) ORDER BY revision),'[]'::jsonb) FROM public.customer_billing_profile_revisions snapshot_row WHERE customer_id=customer AND company_id=c)
+  ) INTO stale_after;
+  IF stale_after IS DISTINCT FROM stale_before THEN
+    RAISE EXCEPTION 'F12 stale decision changed customer, request, history, audit or billing revision';
+  END IF;
   PERFORM public.gridex_decide_customer_identity_change_v1(c, req, 'cancelled', 'staff', staff);
 
   INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,affected_contract_count,recipient_email,token_hash,expires_at,status)

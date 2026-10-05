@@ -85,3 +85,5 @@ failure or a card/test blocker. Root owns current mandatory gates, main
 composition and merge. Next: mark551 ready and inventory fresh530/491/open PR
 source/coverage/tag union before claiming the next two unowned scenarios.
 SC011/SC023 is now retained by env02 at5305986382740; SC003/SC005 belongs ten08.
+
+Integration-only continuation (2026-10-05): retained same #551 branch adopts current main a8c991c1, preserving unpublished76d22/2d03 tag/evidence union. Own integration checkpoint and minimum source-carry receipt record27 unchanged direct inputs, typed denial-only delta,7 exact SQL bodies,7661 foreignpaths and350 foreignrows retained. Current full supported tag--check exits0 (352/215 approved/241 green/0 failing), frozen33/121/231, tests types and scoped lint exit0; ignoredCJS warning and first temporary-launcher minWorkers failure are preserved. Root retains final independent carry/currentCI/merge and shared capture.

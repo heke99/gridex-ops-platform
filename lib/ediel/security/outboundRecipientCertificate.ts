@@ -229,7 +229,7 @@ export function recipientCertificateTrustBlocker(): string {
  * latest-row or explicit-id shortcut may silently discard a required leaf. */
 export async function verifyRequiredRecipientCertificateSet(input: {
   rows: readonly CertificateRow[]; scope: EdielCertificateTrustScope & {
-    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null
+    receiverSubaddress?: string | null; messageFamily?: string | null; businessCode?: string | null; certificateEnvironment?: string | null; smtpTo?: string | null
   }; authority: EdielCertificateTrustAuthority; now?: Date
 }): Promise<readonly OutboundRecipientCertificateLeaf[]> {
   const now = input.now ?? new Date(), required = input.authority.recipientFingerprints
@@ -251,6 +251,13 @@ export async function verifyRequiredRecipientCertificateSet(input: {
     if (blocker || !evaluateCertificateStatus(row,now).isUsableForSmime || !text(row.id)) return held(blocker ?? 'Obligatoriskt mottagarcertifikat är inte giltigt i aktuell scope.')
     const trustEvidence = await verifyEdielCertificateTrust({scope:input.scope,leafPem:pem,authority:input.authority,now})
     if (!trustEvidence.verified) return held(trustEvidence.code)
+    const smtpTo = text(input.scope.smtpTo)?.toLowerCase()
+    if (!smtpTo) return held('receiver_certificate_smtp_target_missing')
+    // A.4.2 binds the actual mailbox to signed Subject email or SAN RFC822.
+    // Mutable row labels and opaque source references cannot supply this fact.
+    let boundEmail: string | undefined
+    try { boundEmail = new X509Certificate(pem).checkEmail(smtpTo, { subject: 'always' }) } catch { /* Unusable target stays held. */ }
+    if (!boundEmail) return held('receiver_certificate_smtp_identity_unqualified')
     leaves.push({id:text(row.id)!,publicCertificatePem:pem,subject:textFrom(row,'subject','subject'),issuer:textFrom(row,'issuer','issuer'),
       serialNumber:new X509Certificate(pem).serialNumber,fingerprintSha256:fingerprint,ownerEdielId:inferOwnerEdielId(row),ownerSubaddress:inferOwnerSubaddress(row),usage:inferUsage(row),purpose:inferPurpose(row),environment:inferEnvironment(row),raw:row,trustEvidence})
   }
@@ -313,7 +320,7 @@ export async function resolveOutboundRecipientCertificate(input: {
   }
 
   const now = new Date()
-  const scope = { companyId, receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment }
+  const scope = { companyId, receiverEdielId, receiverSubaddress, messageFamily, businessCode, certificateEnvironment, smtpTo: input.smtpTo }
   let data: CertificateRow | null = null
   let candidateRows: CertificateRow[] = []
   if (certificateId) {

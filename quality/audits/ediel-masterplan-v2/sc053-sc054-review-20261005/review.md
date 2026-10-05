@@ -1,0 +1,50 @@
+# SC-053 / SC-054: actual consumers and remaining contract proof
+
+Review-only claim #530 comment5991944915, answering Claude5990498953; owner handoff5992136188. Initial review main `01b11f55af710c3e6aad1f5a433631a88c702047`; current publication base `0dab92006d2ce17db21774e17d983b9a407b1a47` adopts merged #568 unchanged. Claude retains all scenario implementation/tests/coverage, the billing/DB/native owners retain their producers and the coordinator retains integration. Both scenario rows remain **PARTIAL**. Missing proof below is not a reproduced whole-system product defect.
+
+Frozen authority: full SC053/054 acceptance literals, U09/U14 cards and MASTERMASTERPLAN_v2. Source manifest fixes U/UE25-A-4 originals to SHA256 `0524c18f…`/`a2f20180…`; U§3.6–3.7 and U§5.2/SYS govern the bounded clauses. No new original, edition, legal grant or deployment authority is manufactured. This review does not claim a fresh reread of the entire external PDFs.
+
+## SC-053 — which “behörigt underlag” path
+
+Literal: an observation is missing according to the profile's NULL rule; another is a verified zero. Store data and build authorised basis. Expected: distinct value/quality representations with no automatic zero fill. Prohibited: do not mix meter reading, energy and power.
+
+The existing source-bound consumption and billing paths are the concrete seam to exercise, rather than a new read model or a caller-supplied underlay:
+
+1. Actual scoped inbound/guide selection → `processInboundUtiltsMessage` (canonical dispatcher for applicable E30/E66) → `prepareUtiltsConsumptionContracts` → `persistUtiltsTransactionResults`/public protected persistence RPC. Observe actual `meter_reading_series`/`meter_reading_values`, original raw/hash, qualifiers and each observation's own physical STS quality.
+2. Applicable individual energy → `ingestBoundUtiltsMetering` (`consumptionSinks.ts:22`) → `normalizeAndStoreMeteringValue` → `gridex_consume_utilts_metering_v1` (`normalizeMeteringValues.ts:234`). This uses stored contracts and same-company attribution, not a mock-produced metering row.
+3. For the already-selected `billing_underlay` request → `createBoundUtiltsBilling` (`consumptionSinks.ts:45`) → `ingestBillingUnderlay` → `gridex_consume_utilts_billing_v1` (`db-data.ts:924`). Current customer/site/point/grid/request ownership and the complete stored contributor contracts are checked. The real insert returns a received, not-yet-checked underlay; that alone does not certify invoice readiness.
+4. If proving the downstream billable basis, call the actual qualified read used by `updateMeterValueBillingReadiness`/`generateBillingUnderlaysForMonth`: `loadQualifiedBillingValues` → `gridex_read_billing_source_values_v1`, followed by `evaluateBillingGate`. `underlayEngine.ts:236` requalifies its selected rows. This binds original/contract/own ordinal, exact value, source quality, product/period/current revision and appropriate supply/contract. A mutable parsed payload or cached “billable” flag does not grant this basis.
+
+The frozen scenario does not itself add invoice publication, pricing, external delivery or a new beneficiary-export worker as acceptance gates. Choose the actual product-supported basis for the profile and prove its authority. A service-role client or synthetically inserted “approved” row alone is not that proof. Reuse the existing authenticated native fixture and public consumers; do not directly seed private binding/grant receipts.
+
+| Clause | Existing proof | Still needed |
+|---|---|---|
+| Missing vs verified zero | SC050/053 unit suite parses empty QTY136 into null, zero into '0', own quality46/21; no DB call. | A full profile-valid physical NULL input and zero control through actual persistence and selected underlay/read consumer; distinct stored/read values and own qualities. Empty parser input alone does not establish guide-valid ingestion. |
+| No zero fill | Decimal SQL source-validator controls accept literal NULL+ownSTS8/46 and reject forged zero against that source. | Observe actual stored missing observation and consumer outcome; no normalized/underlay energy row falsely manufactured as zero. A total of zero alone cannot distinguish missing from verified zero. |
+| No reading/energy/power mixing | Current unit separates QTY220 from136. Real bound consumer selects136; physical energy-unit/source-basis guards exist. | Discriminating valid reading and power controls under their applicable profiles/units/products: retain their own typed representation, no contribution as kWh/energy. QTY220-only parsing does not prove the power prohibition or downstream effects. |
+| Authorised, stable basis | Native case744 executes real writers for value500 and checks one meter/underlay on retry. | Reuse that real-writer fixture with the NULL/zero/type data; exact tenant/customer/point/request/source attribution and unchanged retry. Verify source quality at the actual stored/read projection, not just mapper output or a mock's return. |
+
+The U09 annual-estimate suite is a useful separate guard: estimated lines remain estimated with no actual-meter source. Its zero estimate interval is deliberately omitted; this is not a verified actual-zero energy witness.
+
+## SC-054 — correct input, failed storage, no early positive ACK, watched deadline
+
+Literal: a correct UTILTS transaction suffers a failed DB transaction. Try ACK-job creation. Expected: no external positive APERAK before prescribed durable business processing; monitor failure and deadline. Prohibited: queue status alone is not receiving-application storage.
+
+| Clause | Existing proof | Remaining qualification |
+|---|---|---|
+| Atomic storage/ACK intent; queued is insufficient | PGlite checks rollback/no series/no reservation and refuses received/queued-only authority. Native case518 also rolls back source receipt/reservation and retries. | Both failure fixtures change data to invalid value/time (native518 changes an internal timestamp). They are rollback components, not a DB outage on otherwise unchanged valid ordinary input. |
+| A genuinely injected DB failure | Native mixedS01 cases1507ff inject a real BEFORE INSERT exception and assert no receipt/series/contracts/reservations or consumer/ACK calls; retry after trigger removal works. | Their batch includes an internally held object sibling and their ACK/sink observers are finite mocks. Reuse the trigger technique on a wholly correct source-owned ordinary fixture, with the source and prepared contract unchanged. |
+| No early external positive ACK/job | Actual creation guard in kernel486 and send guard in transport/index.part-2:387 read durable positive-ACK authority; unit15 exercises these authority cases through finite RPC ports. | Couple valid-input DB failure to the actual ACK job/create and send gate. Assert no physical positive APERAK/outbox/provider call before commit; show the valid successful/retry contrast after recovery without treating queued/received as storage. No live market send is required to observe refusal. |
+| Failure and deadline watched | `runEdielAckSlaMonitor` reads overdue view, inserts SLA event plus message event and handles duplicate events. | Show actual durable failure state/event, original company/source and selected APERAK deadline, real monitor/caller before/at breach and retry/dedup. Technical CONTRL delivery monitoring alone is not proof of this application APERAK clause. |
+
+The qualified **installed** clean schema shows a precise selector limitation: `ediel_message_ack_state_v` returns `failed` before deadline evaluation; pending required CONTRL/APERAK also wins before `ack_overdue`. `ediel_overdue_message_acks_v` selects only `ack_overdue`. Thus this view by itself cannot emit an overdue row for either failed messages or those pending-required cases even after their due date. The preserved SQL excerpt is from the executed replay artifact, not an invented migration or a newly executed test.
+
+The bounded tracked TS/TSX/workflow search found the SLA monitor definition but no caller. Neither fact proves that every other watchdog/incident path is absent. The owner must identify and exercise the actual selected failure/deadline chain; otherwise retain the exact blocker. Do not promote this function by name, create a second scheduler, or change a shared timer/view before coordinating its owner.
+
+## Qualified receipts and next action
+
+Initial46 pinned local/main/CI input blobs matched. Current main #568 changes only five SC036 test/ledger/handover paths; all45 non-ledger source/dependency/witness inputs stay byte-exact. Its actual current coverage blob `fd898365…` is adopted, preserving SC036 PASSED and both reviewed PARTIAL rows. Reuse OPS37281693425 on `445bf50942818495f7edc09f52a2288be81ad176`: selected unit suites3/3/15/26 PASS within10304 tests/807 files at that prior CI version, not the new review head. Artifact11334955859 ZIP SHA256 `33b1207e…` verified; four exact unskipped native component cases extracted, with their limits above. The full native report contains609 cases, no failure/error and one unrelated skip. Installed schema SHA256 `9503739a…`; exact ACK-view definitions preserved.
+
+Fresh local spec/evidence integrity33/121/231 and two Node syntax checks PASS. New local/native behavior NOT_RUN because the previously recorded dependency/canonical-runtime/proxy limits remain. No unchanged native/full suite rerun requested, no scenario promotion, current review-PR CI/main integration or external acceptance inferred.
+
+Next for Claude: extend the existing source-owned fixtures for the exact missing NULL/zero/type and valid-input storage-failure effects. Billing/DB owner qualifies the chosen actual basis; timer/native coordinator qualifies the selected APERAK failure/deadline producer/caller and clock boundary if needed. Keep original failures and partial receipts; obtain whole-effect review and mandatory applicable head gates before changing only owned approval rows. Coordinator integrates the review packet; no ownership takeover.

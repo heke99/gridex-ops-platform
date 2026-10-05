@@ -1,0 +1,243 @@
+{
+  "url": "https://www.ediel.se/Portal/Document/3338",
+  "sha256": "83c2f1d2915851d2e670731f6ab404ef06c9b9def282afbafdfa0eda836a6e95",
+  "byteCount": 3083488,
+  "pages": 140,
+  "frozenManifest": "docs/ediel/masterplan-v2/registers/source_manifest.json",
+  "frozenSourceModified": false,
+  "download": {
+    "httpStatus": 200,
+    "mimeType": "application/pdf",
+    "signature": "%PDF"
+  },
+  "qualification": "Exact frozen P26.A original, independently inspected by root and z14_missing_fields_refute_spec using rendered originals and PDF vector fills.",
+  "receiverException": {
+    "page": 119,
+    "scope": "Only grey-marked fields may be ignored regardless of presence. Date formats should still be checked; applicability is checked by subtype first."
+  },
+  "requiredCells": [
+    {
+      "page": 18,
+      "field": "326",
+      "Z14": "D",
+      "condition": "subtype != N"
+    },
+    {
+      "page": 19,
+      "field": "222",
+      "Z14": "D",
+      "condition": "subtype != N"
+    }
+  ],
+  "receiverRows": [
+    {
+      "page": 121,
+      "field": "326",
+      "fieldTextBounds": [
+        131.5399932861328,
+        346.13623046875,
+        148.11767578125,
+        357.24163818359375
+      ],
+      "intersectingVectorFills": [],
+      "visualRowBackground": "white",
+      "greyWaiverApplies": false
+    },
+    {
+      "page": 122,
+      "field": "222",
+      "fieldTextBounds": [
+        131.5399932861328,
+        167.40621948242188,
+        148.11767578125,
+        178.51161193847656
+      ],
+      "intersectingVectorFills": [],
+      "visualRowBackground": "white",
+      "greyWaiverApplies": false
+    }
+  ],
+  "positiveGreyControls": [
+    {
+      "page": 121,
+      "field": "258",
+      "fieldTextBounds": [
+        131.5399932861328,
+        127.56621551513672,
+        148.11767578125,
+        138.67161560058594
+      ],
+      "intersectingVectorFills": [
+        {
+          "rect": [
+            102.9800033569336,
+            124.45999145507812,
+            151.5800018310547,
+            141.5
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        },
+        {
+          "rect": [
+            105.9800033569336,
+            127.22003173828125,
+            148.22000122070312,
+            138.74002075195312
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        }
+      ]
+    },
+    {
+      "page": 121,
+      "field": "212",
+      "fieldTextBounds": [
+        131.5399932861328,
+        284.43621826171875,
+        148.11767578125,
+        295.5416259765625
+      ],
+      "intersectingVectorFills": [
+        {
+          "rect": [
+            102.9800033569336,
+            281.3260192871094,
+            151.5800018310547,
+            298.510009765625
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        },
+        {
+          "rect": [
+            105.9800033569336,
+            284.09002685546875,
+            148.22000122070312,
+            295.6100158691406
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        }
+      ]
+    },
+    {
+      "page": 121,
+      "field": "249",
+      "fieldTextBounds": [
+        131.5399932861328,
+        302.0962219238281,
+        148.11767578125,
+        313.2016296386719
+      ],
+      "intersectingVectorFills": [
+        {
+          "rect": [
+            102.9800033569336,
+            298.989990234375,
+            151.5800018310547,
+            316.0299987792969
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        },
+        {
+          "rect": [
+            105.9800033569336,
+            301.7500305175781,
+            148.22000122070312,
+            313.27001953125
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        }
+      ]
+    },
+    {
+      "page": 121,
+      "field": "303",
+      "fieldTextBounds": [
+        131.5399932861328,
+        401.69622802734375,
+        148.11767578125,
+        412.8016357421875
+      ],
+      "intersectingVectorFills": [
+        {
+          "rect": [
+            102.9800033569336,
+            398.5899963378906,
+            151.5800018310547,
+            415.6300048828125
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        },
+        {
+          "rect": [
+            105.9800033569336,
+            401.3500061035156,
+            148.22000122070312,
+            412.8699951171875
+          ],
+          "fill": [
+            0.7529259324073792,
+            0.7530174851417542,
+            0.7528954148292542
+          ]
+        }
+      ]
+    }
+  ],
+  "renderedPageSHA256": {
+    "18": "b17630c9d9a53872bd38654ceb48d7fa70e5e9534ac36d4959cb6ba87358a403",
+    "19": "aaabd652fdb3df3e890d7dd23afab2d873ba38dcb8e38200ea95b295cc85d978",
+    "119": "3e8db418032a1f2f5485b435a378d63dfbc6c8d3950fa15aad417990242b50b0",
+    "121": "c7bb954f2995d562a19dea3677172f1663e18b8bda55723b63927cc4347fa1d4",
+    "122": "6f1ec5422168dcd2a06571c19e6f15503eff68d68e25a890f66dcf74c9d13294"
+  },
+  "independentSpecVerdict": "KEEP source claim; previous unavailable-shading NARROW is superseded.",
+  "effectLimit": "Pure canonical acceptance for absent required fields is observed. Authentic incoming admission, persisted effects and final ACK are not exercised by that probe. No specific national ERC is inferred.",
+  "reproduction": "Fetch this public PDF, verify exact frozen hash/page count; render physical pages18/19/119/121/122; inspect listed PDF text bounds and vector fills, comparing neighboring grey controls. The source PDF and images are not added to the frozen register or this packet.",
+  "segmentDescriptions": [
+    {
+      "page": 52,
+      "field": "326",
+      "segment": "DTM+693",
+      "format": "203",
+      "applicability": "Required in Z14 except N"
+    },
+    {
+      "page": 63,
+      "field": "222",
+      "segments": [
+        "CCI++Z12",
+        "own following CAV first7110"
+      ],
+      "applicability": "Required in Z04/Z06/Z10/Z13/Z14 except Z14N"
+    }
+  ],
+  "falseDException": "p119 extra-X/false-D allowance does not apply to absent fields whose S17/V condition is fulfilled."
+}
