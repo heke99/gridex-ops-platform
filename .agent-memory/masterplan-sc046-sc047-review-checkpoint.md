@@ -12,3 +12,10 @@ Current 2026-10-05 11:30 Europe/Stockholm.
 - No production/schema/migration/manifest/shared-memory/coverage changes. All work saved as review documentation and evidence; native artifact stays outside Git, selected secret-free XML/hash provenance is retained.
 - Next: publish docs-only packet with exact source/checkpoint and send READY on530; Claude closes specified effects in existing fixtures, coordinator reviews/qualifies/integrates. Source dependencies cannot be taken over without explicit handoff.
 - Current status independently reviewed, prior witness CI/source-qualified; this new packet is not yet CI-approved/merged. No external market/SMTP/legal acceptance.
+
+## Publication and preserved handoff
+
+- Actual published technical review head d4e87b9f4fc4ed5ceb1bce85ac418ffc0ec89fe9, tree 60ad8fd5d192387fb387134f81faf0761bd07269, draft PR #575. GitHub's actual PR metadata and changed-file list are verified.
+- Equivalent isolated local technical commit 627db1cf6792c91bc359d9b21a38c72b22458826 has that exact published tree. All original local commits remain preserved.
+- Handoff on #530 comment5991719119; independent scope and known failures remain unchanged. Current document status: published/under review, CI and main merge not yet qualified. No external acceptance.
+- This checkpoint-only documentation follow-up is a descendant of the exact published head above; resolve its own exact SHA from current Git/PR HEAD and the following READY comment.
