@@ -43,8 +43,17 @@
     {
       "id": "GOV-05",
       "acceptance_id": "AT-GOV-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts",
+        "__tests__/ediel-accepted-guide-package.test.ts",
+        "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+        ".agent-memory/masterplan-gov05-checkpoint.md"
+      ]
     },
     {
       "id": "GOV-06",
@@ -2237,8 +2246,17 @@
     },
     {
       "id": "AT-GOV-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/core/messagePolicy.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "__tests__/ediel-guide-transition-selection.test.ts",
+        "__tests__/ediel-accepted-guide-package.test.ts",
+        "__tests__/ediel-canonical-rule-pack-evidence-identity.test.ts",
+        ".agent-memory/masterplan-gov05-checkpoint.md"
+      ]
     },
     {
       "id": "AT-GOV-06",
