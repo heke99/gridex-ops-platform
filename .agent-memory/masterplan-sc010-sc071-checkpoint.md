@@ -1,10 +1,12 @@
 # SC-010 / SC-071 — grant revalidation
 
-Agent: Codex grant-revalidation-20261005. Status: component VERIFIED; whole SC-010 BLOCKED, publication/review/CI/integration pending. No whole-scenario approval.
+Agent: Codex grant-revalidation-20261005. Status: component VERIFIED and PUBLISHED in draft #570; whole SC-010 BLOCKED. Current candidate CI/integration and whole-scenario approval remain separate.
 Branch: `codex/ediel-sc010-sc071-grant-revalidation-20261005`.
 Checkout: `/workspace/gridex-sc010-sc071`.
 Base/source commit: `985724f58ef15e222cf4d3b2e1c643c674852106` (actual main, 2026-10-05).
 Exact technical/component commit: `b06c58fd837f2405ee20eafcd82dbaded025c1c1`; later document-only HEAD is read from Git. Tests/production inputs do not change in the metadata follow-up.
+Published candidate head: `7a894c3b7938daf9bbbab7680f71ca5911aefc9c`, PR https://github.com/heke99/gridex-ops-platform/pull/570. Candidate-base ledger has202approved IDs; fresh actualmain01b11f55 has204. Do not confuse candidate tagged-green counts with whole acceptance or current-main totals.
+Latest publication/handoff checkpoint is saved on remote documentation ref `codex/ediel-sc010-sc071-checkpoint-20261005`, with only this own checkpoint and `publication-status.json` added to published7a. This preserves the running candidate CI without a status-only source-branch push. Read that ref's exact commit from Git and carry its two documentation files during coordinator integration.
 Claim: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991253973.
 
 ## Scope and ownership
@@ -16,6 +18,7 @@ Existing TEN-10/TEN-12, projection, administration/revocation, SQL/native fixtur
 Complete board530 (90 comments) and coordination491 were read before claiming, together with 69 open PR filename inventories. Pagination was subsequently expanded to all 5,178 paths; 55 current-head coverage ledgers were read and 14 older pre-ledger heads returned 404. No pair path or PASSED pair row existed in that inventory. SC010/071 rows are NOT_EXECUTED. Main counts: 91 VERIFIED rules and 111 PASSED contracts, 202 distinct approved IDs out of 352; this is code-ledger status, not market verification. Earlier shared-memory sections about #421/#426/#491 integration are historical relative to the actual Git main. This checkpoint does not replace another owner's shared state.
 
 Later raced claims5991275815/5991278834 were discovered before publication. Explicit handoff https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991386261 RELEASES whole SC-071/native completion to the announced revocation-20261005 owner, with the distinct new native test and SC071-only records. This owner retains SC-010 and the existing coupled component test/checkpoint/evidence paths. The third claimant was asked to release overlapping primary paths. No other session's files or branch were changed.
+Confirmed afterwards: native owner ACCEPT5991584319 and third owner RELEASE5991524637/5991561047. The native owner preserves duplicate API cases outside its PR and keeps only SC071-native/own-record paths. Current native execution in that separate lane is NOT_RUN after disk/image setup failed, not a failed product assertion. The exact SC010 producer dependency still has no cleared queue/lease/sink.
 
 ## Skill routing
 
@@ -29,6 +32,9 @@ Active: using-superpowers (routing); using-git-worktrees (isolated separate chec
 - Full callsite/job/cron/queue/lease search independently found the synchronous beneficiary route as the only production caller of `projectEdielSeriesToBeneficiary`. No actual beneficiary export worker/lease/sink was established. This is a literal delivery/evidence gap, not a proved production data leak. Existing SQL current-grant checks and conflicting read/writer graph locks are implemented; full native grant-race/worker proof remains unexecuted.
 - Node22.23.3 focused coupled suite 38/38 PASS, zero failures/errors/skips: 10 owned tests plus unchanged 18 API and 10 provenance tests. Actual route/parser/adapter executed; auth and RPC are named finite ports. Tests TypeScript, scoped ESLint, frozen33/121/231 integrity/evidence-reference gate and diff check PASS. Raw log/JUnit, exact commands and hashes are in the own `evidence/` directory and `verification-receipt.json`.
 - 22 bounded source/spec/config/test inputs are byte-equal to base, individually SHA256-pinned in `source-manifest.json`; coverage and production/SQL/native/helpers/schema remain unchanged. No native, lease, destination write, transport, whole-card or final-current CI/main success is inferred from the mocks.
+- Fresh actualmain `01b11f55af710c3e6aad1f5a433631a88c702047` has91VERIFIED rules+113PASSED contracts=204distinct approved IDs. All21 non-ledger packet inputs are byte-equal; `app/lib/supabase/native helpers/fixtures` have no diff from the tested base. Only unrelated ledger approvals advanced.
+- Exact candidate EdielCI37288239334/job111692215051 SUCCESS:352IDs/202candidate approvals/225taggedgreen/0taggedfailing. Candidate verify, browser-public, smoke, coverage, full quality, upgrade replay and PR certificate were observed green; clean replay was still running at the saved snapshot. CodeRabbit skipped draft review. `publication-status.json` records actual checked head/URLs and the precise snapshot; no all-green or main merge claim.
+- Released unique SQL component #572 at7cf4524428868b99a342cd6fc2b0d062b234e47d is a qualified dependency: independently reviewed04fb46e6,9 own+107inherited PGlite SQL groups. Its18non-ledger source hashes match fresh main. No source import or SQL rerun here; preserve explicit finite upstream/accepted-storage fixtures and no real concurrent native claim. Receipt/limits are linked in the own publication status. No duplicate runner was created.
 
 ## Failures and corrections
 
@@ -36,4 +42,8 @@ Initial gh reads were sandbox-network denied; supported additional network permi
 
 ## Next action
 
-Publish this independently reviewed component packet on the unique branch and a small draft PR, retain exact technical commit and live CI receipt. Hand SC010's real producer requirement to the retained TEN10/TEN12/service owner and coordinator; identify the real job or explicitly clear one implementation owner before adding any worker/schema/helper. SC071's announced native owner must qualify the distinct real grant race and snapshot projection receipts/history as well as existing counters, retaining legitimate revocation/history effects. Root owns native registration/capture and main composition. No coverage promotion or whole-scenario merge follows solely from these component tests.
+Retained TEN10/TEN12/service owner and coordinator: identify the real SC010 queued/leased beneficiary export/sink, or explicitly assign one sole producer with the exact integration surfaces. The independently confirmed missing path cannot be replaced by a test-only worker. Then resume this owner on the same branch/test packet and reused SQL dependency; implement/assert the actual lease→current-grant→read/distribution chain and its prohibited outputs. SC071's accepted native owner separately qualifies both real grant/read lock orders with direct projection-receipt/original/history snapshots. Root owns shared native registration/capture/current-main composition. Read #570 current CI and source qualification before integration; no whole-scenario promotion follows from the component proof.
+
+## Handover and saved status
+
+Completed: unique caller tests,38PASS receipts, types/lint/spec checks, independent full-literal/component review, complete69PR/55ledger inventory, exact publication, current-main source carry, and confirmed race-resolution handoff. Open: real SC010 producer and full scenario proof; SC071 native/worker predicate with its accepted owner; current CI and coordinator integration. Existing approvals and all352coverage rows remain untouched. Checkpoint and own status are saved with the work; there is no MERGED line because no actual merge occurred. No production database, real customer or market communication, deployment or external acceptance was performed.

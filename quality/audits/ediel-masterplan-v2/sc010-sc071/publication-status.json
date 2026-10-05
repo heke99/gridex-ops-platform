@@ -1,0 +1,157 @@
+{
+  "recorded_at": "2026-10-05T09:25:00.618880+00:00",
+  "pr": "https://github.com/heke99/gridex-ops-platform/pull/570",
+  "published_technical_head": "7a894c3b7938daf9bbbab7680f71ca5911aefc9c",
+  "technical_commit": "b06c58fd837f2405ee20eafcd82dbaded025c1c1",
+  "actual_main_checked": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "main_approved_rules": 91,
+  "main_approved_contracts": 113,
+  "main_distinct_approved_ids": 204,
+  "current_main_carry": "21 bounded non-ledger inputs byte-identical and no diff in app/lib/supabase/native helpers/fixtures; coverage ledger advanced",
+  "ci_head": "7a894c3b7938daf9bbbab7680f71ca5911aefc9c",
+  "ci_checks": [
+    {
+      "name": "targeted-regressions",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239334/job/111692215051"
+    },
+    {
+      "name": "browser-public",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692215817"
+    },
+    {
+      "name": "smoke",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692215825"
+    },
+    {
+      "name": "verify",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239330/job/111692216012"
+    },
+    {
+      "name": "browser-staging",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692217784"
+    },
+    {
+      "name": "coverage",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692216203"
+    },
+    {
+      "name": "quality-release-gates",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239330/job/111692215797"
+    },
+    {
+      "name": "clean-migration-replay",
+      "status": "IN_PROGRESS",
+      "conclusion": "",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239330/job/111692216149"
+    },
+    {
+      "name": "k6-staging-load",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692217567"
+    },
+    {
+      "name": "full",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692217744"
+    },
+    {
+      "name": "k6-staging-soak",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692274637"
+    },
+    {
+      "name": "runtime-staging",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692217422"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239330/job/111692216033"
+    },
+    {
+      "name": "zap-staging-baseline",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692217216"
+    },
+    {
+      "name": "real-customer-staging",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692217814"
+    },
+    {
+      "name": "staging-quality-certificate",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239321/job/111692218755"
+    },
+    {
+      "name": "pr-certificate",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111694280418"
+    },
+    {
+      "name": "nightly-release-certificate",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37288239341/job/111692217728"
+    }
+  ],
+  "ediel_ci_receipt": {
+    "run": 37288239334,
+    "job": 111692215051,
+    "status": "SUCCESS",
+    "candidate_approved_ids": 202,
+    "candidate_tagged_green": 225,
+    "candidate_tagged_failing": 0,
+    "scope": "Tag/test gate, not full literal acceptance; candidate-base count is not current-main count"
+  },
+  "review": "Independent component/source review approved only bounded evidence; CodeRabbit skipped draft review",
+  "whole_scenarios": "Unapproved; no coverage edit",
+  "main_integration": "NOT_MERGED",
+  "market_verification": "NOT_EXECUTED",
+  "ownership_handoff": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991386261",
+  "native_owner_acceptance": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991584319",
+  "third_owner_release": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991524637",
+  "qualified_sql_dependency": {
+    "pr": "https://github.com/heke99/gridex-ops-platform/pull/572",
+    "published_head": "7cf4524428868b99a342cd6fc2b0d062b234e47d",
+    "reviewed_technical_commit": "04fb46e67cf20f666056905032889895550ec827",
+    "qualification": "18 non-ledger reviewed source inputs match actualmain01b11f55; ledger-only change",
+    "reported_effects": "9 own SQL groups +107 inherited groups; PGlite with finite upstream/source fixtures",
+    "execution_by_this_owner": false,
+    "limits": [
+      "PGlite has no genuinely concurrent native connections",
+      "Inherited source/actor/issuer/permission/accepted-storage dependencies are finite labelled fixtures",
+      "No leased export worker or external delivery consumer is exercised",
+      "No authentic market/legal/production verification"
+    ],
+    "no_code_import": true
+  },
+  "remaining_source_owner_action": "Identify real leased beneficiary export/sink or explicitly assign sole producer before full SC010 approval; SC071 native owner qualifies real grant race and separate receipt/history effects",
+  "permission_or_auto_review_rejection": null,
+  "documentation_publication_ref": "codex/ediel-sc010-sc071-checkpoint-20261005",
+  "documentation_ref_scope": "Only own checkpoint/publication-status additions to published candidate7a894c3b; source/test/coverage remain identical. Exact latest checkpoint commit is read from Git remote."
+}
