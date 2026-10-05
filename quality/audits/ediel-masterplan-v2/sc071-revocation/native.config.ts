@@ -7,6 +7,9 @@ export default defineConfig({
   ...canonical,
   test: {
     ...canonical.test,
-    include: ['scripts/ediel-sc-071-projection-revocation-native.test.ts'],
+    include: [
+      'scripts/ediel-sc-071-projection-revocation-native.test.ts',
+      'scripts/ediel-sc-010-beneficiary-export-native.test.ts',
+    ],
   },
 })

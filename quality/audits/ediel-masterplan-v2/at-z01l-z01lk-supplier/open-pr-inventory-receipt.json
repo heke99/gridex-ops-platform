@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "archive": "open-pr-inventory.json.gz",
+  "archiveSha256": "65a7f9e72903fa9bdb7e6f484efe5546f3dff8c8ece695767077786850563a06",
+  "uncompressedSha256": "637c254d337aa38184afb49e3f323a3af00d3a503b5cc19c83d9a3544ead78e1",
+  "uncompressedBytes": 394106,
+  "compressedBytes": 57905,
+  "rawSource": "/tmp/gridex-open-pr-head-paths-20261005-final.json",
+  "rawSourcePreserved": true,
+  "compression": "gzip mtime0, decompression byte equality verified",
+  "openPRCount": 69,
+  "totalPaths": 5378,
+  "observedAt": "2026-10-05T12:36:32.644Z",
+  "historicalSnapshotMain": "498ebd1c31f449630ea2b630cf23381447d71ba6",
+  "claimBaseMain": "fff486f822001d35970f163507b10e17c3692f58",
+  "publication": "NOT_PUBLISHED",
+  "localArchivePath": ".superpowers/sdd/2026-10-05-z01l-z01lk-supplier/local-evidence/open-pr-inventory.json.gz",
+  "publicEvidence": "counts, raw/compressed hashes and provenance only; no inventory payload"
+}

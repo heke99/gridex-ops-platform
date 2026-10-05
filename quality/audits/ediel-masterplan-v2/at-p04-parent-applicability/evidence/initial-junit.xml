@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="39" failures="0" errors="0" time="1.365088896">
+    <testsuite name="__tests__/ediel-at-p04-parent-applicability.test.ts" timestamp="2026-10-05T13:09:45.094Z" hostname="64e5d94c31a4" tests="39" failures="0" errors="0" skipped="0" time="1.365088896">
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.081980854">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.060011452">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 316 while its parent remains present" time="0.024891515">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 233 while its parent remains present" time="0.017717936">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; V requires exactly child 234 while its parent remains present" time="0.018648271">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 316 while its parent remains present" time="0.016417025">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 233 while its parent remains present" time="0.018762786">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; VH requires exactly child 234 while its parent remains present" time="0.018354791">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty UD without requiring its absent children" time="0.005531325">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated UD without requiring its absent children" time="0.003763803">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses empty IT without requiring its absent children" time="0.002336978">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; N refuses populated IT without requiring its absent children" time="0.002870371">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 :+?&apos; &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.039063711">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.068208449">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.057549126">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 316 while its parent remains present" time="0.029888591">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 233 while its parent remains present" time="0.027385369">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; V requires exactly child 234 while its parent remains present" time="0.044668253">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 316 while its parent remains present" time="0.034223657">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 233 while its parent remains present" time="0.043512869">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; VH requires exactly child 234 while its parent remains present" time="0.033974049">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty UD without requiring its absent children" time="0.002400671">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated UD without requiring its absent children" time="0.003498523">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses empty IT without requiring its absent children" time="0.002204264">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; N refuses populated IT without requiring its absent children" time="0.003887015">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 *;!~ &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.074632652">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A13 is valid without parents or positive fields" time="0.049513703">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; actual DGI/N A76 is valid without parents or positive fields" time="0.111027839">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 316 while its parent remains present" time="0.069033403">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 233 while its parent remains present" time="0.065087637">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; V requires exactly child 234 while its parent remains present" time="0.074182914">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 316 while its parent remains present" time="0.059910238">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 233 while its parent remains present" time="0.030178563">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; VH requires exactly child 234 while its parent remains present" time="0.023358476">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty UD without requiring its absent children" time="0.002825733">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated UD without requiring its absent children" time="0.00676181">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses empty IT without requiring its absent children" time="0.001927612">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; N refuses populated IT without requiring its absent children" time="0.004740867">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-p04-parent-applicability.test.ts" name="AT-P-04 ^|!% &gt; each mixed positive/N object keeps its own parent obligation and fields" time="0.12125417">
+        </testcase>
+    </testsuite>
+</testsuites>

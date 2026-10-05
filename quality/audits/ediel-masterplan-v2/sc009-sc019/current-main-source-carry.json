@@ -1,0 +1,359 @@
+{
+  "scope": "SC009/SC019 minimum current-main carry; final independent recommendation pending",
+  "created_at": "2026-10-05T14:11:12.962266+00:00",
+  "approved_head": "7bd40bd0179a5929b00875911a9744aace14470c",
+  "approved_tree": "6055b354ca97ba1e0002cfe80da2957283734b85",
+  "original_base": "56192d16d1eac7fb0e716a3e2770bac8e58be115",
+  "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+  "original_whole_approval": "https://github.com/heke99/gridex-ops-platform/pull/491#issuecomment-5985411226",
+  "original_tests_byte_exact": [
+    {
+      "path": "__tests__/tenant-ediel-identity-completeness.test.ts",
+      "sha256": "b18188a4bd7ee1bf1391413119654257c97991af4965d8469d278dfca1e32c3d"
+    },
+    {
+      "path": "__tests__/billing-canonical-gate.test.ts",
+      "sha256": "bdc6b9869186bf50d9cb0f938832bd6598f4d66b3f356e80b1e6e30da0cf5f67"
+    },
+    {
+      "path": "__tests__/ediel-beneficiary-projection-provenance.test.ts",
+      "sha256": "ccf695eb99eec9eb4448de1cdf4aee691a21eac7bfbb18e2760472b88568184f"
+    }
+  ],
+  "selected_sources": [
+    {
+      "path": "lib/actor-registry/parseActorRegistryXml.ts",
+      "sha256": "4234cce8276fefd1a928c35d17a887a3136df4f75914ba340041742f7df74754",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/actor-registry/normalizeActor.ts",
+      "sha256": "05003fa8f3c892922be96d130fd77a450b7e912c9bd9e78f264645867617464c",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/actor-registry/types.ts",
+      "sha256": "e68906f097a929812dd493753c8ecb896b3655b2779560c1f06b508c3360e6f9",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentity.ts",
+      "sha256": "22f6ea98e4696de4c2a4dd8a1de52dc5b23e19e20a8e0d654d411f680f63bfba",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/tenantEdielIdentityEvidence.ts",
+      "sha256": "4dc019e7f6a987162def2ea5ab95a6b800c5f1c037ba16bb7207e7ec51c0c0ee",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/inboundRouteSemantics.ts",
+      "sha256": "4c39eaf679c72235df125503112b79e162e02ca06e0114eefa7e9dcf1e562598",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/tenant/resolveInboundTenant.ts",
+      "sha256": "fb275971c0026c3d41d5a6ff9bdecdc36d911fb4a549097774e95c04c9dfefbd",
+      "exact_main": true,
+      "exact_approved_base": false
+    },
+    {
+      "path": "lib/ediel/services/projection.ts",
+      "sha256": "707947809239874d5cadb0044633b94d9a68db32dafec835b78ae0ba65ca9b34",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/services/types.ts",
+      "sha256": "7679a6e4dd94f5ace7f83464eb55e1d5359f4bb6995c27e2d7d22e79f597271b",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/services/authorization.ts",
+      "sha256": "c1b2e9c04c0aa669584101b40f73c0c9df8506391e7fddd410c0bd40a7ff82a0",
+      "exact_main": true,
+      "exact_approved_base": false
+    },
+    {
+      "path": "lib/ediel/core/failureDisposition.ts",
+      "sha256": "05af6463754ccd524c1cbfc3ee214e5d9f7911228f8aef2e9cf0c7b90a2e2e5c",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/billing/billingGate.ts",
+      "sha256": "08786cb6ace01cfc5518ce153e53500e31ab2c1058b9301bac6a4d1c56aaf42f",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/billing/sourceBasis.ts",
+      "sha256": "145287b8d0d9023672a8dddf5d8c7873d591504d4825f4607a722731a0461513",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/billing/underlayEngine.ts",
+      "sha256": "01352803113fb19a64fcf96c82a3540681f2b00594221732df0613e8259a8296",
+      "exact_main": true,
+      "exact_approved_base": false
+    },
+    {
+      "path": "lib/billing/consumptionEstimate.ts",
+      "sha256": "ef2ded1ff0933adc6b247dccce337a94463e5579c261c7cc63625abee5fd3c91",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/billing/historyRequest.ts",
+      "sha256": "6e088b0e4dc4509d4a8c09aad8b4083d81959e79afad1ae9d90b1c2aa991416f",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/pricing/types.ts",
+      "sha256": "774d38bb4c787bbb2d1d57bd689a2606d717aaddfabb24f1a82ff7887c344c71",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/time/stockholm.ts",
+      "sha256": "dc85350d43db406a772fbc3297a4bce13b316b0d6d0a6d48ac7e8b946edbe568",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "lib/ediel/utilts/exactDecimal.ts",
+      "sha256": "47ceb14b50cc3d7136690479f203f1317a3983bb1f02c6a9569ff6a76e53889f",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "scripts/ediel-service-evidence-native.test.ts",
+      "sha256": "a54442e1b89ac3e8ea7058ba6fab10b42114ff3630bb4e768d3fb9d95ca821ee",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "scripts/fixtures/ediel-service-evidence-native.ts",
+      "sha256": "136758c6742f4f8896fb5bc81a14eebfaf8902458b0b46f0275af72f8de890b0",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "scripts/helpers/utiltsConsumptionParties.ts",
+      "sha256": "d6370b1be78bf135ba1254c26734e7b114e33c6afcc914448be827525fd3b0e5",
+      "exact_main": true,
+      "exact_approved_base": true
+    },
+    {
+      "path": "scripts/ediel-billing-source-sql-regression.mjs",
+      "sha256": "e93547b1275079cf044fdfb9d34dbc7a4cb5c247d0e8f948975b3f6c832d71de",
+      "exact_main": true,
+      "exact_approved_base": true
+    }
+  ],
+  "selected_sql_bodies": [
+    {
+      "signature": "gridex_billing_source.basis_before_precision_v1(p_company uuid, p_value uuid)",
+      "body_sha256": "6c9942c5025d8d11d4c8e37c0e261b1e9fddc01970f56a17228d71282a1e8235",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.basis_v1(p_company uuid, p_value uuid)",
+      "body_sha256": "805c55c2678e05016bd0d8807b1a04c4c76a727e2326d64164a0ac49554135d9",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.capture_correction_v1()",
+      "body_sha256": "03cd5ec5b0c02a140a15e5536bb6ee58aa0d5db2ac1a41f21a124c1d8e99516d",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_create_billing_export_run_before_source_v2(p_run jsonb, p_items jsonb DEFAULT '[]'::jsonb)",
+      "body_sha256": "d48fce1292d20192370d693b1194b96005bf5403660043ca57bd8310bb807cf4",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_set_metering_billing_gate_before_source_v2(p_company_id uuid, p_metering_value_id uuid, p_normalized_value_id uuid, p_gate jsonb)",
+      "body_sha256": "44b5422ac0e4e92ef18638ad02644620291ae4384fc4ec9c739c568b64f049ee",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.gridex_store_billing_underlay_before_source_v2(p_company_id uuid, p_underlay jsonb, p_items jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "dfc3a512208506445ecd5ec7eeff09c02bb86ee7b3915983ef928484afe4948e",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.lock_values_v1(p_company uuid, p_values uuid[], p_period uuid DEFAULT NULL::uuid)",
+      "body_sha256": "1d4c8185dc023dfaffd4a224f8c58a6924b6a64ae68b08bcab803355071f82fc",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.observation_v1(tokens jsonb, tx text, ordinal integer, decimal_mark text DEFAULT '.'::text)",
+      "body_sha256": "43bad08eacf8fdc9a090c31a45461983b621ec73778cbc762fde8636989296d5",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.protect_items_v1()",
+      "body_sha256": "c7bdc415f71b4974d3ef6745198395285dfdf3e8dbd14f6a8d03f8a2730aaf64",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.protect_underlay_v1()",
+      "body_sha256": "818265cc3a66fa71674d0cd995b9720aac9a90fdffaad681f74fc09f79b7c706",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_billing_source.require_underlay_v1(p_company uuid, p_underlay uuid)",
+      "body_sha256": "d9a0de54a2d63bcfad746a5dd80eb77896c9a647a3d8490b1701572e557696d9",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.beneficiary_series_page_filtered_v2(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "b4d82d06d6df80a638e7d87af312a0d68c75777a282467105f403d4d27467fff",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.lock_current_graph_v2()",
+      "body_sha256": "75d3cba19b5a346914933fca2345250cd98667fa07c37e35930a3a02fc4cf321",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_ediel_ack_replay.require_current_source_role_v2(c uuid, env text, source_id uuid)",
+      "body_sha256": "d2f6006b69f21372d3c6c4e5d003d67f47c96cef40d3c7fe78502288738a0bb4",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_ediel_services.assignment_assessment_basis_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "b3a07ba3abcd26908a45c5c4f66764afaab89bcb23cc221805ef8b5899a6f306",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_ediel_services.evidence_basis_v1(e public.ediel_service_evidence)",
+      "body_sha256": "8f4a40cb12bdd683a9f391fb9d1b747b761ced7a46c0d29699171f1ea8b0005c",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "gridex_received_sources.billing_supply_basis_v1(p_company_id uuid, p_period_id uuid, p_start timestamp with time zone, p_end timestamp with time zone)",
+      "body_sha256": "0faca1c2228f1cd24cd2b7749a4eab0645bac7f96aa247f616c03912235e2e64",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.ediel_beneficiary_series_page_v1(p_beneficiary_company_id uuid, p_actor_user_id uuid, p_grant_id uuid, p_expected_grant_version bigint, p_purpose text, p_series_id uuid, p_fields text[], p_start timestamp with time zone, p_end timestamp with time zone, p_limit integer DEFAULT 100, p_after_at timestamp with time zone DEFAULT NULL::timestamp with time zone, p_after_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "092663c51405d14a4390064c2c17ce34b7f90f1d4b68dbfdbc72e78ab371c07c",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.ediel_service_assignment_assessment_v1(p_provider_company_id uuid, p_assignment_id uuid)",
+      "body_sha256": "22afa6337ee3f7d5cb1d9bc4f188937aa58082e40214f19f0b8435d2a6befac2",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.gridex_read_billing_source_values_v1(p_company_id uuid, p_value_ids uuid[])",
+      "body_sha256": "005c4571ab782a4695a346585d4644cee8e89b4e0a2b071874aaef747e512fa2",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.gridex_read_billing_underlay_source_basis_v1(p_company_id uuid, p_underlay_ids uuid[])",
+      "body_sha256": "1d7449308bd6585ca76b8f4ed364a586641204b67d627fcad37fc4b74c956a83",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay(p_company_id uuid, p_underlay jsonb, p_items jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "96d2259e53e808b586a0054d38798ac356c48bf17ec397f3357779d531067276",
+      "exact_original_qualified_base": true
+    },
+    {
+      "signature": "public.gridex_store_billing_underlay_batch(p_company_id uuid, p_commands jsonb, p_actor_user_id uuid DEFAULT NULL::uuid)",
+      "body_sha256": "1b1c411cf5955f346809d26870f48a7936b38cd5dc178c9782bac50b2ae733fc",
+      "exact_original_qualified_base": true
+    }
+  ],
+  "foreign_main_paths_exact": 7685,
+  "coverage_only_delta": [
+    "SC-009",
+    "SC-019"
+  ],
+  "main_approved": 217,
+  "candidate_approved": 219,
+  "added_migrations": [
+    {
+      "path": "supabase/migrations/20261004170000_ediel_service_resolve_permission_request_timing.sql",
+      "sha256": "84b03567abec844279a00102f8b2dc66a32e0e503d9052103900841fa25f40e8"
+    },
+    {
+      "path": "supabase/migrations/20261004175536_ediel_dsn_encoded_source_identity.sql",
+      "sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
+    },
+    {
+      "path": "supabase/migrations/20261004205603_staff_customer_retention_read_prerequisite.sql",
+      "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
+    },
+    {
+      "path": "supabase/migrations/20261004205816_support_attachment_quarantine_carrier.sql",
+      "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
+    },
+    {
+      "path": "supabase/migrations/20261005004623_customer_contact_version_conflict_http409.sql",
+      "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+    },
+    {
+      "path": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+      "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+    },
+    {
+      "path": "supabase/migrations/20261005020000_ediel_production_contract_ack_confirmation.sql",
+      "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
+    }
+  ],
+  "changed_source_bounds": {
+    "resolveInboundTenant": "TEN06 adds a physical-family helper and removes implicit UNB fallback when legal receiver is absent for PRODAT/UTILTS. The original SC009 chain supplies explicit legal62110 and technical82150, so its normalizeInput values are identical and delegation checks unchanged. Fresh five connected contrasts execute the current complete module, preserving positive delegated identity and missing/expired/ambiguous/wrong-transport refusal.",
+    "underlayEngine": "Only existing estimatedItems and estimatePayload receive export modifiers, bodies byte-exact. BillingGate/sourceBasis/decimal/calendar and selected final-store source/price/period ordering unchanged.",
+    "authorization": "Only two unchanged actor/membership/permission predicates now throw EdielExecutionFailure(Error subclass), same messages and no writes. The three actual-module TS suites do not extract this body or mock an invented class; no missing binding or test adaptation is established. Current native success/read effects are separately historical and selected-owner qualified."
+  },
+  "sql_stage_order": "Complete store body and all selected source/underlay bodies equal original qualified561. Current owned supply/contract/locked price and qualified legal supply are still examined before per-item physical DGI refusal; no positive DGI invoice entitlement or DDQ rewrite is claimed.",
+  "migration_bounds": "Seven new forwards since561 only: request_access resolver timing, DSN encoded transport identity, staff retention prerequisite, support quarantine MIME, contact/identity PT409, P08 own-outbound-PRODAT-Z09 positive ACK confirmation. No historical migration edited; no selected billing/projection/assignment assessment body replaced. Accepted E66/read/billing/internal grant branches do not invoke new request-access/DSN/staff/support producers; P08 trigger rejects other family/code/direction before lookup.",
+  "historical_native": "Reuse original #511 run37231850192/job111523098655/artifact11315805392 ZIP f4c6de14b2ea27e730becd249e03df66daa13341f5d14c9fd438bcf3f1646744 and its three reviewed V/VH/current-grant/DGI derivative cases only. Original public491 whole review carries their custody and finite synthetic-analysis/external issuer boundaries. No new native execution, source setup/Z13 send, authentic legal/custody/market or positive native invoice proof is inferred.",
+  "verification_policy": "Only necessary current three-suite execution, frozen integrity, tests types, scoped lint and one supported full tag check. No duplicate50SQL/full-native/browser/whole-plan proof.",
+  "upstream_native_scope_qualification": [
+    {
+      "path": "lib/ediel/utilts/consumptionPreparation.ts",
+      "sha256": "d08a5d83d3629a26294bf871024f6fdde396e4fabdbaaff13a0e2723c0b097c8",
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/utilts/resolution.ts",
+      "sha256": "3371b5ccd31a758b1738d2918cfac21022f5a1ef5bd00077181daddd3df22498",
+      "exact_original_base": false
+    },
+    {
+      "path": "lib/ediel/utilts/timezone.ts",
+      "sha256": "a661482d8e846384284d71d316425b34632d83652008a1d4258e129337fff954",
+      "exact_original_base": false
+    },
+    {
+      "path": "__tests__/helpers/utiltsObservationHandoff.ts",
+      "sha256": "95578b4a05e4272070f3be63187c9652c1070531ef44d57966eae7b99c0cdbad",
+      "exact_original_base": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsNativeSourceFixture.ts",
+      "sha256": "47003f06ec6a241de78ce6fa90a2e537f2a45aba161a94f4f293fdda9967e9a8",
+      "exact_original_base": true
+    },
+    {
+      "path": "__tests__/helpers/utiltsErrGatewayFixture.ts",
+      "sha256": "5da55a0ce60bd6714a56e36c811fbc1347fd8a07edd91b9e58248eb5c72b0d2d",
+      "exact_original_base": true
+    }
+  ],
+  "upstream_calendar_delta": "Read actual consumptionPreparation/resolution/timezone changes: fixed-offset local representation preserves absolute endpoints for selected linear15-minute source; new calendar month/year stepping follows declared wall time. Selected ESCO energy fixture emits DTM35415:806 with declared+0200 and one15-minute physical observation. Three wire-generator helpers are exact original561. Original selected native evidence remains old-source custody, not fresh entire current setup. Old7bd clean failure was Z06 monthly next-day interval and current source owns the declared-offset correction; Z06 fixture/test bytes themselves were unchanged."
+}

@@ -161,3 +161,67 @@ unapproved, with native counts unqualified until new-head real feedback passes.
 The reported sole exporter claim on #530 assigns future production work; it
 does not itself qualify that producer or authorize a competing implementation.
 Only this existing review file was updated by this reviewer.
+
+## Actual native artifact qualification — 2026-10-05
+
+**QUALIFIED: executed native projection/grant-revocation component, 3/3 PASS,
+at `c08a2354bec8dbbe399e36b4157b8a7968b2470c`. Whole SC071 remains unapproved.**
+This supersedes the earlier NOT_RUN/unqualified status only for this new run
+and bounded component. The local pre-replay disk failure and first `f75cdd7d`
+credential-refusal/no-artifact failure remain historical failures; their
+outcomes are not reinterpreted as passing.
+
+Actual run/job supplied by the owner:
+[37295735640 / 111716379670](https://github.com/heke99/gridex-ops-platform/actions/runs/37295735640/job/111716379670).
+GitHub artifact ID `11338083870`. The reviewer independently hashed the exact
+provided ZIP: `6a76936f2ad3552a221220471a7e18dd3bd0cd6935cdd13e8f64481782f5fb03`,
+matching the supplied GitHub artifact API digest. ZIP CRC checks pass; its exact
+five members (`receipt.json`, `native-junit.xml`, `native.log`, `replay.log`,
+`session.log`) byte-match the provided extracted files. No status file is
+included; the existing JWT/`sb_secret_` refusal patterns match no artifact
+bytes. The reviewer did not retrieve live credentials or rerun a database.
+
+The artifact receipt equals the supplied immutable job-log receipt copy as
+parsed JSON. Its checkout SHA matches current HEAD; tree
+`9be0ee4c32bd90d8b7b52373b3bb635d6988d6b3` matches the immutable Git object.
+All sixteen receipt input SHA-256 values independently match both current
+files and `git show c08a2354:<path>` bytes. In particular the workflow is
+`a92013e90ef1e2c8030625b100e5a9e278792d9f4cbb18705d87ea2707d44038`, native test
+`6407877b57576c7b3dac3db2c3847935ef4941b71b5f5efd36c6e4b5f0fb1ef0`, and config
+`dfd7ae4e5b278d0c86904cda781ae4b8c1232d2aa1033022f4bb075d11853d1b`.
+
+Independently parsed JUnit contains exactly three unique cases from the
+expected test file, zero failure/error/skipped elements, and no substitute
+test scope. Receipt component/native exits are both zero; `native_complete`,
+`canonical_replay=COMPLETED` and `complete_three_case_pass=true` agree with the
+actual native log's one file / three tests PASS. Native log duration is 9.03 s;
+test execution totals 6.94 s. Replay log independently records **48 official
+CLI ledger rows**, fingerprint
+`9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b`, and the final
+canonical empty-local-Supabase/checksum-pinned-history PASS marker.
+
+The unchanged 119-line test was reread against those three actual cases:
+writer-first COMMIT refuses returned rows and both stale/current revoked
+versions; writer-first ROLLBACK returns the identical retained valid page;
+reader-first blocks the actual revoke command until reader commit, then later
+reads refuse both versions. All cases use the actual projection/revoke owners
+and PostgreSQL lock observation, preserve the asserted original/series/value/
+receipt/provider state, and dispose/drain their owned transactions. External
+issuer and SMTP inputs remain explicitly finite synthetic ports.
+
+This proof qualifies that production projection SQL transaction component. It
+does not exercise an actual leased beneficiary export consumer, enqueue/lease
+or a disclosure/send after RPC commit. The sole source owner's leased exporter
+and parallel disclosure/revoke proof remain necessary for whole SC071. The
+receipt itself retains `whole_sc071=UNAPPROVED`, `leased_export_consumer=NOT_PROVEN`,
+ordinary gates NOT_REPLACED and browser/upgrade/market limitations; none were
+promoted by this review.
+
+Read-only comparison `git diff --name-only 0dab9200 63a34e1c` confirms the newer
+main delta contains SC042/SQL572 tests, evidence, memory and coverage paths,
+with no relevant production/replay/fixture/config/SQL edits. This preserves the
+component's unchanged source scope; it does not qualify new-head ordinary CI.
+Reviewer verification used hashes, ZIP/member/CRC checks, JSON/XML parsing,
+saved receipt comparison, immutable source hashes and bounded log/test reads.
+No native/DB rerun, shared edit, coverage promotion or exporter implementation
+was performed. Only this existing review file was appended.
