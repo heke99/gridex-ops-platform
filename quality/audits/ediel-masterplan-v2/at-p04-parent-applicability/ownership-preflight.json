@@ -1,0 +1,211 @@
+{
+  "status": "SINGLE_TEST_ONLY_CARD_CANDIDATE_NO_CLAIM",
+  "captured_at": "2026-10-05T12:57:34.659373+00:00",
+  "main": "fff486f822001d35970f163507b10e17c3692f58",
+  "tree": "82fec813af9a2184259e419a0adbaf4563c2ffe8",
+  "board530_complete_comments": 211,
+  "board530_last": 5994809222,
+  "board491_complete_comments": 454,
+  "board491_last": 5994197574,
+  "open_prs": 68,
+  "before_after_heads_equal": true,
+  "complete_rule_card": {
+    "id": "P-04",
+    "area": "Parentgrupper",
+    "kind": "Ediel/Handbok",
+    "applies_to": "Z14N/NAD",
+    "trigger": "Fältkontroll",
+    "condition": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR.",
+    "on_pass": "Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+    "on_failure": "Kräv inte land316 ellerIT233/234 utan grupp.",
+    "callsite_owner": "field profile compiler",
+    "source": "P §2.2 s.20–22",
+    "activation_gate": "Implementering och beteendeprov krävs; inte produktionsgodkänt av detta dokument.",
+    "implementation_status": "Ej verifierad",
+    "test_id": "AT-P-04"
+  },
+  "complete_acceptance_card": {
+    "id": "AT-P-04",
+    "name": "Regelkontrakt: P-04",
+    "given": "Z14N/NAD",
+    "when": "Fältkontroll – prova både uppfyllt villkor och relevant fel-/gränsfall.",
+    "expected": "Inaktiv grupp gör barnfälten icke-tillämpliga även om basmatrisen visarR. → Z14N kan vara giltig utan UD/IT/tillståndsid/positiva tillståndsfält.",
+    "prohibited": "Kräv inte land316 ellerIT233/234 utan grupp.",
+    "rule_ids": [
+      "P-04"
+    ],
+    "layer": "Planerat regelbeteendeprov",
+    "execution_status": "Inte körd mot systemet",
+    "evidence": ""
+  },
+  "main_existing_rows": [
+    {
+      "id": "P-04",
+      "acceptance_id": "AT-P-04",
+      "status": "VERIFIED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/prodatZ14Policy.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ]
+    },
+    {
+      "id": "SC-024",
+      "status": "PASSED",
+      "evidence": [
+        "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+        "lib/ediel/prodat/prodatParentApplicability.ts",
+        "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+        "__tests__/ediel-prodat-dependent-z14.test.ts",
+        "__tests__/ediel-prodat-z14-negative-context.test.ts"
+      ]
+    },
+    {
+      "id": "AT-P-04",
+      "status": "NOT_EXECUTED",
+      "evidence": []
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/ediel/masterplan-v2/registers/rules.json",
+      "git_blob": "2108c9c297457c288364b9ed669809aedd21e21e",
+      "sha256": "48e5a0608107b01719152cf2a50bfe5fce083381cd66a6c64eb5f5d999cb8fd8",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/acceptance_tests.json",
+      "git_blob": "3717ce88daaf98c916bb996edc6fe7887bf65b6c",
+      "sha256": "e9aa623c8b54fabaedca1096fe1516a29a11569b65ee6e95736c82748c541a10",
+      "working_tree_equal": true
+    },
+    {
+      "path": "docs/ediel/masterplan-v2/registers/prodat_parent_groups.json",
+      "git_blob": "99b41fb2e9ee073254fde59319259585376939eb",
+      "sha256": "89d3d00ae091f85a11b88aff5761f63328023e7f553e1d44b04ff74a736a95c7",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatParentApplicability.ts",
+      "git_blob": "2102382eab0a49324e603b8a7c86f18f57574aa8",
+      "sha256": "260ab636f50f1bf1885e95858d0a9df21121dab34e05a54fe5f302b930f72cf3",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+      "git_blob": "2b1899a03418631224509bcd71c9fe2019de9191",
+      "sha256": "32d81f9bd9efae753642c77e2f2726a06dfccf4ef05bee417266f1cddd1902a3",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodatSubtypeRequirement.ts",
+      "git_blob": "4f0cde86c34c8f826d49953d9e687062bd05e91f",
+      "sha256": "54e569b3d723cc109370c43512240b28402c1dbdf612a62e8d9ecea7aed918ce",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+      "git_blob": "36d4a8074da29f231e0b1121e88267385154e99e",
+      "sha256": "a96b7dcddb564aad04d3be6ee7aef1117601eccd893b47869a8ddc60b3794382",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalEdielPolicy.ts",
+      "git_blob": "18a4b4359d40d9972e06b5b438a65e5f699815fa",
+      "sha256": "b0029c768fd81edced23b829732aa534b27fa8e81a8b803d21a63783ec432ec9",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/canonicalPolicyFieldValidator.ts",
+      "git_blob": "536495dd2bedb6a5e9b5144c84aaa34d3067892e",
+      "sha256": "ac76e0e39f49e4b3ec0eed8dad1cc83214c9828b472d54b6a98eb0b3cd4fe3c3",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/fieldMatrix.ts",
+      "git_blob": "fc541d91021427f0daa7c2f681f4590c07850454",
+      "sha256": "84ccd9512709e773538d416394e690f6a5740f1878f1c254008ba7fb9d48e098",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatZ14Policy.ts",
+      "git_blob": "7c8959aeb4e753e1a828869a7a3f5645afde34de",
+      "sha256": "a976167f6c85c71c0e8796f31d370c956e4bf376fa32823d075ca8d1b9349731",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatSubtypePolicy.ts",
+      "git_blob": "f4bf2c0640834047b048e7e5477d954fe9055c96",
+      "sha256": "8403cd1f4ca09f80cb6eb3d55f51fac5a9659b4717848bfe99cdbafca9ee4e1d",
+      "working_tree_equal": true
+    },
+    {
+      "path": "lib/ediel/rulebook/prodatEndUserPolicy.ts",
+      "git_blob": "9c118a1e2515e1a9981912ad3e2d72e729b7a5bf",
+      "sha256": "d046ed2d5807d15384e624e05708415426c6d6ace195153b1fa96bc86e096bc7",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-dependent-z14.test.ts",
+      "git_blob": "c09b969a9a7c755cd6e7b112c332208da0b42bd0",
+      "sha256": "d3818c3eb62068bb76902af56da19004c23a4245b99a750258420fca04d24fad",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-dependent-z14-boundaries.test.ts",
+      "git_blob": "5dc33537aa5d33be0f71df9ebf6efed17f097ab2",
+      "sha256": "62ac74af7a24dee985c011eff17054e2cdf20b7b32ec23a04a273df1b52b1388",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/ediel-prodat-z14-negative-context.test.ts",
+      "git_blob": "43d4ab4a88e08225fc80b5978334a79ba309cf39",
+      "sha256": "244cc7565643a96fffc1cc8565a337d5607042ccce514731a3f51ba8f6c476bf",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-permission-ack.ts",
+      "git_blob": "aa99a6a27f3a7ea912e001ef328bd66d1c663cec",
+      "sha256": "7fba884dbaeceefb2cf56f3fc0475c14bae7afed0d1fe1b075ccf72ea6dc9ce7",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-register.ts",
+      "git_blob": "0c23e9e3729974714ba8da3cbabbd6bb03a251a9",
+      "sha256": "14ee8729c0a2c020182791f0ef8aab3a1f7c6936313c39f6fd7556887a4ecec2",
+      "working_tree_equal": true
+    },
+    {
+      "path": "__tests__/fixtures/prodat-reporting-permission.ts",
+      "git_blob": "fb19674028c742bab2cffb0e07bea14bdf430d7d",
+      "sha256": "3f1275f0597871f75d54b436745df483946a301d34da9d1f80de307b89ac1b08",
+      "working_tree_equal": true
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/masterplan-v2-approval-20261003.md",
+      "git_blob": "6c78d08dd11c8bbd9b116d19eb01122f6906f975",
+      "sha256": "d4cc28e95ee7a785e7bf0ef132cf3d9297830a1ce91dbd9e705966084e574e1e",
+      "working_tree_equal": true
+    }
+  ],
+  "claims_and_broader_ownership": "No exact P04/AT-P04 reservation found in complete fresh boards; remaining P/U broad claim5981753458 explicitly lists unapprovedP02/06/07/08/10-16, not completedP04. Existing shared source changes remainENV517/576/source421; old boundaries suite appears in424. No ownership of those files is transferred.",
+  "proposed_new_files": [
+    "__tests__/ediel-at-p04-parent-applicability.test.ts",
+    ".agent-memory/masterplan-at-p04-checkpoint.md",
+    "quality/audits/ediel-masterplan-v2/at-p04-parent-applicability/**"
+  ],
+  "proposed_collisions": [],
+  "whole_contract_effect": "pure field-applicability validation and diagnostics; no state, ACK, worker or transport effect is in the literal",
+  "shared_native_admission_needed_for_test_only": false,
+  "runtime_tests_executed": false,
+  "approval_status": "NOT_EXECUTED unchanged; candidate requires own tagged asserting test/independent review/currentCI before promotion",
+  "next_action_owner": "root; fresh-race-check and announce singleAT-P04 test-only CLAIM if selected; preserve production and existing test bytes",
+  "root_claim": "https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5994967989",
+  "root_fresh_preclaim_board530_comments": 215,
+  "source_runtime": "NOT_RUN newAT; existingbaseline3 suites starting",
+  "canonical_ID": "AT-P-04"
+}

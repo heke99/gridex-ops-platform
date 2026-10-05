@@ -52,18 +52,6 @@ function readPayloadRecord(message: EdielMessageRow): Record<string, unknown> {
   return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {}
 }
 
-async function strictUpdate(table: string, values: Record<string, unknown>, filters: Record<string, string | null | undefined>) {
-  let query = supabaseService.from(table).update(values)
-  for (const [key, value] of Object.entries(filters)) {
-    if (!value) throw new Error(`business_state_filter_required:${table}:${key}`)
-    query = query.eq(key, value)
-  }
-  const { data, error } = await query.select('id')
-  if (error) throw error
-  if (!Array.isArray(data) || data.length !== 1) throw new Error(`business_state_update_missed:${table}`)
-  return true
-}
-
 async function strictInsert(table: string, values: Record<string, unknown>) {
   const { data, error } = await supabaseService.from(table).insert(values).select('id').single()
   if (error) throw error
@@ -239,19 +227,9 @@ export async function applyInboundBusinessStateMachine(input: {
     } else updated.push('metering_permissions', 'metering_permission_sites')
   }
 
-  if (outcome === 'grid_owner_information_received') {
-    const customerInfoRequestId = input.customerInfoRequestId ?? text(readPayloadRecord(input.message).customer_info_request_id) ?? null
-    if (await strictUpdate('customer_info_requests', {
-      status: 'z02_received',
-      completed_at: new Date().toISOString(),
-      ediel_message_id: input.message.id,
-      updated_at: new Date().toISOString(),
-      verified_payload: {
-        businessState: 'grid_owner_information_received',
-        sourceEdielMessageId: input.message.id,
-      },
-    }, { id: customerInfoRequestId, company_id: companyId })) updated.push('customer_info_requests')
-  }
+  // Z02 request status and verified data belong to the canonical atomic core.
+  // This semantic projection cannot upgrade a held response or replace its
+  // committed snapshot using a cached request hint.
 
   if (outcome === 'supplier_switch_accepted') {
     const sourceResult = sourceSupplyResult ?? await applySupplyMarketSource({ actorUserId: input.actorUserId,message: input.message })
@@ -289,8 +267,7 @@ export async function applyInboundBusinessStateMachine(input: {
       // carries that scope; an unbound received H end takes it from the
       // committed periods.
       const scopes = outcome === 'supply_terminated' && companyId && !sourceResult.idempotent
-        ? input.message.customer_id ? [{ customer_id: input.message.customer_id, metering_point_id: input.message.metering_point_id ?? null }]
-          : await endingPeriodScopes(companyId, sourceResult.periods)
+        ? await endingPeriodScopes(companyId, sourceResult.periods)
         : []
       if (companyId) for (const period of scopes) {
         const caseId = await createReviewCase({ message: { ...input.message, customer_id: period.customer_id, metering_point_id: period.metering_point_id ?? input.message.metering_point_id },
