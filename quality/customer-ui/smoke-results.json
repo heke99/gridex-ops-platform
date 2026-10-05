@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "menu click/Escape/focus/ArrowDown/outside",
+    "desktop and mobile select navigation",
+    "menu mobile bounds",
+    "registry filter disclosure",
+    "registry mobile no horizontal overflow"
+  ],
+  "registrySynthetic": {
+    "before": {
+      "height": 1967,
+      "horizontal": false
+    },
+    "after": {
+      "height": 999,
+      "horizontal": false
+    }
+  },
+  "errors": []
+}

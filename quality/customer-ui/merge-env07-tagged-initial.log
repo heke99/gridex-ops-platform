@@ -1,0 +1,5 @@
+
+> gridex-ops-platform@0.1.0 ediel:masterplan-v2:test-coverage
+> node scripts/ediel-masterplan-test-coverage.cjs --check
+
+Could not read the vitest JSON report.

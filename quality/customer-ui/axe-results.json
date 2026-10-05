@@ -1,0 +1,18 @@
+[
+  {
+    "path": "/customer?tab=notes",
+    "violations": []
+  },
+  {
+    "path": "/preview/registry-after",
+    "violations": []
+  },
+  {
+    "path": "/intake",
+    "violations": []
+  },
+  {
+    "path": "/contract-controls",
+    "violations": []
+  }
+]
