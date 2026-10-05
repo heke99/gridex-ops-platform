@@ -1,0 +1,63 @@
+{
+  "mainCommit": "60b2c7a7d511c2b5f1b234da3851e1bf719b70f8",
+  "mergeCommit": "2b2839645ca19e4881d64524c7ebec8fd59cadc4",
+  "previousMain": "85b6d6602ab0d060a86702847641156470f73234",
+  "upstreamPRs": [
+    577,
+    580,
+    565,
+    524
+  ],
+  "mergeConflicts": false,
+  "ownedPRDiff": "Still only31 previously claimed NEW paths before new composition receipts; imported main changes belong to retained upstream owners.",
+  "changedBoundedInputs": {
+    "lib/ediel/core/runtimeDecision.ts": {
+      "previous85SHA256": "1cf11e7280b4b9ba4bd5e5a71be9fc3012147b77a3d17cb620aed21a65d7c6f1",
+      "currentSHA256": "1d206dc599be538fa23af1fd555ca283f86f607187ae36ea17682ec06a3e64ce"
+    }
+  },
+  "newFocusedTests": {
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "rawLog": "main-60b2c7a7-tests.log",
+    "rawJUnit": "main-60b2c7a7-tests.xml"
+  },
+  "currentPureProbe": {
+    "normativeExit": 1,
+    "rawFailure": "main-60b2c7a7-preservation-RED.log",
+    "output": "canonical-observation-main-60b2c7a7/observations.json",
+    "outputsByteIdenticalTo85": true,
+    "meaning": "All3 pure complete application decisions still accept baseline/absent222/absent326; normative no-acceptance assertion fails. No authentic incoming admission, durable effect or emitted final ACK is exercised."
+  },
+  "previousNativeReceipt": {
+    "metadata": "native-reuse.json",
+    "qualifiedAt": [
+      "cf72b8958f2fdc7016752de0da7d7f08dd365c55",
+      "85b6d6602ab0d060a86702847641156470f73234"
+    ],
+    "selectedPassed": 33,
+    "scopeNow": "Retained historical native proof at its verified source inputs. NOT blanket current60 native qualification. New actual current-head clean replay/native artifact and source inventory are required before claiming current native reuse.",
+    "currentNativeInputDeltas": [
+      "M\tlib/ediel/core/runtimeDecision.ts",
+      "M\tlib/ediel/inboundCases.ts",
+      "M\tlib/ediel/rulebook/prodatRegisterPolicy.ts",
+      "M\tlib/ediel/services/authorization.ts",
+      "M\tscripts/helpers/ediel-normal-switch-native-fixture.ts",
+      "A\tscripts/helpers/native-fixture-company-identity.ts"
+    ],
+    "schemaFingerprintTypesUnchanged": true
+  },
+  "coverage": "Both own rows stay NOT_EXECUTED; all current-main rows and metadata imported exactly. No whole-card/source promotion.",
+  "independentReviews": "Original1a65/eacc bounded and full-card reports retained byte-exact at their recorded sources. This composition requires separate independent delta review and current-head mandatoryCI.",
+  "supportedTaggedGate": {
+    "exit": 0,
+    "ids": 352,
+    "approved": 213,
+    "taggedGreen": 234,
+    "taggedFailing": 0,
+    "untagged": 118,
+    "rawLog": "main-60b2c7a7-supported-tagged-gate.log",
+    "warning": "Stored approval count includes separately disputed SC036; this packet adds no whole approvals."
+  }
+}
