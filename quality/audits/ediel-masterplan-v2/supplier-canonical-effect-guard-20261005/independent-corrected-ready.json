@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "reviewer": "/root/sc051_sc068_final_review",
+  "reviewed_at_utc": "2026-10-05T19:24:18.937148+00:00",
+  "verdict": "READY_EXACT_CORRECTED_BEFORE_EDIT_STATIC_PROPOSAL",
+  "proposal": {
+    "path": "/tmp/supplier-canonical-guard-corrected-proposal-325.cjs",
+    "sha256": "c140dfabcf020362f3b86c5d2d55d5dc6ac381b1f12ca96cfae4c8e5c191defe",
+    "lines": 78,
+    "applied_at_review": false,
+    "behavior_run_at_review": false
+  },
+  "source_base": "3251d20a8b9fe0294367977dca49de65aabe7513",
+  "reviewed_root503": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "source_pins": [
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "sha256": "e9ff9d52b3efc52d3deefa1f2d8e9185ea9d145ba91bbe9897e52c2e759e0f3b",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/supplyMarketTransition.ts",
+      "sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "7a2c731a6e5acc15f923a5cbeeea64233d581fc435a69a1d2b31323659f794fa",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundAckProcessing.ts",
+      "sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/ack/committedInboundAck.ts",
+      "sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "exact_base_and_reviewed_root913": true
+    }
+  ],
+  "supersedes_hold": {
+    "path": "/workspace/agent-review-checkpoints/supplier-static-supply-ack-325-proposal-independent-review.json",
+    "sha256": "d30032947aa9ec59380ef30c732de1402b110fe3d74730811180aed715d42c8d",
+    "scope": "Only the specific static predicate holes; no current full-chain or product/native approval."
+  },
+  "resolved_concrete_gaps": [
+    {
+      "id": "S1",
+      "resolution": "A unique named applyInboundBusinessStateMachine body and direct accepted/held/applied branches replace broad module search. Comment-free AST statement printing anchors the actual const sourceResult = sourceSupplyResult ?? await applySupplyMarketSource(...) initializer to existing actor/message input. Native RPC data/error/result, commits validation, applied=true and returned applied/commits are scoped to named applySupplyMarketSource; caller publishes exact sourceResult.commits fields only in actual applied branch."
+    },
+    {
+      "id": "A1",
+      "resolution": "All four actual const declarations require the qualified sourcePatch OR gate, the expected awaited sync call with existing scoped arguments as true arm and exact literal null as false arm. Former unconditional false-arm counterexample no longer matches."
+    },
+    {
+      "id": "A2",
+      "resolution": "Unique named processInboundAckMessage/patchSourceMessageFromAck/readCommittedInboundAck bodies and actual direct caller ACK branch replace source-to-EOF/module-wide snippets. Comment stripping prevents detached comments from supplying authority. First committed read is adjacent to immediate legacy/exact returns before fresh source lookup; native patch data/error/typed same-source/company/outcome checks and returned qualification flags are scoped to actual helper."
+    }
+  ],
+  "scope_assessment": "The corrections preserve the existing real sourceSupplyResult fallback/committed-reception reuse and actual private-first/native-apply/business gating. No product, SQL, native fixture, coverage, authority mode or whole-rule change is needed. No concrete remaining gap identified in the declared bounded before-edit source-characterization proposal.",
+  "preservation_contract": {
+    "three_added_source_reads": "supplyMarketTransition, inboundAckProcessing, committedInboundAck only",
+    "replacement_actual_top_level_ok_calls": 2,
+    "existing_actual_top_level_ok_calls": 35,
+    "other_original_assertions_to_preserve": 33,
+    "legacy_count_36": "Included function ok declaration;35 actual assertions is correct.",
+    "adjacent_UTILTS_and_both_PRODAT": "Remain untouched when sole writer applies these exact two replacements. Final applied-byte preservation is author/root verification, not claimed from unapplied proposal."
+  },
+  "independent_static_parse": {
+    "engine": "Existing TypeScript parser via read-only node command; proposal and current CJS are parsed, not evaluated.",
+    "proposal_parse_diagnostics": 0,
+    "proposal_actual_top_level_replacement_ok_calls": 2,
+    "existing_script_actual_top_level_ok_calls": 35,
+    "proposed_predicate_execution": false,
+    "production_execution": false
+  },
+  "next_verification": "Root may authorize sole writer to apply this exact proposal, verify33 retained checks/full source preservation and run bounded in-memory characterization checks for discarded native supply result and each of four unconditional ACK false arms. A detached/comment or unrelated helper contrast may directly substantiate the scoped fix. These are static guard checks only; no product/native execution or full green is inferred.",
+  "current_full_supplier_state": "Still previously recorded first-child billing failure after11OK and direct remaining oldACK failure after24OK. Corrected proposal was not run; no full-chain green, new-head/native/CI approval claimed.",
+  "ownership": "SC004 remains sole supplier guard writer; root owns authorization/adoption/current source carry/publication. Any later pipeline proposal is separate retained-owner allocation and separate review.",
+  "reviewer_actions": {
+    "source_test_UI_SQL_native_coverage_workflow_edits": 0,
+    "tests_native_behavior_CI_capture_runs": 0,
+    "static_parse_only": true,
+    "shared_public_memory_GitHub_artifact_writes_pushes_merges": 0,
+    "own_public_safe_JSON_only": true
+  }
+}

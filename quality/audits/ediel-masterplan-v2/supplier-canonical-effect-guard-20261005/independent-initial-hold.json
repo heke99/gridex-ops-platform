@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "reviewer": "/root/sc051_sc068_final_review",
+  "reviewed_at_utc": "2026-10-05T19:17:01.501340+00:00",
+  "verdict": "HOLD_STATIC_PREDICATE_PROPOSAL_ONLY",
+  "scope": "Existing two obsolete supplier source-characterization assertions and three added source reads. No product/native/whole-rule or CI ownership review.",
+  "base": "3251d20a8b9fe0294367977dca49de65aabe7513",
+  "base_tree": "c1bfe1f0de4cbab8df06cd0fbb85dc6d177e3044",
+  "reviewed_root503": "9132a6ed4649e8b17aba4270417c649939c3e0c4",
+  "script": {
+    "path": "scripts/gridex-supplier-remaining-business-regression.cjs",
+    "before_sha256": "56fe10481c5466616cac4db026927055fd71f27c011802bf5dcc627c8b1672ad",
+    "current_supply_only_working_sha256": "7ba6e089e44a2a3adb3229473a6764a05b9638fb6a89818745669dcda9968e64",
+    "not_committed_at_review": true
+  },
+  "ACK_before_edit_proposal": {
+    "path": "/tmp/supplier-ack-guard-proposal-325.txt",
+    "sha256": "b5fac28ea08f96697c9746b097f1efdfb70c5090a477d6f13f5ab18a21b6759f",
+    "not_applied_or_run_at_review": true
+  },
+  "source_pins": [
+    {
+      "path": "lib/ediel/flows/inboundBusinessStateMachineLegacy.ts",
+      "sha256": "e9ff9d52b3efc52d3deefa1f2d8e9185ea9d145ba91bbe9897e52c2e759e0f3b",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/supplyMarketTransition.ts",
+      "sha256": "584e51953ca5da03ad9d216ce8e0e88cc09720b5dd1e7e8f6bcc7e4ec5995829",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundProcessing.ts",
+      "sha256": "7a2c731a6e5acc15f923a5cbeeea64233d581fc435a69a1d2b31323659f794fa",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/flows/inboundAckProcessing.ts",
+      "sha256": "cf64d7fd51a4bcbbe80d3e000292a5e9302be4658edeb453fb75d9896a8cfdb6",
+      "exact_base_and_reviewed_root913": true
+    },
+    {
+      "path": "lib/ediel/ack/committedInboundAck.ts",
+      "sha256": "9c75cf2321f634b701081ca006c41f57c6c293aa74b97b623b35a4cfd938ba0d",
+      "exact_base_and_reviewed_root913": true
+    }
+  ],
+  "production_source_assessment": "Current sources implement intended supply native-result/commit-scope chain and ACK first private receipt/typed scoped native apply/business gate. No product defect found. HOLD concerns proposed static checks being able to pass disconnected or unconditional code.",
+  "concrete_gaps": [
+    {
+      "id": "S1",
+      "location": "Applied supply ok predicate, acceptedSupplyEffect matcher",
+      "finding": "Awaited native call is checked independently of sourceResult binding; RPC presence is checked in entire supply module rather than active applySupplyMarketSource body.",
+      "static_counterexample_not_executed": "Discard the awaited applySupplyMarketSource return, then assign sourceResult from fabricated applied/commits; leave held/else/publish text unchanged. All listed supply regex requirements still occur, despite discarding native authority. Moving the matching RPC into an unrelated/dead helper also preserves the module-wide requirement.",
+      "minimum_correction": "Scope active named applyInboundBusinessStateMachine accepted branch and applySupplyMarketSource body; require the actual sourceResult initializer to consume sourceSupplyResult or the awaited call, actual scoped company/source/actor RPC data to flow into returned applied/commits, and native commit-scope validation. Recognize executable syntax/controlled statements, not comments or disconnected copies."
+    },
+    {
+      "id": "A1",
+      "location": "ACK proposal four allowBusinessTransition conditional regexes",
+      "finding": "Each regex checks only the true-arm prefix and does not require the false arm to remain null.",
+      "static_counterexample_not_executed": "Replace any : null false arm with an awaited corresponding sync call. The existing allowBusinessTransition ? await syncX( prefix remains, so every proposed match stays true even though business synchronization also happens when the source outcome disallows it.",
+      "minimum_correction": "Within active processInboundAckMessage, require each actual conditional expression to use the qualified sourcePatch.wholeSourceRejected || sourcePatch.sourceAccepted gate, the expected awaited sync call as true arm and literal null as false arm."
+    },
+    {
+      "id": "A2",
+      "location": "ACK module-wide native patch checks and committedInboundAck reader checks",
+      "finding": "RPC/identity/type/error snippets are matched across whole source files; ackEffect captures from export to EOF rather than structurally identifying its active body. Detached comments, dead blocks or unrelated helpers can satisfy authority snippets.",
+      "minimum_correction": "Scope actual patchSourceMessageFromAck and readCommittedInboundAck functions; require their actual RPC-bound data/error and typed same source/company/environment identity checks to feed the returned result. In actual processInboundAckMessage require the private committed receipt read and immediate legacy/exact return before fresh lookup/apply/business work. Preserve real caller/import delegation. Bounded syntax scoping is enough; no product/SQL/native architecture change needed."
+    }
+  ],
+  "preservation": {
+    "current_supply_change_reconstructs_full_base_exactly": true,
+    "actual_original_top_level_ok_assertions": 35,
+    "actual_current_top_level_ok_assertions": 35,
+    "two_replacements_should_preserve_other_assertions": 33,
+    "naive_36_count_explanation": "Counts the function ok declaration as well as35 actual calls. Correct metadata; do not add an extra assertion to force36.",
+    "existing_UTILTS_and_both_PRODAT_assertions": "Byte-exact in reconstructed full base; retain these and all other existing checks/labels."
+  },
+  "existing_execution_state": {
+    "one_supplier_chain": "Already recorded first-child billing-surface failure after11OK; remaining script unreached.",
+    "direct_remaining": "Already recorded new supply/static foundation pass then unchanged oldACK marker failure after24OK.",
+    "ACK_proposal_execution": "None; no full green claimed.",
+    "reviewer_behavior_mutation_probes": "None. Counterexamples above are read-only logical consequences of exact regexes, not executed tests."
+  },
+  "next_author_action": "Sole existing writer corrects only these scoped predicates/accounting, preserving other assertions, then supplies exact new bytes for review before authorized one-chain execution. No new native, capture, CI, product or coverage work implied.",
+  "reviewer_actions": {
+    "source_test_schema_UI_native_coverage_edits": 0,
+    "tests_native_SQL_CI_capture_or_behavior_runs": 0,
+    "shared_memory_or_GitHub_writes": 0,
+    "artifact_changes_pushes_merges": 0,
+    "own_minimal_public_safe_JSON_only": true
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "archive": "raw-evidence.zip",
+  "archive_sha256": "01070d72ed148aa5cd3258dc7692f029baabfbdb06365a39e70a8df371ed05ef",
+  "entries": [
+    {
+      "entry": "source-carry.json",
+      "origin": "/workspace/agent-review-checkpoints/supplier-billing-surface-main296-source-carry.json",
+      "bytes": 3281,
+      "sha256": "df141aec4d57cd334ba7e145255551d570f4ce0ce1b38b14419adf2b361112db"
+    },
+    {
+      "entry": "direct-result.log",
+      "origin": "/workspace/agent-review-checkpoints/supplier-billing-surface-main296-direct-result.log",
+      "bytes": 1640,
+      "sha256": "885c0697deebd8cc937f6fbb70a146048b0489ec17228b7b0dd86b3a8f6246ea"
+    },
+    {
+      "entry": "actual-tool-result.json",
+      "origin": "/workspace/agent-review-checkpoints/supplier-billing-surface-main296-actual-tool-result.json",
+      "bytes": 125,
+      "sha256": "3482a12affe30fb4ef3a2dac0f9faab2089821bac90ebe45f7c0d05544c1aebf"
+    }
+  ],
+  "normalization": "None; original immutable bytes retained."
+}

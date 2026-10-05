@@ -1,0 +1,76 @@
+--- a/scripts/gridex-website-quote-integrity-regression.mjs
++++ b/scripts/gridex-website-quote-integrity-regression.mjs
+@@ -1,5 +1,6 @@
+ import assert from 'node:assert/strict'
+ import fs from 'node:fs'
++import { createRequire } from 'node:module'
+ import {
+   canonicalQuoteTimestamptz,
+   canonicalQuoteValidUntil,
+@@ -58,6 +59,8 @@
+ const version = String(website.info?.version ?? '').trim()
+ assert.ok(version, 'website OpenAPI must declare a canonical release version')
+ assert.equal(portal.info?.version, version, 'website and customer portal contracts must share the release version')
++const { currentContractVersion } = createRequire(import.meta.url)('./lib/current-api-contract.cjs')
++assert.equal(currentContractVersion, version, 'central contract version must match website OpenAPI')
+ 
+ // The OpenAPI release finalizer is one logical implementation split across the
+ // coordinator and portal module. Assertions must cover both so safe source
+@@ -66,18 +69,49 @@
+   read('scripts/finalize-openapi-release.cjs'),
+   read('scripts/finalize-openapi-release.portal.cjs'),
+ ].join('\n')
+-assert.match(finalize, new RegExp(`const version = ['\"]${escapeRegExp(version)}['\"]`))
++assert.match(finalize, /const \{ currentContractVersion: version \} = require\('\.\/lib\/current-api-contract\.cjs'\)/)
++assert.ok(finalize.includes('document.info.version = version'))
++assert.ok(finalize.includes("document['x-contract-schema-version'] = version"))
++assert.match(finalize, /require\('\.\/finalize-openapi-release\.portal\.cjs'\)\(\{[\s\S]*?\n\s+version,/)
++assert.match(finalize, /\/\/ Re-normalize after late example assignment[\s\S]*?normalizeContractVersionMetadata\(document\)/)
+ assert.match(finalize, /quoteData\.properties\.offer = permissiveObject/)
+ assert.ok(finalize.includes('// Re-normalize after late example assignment'))
+ 
+-for (const relative of [
+-  'lib/integrations/websiteIntegrationContract.ts',
+-  'scripts/check-api-compatibility.cjs',
+-  'scripts/verify-openapi-release.cjs',
+-  'scripts/check-api-documentation-version.cjs',
+-  'scripts/check-public-contract-runtime-openapi.cjs',
++assert.match(
++  read('lib/integrations/websiteIntegrationContract.ts'),
++  new RegExp(`WEBSITE_INTEGRATION_CONTRACT_VERSION\\s*=\\s*['"]${escapeRegExp(version)}['"]`),
++)
++for (const [relative, alias, requiredEffects] of [
++  ['scripts/check-api-compatibility.cjs', 'version', [
++    'assert(document.info.version === version,',
++    "document['x-contract-schema-version'] === version,",
++  ]],
++  ['scripts/verify-openapi-release.cjs', 'version', [
++    "'docs/openapi/releases',\n    version,",
++    'if (document.info.version !== version)',
++    "if (document['x-contract-schema-version'] !== version)",
++  ]],
++  ['scripts/check-api-documentation-version.cjs', 'legacyExpected', [
++    'if (!source.includes(legacyExpected)) failures.push',
++    'if (spec.info?.version !== legacyExpected) failures.push',
++    "if (spec['x-contract-schema-version'] !== legacyExpected) failures.push",
++  ]],
++  ['scripts/check-public-contract-runtime-openapi.cjs', 'version', [
++    '`docs/fixtures/public-contracts-response-${version}.json`',
++    'fixture.meta.contract_schema_version = version',
++    'if (specification.info?.version !== version)',
++    'if (fixture.meta?.contract_schema_version !== version)',
++  ]],
+ ]) {
+-  assert.ok(read(relative).includes(version), `${relative} is not synchronized to ${version}`)
++  const source = read(relative)
++  assert.match(
++    source,
++    new RegExp(`const\\s*\\{\\s*currentContractVersion:\\s*${alias}\\s*\\}\\s*=\\s*require\\(['"]\\./lib/current-api-contract\\.cjs['"]\\)`),
++    `${relative} must bind the canonical contract version`,
++  )
++  for (const effect of requiredEffects) {
++    assert.ok(source.includes(effect), `${relative} must use the canonical version: ${effect}`)
++  }
+ }
+ 
+ for (const contractName of ['website-integration-v1', 'customer-portal-v1']) {

@@ -1,0 +1,21 @@
+OK: migration A pins search_path on all 25 flagged functions
+OK: PostGIS function gets extensions in search_path; everything else public, pg_temp
+OK: migration A uses ALTER FUNCTION only (no body/owner/mode changes)
+OK: migration B covers all 29 privileged definer functions
+OK: privileged functions: revoke PUBLIC/anon/authenticated, explicit service_role grant
+OK: RLS helper exceptions keep authenticated execute (revoked for anon), documented in-migration
+OK: report documents the RLS-helper exceptions as accepted findings
+OK: effective account-closure migration keeps authenticated anonymization self-only, owner-blocked and session-revoking
+OK: migration C covers all 24 flagged SECURITY DEFINER views
+OK: views are converted in place (no drop/recreate; columns/comments preserved)
+OK: service-only views are revoked from anon and authenticated
+OK: migration D covers all 21 service-only tables
+OK: no using(true)/with check(true) policies anywhere in the hardening batch
+OK: customer_operation_jobs gets exactly one narrow company-scoped SELECT policy
+OK: customer_operation_jobs writes stay service-role only
+OK: all hardening migrations set lock_timeout and statement_timeout
+OK: all hardening migrations guard object existence (safe replay)
+OK: leaked password protection documented as required manual production setting
+OK: go-live cutover plan references the advisors hardening checklist
+
+Live verification SQL (K1-K4): docs/security/supabase-advisors-hardening.md

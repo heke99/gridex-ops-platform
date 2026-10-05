@@ -1,0 +1,252 @@
+{
+  "schema": "gridex-pr-ci-metadata-first-failure/v1",
+  "observed_at_utc": "2026-10-05 22:00:02 UTC",
+  "repository": "heke99/gridex-ops-platform",
+  "pr_number": 612,
+  "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+  "head_branch": "codex/canonical-source-regression-checks-20261005",
+  "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "scope": "One ordinary pull_request CI head. Metadata GET only. No logs, artifacts, retries, cancellations, dispatches, source changes or merge.",
+  "lease_status": "STOPPED_ON_FIRST_GENUINE_FAILED_STEP",
+  "overall_gate_status": "HOLD_NONTERMINAL",
+  "ordinary_workflows": [
+    {
+      "run_id": 37379273855,
+      "workflow_id": 298519857,
+      "name": "OPS hardening",
+      "path": ".github/workflows/ops-hardening.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "pull_requests": [
+        {
+          "number": 612,
+          "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ],
+      "created_at": "2026-10-05T21:57:06Z",
+      "run_started_at": "2026-10-05T21:57:06Z"
+    },
+    {
+      "run_id": 37379273838,
+      "workflow_id": 336204822,
+      "name": "Gridex full E2E",
+      "path": ".github/workflows/full-e2e.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "pull_requests": [
+        {
+          "number": 612,
+          "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ],
+      "created_at": "2026-10-05T21:57:06Z",
+      "run_started_at": "2026-10-05T21:57:06Z"
+    },
+    {
+      "run_id": 37379273848,
+      "workflow_id": 358913488,
+      "name": "Ediel masterplan v2 regressions",
+      "path": ".github/workflows/ediel-masterplan-v2.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "pull_requests": [
+        {
+          "number": 612,
+          "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ],
+      "created_at": "2026-10-05T21:57:06Z",
+      "run_started_at": "2026-10-05T21:57:06Z"
+    },
+    {
+      "run_id": 37379273849,
+      "workflow_id": 336345774,
+      "name": "Gridex browser and quality E2E",
+      "path": ".github/workflows/browser-quality-e2e.yml",
+      "event": "pull_request",
+      "run_attempt": 1,
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "head_branch": "codex/canonical-source-regression-checks-20261005",
+      "repository": "heke99/gridex-ops-platform",
+      "pull_requests": [
+        {
+          "number": 612,
+          "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+          "base_sha": "b83b284467c8e0fcaa277706a708706e0a705068"
+        }
+      ],
+      "created_at": "2026-10-05T21:57:06Z",
+      "run_started_at": "2026-10-05T21:57:06Z"
+    }
+  ],
+  "first_genuine_failure": {
+    "run_id": 37379273855,
+    "run_attempt": 1,
+    "job_id": 111996685808,
+    "job_name": "quality-release-gates",
+    "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+    "head_branch": "codex/canonical-source-regression-checks-20261005",
+    "runner_id": 1000043797,
+    "runner_name": "GitHub Actions 1000043797",
+    "job_status": "in_progress",
+    "job_conclusion": null,
+    "job_started_at": "2026-10-05T21:57:10Z",
+    "job_completed_at": null,
+    "failed_steps": [
+      {
+        "number": 5,
+        "name": "Run npm run lint",
+        "status": "completed",
+        "conclusion": "failure",
+        "started_at": "2026-10-05T21:57:29Z",
+        "completed_at": "2026-10-05T21:58:47Z"
+      }
+    ],
+    "later_step_at_observation": [
+      {
+        "number": 17,
+        "name": "Run npm run build",
+        "status": "in_progress",
+        "conclusion": null,
+        "started_at": "2026-10-05T21:58:47Z"
+      }
+    ],
+    "error_annotations_at_check_snapshot": 0,
+    "error_annotation_detail": "Quality check output reports zero annotations at this snapshot. Direct check annotation endpoint rejected by public connector allowlist. No raw logs read.",
+    "cause_status": "UNKNOWN_PENDING_PRECISE_ROOT_LOG_READER"
+  },
+  "required_contexts_at_latest_check_snapshot": [
+    {
+      "job_id": 111996685917,
+      "name": "smoke",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T21:58:42Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273838/job/111996685917",
+      "annotation_count": 2,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685808,
+      "name": "quality-release-gates",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": null,
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685808",
+      "annotation_count": 0,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685755,
+      "name": "verify",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": "2026-10-05T21:59:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685755",
+      "annotation_count": 2,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685742,
+      "name": "clean-migration-replay",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": null,
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685742",
+      "annotation_count": 0,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685575,
+      "name": "coverage",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-05T21:57:09Z",
+      "completed_at": null,
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273838/job/111996685575",
+      "annotation_count": 0,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685559,
+      "name": "upgrade-migration-replay",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": null,
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273855/job/111996685559",
+      "annotation_count": 0,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685475,
+      "name": "browser-public",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T21:57:09Z",
+      "completed_at": "2026-10-05T21:58:24Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273849/job/111996685475",
+      "annotation_count": 2,
+      "output_title": null,
+      "output_summary": null
+    },
+    {
+      "job_id": 111996685282,
+      "name": "targeted-regressions",
+      "head_sha": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-10-05T21:57:10Z",
+      "completed_at": null,
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37379273848/job/111996685282",
+      "annotation_count": 0,
+      "output_title": null,
+      "output_summary": null
+    }
+  ],
+  "pending_not_created": [
+    "pr-quality-certificate"
+  ],
+  "counts": {
+    "success": 3,
+    "terminal_failure": 0,
+    "in_progress": 5,
+    "pending_not_created": 1,
+    "genuine_failed_steps": 1
+  },
+  "limits": [
+    "The quality job has not reached a terminal conclusion; its lint step is a genuine completed failure.",
+    "Skipped non-PR jobs are excluded and never counted as PASS.",
+    "Other job outcomes after this snapshot remain unobserved.",
+    "No claim of source, production, native, full73, plan completion or main-green qualification."
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "scope": "frozen static checker inputs and unchanged-main applicability, no execution or whole-security claim",
+  "allocation": "#5306001957294",
+  "ack": "#5306002074021",
+  "baseGuard": {
+    "scope": "frozen baseline objects, not behavioral/native qualification",
+    "base": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+    "tree": "9706bb688f916d4f4da5b985795c652a2802ec97",
+    "baseEntryCount": 8496,
+    "allBaseTreeSha256": "54c3cb06b37904de37b446e6f52fcf090fb0b79c51c9a5f0630a3ed9a19052de",
+    "sourceInputs": [
+      {
+        "path": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+        "mode": "100644",
+        "type": "blob",
+        "object": "f83b8fce6d9ce22cd5a270e099bb776f7cc77fed",
+        "bytes": 14301,
+        "sha256": "2116509e6e7913856a51a7cf1f481cbb08ac9350713b8588574fb6b1dd39eb43"
+      },
+      {
+        "path": "supabase/migrations/20261001023248_ediel_bilateral_prodat_outbound_profile_original_owner.sql",
+        "mode": "100644",
+        "type": "blob",
+        "object": "e44c9994e8a9ead435f59b6f603d20b30567b546",
+        "bytes": 51454,
+        "sha256": "f85410f5504d43b518badefe98ffcea09e699bfc5d1a85a2b469c44b73b0ed3c"
+      },
+      {
+        "path": "supabase/migrations/20261001085523_ediel_bilateral_prodat_closure_operation_and_matched_end.sql",
+        "mode": "100644",
+        "type": "blob",
+        "object": "9cc11e60c7efbf032f6889fb8cbbe468326c7145",
+        "bytes": 30066,
+        "sha256": "600c714ecb165e429d51fabf3e7df43ef09adffa9247d768dddfbfb18eb99b7b"
+      },
+      {
+        "path": "supabase/migrations/20261001115000_ediel_national_supply_rescission_atomic_original_and_matched_end.sql",
+        "mode": "100644",
+        "type": "blob",
+        "object": "f36e2fd3388ea50e8584fb497cc7353cf1d06ce4",
+        "bytes": 45757,
+        "sha256": "758889e9bfa112fe2fbe3417bbd3755394bc81c6de9b735720950af4f3102217"
+      },
+      {
+        "path": "quality/audits/ediel-masterplan-v2/coverage.json",
+        "mode": "100644",
+        "type": "blob",
+        "object": "875b60dcc320dcd329e4c57a8a04a761a414cea1",
+        "bytes": 140289,
+        "sha256": "e3f5a6cec0979ff9ee80448b5fa66e01af9cd197fc8631fba379ffa1a98d167c"
+      }
+    ],
+    "ownedSourcePath": "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+    "newOwnedMetadataRoot": "quality/audits/ediel-masterplan-v2/advisor-definition-parser-maintenance-20261005/",
+    "newOwnedCheckpoint": ".agent-memory/masterplan-advisor-definition-parser-maintenance-20261005.md",
+    "qualification": "NOT_RUN"
+  },
+  "actualMainReadInputApplicability": {
+    "scope": "read-input applicability only; no test/runtime/CI/native run",
+    "frozenBase": "5cde80940ee213612fde3ba6b3461429dd615a7f",
+    "actualMain": "2964415adec9e36932583e95f8506437d262c507",
+    "actualMainTree": "20ac0963cf989a08e5aebaa7bb8df405d34d5eba",
+    "actualDelivery": "#608, first admitted ENV07 fixture; alternate #610 remains original-owner disposition",
+    "comparedPaths": [
+      "scripts/gridex-supabase-advisors-hardening-regression.cjs",
+      "supabase/migrations",
+      "docs/security/supabase-advisors-hardening.md",
+      "docs/env-production-checklist.md"
+    ],
+    "changedPaths": [],
+    "executionQualification": "NOT_RUN",
+    "sourceQualificationReuse": "2b01/d244 original static source-chain scope only",
+    "additionalFixedReadGuard": {
+      "path": "docs/go-live-cutover-plan.md",
+      "baseBlob": "d6354f5bd0a89af2ddd8d2f1506e1d7a5150e237",
+      "actualMainBlob": "d6354f5bd0a89af2ddd8d2f1506e1d7a5150e237",
+      "result": "EXACT"
+    },
+    "coverageOfReadInputs": "All 8 fixed reads and entire 1073-migration directory now exact; original path-diff plus this additional blob guard. No executions repeated."
+  },
+  "fixedReadInputs": [
+    {
+      "path": "supabase/migrations/20260709160000_advisor_function_search_path.sql",
+      "blob": "6b79ec448eb2b41b8e06447b140346d4e5c6cb09",
+      "sha256": "4a2f3730c57980b7bd4613362e1c767aef171d827cc1224a7cea11ac14ffa20f"
+    },
+    {
+      "path": "supabase/migrations/20260709161000_advisor_function_execute_revokes.sql",
+      "blob": "45d1fccf17d862b31b758768fc76648ebe2bc74f",
+      "sha256": "12ccd6d475d7d528763b47fa188b8310da7e907141b82d9ce5751bb7ec39e253"
+    },
+    {
+      "path": "supabase/migrations/20260709162000_advisor_security_invoker_views.sql",
+      "blob": "507f7d7552b2d5ef74eed14c183a7dcb06ff10b3",
+      "sha256": "58a0f64c84a26ad8a299f0afb8ee0a91298a6f9b5b2fd66c55423341835eaa6c"
+    },
+    {
+      "path": "supabase/migrations/20260709163000_advisor_rls_no_policy_hardening.sql",
+      "blob": "06979ba00f1b59f1bb5ce982ff452409438140b9",
+      "sha256": "6e7ae6ae680084526b7ca141b69e96c17dc458ece3b95ed05563c80bdf1f7047"
+    },
+    {
+      "path": "supabase/migrations/20260811080000_remaining_masterpoint_convergence.sql",
+      "blob": "ba0a9a22090a6b8d6809494efcef1a1f4604a107",
+      "sha256": "915f097ae92cfc56423b4047e1b31433bb293bb2d56f505b7584c563a89a33a2"
+    },
+    {
+      "path": "docs/security/supabase-advisors-hardening.md",
+      "blob": "d595ea11ecdf0756d3608e9747b30fe767a8fabe",
+      "sha256": "0b6d2fcabafeae511a51a140db2ea77d644172a6cc0ab309a8329a97423aa04e"
+    },
+    {
+      "path": "docs/env-production-checklist.md",
+      "blob": "14de2711178427602dc49118963240b8267c10de",
+      "sha256": "c54ab43260560fbfff335ae4112cf0dcde994704693b0f883ce6423b99662d62"
+    },
+    {
+      "path": "docs/go-live-cutover-plan.md",
+      "blob": "d6354f5bd0a89af2ddd8d2f1506e1d7a5150e237",
+      "sha256": "0285a77c2a9e1aac18b55d065beeab443b6ebde10951d98132100c6896152aa3"
+    }
+  ],
+  "allMigrationCount": 1073,
+  "selectedNewMigrationCount": 827,
+  "orderedAllMigrationPathBlobManifestSha256": "9cdb13415b9cd84ddf0fc0dab1ec17de2cc5d27b6cb34f3f1c872a33547ccff9",
+  "reusedStaticSourceQualification": {
+    "publicHead": "78000108c6dd2e224ec6b44be9b4716a5acf17d2",
+    "sourceSha256": "2b01b48d0d11fb78c2143faa2147cdbf96a8ba1e0fd2e1e3be7da0fca96f5b3c",
+    "independentPeerSha256": "d244e8d295dd5152c821aa32d5f77f61e49bbe01d4cf7fa8955c082b0b2a27da",
+    "limit": "source-only; live catalog/replay/native/whole security UNKNOWN; no repeated source-chain review"
+  }
+}

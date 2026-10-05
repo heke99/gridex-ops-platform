@@ -1,0 +1,23 @@
+{
+  "kind": "Byte-exact retained original static-control driver source; delivery archive only",
+  "original_path": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls.cjs",
+  "original_public_source": "77322b7fda4c68e37e212265cdc51749ab19b7f9",
+  "original_git_blob": "53999548377cd33982803e7986db08547c74d2fd",
+  "original_size": 4043,
+  "original_sha256": "81296230bd8793883dbf568373decf1cbba9d647482f18549a8d8985c982de27",
+  "archive": "quality/audits/ediel-masterplan-v2/supplier-canonical-effect-guard-20261005/static-counterexample-controls-source.zip",
+  "archive_sha256": "63a6b8218b5e9a0e9ac8db570a2225f5ff95a93eaee547b1ad1cdcfd4c904903",
+  "members": [
+    {
+      "path": "static-counterexample-controls.cjs",
+      "bytes": 4043,
+      "sha256": "81296230bd8793883dbf568373decf1cbba9d647482f18549a8d8985c982de27",
+      "crc_verified": true
+    }
+  ],
+  "source_bytes_modified": false,
+  "original_control_results_and_receipts_unchanged": true,
+  "five_active_checker_sources_unchanged": true,
+  "reason": "Raw retained CommonJS evidence outside scripts triggered five no-require-imports lint errors; archive avoids classifying evidence as live project source without changing any lint rule",
+  "original_receipt_path_references": "Historical verification.json references retain the original source path; this index binds that exact source to the archive for current delivery"
+}
