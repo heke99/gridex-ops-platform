@@ -397,4 +397,45 @@ describe('SC014 actual intake/admission qualification', () => {
     expect(await rows('gridex_ediel_outbound_owner.witnesses')).toEqual([])
     expect(await rows('gridex_ediel_outbound_owner.consumptions')).toEqual([])
   })
+
+  it('admits fresh unknown-legal intake only as a protected technical original and persists its prescribed CONTRL without business attribution', async () => {
+    const syntax = validateEdifactSyntax({ ...ownerSource(), environment: 'production', test_flag: 0, raw_payload: unknownLegalWire })
+    expect(syntax).toMatchObject({ ok: true, grammarQualification: 'qualified' })
+    const beforeBusiness = structuredClone(port.business)
+    const mailbox = (await rows('ediel_mailboxes'))[0] as unknown as EdielMailboxRow
+    const stored = await storeMailboxFetchMessage({ mailbox, actorUserId: actor, message: { source: Buffer.from(mime(unknownLegalWire)), internalDate: new Date('2026-10-05T00:00:00Z') } })
+    const result = await processInboundEmailMessage({ inboundEmailMessageId: stored.id, actorUserId: actor })
+    expect(result).toMatchObject({ status: 'manual_review', companyId: null })
+    const staged = (await rows('inbound_email_messages'))[0]
+    expect(staged).toMatchObject({ company_id: null, environment: 'production', raw_email: mime(unknownLegalWire), raw_edifact_payload: unknownLegalWire })
+    expect((await rows('inbound_ediel_parse_results'))[0]).toMatchObject({ company_id: null, raw_payload: unknownLegalWire })
+    expect(port.business).toEqual(beforeBusiness)
+    expect(port.attemptedTables.filter(table => !tables.includes(table) || Object.hasOwn(port.business, table))).toEqual([])
+    // A real mailbox caller must expose an actual protected source ID. The
+    // staged raw/parse UUIDs and the mailbox's transport company are not one.
+    const ids = await listEdielMessageIdsForInboundEmails([stored.id])
+    expect(ids).toHaveLength(1)
+    const source = (await rows('ediel_messages')).find(row => row.id === ids[0]) as unknown as EdielMessageRow
+    expect(source).toMatchObject({ company_id: null, resolved_company_id: null, environment: 'production', direction: 'inbound', raw_payload: unknownLegalWire,
+      inbound_email_message_id: stored.id, customer_id: null, site_id: null, metering_point_id: null })
+    expect(source.execution_context_snapshot).not.toHaveProperty('receivedProdatContext')
+    expect(await endpoint(source.id)).toMatchObject({ companyId: OWNER.company, sourceMessageId: source.id })
+    const facts = JSON.stringify({ version: 1, owner: 'canonical-runtime-syntax-v1', syntaxDecision: 'accepted', reasonCodes: [] })
+    await asService(() => port.db!.query('select public.ediel_record_technical_syntax_facet_v2($1,$2,$3,$4,$5,$6)', [OWNER.company, source.id, source.immutable_payload_hash, facts, actor, 'prepare']))
+    await asService(() => port.db!.query('select public.ediel_capture_technical_syntax_ack_basis_v2($1,$2,$3,$4)', [OWNER.company, source.id, actor, 'prepare']))
+    await installCurrentAtomicCustody()
+    const beforeSource = structuredClone(source)
+    const prepared = await prepareSourceAckDraft({ actorUserId: actor, sourceMessage: source, ackFamily: 'CONTRL', outcome: 'positive' })
+    expect(prepared.kind).toBe('draft')
+    if (prepared.kind !== 'draft') throw Error('Fresh actual technical draft required')
+    const ack = await createCanonicalAckMessage({ actorUserId: actor, sourceMessage: source, ackFamily: 'CONTRL', outcome: 'positive', draft: prepared.draft })
+    expect(ack).toMatchObject({ company_id: OWNER.company, environment: 'production', direction: 'outbound', message_family: 'CONTRL', related_message_id: source.id, ack_outcome: 'positive', status: 'draft',
+      customer_id: null, site_id: null, metering_point_id: null, canonical_rule_pack_id: null, requires_contrl: false, requires_aperak: false })
+    const retained = await readPersistedEdielTechnicalContrlBasis({ companyId: OWNER.company, environment: 'production', ackMessageId: ack.id, expectedRawPayload: ack.raw_payload!, actorUserId: actor, phase: 'prepare' })
+    expect(retained.ackMessage).toEqual(ack)
+    expect((await rows('ediel_messages')).find(row => row.id === source.id)).toEqual(beforeSource)
+    expect(port.business).toEqual(beforeBusiness)
+    expect(await rows('gridex_ediel_outbound_owner.witnesses')).toEqual([])
+    expect(await rows('gridex_ediel_outbound_owner.consumptions')).toEqual([])
+  })
 })
