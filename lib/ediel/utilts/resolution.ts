@@ -58,6 +58,21 @@ function renderDate(date: Date, preserveFloating: boolean): string {
   return iso.endsWith('.000Z') ? iso.slice(0, -5) : iso.slice(0, -1)
 }
 
+/** Minutes east of UTC for an explicit non-UTC offset (e.g. Ediel +01:00), else 0. */
+function explicitOffsetMinutes(value: string): number {
+  const match = /([+-])(\d{2}):?(\d{2})$/.exec(value)
+  if (!match || !/T\d{2}:\d{2}/.test(value)) return 0
+  return (match[1] === '-' ? -1 : 1) * (Number(match[2]) * 60 + Number(match[3]))
+}
+
+/** Render in the same fixed offset the value was declared with, so chained
+ * calendar steps keep the declared wall time instead of drifting to UTC. */
+function renderWithOffset(date: Date, offsetMinutes: number): string {
+  const wall = new Date(date.getTime() + offsetMinutes * 60_000).toISOString().slice(0, -1)
+  const sign = offsetMinutes < 0 ? '-' : '+', abs = Math.abs(offsetMinutes)
+  return `${wall}${sign}${String(Math.floor(abs / 60)).padStart(2, '0')}:${String(abs % 60).padStart(2, '0')}`
+}
+
 export function addNormalizedResolution(
   value: string | null,
   resolution: string | null,
@@ -80,14 +95,19 @@ export function addNormalizedResolution(
   const seconds = Number(match[7] ?? 0) * steps
 
   if ((years || months) && (!Number.isInteger(years) || !Number.isInteger(months))) return null
+  // Calendar months/years follow the declared wall time (fixed Ediel offset),
+  // not the UTC instant: 2026-11-01T00:00+01:00 + P1M is 2026-12-01T00:00+01:00.
+  const offsetMinutes = preserveFloating ? 0 : explicitOffsetMinutes(value)
+  if (offsetMinutes) date.setTime(date.getTime() + offsetMinutes * 60_000)
   if (years) date.setUTCFullYear(date.getUTCFullYear() + years)
   if (months) date.setUTCMonth(date.getUTCMonth() + months)
+  if (offsetMinutes) date.setTime(date.getTime() - offsetMinutes * 60_000)
 
   const fixedMilliseconds =
     (((weeks * 7 + days) * 24 + hours) * 60 * 60 + minutes * 60 + seconds) * 1000
   if (fixedMilliseconds) date.setTime(date.getTime() + fixedMilliseconds)
 
-  return renderDate(date, preserveFloating)
+  return offsetMinutes ? renderWithOffset(date, offsetMinutes) : renderDate(date, preserveFloating)
 }
 
 export function expectedObservationCountForResolution(input: {
@@ -109,7 +129,8 @@ export function expectedObservationCountForResolution(input: {
 
   const endMs = endDate.getTime()
   const maxIterations = input.maxIterations ?? 100_000
-  let cursor = startDate.toISOString()
+  // Keep an explicit Ediel offset on the cursor so monthly steps stay in wall time.
+  let cursor = isFloatingDateTime(start) ? startDate.toISOString() : start
   let count = 0
 
   while (count < maxIterations) {
