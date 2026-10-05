@@ -1,0 +1,25 @@
+OK: business process exists for grid owner information request
+OK: business process exists for cancellation/withdrawal
+OK: business process exists for customer move-out
+OK: business process exists for disconnection case foundation
+OK: business process exists for automatic metering ingestion
+OK: business process exists for automatic billing underlays
+OK: business process exists for billing partner export
+OK: background billing/metering processes are marked as automation
+OK: customer business action plan helper exists
+OK: tenant status labels exist for action plan
+OK: customer card renders one primary business action
+OK: technical details remain behind platform-admin section
+OK: tenant-facing supplier switch route error is no longer raw technical copy
+OK: supplier switch route blocker uses plain Swedish tenant copy
+OK: active inbound business state facade exists
+OK: UTILTS inbound outcome is resolved through canonical policy
+OK: canonical UTILTS E66 outcome maps actual values to metering values received
+OK: canonical PRODAT lifecycle maps grid-owner information responses to received state
+OK: canonical PRODAT lifecycle maps supplier-switch confirmation to accepted state
+OK: canonical PRODAT lifecycle maps Z05 termination semantics to ended supply
+OK: negative APERAK maps to business rejection in characterized ACK state handling
+OK: negative CONTRL maps to technical rejection in characterized ACK state handling
+OK: characterized PRODAT side effects create or update supply periods
+OK: characterized PRODAT side effects write supply period foundation
+FAIL: ack processing calls inbound business state machine
