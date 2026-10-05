@@ -1,5 +1,5 @@
 {
-  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_MAIN6F_CAPTURE_IMPORTED_FINAL_CI_PENDING",
+  "status": "IMPLEMENTED_TARGETED_VERIFIED_AUTHENTIC_CAPTURE_IMPORTED_CURRENT_MAIN_COMPOSED_FINAL_CI_PENDING",
   "base_commit": "9dc4a783a0c5e926596e3054a958c64e43efd490",
   "problem": "The deliberately raised contact_change_version_conflict40001 triggered PostgREST automatic retries instead of a timely409.",
   "production_evidence": {
@@ -117,15 +117,19 @@
     "qualification": "Capture origin842 only. Fresh resulting final-head mandatory CI, raw capture parity, native and upgrade remain required."
   },
   "main_integration": {
-    "main_commit": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
-    "main_tree": "ade806c86aab3f08019e15e1ad6982a5e20b95e1",
+    "main_commit": "eacb6c7cb473b2130e668479e0c176d456766e61",
+    "composition_commit": "329a22eeb3a76af9a55d71aadb3d373c19d3c4e1",
+    "composition_tree": "e93d7062528266524b330c7288d896eb6c275281",
+    "explicit_merge_base": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
     "preserved_all_unrelated_main_changes": true,
-    "raw_generated_baseline_source": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
-    "new_inherited_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
-    "prior_staff_import_source": "019d09abb96e47f7ceff068a5a7c5efb7c7d4d69",
-    "capture": "PASS_CAPTURE_ONLY_IMPORTED",
-    "fresh_final_head_CI": "NOT_RUN",
-    "independent_composition_review_sha256": "f4c6dee66363249154db37906dadecc86a0539f56612533096856eab455bb19c"
+    "main_changed_paths": 17,
+    "staff_changed_paths": 17,
+    "disjoint_path_sets": true,
+    "main_delta_contains_no_migration_or_capture_input_changes": true,
+    "capture_origin": "8424820983ac007bdb57fd70237a8abc58a13506",
+    "capture_scope": "Authentic origin prefix retained with exact input parity; no relabeling as resulting-head verification. Fresh final-head capture/native/upgrade/full CI mandatory.",
+    "source_composition_receipt_sha256": "e257f8fbf2515117609bdc12d1851ecc2009a8742374013860600e4f770fe8ad",
+    "fresh_final_head_CI": "NOT_RUN"
   },
   "prior_staff_prefix_capture": {
     "status": "PASS_CAPTURE_ONLY_IMPORTED",
@@ -166,5 +170,16 @@
     "raw_receipt": "quality/staff-api/customer-conflicts-main-integrated-capture-receipt-20261005.json",
     "scope": "Authentic combined current-main prefix. Whole schema delta versus raw main507 baseline is only the two pinned deliberate SQLSTATE changes. Types remain byte-identical; TEN09 and all other main schema bytes preserved. Fresh resulting-head native/browser/upgrade and full CI still mandatory.",
     "qualification": "Historical main507 capture only; fresh main6f combined capture required."
+  },
+  "capture_main6f_integration": {
+    "main_commit": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "main_tree": "ade806c86aab3f08019e15e1ad6982a5e20b95e1",
+    "preserved_all_unrelated_main_changes": true,
+    "raw_generated_baseline_source": "6f6c9d877fb9b055ce99eb1fa166e2c1621050ad",
+    "new_inherited_migration": "20261004175536_ediel_dsn_encoded_source_identity.sql",
+    "prior_staff_import_source": "019d09abb96e47f7ceff068a5a7c5efb7c7d4d69",
+    "capture": "PASS_CAPTURE_ONLY_IMPORTED",
+    "fresh_final_head_CI": "NOT_RUN",
+    "independent_composition_review_sha256": "f4c6dee66363249154db37906dadecc86a0539f56612533096856eab455bb19c"
   }
 }
