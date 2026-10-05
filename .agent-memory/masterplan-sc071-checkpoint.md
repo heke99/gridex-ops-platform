@@ -384,3 +384,20 @@ tagged-coverage.log, claim5305995072569, no native rerun/wholeclaim.
 FirstmetadataassemblyraisedKeyErrorforwrongpresumeddocscoveragepath;
 rgfilesfoundactualquality/audits/ediel-masterplan-v2/coverage.json andexact
 GitblobcomparisonPASS. Supportedtaggate wasalreadygreen; no test rerun.
+
+## Caller component merged; retained integration ownership
+
+PR #586 merged at exact tested head f7fc20f7b5adc784bdd6ed01bd56ac56e53d2763
+after all nine required checks and supplemental sc071-native succeeded.
+Actual merge683b3e60b67f71293cd44c14d591f877474f0f88 has parents fff486f8
+and f7fc20f7 and tree d19954dc674406f425d3e3f40805b9ab0eb5af12, exactly
+the previously qualified current-main composition. Foreign blobs, coverage and
+all shared admission/capture baselines are preserved. Reuse its supported
+352/213/234/0/118 tag receipt; no unchanged native execution was repeated.
+Board MERGED5995430181 and coordinator handoff5035995432180 record the result.
+The coordinator owns the sole shared handover line and source#570/runtime
+admission/schema/type/canonical6+4/current-native integration. Whole SC010/SC071
+remain unapproved. Evidence series3d9d87c0 +84a02b5b stays separately published.
+Root now advances disjoint NEW AT-Z02L/LK supplier caller tests under claim
+5995184621 in /workspace/gridex-ediel-at-z02l-z02lk-supplier-20261005;
+no duplicate producer/native/SQL/ACK work or unanswered ownership takeover.
