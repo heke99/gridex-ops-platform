@@ -1,0 +1,14 @@
+{
+  "planPath": "docs/superpowers/plans/2026-10-05-z01l-z01lk-supplier.md",
+  "planSha256": "2755970b56cb80041f258dd1c04440bda9a0dc05a12fef4aa48726e377c42f67",
+  "taskBriefSha256": "2f394229db49b6c09504dbd835ce668b666069e0f8b110b6ca6d43ccf9c543b6",
+  "globalConstraintsSha256": "28c15f3b4818cc2f043ebe0e67e73b45e359bcf5598e78a31da04eff06e32696",
+  "writer": "/root/z01_profile_implementer",
+  "sourceBase": "fff486f822001d35970f163507b10e17c3692f58",
+  "sourceScope": [
+    "__tests__/ediel-at-z01l-z01lk-supplier-profile.test.ts"
+  ],
+  "runtimeExecuted": false,
+  "wholeApproval": false,
+  "sourceAssumptionCorrection": "Actual prerequisites stop wrongcustomer/site earlier; historical later resolver assumption superseded, full wrong-binding prohibition preserved."
+}
