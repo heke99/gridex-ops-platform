@@ -9,19 +9,6 @@ export function z06fNativeChangeInstant(f:Pick<Z06fNativeWireScope,'requestedSta
  const date=new Date(`${f.requestedStartDate}T00:00:00Z`);date.setUTCDate(date.getUTCDate()+12+extraDays)
  return `${date.toISOString().slice(0,10).replaceAll('-','')}0000`
 }
-/** Supply start for the native Z06 F fixture: at least 14 days ahead of the
- * Stockholm date (normal switch window) and chosen so the change instant and
- * its next-day contrast stay on day 1-27. The monthly reading period then ends
- * on the same day of the following month instead of rolling past a month end. */
-export function z06fNativeRequestedStartDate(stockholmToday:string,minimumDays=14){
- for(let days=minimumDays;days<minimumDays+40;days++){
-  const start=new Date(`${stockholmToday}T00:00:00Z`);start.setUTCDate(start.getUTCDate()+days)
-  const change=new Date(start);change.setUTCDate(change.getUTCDate()+12)
-  const next=new Date(change);next.setUTCDate(next.getUTCDate()+1)
-  if(change.getUTCDate()<=27&&next.getUTCDate()<=27)return start.toISOString().slice(0,10)
- }
- throw new Error('z06f_native_start_date_unavailable')
-}
 export function z06fNativeStructureWire(f:Z06fNativeWireScope,kind:'F'|'G',document:string){
  const base=structuralOwnerSource('Z06',kind==='F'?'E64':'E32',document)
  return base.raw_payload!.replaceAll('735123456789012345',f.external).replaceAll('12345:14',f.receiver+':14').replaceAll('54321:14',f.sender+':14').replaceAll('NAD+FR+12345:160:SVK',`NAD+FR+${f.receiver}:160:SVK`).replaceAll('NAD+DO+54321:160:SVK',`NAD+DO+${f.sender}:160:SVK`)

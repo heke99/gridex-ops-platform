@@ -15,3 +15,10 @@ Reused P-owner's exact test-only commit 9433d04bfc037fae0f61710c73a5ac85eeef443d
 Next: preserve actual-main owner changes and merge after the #491→#501→P08 shared-file window releases. Record one handover line only after actual merge. Shared campaign memory remains integrator-owned.
 
 Skill routing reuses the established executing-plans/worktrees, TDD/systematic-debugging/fp-check, spec-compliance/review, Supabase read-boundary and verification/finishing workflows. No new audit, schema, UI, dependency or hook work.
+## Current correction composition — 2026-10-05
+
+Exact sole P/Z06F owner correction `3a22fbf6d74fa4d9974b9b60ef1a3671d3d20713` replaces the disproved9433 date workaround: existing declared-offset monthly/yearly resolution arithmetic is repaired, owner three-case test added, three fixture blobs restored verbatim. No owner coverage rows imported. OPS05's runtime/authorization/own tests and ONLY existing OPS05/AT approval rows are SHA256-identical to the published independently approved packet. This dependency reuse does not create another U10 or OPS05 owner.
+
+Fresh composition **30/30 PASS in four suites**: own two OPS05 suites19, shared monthly-offset3, restored original wire grammar8. Log `/tmp/masterplan-ops05-monthly-reuse.log` SHA256 `9b58b0c4e148d97c624a44124e0558ffe285ec67b63a9b975a141976f4e197cf`. Exact five shared owner blobs verified; sibling OPS03 composition's app/tests types and shared-file scoped lint PASS. No API/type signature changes or owned source changes; prior92/92 full-card and10092/10092 full-unit receipts remain qualified historical evidence, not new immutable-head runs. Sole-owner10154 full belongs to its source tree. New-head mandatory/native CI remains required.
+
+Next: commit/publish the correction once, require all nine actual new-head gates and shared-window release, then merge #524 only once. Duplicate #527 remains closed/unmerged; no invented native/provider qualification or second handover.
