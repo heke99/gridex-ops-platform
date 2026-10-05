@@ -84,7 +84,11 @@
     "ownWholeRows": "NOT_EXECUTED/evidence unchanged; full-card peer verdicts PARTIAL",
     "foreignPaths": "All imported main source/test/workflow/ledger/common-memory blobs retained exactly; own diff remains only NEW claimed paths.",
     "sharedHandover": "No own append; existing foreign582 line imported. Sole572 append remains on9e63a602 for common coordinator carry.",
-    "rawWhitespace": "Unfiltered git diff --check may flag preserved raw log EOF and unified-patch blank context. Code/docs-filtered check excludes raw .log/.patch without trimming bytes."
+    "rawWhitespace": "Unfiltered diff and the initial .log/.patch-filtered check retain EOF warnings in exact reviewer/proposal notes. Code/generated metadata/checkpoint check excludes .log/.patch plus the byte-exact proposal-v2-review.md and superseded-v1-notes.md; raw bytes are not trimmed. The initial narrower filtered exit2 is preserved and is not PASS.",
+    "extraRawEOFPaths": [
+      "native-owner-proposal/proposal-v2-review.md",
+      "native-owner-proposal/superseded-v1-notes.md"
+    ]
   },
   "next": "Independent final metadata/proposal delta review; publish one non-force updated head and require all9 mandatory exact-head CI plus authentic native artifact. Fresh actual-main/head guard before ordinary merge, unique coordinator handover, then ownership-race-qualified VH pair."
 }
