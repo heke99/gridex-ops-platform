@@ -74,7 +74,7 @@ it('native staff identity request audits atomically and customer decision retain
   expect(()=>f.run(`
     INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,new_value,reason,requested_by,approval_required,status,source_channel,api_client_id)
       VALUES('${f.companyId}','${f.customerId}','org_number','5599990001','Synthetic native request','${f.actorId}',false,'pending_customer_approval','staff_api','${f.clientId}');
-    DO $$DECLARE request_id uuid;BEGIN
+    DO $$DECLARE request_id uuid; stale_request_id uuid; before_stale_identity jsonb; after_stale_identity jsonb; BEGIN
       SELECT id INTO request_id FROM public.customer_identity_change_requests WHERE company_id='${f.companyId}';
       IF NOT EXISTS(SELECT FROM public.audit_logs WHERE company_id='${f.companyId}' AND action='customer_identity_change_requested' AND actor_user_id='${f.actorId}' AND metadata->>'api_client_id'='${f.clientId}')
       THEN RAISE EXCEPTION 'staff_identity_request_audit_missing'; END IF;
@@ -82,5 +82,27 @@ it('native staff identity request audits atomically and customer decision retain
       IF NOT EXISTS(SELECT FROM public.audit_logs WHERE company_id='${f.companyId}' AND action='customer_identity_change_applied'
         AND metadata->>'channel'='staff_api' AND metadata->>'api_client_id'='${f.clientId}' AND metadata->>'originating_staff_actor_user_id'='${f.actorId}')
       THEN RAISE EXCEPTION 'staff_identity_decision_origin_missing'; END IF;
+      INSERT INTO public.customer_identity_change_requests(company_id,customer_id,field,previous_value,new_value,reason,requested_by,approval_required,status,source_channel,api_client_id)
+        VALUES('${f.companyId}','${f.customerId}','org_number','5599990002','5599990003','Synthetic stale native request','${f.actorId}',false,'pending_customer_approval','staff_api','${f.clientId}')
+        RETURNING id INTO stale_request_id;
+      SELECT jsonb_build_object(
+        'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.company_id='${f.companyId}' AND c.id='${f.customerId}'),
+        'requests',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.customer_identity_change_requests r WHERE r.company_id='${f.companyId}'),
+        'events',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]'::jsonb) FROM public.customer_identity_change_events e WHERE e.company_id='${f.companyId}'),
+        'audit',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.audit_logs a WHERE a.company_id='${f.companyId}')
+      ) INTO before_stale_identity;
+      BEGIN
+        PERFORM public.gridex_decide_customer_identity_change_v1('${f.companyId}',stale_request_id,'applied','staff','${f.actorId}',NULL);
+        RAISE EXCEPTION 'staff_stale_identity_allowed';
+      EXCEPTION WHEN SQLSTATE 'PT409' THEN
+        IF SQLERRM IS DISTINCT FROM 'identity_change_stale' THEN RAISE; END IF;
+      END;
+      SELECT jsonb_build_object(
+        'customer',(SELECT to_jsonb(c) FROM public.customers c WHERE c.company_id='${f.companyId}' AND c.id='${f.customerId}'),
+        'requests',(SELECT jsonb_agg(to_jsonb(r) ORDER BY r.id) FROM public.customer_identity_change_requests r WHERE r.company_id='${f.companyId}'),
+        'events',(SELECT coalesce(jsonb_agg(to_jsonb(e) ORDER BY e.id),'[]'::jsonb) FROM public.customer_identity_change_events e WHERE e.company_id='${f.companyId}'),
+        'audit',(SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.audit_logs a WHERE a.company_id='${f.companyId}')
+      ) INTO after_stale_identity;
+      IF after_stale_identity IS DISTINCT FROM before_stale_identity THEN RAISE EXCEPTION 'staff_stale_identity_wrote_effects'; END IF;
     END$$;`)).not.toThrow()
 })

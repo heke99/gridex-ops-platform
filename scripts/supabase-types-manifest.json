@@ -4,8 +4,8 @@
   "generated_at": "2026-10-04T17:22:30.389365+00:00",
   "generated_with": "supabase-cli-2.101.0-local-native-clean-replay-capture-run37219877261",
   "sha256": "4f5713d630d848363dfa5d76c87adc9bb4c52a4dfb3fb3b4f53068f9606279c4",
-  "latest_migration": "20261005004623_customer_contact_version_conflict_http409.sql",
-  "latest_migration_schema_effect": "Only the deliberate contact_change_version_conflict SQLSTATE changes from retryable40001 to nonretryablePT409. Function signature, metadata, owner, ACL, authorization, locks and all other body bytes are preserved. Existing generated files are retained unchanged until authentic current-prefix capture.",
+  "latest_migration": "20261005010327_customer_identity_version_conflict_http409.sql",
+  "latest_migration_schema_effect": "Only deliberate contact_change_version_conflict and identity_change_stale SQLSTATEs change from retryable40001 to nonretryablePT409. Signatures, complete function metadata, owner, ACL, authorization, approval, locks and all remaining body bytes are preserved. Generated files await authentic current-prefix capture.",
   "composition_capture_pending": true,
   "capture": {
     "workflow_run": 37219877261,
@@ -419,7 +419,7 @@
       }
     }
   },
-  "composition_capture_pending_scope": "new_contact_conflict_forward_requires_authentic_capture",
+  "composition_capture_pending_scope": "new_contact_and_identity_conflict_forwards_require_authentic_capture",
   "current_prefix_verification": {
     "kind": "mandatory_external_final_head_proof",
     "retained_origin_latest_migration": "20261004165620_staff_user_role_id_nullability.sql",
@@ -441,12 +441,21 @@
     "completion_receipt": "Authoritative final-head CI artifact verification is recorded independently; this historical origin is not relabeled as a new capture."
   },
   "pending_forward_capture": {
-    "migration": "20261005004623_customer_contact_version_conflict_http409.sql",
-    "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d",
+    "source_migrations": [
+      {
+        "name": "20261005004623_customer_contact_version_conflict_http409.sql",
+        "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
+      },
+      {
+        "name": "20261005010327_customer_identity_version_conflict_http409.sql",
+        "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
+      }
+    ],
     "changed_schema_objects": [
-      "public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)"
+      "public.gridex_customer_contact_change_v1(uuid,uuid,text,uuid,uuid,text,text,timestamptz,jsonb,jsonb,text)",
+      "public.gridex_decide_customer_identity_change_v1(uuid,uuid,text,text,uuid,jsonb)"
     ],
     "generated_artifacts_modified": false,
-    "qualification": "Targeted regression and fresh authentic capture/native/full final-head CI are required; prior captures do not qualify the changed function."
+    "qualification": "Targeted regression and fresh authentic capture/native/full final-head CI required. Prior captures do not qualify the changed functions."
   }
 }

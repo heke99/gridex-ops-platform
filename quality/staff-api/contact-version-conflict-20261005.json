@@ -25,25 +25,77 @@
     "invariants": "Exact qualified predecessor or fixed-body hash only. OID, owner, ACL, security mode, search_path, permissions, locks, replay and all remaining body bytes preserved. No application mapping change."
   },
   "targeted_unit_verification": {
-    "red": {"failed": 1, "passed": 40, "total": 41, "failure": "Actual SQL returns40001 where nonretryablePT409 is required; five-table no-effects snapshot unchanged."},
-    "green": {"passed": 51, "total": 51, "files": 2},
+    "red": {
+      "failed": 1,
+      "passed": 40,
+      "total": 41,
+      "failure": "Actual SQL returns40001 where nonretryablePT409 is required; five-table no-effects snapshot unchanged."
+    },
+    "green": {
+      "passed": 51,
+      "total": 51,
+      "files": 2
+    },
     "coverage": "Actual whole forward; staff_api/ops/phone/customer_api stale conflicts; unchanged full customer/contact/audit/domain/outbox rows; positive/replay; exact body/metadata preservation; repeat application; altered-source and security-mode refusal; PT409 adapter mapping and unrelated-message control; genuine40001 compatibility."
   },
   "native_verification": {
     "status": "NOT_RUN",
     "test": "scripts/staff-customer-write-native.test.ts",
-    "coverage": "ExactPT409/message catch with escaping unexpected-success sentinel, unchanged five-table snapshots and retained positive/replay/company/client guards."
+    "coverage": "ExactPT409/messages and escaping unexpected-success sentinels for contact and identity decisions; full effect snapshots unchanged; original positive/replay/company/client controls retained."
   },
   "independent_forward_review": {
     "status": "PASS_SOURCE_ONLY",
     "receipt_sha256": "08f644b55624d3843fc1db6aa64d3cb7ecdf829cb6cf9955d87f0c861e83b99f"
   },
   "skill_routing": {
-    "active": ["systematic-debugging", "test-driven-development", "using-git-worktrees", "supabase", "verification-before-completion"],
+    "active": [
+      "systematic-debugging",
+      "test-driven-development",
+      "using-git-worktrees",
+      "supabase",
+      "verification-before-completion"
+    ],
     "reason": "Confirmed SQL/RPC retry bug, isolated fix, test-first reproduction, migration and exact deployed acceptance.",
-    "conditional": ["finishing-a-development-branch", "requesting-code-review"],
+    "conditional": [
+      "finishing-a-development-branch",
+      "requesting-code-review"
+    ],
     "skipped": "No UI/React, broad audit, new architecture, dependency, email delivery, payment, AWS or market-rule change."
   },
-  "release_gates": "Authentic current-prefix capture, exact final-head mandatory CI/native/upgrade, guarded merge, exact production deployment, apply only this new forward once, and complete synthetic acceptance with finally cleanup remain required. Prior green heads do not qualify this changed source.",
-  "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim."
+  "release_gates": "Authentic current-prefix capture, exact final-head mandatory CI/native/upgrade, guarded merge, exact production deployment, apply ONLY the two new conflict forwards once, and complete synthetic acceptance/finally cleanup remain required. Already installed migrations remain unchanged.",
+  "scope_limits": "No original migration reapplication, real-company activation, real communication or positive invitation/contract-approval email claim.",
+  "identity_variant": {
+    "classification": "CONFIRMED_REACHABLE_SOURCE_VARIANT_NO_HOSTED_STALE_OCCURRENCE_CLAIM",
+    "route": "POST /api/v1/staff/customers/[ref]/identity-change",
+    "trigger": "No approval-required contracts and concurrent identity field change before automatic staff decision.",
+    "production_coverage": "Retry3 already passed positive201 automatic no-contract identity apply; stale field race was not covered.",
+    "mapping": "Existing identity_change_stale message maps to409.",
+    "forward": "supabase/migrations/20261005010327_customer_identity_version_conflict_http409.sql",
+    "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b",
+    "before_body_sha256": "e91471965c7b4989c1c81a679e4c828656ddf0b997eb2d3e92731a76158ab272",
+    "after_body_sha256": "075b242bf2891fbe4cb5eaeaae043e97a6173fa27b3304ff1e719e28038618a0",
+    "invariants": "Only deliberately raised identity_change_stale40001 becomesPT409; existing definer/search_path/owner/ACL, approval, takeover, actor and row locks preserved.",
+    "atomicity_boundary": "Decision RPC has zero mutations when stale. Earlier request creation/requested event are separate transactions and may remain; no whole-command rollback claim.",
+    "test_first_red": {
+      "failed": 1,
+      "total": 1,
+      "at": "2026-10-05T01:05:01Z",
+      "failure": "Actual service_role RPC returned40001 rather thanPT409; full predecision snapshots unchanged."
+    },
+    "green": {
+      "passed": 19,
+      "total": 19,
+      "at": "2026-10-05T01:11:37Z",
+      "coverage": "Actual full forward and service_role decision; both identity fields and customer-approval stale path; predecision no-effects; positive masked attribution/single-use; approval/takeover/role/revocation/Auth/ACL/company controls; complete metadata and exact1line body delta; reapply/alteredsource/invoker refusal.",
+      "test_sha256": "112f4f24f8512eb03611368a0fa5021dffb417f1e2473647989a24ede41243f9",
+      "log_sha256": "7fb6ff153087e19207538cd255986ac0eed36cefc0338d0b44af941d1ec64ff4"
+    },
+    "independent_fp_check_sha256": "d169203ce70ac90a3cdc4c935d99dbee3074f491383858eaed31f5589f3e078c",
+    "test_predecessor": "Verbatim immutable20261004084204 decisionbodye914, so future updatedgeneratedschema cannotturn old\u2192newcoverage into reapply-only."
+  },
+  "targeted_total": {
+    "passed": 70,
+    "total": 70,
+    "files": 3
+  }
 }
