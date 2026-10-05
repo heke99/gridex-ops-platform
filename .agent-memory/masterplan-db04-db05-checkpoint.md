@@ -41,3 +41,4 @@
 - #530 READY comment 5997942561. Session subscribed to PR #599 events; I own #599 CI/review follow-up.
 - Before merge (root): schema.sql/fingerprint/types regen for 20261005130000; DB-04 native-only decision.
 - Next: handle #599 CI; record reviewer confirmation; then take the next free pair from #530.
+- 2026-10-05 reviewer CONFIRMED: saw PR #599; APPROVE (93f12b0) stands for head 37c4f325a (DB-05 migration/tests/native/wrapper byte-identical; only main-merge files differ); DB-05 review lane released; follow-ups in PR body match.
