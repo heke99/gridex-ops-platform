@@ -5,6 +5,8 @@ on:
     paths:
       - 'scripts/ediel-sc-071-projection-revocation-native.test.ts'
       - 'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts'
+      - 'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json'
+      - 'quality/audits/ediel-masterplan-v2/sc071-revocation/export-races.patch'
       - 'scripts/fixtures/ediel-service-evidence-native.ts'
       - 'scripts/helpers/native-lock-process.ts'
       - 'scripts/helpers/ediel-native-permission-catalog.setup.ts'
@@ -25,8 +27,9 @@ concurrency:
   cancel-in-progress: true
 
 # Supplemental selected execution of the sole canonical replay/native owners.
-# Ordinary OPS clean/upgrade/browser/parity gates remain mandatory. Neither
-# this job nor its three projection cases establishes the leased export seam.
+# Bounded experimental forward follows a separately qualified pinned BASE
+# replay. Producer candidate admission/clean/upgrade/capture gates stay pending;
+# ordinary required gates and independent whole-card review remain mandatory.
 jobs:
   sc071-native:
     runs-on: ubuntu-latest
@@ -58,7 +61,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq "postgresql-client-$server_major"
           echo "/usr/lib/postgresql/$server_major/bin" >> "$GITHUB_PATH"
-      - name: Run the three grant races after canonical clean replay
+      - name: Run bounded export races on a pinned canonical BASE stack
         shell: bash
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: ghcr.io
@@ -66,84 +69,219 @@ jobs:
           set -euo pipefail
           mkdir -p sc071-native-working
           export GRIDEX_NATIVE_STATUS="$RUNNER_TEMP/sc071-native-status.json"
+          export SC071_CANDIDATE_ROOT="$PWD"
+          export SC071_BASE_ROOT="$RUNNER_TEMP/sc071-native-base"
+          export SC071_EVIDENCE="$PWD/sc071-native-working"
           component_exit=0
-          # A separate shell preserves the canonical source's errexit and EXIT
-          # cleanup even though the parent collects its failing result. Never
-          # source the replay in an if/! /|| context that disables errexit.
+          # Separate child retains canonical errexit/EXIT cleanup. The BASE
+          # CWD stays fixed through replay, status, overlays, native and stop.
           bash <<'NATIVE' > "$RUNNER_TEMP/sc071-session.log" 2>&1 || component_exit=$?
           set -euo pipefail
+          printf checkout > "$RUNNER_TEMP/sc071-stage"
+          read -r feedback_base feedback_producer feedback_native < <(python3 - <<'PY'
+          import json
+          d=json.load(open('quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json'))
+          print(d['base_sha'],d['producer_commit'],d['sc010_native_commit'])
+          PY
+          )
+          git fetch --no-tags origin "$feedback_base" "$feedback_producer" "$feedback_native"
+          git worktree add --detach "$SC071_BASE_ROOT" "$feedback_base"
+          cmp package.json "$SC071_BASE_ROOT/package.json"
+          cmp package-lock.json "$SC071_BASE_ROOT/package-lock.json"
+          ln -s "$SC071_CANDIDATE_ROOT/node_modules" "$SC071_BASE_ROOT/node_modules"
+          cd "$SC071_BASE_ROOT"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          d=json.load(open(pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'],'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json')))
+          def git(*args):return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('rev-parse','HEAD')==d['base_sha']
+          assert git('rev-parse','HEAD^{tree}')==d['base_tree']
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().rstrip('\0').split('\0')
+          hashes={p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in paths if pathlib.Path(p).is_file()}
+          out=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          (out/'base-input-sha256.json').write_text(json.dumps(hashes,indent=2)+'\n')
+          (out/'base-checkout.json').write_text(json.dumps({'sha':git('rev-parse','HEAD'),'tree':git('rev-parse','HEAD^{tree}'),'dependency_install':'candidate npm ci; BASE package.json and lock byte-identical'},indent=2)+'\n')
+          PY
           printf replay > "$RUNNER_TEMP/sc071-stage"
           source scripts/gridex-aud-003-clean-replay.sh > "$RUNNER_TEMP/sc071-replay.log" 2>&1
-          printf status > "$RUNNER_TEMP/sc071-stage"
+          # All following evidence concerns a direct experimental forward on
+          # this same stack. The completed replay receipt belongs only to BASE.
+          printf base_complete > "$RUNNER_TEMP/sc071-stage"
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "SELECT coalesce(jsonb_agg(version ORDER BY version),'[]'::jsonb)::text FROM supabase_migrations.schema_migrations" > "$SC071_EVIDENCE/base-ledger.json"
+          python3 - <<'PY'
+          import json,os,pathlib
+          out=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          d=json.load(open(pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'],'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json')))
+          ledger=json.loads((out/'base-ledger.json').read_text())
+          assert len(ledger)==d['official_ledger_count'] and len(set(ledger))==len(ledger)
+          (out/'base-replay-complete.json').write_text(json.dumps({'canonical_replay':'COMPLETED','base_sha':d['base_sha'],'fingerprint':'9a0ecad97567e0af86c623b6f79b5144c922dda2af2f02bd9225c97ce5ca6d9b','official_ledger_count':len(ledger),'candidate_replay':'NOT_CLAIMED'},indent=2)+'\n')
+          PY
+          printf overlay > "$RUNNER_TEMP/sc071-stage"
           supabase status -o json > "$GRIDEX_NATIVE_STATUS"
+          # Read-only bounded timeout diagnostic; never change role/connection
+          # guards to make a lease-wait assertion pass. Only timeout values are
+          # selected, excluding other role configuration such as JWT secrets.
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "SELECT coalesce(jsonb_agg(jsonb_build_object('role',r.rolname,'statement_timeout',split_part(v.setting,'=',2)) ORDER BY r.rolname),'[]'::jsonb) FROM pg_db_role_setting s JOIN pg_roles r ON r.oid=s.setrole CROSS JOIN LATERAL unnest(s.setconfig) AS v(setting) WHERE r.rolname IN ('authenticator','service_role','authenticated','anon') AND split_part(v.setting,'=',1)='statement_timeout' AND s.setdatabase IN (0,(SELECT oid FROM pg_database WHERE datname=current_database()))" > "$SC071_EVIDENCE/role-statement-timeouts.json"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib,subprocess
+          candidate=pathlib.Path(os.environ['SC071_CANDIDATE_ROOT'])
+          out=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          d=json.load(open(candidate/'quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json'))
+          def digest(data):return hashlib.sha256(data).hexdigest()
+          for p,h in d['producer_overlays'].items():
+              assert not pathlib.Path(p).exists(), 'BASE already contains producer input: '+p
+              source_commit=d['sc010_native_commit'] if p=='scripts/ediel-sc-010-beneficiary-export-native.test.ts' else d['producer_commit']
+              data=subprocess.check_output(['git','show',source_commit+':'+p])
+              assert digest(data)==h,p
+              dest=pathlib.Path(p);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
+          assert digest(pathlib.Path(d['own_native']).read_bytes())==d['registered_native_sha256']
+          patch=candidate/d['own_patch']
+          assert digest(patch.read_bytes())==d['own_patch_sha256']
+          stat=subprocess.check_output(['git','apply','--numstat',str(patch)],text=True).splitlines()
+          assert len(stat)==1 and stat[0].split('\t')[2]==d['own_native']
+          subprocess.run(['git','apply','--check',str(patch)],check=True)
+          subprocess.run(['git','apply',str(patch)],check=True)
+          assert digest(pathlib.Path(d['own_native']).read_bytes())==d['effective_native_sha256']
+          config=(candidate/d['own_config']).read_bytes()
+          assert digest(config)==d['own_config_sha256']
+          pathlib.Path(d['own_config']).write_bytes(config)
+          forward=subprocess.check_output(['git','show',d['producer_commit']+':'+d['forward_source']])
+          assert digest(forward)==d['forward_sha256']
+          assert not pathlib.Path(d['forward_source']).exists()
+          pathlib.Path(os.environ['RUNNER_TEMP'],'sc010-export-forward.sql').write_bytes(forward)
+          effective={**d['producer_overlays'],d['own_native']:d['effective_native_sha256'],d['own_config']:d['own_config_sha256']}
+          (out/'effective-runtime-inputs.json').write_text(json.dumps(effective,indent=2)+'\n')
+          PY
+          printf forward > "$RUNNER_TEMP/sc071-stage"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/sc010-export-forward.sql" > "$SC071_EVIDENCE/forward.log" 2>&1
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "NOTIFY pgrst,'reload schema'"
+          printf schema_readiness > "$RUNNER_TEMP/sc071-stage"
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "SELECT jsonb_agg(jsonb_build_object('name',proname,'arguments',pg_get_function_identity_arguments(oid)) ORDER BY proname) FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname IN ('ediel_queue_beneficiary_export_v1','ediel_claim_beneficiary_exports_v1','ediel_execute_beneficiary_export_v1','ediel_read_beneficiary_export_v1')" > "$SC071_EVIDENCE/forward-rpc-catalog.json"
+          python3 - <<'PY'
+          import json,os,pathlib,time,urllib.request,urllib.error
+          out=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          status=json.load(open(os.environ['GRIDEX_NATIVE_STATUS']))
+          assert status['API_URL']=='http://127.0.0.1:54321'
+          catalog=json.loads((out/'forward-rpc-catalog.json').read_text())
+          zero='00000000-0000-0000-0000-000000000000'
+          actor={'p_beneficiary_company_id':zero,'p_actor_user_id':zero}
+          calls={
+              'ediel_queue_beneficiary_export_v1':({**actor,'p_idempotency_key':zero,'p_grant_id':zero,'p_expected_grant_version':1,'p_purpose':'readiness','p_series_id':zero,'p_fields':['quantity'],'p_start':'2026-01-01T00:00:00Z','p_end':'2026-01-02T00:00:00Z'},'ediel_beneficiary_forbidden'),
+              'ediel_claim_beneficiary_exports_v1':({**actor,'p_limit':1},'ediel_beneficiary_forbidden'),
+              'ediel_execute_beneficiary_export_v1':({**actor,'p_job_id':zero,'p_lease_token':zero},'ediel_export_not_found'),
+              'ediel_read_beneficiary_export_v1':({**actor,'p_job_id':zero},'ediel_export_not_found'),
+          }
+          assert len(catalog)==4 and {r['name'] for r in catalog}==set(calls)
+          witnessed=[]
+          for rpc,(args,expected) in calls.items():
+              for attempt in range(1,41):
+                  request=urllib.request.Request(status['API_URL']+'/rest/v1/rpc/'+rpc,data=json.dumps(args).encode(),headers={'Content-Type':'application/json','apikey':status['SERVICE_ROLE_KEY'],'Authorization':'Bearer '+status['SERVICE_ROLE_KEY']})
+                  try:
+                      with urllib.request.urlopen(request,timeout=5) as response:
+                          code,body=response.status,json.load(response)
+                  except urllib.error.HTTPError as error:
+                      code,body=error.code,json.load(error)
+                  if code==403 and body.get('code')=='42501' and body.get('message')==expected:
+                      witnessed.append({'rpc':rpc,'http_status':code,'code':body['code'],'message':body['message'],'attempt':attempt});break
+                  if body.get('code')!='PGRST202' or attempt==40:
+                      raise SystemExit('actual_rpc_readiness_failed:'+rpc+':'+str(code)+':'+str(body.get('code')))
+                  time.sleep(0.5)
+          (out/'rpc-readiness.json').write_text(json.dumps(witnessed,indent=2)+'\n')
+          PY
           printf native > "$RUNNER_TEMP/sc071-stage"
+          native_exit=0
           npx vitest run \
             --config quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts \
             --reporter=default --reporter=junit \
-            --outputFile=sc071-native-working/native-junit.xml \
-            > sc071-native-working/native.log 2>&1
-          printf native_complete > "$RUNNER_TEMP/sc071-stage"
+            --outputFile="$SC071_EVIDENCE/native-junit.xml" \
+            > "$SC071_EVIDENCE/native.log" 2>&1 || native_exit=$?
+          printf '%s' "$native_exit" > "$RUNNER_TEMP/sc071-native-exit"
+          psql "$DB_URL" -XAtq -v ON_ERROR_STOP=1 -c "SELECT coalesce(jsonb_agg(version ORDER BY version),'[]'::jsonb)::text FROM supabase_migrations.schema_migrations" > "$SC071_EVIDENCE/post-forward-ledger.json"
+          cmp "$SC071_EVIDENCE/base-ledger.json" "$SC071_EVIDENCE/post-forward-ledger.json"
+          python3 - <<'PY'
+          import hashlib,json,os,pathlib
+          out=pathlib.Path(os.environ['SC071_EVIDENCE'])
+          effective=json.loads((out/'effective-runtime-inputs.json').read_text())
+          observed={p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in effective}
+          (out/'post-native-inputs.json').write_text(json.dumps(observed,indent=2)+'\n')
+          assert observed==effective
+          PY
+          if [[ "$native_exit" == 0 ]]; then printf native_complete > "$RUNNER_TEMP/sc071-stage"; fi
+          exit "$native_exit"
           NATIVE
-          # The child has now executed the canonical cleanup on success/failure.
-          # Raw evidence stays private until redaction succeeds below.
+          # Child has now run the original canonical cleanup against BASE CWD.
           cp "$RUNNER_TEMP/sc071-session.log" sc071-native-working/session.log
           if [[ -f "$RUNNER_TEMP/sc071-replay.log" ]]; then
-            cp "$RUNNER_TEMP/sc071-replay.log" sc071-native-working/replay.log
+            cp "$RUNNER_TEMP/sc071-replay.log" sc071-native-working/base-replay.log
           fi
           export SC071_COMPONENT_EXIT="$component_exit"
           python3 - <<'PY'
-          import hashlib, json, os, pathlib, subprocess, xml.etree.ElementTree as ET
-          inputs = [
-              '.github/workflows/ediel-sc071-native.yml',
-              'scripts/ediel-sc-071-projection-revocation-native.test.ts',
-              'quality/audits/ediel-masterplan-v2/sc071-revocation/native.config.ts',
-              'scripts/ediel-source-owner-native.config.ts',
-              'scripts/fixtures/ediel-service-evidence-native.ts',
-              'scripts/helpers/native-lock-process.ts',
-              'scripts/helpers/ediel-native-permission-catalog.setup.ts',
-              'scripts/gridex-aud-003-clean-replay.sh',
-              'scripts/gridex-redact-native-evidence.py',
-              'scripts/migration-history-manifest.json',
-              'scripts/migration-history-manifest.additions.json',
-              'scripts/migration-history-manifest.runtime.additions.json',
-              'lib/ediel/services/administration.ts',
-              'lib/ediel/services/projection.ts',
-              'lib/ediel/utilts/transactionPersistence.ts',
-              'docs/ediel/masterplan-v2/registers/acceptance_tests.json',
-          ]
-          junit = pathlib.Path('sc071-native-working/native-junit.xml')
-          junit_error = None
-          try:
-              cases = list(ET.parse(junit).getroot().iter('testcase')) if junit.exists() else []
-          except ET.ParseError as error:
-              cases, junit_error = [], str(error)
-          counts = {name: sum(c.find(name) is not None for c in cases)
-                    for name in ('failure', 'error', 'skipped')}
-          complete = len(cases) == 3 and not any(counts.values())
-          component_exit = int(os.environ['SC071_COMPONENT_EXIT'])
-          stage = pathlib.Path(os.environ['RUNNER_TEMP'], 'sc071-stage').read_text()
-          receipt = {
-              'scope': 'SC071 native projection/revocation component only',
-              'checkout_sha': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-              'checkout_tree': subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
-              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
-              'component_exit_code': component_exit, 'last_stage': stage,
-              'native_execution': 'ATTEMPTED' if stage.startswith('native') else 'NOT_RUN',
-              'native_exit_code': component_exit if stage.startswith('native') else None,
-              'canonical_replay': 'COMPLETED' if stage != 'replay' else 'FAILED',
-              'expected_cases': 3, 'actual_cases': len(cases), 'junit_counts': counts,
-              'junit_parse_error': junit_error,
-              'complete_three_case_pass': component_exit == 0 and complete,
-              'test_scope': ['scripts/ediel-sc-071-projection-revocation-native.test.ts'],
-              'input_sha256': {p: hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in inputs},
-              'ordinary_required_gates': 'NOT_REPLACED',
-              'whole_sc071': 'UNAPPROVED', 'leased_export_consumer': 'NOT_PROVEN',
-              'external_issuer_and_smtp_ports': 'FINITE_SYNTHETIC_FIXTURE',
-              'browser_tests': 'NOT_RUN', 'upgrade_parity': 'NOT_RUN',
-              'authentic_market_evidence': 'NOT_PROVIDED',
+          import hashlib,json,os,pathlib,subprocess,xml.etree.ElementTree as ET
+          from collections import Counter
+          out=pathlib.Path('sc071-native-working')
+          d=json.load(open('quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json'))
+          optional_errors={}
+          def optional(name):
+              p=out/name
+              try:
+                  return json.loads(p.read_text()) if p.exists() else None
+              except (OSError,ValueError) as error:
+                  optional_errors[name]=type(error).__name__
+                  return None
+          base_checkout=optional('base-checkout.json')
+          base_replay=optional('base-replay-complete.json')
+          readiness=optional('rpc-readiness.json')
+          junit=out/'native-junit.xml';junit_error=None
+          try:cases=list(ET.parse(junit).getroot().iter('testcase')) if junit.exists() else []
+          except ET.ParseError as error:cases,junit_error=[],str(error)
+          counts={name:sum(c.find(name) is not None for c in cases) for name in ('failure','error','skipped')}
+          files=Counter(c.get('classname') for c in cases)
+          unique=len({(c.get('classname'),c.get('name')) for c in cases})==10
+          effective=optional('effective-runtime-inputs.json')
+          post=optional('post-native-inputs.json')
+          base_ledger=optional('base-ledger.json');post_ledger=optional('post-forward-ledger.json')
+          ledger_same=base_ledger is not None and base_ledger==post_ledger
+          stage=pathlib.Path(os.environ['RUNNER_TEMP'],'sc071-stage').read_text()
+          native_exit_path=pathlib.Path(os.environ['RUNNER_TEMP'],'sc071-native-exit')
+          native_exit=int(native_exit_path.read_text()) if native_exit_path.exists() else None
+          component_exit=int(os.environ['SC071_COMPONENT_EXIT'])
+          complete=(component_exit==0 and native_exit==0 and stage=='native_complete'
+                    and dict(files)==d['expected_files'] and unique and not any(counts.values())
+                    and effective is not None and effective==post and ledger_same
+                    and isinstance(base_replay,dict)
+                    and base_replay.get('base_sha')==d['base_sha']
+                    and base_replay.get('canonical_replay')=='COMPLETED'
+                    and base_replay.get('official_ledger_count')==d['official_ledger_count']
+                    and isinstance(readiness,list) and len(readiness)==4
+                    and not optional_errors)
+          own_inputs=['.github/workflows/ediel-sc071-native.yml','quality/audits/ediel-masterplan-v2/sc071-revocation/export-feedback-inputs.json',d['own_patch'],d['own_config'],d['own_native']]
+          receipt={
+              'scope':d['scope'],'workflow_checkout_sha':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+              'workflow_checkout_tree':subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip(),
+              'workflow_run_id':os.environ['GITHUB_RUN_ID'],'base_checkout':base_checkout,
+              'base_replay':base_replay,'producer_commit':d['producer_commit'],
+              'sc010_native_commit':d['sc010_native_commit'],
+              'declared_producer_overlays':d['producer_overlays'],'forward_source':d['forward_source'],'forward_sha256':d['forward_sha256'],
+              'forward_execution':'COMPLETED' if stage in ('schema_readiness','native','native_complete') else 'NOT_COMPLETED',
+              'effective_runtime_inputs':effective,'post_native_inputs':post,
+              'registered_sc071_source':d['registered_native_sha256'],'effective_sc071_source':d['effective_native_sha256'],
+              'invoked_config':d['own_config'],'sc010_selected_config':'HASHED_OVERLAY; NOT_INVOKED',
+              'own_candidate_input_sha256':{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest() for p in own_inputs},
+              'component_exit_code':component_exit,'last_stage':stage,'native_exit_code':native_exit,
+              'native_execution':'ATTEMPTED' if stage.startswith('native') else 'NOT_RUN',
+              'expected_files':d['expected_files'],'actual_files':dict(files),'expected_cases':10,'actual_cases':len(cases),
+              'unique_file_names':unique,'junit_counts':counts,'junit_parse_error':junit_error,
+              'optional_evidence_parse_errors':optional_errors,
+              'official_ledger_unchanged':ledger_same,'complete_ten_case_pass':complete,
+              'post_forward_schema':d['post_forward_schema'],'candidate_clean_upgrade_parity':'NOT_CLAIMED',
+              'ordinary_required_gates':'NOT_REPLACED','producer_admission_capture':'PENDING_COORDINATOR',
+              'whole_sc071':'UNAPPROVED','whole_sc010':'UNAPPROVED',
+              'leased_export_consumer':'EXERCISED_SELECTED_CASES_PASS' if complete else 'NOT_QUALIFIED',
+              'external_issuer_smtp_and_route_session_ports':'FINITE_SYNTHETIC_FIXTURE',
+              'authentic_market_evidence':'NOT_PROVIDED',
           }
-          pathlib.Path('sc071-native-working/receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
-          pathlib.Path('sc071-native-working/complete.flag').write_text('1' if complete else '0')
+          (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+          (out/'complete.flag').write_text('1' if complete else '0')
           PY
           if [[ "$(cat sc071-native-working/complete.flag)" != 1 ]]; then component_exit=1; fi
           rm sc071-native-working/complete.flag
