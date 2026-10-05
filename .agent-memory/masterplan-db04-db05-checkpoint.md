@@ -7,3 +7,9 @@
 - Earlier: NOT run locally (no Docker Hub image, 429; no supabase CLI). Local-verified: none. coverage.json NOT changed. DB-04 stays NOT_VERIFIED until the CI run is green and the card is reviewed against the test.
 - DB-05 2026-10-05: fp-check CONFIRMED defect F-DB-05-01 (hard delete of companies cascades away audit/billing journal; repro + finding in quality/audits/ediel-masterplan-v2/db05/). No migration written: needs owner decision (guard vs RESTRICT) + root migration order. DB-05 stays NOT_VERIFIED. Existing per-class Ediel retention (gridex_ediel_retention) not yet mapped to the other card parts (access revoke = canonical_transition_tenant_lifecycle; persondata purge).
 - Next: push, read the workflow run, then decide DB-04 approval.
+
+## 2026-10-05 DB-05 F-DB-05-01 fix (owner chose: guard on companies/customers)
+- Migration `20261005130000_hard_delete_guard_companies_customers.sql` (+ checksum line in scripts/migration-history-manifest.json). BEFORE DELETE guards: companies only if status=deleted_test_only or owner roles postgres/supabase_admin; customers only owner roles (gridex_delete_test_customer_v1 is SECURITY DEFINER). Others get 23001.
+- Test `__tests__/db-05-hard-delete-guard.test.ts` (PGlite over supabase/schema.sql snapshot + migration; 7 PASS; RED proof: 5 of 7 fail without the migration). Local: vitest, eslint, typecheck:tests, db:migrations:integrity PASS. Not native PostgreSQL; not CI-run.
+- NOT done / for root: regenerate supabase/schema.sql + fingerprint + generated types from a clean replay (shared generated artifacts, not hand-edited); CI parity gates will flag the new migration until then. Check no native test relies on service_role deleting live companies.
+- DB-05 / AT-DB-05 stay NOT_VERIFIED: card still needs the other parts (workflow per retention class, access revoke, personal-data purge mapped to asserting tests). Test is intentionally untagged.
