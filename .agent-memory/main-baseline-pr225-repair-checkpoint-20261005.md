@@ -139,3 +139,71 @@ Root authorized committing exactly the three production paths, new behavior
 suite and this checkpoint locally; no push or remote mutation. Next action:
 provide the local commit hash to root for narrow replacement publication and
 fresh CI. Root closes old #225 only after qualified merge, retaining its branch.
+
+## Root-owned #606 SC055 clock-fixture maintenance
+
+The actual published-head quality run `37351096495` at
+`1f450e9d640ad0e5df79ac66337a175b07682032` passed 10,977 tests and failed one
+SC055 exact `raw_payload` comparison across 845 files. Root's sanitized failure
+differs only in the UNB minute: expected `261005:1954`, stored `261005:1953`.
+Other reported quality stages passed; all eight SC068 cases passed in that run.
+Root alone read its CI log. This maintenance is not a website policy repair.
+
+Root recorded narrow allocation `6001123903` after a fresh full 438-comment
+claim check found no active SC055 clock writer. The delegated change is only
+`__tests__/ediel-sc-055-wrong-legal-ack-isolation.test.ts` in this #606 worktree
+and this checkpoint. Original SC055 ownership remains intact; historical #225,
+SQL, source admission, codec behavior and live state are unchanged. Parent root
+retains current-main carry, final review, commit/publication and fresh head CI.
+
+Before the write, HEAD was exactly `1f450e9d640ad0e5df79ac66337a175b07682032`,
+the worktree was clean and the existing test SHA256 was
+`e59ae2a27a6c992879996e7d42a883062761fce24d1ce2c24dd6a00f737dd746`.
+Source-only triage compared eleven actual test/caller/codec/historical-SQL blobs
+on that head, main `3251d20a8b9fe0294367977dca49de65aabe7513` and #609
+`7b3f041afa20b598be663e8c13f5ea2261176c73`: all were byte-identical.
+The relevant source lines originate at `930fd9e7be32c90f733764ad3ba4f7edaa4139ed`.
+Relevant skill routing: systematic-debugging for the actual CI failure,
+differential-review for immutable parity and verification-before-completion for
+the bounded proof. No additional native/hosted/full-suite qualification applies
+to this local fixture maintenance.
+
+SC047 independently approved the exact proposal before the edit. The repair
+adds three lines before the first await to select the existing SOURCE/COMPANY
+row, refuse a missing/null/empty string and capture its primitive raw payload.
+It changes only the SQL source insert parameter and strict final expected
+payload to that same string. The candidate remains an independent clone and
+the later receipt/Object.assign cannot change the captured scalar. Every other
+assertion and all five existing cases remain intact. There is no global clock
+patch, fallback payload, new mirrored test or SQL change.
+
+Actual test SHA256 after the edit:
+`e6cc89639339482ac70f62f3a86317c758fa964b8bc653a3f7bc4fa1303c655d`.
+The test diff is exactly five additions/two removals: three added guard/capture
+lines and two replaced expressions. A read-only inverse-hunk check reconstructs
+the exact original hash, proving all other test bytes are preserved.
+
+One bounded run with the existing Node 22 binary and exact existing dependencies:
+
+- Existing SC055 suite: **5/5 PASS**, including the positive case's exact
+  **18 original-SQL controls** and unchanged runner-byte hash assertions.
+  Actual run started 19:07:47 UTC and took 12.29 seconds; process exit 0.
+- App TypeScript with `--noEmit --incremental false -p tsconfig.app.json`: PASS,
+  process exit 0 and no diagnostics.
+- Tests TypeScript with `--noEmit --incremental false -p tsconfig.tests.json`:
+  PASS, process exit 0 and no diagnostics.
+- `git diff --check`: PASS. After checkpoint documentation, the only two
+  working changes relative to the existing #606 HEAD are the test and this file.
+
+Local logs are `/tmp/gridex-pr606-sc055-seeded-payload-20261005.tests.log`,
+`.app-types.log` and `.test-types.log`. The test log SHA256 is
+`2bec0643701dfa57165b474b6eb486fc58664489b4d6438c402ec60c410fbdf1`;
+both diagnostic-free type logs have the standard empty-file SHA256.
+The triage and detailed receipt remain in the completion review prefix as
+`ops-pr606-sc055-current-source-triage.md` and `.json`.
+
+No extra test/native/catalog/capture/full-suite run, provider call, dependency
+install, branch carry, commit, push or remote action was performed by this
+delegate. The finite historical SQL receipt does not establish current native
+wrapper/admission, full business or hosted authority. Root must carry actual
+current main normally and require fresh CI on the resulting immutable head.
