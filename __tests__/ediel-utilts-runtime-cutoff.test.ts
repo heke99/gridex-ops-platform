@@ -1,7 +1,7 @@
 // masterplan: U-03, AT-U-03, U-11, AT-U-11
 import { describe, expect, it } from 'vitest'
 
-import { runUtiltsRuntimeForMessage as runActualUtiltsRuntimeForMessage } from '@/lib/ediel/utiltsEngine'
+import { runUtiltsRuntimeForMessage as runActualUtiltsRuntimeForMessage, applyUtiltsEffectiveDatePolicyToRuntimeResult } from '@/lib/ediel/utiltsEngine'
 import { resolveCanonicalRuntimeDecision } from '@/lib/ediel/core/runtimeDecision'
 import { buildAperakDraft } from '@/lib/ediel/ack'
 import { parseCanonicalMessageRow } from '@/lib/ediel/core/canonicalMessage'
@@ -744,6 +744,23 @@ describe('UTILTS runtime selected-guide effective-date cutoff', () => {
     expect(aggregate.raw_payload).toContain('LOC+175+735999260731000007::9')
     expect(runUtiltsRuntimeForMessage(negative,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).not.toContain('E98')
     expect(runUtiltsRuntimeForMessage(aggregate,{referenceDate:'2026-10-01'}).ackPlan.utiltsErrCodes).toContain('E98')
+  })
+  it('U-11 effective-date filter: a declared E97 issue is removed for an individual E66 point and kept for an aggregate and under 25-A-3', () => {
+    // No E97 producer exists; the qualified issue input is declared here and
+    // only the real October filter's preserve/remove decision is asserted.
+    const source = energyHandoffMessage('2026-09-30')
+    const aggregate = {...source, raw_payload:source.raw_payload!.replace('LOC+172+735999260731000007::9','LOC+175+735999260731000007::9')}
+    const withE97 = (message: EdielMessageRow, referenceDate: string) => {
+      const result = runUtiltsRuntimeForMessage(message, {referenceDate})
+      expect(result.facts.transactions).toHaveLength(1)
+      const issue = {kind:'application', severity:'error', code:'DECLARED_E97_ENERGY_VALUE', message:'declared', utiltsErrCode:'E97'}
+      const declared = {...result, validation:{...result.validation, issues:[...result.validation.issues, issue]}} as typeof result
+      return applyUtiltsEffectiveDatePolicyToRuntimeResult({message, result:declared, referenceDate}).validation.issues
+        .some((entry) => entry.utiltsErrCode === 'E97')
+    }
+    expect(withE97(source, '2026-10-01')).toBe(false)
+    expect(withE97(aggregate, '2026-10-01')).toBe(true)
+    expect(withE97(source, '2026-09-30')).toBe(true)
   })
   it('U-11 keeps the October E90 missing-status control for an aggregate while an individual point loses it', () => {
     const source = energyHandoffMessage('2026-09-30')

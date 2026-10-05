@@ -1607,7 +1607,7 @@
     },
     {
       "id": "SC-036",
-      "status": "PASSED",
+      "status": "PARTIAL",
       "evidence": [
         "__tests__/ediel-sc-036-late-ack-after-z04.test.ts",
         "lib/inbound-mail/canonicalInboundAckStatusUpdater.ts",
