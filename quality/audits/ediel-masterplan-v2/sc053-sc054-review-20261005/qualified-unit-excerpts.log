@@ -1,0 +1,6 @@
+2026-10-05T08:12:25.4275148Z  ✓ __tests__/ediel-utilts-positive-ack-authority.test.ts (15 tests) 197ms
+2026-10-05T08:13:00.2038320Z  ✓ __tests__/ediel-utilts-persistence-sideeffects.test.ts (26 tests) 35ms
+2026-10-05T08:14:31.0264799Z  ✓ __tests__/ediel-sc-050-053-utilts-scenarios.test.ts (3 tests) 280ms
+2026-10-05T08:15:08.8574988Z  ✓ __tests__/ediel-u-09-estimate-never-actual.test.ts (3 tests) 9ms
+2026-10-05T08:15:25.9006413Z  Test Files  807 passed (807)
+2026-10-05T08:15:25.9053787Z       Tests  10304 passed (10304)

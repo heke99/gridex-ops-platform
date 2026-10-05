@@ -1,0 +1,57 @@
+{
+  "scope": "Qualified finite ordinary/native assertions; no whole SC-037/SC-052 effect approval",
+  "head": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "ordinary": {
+    "run": 37287095697,
+    "job": 111688500429,
+    "conclusion": "success",
+    "excerpts": [
+      "2026-10-05T09:03:36.2356598Z  ✓ __tests__/supplier-switch-activation-sweep.test.ts (2 tests) 14ms",
+      "2026-10-05T09:03:48.4362758Z  ✓ __tests__/ediel-u-06-request-application-reference.test.ts (3 tests) 4ms",
+      "2026-10-05T09:03:48.8069141Z  ✓ __tests__/ediel-sc-037-future-start.test.ts (3 tests) 19ms",
+      "2026-10-05T09:03:49.7351801Z  ✓ __tests__/ediel-sc-052-e73-dgi-request.test.ts (2 tests) 3ms"
+    ]
+  },
+  "native": {
+    "run": 37287095697,
+    "job": 111688500421,
+    "conclusion": "success",
+    "excerpts": [
+      "2026-10-05T09:20:34.5772854Z  ✓ scripts/ediel-source-owner-native.test.ts (48 tests) 313203ms",
+      "2026-10-05T09:20:34.5778105Z    ✓ actual activation writes a switch event bound to the source request tenant  5981ms",
+      "2026-10-05T09:41:41.8683156Z  Test Files  48 passed (48)",
+      "2026-10-05T09:41:41.8685966Z       Tests  608 passed | 1 skipped (609)"
+    ],
+    "limit": "Test title actual activation writes a switch event invokes gridex_finalize_supplier_switch_v1, not activate_customer_supply_v1; completed request/event is not same-period activation/billing proof. No exact SC-037/SC-052 native tagged line found."
+  },
+  "checkoutEvidence": [
+    "2026-10-05T08:59:35.7789971Z   ref: 01b11f55af710c3e6aad1f5a433631a88c702047",
+    "2026-10-05T08:59:41.4450736Z [command]/usr/bin/git rev-parse --verify --quiet 01b11f55af710c3e6aad1f5a433631a88c702047^{object}",
+    "2026-10-05T08:59:41.4451620Z 01b11f55af710c3e6aad1f5a433631a88c702047",
+    "2026-10-05T08:59:41.9078504Z Note: switching to '01b11f55af710c3e6aad1f5a433631a88c702047'.",
+    "2026-10-05T08:59:41.9200699Z 01b11f55af710c3e6aad1f5a433631a88c702047"
+  ],
+  "qualifiedInputs": [
+    {
+      "path": "__tests__/ediel-sc-037-future-start.test.ts",
+      "gitBlob": "8eeb434862030425886a5a897b1a809669c396d8"
+    },
+    {
+      "path": "__tests__/ediel-sc-052-e73-dgi-request.test.ts",
+      "gitBlob": "fa0e617e008f4bdace3121153bcc7980764dcc02"
+    },
+    {
+      "path": "__tests__/ediel-u-06-request-application-reference.test.ts",
+      "gitBlob": "26093b793c76ae64ede75da71a94b9763e485406"
+    },
+    {
+      "path": "__tests__/supplier-switch-activation-sweep.test.ts",
+      "gitBlob": "b72743cbc0095d30fcb51f32b88dce22130a9ad2"
+    },
+    {
+      "path": "scripts/ediel-source-owner-native.test.ts",
+      "gitBlob": "783087b6c479eb19b95bf11381da096b07246688"
+    }
+  ],
+  "sourceInvariance": "Current main compare preserves these input bytes and their production/schema/spec consumers; current P11 script separately qualified in baseline. Original CI is historical, not exact current-main/new-PR-head CI."
+}

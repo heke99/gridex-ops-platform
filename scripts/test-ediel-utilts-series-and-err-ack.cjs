@@ -1,4 +1,4 @@
-// masterplan: U-04, AT-U-04, U-14, AT-U-14
+// masterplan: U-04, AT-U-04, U-14, AT-U-14, SC-046, SC-054
 // Runs the focused PGlite regressions for the U-04 late-version fix and the
 // U-14 received-UTILTS_ERR positive-ACK dispatcher (forward migration
 // 20261003150200). Mechanics only; native replay remains the clean-replay job.

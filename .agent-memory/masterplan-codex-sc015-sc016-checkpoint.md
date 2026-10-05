@@ -83,3 +83,17 @@ preload REDexit1/3skipped -> GREEN3PASS0skip; scoped types/lint0, external socke
 still denied before connection. Current352rowobjects and other31inputbytes exact;
 original f208 whole review retained with explicit environment-only delta receipt.
 No full/native rerun. Corrected-head ordinary CI pending; root owns main/gates.
+
+2026-10-05 current-main integration (root handoff5595995622563): genuine merge
+of actual cfcee687 main. Current actor uses actual EdielExecutionFailure; old
+SC016 AST extractor omitted its import. Exact denial probe RED ReferenceError
+then actual class-binding control GREEN; existing complete-module loader now
+loads real authorization + real failureDisposition. No assertion/SQL/prod or
+preload guard changes. Real SC0157+SC0163=10PASS0skip, current types/lint/frozen/
+syntax/current-owned-delta-diff0. Historical unchanged raw0bef preload-failure
+log/XML whitespace retained byte-exact; whole PR whitespace-zero not claimed.
+7676 foreign main files +350 ledger/evidence rows exact; only15/16
+PASSED. 25 selected SQL bodies exact, original finite ports/native provenance
+retained at their actual source. Raw receipts/probe/source qualifier committed.
+Next: same existing559 branch publication; root independent patch review and
+actual mandatory new-head CI/main merge. No full/native rerun or custody claim.

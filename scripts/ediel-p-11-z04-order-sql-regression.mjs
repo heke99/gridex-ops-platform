@@ -1,4 +1,4 @@
-// masterplan: P-11, AT-P-11
+// masterplan: P-11, AT-P-11, SC-036
 // Extends the normal-switch source regression (real Z04 confirmation apply and
 // supply activation) with P-11 ordering effects. Same declared fixtures;
 // PGlite mechanics, not native replay or legal approval.
@@ -15,6 +15,14 @@ const before=`
  await db.exec('BEGIN')
  await db.exec("UPDATE ediel_messages SET status='sent' WHERE id IN('"+id(20)+"','"+id(120)+"','"+id(220)+"')")
  { const early=(await run()).rows[0].b; assert.equal(early.applied,true,JSON.stringify(early)); assert.ok(early.periods.every(p=>p.status==='confirmed_by_grid_owner')); p11++ }
+ // SC-036: the late positive APERAK on the same Z03 originals, written with the
+ // canonical updater's ACK columns, completes ACK status only.
+ const periodsBefore=(await db.query("SELECT id,status,start_date,end_date FROM customer_supply_periods ORDER BY id")).rows
+ await db.exec("ALTER TABLE ediel_messages ADD COLUMN IF NOT EXISTS aperak_status text, ADD COLUMN IF NOT EXISTS functional_check_status text, ADD COLUMN IF NOT EXISTS ack_outcome text, ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz, ADD COLUMN IF NOT EXISTS failed_at timestamptz, ADD COLUMN IF NOT EXISTS failure_reason text")
+ await db.exec("UPDATE ediel_messages SET aperak_status='accepted',functional_check_status='accepted',ack_outcome='positive',acknowledged_at=now(),failed_at=NULL,failure_reason=NULL WHERE id IN('"+id(20)+"','"+id(120)+"','"+id(220)+"')")
+ assert.deepEqual((await db.query("SELECT id,status,start_date,end_date FROM customer_supply_periods ORDER BY id")).rows,periodsBefore); p11++
+ assert.equal((await db.query("SELECT count(*)::int n FROM ediel_messages WHERE id IN('"+id(20)+"','"+id(120)+"','"+id(220)+"') AND aperak_status='accepted' AND ack_outcome='positive' AND acknowledged_at IS NOT NULL")).rows[0].n,3); p11++
+ { const again=(await run()).rows[0].b; assert.equal(again.idempotent,true,JSON.stringify(again)); p11++ }
  await db.exec('ROLLBACK')
 `
 const after=`

@@ -118,7 +118,10 @@ export default async function probe({db,id,incoming,permission}){
  const permissionConsumers=moduleConsumers('lib/ediel/permissions/permissionMarketTransition.ts',{'@/lib/supabase/service':{supabaseService:sdk}})
  const automatic=functionConsumers('lib/onboarding/inboundEdielLinking.ts',['applyInboundProdatZ14ToMeteringPermission'],{applyPermissionMarketSource:permissionConsumers.applyPermissionMarketSource,createEdielMessageEvent:async event=>events.push(event)}).applyInboundProdatZ14ToMeteringPermission
  const manual=functionConsumers('lib/onboarding/infoRequests.ts',['getMeteringPermissionById','applyZ14SnapshotToMeteringPermission'],{supabaseService:sdk,applyPermissionMarketSource:permissionConsumers.applyPermissionMarketSource,requireCompanyOperationalForWrites:async c=>{assert.equal(c,company,'declared company operational port')}}).applyZ14SnapshotToMeteringPermission
- const auth=functionConsumers('lib/ediel/services/authorization.ts',['assertEdielTenantActor'],{supabaseService:sdk}).assertEdielTenantActor
+ const auth=moduleConsumers('lib/ediel/services/authorization.ts',{
+  '@/lib/supabase/service':{supabaseService:sdk},
+  '@/lib/ediel/core/failureDisposition':moduleConsumers('lib/ediel/core/failureDisposition.ts',{}),
+ }).assertEdielTenantActor
  // Entire schema/administration production module is executed. Its unrelated
  // route/origination imports are finite rejection ports and never invoked.
  const administration=moduleConsumers('lib/ediel/services/administration.ts',{

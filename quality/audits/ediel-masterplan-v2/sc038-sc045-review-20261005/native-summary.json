@@ -1,0 +1,13 @@
+{
+  "raw_junit_sha256": "ca5fc23a667f91a8e538c53a85bf6386a08f91f9f6dd554891d7802256b02ec1",
+  "native_cases": 609,
+  "failures": 0,
+  "errors": 0,
+  "skips": 1,
+  "selected": {
+    "classname": "scripts/ediel-utilts-err-gateway-native.test.ts",
+    "name": "SC-045 actual header rejection emits one message-scope U-APERAK without invented ACW or later functional effects and retries stably",
+    "time": "8.734371438"
+  },
+  "extraction": "exact unmodified testcase, excluding unrelated native cases"
+}

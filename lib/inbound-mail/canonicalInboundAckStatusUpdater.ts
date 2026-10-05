@@ -180,6 +180,8 @@ async function persistInboundAck(input: {
   return id
 }
 
+export const OUTBOUND_BUSINESS_RESPONSE_STATUSES = '("confirmed","business_response_received")'
+
 async function updateOutboundAck(input: {
   companyId: string
   inboundEdielMessageId: string | null
@@ -197,7 +199,7 @@ async function updateOutboundAck(input: {
 
   if (input.outboundMatch.entityType === 'outbound_request') {
     outboundRequestId = input.outboundMatch.entityId
-    await supabaseService.from('outbound_requests').update({
+    const request = supabaseService.from('outbound_requests').update({
       status: classification.family === 'CONTRL'
         ? negative ? 'syntax_rejected' : 'syntax_accepted'
         : negative ? 'application_rejected' : 'application_accepted',
@@ -207,6 +209,9 @@ async function updateOutboundAck(input: {
       failed_at: negative ? nowIso() : null,
       updated_at: nowIso(),
     }).eq('company_id', input.companyId).eq('id', outboundRequestId)
+    // A positive ACK arriving after the business response (e.g. Z04 before
+    // APERAK) completes only the ACK columns; it never rolls back the request.
+    await (negative ? request : request.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
   } else if (input.outboundMatch.entityType === 'ediel_message') {
     outboundRequestId = typeof outbound.outbound_request_id === 'string' ? outbound.outbound_request_id : null
   }

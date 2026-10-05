@@ -134,5 +134,14 @@
     "native_RLS_concurrency_prefix_external_custody_not_inferred": true,
     "qualification": "These equality facts describe the original145c documentation-only packet. Current SC016 environment-only input delta and other31 exact inputs are qualified separately in ci-preload-correction-receipt.json."
   },
-  "current_necessary_environment_correction": "ci-preload-correction-receipt.json"
+  "current_necessary_environment_correction": "ci-preload-correction-receipt.json",
+  "current_main_integration": {
+    "main": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+    "receipt": "quality/audits/ediel-masterplan-v2/sc015-sc016/current-main-actor-import-receipt.json",
+    "receiptSha256": "2d9bdb4d4b102ea18a1b24227b98ccd590f9e4cc6ff9df5c1e9c801ab94b3ca0",
+    "actualOwnedUnits": 10,
+    "skips": 0,
+    "status": "FOCUSED_DEPENDENCY_INTEGRATION_VERIFIED_current_head_CI_PENDING",
+    "historicalFieldsScope": "Preceding base507/wholef208 fields retain only their original recorded source/scope; they are not current whole-prefix claims"
+  }
 }

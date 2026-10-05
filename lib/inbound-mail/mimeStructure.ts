@@ -22,7 +22,11 @@ export function mimeFields(block: string): Map<string, string[]> {
 
 export function mimeParameter(contentType: string, name: string): string | null {
   const match = contentType.match(new RegExp(`;\\s*${name}\\s*=\\s*(?:"([^"\\r\\n]*)"|([^;\\s]+))`, 'i'))
-  return match?.[1] ?? match?.[2] ?? null
+  if (match) return match[1] ?? match[2]
+  const extended = contentType.match(new RegExp(`;\\s*${name}\\*\\s*=\\s*(?:"([^"\\r\\n]*)"|([^;\\s]+))`, 'i'))
+  const encoded = /^(?:utf-8|us-ascii)'[^']*'(.*)$/i.exec(extended?.[1] ?? extended?.[2] ?? '')
+  if (!encoded) return null
+  try { return decodeURIComponent(encoded[1]) } catch { return null }
 }
 
 function decodedBody(body: string, encoding: string): string {

@@ -1,4 +1,4 @@
-// masterplan: P-12, AT-P-12
+// masterplan: P-12, AT-P-12, SC-038
 // Runs the focused PGlite Z04A/D scope regression over the real regulated-supply
 // ground scope, archive, review and apply SQL (20261001004331).
 // Mechanics only; native replay remains the clean-replay job.
