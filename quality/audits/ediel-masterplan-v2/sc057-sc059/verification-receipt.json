@@ -1,0 +1,94 @@
+{
+  "base": "f86a0c5d94811b552f4224fcb73a375d053606d0",
+  "scenarios": [
+    "SC-057",
+    "SC-059"
+  ],
+  "status": "FOCUSED_CODE_EFFECTS_GREEN_at_declared_finite_ports_WHOLE_REVIEW_PENDING",
+  "unit_cases": {
+    "SC-057": 9,
+    "SC-059": 13,
+    "total": 22,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "unchanged_current_registry_harness_groups": 28,
+  "actual_four_installed_owner_bodies_equal_current_captured_schema": true,
+  "scoped_types_exit": 0,
+  "scoped_lint_exit": 0,
+  "frozen_integrity": {
+    "passed": true,
+    "checks": 29,
+    "output_only_redirected_to_tmp": true
+  },
+  "all352_coverage_rows_unchanged": true,
+  "all_preexisting_tracked_source_helper_SQL_schema_native_workflow_files_exact_base": true,
+  "source_manifest": "source-manifest.json",
+  "manifest_input_count": 52,
+  "native": "NOT_RUN",
+  "authentic_registry_custody": "NOT_PROVEN; originalXMLbytes unavailable, frozen named projection is explicit source-given port",
+  "authentic_issuer_platform_authority_legal_certificate_readiness": "NOT_PROVEN; finite admission inputs",
+  "ordinary_current_head_CI": "PENDING",
+  "full_suite": "NOT_RUN_by_this_packet",
+  "SC057_fault_scope": "ActualSQLtransaction abort after both running inserts and an earlier candidate; whole17relation rollback. Not a process-kill/native connection-loss/concurrent-lock proof or legacy abandoned-run cleanup.",
+  "SC059_scope": "Actual typed consumer/materializer/sender/context/guard/UNBcodec over named frozen projection and finite source/identity/storage/readiness ports. No generic null/unmapped source denial inferred; no native private source producer, full business payload, outbox, SMTP or production readiness asserted.",
+  "fixture_history": [
+    {
+      "stage": "firstSC057probe",
+      "result": "42703 columncompleted_at absent on actor_registry_import_runs",
+      "correction": "Own assertion uses actualfinished_at; no fixtureDDL orproductchange"
+    },
+    {
+      "stage": "retained harness historicaldiagnostic",
+      "result": "PrintsREDsameinstalledmarketowner before installing retained103439forward; final28groupsPASS",
+      "interpretation": "Inherited historicalbaseline contrast, not currentproductRED"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-final-effects.json",
+      "sha256": "90bf145ff0bb9e36527c0e7cc555d3990d67a3cee4c18885e815bc792e2d0f62"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-owned-first.log",
+      "sha256": "6a83392c5dea9e5db4d55da3c3a2b5c596f84701ef37042a96dd11395bed1c1d"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-owned-first.xml",
+      "sha256": "2a7349e260eef255b641b126d75798b21a2bd13842c3c2b5cff0e8f3ccc45c8b"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-sc059-lint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-sc059-types-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-sc059-unit-final.log",
+      "sha256": "5788146b3aecb84a66aaf860a0ce14922922ff249310e5ee002bf457b6443448"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc057-sc059-unit-final.xml",
+      "sha256": "2d4a8ab2e85ca07578b371e4f446e1cbbc398e95c770958f32c9874d75c4978c"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc059-owned-checks-20261005.json",
+      "sha256": "9bcc5b42a884e4355152793d65e9a9ebbb3b82445444e9d6a91a83146fc4e2d7"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc059-unit-focused.log",
+      "sha256": "2dabc7d830055f06341338b7b8e8f43df3b1313a92b4e8f94a297c3ffa936955"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/sc059-unit-focused.xml",
+      "sha256": "cf22272c40558f74dafdbe518542bb8c9e73a1bd3e0fccd49e26d5d9e353a1ae"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/sc057-sc059/evidence/frozen-integrity-result.json",
+      "sha256": "8bb213cad75ad4d6269057e692356c9103b41ff977c8bb78f70f8be7c886ff48"
+    }
+  ]
+}

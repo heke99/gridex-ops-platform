@@ -9,13 +9,16 @@
 | F-U-04 | U-04 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | sen äldre version tränger ej undan nyare |
 | F-U-14 | U-14 | hög | ✅ rättad 102fe9b1 (migr. 20261003150200, omnumrerad från 150000) | received-ERR-dispatcher återställd |
 | F-SRC-01 | (källregister) | hög | ✅ rättad 161b9bae (migr. 20261003150300) | validering av kvarhållen källhistorik efter operativ radering gav no_data_found; läser nu hash-bundna bytes ur gridex_received_sources.sources |
-| F-OPS-02 | OPS-02 | medel | öppen | kundkort ska läsa processprojektionen |
+| F-OPS-02 | OPS-02 | medel | ✅ rättad 2026-10-04 (#507), OPS-02 VERIFIED | kundkort och arbetskö styrs av `readEdielProcessNextActions` (orsak, tidsgrund, ansvar, blockerare, tillåtna åtgärder) och hålls när beslut saknas; begärandetabellens badge påstår inte längre väntan. fp-check: `automation.part-2.ts:248` och `actions.part-1.ts:185` (`normalizeSimpleRequestStatus`) registrerar status vid själva utskicket och används för jobbets livscykel/idempotens, inte för nästa steg = FALSKLARM; `pendingCustomerInfoRequests` (page.part-4) är oanvänd |
 | F-ENV-01 | ENV-01 | medel | öppen — ägs av #504 (Codex) | UNOC-repertoar för alla utgående segment |
 | F-GOV-03 | GOV-03 | låg | FALSKLARM (fp-check 2026-10-04) | härledningen i validator.ts:315 är bara förval; på kvalificerad sändning styr originalets fysiska familj (`sourceBoundAckCanonicalPolicy`) och fel profil ger `ACK_APERAK_PROFILE_INVALID`; utan original stoppas sändning. Bevisat i `ediel-gov-03-aperak-source-family.test.ts` |
+| F-DB-01 | DB-01 | låg | ✅ steg 1 rättat 2026-10-04 (ägarbeslut: fasa ut); DB-01 PARTIAL | `ediel_party_addresses` skrevs av adminformuläret men lästes inte av routing; skrivningen och den döda resolvern borttagna. Kvar: avvecklingsmigration; `ediel_parties` vs `platform_market_actors` ej granskad |
 | U-1 | TEN-04 | — | ej avgjord | verify-RPC kräver inget mandat för ombudsroute |
 | U-2 | TEN-09 | låg | ej avgjord | end_assignment LIMIT 1 |
 | TR-09/E6 | TR-09 | medel | ej avgjord | kräver källa T §3.1 |
-| ENV-02, ENV-03, IMP-04, DB-01 | — | — | CONTRADICTED i granskning, fp-check återstår | se batch-7 |
+| ENV-02, DB-01 | — | — | CONTRADICTED i granskning, fp-check återstår | se batch-7 |
+| F-IMP-04 | IMP-04 | medel | ✅ rättad 2026-10-04 | `buildUtiltsOutboundDraft` hittade på subadress `UTILTS` i UNB när ingen var registrerad; nu bevaras tomt/exakt registrerat värde |
+| F-ENV-03 | ENV-03 | låg | ✅ rättad 2026-10-04 | handskrivna UNT-räknare i `testing/selftest.ts` (fel vid valfria ADR/CCI/QTY) och PRODAT-provet i `inbound-mail/smokeTests.ts` (UNT+7 för 6 segment); nu beräknade. Riktiga producenten/kodeken beräknade redan korrekt (asserterat) |
 | PGLITE-CI | alla | medel | ✅ delvis | PGlite-regressioner kördes inte i CI; 0.3.14 nu devDependency, U-04/U-14 körs via test-ediel-wrapper |
 
 Falsklarm (fp-check): D4, D5, D6, D8, D9, D11–D15 (TEN), A1–A3 (ACK), C1–C2 (P/U), E1, E2, E4, E5, E7 (TR/OPS/AI), G3–G5 (ENV/GOV).

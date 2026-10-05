@@ -1,0 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites><testsuite name="Qualified SC-045 native witness" tests="1" failures="0" errors="0" skipped="0"><testcase classname="scripts/ediel-utilts-err-gateway-native.test.ts" name="SC-045 actual header rejection emits one message-scope U-APERAK without invented ACW or later functional effects and retries stably" time="8.734371438">
+        </testcase>
+        </testsuite></testsuites>

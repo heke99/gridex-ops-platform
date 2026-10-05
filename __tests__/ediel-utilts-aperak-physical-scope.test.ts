@@ -1,3 +1,5 @@
+// masterplan: U-17, AT-U-17
+// masterplan: ACK-08, AT-ACK-08
 import { describe, expect, it } from 'vitest'
 import { renderAperakEdiel } from '@/lib/ediel/aperakEngine'
 import { EdifactEnvelopeCodec } from '@/lib/ediel/core/edifactEnvelopeCodec'
@@ -53,5 +55,16 @@ describe('ACK-03 own DM and physical ACW', () => {
     expect(render(['FIRST'],{outcome:'negative',applicationErrors:[
       {ercCode:'42',fieldCode:fallback,text:'INCORRECT DATA INVALID-ELEMENT',referenceNumber:'FIRST'},
     ]}).segments).toContain(`FTX+AAO++${fallback}::260+INCORRECT DATA INVALID-ELEMENT`)
+  })
+  it('U-17 an error without a numbered field carries no guessed field number, and an over-long reference is refused', () => {
+    const segments = render(['FIRST'],{outcome:'negative',applicationErrors:[
+      {ercCode:'41',fieldCode:null,text:'MANDATORY FIELD MISSING',referenceNumber:'FIRST'},
+    ]}).segments
+    expect(segments).toContain('FTX+AAO+++MANDATORY FIELD MISSING')
+    expect(segments.filter(s => s.startsWith('FTX+AAO++')).every(s => !/^FTX\+AAO\+\+\d/.test(s))).toBe(true)
+    for (const bad of ['DTM/C507/2005-REFX', 'DTM 2005'])
+      expect(() => render(['FIRST'],{outcome:'negative',applicationErrors:[
+        {ercCode:'42',fieldCode:bad,text:'INCORRECT DATA INVALID-ELEMENT',referenceNumber:'FIRST'},
+      ]})).toThrow('utilts_aperak_field_reference_invalid')
   })
 })

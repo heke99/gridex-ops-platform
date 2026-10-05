@@ -17,8 +17,7 @@ type ProviderResult = Awaited<ReturnType<typeof sendEdielEmail>> & { dispatchRep
 type Receipt = { proceed?: boolean; classification?: string; providerReceipt?: ProviderResult; observedAt?: string }
 class AcceptedProjection extends Error { constructor(readonly result: ProviderResult) { super('ediel_transport_projection_only') } }
 
-/** Stable no-resend fence covering every ordinary outbound family. SMTP entry is not acceptance. */
-export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, context: {
+export type GenericEdielDispatchContext = {
   message: EdielMessageRow; actorUserId: string; owner?: OutboundDispatchOwner; mimeMode: string; payload: Buffer; encoding: string;
   admissionDecision?: Readonly<Record<string, unknown>> | null
   businessExpectationPlan?: EdielBusinessExpectationPlan | null
@@ -29,7 +28,10 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
   technicalSyntaxAckEvidence?: TechnicalSyntaxAckEvidence | null
   prodatCommonHeaderRejectionEvidence?: ProdatCommonHeaderRejectionEvidence | null
   transportException?: TransportExceptionAuthorization | null
-}): Promise<ProviderResult> {
+}
+
+/** One attempt gate can receive an already archived binding without recompiling MIME. */
+export function createGenericEdielAttemptGate(input: SendEdielEmailInput, context: GenericEdielDispatchContext) {
   const { message } = context
   if (!message.company_id) throw new Error('ediel_transport_company_required')
   const identity = { companyId: message.company_id, environment: message.environment, messageId: message.id, actorUserId: context.actorUserId, attemptId: randomUUID() }
@@ -73,15 +75,15 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
       if (authorization.proceed !== true) throw new Error('ediel_transport_entry_denied')
     },
   }
-  try {
-    const result = await sendEdielEmail(input, entry)
+  const capture = async (result: ProviderResult): Promise<ProviderResult> => {
     if (!callbackUsed || !entered) throw new Error('ediel_transport_callback_missing')
     const observation = await call('observe', { result: smtpResultEvidence(result) })
     observed = true
     if (observation.classification !== 'accepted') throw new SmtpDeliveryUncertainError(new Error(`ediel_transport_${observation.classification ?? 'unknown'}`), result.messageId ?? null)
     if (typeof observation.observedAt !== 'string' || !Number.isFinite(Date.parse(observation.observedAt))) throw new SmtpDeliveryUncertainError(new Error('ediel_transport_capture_clock_missing'), result.messageId ?? null)
     return { ...result, dispatchObservedAt: observation.observedAt }
-  } catch (error) {
+  }
+  const fail = async (error: unknown): Promise<ProviderResult> => {
     if (error instanceof AcceptedProjection) return error.result
     if (entered) {
       if (!observed) {
@@ -91,6 +93,17 @@ export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, co
     }
     if (prepared) { try { await call('release') } catch { /* response loss cannot authorize reset */ } }
     throw error
+  }
+  return { entry, capture, fail }
+}
+
+/** Stable no-resend fence covering every ordinary outbound family. SMTP entry is not acceptance. */
+export async function sendGenericFencedEdielEmail(input: SendEdielEmailInput, context: GenericEdielDispatchContext): Promise<ProviderResult> {
+  const gate = createGenericEdielAttemptGate(input, context)
+  try {
+    return await gate.capture(await sendEdielEmail(input, gate.entry))
+  } catch (error) {
+    return gate.fail(error)
   }
 }
 

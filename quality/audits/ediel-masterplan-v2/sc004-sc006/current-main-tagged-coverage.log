@@ -1,0 +1,28 @@
+Masterplan IDs: 352; approved 215; tagged green 241; tagged failing 0; untagged 111
+Tagged green, not yet approved (review every expected/prohibited effect before approving):
+  TEN-09  scripts/test-ediel-esco-06-request-coordination.cjs, scripts/test-ediel-esco-08-09-shared-permission.cjs, scripts/test-ediel-ten-09-resolve-timing.cjs
+  P-08  __tests__/ediel-prodat-date-boundaries.test.ts, __tests__/ediel-prodat-date-event-wire-phase.test.ts, __tests__/ediel-prodat-date-events.test.ts, __tests__/ediel-prodat-date-fields.test.ts, __tests__/ediel-prodat-field-identity.test.ts, scripts/test-ediel-p-08-production-contract-confirmation.cjs
+  DB-01  __tests__/ediel-db-01-party-registry-no-parallel-route.test.ts
+  SC-007  scripts/test-ediel-ten-07-scoped-projection.cjs
+  SC-008  scripts/test-ediel-ten-07-scoped-projection.cjs
+  SC-010  __tests__/ediel-sc-010-071-current-grant.test.ts
+  SC-017  scripts/test-ediel-ten-07-scoped-projection.cjs
+  SC-031  __tests__/ediel-prodat-incoming-unused-fields.test.ts, __tests__/ediel-prodat-register-consumers.test.ts, __tests__/ediel-received-register-validation-binding.test.ts
+  SC-034  __tests__/ediel-prodat-z04-persisted-ack.test.ts
+  SC-035  scripts/test-ediel-p-10-z02-correlation.cjs
+  SC-037  __tests__/ediel-sc-037-future-start.test.ts, __tests__/supplier-switch-activation-sweep.test.ts
+  SC-038  __tests__/ediel-supply-market-consumers.test.ts, scripts/test-ediel-p-12-z04ad-scope.cjs
+  SC-039  __tests__/ediel-supply-market-consumers.test.ts
+  SC-046  scripts/test-ediel-utilts-series-and-err-ack.cjs
+  SC-047  __tests__/ediel-sc-044-047-utilts-scenarios.test.ts
+  SC-052  __tests__/ediel-sc-052-e73-dgi-request.test.ts
+  SC-053  __tests__/ediel-sc-050-053-utilts-scenarios.test.ts
+  SC-054  scripts/test-ediel-utilts-series-and-err-ack.cjs
+  SC-071  __tests__/ediel-sc-010-071-current-grant.test.ts
+  AT-TEN-09  scripts/test-ediel-esco-06-request-coordination.cjs, scripts/test-ediel-esco-08-09-shared-permission.cjs, scripts/test-ediel-ten-09-resolve-timing.cjs
+  AT-P-08  __tests__/ediel-prodat-date-boundaries.test.ts, __tests__/ediel-prodat-date-event-wire-phase.test.ts, __tests__/ediel-prodat-date-events.test.ts, __tests__/ediel-prodat-date-fields.test.ts, __tests__/ediel-prodat-field-identity.test.ts, scripts/test-ediel-p-08-production-contract-confirmation.cjs
+  AT-DB-01  __tests__/ediel-db-01-party-registry-no-parallel-route.test.ts
+  AT-Z09F-SUPPLIER  __tests__/ediel-at-z09f-z09g-supplier-profile.test.ts
+  AT-Z09G-SUPPLIER  __tests__/ediel-at-z09f-z09g-supplier-profile.test.ts
+  AT-Z13V-ESCO  __tests__/ediel-at-z13v-esco-profile.test.ts
+  AT-Z14V-ESCO  __tests__/ediel-at-z14v-esco-profile.test.ts

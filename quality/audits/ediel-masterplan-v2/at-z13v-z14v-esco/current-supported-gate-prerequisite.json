@@ -1,0 +1,19 @@
+{
+  "node": "v22.23.0",
+  "defaultSandboxProbe": {
+    "status": 0,
+    "error": "spawnSync npx EPERM",
+    "stdout": "",
+    "stderr": "",
+    "qualified": false
+  },
+  "withAuthorizedNetwork": {
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "vitest/4.1.9 linux-x64 node-v22.23.0\n",
+    "stderr": ""
+  },
+  "initialSupportedGateExit": 1,
+  "initialSupportedGateMeaning": "Could not read vitest JSON; no semantic PASS/FAIL qualification. Raw initial log retained; unchanged required gate rerun after subprocess prerequisite fixed."
+}
