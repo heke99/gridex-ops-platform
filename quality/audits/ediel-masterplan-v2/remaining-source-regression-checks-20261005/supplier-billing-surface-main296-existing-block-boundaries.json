@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "owner": "/root/sc004_sc006_integrate",
+  "purpose": "Read-only extraction boundary metadata for existing four source slice hashes; no new behavior or native verification.",
+  "frozen_source_head": "0f624276562efc03a73c3b0bc520eca577b39fbb",
+  "existing_source_carry_record": "supplier-billing-surface-main296-source-carry.json",
+  "existing_source_carry_sha256": "df141aec4d57cd334ba7e145255551d570f4ce0ce1b38b14419adf2b361112db",
+  "existing_verification_receipt_sha256": "c11b77954bd002f59e865eded9c6b70e05b090177a0cfce908650d1ec5a5be10",
+  "provenance": "Markers were not persisted in original record. Equivalent exact boundaries recovered from retained source objects and already reported hashes.",
+  "algorithm": "data=git show SOURCE_HEAD:PATH as raw UTF-8 bytes; a=data.index(start_marker)+len(start_marker); b=data.index(end_marker,a); digest=SHA256(data[a:b]).",
+  "normalization": "None; both marker strings excluded; interior and final whitespace/newlines included exactly. Offsets are zero-based UTF-8 byte offsets, end exclusive.",
+  "scope_precision": "These hashes cover slices BETWEEN declaration/condition delimiters, not declarations including the start opener. Marker bindings remain in pinned actual source and unchanged static checker.",
+  "blocks": [
+    {
+      "name": "customer_auth_scope_and_billing_loaders",
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "start_marker": "export async function CustomerAdminDetailPage",
+      "end_marker": "  const showFoldedTechnicalPanels",
+      "start_marker_included": false,
+      "end_marker_included": false,
+      "sha256_already_reported": "e750f2e9561f148cf9ebb0d7d5e12c9c75cfc516219d1f5f4b45d0db64b505c3",
+      "old_current_slice_byte_exact": true,
+      "offsets": [
+        {
+          "source_head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+          "source_path_sha256": "79efa21a185685a4ef12276ec6af4daff51f0ac268cbd21227fc1ea1929d27d4",
+          "start_marker_byte": 6339,
+          "slice_start_byte_inclusive": 6384,
+          "slice_end_byte_exclusive": 32079,
+          "first_included_line_1_based": 66,
+          "last_included_line_1_based": 715,
+          "slice_bytes": 25695
+        },
+        {
+          "source_head": "2964415adec9e36932583e95f8506437d262c507",
+          "source_path_sha256": "97066bd93aaf65129ae8d78e0f82115c6ca60ee5467ddb71d3ee3c3bb706983c",
+          "start_marker_byte": 6431,
+          "slice_start_byte_inclusive": 6476,
+          "slice_end_byte_exclusive": 32171,
+          "first_included_line_1_based": 67,
+          "last_included_line_1_based": 716,
+          "slice_bytes": 25695
+        }
+      ]
+    },
+    {
+      "name": "actual_returned_billing_AST_section_props",
+      "path": "app/admin/customers/[id]/page.part-4.tsx",
+      "start_marker": "      {activeTab === \"billing-metering\" ? (",
+      "end_marker": "      {isPlatformAdmin && activeTab === \"analytics\" ? (",
+      "start_marker_included": false,
+      "end_marker_included": false,
+      "sha256_already_reported": "2b2bc5b9f26f8066d29eceded7a2b33c13dd2c711385426f3bec39ea1e7d075c",
+      "old_current_slice_byte_exact": true,
+      "offsets": [
+        {
+          "source_head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+          "source_path_sha256": "79efa21a185685a4ef12276ec6af4daff51f0ac268cbd21227fc1ea1929d27d4",
+          "start_marker_byte": 51247,
+          "slice_start_byte_inclusive": 51290,
+          "slice_end_byte_exclusive": 51969,
+          "first_included_line_1_based": 1135,
+          "last_included_line_1_based": 1155,
+          "slice_bytes": 679
+        },
+        {
+          "source_head": "2964415adec9e36932583e95f8506437d262c507",
+          "source_path_sha256": "97066bd93aaf65129ae8d78e0f82115c6ca60ee5467ddb71d3ee3c3bb706983c",
+          "start_marker_byte": 47994,
+          "slice_start_byte_inclusive": 48037,
+          "slice_end_byte_exclusive": 48716,
+          "first_included_line_1_based": 1062,
+          "last_included_line_1_based": 1082,
+          "slice_bytes": 679
+        }
+      ]
+    },
+    {
+      "name": "canonical_billing_read_company_customer_scope",
+      "path": "app/admin/billing/page.tsx",
+      "start_marker": "export default async function AdminBillingPage",
+      "end_marker": "  return (",
+      "start_marker_included": false,
+      "end_marker_included": false,
+      "sha256_already_reported": "4c0d3b46ac2ec7b5464e7018a8d5a8634cd0f58d0821b76d220395b117204c63",
+      "old_current_slice_byte_exact": true,
+      "offsets": [
+        {
+          "source_head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+          "source_path_sha256": "ce8a9688680969b48111b6a2e199b4a04c11cdef253eaa1c68a74d1302db9c8c",
+          "start_marker_byte": 2686,
+          "slice_start_byte_inclusive": 2732,
+          "slice_end_byte_exclusive": 4680,
+          "first_included_line_1_based": 66,
+          "last_included_line_1_based": 97,
+          "slice_bytes": 1948
+        },
+        {
+          "source_head": "2964415adec9e36932583e95f8506437d262c507",
+          "source_path_sha256": "84b29f4b4beb341958d6ae942aa35531f0bc8f64bc35731b3e9b2f539318e448",
+          "start_marker_byte": 2756,
+          "slice_start_byte_inclusive": 2802,
+          "slice_end_byte_exclusive": 4750,
+          "first_included_line_1_based": 67,
+          "last_included_line_1_based": 98,
+          "slice_bytes": 1948
+        }
+      ]
+    },
+    {
+      "name": "canonical_billing_actual_approval_form_gate",
+      "path": "app/admin/billing/page.tsx",
+      "start_marker": "          {companyId && !customerFilter && sendableCount > 0 ? (",
+      "end_marker": "        {!customerFilter ? (",
+      "start_marker_included": false,
+      "end_marker_included": false,
+      "sha256_already_reported": "3514d3adf99fc3f41ff2a6888046a76ff36bdb0c3da3ee26f43ddfee07a9179f",
+      "old_current_slice_byte_exact": true,
+      "offsets": [
+        {
+          "source_head": "38aa73454b724040f6aaf4339e7feab226ce3ecd",
+          "source_path_sha256": "ce8a9688680969b48111b6a2e199b4a04c11cdef253eaa1c68a74d1302db9c8c",
+          "start_marker_byte": 11028,
+          "slice_start_byte_inclusive": 11092,
+          "slice_end_byte_exclusive": 11579,
+          "first_included_line_1_based": 195,
+          "last_included_line_1_based": 204,
+          "slice_bytes": 487
+        },
+        {
+          "source_head": "2964415adec9e36932583e95f8506437d262c507",
+          "source_path_sha256": "84b29f4b4beb341958d6ae942aa35531f0bc8f64bc35731b3e9b2f539318e448",
+          "start_marker_byte": 11418,
+          "slice_start_byte_inclusive": 11482,
+          "slice_end_byte_exclusive": 11969,
+          "first_included_line_1_based": 199,
+          "last_included_line_1_based": 208,
+          "slice_bytes": 487
+        }
+      ]
+    }
+  ],
+  "source_test_AST_harness_native_CI_runs": 0,
+  "frozen_source_and_original_records_changed": false
+}

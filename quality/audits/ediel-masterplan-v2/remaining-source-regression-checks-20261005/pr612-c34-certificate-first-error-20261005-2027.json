@@ -1,0 +1,68 @@
+{
+  "schema": "gridex.readonly-owned-ci-first-error.v1",
+  "observer": "/root/sc015_sc016_gate_failure",
+  "pr": 612,
+  "head": "c34c5648044078117740e27186ae66d06ab7286e",
+  "tree": "56a76d27ebaaf62d16fbe85cc4cde2dc8ed484ba",
+  "job_id": 111959192764,
+  "run_id": 37365697980,
+  "attempt": 1,
+  "event": "pull_request",
+  "url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37365697980/job/111959192764",
+  "conclusion": "failure",
+  "actual_started_at": "2026-10-05T20:20:21Z",
+  "completed_at": "2026-10-05T20:20:42Z",
+  "actual_checkout_sha_observed": true,
+  "failed_step": {
+    "number": 5,
+    "name": "Require deterministic PR gates to execute and pass",
+    "command": "node scripts/gridex-full-production-e2e.cjs --certificate=pr",
+    "terminal_error": "2026-10-05T20:20:40.5666709Z ##[error]Process completed with exit code 1.",
+    "more_specific_command_diagnostic": "No additional diagnostic is printed between command group end and its terminal exit."
+  },
+  "preceding_prerequisite": {
+    "step": 4,
+    "name": "Download executed smoke evidence",
+    "step_metadata_conclusion": "success",
+    "first_exact_log_error": "2026-10-05T20:20:40.0068182Z ##[error]Unable to download artifact(s): Artifact not found for name: gridex-e2e-smoke-37365697980",
+    "boundary": "The logged artifact error is retained; step 4 is not mislabeled the failing step."
+  },
+  "actual_printed_dependency_context": {
+    "SMOKE_RESULT": "abandoned",
+    "COVERAGE_RESULT": "abandoned"
+  },
+  "cancelled_prerequisites": {
+    "coverage": 111950176406,
+    "smoke": 111950176920,
+    "verify": 111950176777,
+    "upgrade": 111950176629,
+    "quality": 111950176970,
+    "clean": 111950177002
+  },
+  "prerequisite_execution_boundary": "All six cancelled ordinary job step endpoints returned []. Queue-registration started_at timestamps are not qualified actual runner starts. Cancellation causes UNKNOWN.",
+  "classification": "Owned certificate execution gate failed with abandoned smoke/coverage inputs and missing smoke evidence artifact. Exact terminal exit is 1. These CI observations do not establish a production/source defect or actual test assertion failure.",
+  "current_all_nine_boundary": "20:23:25 current-head snapshot: six CANCELLED, one FAILURE, two QUEUED; all-nine HOLD. Browser/targeted pending only metadata observation.",
+  "private_decoded_raw_log": {
+    "path": "/workspace/agent-review-checkpoints/private/pr612-c34-certificate-job111959192764-attempt1-20261005.log.txt",
+    "bytes": 16642,
+    "sha256": "139aa18ad8c4802a8de6a1c131b33b79733dce4b47c8f1153da8218a83153b84",
+    "exact_decoded_log": true,
+    "permissions": "0600",
+    "directory_permissions": "0700",
+    "inside_git": false,
+    "publication": "Raw log stays private outside Git; only this selected sanitary metadata is public-safe."
+  },
+  "supersedes_unknown_error_only": "pr612-c34-six-cancelled-certificate-failed-20261005-2024.json remains immutable; its then-UNKNOWN error boundary is refined by this one explicitly authorized owned-log read.",
+  "operations": {
+    "owned_log_reads": 1,
+    "foreign_log_reads": 0,
+    "artifact_downloads": 0,
+    "source_edits": 0,
+    "fixture_edits": 0,
+    "tests_or_native_runs": 0,
+    "reruns_or_dispatch_or_cancels": 0,
+    "github_writes": 0,
+    "merges": 0
+  },
+  "integration_boundary": "Root owns canonical first merged ENV07 disposition, current-main/source guard, publication and expected-head merge. This observer does not read #608/#610 CI or repair their source."
+}

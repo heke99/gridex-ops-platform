@@ -28,3 +28,23 @@ qualification remains HOLD. Preserve the original canonical ENV07/610 owner and
 first actual-main fixture admission, then genuinely carry that main into this
 source intake before one necessary ordinary612 qualification. No source/CI/main
 acceptance, certified baseline or final masterplan completion is claimed.
+
+Current source40d2deb3 genuinely adopts actualmain2964415a and original billing
+carry0f624276. All38 component paths remain exact authors; all60 current input
+files match actualmain. Only the two earlier billing UI inputs required fresh
+qualification: original author/independent cd64 bind unchanged real authority
+and one existing current-base27PASS check. Original four-block hashes exclude
+both delimiters; supplement95411629 pins their exact extraction boundaries.
+Earlier5c readset8a998 and independent2e58 guard remain immutable historical.
+
+Actual first ENV07 is #608's whole postimage. #610 is closed as superseded;
+earlier next610 routing is historical. Current c34 CI attempt is SETTLED with
+eight CANCELLED empty-step jobs and one failed certificate, zeroSUCCESS.
+Terminal1706e986 and sanitary first-error1f61d7c7 are preserved byte-exact here;
+the full log remains private outsideGit. The observer is idle and no old run
+is retried or monitored. Current-resulting ordinary all9 remains pending.
+
+Next: publish this qualified preparation ref, consume the original reviewed
+advisor packet once, then publish one necessary current-base source revision
+through existing PR612. Root retains final source publication/guarded merge,
+one observer and exact first-admitted fixture; no second source PR is created.
