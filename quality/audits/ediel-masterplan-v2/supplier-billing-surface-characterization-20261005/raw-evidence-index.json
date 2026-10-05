@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "archive": "raw-evidence.zip",
+  "archive_sha256": "e4b7082a6fc6f588404e495a4b30dfcc180bae22b4ab733985aaa8d133fb80ea",
+  "raw_bytes_normalized": false,
+  "fixed_metadata_timestamp": "2026-10-05T00:00:00",
+  "entries": [
+    {
+      "entry": "source-qualified-readonly.json",
+      "bytes": 12568,
+      "sha256": "6400895556da20fe3051ca5e6d7119acc993f37219aa4e24a67620cc6c38ccd0",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-main38aa-readonly.json"
+    },
+    {
+      "entry": "unapplied-v1-proposal.cjs",
+      "bytes": 3685,
+      "sha256": "79623e2ca1f6be8225d63205f168b2e96f83e7888c7b6bcd1d9a6d7853668e69",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-unapplied-proposal.cjs"
+    },
+    {
+      "entry": "independent-v1-hold.json",
+      "bytes": 5196,
+      "sha256": "dbbdc76c5d841b1eb58f4cec2a0c98412c9f22b2b8ad72b2e3b691b006cd6c09",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-7962-independent-proposal-review.json"
+    },
+    {
+      "entry": "unapplied-v2-proposal.cjs",
+      "bytes": 6972,
+      "sha256": "8b2d1820ffcc05a39c2cbe1a3da5e68600715ede9e66b5c6556700b4b133d691",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-unapplied-v2-proposal.cjs"
+    },
+    {
+      "entry": "independent-v2-hold.json",
+      "bytes": 3932,
+      "sha256": "3556cef0802898ec6c6a69592c444187faed643c78e1aa15a5119915eef16b74",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-8b2d-v2-independent-proposal-review.json"
+    },
+    {
+      "entry": "unapplied-v3-proposal.cjs",
+      "bytes": 7702,
+      "sha256": "5b50512282bdf215d340f94e9715427cb9d4921ee3869e2a89ee45e212879b12",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-unapplied-v3-proposal.cjs"
+    },
+    {
+      "entry": "independent-v3-ready.json",
+      "bytes": 4253,
+      "sha256": "d8f8430cc4035ff896b81323fd1cbfaabbd79d3409d56f7666d0b8be183ec218",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-5b50-v3-independent-ready.json"
+    },
+    {
+      "entry": "v3-projected-preservation.json",
+      "bytes": 623,
+      "sha256": "c08333e245eb456db9614a6fb1dd3dea24afd7ba0ccbe03086697fe9fd8cfa0b",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-v3-projected-preservation.json"
+    },
+    {
+      "entry": "preapply-source17-qualified.json",
+      "bytes": 6063,
+      "sha256": "2ce37463124a4a2420663505326ad11e8b658999d3f8401fddcb12446b92e448",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-preapply-qualified.json"
+    },
+    {
+      "entry": "original-325-supplier-chain-red.log",
+      "bytes": 1023,
+      "sha256": "91fba2f22ac1f5bdcfcb505c8cd656b58455ca3dccabd026747346ad00b3ff4a",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-guard-325-chain.log"
+    },
+    {
+      "entry": "direct-final-result.log",
+      "bytes": 1640,
+      "sha256": "885c0697deebd8cc937f6fbb70a146048b0489ec17228b7b0dd86b3a8f6246ea",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-direct-result.log"
+    },
+    {
+      "entry": "actual-execution-tool-result.json",
+      "bytes": 551,
+      "sha256": "a7b9fb931605d6cd92598d70da0540799196c5980fa5129ca87900bc3b5d8698",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-execution-tool-result.json"
+    },
+    {
+      "entry": "node22-syntax.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-nodecheck.log"
+    },
+    {
+      "entry": "source-diffcheck.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_checkpoint": "/workspace/agent-review-checkpoints/supplier-billing-surface-38aa-source-diffcheck.log"
+    }
+  ]
+}
