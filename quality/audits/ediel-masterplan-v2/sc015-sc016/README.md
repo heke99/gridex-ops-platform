@@ -2,8 +2,9 @@
 
 Base: actual merged main `507e8bfa20606be31933eea1582066267ff2577a`.
 Claims: #530 comments5986941347/5987058901 and #491 comments5986942920/5987060310.
-Whole independent review is pending. Both coverage rows and all other350 rows
-remain unchanged. Native replay and authentic market/legal acceptance are not
+Whole independent review APPROVES both complete frozen code effects at the
+declared finite ports, exact f2081c55c86061ec3feb1cff0f93789da89f84cc. Only SC015
+and SC016 are PASSED; all other350 rows remain byte-equal to that freeze. Native replay and authentic market/legal acceptance are not
 claimed by these finite tests. Ordinary current-head CI and integration remain
 separate requirements.
 

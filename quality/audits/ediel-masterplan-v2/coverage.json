@@ -1423,13 +1423,23 @@
     },
     {
       "id": "SC-015",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-015-pending-provider-request.test.ts",
+        "scripts/test-ediel-sc-015-016-permissions.cjs",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-016",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-sc-016-partial-permission-membership.test.ts",
+        "scripts/test-ediel-sc-015-016-permissions.cjs",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/sc015-sc016-independent-review.md",
+        "quality/audits/ediel-masterplan-v2/sc015-sc016/verification-receipt.json"
+      ]
     },
     {
       "id": "SC-017",

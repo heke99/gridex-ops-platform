@@ -5,7 +5,7 @@
     "SC-015",
     "SC-016"
   ],
-  "status": "focused_execution_GREEN_independent_whole_review_PENDING",
+  "status": "WHOLE_SC015_SC016_CODE_EFFECTS_APPROVED_at_declared_finite_ports",
   "unit_cases": {
     "SC-015": 7,
     "SC-016": 3,
@@ -109,5 +109,28 @@
       "result": "removed only unused tokenizer imports",
       "fix": "final lint0; no asserting behavior changed"
     }
-  ]
+  ],
+  "technical_freeze": {
+    "head": "f2081c55c86061ec3feb1cff0f93789da89f84cc",
+    "tree": "14ec93f2b097a5fddb3317a9a8c22aeb0c563d89"
+  },
+  "independent_review": {
+    "review": "sc015-sc016-independent-review.md",
+    "sha256": "411e331b3c75bdeb08549cad826f4957d1a61262016dd9e747904f54d92f6797",
+    "receipt": "sc015-sc016-independent-receipt.json",
+    "receipt_sha256": "520dcaa8ac3504bef79baa53fa5790ad28902d8765fdf823f3738512f675e6b3",
+    "fresh_unit_cases": 10,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "approval_packet_invariants": {
+    "only_promoted_rows": [
+      "SC-015",
+      "SC-016"
+    ],
+    "other350_row_objects_unchanged": true,
+    "all32_bounded_technical_inputs_equal_f2081c55": true,
+    "native_RLS_concurrency_prefix_external_custody_not_inferred": true
+  }
 }
