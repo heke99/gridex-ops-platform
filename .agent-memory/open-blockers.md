@@ -1,3 +1,9 @@
+## Aktuellt läge — 2026-10-05 (ersätter 2026-10-01-överlämningen nedan)
+
+- Öppet: native-sviten är inte bevisad på exakt main `4ac9c64` (push-CI cancelled av concurrency; senaste avslutade main-körning `8f3b42f` success). Verifiera med nästa avslutade main-körning.
+- Öppet: 30 regelkort (25 NOT_VERIFIED, 5 PARTIAL) och 115 kontrakt (97 NOT_EXECUTED, 18 PARTIAL); slutkandidat ej fryst, heavy/final qualification NOT_RUN.
+- Inaktuellt: "387/583 native-fel" och "merga #426" (PR stängd, ersatt av #483–#490).
+
 ## Sparad överlämning — 2026-10-01 (aktuell)
 
 Användaren bad om commit/sammanfogning/publicering och ny chatt. Runtime/integrationsversion `d396c2284f692a84dc961ee04935acb40a69c908`, tree `f20f8d843042f8b725c417c4e55670bf4d2227ad`, branch `codex/ediel-composed-rules-20261001`; senare dokument-HEAD läses från Git. P15, OPS/ACK134500 och H142000 med terminal expression-materialization är färdiga och real-mergade. Slutkandidat inte fryst, qualifiedCodeSha=NULL och heavy/final qualification NOT_RUN. Main/#310/#418/#422 orörda; ingen ny PR.
