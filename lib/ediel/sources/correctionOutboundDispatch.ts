@@ -2,7 +2,7 @@ import {createHash,randomUUID} from 'node:crypto'
 import {supabaseService} from '@/lib/supabase/service'
 import {sendEdielEmail,type SendEdielEmailInput} from '@/lib/email/sendEdielEmail'
 import {tokenizeEdifact,segmentComposite} from '@/lib/ediel/core/edifactTokenizer'
-import {sendGenericFencedEdielEmail} from '@/lib/ediel/transport/outboundAttempt'
+import {createGenericEdielAttemptGate,sendGenericFencedEdielEmail} from '@/lib/ediel/transport/outboundAttempt'
 import type {EdielBusinessExpectationPlan,EdielTechnicalExpectationPlan} from '@/lib/ediel/businessExpectations'
 import type {EdielMeteringMethodExpectationPlan} from '@/lib/ediel/meteringMethodExpectationPolicy'
 import type {ProdatTransportRetryBasis} from '@/lib/ediel/recovery/transportRetry'
@@ -44,6 +44,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
  const identity={companyId:message.company_id,environment:message.environment,messageId:message.id,actorUserId:context.actorUserId,
   attemptId:randomUUID()}
  let callbackUsed=false,entryAttempted=false,prepared=false,scoped=false,resultCaptured=false
+ const generic:{gate:ReturnType<typeof createGenericEdielAttemptGate>|null}={gate:null}
  const call=async(action:string,extra:Record<string,unknown>={})=>{
   const {data,error}=await supabaseService.rpc('gridex_outbound_dispatch_v1',{p_input:{...identity,action,...extra}})
   if(error)throw error
@@ -71,8 +72,12 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
    if(!scoped){
     if(potential && !(reservation.unscopedReason==='canonical_lk_exemption' && message.rule_profile_key==='PRODAT:Z08:LK:26.A:r3'))
      throw Error('outbound_dispatch_scope_mismatch')
-    // LK exempt from H-specific closure evidence still belongs to the generic transport journal.
-    throw Error('outbound_dispatch_lk_generic_required')
+    // Select the generic owner inside this same archived-MIME/provider call.
+    // Starting another helper would archive/recompile the bytes a second time.
+    const gate=createGenericEdielAttemptGate(input,context)
+    generic.gate=gate
+    await gate.entry.beforeProviderCall(actual)
+    return
    }
    if(reservation.proceed!==true){
     const prior=acceptedReceipt(reservation.acceptedReceipt)
@@ -89,6 +94,7 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   }}
   const result=await sendEdielEmail(input,entry)
   if(!callbackUsed)throw Error('outbound_dispatch_callback_missing')
+  if(generic.gate)return await generic.gate.capture(result)
   if(scoped){
    const captured=await call('result',{result:smtpResultEvidence(result)})
    resultCaptured=true
@@ -99,8 +105,8 @@ export async function sendCorrectionFencedEmail(input:SendEdielEmailInput,contex
   }
   throw Error('outbound_dispatch_source_authority_missing')
  }catch(error){
+  if(generic.gate)return generic.gate.fail(error)
   if(error instanceof ReplayAccepted)return error.result
-  if(error instanceof Error&&error.message==='outbound_dispatch_lk_generic_required')return sendGenericFencedEdielEmail(input,context)
   if(scoped&&entryAttempted){
    if(!resultCaptured){
     // Failure to capture this observation leaves an entered, unresolved attempt.

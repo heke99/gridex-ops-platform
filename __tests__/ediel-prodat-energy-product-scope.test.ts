@@ -1,3 +1,4 @@
+// masterplan: P-07, AT-P-07
 // masterplan: SC-028
 import {it,expect} from 'vitest'
 import {evaluateIncomingProdatEnergyProduct} from '@/lib/ediel/prodat/prodatEnergyProduct'

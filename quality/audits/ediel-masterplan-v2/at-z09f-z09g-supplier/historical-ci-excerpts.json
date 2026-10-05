@@ -1,0 +1,37 @@
+{
+  "scope": "Existing historical finite method/source assertions, no whole Z09F/Z09G native acceptance",
+  "head": "01b11f55af710c3e6aad1f5a433631a88c702047",
+  "quality": {
+    "run": 37287095697,
+    "job": 111688500429,
+    "conclusion": "success",
+    "excerpts": [
+      "2026-10-05T09:03:08.7646144Z  ✓ __tests__/ediel-metering-method-change-source.test.ts (6 tests) 79ms",
+      "2026-10-05T09:03:30.9405676Z  ✓ __tests__/ediel-metering-method-journal-port.test.ts (3 tests) 11ms",
+      "2026-10-05T09:03:34.6911718Z  ✓ __tests__/ediel-metering-method-expectation-plan.test.ts (5 tests) 21ms",
+      "2026-10-05T09:03:34.7052276Z  ✓ __tests__/ediel-metering-method-change-flow.test.ts (2 tests) 7ms"
+    ]
+  },
+  "native": {
+    "run": 37287095697,
+    "job": 111688500421,
+    "conclusion": "success",
+    "excerpts": [
+      "2026-10-05T09:20:34.5772854Z  ✓ scripts/ediel-source-owner-native.test.ts (48 tests) 313203ms",
+      "2026-10-05T09:20:34.5808910Z    ✓ native full-original Z06/E64 approval is not partial safe-apply  6467ms",
+      "2026-10-05T09:20:34.5809724Z    ✓ native full-original Z06/E32 approval is not partial safe-apply  6269ms",
+      "2026-10-05T09:20:34.5812767Z    ✓ native Z06/E34 remains unavailable without a qualified death or counterparty bilateral owner  6114ms",
+      "2026-10-05T09:40:52.0841843Z  ✓ scripts/ediel-z06f-reading-followup-native.test.ts (8 tests) 58487ms",
+      "2026-10-05T09:41:23.4200866Z  ✓ scripts/ediel-requested-change-native.test.ts (5 tests) 2459ms",
+      "2026-10-05T09:42:05.3525858Z  ✓ scripts/ediel-requested-change-browser-native.test.ts (1 test) 10043ms",
+      "2026-10-05T09:42:05.3527947Z    ✓ actual archived issuer source, separate native review, qualified Z09 queue and interactive browser continuity  10041ms",
+      "2026-10-05T09:50:14.7071509Z  ✓ scripts/ediel-requested-change-browser-native.test.ts (1 test) 191ms"
+    ]
+  },
+  "limits": [
+    "Existing native Z06 code coverage is separate from customer-agreed outbound F/G origination and coupled queue path",
+    "Requested-change HMAC/ACL/refusal cases and death/browser flow do not qualify metering-method agreement success",
+    "Native follow-up tagged result is not physical SMTP/provider delivery",
+    "Input qualification and per-case scope must be checked before whole credit"
+  ]
+}

@@ -261,3 +261,11 @@ vara godkända i coverage.json innan nästa par påbörjas. Allt dokumenteras f�
 - #426 delas i staplade PR:er per regelområde (#483–#489); bara toppen bevisas grön, merge i ordning (användarbeslut 2026-10-03).
 - Ett masterplan-ID godkänns först när varje condition/on_pass/on_failure och AT expected/prohibited har asserterande test; kärnbeteende räcker inte (TEN-01/02/05/06, U-04, U-14 lämnade ogodkända 2026-10-04).
 - Användaren: stanna före fasen "två regler i taget" och lämna över till nästa agent med prompt.
+- 2026-10-04 TEN-09: explicit permission reuse obeys the same request timing (DSO network contract period + 3 years) as the coordinator; owner chose the conservative gate over Codex's 'old source-approved reuse may predate' reading.
+- 2026-10-04 P-08: valid receipt = positive APERAK on our bound Z09D confirms our own production-contract event (owner choice over 'not applicable for supplier').
+
+## 2026-10-04 — Masterplan readings (P-06, U-11, U25-A-4/A-5)
+- U25-A-5 is not a separate edition: masterplan §2.1/G07 says the uploaded U footer reads 25-A-5 despite cover revision 4 (registered source conflict). U cards stay on U25-A-4.
+- P-06 "ändra inte alla ZZZ globalt" = E012: fix only the NAD+UD end-user agency to 260; keep other legitimate ZZZ (field 206 DTM+ZZZ:1:805).
+- U-11: E30 is a disabled (non-production) capability for DDQ/DGI (§9). U-11 only scopes E90/E97/E98 away from individual E66 and keeps them for aggregates; aggregate value limits are CV-U-FN-* rules behind G02.
+- Owner rule (2026-10-04): open interpretation questions are answered first by re-reading the project's purpose and MASTERMASTERPLAN_v2 + annexes A–E (incl. E-findings, §20 gates G01–G07); only ask the owner when the sources truly leave it open.
