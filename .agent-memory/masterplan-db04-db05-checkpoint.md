@@ -33,3 +33,11 @@
 - coverage.json: DB-05 VERIFIED, AT-DB-05 PASSED; `--check` exit 0, 352 IDs, approved 215, 0 failing.
 - Non-blocking follow-ups (from review): add ediel_messages/ediel_ack_transaction_results to gridex_company_retained_history_v1; CI assertion that every FK child of companies/customers carries gridex_history_truncate_guard; non-customer retention classes are PGlite-only (legal activation separate gate).
 - Still for root: schema.sql/fingerprint/types regen for migration 20261005130000; DB-04 native-only approval decision. Status: branch-approved, CI-green (native workflow), NOT merged, no PR.
+
+## 2026-10-05 ~16:00Z PR opened — heke99/gridex-ops-platform#599 (current)
+- Branch claude/magical-cerf-55zxau head 37c4f325a; origin/main 8638065 merged in (only handover.md conflict, both sides kept); stray .lc-probe.tmp.mjs removed.
+- Merged-head checks: db:migrations:integrity PASS; PGlite guard 14/14; retention wrapper PASS; coverage --check exit 0 (352/229 approved/0 failing).
+- Reviewer (agent a64e54f88e7412af9) asked to confirm APPROVE holds for PR head and to release the DB-05 review lane; confirmation pending -> record result below.
+- #530 READY comment 5997942561. Session subscribed to PR #599 events; I own #599 CI/review follow-up.
+- Before merge (root): schema.sql/fingerprint/types regen for 20261005130000; DB-04 native-only decision.
+- Next: handle #599 CI; record reviewer confirmation; then take the next free pair from #530.
