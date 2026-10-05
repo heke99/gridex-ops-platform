@@ -10,7 +10,7 @@
   "changed_runtime_dependencies": [],
   "merge_tree_preview": "2a94781acaf4278df56d53e2ae986975cd763018",
   "merge_preview_conflicts": false,
-  "CI_status": "Current bbf89 completed applicable checks SUCCESS except ordinary clean/native retry QUEUED; not ready to merge.",
+  "CI_status": "Remaining ordinary clean/native job111799783499 nowIN_PROGRESS observed14:31:53UTC; othercompletedchecksSUCCESS, no wholejobapprovaluntilterminalgreen.",
   "CodeRabbit_status": "success",
   "branch_protection_read": {
     "status": 403,
@@ -22,15 +22,18 @@
   "next_independent_work": "Scout+reviewer qualify complete unreserved acceptance/scenario consumer paths read-only; no newclaim/test/coveragechanges whilethisATactive.",
   "retained_SC010": "Immutableproducer570/9b50genuineancestorof5035be; all7pins/twoadmissionsqualified, authenticcaptureZIP37a62/nativeZIPe246independentreviewFINALe990. WholeboundedSC010behaviorwitnessed; sole503postimport/composedcanonical/native/clean-upgrade/currentheadgatespending. Evidence-onlycheckpoint3e104be14823e207c8f8f9b3aeb11c0912da9e6d publishedexistingcheckpointref; source5709b50unchanged.",
   "latest_main_recheck": {
-    "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+    "main": "7b158e79ca58fdf7a9b3a77ece035c6b81790bbd",
+    "recorded_at": "2026-10-05T14:28:10.233346+00:00",
+    "approved": 217,
     "runtime_dependency_changes": [],
-    "P04_source_pin_changes": [],
+    "foreign_changed_files": 48,
     "mergepreview_exit": 0,
-    "mergepreview_tree": "58d9d682e9e33e1b111b7bc596f13d5c7c9a757c",
-    "integration": "PENDINGcurrent-headCI",
-    "approved": 217
+    "mergepreview_tree": "c4bda4a2d3cce7804fb2cacc835eac6f4c1c3c91",
+    "integration": "PENDINGcurrent-headordinaryclean/nativeCI",
+    "P04_source_pin_changes": [],
+    "P04_pins_checked": 20
   },
-  "updated_at": "2026-10-05T14:23:00Z",
+  "updated_at": "2026-10-05T14:33:01.080643+00:00",
   "latest_completed_checks": {
     "targeted-regressions": {
       "job": 111787430533,
@@ -86,7 +89,7 @@
       "run": 37317382626,
       "attempt": 2,
       "job": 111799783499,
-      "status": "QUEUED observed14:10UTC",
+      "status": "IN_PROGRESS observed14:31:53UTC; previouslyqueuedwithoutassignedrunner",
       "head": "bbf89d53f62b495739097601133bea30007d5dfb",
       "scope": "Only existing cancelled clean/native job requested; no source/workflow/gate mutation."
     },
@@ -126,5 +129,21 @@
   "documentation_whitespace_verification": {
     "initial": "Cachedcheckexit2 fourauthoredMDwhitespacewarnings; soleauthorfixed onlythreeemptyEvidence trailing spaces/oneblankEOF, refrozehashes; rawsnapshots preserved.",
     "final": "Fullnewcached diffcheckexit0; sourcePRbbfrawconsoleEOFwarnings remain separatelyhistorical."
+  },
+  "historical_main_rechecks": [
+    {
+      "main": "3dff03dd8bb8c251b1613d35ce6fc7e66e6ee686",
+      "runtime_dependency_changes": [],
+      "P04_source_pin_changes": [],
+      "mergepreview_exit": 0,
+      "mergepreview_tree": "58d9d682e9e33e1b111b7bc596f13d5c7c9a757c",
+      "integration": "PENDINGcurrent-headCI",
+      "approved": 217
+    }
+  ],
+  "metadata_checkpoint_custody_review": {
+    "report": "next-preflight/checkpoint-publication-custody-review.md",
+    "sha256": "35bc754ccb5430da453870c83443423ea3b47bd5a879acefcc44bb5be9098179",
+    "scope": "39SC+75ATownedmetadata allowlists, exactprobe/report refs and67scoutgzip+native log custody; no source/SQL/coverage/shared changes."
   }
 }
