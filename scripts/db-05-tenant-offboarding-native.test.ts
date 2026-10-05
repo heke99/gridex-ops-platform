@@ -38,7 +38,7 @@ it('closes a tenant by winding down and revoking access while keeping history, a
     INSERT INTO public.customers(id,company_id,email) VALUES ('${customer}','${company}','db05-customer@example.invalid');
     INSERT INTO public.customer_events(company_id,customer_id,event_type) VALUES ('${company}','${customer}','customer.created');
     INSERT INTO public.canonical_audit_events(company_id,event_type,aggregate_type,aggregate_id,idempotency_key) VALUES ('${company}','db05.seed','company','${company}','db05-seed');
-    INSERT INTO public.billing_underlays(id,company_id,status) VALUES ('${underlay}','${company}','pending');
+    INSERT INTO public.billing_underlays(id,company_id,customer_id,status) VALUES ('${underlay}','${company}','${customer}','pending');
     SELECT json_build_object('before',${counts},
       'unauthorised',pg_temp.try($q$SELECT public.canonical_transition_tenant_lifecycle('${company}','closed',(SELECT lifecycle_state_version FROM public.companies WHERE id='${company}'),'db05','${outsider}','db05-outsider')::text$q$),
       'blocked',pg_temp.try($q$SELECT public.canonical_transition_tenant_lifecycle('${company}','closed',(SELECT lifecycle_state_version FROM public.companies WHERE id='${company}'),'db05','${admin}','db05-blocked')::text$q$));
