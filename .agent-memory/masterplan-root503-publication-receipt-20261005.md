@@ -259,3 +259,33 @@ metadata7pathdelta, notsource/newnative/CI; root's5786002657858requestsoriginal
 currentcaller-extendedruntime/inputfreeze andcompleteSC068/twooracle disposition.
 The originalowner retainsallcorrection/currentqualification, rootretainsONE
 combinedcapture afterqualifiedhandoffs. No newMasterplanworkorprivateexport.
+
+
+Actual #520 delivered22:54:07UTC atmain1a1a2e45/tree264b9568, orderedparents
+9538+source17c. Original owner all9 and serial turn5306004846238 were qualified
+before normal merge. Root authenticates actual PR/commit and completeTWO MD
+postimages only, without duplicate CI or merge. Genuine coordinator carrydb72
+resolves its handover append conflict by retaining ALL39 prior ACTUAL markers,
+all owned handover bytes and the complete incoming historicDB finding. Current
+sole common handover adds ONE520 marker,40unique. Actual source/SQL1073/gen/
+native/workflow/352coverage/main271 remain unchanged. Original520's postcheck
+and release remain owner-authored; its released32DOC packet818fd66d stays in
+retained final-common-adopter queue, not duplicated by this root.
+
+Independent current612 source-only guard a3a43aef refreshes ONLY the TWO incoming
+520MD postimages from previous907 proof. ONE merge-tree1a+6d is conflict-free,
+expectedtree5f61a80b764ff3c389c3f9d7df3b05be64c9504c, same68owned612tuples
+and8638foreignmain entries; original61113 exact. Prior fivechecker/60input/
+SQL1073/352coverage/main271/gen/native/workflow/test/canonical454ENV07+2fSC068
+proofs reused via unchanged source and complete two-path delta, no repeated
+source/AST/raw/control/native/CI execution. Raw5753B peer JSON retained byte-
+exact in this OWN audit. Eight of nine required gates were SUCCESS at assignment;
+clean replay still belongs to the SAME sole6d observer. This is SOURCE_ONLY_READY,
+not all9/actual merge or a final common main baseline.
+
+Original IMP05 public branch now d020d7ec804d827615487d43f4f59f3ba33eca0c,
+with genuine orderedparents1f8+b83 and a declared protectedNULL raw-birth
+correction. Public branch movement is not an author qualification/input freeze;
+no corrective source/raw/native is admitted to combined capture yet. Original
+Staff578 currentebf caller qualification, wholeSC068/two-oracle adoption and
+current input freeze remain with its source owner. No new Masterplan rule starts.
