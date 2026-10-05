@@ -2,7 +2,9 @@ import type { NextRequest } from 'next/server'
 import { ApiInputError } from '@/lib/api/strictRequest'
 import { ROLE_PERMISSION_PROFILES, getRoleProfilePermissions, hasPermissionRequirement, type PermissionRequirement } from '@/lib/admin/accessModel'
 import { verifyCustomerAssertion, type CustomerIdentityProvider } from '@/lib/customer-portal/customerAssertion'
-import { requireIntegrationApiAccess, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { integrationCredential, requireIntegrationApiAccess, type IntegrationApiClient } from '@/lib/integrations/apiAuth'
+import { parsedStaffIdentityBinding, readStaffAssertionClaims, staffIdentityAuthorityCommand, validateCurrentStaffIdentityBinding } from '@/lib/staff-api/identityAuthority'
+import { registeredStaffTenantAuth } from '@/lib/staff-api/tenantAuth'
 import { isPlatformAdminRole, normalizeRoleKey } from '@/lib/rbac/roleKeys'
 import { tenantInsert, tenantSelect } from '@/lib/supabase/tenantQuery'
 import { tenantDb } from '@/lib/supabase/tenantDb'
@@ -89,10 +91,12 @@ export type StaffContextDependencies = {
   loadMembership: typeof activeMembership
   loadOverrides: typeof permissionOverrides
   consumeJti: typeof consumeStaffJti
+  validateBinding: typeof validateCurrentStaffIdentityBinding
 }
 const dependencies: StaffContextDependencies = {
   apiAccess: requireIntegrationApiAccess, loadProvider: loadStaffIdentityProvider,
   loadMembership: activeMembership, loadOverrides: permissionOverrides, consumeJti: consumeStaffJti,
+  validateBinding: validateCurrentStaffIdentityBinding,
 }
 
 export function createStaffApiContextResolver(ports: StaffContextDependencies) {
@@ -109,6 +113,10 @@ export function createStaffApiContextResolver(ports: StaffContextDependencies) {
     }
     const token = request.headers.get(STAFF_ASSERTION_HEADER)?.trim()
     if (!token) throw new ApiInputError('A signed staff assertion is required.', 'staff_assertion_missing', 401)
+    const claims = readStaffAssertionClaims(token)
+    if (claims?.token_use !== undefined && claims.token_use !== 'staff_access') {
+      throw new ApiInputError('The assertion cannot be used for Staff API access.', 'staff_assertion_purpose_invalid', 401)
+    }
     const provider = await ports.loadProvider(auth.client.company_id)
     if (!provider) throw new ApiInputError('No active staff identity provider is configured.', 'staff_provider_missing', 403)
     if (provider.company_id !== auth.client.company_id || provider.subject_claim !== 'sub' || provider.enforcement !== 'enforce') {
@@ -120,6 +128,23 @@ export function createStaffApiContextResolver(ports: StaffContextDependencies) {
       consumeJti: (jti, expiresAt) => ports.consumeJti(auth.client.company_id, jti, expiresAt),
     })
     if (!assertion.ok) throw new ApiInputError('The staff assertion is invalid.', `staff_assertion_${assertion.reason}`, 401)
+    if (Object.hasOwn(auth.client.metadata ?? {}, 'staff_tenant_auth')) {
+      const registration = registeredStaffTenantAuth(auth.client, auth.client.company_id, auth.client.id, options.scopes[0])
+      if (!claims || claims.token_use !== 'staff_access' || claims.company_id !== auth.client.company_id
+        || typeof claims.local_auth_subject !== 'string' || !UUID.test(claims.local_auth_subject)
+        || claims.local_auth_issuer !== registration.authIssuer) {
+        throw new ApiInputError('The independent staff binding is invalid.', 'staff_identity_binding_invalid', 401)
+      }
+      const expectedBinding = parsedStaffIdentityBinding({ actor_user_id: assertion.subject, binding_id: claims.staff_binding_id, binding_version: claims.staff_binding_version })
+      const credential = integrationCredential(request)
+      if (!expectedBinding || !credential.ok) throw new ApiInputError('The independent staff binding is invalid.', 'staff_identity_binding_invalid', 401)
+      const binding = parsedStaffIdentityBinding(await ports.validateBinding({
+        ...staffIdentityAuthorityCommand(auth.client, provider, registration, claims.local_auth_subject, credential.token), ...expectedBinding,
+      }))
+      if (!binding || binding.actor_user_id !== assertion.subject || binding.binding_id !== expectedBinding.binding_id || binding.binding_version !== expectedBinding.binding_version) {
+        throw new ApiInputError('The independent staff binding is no longer active.', 'staff_identity_binding_invalid', 403)
+      }
+    }
     const membership = await ports.loadMembership(auth.client.company_id, assertion.subject)
     if (!membership || membership.user_id !== assertion.subject || membership.status !== 'active' || membership.is_active !== true) {
       throw new ApiInputError('The staff account has no active membership in this organization.', 'staff_membership_inactive', 403)

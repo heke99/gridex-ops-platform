@@ -1,0 +1,168 @@
+{
+  "status": "PASS_AUTHENTIC_CAPTURE_IMPORT_AND_NON_SCHEMA_MAIN_COMPOSITION_SOURCE_ONLY",
+  "reviewed_at": "2026-10-05T14:07:02.248326+00:00",
+  "capture_source": {
+    "commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
+    "run_id": 37318392819,
+    "attempt": 1,
+    "job_id": 111790870222,
+    "artifact_id": 11349745078,
+    "zip_sha256": "ec7ca64ff88d51081d3457bf2d73845bd795cf32c9141750c07b2a188e923a46",
+    "zip_size": 1628104,
+    "expires_at": "2026-10-19T13:45:48Z",
+    "receipt_sha256": "1542040be4bd30fc68991905a334fd56e99baa88d896755e12f7c02b9daa0dc8",
+    "generated_sha256": {
+      "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd"
+    },
+    "canonical_fingerprint": "5fc5bc995d4a0025f4352ff49d280f3440612776947d0a00be144f6876e511f1",
+    "input_count": 8,
+    "union_migration_count": 1068,
+    "latest_migration": {
+      "name": "20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
+    }
+  },
+  "independently_completed_checks": [
+    "Raw GitHub run/job/artifact success, exact repo/branch/head/tree/attempt1",
+    "Published digest, file length, expiry, CRC, four safe regular ZIP members and extracted byte equality",
+    "Exact eight frozen source inputs, union1068, latest c6bf migration/source hash",
+    "Raw three outputs byte-equal e286/7dc Git blobs and files; raw capture receipt imported unchanged",
+    "Canonical fingerprint and exactly eight expected section changes",
+    "Existing dump objects unchanged except four source-bound body-only changes; repeated default ACL entries compared independently",
+    "Fifteen new function bodies byte-equal source; nine service-only RPC ACLs; new tables RLS enabled/no policies",
+    "Types add3tables/13RPCs; old entries byte-equal",
+    "All inherited historical manifest fields preserved; prior compact capture and whole original/preimport Git pointers authenticated",
+    "Exact new main delta byte-preserved with genuine e286+665 parents; no migrations/raw3/eight producer changes by main",
+    "Final e545 changes only root evidence/checkpoint and one corrected scope description; runtime/raw3 unchanged"
+  ],
+  "import": {
+    "commit": "e286ad56870a361ed598a775094c06716bf4d996",
+    "tree": "86fd6beb6ea2f6d84420a401fc17861bdebfe473",
+    "three_outputs_and_raw_receipt_byte_equal": true,
+    "all_prior_history_fields_preserved": true,
+    "compact_previous_capture_preserved": true,
+    "whole_prior_and_preimport_manifest_pointers_authenticated": true,
+    "current_manifest_sha256": "832f0d31c229484f95a39ee6a7006bfa3c8754246433ad9baddca100c7907233",
+    "capture_origin_remains64c_not_composition": true,
+    "stale_current_scope_corrected_by_root": true
+  },
+  "schema_delta": {
+    "new_dump_objects": 76,
+    "removed_dump_objects": 0,
+    "existing_body_only_changes": [
+      "authenticate_integration_request_v1",
+      "canonical_accept_tenant_invitation",
+      "gridex_assert_staff_command_v1",
+      "gridex_staff_assert_write_actor_v1"
+    ],
+    "four_exact_predecessor_hashes_and_replacements_verified": true,
+    "new_function_bodies": 15,
+    "new_tables": [
+      "tenant_staff_actor_anchors",
+      "tenant_staff_identity_deliveries",
+      "tenant_staff_identity_bindings"
+    ],
+    "new_public_triggers": 6,
+    "new_type_entries": 16,
+    "old_type_entries_byte_equal": true,
+    "other_existing_dump_objects_byte_equal": true,
+    "new_table_rls_enabled_no_policies": true,
+    "new_service_only_rpcs": 9,
+    "fingerprint_section_count_deltas": {
+      "columns": [
+        14318,
+        14350
+      ],
+      "constraints": [
+        4477,
+        4511
+      ],
+      "function_grants": [
+        3593,
+        3617
+      ],
+      "functions": [
+        2066,
+        2081
+      ],
+      "indexes": [
+        2921,
+        2939
+      ],
+      "relation_grants": [
+        16603,
+        16627
+      ],
+      "relations": [
+        964,
+        967
+      ],
+      "triggers": [
+        1131,
+        1137
+      ]
+    }
+  },
+  "composition": {
+    "commit": "7dc45526b27ca5edd651ff3fd44c55d483f3fc15",
+    "tree": "54e87cab65d7558dc0fb9d8aa30f4b0fc3fa5572",
+    "parents": [
+      "e286ad56870a361ed598a775094c06716bf4d996",
+      "665e6e9be107caae63ed79e3044cc2e41afe5269"
+    ],
+    "merge_base": "85b6d6602ab0d060a86702847641156470f73234",
+    "main_delta_paths": 180,
+    "main_delta_exact_byte_preserved": true,
+    "no_migrations_raw3_or_producer_inputs_changed_by_main": true,
+    "seven_non_manifest_inputs_equal_capture_source": true
+  },
+  "reviewed_final_source": {
+    "commit": "e545c9f4ebc98119ba7e256180ba94d856171405",
+    "tree": "31edb9c97c8ba70b83cc1723ed2907a8ac105c45",
+    "parent": "7dc45526b27ca5edd651ff3fd44c55d483f3fc15",
+    "delta_paths": 13,
+    "only_safe_root_evidence_checkpoint_and_scope_description": true,
+    "runtime_and_raw3_unchanged": true,
+    "native_acceptance": "PENDING_FRESH_FINAL_REQUIRED_CI"
+  },
+  "safe_metadata_sha256": {
+    "tenant-split-capture-artifacts.raw-metadata.json": "b203de28b7feb2a1feae962845dd474c7d63fc470558661bae6a12b505558be5",
+    "tenant-split-capture-run.raw-metadata.json": "84dc28f1cc5d761492f27f005b1a9f6eacac27792c9cb180f558580f26642931",
+    "tenant-split-capture-jobs.raw-metadata.json": "318ef9726754afb8dc0b72e02e84bf87ed096d22a8eb59157d1e8948f90780e5"
+  },
+  "root_artifact_receipt_sha256": "760a2dcc21484bf5fb5f97433b8c577e04e4d57a17760cbd62783d85014182f0",
+  "limitations": [
+    "Capture native/browser/type-schema-comparison/upgrade are NOT_RUN; fresh final composed-source CI/native/upgrade remain mandatory.",
+    "Public+gridex snapshot excludes managed Auth trigger installation; local whole-source SQL qualification does not replace actual native/hosted qualification.",
+    "Tenant-private SQL and WEB deployment/runtime are separate from OPS capture.",
+    "Raw outputs mean authentic producer-uploaded bytes after documented nullability overrides, not pre-override CLI bytes.",
+    "No hosted writes, production activation, email delivery or production data verification performed."
+  ],
+  "findings": [
+    {
+      "field": "composition_capture_pending_scope",
+      "severity": "description",
+      "status": "CORRECTED_BY_ROOT_BEFORE_PUBLICATION"
+    }
+  ],
+  "critical_important_blockers": [],
+  "review_process": {
+    "tests": 0,
+    "replays": 0,
+    "generation": 0,
+    "hosted_calls": 0,
+    "repository_mutations_by_reviewer": 0,
+    "artifact_archive_authentication": 1,
+    "analysis_adjustments": [
+      "Preserved repeated DEFAULT ACL header occurrences using multimap instead of unique object assertion.",
+      "Allowed root scope-description correction while retaining original historical value at imported commit.",
+      "Root committed final e545 during read-only review; separately checked its safe13path delta."
+    ]
+  },
+  "skill_routing": {
+    "supabase": "Read guidance; apply schema/auth/ACL scope checks to bounded offline review."
+  }
+}

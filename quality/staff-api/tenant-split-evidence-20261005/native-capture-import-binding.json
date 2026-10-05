@@ -1,0 +1,31 @@
+{
+  "status": "AUTHENTIC_CAPTURE_IMPORTED_FINAL_NATIVE_PENDING",
+  "source_commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+  "source_tree": "f1cbded81056ef412aeba4b4d3862d8ba23f0637",
+  "latest_migration": {
+    "name": "20261005124901_tenant_staff_external_identity_bindings.sql",
+    "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3"
+  },
+  "generated_files_raw_sha256": {
+    "database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd"
+  },
+  "receipt_raw_sha256": "1542040be4bd30fc68991905a334fd56e99baa88d896755e12f7c02b9daa0dc8",
+  "preimport_manifest": {
+    "commit": "64c9c652c8033998c239ea2a7019c4d724604bbd",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "83ec1e02635b369fe41d44525f1577387b4da4a6",
+    "sha256": "6318d0ea43a935cab4dca6947f1eb712779f3d22d1cb8f8375f037eb79e818fb",
+    "scope": "Exact unchanged pre-import manifest captured by the authentic producer; immutable previous complete4fd manifest is separately retained."
+  },
+  "prior_complete_manifest": {
+    "source_commit": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "path": "scripts/supabase-types-manifest.json",
+    "git_blob": "f700f064ff1f054407d60d6853a34469c70164f3",
+    "sha256": "b626d291a0b9c9c759ac227e2d06d606e94da5c05750ee0f591e20500dcf4325",
+    "scope": "Historical complete generated manifest remains reachable in Git; prior capture/source evidence is preserved."
+  },
+  "all_three_imported_raw_byte_equal": true,
+  "native_acceptance": "PENDING; NOT_RUN capture flags preserved"
+}

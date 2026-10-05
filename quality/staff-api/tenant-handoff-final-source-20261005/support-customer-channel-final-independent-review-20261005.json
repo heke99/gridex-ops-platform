@@ -1,0 +1,145 @@
+{
+  "status": "PASS_INDEPENDENT_SOURCE_REVIEW_AND_LOCAL_QUALIFICATION_BOUNDARIES",
+  "reviewed_at": "2026-10-05T14:58:09.509336+00:00",
+  "scope": "Final bounded OPS Customer DTO correction and WEB canonical Customer-to-Staff handoff/inquiry fidelity closure; independent static/source review only.",
+  "source_identity": {
+    "ops_base_commit": "e545c9f4ebc98119ba7e256180ba94d856171405",
+    "ops_base_tree": "31edb9c97c8ba70b83cc1723ed2907a8ac105c45",
+    "ops_two_reviewed_worktree_files": {
+      "lib/customer-service/supportConversation.ts": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+      "__tests__/support-detail-openapi-schema.test.ts": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37"
+    },
+    "web_product_commit": "426da64d86562620061b2876fcaebad8806b40f2",
+    "web_product_tree": "f9bbd1d5b756f36bd3bcbd819a3547185c477b58",
+    "web_two_postcommit_test_only_files": {
+      "tests/fixtures/support-runtime.mjs": "03da85a071372e7667700d981eb0ef4822fcffce04ad9b008f6872ffc1f217e9",
+      "tests/customer-support-handoff.test.mjs": "0e79c2a19df16c8ff5115cda2f7168b831c3a54fa2e22c9ac627b50cc52e94a4"
+    },
+    "qualification_is_file_hash_bound_not_claimed_as_future_commit_ci": true
+  },
+  "closed_finding": {
+    "id": "PUBLIC_CASE_CHANNEL_CONTRACT_MISMATCH",
+    "severity": "Important",
+    "status": "FIXED_IN_REVIEWED_SOURCE_AND_LOCALLY_QUALIFIED",
+    "before": "Real Staff case metadata channel staff_api escaped into Customer Case/list/detail DTOs, violating the frozen Customer enum and causing runtime schema rejection.",
+    "after": "Only public projection maps staff_api to admin, preserves the five documented values, and closes unknown or malformed values to null.",
+    "verified_invariants": [
+      "Actual exported publicSupportCase and actual Staff DTO invoked by new tests; no copied mapper/mock.",
+      "Current and immutable 2026-10-04.1 Customer Case/list/detail schemas use the real response validator.",
+      "Stored input row and Staff DTO retain staff_api; internal Staff descriptions stay hidden; explicit customer original-description visibility stays unchanged.",
+      "All prior existing schema/release assertions retained; 14 additive cases.",
+      "No authorization, persistence, DDL, generated artifacts or public contract change."
+    ],
+    "owner_qualification": {
+      "path": "/tmp/gridex-staff-review/support-public-channel-contract-qualification.json",
+      "sha256": "20995a7c233aee927a91ce88d9c77ff5b7b881784a5463968d256dbfe5ab440c"
+    },
+    "observed_owner_results": {
+      "red": {
+        "tests": 25,
+        "passed": 21,
+        "failed": 4
+      },
+      "green": {
+        "tests": 67,
+        "passed": 67,
+        "failed": 0
+      },
+      "full_test_types": "PASS",
+      "scoped_lint_zero_warnings": "PASS",
+      "diff_check": "PASS"
+    },
+    "protected_inputs_hashes": {
+      "supabase/schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "lib/staff-api/cases.ts": "d7cf62f3d36822b4f7cec891567578ce51e97894671ea6d21847a075eb64b806",
+      "docs/openapi/customer-portal-v1.json": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc"
+    },
+    "protected_inputs_byte_equal_to_e545_head_independently_checked": true
+  },
+  "web_final_source_verdict": {
+    "status": "PASS_NO_REMAINING_CRITICAL_IMPORTANT_FINDING_IN_REVIEWED_SLICE",
+    "product_sources_byte_equal_to_prior_scoped_review": true,
+    "fidelity_owner_receipt": {
+      "path": "/tmp/gridex-staff-review/customer-support-final-fidelity-qualification.json",
+      "sha256": "6ea83b743798f322e8ce24b23690d4a10aedc1241cda0f732790c08a4f86ec09"
+    },
+    "checks": [
+      "Customer central event author_user_id and Staff-facing kind are null; local verified Auth identity is only for Customer traffic and ownership.",
+      "Real customer event types, public event references and exact public event allowlist plus visibility match actual OPS source; misleading technical event is excluded.",
+      "Actual Customer service traverses opaque API cursor pages; dashboard preserves the returned page without silent slicing.",
+      "Staff-created case fixture ownership derives from exactly one explicit existing canonical customerReference-to-localAuth binding, without email/name/default/central-local UUID equality.",
+      "Ninth real-client/actions/service flow checks public Staff reply visibility, hidden internal description/notes, immutable Customer schemas and foreign404 without effects.",
+      "Readonly own-tenant anonymous inquiries require fresh central Staff cases.read, fixed named Prod service access, exact source and null-user filters, and a closed unverified-contact DTO; no automatic customer linking, canonical copying or mutation.",
+      "Marketing app is preserved; independent support app keeps its own login and tenant/central identity boundary."
+    ],
+    "owner_targeted_joined_tests": {
+      "tests": 9,
+      "passed": 9,
+      "failed": 0
+    },
+    "owner_existing_staff_action_tests": {
+      "tests": 21,
+      "passed": 21,
+      "failed": 0
+    },
+    "root_final_offline_support_suite": {
+      "status": "PASS_RECORDED_NOT_RERUN_BY_REVIEWER",
+      "tests": 121,
+      "passed": 121,
+      "failed": 0,
+      "evidence": {
+        "path": "/tmp/gridex-staff-review/customer-handoff-final-fidelity-support-tests.log",
+        "sha256": "ee46b94baa090f769a22bee75a7c8d8849bc11c9597bfb5e9d942d664c98af72"
+      }
+    },
+    "root_final_offline_browser": {
+      "status": "PASS_OFFLINE_BROWSER",
+      "checks": 23,
+      "errors": 0,
+      "production_data": false,
+      "tenant_auth_project": "ayiuxjlfazkjmmtlvhsl",
+      "central_api_project": "piidsfebjqjmnepdpnas",
+      "evidence": {
+        "path": "/tmp/gridex-support-final-fidelity-browser-evidence/verification.json",
+        "sha256": "6bc7d2570a3ed8816176ba59a6520744e98df95f8be2ff10a86c8112068f0fbe"
+      },
+      "root_log": {
+        "path": "/tmp/gridex-staff-review/customer-handoff-final-fidelity-browser.log",
+        "sha256": "6c3dcee164d1ef2fe0195ac8e4050679deeb800d3e0e5b347dae30892c371b12"
+      },
+      "source_binding_limit": "Browser verification JSON does not independently embed a commit or source hash; this is root-reported final offline qualification with reviewed current file hashes and its separate run log, not a future published-head CI claim."
+    }
+  },
+  "related_reviews": {
+    "ops_four_additive_captured_authority_fixture_closure": {
+      "path": "/tmp/gridex-staff-review/staff-captured-identity-authority-fixture-independent-review-20261005.json",
+      "sha256": "997b24cb3a81e280aee0810c93c37999bbfba979c3c45810f323b8bc66077aab"
+    },
+    "prior_web_source_supplement": {
+      "path": "/tmp/gridex-staff-review/support-customer-handoff-inquiries-final-source-supplement-20261005.json",
+      "sha256": "346672b6ed231e11fd14447ecd5d7fb84bde2292050f67e1da44f8fa85a021f5",
+      "scope": "Historical pending-fix review retained unchanged; this receipt closes its channel finding rather than relabeling it."
+    }
+  },
+  "remaining_activation_and_evidence_limits": [
+    "Root still owns final exact-source commit/CI/native qualification; old e545 native and old426 browser proofs are not relabeled to future changed heads.",
+    "No hosted API/DB/Auth/provider/domain/config/email operations were performed by this reviewer; no production activation inferred from offline synthetic tests.",
+    "Actual Customer assertion-mode policy, customer account binding, intended company/API key and support scopes must be verified before activation; the current Customer transport does not produce a signed Customer assertion.",
+    "Staff provider, fresh tenant-to-central actor binding, central company membership/scopes, and private tenant inquiry service configuration remain operational prerequisites.",
+    "Customer messages are nonpaged and capped at500; no full conversation proof beyond that cap. Legacy authenticated local support tickets are not migrated or copied to canonical cases.",
+    "The fixture models external API persistence and authorization; the browser proof is local synthetic, not SQL/RLS/managed-Auth/live email or actual hosted backend qualification."
+  ],
+  "open_critical_important_source_findings": [],
+  "reviewer_actions": {
+    "tests_reexecuted": 0,
+    "generation_or_replays": 0,
+    "HTTP_calls": 0,
+    "hosted_calls": 0,
+    "private_state_reads": 0,
+    "source_edits": 0,
+    "receipt_files_written": 1
+  }
+}

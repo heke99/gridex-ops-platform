@@ -1,0 +1,4 @@
+/** Shared by the native fixture and its focused regression. */
+export function assertUtiltsConsumptionPartiesBound(raw: string, _parties: { ediel: string; issuer: string }): void {
+  if (raw.includes('21660') || raw.includes('91100')) throw new Error('native_consumption_parties_unbound')
+}

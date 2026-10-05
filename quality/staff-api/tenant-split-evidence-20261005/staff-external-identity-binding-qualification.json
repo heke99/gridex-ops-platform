@@ -1,0 +1,125 @@
+{
+  "status": "LOCAL_SQL_QUALIFIED_NATIVE_AND_HOSTED_PENDING",
+  "created_at": "2026-10-05T13:29:32.410085+00:00",
+  "source_base": {
+    "commit": "4fd1b0447400bcfaa0381524c575383eba966297",
+    "tree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+    "worktree": "/workspace/gridex-support-portal-ops",
+    "owned_paths_only": [
+      "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "scripts/staff-external-identity-binding-regression.sql",
+      "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "__tests__/staff-external-identity-sql.test.ts"
+    ]
+  },
+  "sources": {
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": {
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "bytes": 39367
+    },
+    "scripts/staff-external-identity-binding-regression.sql": {
+      "sha256": "4297b6c1eca57a51a6732fce65295d8fd0acc0c3a2e9de04df0838d885febe12",
+      "bytes": 25450
+    },
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": {
+      "sha256": "be645db1ce40defa8ae74b0b3c3f722dd7ab99ff452dcf6af56184271c31a8cb",
+      "bytes": 5460
+    },
+    "__tests__/staff-external-identity-sql.test.ts": {
+      "sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "bytes": 7621
+    }
+  },
+  "logs": {
+    "staff-external-identity-red.log": {
+      "sha256": "b93b755a1e5f6f001fd469d59383b089eb9849f6eee4182870b116902be9edb5",
+      "bytes": 14492
+    },
+    "staff-external-identity-green.log": {
+      "sha256": "98ebccc932e09d3620654f43046971d0def5dcef2b52e23123ff497466b5ebad",
+      "bytes": 219
+    },
+    "staff-external-identity-lint.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "staff-external-identity-types.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "checks": {
+    "feature_red": {
+      "status": "EXPECTED_FAILURE",
+      "tests": 1,
+      "failed": 1,
+      "start": "2026-10-05T12:53:23Z",
+      "observed_error": "function public.gridex_staff_tenant_onboarding_ready_v1(jsonb) does not exist",
+      "fixture_setup_completed": true
+    },
+    "focused_actual_sql_green": {
+      "status": "PASS",
+      "files": 1,
+      "tests": 7,
+      "failed": 0,
+      "start": "2026-10-05T13:23:16Z",
+      "duration_seconds": 6.53,
+      "node": "22",
+      "runner": "Vitest/PGlite",
+      "actual_entire_forward_and_native_script_executed": true
+    },
+    "full_test_types": {
+      "status": "PASS",
+      "command": "tsc --noEmit -p tsconfig.tests.json",
+      "exit_code": 0,
+      "session_id": 72657
+    },
+    "scoped_typescript_eslint": {
+      "status": "PASS",
+      "max_warnings": 0,
+      "path": "__tests__/staff-external-identity-sql.test.ts",
+      "exit_code": 0
+    },
+    "commonjs_fixture_syntax": {
+      "status": "PASS",
+      "command": "node22 --check scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "note": "CJS file is ignored by repository ESLint; syntax and actual SQL fixture execution are the checks used."
+    },
+    "diff_check": {
+      "status": "PASS"
+    }
+  },
+  "proof_scope": [
+    "Actual immutable predecessor functions and whole forward execute in embedded PostgreSQL, then the actual psql native regression executes with only psql meta-command expansion.",
+    "Distinct tenant-local and central actor UUIDs; no UUID equality or email-based actor fallback.",
+    "Prepared delivery replay, current provisioning job/lease binding, exact signed-receipt data binding, invitation ownership and single canonical acceptance/member/role engine.",
+    "New central Auth compatibility actor has no login email, phone, password, Auth identity, session or refresh token; central profile retains explicit invitation display email and name.",
+    "Auth credentials/sessions/refresh tokens/identities guards execute. The complete unchanged forward also installs under a nonsuper migration receiver with distinct managed Auth owners and unchanged Auth schema/table ACLs, roles and memberships in the fixture.",
+    "Current binding/client/provider/configuration, central bans/profile/membership and company isolation deny unauthorized resolution, acceptance, native business-write guards and user-command cached replay.",
+    "Explicit OPS-admin bootstrap reuses canonical invitation and same delivery/accept sequence; authorized config-only refresh increments binding version, preserves actor/immutable identity tuple and grants, and rejects obsolete normal-validation version.",
+    "Legacy central-email invitation acceptance remains; service-only RPC ACLs, no direct service binding table authority, and browser role RPC denial are asserted.",
+    "All pg_proc metadata/ACL fields for four guarded existing functions are unchanged; restoring exactly declared body edits equals predecessor bodies; four wrong-predecessor cases fail atomically."
+  ],
+  "authority_boundaries": [
+    "Provider key changes deny pinned bindings until explicitly authorized service-only OPS-admin config refresh. Refresh never remaps identity, adds membership or restores a revoked binding.",
+    "Normal HTTP context/native validate checks signed expected binding/version. Existing native mutation guards receive company/actor/client, and recheck the current active binding/current pinned provider configuration under existing locks; they do not compare the incoming JWT version or key in the mutation transaction.",
+    "JS completed idempotency-cache responses use prior current-context validation, not a transaction-held native business mutation lock. No claim of atomic incoming JWT/provider-version validation across that cache path.",
+    "Managed Auth privileges in the local nonsuper fixture are declared existing receiver input and unchanged by the migration. Parent-reported hosted TRIGGER privilege is catalog observation only, not migration execution qualification.",
+    "Local PGlite compatibility fixture supplies only engine/extension mechanics and actual source functions. It does not qualify real PostgreSQL17 clean/upgrade replay or hosted managed GoTrue trigger installation."
+  ],
+  "pending": [
+    "Independent frozen-source review.",
+    "Fresh actual PostgreSQL17 full clean/native/upgrade CI and authentic generated artifact capture.",
+    "Hosted migration rehearsal/application and actual tenant delivery/Auth acceptance/live API qualification, if separately authorized."
+  ],
+  "safety": {
+    "hosted_calls": 0,
+    "hosted_writes": 0,
+    "tenant_auth_accounts_or_credentials_copied": false,
+    "commit_or_push_performed": false,
+    "source_changes_outside_owned_paths": false,
+    "old_migrations_modified": false,
+    "generated_artifacts_authored": false,
+    "contains_private_credentials": false
+  }
+}

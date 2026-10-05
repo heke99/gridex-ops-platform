@@ -8,6 +8,8 @@ import website from '@/docs/openapi/website-integration-v1.json'
 import { buildOpenApiReleaseManifest } from '@/lib/integrations/openApiReleaseManifest'
 import { WEBSITE_INTEGRATION_CONTRACT_VERSION } from '@/lib/integrations/websiteIntegrationContract'
 import { openApiDocumentResponse, serializeOpenApiDocument } from '@/lib/integrations/openApiResponse'
+import { publicSupportCase } from '@/lib/customer-service/supportConversation'
+import { staffCaseDto } from '@/lib/staff-api/cases'
 
 const { validateResponse, validateSchema } = createRequire(import.meta.url)('../scripts/lib/openapi-schema-validator.cjs') as {
   validateResponse: (document: unknown, path: string, value: unknown) => string[]
@@ -37,6 +39,72 @@ const response = (data: unknown) => ({
   data,
   request_id: '00000000-0000-4000-8000-000000000001',
   contract_schema_version: WEBSITE_INTEGRATION_CONTRACT_VERSION,
+})
+
+describe('actual support case channel projection follows the frozen customer contract', () => {
+  const staffRow = (channel: unknown): Parameters<typeof staffCaseDto>[0] => ({
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    company_id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    customer_id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    status: 'open',
+    priority: 'normal',
+    title: 'Fråga från kundsamtal',
+    description: 'Intern arbetsanteckning från medarbetaren.',
+    reason_category: 'support',
+    assigned_to: null,
+    source: 'tenant_support_staff_api',
+    metadata: { support_case: true, opened_by: 'staff', description_visibility: 'internal', support_channel: channel },
+    created_at: '2026-10-05T12:00:00.000Z',
+    updated_at: '2026-10-05T12:00:00.000Z',
+    resolved_at: null,
+    closed_at: null,
+  })
+  const assertCustomerSchemas = (data: ReturnType<typeof publicSupportCase>) => {
+    const released = JSON.parse(readFileSync(`docs/openapi/releases/${WEBSITE_INTEGRATION_CONTRACT_VERSION}/customer-portal-v1.json`, 'utf8'))
+    for (const spec of [portal, released]) {
+      const errors = validateSchema(spec, data, { $ref: '#/components/schemas/CustomerSupportCase' })
+      expect(errors, errors.join('\n')).toEqual([])
+      expect(validateResponse(spec, '/api/v1/customer/support/cases', {
+        ...response([data]),
+        page: { limit: 1, offset: 0, returned: 1, has_more: false, next_cursor: null },
+      })).toEqual([])
+      expect(validateResponse(spec, detailPath, response({ ...data, messages: [] }))).toEqual([])
+    }
+  }
+
+  it('returns admin for a real staff_api row in customer single/list/detail responses while preserving the internal channel and hiding staff notes', () => {
+    const row = staffRow('staff_api')
+    const before = structuredClone(row)
+    const data = publicSupportCase(row)
+    assertCustomerSchemas(data)
+    expect(data.channel).toBe('admin')
+    expect(data.description).toBeNull()
+    expect(staffCaseDto(row).channel).toBe('staff_api')
+    expect(row).toEqual(before)
+  })
+
+  it.each(['api', 'customer_portal', 'admin', 'phone', 'operations_automation'])('preserves documented channel %s without exposing internal descriptions', channel => {
+    const data = publicSupportCase(staffRow(channel))
+    expect(data.channel).toBe(channel)
+    expect(data.description).toBeNull()
+    assertCustomerSchemas(data)
+  })
+
+  it.each([undefined, null, 7, {}, 'ops', 'internal', 'unknown'])('closes undocumented or malformed channel %j to null', channel => {
+    const data = publicSupportCase(staffRow(channel))
+    expect(data.channel).toBeNull()
+    expect(data.description).toBeNull()
+    assertCustomerSchemas(data)
+  })
+
+  it('still exposes the customer original description only through its explicit customer visibility', () => {
+    const row = staffRow('customer_portal')
+    row.description = 'Kundens egen fråga.'
+    row.metadata = { ...row.metadata, opened_by: 'customer', description_visibility: 'customer' }
+    const data = publicSupportCase(row)
+    expect(data.description).toBe('Kundens egen fråga.')
+    assertCustomerSchemas(data)
+  })
 })
 
 describe('closed customer support detail OpenAPI contract', () => {

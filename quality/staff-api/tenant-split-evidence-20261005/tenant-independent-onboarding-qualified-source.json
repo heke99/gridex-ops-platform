@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-05T13:28:23.623541+00:00",
+  "agent": "/root/support_independent_onboarding",
+  "source_status": "qualified_local_source_no_hosted_activation",
+  "architecture": {
+    "tenant_auth_project_ref": "ayiuxjlfazkjmmtlvhsl",
+    "ops_project_ref": "configured OPS SDK/GRIDEX_STAFF_API_PROJECT_REF; distinct from tenant Auth",
+    "human_identity": "verified tenant-local Auth subject explicitly bound to distinct central nonlogin actor; no email auto-linking",
+    "domain_authority": "unchanged central canonical membership/roles engine",
+    "contract_version": "2026-10-05.2"
+  },
+  "owned_sources": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/staffInvitationRouting.ts",
+      "sha256": "9bea35beb513a397fd6dd2a04e6fef9f716dee257706eed56d02f606148b28e9",
+      "bytes": 4443
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/tenantStaffDelivery.ts",
+      "sha256": "0d99671c63840d1cf02d142c7eca68084f5d8bf31bfe3dbac730f5742dbde1ae",
+      "bytes": 13082
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/companyInvitationFlow.ts",
+      "sha256": "f54ad468ff651ec2aca0d324e5562d8937785d5be76a8f9ea183644233b268d4",
+      "bytes": 15664
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/tenant/provisioningWorker.ts",
+      "sha256": "eac96d9d762025a09b0efc909309d3c495659f7d8c6f35b87f4d64ae41a3dd98",
+      "bytes": 6140
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/onboarding.ts",
+      "sha256": "9b9f00805eaf4735b27e581c220cddce534f350bce3703b1ec5b212d664d9989",
+      "bytes": 11331
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-acceptance.test.ts",
+      "sha256": "08efc4a39f0bf6a22058256ab920e5fe5d78fdc429a65c8f23b34648ba9a226e",
+      "bytes": 14962
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-invitation-routing.test.ts",
+      "sha256": "3ca56d7cf14fc943e58296b61387f8635044a858946a70e03cc9139dc038e49d",
+      "bytes": 9087
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/tenant-staff-delivery.test.ts",
+      "sha256": "5df49c7d49165b81b39165df56801cb1b7a5b1d9efe6b5e61b3939d0b2c073d3",
+      "bytes": 10672
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/invitation.ts",
+      "sha256": "6e644b18209ec60273a4bb664b075b916fe0234ac2ce8ef78407d1af4bd87ee8",
+      "bytes": 7093
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/app/auth/invitation/actions.ts",
+      "sha256": "2b9aa84f338b44d9f1641fb2dabbb18312a720db48f7a73adad343cc52e804ac",
+      "bytes": 407
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/app/auth/invitation/page.tsx",
+      "sha256": "7fa5f9542c00a4303d108e7b37c04adc34d2e9f711f1472da65f6ceb50482032",
+      "bytes": 2257
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/components/InvitationForm.tsx",
+      "sha256": "be473346c338b6e0bd38b45abf9f22dc1f9e46c6842931a80752b59047b81421",
+      "bytes": 3109
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/tenant-delivery.ts",
+      "sha256": "141f34fcbab98a7f4c25d74b4645b09568de879e7650e79d9e489d05c6cbe95a",
+      "bytes": 14158
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/app/api/internal/staff/invitations/deliver/route.ts",
+      "sha256": "2063362098a1beb40544700a24774944f2d663848efef8d34721954cab0b1b3c",
+      "bytes": 209
+    },
+    {
+      "path": "/workspace/gridex-support123-web/supabase/migrations/20261005125326_support_staff_invitation_delivery_private.sql",
+      "sha256": "9fbe18d55d2a42b06d437d9038935e76668336ce160ad12ba192bd8ae12d9224",
+      "bytes": 5989
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-onboarding.test.mjs",
+      "sha256": "c28064107807c6a318680e30d3b9a31bbb46eedbefe1dd3ee7b5a38c08a5abfe",
+      "bytes": 10036
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery.test.mjs",
+      "sha256": "c849235512fcf6ddb4a73c4614c494ae128066a90cf3cb9bd8f94a3c6e3ade4a",
+      "bytes": 11877
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery-sql.test.mjs",
+      "sha256": "a63968b60a6aac2d4181c5c0783eb81fdfd743d928182fe83eca5f6e01a5d3fb",
+      "bytes": 5389
+    }
+  ],
+  "dependency_sources_owned_by_other_agents": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/tenantAuth.ts",
+      "sha256": "a405c684c8626997d14a7b5e01c8a6faed8c94624fdeeeeb1d567a41949c502c",
+      "bytes": 5535
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/identityAuthority.ts",
+      "sha256": "c694cd3502d64d3d6651b3d7965fe3e8ff634f681aebca362f12b5971ff2cf7e",
+      "bytes": 4694
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/onboardingContract.ts",
+      "sha256": "ad7a444d70713557457804653ea30b37466114cc48acaaf534501c0b1e1fb3e6",
+      "bytes": 239
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "bytes": 39367
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/config.ts",
+      "sha256": "e34354ac898c21372322a518bbfc341946129f2e08a548db8e1f41a2a3cc44ac",
+      "bytes": 2521
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/assertion.ts",
+      "sha256": "6af791ff3236970480b9a1d9abc5a70d6bf1af6aee01a3e71ad410a16fa491af",
+      "bytes": 2677
+    },
+    {
+      "path": "/workspace/gridex-support123-web/lib/staff-api/identity.ts",
+      "sha256": "0bc3cfdc6510a349a16a053f879f65aa47327bde0ecfd8ba46d9360a48e1330f",
+      "bytes": 5441
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/session.ts",
+      "sha256": "d8c394a1e6f509684d3dc331d1079a2e909edaa0b5e7f510f9ecd3fdf186ca6d",
+      "bytes": 6470
+    }
+  ],
+  "test_logs": [
+    {
+      "path": "/tmp/gridex-staff-review/tenant-delivery-redaction-red.log",
+      "sha256": "5fbaaad735f8f87f8a9d4ef2fb3a1c84138ed194219feb91dfff12a121188bae",
+      "bytes": 2630
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-onboarding-tests.log",
+      "sha256": "523498d295b6ba813d7729b5a5be8f0c648955992428287c962ae5a4f2113219",
+      "bytes": 225
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-onboarding-test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-onboarding-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-tests.log",
+      "sha256": "230ddeb2ba69969515724db262fe136672631028ca1423a0e0803b8b4f949e52",
+      "bytes": 2717
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-sql-tests.log",
+      "sha256": "763e472cbc9f1295be0c65a4941b266ec7473368c06a7c071cbb71c51d1fa790",
+      "bytes": 434
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-invitation-web-tests.log",
+      "sha256": "2e8601ca755044c2d89c6e1b2ccbeba3f6f3955732d1522d4b6ce798f82cdb35",
+      "bytes": 2614
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-web-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-bridge-lint-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "validation": {
+    "ops_focused_tests": {
+      "status": "PASS",
+      "files": 3,
+      "tests": 84,
+      "acceptance": 37,
+      "routing": 27,
+      "delivery": 20
+    },
+    "ops_full_test_types": "PASS",
+    "ops_scoped_eslint": "PASS zero warnings",
+    "web_focused_bridge_tests": {
+      "status": "PASS",
+      "tests": 8
+    },
+    "web_own_invitation_tests": {
+      "status": "PASS",
+      "tests": 8
+    },
+    "web_actual_source_tenant_sql": {
+      "status": "PASS",
+      "tests": 1,
+      "engine": "embedded PGlite 0.3.14 synthetic Auth fixture; NOT native PG or hosted proof"
+    },
+    "web_support_types": "PASS",
+    "web_changed_helper_test_eslint": "PASS zero warnings",
+    "both_git_diff_check": "PASS",
+    "redaction_regression": {
+      "red": "2 semantic failures with16 prior passing",
+      "green": "both controls pass in84-test suite; one outbound send and zero record on transport/malformedJSON"
+    }
+  },
+  "registration": {
+    "metadata_staff_tenant_auth": [
+      "url",
+      "public_key"
+    ],
+    "metadata_staff_tenant_delivery": [
+      "url",
+      "issuer",
+      "audience",
+      "key_id",
+      "request_public_jwk"
+    ],
+    "request_jwk_kid": "must equal key_id and WEB GRIDEX_SUPPORT_DELIVERY_OPS_KID",
+    "ops_private_signer_env": "GRIDEX_STAFF_DELIVERY_PRIVATE_KEY",
+    "tenant_bridge_env": [
+      "GRIDEX_SUPPORT_DELIVERY_OPS_ISSUER",
+      "GRIDEX_SUPPORT_DELIVERY_OPS_KID",
+      "GRIDEX_SUPPORT_DELIVERY_OPS_PUBLIC_JWK",
+      "GRIDEX_SUPPORT_DELIVERY_API_CLIENT_ID",
+      "GRIDEX_SUPPORT_DELIVERY_PROVIDER_ID",
+      "GRIDEX_SUPPORT_SUPABASE_SERVICE_KEY"
+    ],
+    "tenant_callback": "registered origin/auth/invitation?token=<exact invitation token>; local Supabase Auth redirect allowlist also required"
+  },
+  "bootstrap": {
+    "adapter": "provisionExternalStaffBootstrapInvitation",
+    "input": [
+      "companyId",
+      "apiClientId",
+      "actorUserId",
+      "email",
+      "fullName?",
+      "roleKey",
+      "idempotencyKey"
+    ],
+    "native_rpc": "gridex_create_external_staff_invitation_v1",
+    "authority": "trusted authenticated OPS admin; native users.write/role ceiling checks; no public/bootstrap browser endpoint",
+    "durable_intent": "channel=ops,staff_operation=invite,external_staff_identity=true,api_client_id=registered client",
+    "acceptance": "same registered external binding path; legacy OPS acceptance denied"
+  },
+  "limitations": [
+    "No hosted DB migrations/config/keys/Auth/accounts/email/domain operations performed",
+    "Native PostgreSQL/clean+upgrade CI and authentic generated schema capture are separate pending gates",
+    "Tenant delivery nontransactional Auth/email outcome remains indeterminate after unknown provider/completion failure; no automatic resend or timeout reclaim",
+    "Operational deployment requires registered client/provider/bridge signer and tenant-local service capability plus matching Auth redirect allowlist",
+    "Profile serialization conclusions are bounded to native checked locks/supported same-company operations; no claim of blanket global profile writer locking"
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "status": "PASS_SCOPED_READ_ONLY_SOURCE_REVIEW",
+  "recorded_at_utc": "2026-10-05T13:29:57.626232+00:00",
+  "scope": "Explicit tenant Auth/delivery bridge and central native invitation/binding authority; final frozen source hashes only, not deployment or managed PostgreSQL acceptance.",
+  "skill_routing": {
+    "applied": [
+      "Supabase security/grants and SECURITY DEFINER review",
+      "bounded code/differential review and direct source false-positive checks"
+    ],
+    "skipped": "No implementation, hosted verification, replay, broad scanners, UI or unrelated domain work authorized in this slice."
+  },
+  "sources": [
+    {
+      "repository": "/workspace/gridex-support-portal-ops",
+      "base_head": "4fd1b0447400bcfaa0381524c575383eba966297",
+      "base_tree": "260c8a2097c317fcb9d86072248ae1f8391aab9c",
+      "working_changes_reviewed_by_file_hash": true,
+      "tracked_scope_diff_sha256": "5dfa6274bcae39f51e04ae9567b6518e8248e851fee9c79b73c7758778803710"
+    },
+    {
+      "repository": "/workspace/gridex-support123-web",
+      "base_head": "54b406d82ddb7a26a3bdc510a7fd4b460c4a0cfe",
+      "base_tree": "95b3758e55f5a5aa3a95667e7438111f12d49139",
+      "working_changes_reviewed_by_file_hash": true,
+      "tracked_scope_diff_sha256": "d694d29675f3a15724241d0b54afd49b9da46767f27d6f264f7afe7bcdec667a"
+    }
+  ],
+  "primary_files": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "bytes": 39367,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/tenantStaffDelivery.ts",
+      "sha256": "0d99671c63840d1cf02d142c7eca68084f5d8bf31bfe3dbac730f5742dbde1ae",
+      "bytes": 13082,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/companyInvitationFlow.ts",
+      "sha256": "f54ad468ff651ec2aca0d324e5562d8937785d5be76a8f9ea183644233b268d4",
+      "bytes": 15664,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/tenant-delivery.ts",
+      "sha256": "141f34fcbab98a7f4c25d74b4645b09568de879e7650e79d9e489d05c6cbe95a",
+      "bytes": 14158,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support123-web/supabase/migrations/20261005125326_support_staff_invitation_delivery_private.sql",
+      "sha256": "9fbe18d55d2a42b06d437d9038935e76668336ce160ad12ba192bd8ae12d9224",
+      "bytes": 5989,
+      "owner_pin_match": true
+    }
+  ],
+  "supporting_execution_path_and_test_sources": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/scripts/staff-external-identity-binding-regression.sql",
+      "sha256": "4297b6c1eca57a51a6732fce65295d8fd0acc0c3a2e9de04df0838d885febe12",
+      "bytes": 25450,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "sha256": "be645db1ce40defa8ae74b0b3c3f722dd7ab99ff452dcf6af56184271c31a8cb",
+      "bytes": 5460,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-external-identity-sql.test.ts",
+      "sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "bytes": 7621,
+      "owner_pin_match": true
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/tenant-staff-delivery.test.ts",
+      "sha256": "5df49c7d49165b81b39165df56801cb1b7a5b1d9efe6b5e61b3939d0b2c073d3",
+      "bytes": 10672,
+      "owner_pin_match": null
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/staffInvitationRouting.ts",
+      "sha256": "9bea35beb513a397fd6dd2a04e6fef9f716dee257706eed56d02f606148b28e9",
+      "bytes": 4443,
+      "owner_pin_match": null
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/tenant/provisioningWorker.ts",
+      "sha256": "eac96d9d762025a09b0efc909309d3c495659f7d8c6f35b87f4d64ae41a3dd98",
+      "bytes": 6140,
+      "owner_pin_match": null
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery.test.mjs",
+      "sha256": "c849235512fcf6ddb4a73c4614c494ae128066a90cf3cb9bd8f94a3c6e3ade4a",
+      "bytes": 11877,
+      "owner_pin_match": null
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-tenant-delivery-sql.test.mjs",
+      "sha256": "a63968b60a6aac2d4181c5c0783eb81fdfd743d928182fe83eca5f6e01a5d3fb",
+      "bytes": 5389,
+      "owner_pin_match": null
+    }
+  ],
+  "critical_or_important_blockers": [],
+  "verified_from_source": {
+    "authority": "First-admin adapter uses the same canonical_create_tenant_invitation engine with fixed ops/external marker, current users.write/platform-admin and role-ceiling predicates. Marker is provenance, not authority. Ordinary Staff invitations retain their staff_api path. No portal role/company/browser claim substitutes for canonical authority.",
+    "delivery_lease": "Native prepare/record revalidate current company/client/provider configuration, same-company canonical invitation intent and current matching processing job/lease. Existing prepared payload is immutable and reused. No central Auth invite or OTP fallback in the independent path.",
+    "actors_and_acceptance": "Central compatibility actor has no credential/email/phone/session/refresh/Auth identity. Display/contact email is in central user_profiles, not a GoTrue credential. Explicit delivery receipt binds independent local tenant user to central actor. Pending binding becomes active in the same transaction as original canonical membership/role/audit/outbox acceptance. Legacy acceptance remains the guarded original engine with one qualified email projection extension.",
+    "native_race_guards": "Company-first locks and preserved native write/cache guards recheck external binding/current provider; removed/revoked/mutated registration fails closed. Explicit authorized provider rotation bumps binding version without identity remap or role/membership change.",
+    "signature_interoperability": "RS256 request kid matches registered request_public_jwk.kid/key_id and WEB opsKeyId. Request issuer/audience/purpose=staff_invitation_delivery and strict claim field names match. Signed tenant receipt uses registered tenant staff key/issuer/audience, local subject and staff_invitation_delivery_receipt; OPS verifies signature/JTI and exact request_hash, company/client/provider/invitation/delivery/issuer/email/status tuple before native record.",
+    "hash_protocol": "OPS canonical_json_sha256 binds the immutable prepared request. Tenant echoes that opaque request_hash and separately stores SHA256 of reconstructed fixed-shape payload as delivery fingerprint. These two hashes serve different purposes; no JSON.stringify/canonical hash equality is claimed.",
+    "tenant_private_acl": "Only tenant-local support_private delivery durability plus three service-only definer RPCs. No central company/customer/membership/RBAC tables copied to tenant. Schema/table ACLs revoke public/anon/authenticated; direct service table access revoked, RLS enabled. Definer functions use pg_catalog and fully-qualified relations.",
+    "duplicate_delivery": "Single durable claim per delivery ID; same payload completed retry mints a fresh receipt without another Auth/email call. Started/unknown provider or completion outcome is indeterminate and cannot automatically resend. This is bounded per-delivery protection, not exactly-once email delivery or a completed operator reconciliation feature.",
+    "secret_handling": "Production helpers remain server-only. Private signing/service keys are not stored in invitation intent/binding/audit or receipt. Tenant rejects malformed/wrong-signature/foreign/purpose/expiry/extra-field requests before ports/database/Auth construction; response errors are fixed. Outbound OPS transport/receipt/record errors now map to fixed503 before worker diagnostics."
+  },
+  "resolved_review_findings": [
+    {
+      "id": "DELIVERY_RAW_ERROR_DIAGNOSTICS",
+      "severity": "P2",
+      "before": "Transport/response JSON parser Error.message could propagate into existing worker diagnostic persistence.",
+      "after": "Owner added catch returning fixed staff_tenant_delivery_not_ready503; two actual RED transport/malformed-JSON tests preceded correction. Final source asserts one request/no record on these failures.",
+      "reviewer_test_execution": false
+    }
+  ],
+  "final_differential_read": [
+    "Final native registration checks RSA kty, nonempty modulus/exponent, kid==key_id and rejects private/symmetric JWK fields. Entire frozen final source was pinned; no unavailable455-line snapshot is claimed byte-reconstructed.",
+    "OPS/WEB readers now independently enforce matching JWK kid; owner fixtures updated accordingly.",
+    "OPS outbound block has generic catch plus unchanged finally clearTimeout. No retry, fallback Auth path or binding-record bypass introduced."
+  ],
+  "test_boundaries_observed_not_executed": [
+    "Actual source SQL/native script covers differing IDs, canonical acceptance and replay, disabled/revoked/changed-registration denial, authorized rotation, initial-admin bootstrap ceiling, legacy acceptance, no-login/session/refresh/identity and direct ACL denial. Embedded fixture includes optional auth.identities to exercise its trigger.",
+    "OPS delivery tests use real request/receipt RSA signatures with mocked service/native response and HTTP. WEB tests use real signatures and in-memory ports; separate actual tenant SQL test executes private claim/complete/ACL/FK/idempotency guards. No live provider email or cross-project row is exercised by this review.",
+    "Parent/owners reported 84OPS/8WEB tests plus types/lint green and7/7 actual-SQL cases; this reviewer did not rerun them or authenticate CI artifacts."
+  ],
+  "qualification_remaining": [
+    "Fresh exact-source capture/full CI and PostgreSQL17 native/managed permission qualification are parent-owned and pending.",
+    "Actual hosted object/owner/trigger privileges and migration rollback rehearsal are not inferred from PGlite or source read.",
+    "No delivery email, provider keys, registration/configuration, production rows, domain switch or final rollout acceptance performed here.",
+    "No claim that incoming JWT/binding version remains serialized through the later native command commit, or that JavaScript read/idempotency cache processing holds a native database lock. Native guards recheck their current actor/binding/provider predicates; application assertion verification is a separate boundary."
+  ],
+  "reviewer_actions": {
+    "repo_edits": false,
+    "tests_or_replays": false,
+    "helpers_executed": false,
+    "hosted_or_http_calls": false,
+    "private_state_or_secret_env_reads": false,
+    "new_agents": false
+  },
+  "owner_qualification_receipts": [
+    {
+      "path": "/tmp/gridex-staff-review/tenant-independent-onboarding-qualified-source.json",
+      "sha256": "34448bff7e04be9d90cff3290f6925f18fcace523249eac8c2ad514136524539",
+      "receipt_bytes_hash_verified_only": true
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-external-identity-binding-qualification.json",
+      "sha256": "69cd99c2381bb49ea12626eb75600d451f374f57c2be87ed71bc42b14834b03d",
+      "receipt_bytes_hash_verified_only": true
+    }
+  ]
+}

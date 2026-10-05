@@ -1,0 +1,39 @@
+
+> gridex-ops-platform@0.1.0 api:docs
+> npm run api:contract && npm run api:openapi-parity && npm run api:docs-version && npm run api:docs-examples && npm run api:shared-components && npm run api:public-contract-runtime-openapi && npm run api:contract-corrections
+
+
+> gridex-ops-platform@0.1.0 api:contract
+> node scripts/check-public-api-contract.cjs
+
+Public API contract OK (107 route files).
+
+> gridex-ops-platform@0.1.0 api:openapi-parity
+> node scripts/check-openapi-runtime-parity.cjs
+
+OpenAPI/runtime parity OK (115 registry routes, 136 OpenAPI operations, 58 reachable schemas).
+
+> gridex-ops-platform@0.1.0 api:docs-version
+> node scripts/check-api-documentation-version.cjs
+
+API documentation parity OK (Gridex API 2026-10-04.1; Partner API 2026-08-17.1).
+
+> gridex-ops-platform@0.1.0 api:docs-examples
+> node scripts/check-api-documentation-examples.cjs
+
+API documentation examples OK (2026-10-04.1; unified human guide + canonical Website/Partner sources).
+
+> gridex-ops-platform@0.1.0 api:shared-components
+> node scripts/check-shared-openapi-components.cjs
+
+OpenAPI responsibility boundaries OK.
+
+> gridex-ops-platform@0.1.0 api:public-contract-runtime-openapi
+> node scripts/check-public-contract-runtime-openapi.cjs
+
+Public contracts fixture/runtime boundary validates against published OpenAPI 2026-10-04.1.
+
+> gridex-ops-platform@0.1.0 api:contract-corrections
+> node scripts/check-external-api-contract-corrections.cjs
+
+External API contract corrections verified for 2026-10-04.1.

@@ -1,0 +1,70 @@
+{
+  "status": "DIAGNOSED_NO_SOURCE_EDITS_SCOPE_INCREASE_REQUESTED",
+  "created_at_utc": "2026-10-05T19:30:27.165372+00:00",
+  "base_head": "d0e21d200b40cb63bd22043d4a03080fe3584866",
+  "base_tree": "c345c779ee6435e2daad7dac7a362e57d7bcae09",
+  "node_version": "22.23.3",
+  "installed_dependency_packages": 471,
+  "installed_dependency_versions_match_package_lock": true,
+  "dependency_reinstall": false,
+  "ci_dependency_equivalence_scope": "Existing resolved package graph matches all 471 installed locked versions; no shared npm ci mutation or postinstall performed.",
+  "source_sha256": {
+    ".github/workflows/ediel-masterplan-v2.yml": "7b5ccdaa4e0807f03c5fd580f6a4d04492750d5d24a02de4df8bffca02ac513e",
+    "scripts/ediel-masterplan-test-coverage.cjs": "e23a0789eb9ea1fb9c7cda2f06901ecb075f9f9a2df1ad04900072e5d44f1bbe",
+    "scripts/lib/unit-loopback-network-boundary.cjs": "4c0e36a6317453093a604a2c14eeed5bfc22b14ec02b65c25d5d3572521ecad9",
+    "__tests__/ediel-env07-outbox-separation.test.ts": "12c032fe32764a0ad990921a3f589865d4f1023e2b792cdcc132832a8e8cc7ae",
+    "__tests__/ediel-sc-068-reference-authority-boundary.test.ts": "573a70c3055939fcef3764af2d21fabcaac98e3a3dabee249a224ce09b344760",
+    "lib/ediel/outbox/sendOutboxItem.ts": "e22878fa467279bba66088415f60bbc525f82347aaa24bd9f239406bed1dd0a8",
+    "lib/ediel/flows/utiltsCanonicalValidation.ts": "f0878d542222594c3f9e6800ec06c6ef439cda49207d8a060e7f73a4f658425f"
+  },
+  "logs": {
+    "red-two-files.log": {
+      "path": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/red-two-files.log",
+      "sha256": "f80dcbe5813d08b41ec4865f3f4e6dac0d5555e0494a1445f5b79975d95a2742",
+      "exit_code": 1,
+      "files": 2,
+      "tests": 11,
+      "failed": 5,
+      "passed": 6
+    },
+    "preload-two-files.log": {
+      "path": "/tmp/gridex-staff-review/ediel-masterplan-tag-checker/preload-two-files.log",
+      "sha256": "d01f9d276e08b3f7d830425003ae6bba1bb43f5f883ba421821770003fda7ab1",
+      "exit_code": 1,
+      "files": 2,
+      "tests": 11,
+      "failed": 5,
+      "passed": 6
+    }
+  },
+  "preload_is_actual_failure_cause": false,
+  "findings": [
+    {
+      "file": "__tests__/ediel-env07-outbox-separation.test.ts",
+      "failed_tests": 3,
+      "observed_error": "ediel_outbox_worker_lease_expired",
+      "missing_fixture_precondition": "Claim RPC mock omits locked_at even though status and locked_by are stamped.",
+      "guard_added_by_main_commit": "39af9fdb51ea1eaf4c0a779d52749d630054b0f1",
+      "minimal_direction": "Stamp fresh locked_at alongside existing claim fields, matching genuine leased claim row; retain current dispatch and cross-scope assertions."
+    },
+    {
+      "file": "__tests__/ediel-sc-068-reference-authority-boundary.test.ts",
+      "failed_tests": 2,
+      "observed_error": "utilts_runtime_policy_time_context_mismatch",
+      "expected_original_assertion": "ediel_initial_utilts_owner_unavailable",
+      "missing_fixture_precondition": "Copied diagnostic policy lacks required timeAnchors from genuine initial decision.",
+      "guard_added_by_main_commit": "b740e05101e31084cfb4327cf42ddae1f7c364c6",
+      "minimal_direction": "Retain real initial decision timeAnchors while copying diagnostic policy semantics; copied initial must still fail opaque ownership and retain all no-effects assertions."
+    }
+  ],
+  "both_guard_commits_are_ancestors_of_merged_main_f88": true,
+  "scope_requested": [
+    "__tests__/ediel-env07-outbox-separation.test.ts",
+    "__tests__/ediel-sc-068-reference-authority-boundary.test.ts"
+  ],
+  "source_edits": 0,
+  "full_tag_checker_runs": 0,
+  "full_unit_runs": 0,
+  "native_or_hosted_actions": 0,
+  "commit_or_push": false
+}

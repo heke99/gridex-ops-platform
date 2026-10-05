@@ -1,0 +1,104 @@
+{
+  "status": "TARGETED_VERIFIED_INDEPENDENT_REVIEW_PENDING",
+  "created_at_utc": "2026-10-05T08:50:08.913587+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "base": "985724f58ef15e222cf4d3b2e1c643c674852106",
+  "scope": "Existing OPS support case permission gate and list mutation UI; no new host/login surface qualification",
+  "files": {
+    "lib/admin/accessModel.ts": "dafd2f60b5b1ba6b7a2b9e274c5cc2d4df337302149360b5d545144ee450caf4",
+    "lib/admin/navigation.ts": "725a7e164aa3e67adb6d9296994bdc0ae93577c571f9da6e912e9cdde4aee87b",
+    "app/admin/customer-cases/page.tsx": "55a1988139fcb9b111e7527880cc76f69e7c82c8dbf12f1ce69fb4f4540290e0",
+    "app/admin/customer-cases/[caseId]/page.tsx": "f724be76ddff63abbd65e7ccc5cb09e1a5e13f1b2f6c029feddfb50c95c5a1a3",
+    "app/admin/customer-cases/[caseId]/attachments/[reference]/route.ts": "032f1147381bd7338fb9614552aa86ba21937ce7599dffbe720064e9b7e4dbbd",
+    "__tests__/support-case-page-access.test.ts": "60478da518e1c2d2b2ffd8f7dfb4b092dc41025f984daa18f950e422895b145f"
+  },
+  "changes": [
+    "New support.cases page key requires cases.read",
+    "Support menu and list/detail/download use the dedicated key",
+    "List create/status forms require cases.write and existing nonplatform company conditions",
+    "Read-only list skips customer options used only by the create form"
+  ],
+  "verification": {
+    "node": "22",
+    "red": {
+      "command": "node22 node_modules/vitest/vitest.mjs run __tests__/support-case-page-access.test.ts",
+      "failed": 8,
+      "passed": 5,
+      "reason": "Prior operational gate denies case-only readers, admits unrelated operational readers and exposes list mutation forms"
+    },
+    "initial_green": {
+      "passed": 13,
+      "failed": 0
+    },
+    "nearby_regressions": {
+      "command": "node22 node_modules/vitest/vitest.mjs run __tests__/support-case-page-access.test.ts __tests__/tenantservice-ui-workspace.test.ts __tests__/tenant-read-scope-fail-closed.test.ts __tests__/tenant-scope-request-cache.test.ts",
+      "files": 4,
+      "passed": 26,
+      "failed": 0,
+      "scope": "Before final one additional platform-preservation control"
+    },
+    "final_focused_green": {
+      "passed": 14,
+      "failed": 0
+    },
+    "test_types": {
+      "command": "node22 node_modules/typescript/bin/tsc --noEmit -p tsconfig.tests.json",
+      "exit_code": 0
+    },
+    "scoped_eslint": {
+      "files": [
+        "lib/admin/accessModel.ts",
+        "lib/admin/navigation.ts",
+        "app/admin/customer-cases/page.tsx",
+        "app/admin/customer-cases/[caseId]/page.tsx",
+        "app/admin/customer-cases/[caseId]/attachments/[reference]/route.ts",
+        "__tests__/support-case-page-access.test.ts"
+      ],
+      "exit_code": 0
+    },
+    "git_diff_check": "PASS"
+  },
+  "coverage": [
+    "Real admin guard, access model, pages, scope helper and menu",
+    "Cases-read-only list/history/download without write UI",
+    "Switching/customers/write-only read denial before data access",
+    "Selected-company and foreign-case boundaries",
+    "Missing membership/scope and denied canonical context/customer role",
+    "Existing service profiles and direct read-only action denial",
+    "Existing platform overview and company-bound detail/download restriction"
+  ],
+  "test_boundary": "Session, catalog and data/attachment transport are local fixtures; this does not verify hosted RLS/storage, browser login, support123 routing or live delivery",
+  "unchanged_authority": [
+    "requireAdminAccess",
+    "canonical_authenticated_tenant_context",
+    "cases.write server actions",
+    "role permission profiles",
+    "operational task page model",
+    "database and Staff API source/contracts"
+  ],
+  "not_run": [
+    "Full app suite/build",
+    "Browser or new-host checks",
+    "Hosted calls",
+    "SQL/provider actions",
+    "Production acceptance for this new UI change"
+  ],
+  "logs": {
+    "support-case-page-access-red.log": "4cad74df237af8c6075301277bea96bb647d0a5a302c5b911a0c5038d828d515",
+    "support-case-page-access-green.log": "cffcfcd9ed51d460a30aeed28bd698bf2c49d1e86a68d3f3bbd149fd7edb02dc",
+    "support-case-page-access-regressions.log": "f7b308b7d1d8c2797dce0ed532cc770e44d86c61987acd2054a41e2227bb6576",
+    "support-case-page-access-final-green.log": "b3f3e433c3b1484326f54927b4c7c1ad222cfb50e430bbe571f07e799c3cb4f5",
+    "support-case-page-access-final-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "support-case-page-access-final-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "publication": "No commit, push or deployment; root owns composition and release",
+  "skill_routing": {
+    "activated": [
+      "test-driven-development",
+      "verification-before-completion",
+      "requesting-code-review",
+      "Next16 installed authentication guidance"
+    ],
+    "bounded": "No database/schema mutation or broad repository/Ediel audit; parent owns checkpoint and final publication"
+  }
+}

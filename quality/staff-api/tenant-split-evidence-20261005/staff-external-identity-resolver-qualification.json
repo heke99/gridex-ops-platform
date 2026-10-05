@@ -1,0 +1,124 @@
+{
+  "status": "VERIFIED_BOUNDED_SOURCE",
+  "recorded_at_utc": "2026-10-05T13:18:21.437861+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "base_head": "4fd1b0447400bcfaa0381524c575383eba966297",
+  "working_tree_qualification": true,
+  "contract_version": "2026-10-05.2",
+  "activated_skills": [
+    "supabase",
+    "test-driven-development",
+    "code-security",
+    "spec-to-code-compliance",
+    "verification-before-completion"
+  ],
+  "source_files": {
+    "lib/staff-api/identityAuthority.ts": "c694cd3502d64d3d6651b3d7965fe3e8ff634f681aebca362f12b5971ff2cf7e",
+    "lib/staff-api/identityResolution.ts": "c5563950dfa7948291e66e9dfe83247fd890a36a52c9f23f81e3e41fde386f16",
+    "lib/staff-api/onboardingContract.ts": "ad7a444d70713557457804653ea30b37466114cc48acaaf534501c0b1e1fb3e6",
+    "lib/staff-api/tenantAuth.ts": "a405c684c8626997d14a7b5e01c8a6faed8c94624fdeeeeb1d567a41949c502c",
+    "lib/staff-api/context.ts": "226fcaf7991727337b0ef93cb942e34fee4a43cdac209ae8b50817c9e8e771bd",
+    "app/api/v1/staff-onboarding/identity/resolve/route.ts": "fe3f61035ae998beff8ccc51b21ba95696f4c8d4f00871570a8e56e0daaaac19",
+    "__tests__/staff-api-context.test.ts": "83720dd9cbabec8b4d25048e7553623c63d8d09201a07383ee73bea4120241bd",
+    "__tests__/staff-identity-resolution.test.ts": "5d22c3a11f259ab92e18a533a34ad3ff7f4d3c2700c050705b31160c56c094e4",
+    "__tests__/staff-identity-resolution-machine-auth.test.ts": "9c18d367a9cb56abc1586efa573ebe0bdb8866d7fcdc10878ec6f73487da6d48",
+    "__tests__/staff-tenant-auth.test.ts": "7641cb249279050b463251924f1955f62553a24b10890de4a9cd8a67eb6a1884",
+    "__tests__/staff-onboarding-contract.test.ts": "c0efb1d4928fbeb9a69e3a6eecf799508c0a07ed99a7a8178463138cfd28a55f",
+    "docs/openapi/staff-onboarding-v1.json": "5a70f265a58cfe1ba06728205f3dae08841188b90e3ac5892d4185f6e6c4a372",
+    "docs/openapi/prototypes/2026-10-05.1/staff-onboarding-v1.json": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff",
+    "lib/api/publicRouteRegistry.ts": "83191a3dba8b6aab25dd44bb3685a9e2d5d6e4afc2bc026e7a8fbcf6633dbdb0",
+    "scripts/check-openapi-runtime-parity.cjs": "f5da310f94715fa7e4a58e2da421f3bfe3ae6468a71529ab757d09326d0483eb"
+  },
+  "logs": {
+    "staff-identity-final-tests.log": {
+      "path": "/tmp/staff-identity-final-tests.log",
+      "sha256": "6f8c8fe7f27984a972b4bd913706b1364e44567d4fb49dd1fa0a3d9eaa5b8bb4"
+    },
+    "staff-identity-final-lint.log": {
+      "path": "/tmp/staff-identity-final-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "staff-identity-final-test-types.log": {
+      "path": "/tmp/staff-identity-final-test-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "staff-identity-final-app-types.log": {
+      "path": "/tmp/staff-identity-final-app-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "staff-identity-final-parity.log": {
+      "path": "/tmp/staff-identity-final-parity.log",
+      "sha256": "5ba55328bbbebd115804d7068eb4c6a0a46444ecb4ac4129923036dc69ffb0a0"
+    }
+  },
+  "checks": {
+    "focused_tests": {
+      "files": 5,
+      "passed": 123,
+      "failed": 0
+    },
+    "scoped_eslint": "PASS_0_WARNINGS",
+    "application_typescript": "PASS",
+    "full_test_typescript": "PASS",
+    "public_contract_runtime_parity": "PASS_116_REGISTRY_137_OPERATIONS"
+  },
+  "architecture": {
+    "ops_data": "central OPS database; not moved to tenant gridex-prod",
+    "tenant_auth": "registered independent tenant project; actual getUser with public key only",
+    "resolver": "POST {} + explicit staff_users.read + signed local-subject staff_identity_resolution proof and current native existing binding",
+    "normal_staff_sub": "unchanged central actor UUID; registered independent clients require signed current binding/local identity claims",
+    "identity_mapping": "immutable explicit binding only; no email or equal UUID matching"
+  },
+  "historical_prototype": {
+    "path": "docs/openapi/prototypes/2026-10-05.1/staff-onboarding-v1.json",
+    "sha256": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff",
+    "matches_prior_committed_current_contract": true
+  },
+  "frozen_staff_contract_sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+  "machine_auth_sql_subset": {
+    "migration": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+    "tail_marker": "DO $auth_identity_resolution$",
+    "tail_sha256": "68d211a426828e4ba9886d9ee6a6abf9582b73d637d1b69bd843a04063411f26",
+    "checks": 3,
+    "engine": "PGlite; actual original machine authorization SQL and exact guarded forward; finite synthetic mechanics only"
+  },
+  "not_qualified": [
+    "complete new SQL migration/authentic native clean and upgrade replay",
+    "current remote CI or hosted migration",
+    "real tenant Auth accounts/invitations/email/domain deployment"
+  ],
+  "next_action": "Root integrates native-owner migration and author-owned onboarding/delivery, freezes complete source, then executes final required native and CI qualification.",
+  "supersedes_prior_source_receipt": {
+    "sha256": "57c37668280345740b7b9dc2552290af291d2b1b351f5147a39ac50541a7489d",
+    "path": "/tmp/gridex-staff-review/staff-external-identity-resolver-qualification-before-lifecycle-57c376682803.json",
+    "reason": "Bounded shared tenant Auth lifecycle rejection after remote getUser. Prior109-test result remains prior-source history only."
+  },
+  "lifecycle_source_delta": {
+    "files": [
+      {
+        "file": "lib/staff-api/tenantAuth.ts",
+        "previous_sha256": "82775aee021c7acc73f42b17e8e1fff4cdf2b6da4113190c775128f77498ab35",
+        "sha256": "a405c684c8626997d14a7b5e01c8a6faed8c94624fdeeeeb1d567a41949c502c"
+      },
+      {
+        "file": "__tests__/staff-tenant-auth.test.ts",
+        "previous_sha256": "a174ef96d2291048d70739bad09409c498d20c4b9e4421c61a3249a05e7cbe8b",
+        "sha256": "7641cb249279050b463251924f1955f62553a24b10890de4a9cd8a67eb6a1884"
+      }
+    ],
+    "behavior": "After actual remote tenant SDK getUser: deny any non-null deleted_at, active banned_until, malformed/non-string lifecycle timestamp or invalid calendar/time, is_anonymous true. Missing/null optional fields and valid expired bans remain compatible. Shared by both resolver and invitation acceptance.",
+    "red_green": {
+      "red": {
+        "path": "/tmp/staff-tenant-auth-lifecycle-red.log",
+        "sha256": "c7de9b45961b83ecdf7589cc4cd1c4f1f6f5b171d3d350c84ed01dfb8825ab1c",
+        "failed": 10,
+        "passed": 24
+      },
+      "green": {
+        "path": "/tmp/staff-tenant-auth-lifecycle-green.log",
+        "sha256": "33b4e47ccfd7697b73969c54b5f5619508eb019d313fa0baabf6f185c76b7937",
+        "passed": 34
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-10-05T10:54:45.428726+00:00",
+  "status": "BOUNDED_TEST_TYPING_FIX_QUALIFIED",
+  "previous_qualification": {
+    "path": "/tmp/gridex-staff-review/staff-independent-onboarding-qualification.json",
+    "sha256": "b9bfa954cd570e2b12f0c35e812d502ce573b7e00e9416d2510f5e27b3ea3649",
+    "bytes": 10487
+  },
+  "delta": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-acceptance.test.ts",
+      "previous_sha256": "276e547bdb1fe13ffb94b5fdc846a67f1a21e35b261cf0408963fe1e26dc79ae",
+      "current_sha256": "20ba972983ce600fce21eaaae4b0bc100edda1de934288b409eb4f7204b69cca",
+      "bytes": 11803
+    }
+  ],
+  "unchanged_original_sources": 22,
+  "change": "Mocks use exact StaffInvitationAcceptancePorts function types; nullable negative fixtures use accurate types without casts, and provider fixture call carries company. No runtime or SQL changes.",
+  "checks": [
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-test-types-green.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "status": "PASS",
+      "note": "Full tsc --noEmit -p tsconfig.tests.json",
+      "test_count": null
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-test-types-regression.log",
+      "sha256": "c3416f982c9c90ebd072c6c40f96c088230a83487d58f316fa97a1d7b19b1e39",
+      "bytes": 223,
+      "status": "PASS",
+      "note": "Acceptance test file",
+      "test_count": 28
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-test-types-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "status": "PASS",
+      "note": "Changed acceptance test ESLint; max warnings zero",
+      "test_count": null
+    }
+  ],
+  "diff_check": "PASS",
+  "native_sql": {
+    "path": "/workspace/gridex-support-portal-ops/supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+    "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+    "bytes": 15033
+  },
+  "limits": "Native CI artifacts and hosted gridex-prod qualification remain separate and pending; no hosted writes performed."
+}

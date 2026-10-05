@@ -1,0 +1,196 @@
+{
+  "status": "PASS_FROZEN_LOCAL_SQL_CLASSIFICATION_AND_EQUIVALENT_UNIQUE_FORWARD_POSTGRESQL17_CAPTURE_NATIVE_PENDING",
+  "created_at_utc": "2026-10-05T16:26:12.668308+00:00",
+  "repository": "/workspace/gridex-support-portal-ops",
+  "baseline_source": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+  "baseline_tree": "ab689d16aeb888ece8c28567d221e40b9dea19ca",
+  "source": [
+    {
+      "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+    },
+    {
+      "path": "__tests__/staff-external-identity-classification-sql.test.ts",
+      "sha256": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d"
+    }
+  ],
+  "preserved": [
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "scripts/sql/tenant-isolation-invariants.sql",
+      "sha256": "79d10e6b6ebf10b087142edeab3fe0bbebbe47bf325b27b9f42058ce6272b318",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "scripts/staff-external-identity-binding-regression.sql",
+      "sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "sha256": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "__tests__/staff-external-identity-sql.test.ts",
+      "sha256": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "byte_identical_to_baseline": true
+    }
+  ],
+  "scope": {
+    "new_additive_forward_created_by_supabase_cli": true,
+    "changes": [
+      "Exactly three same-name UNIQUE(invitation_id) replacements with UNIQUE(invitation_id,company_id).",
+      "Exactly three truthful tenant classifications with null_company_meaning=NULL."
+    ],
+    "old_migrations_not_edited": true,
+    "no_gate_acl_rls_fk_check_trigger_or_function_edits": true,
+    "new_forward_is_real_ddl": true,
+    "new_authentic_schema_fingerprint_capture_and_full_native_ci_required": true,
+    "generated_type_bytes_to_be_decided_by_authentic_capture": true
+  },
+  "confirmed_failure": {
+    "scope": "Authentic 0cf clean failure supplied by parent/reviewer; no second artifact download/replay by this author.",
+    "classification_gap": [
+      "tenant_staff_actor_anchors",
+      "tenant_staff_identity_deliveries",
+      "tenant_staff_identity_bindings"
+    ],
+    "local_whole_gate_missing_classification_failures": 3,
+    "local_truthful_classification_exposes_invitation_unique_failures": 3,
+    "original_unchanged_whole_gate_executed": true
+  },
+  "guarded_semantic_equivalence": {
+    "parent_global_nondeferrable_validated_primary_key_id": true,
+    "each_child_company_uuid_not_null": true,
+    "validated_nondeferrable_full_invitation_company_fk_to_same_parent": true,
+    "old_or_correct_named_nondeferrable_unique_shape": true,
+    "backing_unique_index_valid_unique_and_nulls_distinct": true,
+    "incoming_foreign_key_dependency_refused": true,
+    "drop_without_cascade": true,
+    "atomic_do_block": true,
+    "no_top_level_transaction_wrappers": true,
+    "reason": "A nonnull globally unique parent invitation fixes exactly one company through each validated composite FK. Therefore adding that same NOT NULL company to the unique key admits exactly the original rows. NULL invitation bindings retain NULLS DISTINCT behavior.",
+    "independent_equivalence_receipt": {
+      "path": "/tmp/gridex-staff-review/tenant-staff-classification-unique-equivalence-independent-review.json",
+      "sha256": "78d9901e26c4db9eb25f62a3830eaef5c569969f972da5b67dc40bab3a25d700"
+    }
+  },
+  "targeted_actual_sql_verification": {
+    "red": {
+      "failed": 1,
+      "passed_control": 1,
+      "scope": "Before implementing the new forward, exact missing three F6 rows fail the full unchanged gate; diagnostic control proves subsequent three F8 indexes."
+    },
+    "green": {
+      "passed": 11,
+      "failed": 0,
+      "files": 1,
+      "scope": "Actual catalog/table definitions plus whole frozen c6bf and whole new forward, with full unchanged isolation gate."
+    },
+    "cases": [
+      "Three truthful registry rows, all null meanings NULL.",
+      "Exact three corrected unique column lists.",
+      "All other table/column/constraint/index/policy/trigger/function/role/membership catalog metadata unchanged.",
+      "Unrelated classification rows unchanged.",
+      "Second execution catalog and registry byte/value no-op.",
+      "Same-company duplicate invitation and foreign-company invitation FK refusals before and after.",
+      "Valid bound and multiple NULL-invitation binding rows unchanged; partial NULL pair refused.",
+      "Atomic refusal: missing parent global PK, missing identity table, nullable company, missing composite FK, unvalidated composite FK, unexpected unique columns, NULLS NOT DISTINCT, incoming invitation-only FK."
+    ],
+    "fixture_boundary": "Unrelated finite-fixture infrastructure is synthetically closed/classified only in disposable PGlite so the entire real gate isolates these three genuine tenant tables. This is not full-schema/native PostgreSQL17 acceptance."
+  },
+  "checks": {
+    "full_test_typescript": "PASS",
+    "scoped_eslint_zero_warnings": "PASS",
+    "diff_check": "PASS",
+    "logs": {
+      "red": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-classification-red.log",
+        "sha256": "950c8d8f405b1299ad497d0b6cc532bdd9eeecdc37877b00dd7ccfab8f3d5761",
+        "exit_code": 1,
+        "count_timing_lines": [
+          "\n\n Test Files  1 failed (1)",
+          "      Tests  1 failed | 1 passed (2)",
+          "   Start at  16:10:40",
+          "   Duration  3.24s (transform 27ms, setup 20ms, import 32ms, tests 3.04s, environment 0ms)"
+        ]
+      },
+      "green": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-classification-green.log",
+        "sha256": "7b5469a44b06689255a0740643965dd797350be9fd9c570e7b54ed25afeb9cdf",
+        "exit_code": 0,
+        "count_timing_lines": [
+          "\n\n Test Files  1 passed (1)",
+          "      Tests  11 passed (11)",
+          "   Start at  16:23:49",
+          "   Duration  13.58s (transform 106ms, setup 51ms, import 115ms, tests 13.06s, environment 0ms)"
+        ]
+      },
+      "test-types-final": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-classification-test-types-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code": 0
+      },
+      "lint-frozen": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-classification-lint-frozen.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "exit_code": 0
+      },
+      "combined-native": {
+        "path": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native.log",
+        "sha256": "9d0952a495fab675364476945c0906684377799a43886fe7050b8a8b0adf1e34",
+        "exit_code": 0
+      }
+    }
+  },
+  "combined_runtime_after_final_forward": {
+    "status": "PASS_COMBINED_ACTUAL_SQL_NATIVE_EMBEDDED_ONLY",
+    "whole_frozen_c6bf": true,
+    "whole_final_forward": true,
+    "whole_existing_native_script_with_actual_role_fixture": true,
+    "native_script_transaction_rollback": true,
+    "temporary_driver_path": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native.cjs",
+    "temporary_driver_sha256": "1c9271c35a1f19c9e38db486635e7b38373812a5ca7fdf83464675ec63561a82",
+    "log": {
+      "path": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native.log",
+      "sha256": "9d0952a495fab675364476945c0906684377799a43886fe7050b8a8b0adf1e34",
+      "exit_code": 0
+    },
+    "scope": "Actual source executed embedded in PGlite, no hosted or fresh native PostgreSQL17 replay."
+  },
+  "independent_source_review": {
+    "reviewer": "/root/staff_rollout_review",
+    "status": "PASS of final f103cebf/bf0e1969 reported before receipt creation; separate independent durable receipt follows."
+  },
+  "history": {
+    "prior_0cf_failure_and_previous_receipts_preserved": true,
+    "initial_green_10_case_and_pre_null_guard_combined_logs_preserved": true,
+    "initial_test_type_error_TS2571_fixed_by_query_return_type_annotation": true,
+    "guard_hardening_rerun_justified_by_actual_source_change": true
+  },
+  "hosted_calls": 0,
+  "hosted_writes": 0,
+  "email_calls": 0,
+  "commits": 0,
+  "pushes": 0
+}

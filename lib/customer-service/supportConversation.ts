@@ -99,6 +99,13 @@ export function publicSupportStatus(status: string | null | undefined): PublicSu
   return 'in_progress'
 }
 
+function publicSupportChannel(channel: unknown) {
+  if (channel === 'staff_api') return 'admin'
+  if (channel === 'api' || channel === 'customer_portal' || channel === 'admin' ||
+    channel === 'phone' || channel === 'operations_automation') return channel
+  return null
+}
+
 export function supportCaseReference(companyId: string, caseId: string): string {
   return publicReference('support_case', companyId, caseId) as string
 }
@@ -117,7 +124,7 @@ export function publicSupportCase(row: SupportCaseRow) {
     // descriptions may contain internal working notes.
     description: metadata.description_visibility === 'customer' ? row.description : null,
     status: publicSupportStatus(row.status),
-    channel: typeof metadata.support_channel === 'string' ? metadata.support_channel : null,
+    channel: publicSupportChannel(metadata.support_channel),
     created_at: row.created_at,
     updated_at: row.updated_at,
     resolved_at: row.resolved_at ?? null,

@@ -1,0 +1,97 @@
+{
+  "qualified_base_sha": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "finding": "Staff create stores support_channel=staff_api; raw customer public projection violated frozen CustomerSupportCase/Detail channel enum",
+  "production_fix": "Only publicSupportCase projection: staff_api maps to admin; api/customer_portal/admin/phone/operations_automation preserved; everything else maps to null",
+  "source_hashes": {
+    "lib/customer-service/supportConversation.ts": "4427ffb56087b2b8a4e451f1b3a1509f8ba0906a64d09e461b89ea5965838fb8",
+    "__tests__/support-detail-openapi-schema.test.ts": "82916af528bc1bc24c157dad81e31d2aa632f440b2080a6d84f68cd4d2663e37"
+  },
+  "source_delta": {
+    "production": {
+      "insertions": 8,
+      "deletions": 1
+    },
+    "test": "14 additive behavior cases in existing real validator test structure; original assertions unchanged"
+  },
+  "protected_inputs": {
+    "supabase/schema.sql": {
+      "sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+      "byte_equal_to_head": true
+    },
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": {
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "byte_equal_to_head": true
+    },
+    "lib/staff-api/cases.ts": {
+      "sha256": "d7cf62f3d36822b4f7cec891567578ce51e97894671ea6d21847a075eb64b806",
+      "byte_equal_to_head": true
+    },
+    "docs/openapi/customer-portal-v1.json": {
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "byte_equal_to_head": true
+    },
+    "docs/openapi/releases/2026-10-04.1/customer-portal-v1.json": {
+      "sha256": "2ada64c650234d8cf8e5191c68d6b6ab8b47586c5fef13feeb611a9bddb79294",
+      "byte_equal_to_head": true
+    },
+    "supabase/database.types.ts": {
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "byte_equal_to_head": true
+    }
+  },
+  "preserved_behavior": [
+    "StaffDTO and stored metadata retain staff_api",
+    "Raw input row remains unchanged",
+    "Staff internal description remains hidden",
+    "Explicit customer original description visibility unchanged",
+    "Public reference and source/status mappings unchanged"
+  ],
+  "verification": {
+    "actual_exported_function": "publicSupportCase; no copied function or mock",
+    "actual_frozen_specs": [
+      "Current docs/openapi/customer-portal-v1.json",
+      "Immutable released 2026-10-04.1 customer-portal-v1.json"
+    ],
+    "real_validator": "scripts/lib/openapi-schema-validator.cjs validateSchema/validateResponse",
+    "red": {
+      "total": 25,
+      "pass": 21,
+      "fail": 4,
+      "exact_schema_rejection": "$.channel is outside the documented enum."
+    },
+    "green": {
+      "total": 67,
+      "pass": 67,
+      "fail": 0,
+      "files": {
+        "support-detail-openapi-schema.test.ts": 25,
+        "tenantservice-support-conversation.test.ts": 17,
+        "tenantservice-support-api-routes.test.ts": 6,
+        "staff-api-cases.test.ts": 19
+      }
+    },
+    "tests_types": "PASS tsc --noEmit --pretty false -p tsconfig.tests.json --incremental false",
+    "scoped_lint": "PASS --max-warnings 0",
+    "git_diff_check": "PASS"
+  },
+  "log_hashes": {
+    "/tmp/gridex-support-public-channel-red.log": "2aa23baf77a0f712fa644d043d416efdcd3b66a288b5987b840617a39877d0f6",
+    "/tmp/gridex-support-public-channel-red.json": "4cdc1f21eafea0d557f9d998004bbc1253f2bb2756eed89c148f354f0a6d7495",
+    "/tmp/gridex-support-public-channel-green.log": "4ff2dccba22672b3dce26f5906eed67cac05919ca68c5a0086127dee8e3ef612",
+    "/tmp/gridex-support-public-channel-green.json": "38e996259ed7cd8d1262af9909311ebc8ba805ddc446e941475031157ae9c49c",
+    "/tmp/gridex-support-public-channel-types.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/gridex-support-public-channel-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "previous_fixture_closure": {
+    "receipt": "/tmp/gridex-staff-review/staff-finite-captured-identity-fixture-qualification.json",
+    "sha256": "095952f0268b76f9faa9432959efd278597467016ce15859c6cdf9b02fbc5d06",
+    "all_four_sources_still_equal_qualified_hashes": true
+  },
+  "limits": [
+    "No full-suite rerun",
+    "No native cancellation/rerun",
+    "No hosted writes or Auth calls",
+    "No frozen OpenAPI/generated/DDL edits",
+    "Exact new-source CI qualification still root-owned"
+  ]
+}

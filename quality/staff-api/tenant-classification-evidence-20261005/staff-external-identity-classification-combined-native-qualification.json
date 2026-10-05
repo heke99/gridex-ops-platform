@@ -1,0 +1,50 @@
+{
+  "status": "PASS_COMBINED_ACTUAL_SQL_NATIVE_EMBEDDED_ONLY",
+  "created_at_utc": "2026-10-05T16:26:12.668308+00:00",
+  "baseline_source": "0cf69d555d7b6e4f9bb289ddcb1ab0407907c5bd",
+  "actual_sources": [
+    {
+      "path": "supabase/migrations/20261005160940_classify_tenant_staff_external_identity_tables.sql",
+      "sha256": "f103cebf3d3891554270cfdedc4374178c867eecda24175c81ccbedbaf88805d"
+    },
+    {
+      "path": "__tests__/staff-external-identity-classification-sql.test.ts",
+      "sha256": "bf0e1969fbde7a614eae7d653759ab89bcc68c7a89233a153885dbe657ee848d"
+    },
+    {
+      "path": "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql",
+      "sha256": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "scripts/staff-external-identity-binding-regression.sql",
+      "sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+      "byte_identical_to_baseline": true
+    },
+    {
+      "path": "scripts/lib/staff-external-identity-sql-fixture.cjs",
+      "sha256": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+      "byte_identical_to_baseline": true
+    }
+  ],
+  "temporary_driver": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native.cjs",
+  "temporary_driver_sha256": "1c9271c35a1f19c9e38db486635e7b38373812a5ca7fdf83464675ec63561a82",
+  "log": {
+    "path": "/tmp/gridex-staff-review/staff-external-identity-classification-combined-native.log",
+    "sha256": "9d0952a495fab675364476945c0906684377799a43886fe7050b8a8b0adf1e34",
+    "exit_code": 0
+  },
+  "result": {
+    "status": "PASS_COMBINED_ACTUAL_SQL_NATIVE_EMBEDDED_ONLY",
+    "whole_c6bf": true,
+    "whole_new_forward": true,
+    "whole_existing_native_script": true,
+    "actual_role_fixture_included": true,
+    "classification_rows": 3,
+    "native_transaction_rollback": true,
+    "hosted_calls": 0
+  },
+  "full_postgresql17_native_ci": "PENDING",
+  "hosted_calls": 0,
+  "source_edits_for_combined_run": 0
+}

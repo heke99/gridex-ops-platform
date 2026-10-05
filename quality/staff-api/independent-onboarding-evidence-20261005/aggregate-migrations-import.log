@@ -1,0 +1,24 @@
+
+> gridex-ops-platform@0.1.0 db:migrations:check
+> npm run db:migrations:integrity && npm run db:public-contract-legal-migration:check && npm run db:contract-hardening && npm run db:types:check
+
+
+> gridex-ops-platform@0.1.0 db:migrations:integrity
+> node scripts/check-migration-versions.cjs
+
+Migration integrity check passed (1067 files; 970 version groups; checksums verified).
+
+> gridex-ops-platform@0.1.0 db:public-contract-legal-migration:check
+> node scripts/check-public-contract-legal-migration.cjs
+
+Public-contract legal migration check passed.
+
+> gridex-ops-platform@0.1.0 db:contract-hardening
+> node scripts/check-database-contract-hardening.cjs
+
+Database contract hardening migration checks passed.
+
+> gridex-ops-platform@0.1.0 db:types:check
+> node scripts/check-supabase-generated-types.cjs
+
+Supabase generated types verified (3679151 bytes; 20261005101527_staff_independent_onboarding_authority.sql; 5cb5b93bd6a421411acee540aced6feebaa146b1879cc86a4fb47513a4c54dc8).

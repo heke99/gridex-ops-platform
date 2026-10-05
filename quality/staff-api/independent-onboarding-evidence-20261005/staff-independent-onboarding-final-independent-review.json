@@ -1,0 +1,306 @@
+{
+  "status": "PASS_FINAL_BOUNDED_SOURCE_REVIEW_NATIVE_CI_AND_PROD_PENDING",
+  "created_at_utc": "2026-10-05T10:46:52.704301+00:00",
+  "review_scope": "Read-only final author freeze reconciliation and exact changed source review; no duplicate suites or additional runtime, native, hosted, email or SQL actions.",
+  "author_receipt": {
+    "path": "/tmp/gridex-staff-review/staff-independent-onboarding-qualification.json",
+    "sha256": "b9bfa954cd570e2b12f0c35e812d502ce573b7e00e9416d2510f5e27b3ea3649",
+    "status": "SOURCE_QUALIFIED_NATIVE_CI_AND_PROD_PENDING"
+  },
+  "historical_independent_receipt": {
+    "path": "/tmp/gridex-staff-review/staff-independent-onboarding-initial-independent-review.json",
+    "sha256": "889e8836132f8c73b7630eda6655a193ea742f76b479ea7ef2cc1a273405fad0",
+    "unchanged": true
+  },
+  "verified_source_files": 23,
+  "verified_author_logs": 6,
+  "bindings": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/.github/workflows/ops-hardening.yml",
+      "sha256": "c3b15cf790d35fea6c809f8065f0534ba5d9f8fb15021db2e9750f2cf6268f7d",
+      "bytes": 44712,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/api/publicRouteRegistry.ts",
+      "sha256": "ea96156806c0038d4c05b5d2764c11afbfd073cc2cd26e4a67423ecd1f481c9b",
+      "bytes": 27801,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/companyInvitationFlow.ts",
+      "sha256": "e7938a4a41c5b70a1e4e1c174f3d1706dedc8fe9f44b0a62b50e255d315d7c9c",
+      "bytes": 13255,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/staffInvitationRouting.ts",
+      "sha256": "cd7dd603067afca05459d8f89d2d79f7bee996c5b38e587f4761c3de1636078b",
+      "bytes": 4584,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/onboarding.ts",
+      "sha256": "372ca43ebf079317ba200c7f621e2b331e6d04d79b917d582e94e0eb36d05a1b",
+      "bytes": 11267,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/scripts/check-openapi-runtime-parity.cjs",
+      "sha256": "084ee2301b3d909ace1cbfb685bf67144ff0f08979e3a63194d0bbff376a8c85",
+      "bytes": 13813,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/app/api/v1/staff-onboarding/invitations/accept/route.ts",
+      "sha256": "957604a9c5fac1fb6ffd029d8bd683b1d656c35b0dc32c1329f68abce0e883d9",
+      "bytes": 299,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/app/api/v1/openapi/staff-onboarding-v1.json/route.ts",
+      "sha256": "1e6fb75442a3b186ec25a0d3564dfd39443a0f3eaec5f55b649bd43d50ada273",
+      "bytes": 459,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/docs/openapi/staff-onboarding-v1.json",
+      "sha256": "5b074690ffaba2192d75c6229fc8c2f13ce3e0e014296f2533ec817e72ba47ff",
+      "bytes": 10674,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/docs/staff-api/independent-onboarding.md",
+      "sha256": "cdbcc154c66c9056fd8573e5bb46e52960200b5fc52bc1c2c4282caac44e52ef",
+      "bytes": 7973,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-invitation-routing.test.ts",
+      "sha256": "106115a8bf3b3b3e3d34f9acf26d0ba11218b289d7871f324cd98439a90bf836",
+      "bytes": 6449,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-acceptance.test.ts",
+      "sha256": "276e547bdb1fe13ffb94b5fdc846a67f1a21e35b261cf0408963fe1e26dc79ae",
+      "bytes": 11341,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-contract.test.ts",
+      "sha256": "5d6f35e3396902d8ebe05bff8f992a73410baa5572afcc4c85bd1d12af77d117",
+      "bytes": 4374,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-machine-auth.test.ts",
+      "sha256": "c72eb2d3cbe0c7c971d5d501ba3cdbeab189010f7cd853f11b98ae4679887dd4",
+      "bytes": 3710,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/__tests__/staff-onboarding-sql.test.ts",
+      "sha256": "104865ed4ec6ceb1faaf9e841ec64406926252a1ac878eb87b63642b2d26bdea",
+      "bytes": 1885,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/scripts/lib/staff-onboarding-sql-fixture.cjs",
+      "sha256": "c5a9a98bcd345b19d566021a64cdfbc6f5cba8930f99cbdda8507c6a7a211c9e",
+      "bytes": 4412,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/scripts/staff-onboarding-acceptance-regression.sql",
+      "sha256": "15e922b1e7f705038e1b2b490bfc562754560e93d38a93fa94c30f254dd77d84",
+      "bytes": 10351,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+      "sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+      "bytes": 15033,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/app/auth/invitation/actions.ts",
+      "sha256": "2b9aa84f338b44d9f1641fb2dabbb18312a720db48f7a73adad343cc52e804ac",
+      "bytes": 407,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/app/auth/invitation/page.tsx",
+      "sha256": "7fa5f9542c00a4303d108e7b37c04adc34d2e9f711f1472da65f6ceb50482032",
+      "bytes": 2257,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/components/InvitationForm.tsx",
+      "sha256": "be473346c338b6e0bd38b45abf9f22dc1f9e46c6842931a80752b59047b81421",
+      "bytes": 3109,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support123-web/apps/support/lib/invitation.ts",
+      "sha256": "05c01a56758de585df63e3611631afc594594821be68fdb555a295ef504f7d14",
+      "bytes": 7065,
+      "scope": "source"
+    },
+    {
+      "path": "/workspace/gridex-support123-web/tests/support-onboarding.test.mjs",
+      "sha256": "6535aa653c052734d7ffb3cdd83c309334901dc6f9e86c560e5d86216214363c",
+      "bytes": 9735,
+      "scope": "source"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-final-tests.log",
+      "sha256": "f2caeb86a962a199a87cb899e83bcbde500bb9d721aec08be7858a2c1d21786f",
+      "bytes": 223,
+      "scope": "author_log"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-types.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "scope": "author_log"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-lint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "scope": "author_log"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-tenant-ratchet.log",
+      "sha256": "4c627ac9740e45f4e3d951980c52ecc31e52ce90e5feb98403a28cf498df175f",
+      "bytes": 101,
+      "scope": "author_log"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-openapi-parity.log",
+      "sha256": "ab7024d3c03a1aa79d7e642cead84be9eb9ff369e6817e6aab4856f11ac96230",
+      "bytes": 95,
+      "scope": "author_log"
+    },
+    {
+      "path": "/tmp/gridex-staff-review/support-onboarding-password-first-green.log",
+      "sha256": "a2b45b6d84721ebfdbe3eb45071f5481e2d4cda480ca1c8a132881e2ada6e118",
+      "bytes": 2614,
+      "scope": "author_log"
+    }
+  ],
+  "final_delta_from_historical_review": [
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/auth/staffInvitationRouting.ts",
+      "prior_sha256": "2fe3631e769655a568f62b3c4f2fa4e69768dd1f29d424540884fcaa0d3b72fc",
+      "final_sha256": "cd7dd603067afca05459d8f89d2d79f7bee996c5b38e587f4761c3de1636078b"
+    },
+    {
+      "path": "/workspace/gridex-support-portal-ops/lib/staff-api/onboarding.ts",
+      "prior_sha256": "bb58369cd02370ac3d8eb5d22966e0a685f4b3d89e1ab9872a110e7f22b735bd",
+      "final_sha256": "372ca43ebf079317ba200c7f621e2b331e6d04d79b917d582e94e0eb36d05a1b"
+    }
+  ],
+  "final_delta_review": {
+    "company_bound_queries": "Two changed OPS leaf files now route all five company-bound SELECT/INSERT operations through existing tenantSelect/tenantInsert→tenantDb. Exact company filters and replay company stamps preserved; real Auth getUser and native RPC remain unchanged.",
+    "invitation_form": "Final be473346 ref-based form reviewed in full. URL fragment/code/token_hash/type are removed locally; uncontrolled hidden credentials reset after normal Server Action completion; verified host-only Auth session enables retries without reusing one-use email credentials. No membership/account grant on GET.",
+    "native_fixture": "Final 15e922b1 native regression checks company.is_active=false and restores it; wrong durable binding updates BOTH payload and canonical_json_sha256 request_hash and restores BOTH, so actual request-hash trigger does not stop the intended authority negative. ON_ERROR_STOP/BEGIN/ROLLBACK and unexpected-success sentinel retained.",
+    "source_sql": "Final full migration ac58bb9a unchanged from initial independent bound source. New machine function exact two route-policy edits, same authentic credential/limiter core and result columns, matching predecessor prosrc guard. Existing wrapper ACL/search_path/native checks and stable canonical command preserved.",
+    "frozen_staff_contract": {
+      "sha256": "460cf343a397c99f1173482ceb4c0045828399172fd47dd8c078e7d611e16de7",
+      "current_equals_immutable_release": true,
+      "release": "2026-10-04.1"
+    },
+    "documentation": "New own-contract guide explicitly separates Auth row lock from current active-profile snapshot and states native CI/Prod/enrollment/email pending."
+  },
+  "profile_authority_clarification": {
+    "auth_user": "Exact auth.users row held FOR SHARE through wrapper/canonical transaction.",
+    "profile": "user_profiles active is EXISTS snapshot, checked again by existing canonical accept; wrapper does not lock this row.",
+    "supported_staff_disable": "Canonical staff access command locks the same company FOR UPDATE before disabling membership/role and revoking pending invitations; serialized with wrapper company FOR NO KEY UPDATE.",
+    "global_profile_writers": "No blanket serialization claim: captured source permits own-ID authenticated profile UPDATE; anonymize_user_account disables profile without company lock; global admin deletion handles profile separately. No new production catalog check was performed.",
+    "effective_access": "Subsequent staff active-membership/context requires active profile and accepted active membership, plus Auth eligibility. No effective unauthorized use demonstrated by this review.",
+    "bounded_decision": "Parent and author retain snapshot semantics and document limitation; no claim of full global lifecycle/concurrency proof.",
+    "anchors": [
+      {
+        "path": "supabase/migrations/20261005101527_staff_independent_onboarding_authority.sql",
+        "line": 69,
+        "evidence": "Auth FOR SHARE and profile EXISTS"
+      },
+      {
+        "path": "supabase/migrations/20261004083640_staff_user_commands.sql",
+        "line": 368,
+        "evidence": "Staff access command same-company row lock"
+      },
+      {
+        "path": "supabase/migrations/20261004083640_staff_user_commands.sql",
+        "line": 401,
+        "evidence": "Disable revokes pending company invitations"
+      },
+      {
+        "path": "supabase/migrations/20261004085008_staff_active_membership.sql",
+        "line": 13,
+        "evidence": "Following requests require active global profile"
+      },
+      {
+        "path": "app/admin/users/actions.ts",
+        "line": 514,
+        "evidence": "Global deletion includes profile separately"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "line": 168374,
+        "evidence": "Captured own-ID profile UPDATE policy"
+      },
+      {
+        "path": "supabase/schema.sql",
+        "line": 196530,
+        "evidence": "Captured authenticated profile table grant"
+      }
+    ]
+  },
+  "existing_local_check_evidence": {
+    "author_ops": {
+      "passed": 84,
+      "files": 7,
+      "duration_seconds": 3.6,
+      "start_utc": "2026-10-05T10:43:14Z",
+      "log_sha256": "f2caeb86a962a199a87cb899e83bcbde500bb9d721aec08be7858a2c1d21786f",
+      "reviewer_reran": false
+    },
+    "author_support_callback": {
+      "passed": 8,
+      "reviewer_reran": false
+    },
+    "author_types_lint_ratchet_parity": "Source-bound logs inspected/hash matched; no reviewer rerun.",
+    "root_reported_support": "56 tests,17 Chromium checks,TypeScript/scoped lint/webpack production build PASS; parent-reported, not independently rerun.",
+    "independent_route_sql_receipt": {
+      "path": "/tmp/gridex-staff-review/staff-onboarding-route-auth-independent.json",
+      "sha256": "3229b5d8d02ace86119dbca499af8c36e9ca31c42c7e565afac84798b1a0e199",
+      "checks": 6,
+      "final_function_byte_identical_to_tested_function": true
+    }
+  },
+  "critical_or_important_source_blockers": [],
+  "release_prerequisites_pending": [
+    "Fresh final-source native clean/upgrade CI and migration/generated-source qualification",
+    "Actual gridex-prod dependency alignment and correct Gridex Prod identity binding",
+    "Qualified Prod provider/client/Auth redirect enrollment and real callback/email acceptance"
+  ],
+  "production_actions_performed": 0,
+  "source_edits_performed": 0,
+  "tests_executed_in_this_reconciliation": 0,
+  "root_checksum_registration_verified": {
+    "manifest": "/workspace/gridex-support-portal-ops/scripts/migration-history-manifest.json",
+    "manifest_sha256": "1db55f3169e1262f321c3cbb40e392882d1ff7f3613fc215d979c465d934eaca",
+    "file": "20261005101527_staff_independent_onboarding_authority.sql",
+    "registered_sha256": "ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492",
+    "binding_matches_frozen_sql": true
+  },
+  "generated_source_status": {
+    "source": "Root report; no reviewer generator/check execution",
+    "db_migrations_check": "FAIL_GENERATED_TYPES_MIGRATION_TAIL_PENDING",
+    "required": "New RPC types/schema must be imported from authentic new final clean-replay artifact; do not hand-edit or relabel old generated manifest."
+  },
+  "updated_at_utc": "2026-10-05T10:47:46.323375+00:00"
+}

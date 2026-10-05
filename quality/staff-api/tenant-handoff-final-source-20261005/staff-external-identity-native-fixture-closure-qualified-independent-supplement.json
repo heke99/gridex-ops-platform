@@ -1,0 +1,51 @@
+{
+  "status": "PASS_INDEPENDENT_SOURCE_REVIEW_AND_AUTHENTIC_LOCAL_QUALIFICATION_BINDING_NATIVE_PG17_PENDING",
+  "reviewed_at": "2026-10-05T15:16:37.519030+00:00",
+  "source_review": {
+    "path": "/tmp/gridex-staff-review/staff-external-identity-native-fixture-closure-independent-source-review.json",
+    "sha256": "fd9a994869821eea88d7ec2c9e9fa18521e147396fdd2913fe339d2297166c2a",
+    "source_findings": []
+  },
+  "owner_qualification": {
+    "path": "/tmp/gridex-staff-review/staff-external-identity-enqueue-fixture-qualification.json",
+    "sha256": "a5d5ec3f265b64ff101aa7b2e7e7076448622f6b2da8c757e73a244ef58099d9",
+    "source_and_log_hashes_independently_reread": true
+  },
+  "source_hashes": {
+    "scripts/staff-external-identity-binding-regression.sql": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+    "__tests__/staff-external-identity-sql.test.ts": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214",
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+    "supabase/schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "supabase/schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+    "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc"
+  },
+  "local_results": {
+    "red": {
+      "failed": 2,
+      "passed": 5,
+      "total": 7,
+      "same_23505_constraint_as_native": true
+    },
+    "green": {
+      "failed": 0,
+      "passed": 7,
+      "total": 7,
+      "actual_forward_and_native_SQL": true,
+      "managed_owner_nonsuper_fixture_case": true,
+      "start_at": "2026-10-05T15:09:19Z",
+      "duration_seconds": 6.43
+    },
+    "cjs_node22_syntax": "PASS_OWNER_RECORDED",
+    "diff_check": "PASS_OWNER_RECORDED",
+    "test_TS_source_unchanged": true
+  },
+  "prior_receipt_time_label_clarification": "The prior source receipt used finished_at for the agent-reported15:09:19 timestamp. The durable log proves this is Start at, corrected here to start_at; no exact completion timestamp is claimed. Historical receipt retained unchanged.",
+  "remaining_gate": "Authentic final-head PostgreSQL17 clean/native remains mandatory pending; failed e545 guard is not relabeled. No local result becomes hosted compatibility/email proof.",
+  "reviewer_actions": {
+    "tests_reexecuted": 0,
+    "source_edits": 0,
+    "HTTP_or_hosted": 0,
+    "private_reads": 0
+  }
+}

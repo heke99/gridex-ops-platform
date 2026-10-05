@@ -1,0 +1,86 @@
+{
+  "status": "PASS_BOUNDED_TEST_ONLY_CAPTURED_IDENTITY_DEPENDENCY_CLOSURE",
+  "reviewed_at": "2026-10-05T14:46:01.446776+00:00",
+  "base_commit": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "captured_schema_sha256": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+  "sources": [
+    {
+      "path": "__tests__/fixtures/staff-captured-identity-authority.ts",
+      "sha256": "c7dd8619a049cbe5255ed9bff8eb59b9090ceffd5e38cacd25bbe4e10820a296"
+    },
+    {
+      "path": "__tests__/staff-identity-version-conflict-sql.test.ts",
+      "sha256": "79cf8e3635d87bf2da7dc37cc1b6b12fb42f6b35913b3154680e3c3792b41a4e"
+    },
+    {
+      "path": "__tests__/staff-invitation-domain-columns.test.ts",
+      "sha256": "ba42489d917099aa1a9c0601a9739b2d78d5bb12150d2a9f26b2a7ab4c2813b8"
+    },
+    {
+      "path": "__tests__/staff-user-role-id-nullability.test.ts",
+      "sha256": "02440f7a0714f8f641660020c24a729728651fd2af2b9ce6c24606b576b7a9f2"
+    }
+  ],
+  "dependency_provenance": {
+    "metadata": "metadata jsonb DEFAULT '{}'::jsonb NOT NULL",
+    "tables": {
+      "tenant_customer_identity_providers": {
+        "declaration_sha256": "13c965bd8d10e7b3cf7e00f82007eec066df9ebcf439c05da57e38b03f39c980",
+        "rls": "ALTER TABLE public.tenant_customer_identity_providers ENABLE ROW LEVEL SECURITY;"
+      },
+      "tenant_staff_actor_anchors": {
+        "declaration_sha256": "5d10b373488d8f9a89b7e500a00a0287e849a0144879b2a2a03c50fcb87cbf47",
+        "rls": "ALTER TABLE public.tenant_staff_actor_anchors ENABLE ROW LEVEL SECURITY;"
+      },
+      "tenant_staff_identity_bindings": {
+        "declaration_sha256": "d02bf3152c35e7a68bc2dd34053a8a033a64578a8c2d1b7bf1002029c49972fe",
+        "rls": "ALTER TABLE public.tenant_staff_identity_bindings ENABLE ROW LEVEL SECURITY;"
+      },
+      "tenant_staff_identity_deliveries": {
+        "declaration_sha256": "3828f2008fffe3242dfe56d08672fe0fde7e29d17811410822a02b9b9e059e28",
+        "rls": "ALTER TABLE public.tenant_staff_identity_deliveries ENABLE ROW LEVEL SECURITY;"
+      }
+    },
+    "functions": {
+      "gridex_staff_assert_external_actor_v1": {
+        "definition_sha256": "a2883dce67c7d8c0790b9a0b40b09ea491cf1e2b1e09953c74eb36b75b82acc1",
+        "acl": [
+          "REVOKE ALL ON FUNCTION public.gridex_staff_assert_external_actor_v1(p_company uuid, p_actor uuid, p_client uuid) FROM PUBLIC;"
+        ]
+      },
+      "gridex_staff_anchor_invitation_email_v1": {
+        "definition_sha256": "39f7a78220b7235d710f31c5144886f51f8028565905098363c1f7c3bc115977",
+        "acl": [
+          "REVOKE ALL ON FUNCTION public.gridex_staff_anchor_invitation_email_v1(p_invitation_id uuid, p_company_id uuid, p_actor uuid) FROM PUBLIC;"
+        ]
+      }
+    }
+  },
+  "static_extraction_sql_sha256": "46ec9d82ff714f059715a92f3604e0466f33b169c55b5c9f395784754250fa06",
+  "existing_assertions_preserved": "9/13/12 added lines,zero deletions; onlyimport,oneactualdependencyinstallation andnewnegative pertest. Original positive,replay,role,tenant,client,nullability,hash,atomicity assertions unchanged.",
+  "authority": "Actualcapture clientmetadata NOTNULL default{} plus externalactor guards; no fakeAuth/allowfunction. Legacy positives legitimately pass captured no-tenant-registration branch; registeredclientnegative reaches real42501 staff_identity_binding_missing.",
+  "negative_no_effects": [
+    "Identity/customer/request/event/audit complete snapshot unchanged",
+    "Invitation row unchanged; result/jobs/audit0",
+    "Role rows unchanged; canonicalresult/audit0"
+  ],
+  "owner_qualification": {
+    "path": "/tmp/gridex-staff-review/staff-finite-captured-identity-fixture-qualification.json",
+    "sha256": "095952f0268b76f9faa9432959efd278597467016ce15859c6cdf9b02fbc5d06",
+    "reported_red": "Original42/20fail and3newmissing-binding negativesREDfirst",
+    "reported_green": "45/45,testtypes/scopedlint/diffPASS; reviewedreceipt/source only"
+  },
+  "limits": [
+    "Finite fixtures do notinstall completeFK/PK/tableACL/policies/immutability/managedAuthtriggers or prove hostedowner semantics.",
+    "CapturedRLS/functionACL/declarations real; complete native schema qualification separate.",
+    "Directcanonical SQLtests do notprove incomingJWT/HTTP/RSA/OIDC orclaimversionserialization throughcommandcommit.",
+    "Parent owns exactfreshsourceCI; no e545capture/native attribution to latertestcommit."
+  ],
+  "critical_important_blockers": [],
+  "executions": {
+    "tests": 0,
+    "SQL_or_DB_calls": 0,
+    "hosted_calls": 0,
+    "source_edits": 0
+  }
+}

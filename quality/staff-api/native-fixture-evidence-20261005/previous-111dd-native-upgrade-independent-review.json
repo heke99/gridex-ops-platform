@@ -1,0 +1,417 @@
+{
+  "status": "FAIL_EXACT_111DD_CLEAN_ONE_NATIVE_FIXTURE_GUARD_SCHEMA_GATES_EXTERNAL_IDENTITY_BROWSER_UPGRADE_PASS_SCOPES_RETAINED",
+  "verified_at_utc": "2026-10-05T18:05:49.873653+00:00",
+  "candidate": {
+    "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "tree": "ff908d0b3e3ad364e82e4097a4a86903d80e0de9",
+    "source": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "run_id": 37345274729
+  },
+  "clean_artifact": {
+    "path": "/workspace/attachments/446fb382-9515-42da-9c1d-706e49ebcb37/gridex-tenant-classification-clean-final-111dd.zip",
+    "metadata_path": "/tmp/gridex-staff-review/tenant-classification-final-clean-artifact-metadata.json",
+    "name": "gridex-rem-002-clean-replay",
+    "id": 11363181202,
+    "run_id": 37345274729,
+    "head": "111dd74f1f918b23a4f2ac34a9f904d8a24d121b",
+    "sha256": "9e8e3ede5c59231306006735f51c36ae8ddc0be3818087e036cdf7f76c59d22f",
+    "bytes": 16100165,
+    "member_count": 57,
+    "expiry_digest_size_crc_and_names_verified": true
+  },
+  "phase_completion": {
+    "count": 18,
+    "phases": [
+      [
+        "2026-10-05T17:06:06Z",
+        "clean_replay_start"
+      ],
+      [
+        "2026-10-05T17:08:37Z",
+        "clean_replay_complete"
+      ],
+      [
+        "2026-10-05T17:08:37Z",
+        "artifact_generation_start"
+      ],
+      [
+        "2026-10-05T17:08:49Z",
+        "artifact_generation_complete"
+      ],
+      [
+        "2026-10-05T17:08:49Z",
+        "sql_regressions_start"
+      ],
+      [
+        "2026-10-05T17:09:05Z",
+        "merge_concurrency_start"
+      ],
+      [
+        "2026-10-05T17:09:10Z",
+        "merge_concurrency_complete"
+      ],
+      [
+        "2026-10-05T17:09:10Z",
+        "sql_regressions_complete"
+      ],
+      [
+        "2026-10-05T17:09:11Z",
+        "native_owners_start"
+      ],
+      [
+        "2026-10-05T17:47:48Z",
+        "native_owners_complete"
+      ],
+      [
+        "2026-10-05T17:47:48Z",
+        "browser_fixtures_start"
+      ],
+      [
+        "2026-10-05T17:50:36Z",
+        "browser_fixtures_complete"
+      ],
+      [
+        "2026-10-05T17:50:36Z",
+        "browser_start"
+      ],
+      [
+        "2026-10-05T17:56:15Z",
+        "browser_complete"
+      ],
+      [
+        "2026-10-05T17:56:15Z",
+        "after_browser_native_start"
+      ],
+      [
+        "2026-10-05T17:57:04Z",
+        "after_browser_native_complete"
+      ],
+      [
+        "2026-10-05T17:57:04Z",
+        "schema_gates_start"
+      ],
+      [
+        "2026-10-05T17:57:12Z",
+        "schema_gates_complete"
+      ]
+    ],
+    "all18_complete": true
+  },
+  "whole_manifest_count": 1069,
+  "whole_clean_execution_sequence_matches_frozen1069_canonical_plan": true,
+  "generated_raw_outputs": [
+    {
+      "path": "supabase/database.types.ts",
+      "sha256": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+      "raw_equal_frozen111dd": true
+    },
+    {
+      "path": "supabase/schema.sql",
+      "sha256": "3b962356454ec5abd66f1bd155c7076f1d52522d27060c0d5d43c424b2d14f30",
+      "raw_equal_frozen111dd": true
+    },
+    {
+      "path": "supabase/schema.fingerprint.json",
+      "sha256": "4ab388cd791565a5a4a415f394b7f8bc9fb53c3a19dadaf3ccdc805446d75f48",
+      "raw_equal_frozen111dd": true
+    }
+  ],
+  "canonical_fingerprint": "128b9a9975ecca5785b75c9abe08f9d4c8568cff8703cde15abdfb57598644e2",
+  "schema_and_tenant_isolation_gates_complete": true,
+  "native_accumulator_failure": {
+    "log_line": 25917,
+    "step_line": 151,
+    "flag": "NATIVE_SUITE_FAILED"
+  },
+  "junit": [
+    {
+      "member": "e2e-artifacts/playwright-junit.xml",
+      "cases": 31,
+      "passes": 31,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "396e5d4abc486d8abd027bcbf81e68eab223476a2f379bb998ac49ba2f7acb04"
+    },
+    {
+      "member": "rem002-ai-purpose-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "d96f09cf3c595ae488dfa8ae147cebcc52b8da47a154891eac2663832006f977"
+    },
+    {
+      "member": "rem002-ai-purpose-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "d778b2e70c11eeef71fc3fe14bfee99f6ad9c855e11134e3da55f249994078e5"
+    },
+    {
+      "member": "rem002-bilateral-customer-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "fc9464866c1c31fb593311a2e975828eeb443f7e93d1ce29b5f5bcb572ae389e"
+    },
+    {
+      "member": "rem002-bilateral-customer-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "2cd4faee5d7d89c0dea84d6d1d6e836414b45e0aa8264a227dfb5c5dc370767c"
+    },
+    {
+      "member": "rem002-bilateral-prodat-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "6b61249a4b9cec8880d49468b00aac61abb917f623ceec847fee5351645d61c2"
+    },
+    {
+      "member": "rem002-bilateral-prodat-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "6fc6f36aca03c4a8c62f0bc6a0a63e323a9b60863d6386463c2a2865591b6819"
+    },
+    {
+      "member": "rem002-blob-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "2b66184ffd43fc8b1a56aa2e0b8c6983e8b5c3e52b4b75076281a628a658779d"
+    },
+    {
+      "member": "rem002-blob-retention-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "49463cff807a57413649a8b7d0d034dfeeaa3bb82a1103c0f879c012182e6033"
+    },
+    {
+      "member": "rem002-business-incident-after-browser-junit.xml",
+      "cases": 6,
+      "passes": 1,
+      "skips": 5,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "ecb45345056402dcf56238bc33d97a842301cecc8042d441eb716e6450d8176a"
+    },
+    {
+      "member": "rem002-business-incident-native-junit.xml",
+      "cases": 6,
+      "passes": 5,
+      "skips": 1,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "cc8fdea4cc3ceaf1ea6c67db2004d05f30851d814fc65da90117e89d5e690326"
+    },
+    {
+      "member": "rem002-case-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "451ee5e9ff24d286225f6b2707f0df376ee33dfa1ae426f0c769971b43c4a1c3"
+    },
+    {
+      "member": "rem002-case-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "fa01d86df443fe162363e52b6a6f171e69c22fc971dfe96a06305758b69f7b2b"
+    },
+    {
+      "member": "rem002-decision-original-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "0abe228776ecd728a8b590a251b22253e6798ca81ba4f1011d749a5bbad58e37"
+    },
+    {
+      "member": "rem002-decision-original-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "9ff8a5d60ed42b65e6decba46e782cf8104b6d9f31b4f57eeae221623ae0b453"
+    },
+    {
+      "member": "rem002-finance-copy-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "a82d80af988ae14d45db0e1214d6e1caed85bdafc15158ff151da9adf17777d8"
+    },
+    {
+      "member": "rem002-finance-copy-retention-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "7657d0dba9af58d8beb29690c8170b5c60ea9e037f17e873169249865fac6b58"
+    },
+    {
+      "member": "rem002-native-junit.xml",
+      "cases": 609,
+      "passes": 607,
+      "skips": 1,
+      "failures": 1,
+      "errors": 0,
+      "sha256": "4dcfa8ab952be8dfa7917861d5ebecf8f9a1bc7f69467d9537bbc4839f83fa3c"
+    },
+    {
+      "member": "rem002-process-journal-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "23d0d50b0af4e9aa3e7db79de36fee64e5ee37db86536d9335f464ac80578fcc"
+    },
+    {
+      "member": "rem002-process-journal-retention-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "7af43cd61d86e2c23e1d1fd762835e7b80d9c409e68c6c48ef9811226b4d44f4"
+    },
+    {
+      "member": "rem002-record-retention-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "54d599b614dff2a878124c26ad67adfce4fd0541dd7d069c23ceb9fae6fef282"
+    },
+    {
+      "member": "rem002-record-retention-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "42e5e91dd0f3c680050a64ff8ae18cbcc736c7ce25d9cb9e57f24e773c4d141d"
+    },
+    {
+      "member": "rem002-regulated-supply-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "fd211117034f084ebcd63b73abc909e0a1aaa5ee6d91d896d9891e6ccb9bea72"
+    },
+    {
+      "member": "rem002-regulated-supply-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "dad8480dcf66a7aba93d1ab8eaf0b7649567f83945b9a9cb05f0c0ea1b026058"
+    },
+    {
+      "member": "rem002-requested-change-after-browser-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "797cdac9e23cbb66b3847503a373fdf318b47e4fd2bf2a69ad02a39eb1753fa2"
+    },
+    {
+      "member": "rem002-requested-change-native-junit.xml",
+      "cases": 1,
+      "passes": 1,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "sha256": "36ff16ceb1fc724b4af3dbf2430d56195e7c543101db64f8c0fda075ef87bf1d"
+    }
+  ],
+  "junit_totals": {
+    "cases": 674,
+    "passes": 666,
+    "skips": 7,
+    "failures": 1,
+    "errors": 0
+  },
+  "complementary_skips_accounted": true,
+  "staff_native_cases": {
+    "count": 16,
+    "all_pass": true
+  },
+  "external_identity_sql": {
+    "script": "scripts/staff-external-identity-binding-regression.sql",
+    "source_sha256": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "success_notice": "STAFF_EXTERNAL_IDENTITY_BINDING_NATIVE_PASS",
+    "notice_present": true,
+    "managed_auth_claims_scope": "Actual local PG17 mandatory SQL script assertions completed; no hosted/email activation proof."
+  },
+  "blocking_failure": {
+    "report": {
+      "member": "rem002-native-junit.xml",
+      "class": "scripts/ediel-utilts-consumption-native.test.ts",
+      "case": "native inbound E73 (outbound-only in the source catalog) is held before receipt, positive ACK or effect, also on retry"
+    },
+    "fixed_error": "native_consumption_parties_unbound",
+    "fixture_seed_source": {
+      "path": "scripts/ediel-utilts-consumption-native.test.ts",
+      "line": 66,
+      "column": 93,
+      "sha256": "0e89b550c5a54c377c70bc08656f6297775322f736545a45ca0b0030b16f8246"
+    },
+    "test_source": {
+      "line": 494,
+      "column": 19
+    },
+    "failure_text_sha256": "cf2da7952318ae336b29321276c45d1f0b0cb8c641c1c070fee08a42a5c36299",
+    "observed_boundary": "Throws during seed before E73 business assertions or source persistence. No assertion failure of E73 runtime behavior is evidenced.",
+    "source_defect_mechanism": "Guard scans entire wire for old party substrings, while line63 injects random source UUID fragment as interchange reference. Correctly bound UNB/NAD fields can coexist with an unrelated reference containing either substring.",
+    "specific_actual_random_reference": "NOT_RETAINED; do not claim observed exact incidental substring value.",
+    "test_fixture_only_minimal_direction": "Validate parsed UNB/NAD fields against fixture own receiver/issuer; preserve refusal of real unbound fields and all existing E73 assertions. Add deterministic incidental-reference control before source fix."
+  },
+  "upgrade_receipt": {
+    "path": "/tmp/gridex-staff-review/tenant-classification-final-111dd-upgrade-independent-review.json",
+    "sha256": "73d94c6c96c32c63378e6644989f7c0df946a74c51d25b342e4497337d7f4fa1",
+    "status": "PASS_EXACT_111DD_UPGRADE_ARTIFACT_ONLY_CLEAN_NATIVE_PENDING"
+  },
+  "qualification": "Whole111dd clean/native is FAIL and must not be marked ready. Schema/classification/external identity/browser/upgrade successful boundaries remain independent scoped proofs. New final exact-head qualification is required after authorized minimal fixture correction.",
+  "reviewer_operations": {
+    "clean_downloads": 1,
+    "upgrade_downloads": 1,
+    "test_or_replay_runs": 0,
+    "hosted_calls": 0,
+    "source_edits": 0
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "status": "PASS_INDEPENDENT_BOUNDED_NATIVE_FIXTURE_SOURCE_REVIEW",
+  "reviewed_at": "2026-10-05T15:15:21.705638+00:00",
+  "base_commit": "e545c9f4ebc98119ba7e256180ba94d856171405",
+  "sources_sha256": {
+    "scripts/staff-external-identity-binding-regression.sql": "26715686a7a667ade690f81388a5e5112a400370805f7fb52ce4158f1d67f956",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs": "cb4925530dd2c3ae0f7e64855899e02a7f56a8960f5c2324a5ada05040d7ed47",
+    "__tests__/staff-external-identity-sql.test.ts": "4d6194471d8e87aacfcd1e91d9fcb7f72f198a268bfc01e8e6211266ea8a4214"
+  },
+  "changed_paths": [
+    "scripts/staff-external-identity-binding-regression.sql",
+    "scripts/lib/staff-external-identity-sql-fixture.cjs"
+  ],
+  "existing_test_file_byte_equal_to_e545": true,
+  "authenticated_red_artifact_review": {
+    "path": "/tmp/gridex-staff-review/tenant-split-e545-native-upgrade-independent-review.json",
+    "sha256": "1137ffe174728dad64f9fdd6508bdd75fa10aed70ab258293526f3a4f0048348",
+    "status": "FAILED_E545_NATIVE_SQL_COLLISION_NOT_RELABELLED"
+  },
+  "fixture_dependency_closure": {
+    "constraints": {
+      "company_provisioning_jobs_pkey": {
+        "captured_sql_sha256": "df5986f9bd283e9fb72fc8685243f4d2fac33c49938af2bd528e1ff6349cf35f",
+        "exact_captured_source_extraction": true
+      },
+      "company_provisioning_jobs_company_key": {
+        "captured_sql_sha256": "8f6ba162e7de009b16af73d2357aab86b690b624c045e31e4e41489b57e70850",
+        "exact_captured_source_extraction": true
+      },
+      "company_provisioning_jobs_company_id_fkey": {
+        "captured_sql_sha256": "ecb3bf02a1e515958ed45d3c668262d947ac2ec1d98d53bfbf6b358c28e2d906",
+        "exact_captured_source_extraction": true
+      }
+    },
+    "actual_enqueue_function_and_after_insert_trigger": true,
+    "full_captured_table_keeps_original_inline_checks_and_defaults": true,
+    "no_auth_or_authority_mock_added": true,
+    "no_constraint_or_trigger_removed_to_make_test_pass": true
+  },
+  "native_script_delta": {
+    "job_id": "Derived from existing trigger-owned row, never newly invented for duplicate insert.",
+    "initial_claim": "Exact company_id/auth_invite/idempotency_key/pending/NULLlease predicate; UPDATE sets synthetic processing+lease+locked_at and RETURNINGid INTOSTRICT.",
+    "bootstrap_claim": "Same exact pending/nulllease owned tuple; RETURNINGid,lease_token INTOSTRICT.",
+    "missing_or_multiple_owned_rows": "Fail closed through STRICT rather than fallback insertion or ignored exception.",
+    "all_other_original_script_bytes_reconstructed_exactly": true,
+    "all_existing_assertions_notice_transaction_role_boundaries_preserved": true
+  },
+  "test_binding": "Unchanged existing test executes entire actual forward and actual native script with real captured dependencies; its separate nonsuper managed-Auth owner/receiver, metadata preservation and wrong-body atomicity cases stay unchanged.",
+  "owner_reported_local_results": {
+    "enhanced_captured_fixture_red": {
+      "tests": 7,
+      "passed": 5,
+      "failed": 2,
+      "sqlstate": "23505",
+      "same_duplicate_unique_key_as_authentic_native": true
+    },
+    "green": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "finished_at": "2026-10-05T15:09:19Z",
+      "seconds": 6.43
+    },
+    "provenance": "Agent final source message; owner final durable qualification receipt is separate. Reviewer did not rerun."
+  },
+  "protected_inputs_byte_equal_to_e545": {
+    "supabase/migrations/20261005124901_tenant_staff_external_identity_bindings.sql": "c6bf00b74eddc2b99b1e3b95baff3705a1c4291c41469c840297d67cfaa0f7f3",
+    "supabase/database.types.ts": "1543b45eab96d661ff4bb99c9cdbea5cf008c2b4b33d66499dee6f028f47d9bc",
+    "supabase/schema.sql": "2f6a68349f27a7810e5d1af37f2a1285667de49512348335c8d8c2e4d55ca69b",
+    "supabase/schema.fingerprint.json": "40a5f73715ac41ad1623fc0041d9fe930ce027343bc468732f0eb743190badcd",
+    "scripts/migration-history-manifest.json": "ef624c7fecd352d0fe8bf87b464bdd40c25fecccd4465bd02c2e42c69a608d5b",
+    "scripts/migration-history-manifest.additions.json": "741c2e3d079f0898905df60d19d1bea10728c1013a0e04af37f87e0c5d7c48a1",
+    "scripts/migration-history-manifest.runtime.additions.json": "461090d47b752987d580c8b19e62fb5bea60b0b498c1525c3662230c188acd65",
+    "scripts/supabase-types-manifest.json": "832f0d31c229484f95a39ee6a7006bfa3c8754246433ad9baddca100c7907233",
+    ".github/workflows/ops-hardening.yml": "0f04e48eed93545c2a796fed06d476be75b21bca770ae691889ed145e9b4694a"
+  },
+  "qualification_limits": [
+    "This corrects the finite fixture and native regression only; production migration, runtime authority and all SQL producer inputs stay unchanged.",
+    "e545 clean remains failed/historical. Native PG17 execution of the corrected script and fresh final-head CI are mandatory and pending under root ownership.",
+    "Local PGlite execution is not hosted Auth-owner compatibility proof or live delivery/email activation."
+  ],
+  "critical_important_findings": [],
+  "reviewer_actions": {
+    "source_edits": 0,
+    "tests_or_replays": 0,
+    "hosted_or_HTTP_calls": 0,
+    "private_reads": 0,
+    "receipt_files_written": 1
+  }
+}
