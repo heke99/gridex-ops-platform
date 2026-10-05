@@ -1,6 +1,7 @@
+import AdminActionsMenu from "@/components/admin/ui/AdminActionsMenu"
 // app/admin/page.tsx
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Children, isValidElement, type ReactNode } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -45,6 +46,10 @@ function countFailure(error: unknown): string {
 
 function isPositiveCount(value: number | string): boolean {
  return typeof value === 'number' && value > 0
+}
+
+function isUnavailableCount(value: string | number): boolean {
+ return typeof value === 'string' && value.startsWith('Kunde inte hämtas')
 }
 
 async function safeVisibleCustomerCount(supabase: SupabaseClient, companyId?: string | null) {
@@ -116,7 +121,7 @@ function Pill({ tone, children }: { tone: 'emerald' | 'amber' | 'red' | 'slate';
  }
 
  return (
- <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-black ${classes[tone]}`}>
+ <span className={`inline-flex min-w-0 max-w-full items-center break-words rounded-full border px-3 py-1 text-xs font-black ${classes[tone]}`}>
  {children}
  </span>
  )
@@ -143,10 +148,10 @@ function MetricCard({
  }
 
  const content = (
- <div className={`h-full rounded-3xl border p-5 shadow-sm ${styles[tone]}`}>
+ <div className={`h-full min-w-0 rounded-2xl border p-3 ${styles[isUnavailableCount(value) ? 'red' : tone]}`}>
  <div className="text-sm font-black text-slate-700">{label}</div>
- <div className="mt-2 text-3xl font-black tracking-tight text-slate-950">{value}</div>
- <div className="mt-2 text-xs font-bold leading-5 text-slate-700">{hint}</div>
+ <div className="mt-1 break-words text-2xl font-semibold tracking-tight text-slate-950">{value}</div>
+ <div className="mt-1 text-xs font-medium leading-5 text-slate-700">{hint}</div>
  </div>
  )
 
@@ -168,15 +173,20 @@ function WorkAreaCard({
  cta: string
  children?: ReactNode
 }) {
+ const lines = Children.toArray(children)
+ const needsAttention = (line: ReactNode) => isValidElement<{ tone?: string; value?: string | number }>(line) && (
+   ['amber', 'red'].includes(line.props.tone ?? '') || (line.props.value !== undefined && isUnavailableCount(line.props.value))
+ )
+ const attentionLines = lines.filter(needsAttention)
+ const remainingLines = lines.filter((line) => !needsAttention(line))
  return (
- <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
- <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">{eyebrow}</p>
- <h2 className="mt-3 text-xl font-black tracking-tight text-slate-950">{title}</h2>
- <p className="mt-2 text-sm font-bold leading-6 text-slate-700">{text}</p>
- {children ? <div className="mt-5 grid gap-2">{children}</div> : null}
+ <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4">
+ <h2 className="text-lg font-semibold text-slate-950">{eyebrow}</h2>
+ {attentionLines.length > 0 ? <div className="mt-3 grid gap-1">{attentionLines}</div> : null}
+ <details className="mt-3 text-sm text-slate-600"><summary className="cursor-pointer font-medium">Fler uppgifter</summary>{remainingLines.length > 0 ? <div className="mt-2 grid gap-1">{remainingLines}</div> : null}<p className="mt-2 font-semibold text-slate-800">{title}</p><p className="mt-1 leading-6">{text}</p></details>
  <Link
  href={href}
- className="mt-5 inline-flex rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800"
+ className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
  >
  {cta}
  </Link>
@@ -186,9 +196,9 @@ function WorkAreaCard({
 
 function ActionLine({ label, value, tone = 'slate' }: { label: string; value: string | number; tone?: 'slate' | 'emerald' | 'amber' | 'red' }) {
  return (
- <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+ <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0">
  <span className="text-sm font-bold text-slate-800">{label}</span>
- <Pill tone={tone}>{value}</Pill>
+ <Pill tone={isUnavailableCount(value) ? 'red' : tone}>{value}</Pill>
  </div>
  )
 }
@@ -293,17 +303,16 @@ export default async function AdminDashboardPage() {
  workspaceMode={isPlatformAdmin ? 'platform' : 'tenant'}
  />
 
- <div className="space-y-8 p-8">
- <section className="rounded-[2rem] border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-6 shadow-sm">
+ <div className="space-y-4 p-4 lg:p-6">
+ <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
  <div className="flex flex-wrap items-start justify-between gap-6">
  <div>
  <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-900">Gridex Operations</p>
- <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+ <h1 className="mt-1 break-words text-2xl font-semibold tracking-tight text-slate-950">
 {isPlatformAdmin ? 'Plattformsöversikt' : `Dagens driftläge för ${companyScope.companyName ?? 'ditt bolag'}`}
  </h1>
  <p className="mt-3 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- Den här sidan är systemets startsida. Ediel Live Center, kundflöden, onboarding, operations,
- mätvärden och faktureringsunderlag visas i samma arbetsyta så att inga kritiska blockeringar göms.
+ Följ dagens kundflöden, driftuppgifter och fakturering. Öppna arbetskön för nästa åtgärd.
  </p>
  {companyScope.message ? (
  <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-3 text-sm font-black text-amber-950">
@@ -325,7 +334,7 @@ export default async function AdminDashboardPage() {
  </div>
  </section>
 
- <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+ <section className="grid grid-cols-2 gap-2 xl:grid-cols-6">
  <MetricCard label="Kunder" value={customers} hint="Aktuellt kundregister" href="/admin/customers" tone="emerald" />
  <MetricCard label="Avtal" value={contracts} hint="Aktiva och historiska avtal" href="/admin/contracts" />
  <MetricCard label="Anläggningar" value={sites} hint="Kopplade uttagspunkter" href="/admin/customers" />
@@ -338,16 +347,13 @@ export default async function AdminDashboardPage() {
  <div className="flex flex-wrap items-start justify-between gap-4">
  <div>
  <p className="text-xs font-black uppercase tracking-[0.18em] text-emerald-900">Elbolagets arbetsläge</p>
- <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950">Få knappar, tydliga statusar</h2>
- <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- Handläggare ska se affärsläge, inte EDIFACT-segment. Tekniska detaljer ligger i superadmin-vyerna.
- </p>
+ <h2 className="mt-1 text-xl font-semibold text-slate-950">Nästa åtgärder och väntande svar</h2>
  </div>
  <Link href="/admin/work-queue" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
  Öppna åtgärder
  </Link>
  </div>
- <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-7">
+ <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
  <MetricCard label="Pågående leverantörsbyten" value={ongoingSupplierSwitches} hint="Startade eller väntande byten" href="/admin/operations/switches" tone={isPositiveCount(ongoingSupplierSwitches) ? 'amber' : 'emerald'} />
  <MetricCard label="Väntar på nätägare" value={waitingForGridOwner} hint="Begäran skickad, svar saknas" href="/admin/customer-info-requests" tone={isPositiveCount(waitingForGridOwner) ? 'amber' : 'emerald'} />
  <MetricCard label="Negativa kvittenser" value={negativeAcknowledgements} hint="Avvisat - åtgärd krävs" href={isPlatformAdmin ? '/admin/ediel/control-tower' : '/admin/work-queue'} tone={isPositiveCount(negativeAcknowledgements) ? 'red' : 'emerald'} />
@@ -469,8 +475,7 @@ cta="Öppna åtgärder"
  {companyScope.companyName ?? 'Bolagskoppling saknas'} · {actor?.actor_name ?? 'Ediel-profil saknas'}
  </h2>
  <p className="mt-2 max-w-4xl text-sm font-bold leading-6 text-slate-700">
- När tenantprofilen sparas ska samma company_id följa kunder, fullmakter, routes, outbound, Ediel-meddelanden,
- mätvärden och faktureringsunderlag. Om profilen saknas ska liveflöden inte skickas.
+ Kontrollera bolagets aktörsprofil och driftmiljö innan liveflöden skickas.
  </p>
  </div>
 
@@ -487,12 +492,14 @@ cta="Öppna åtgärder"
  <Link href="/admin/ediel/settings" className="rounded-2xl bg-emerald-700 px-4 py-2.5 text-sm font-black text-white shadow-sm transition hover:bg-emerald-800">
  Hantera tenantprofil
  </Link>
+ <AdminActionsMenu label="Fler verktyg">
  <Link href="/admin/ediel/routes" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
  Kontrollera routes
  </Link>
  <Link href="/admin/controltower" className="rounded-2xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-black text-slate-900 transition hover:bg-slate-50">
  Öppna Control Tower
  </Link>
+ </AdminActionsMenu>
  </div>
  </section>
  </div>

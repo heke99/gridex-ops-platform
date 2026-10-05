@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "one selected template visible",
+    "switching template preserves entered data",
+    "manual/catalog choice",
+    "removed selected template falls back",
+    "empty templates falls back to manual",
+    "hash deep link and same-hash reopening",
+    "invalid nested field opens and receives focus",
+    "mobile no horizontal overflow"
+  ],
+  "errors": []
+}

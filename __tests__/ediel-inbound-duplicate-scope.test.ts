@@ -1,17 +1,20 @@
-// masterplan: ACK-09, AT-ACK-09
+// masterplan: ACK-09, AT-ACK-09, ENV-05, AT-ENV-05
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 
 const store = vi.hoisted(() => ({rows: [] as Record<string, unknown>[], reads: [] as Array<Array<[string, unknown]>>}))
 vi.mock('@/lib/supabase/service', () => ({supabaseService: {from: () => {
   const filters: Array<[string, unknown]> = []; store.reads.push(filters)
+  let maximum = Infinity
+  const rows = () => store.rows.filter(row => filters.every(([key, value]) => row[key] === value)).slice(0, maximum)
   const query = {select: () => query, eq: (key: string, value: unknown) => {filters.push([key, value]); return query},
     is: (key: string, value: unknown) => {filters.push([key, value]); return query}, order: () => query,
-    limit: async (count: number) => ({data: store.rows.filter(row => filters.every(([key, value]) => row[key] === value)).slice(0, count), error: null}),
+    limit: (count: number) => { maximum = count; return query },
+    then: (resolve: (value: unknown) => unknown) => Promise.resolve({ data: rows(), error: null }).then(resolve),
     maybeSingle: async () => ({data: store.rows.find(row => filters.every(([key, value]) => row[key] === value)) ?? null, error: null})}
   return query
 }}}))
 vi.mock('@/lib/ediel/core/ackPolicy', () => ({findExistingAckForSource: vi.fn()}))
-import {buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity} from '@/lib/ediel/core/dedupe'
+import {buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity, findOutboundEdielMessageDuplicate} from '@/lib/ediel/core/dedupe'
 
 const identity = (patch: Record<string, unknown> = {}) => buildInboundCanonicalIdentity({companyId: 'tenant-a', environment: 'test',
   receiverEdielId: '12345', applicationReference: 'SUPPLIER', senderEdielId: '54321', interchangeReference: 'SAME', ...patch})
@@ -50,4 +53,21 @@ describe('inbound duplicate lookup selects its actual tenant and wire scope', ()
     await expect(findInboundDuplicateByCanonicalIdentity(identity({environment: null}))).rejects.toThrow('ediel_inbound_duplicate_scope_required')
     expect(store.reads).toHaveLength(0)
   })
+})
+
+// Reuse the same finite query port to exercise the actual outbound owner selector.
+it('separates outbound replay by explicit environment even when operation and wire references match', async () => {
+  const own = row({ direction: 'outbound', message_family: 'PRODAT', message_code: 'Z01', source_operation_id: 'operation', status: 'draft' })
+  const production = { ...own, id: 'production-original', environment: 'production' }
+  store.rows = [production, own]
+  const input = { companyId: 'tenant-a', sourceOperationId: 'operation', messageFamily: 'PRODAT', messageCode: 'Z01' }
+  expect(await findOutboundEdielMessageDuplicate({ ...input, environment: 'test' })).toBe(own)
+  expect(await findOutboundEdielMessageDuplicate({ ...input, environment: 'production' })).toBe(production)
+  expect(store.reads[0]).toContainEqual(['environment', 'test'])
+  expect(store.reads[1]).toContainEqual(['environment', 'production'])
+})
+it.each([undefined, 'replay'])('cannot dedupe an outbound source by implicit environment %j', async environment => {
+  store.rows = [row({ direction: 'outbound', message_family: 'PRODAT', message_code: 'Z01', source_operation_id: 'operation', status: 'sent' })]
+  expect(await findOutboundEdielMessageDuplicate({ companyId: 'tenant-a', sourceOperationId: 'operation', messageFamily: 'PRODAT', messageCode: 'Z01', environment })).toBeNull()
+  expect(store.reads).toHaveLength(0)
 })

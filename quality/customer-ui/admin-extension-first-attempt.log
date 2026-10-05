@@ -1,0 +1,81 @@
+
+ RUN  v4.1.9 /workspace/gridex-ops-platform
+
+ ❯ __tests__/support-case-no-operational-stop.test.ts (6 tests | 2 failed) 11498ms
+     × a customer_portal support case leaves billing, onboarding and outbound untouched 5023ms
+     × a api support case leaves billing, onboarding and outbound untouched 5014ms
+ ❯ __tests__/tenantservice-support-conversation.test.ts (17 tests | 3 failed) 12038ms
+     × customer creates a case; staff reply is visible, internal note and phone log are not 5026ms
+     × a technical/status event with visibility customer but non-public type is still hidden 5004ms
+     × phone summary appears only after explicit publication, as staff phone_summary 1532ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/support-case-no-operational-stop.test.ts > support cases have no operational side effects > a customer_portal support case leaves billing, onboarding and outbound untouched
+ FAIL  __tests__/support-case-no-operational-stop.test.ts > support cases have no operational side effects > a api support case leaves billing, onboarding and outbound untouched
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/support-case-no-operational-stop.test.ts:92:5
+     90| describe('support cases have no operational side effects', () => {
+     91|   for (const channel of ['customer_portal', 'api', 'admin', 'phone'] a…
+     92|     it(`a ${channel} support case leaves billing, onboarding and outbo…
+       |     ^
+     93|       const { createTenantSupportCase } = await import('@/lib/customer…
+     94|       const created = await createTenantSupportCase({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  __tests__/tenantservice-support-conversation.test.ts > scenario A: web case → OPS reply → customer sees only customer-visible content > customer creates a case; staff reply is visible, internal note and phone log are not
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/tenantservice-support-conversation.test.ts:110:3
+    108|
+    109| describe('scenario A: web case → OPS reply → customer sees only custom…
+    110|   it('customer creates a case; staff reply is visible, internal note a…
+       |   ^
+    111|     const support = await import('@/lib/customer-service/supportConver…
+    112|     const created = await openCase()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  __tests__/tenantservice-support-conversation.test.ts > scenario A: web case → OPS reply → customer sees only customer-visible content > a technical/status event with visibility customer but non-public type is still hidden
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ __tests__/tenantservice-support-conversation.test.ts:134:3
+    132|   })
+    133|
+    134|   it('a technical/status event with visibility customer but non-public…
+       |   ^
+    135|     const support = await import('@/lib/customer-service/supportConver…
+    136|     await openCase()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  __tests__/tenantservice-support-conversation.test.ts > scenario D: phone summary is published explicitly and labelled as staff > phone summary appears only after explicit publication, as staff phone_summary
+AssertionError: expected { …(5) } to match object { author_type: 'staff', …(1) }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+    "author_type": "staff",
+-   "kind": "phone_summary",
++   "kind": "message",
+  }
+
+ ❯ __tests__/tenantservice-support-conversation.test.ts:157:29
+    155|     await support.replyToCustomer({ ...staffScope, message: 'Sammanfat…
+    156|     messages = await support.listCustomerSupportMessages(scopeA1, staf…
+    157|     expect(messages.at(-1)).toMatchObject({ author_type: 'staff', kind…
+       |                             ^
+    158|   })
+    159|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+
+ Test Files  2 failed | 19 passed (21)
+      Tests  5 failed | 150 passed (155)
+   Start at  13:46:01
+   Duration  24.34s (transform 32.01s, setup 613ms, import 20.50s, tests 24.37s, environment 4ms)

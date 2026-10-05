@@ -1,0 +1,16 @@
+OK: website_customer_applications loads before external_contract_intakes
+OK: external intake mirror is merged into canonical website row instead of replacing it
+OK: admin rows carry explicit source_table for safe UI/action handling
+OK: single application admin loader exists for detail page
+OK: external intake uses ensureCustomerForIntake instead of blind customer insert
+OK: external intake deduplicates by normalized email, personnummer, and orgnummer
+OK: external intake does not write pending_signature into customers.status
+OK: external intake writes a valid draft customer status
+OK: external intake replays failed/needs_review idempotent rows instead of returning a dead duplicate
+OK: list UI blocks website actions for external-only fallback rows
+OK: detail page renders full operational chain from application to customer/site/contract/requests
+OK: server actions safely return to and revalidate the application detail view
+OK: migration repairs legacy customer status and adds chain indexes
+FAIL: list UI exposes a detail route for every intake row
+
+1 regression check(s) failed.
