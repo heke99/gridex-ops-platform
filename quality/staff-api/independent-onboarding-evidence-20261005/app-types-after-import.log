@@ -1,0 +1,3 @@
+
+> gridex-ops-platform@0.1.0 typecheck
+> node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit -p tsconfig.app.json

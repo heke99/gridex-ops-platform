@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server'
 const env = vi.hoisted(() => ({ url: 'https://ayiuxjlfazkjmmtlvhsl.supabase.co' }))
 vi.mock('@/lib/supabase/service', () => ({ get SUPABASE_SERVICE_URL() { return env.url }, supabaseService: {} }))
 vi.mock('@/lib/integrations/apiAuth', async importOriginal => ({ ...await importOriginal<Record<string, unknown>>(), requireIntegrationApiAccess: vi.fn(), logIntegrationApiRequest: vi.fn() }))
-import { createStaffInvitationAcceptanceHandler } from '@/lib/staff-api/onboarding'
+import { createStaffInvitationAcceptanceHandler, type StaffInvitationAcceptancePorts } from '@/lib/staff-api/onboarding'
 
 const company = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', userId = '11111111-1111-4111-8111-111111111111'
 const clientId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', inviteId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', token = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'
@@ -20,14 +20,14 @@ const client = { id: clientId, company_id: company, name: 'Synthetic', key_prefi
 function boundary() {
   const consumed = new Set<string>(), calls: string[] = []
   const ports = {
-    apiAccess: vi.fn(async () => { calls.push('api_access'); return { ok: true, client } }),
-    getAuthUser: vi.fn(async () => { calls.push('verified_prod_auth'); return { id: userId, email: 'staff@example.invalid', email_confirmed_at: '2026-10-01T00:00:00Z' } }),
-    loadProvider: vi.fn(async () => ({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', company_id: company, purpose: 'staff', is_active: true, kind: 'tenant_key', display_name: 'Support', issuer: 'https://support123.gridex.se', audience: 'staff-audience', jwks_uri: null, public_jwk: jwk, subject_claim: 'sub', enforcement: 'enforce' })),
-    consumeJti: vi.fn(async (_company: string, jti: string) => { if (consumed.has(jti)) return false; consumed.add(jti); calls.push('consume_signed_jti'); return true }),
-    findInvitation: vi.fn(async () => ({ id: inviteId, company_id: company, email: 'staff@example.invalid', invited_user_id: userId, status: 'pending', expires_at: '2030-01-01T00:00:00Z' })),
-    loadBinding: vi.fn(async () => ({ company_id: company, channel: 'staff_api', api_client_id: clientId, staff_operation: 'invite' })),
-    canonicalAccept: vi.fn(async () => { calls.push('canonical_accept'); return { changed: true } }),
-    logRequest: vi.fn(async () => undefined),
+    apiAccess: vi.fn<StaffInvitationAcceptancePorts['apiAccess']>(async () => { calls.push('api_access'); return { ok: true, client } }),
+    getAuthUser: vi.fn<StaffInvitationAcceptancePorts['getAuthUser']>(async () => { calls.push('verified_prod_auth'); return { id: userId, email: 'staff@example.invalid', email_confirmed_at: '2026-10-01T00:00:00Z' } }),
+    loadProvider: vi.fn<StaffInvitationAcceptancePorts['loadProvider']>(async () => ({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', company_id: company, purpose: 'staff', is_active: true, kind: 'tenant_key', display_name: 'Support', issuer: 'https://support123.gridex.se', audience: 'staff-audience', jwks_uri: null, public_jwk: jwk, subject_claim: 'sub', enforcement: 'enforce' })),
+    consumeJti: vi.fn<StaffInvitationAcceptancePorts['consumeJti']>(async (_company, jti) => { if (consumed.has(jti)) return false; consumed.add(jti); calls.push('consume_signed_jti'); return true }),
+    findInvitation: vi.fn<StaffInvitationAcceptancePorts['findInvitation']>(async () => ({ id: inviteId, company_id: company, email: 'staff@example.invalid', invited_user_id: userId, status: 'pending', expires_at: '2030-01-01T00:00:00Z' })),
+    loadBinding: vi.fn<StaffInvitationAcceptancePorts['loadBinding']>(async () => ({ company_id: company, channel: 'staff_api', api_client_id: clientId, staff_operation: 'invite' })),
+    canonicalAccept: vi.fn<StaffInvitationAcceptancePorts['canonicalAccept']>(async () => { calls.push('canonical_accept'); return { changed: true } }),
+    logRequest: vi.fn<StaffInvitationAcceptancePorts['logRequest']>(async () => undefined),
   }
   return { ports, calls, handler: createStaffInvitationAcceptanceHandler(ports) }
 }
@@ -69,7 +69,7 @@ describe('explicit independent staff invitation acceptance', () => {
   })
   it('authenticates before invalid body processing and never audits an unauthenticated null-company request', async () => {
     const { handler, ports } = boundary()
-    ports.apiAccess.mockResolvedValue({ ok: false, status: 401, error: 'Authentication required.', errorCode: 'api_unauthorized' } as never)
+    ports.apiAccess.mockResolvedValue({ ok: false, status: 401, error: 'Authentication required.', errorCode: 'api_unauthorized' })
     expect((await handler(request({ body: { user_id: 'untrusted' } }))).status).toBe(401)
     expect(ports.apiAccess).toHaveBeenCalledOnce()
     expect(ports.logRequest).not.toHaveBeenCalled(); expect(ports.canonicalAccept).not.toHaveBeenCalled()
@@ -78,7 +78,7 @@ describe('explicit independent staff invitation acceptance', () => {
     { email_confirmed_at: null }, { email: 'other@example.invalid' }, { id: '22222222-2222-4222-8222-222222222222' },
   ])('rejects unconfirmed or mismatched verified Auth identity before canonical write: %j', async changes => {
     const { handler, ports } = boundary()
-    ports.getAuthUser.mockResolvedValue({ id: userId, email: 'staff@example.invalid', email_confirmed_at: '2026-10-01T00:00:00Z', ...changes } as never)
+    ports.getAuthUser.mockResolvedValue({ id: userId, email: 'staff@example.invalid', email_confirmed_at: '2026-10-01T00:00:00Z', ...changes })
     expect((await handler(request())).status).toBeGreaterThanOrEqual(400)
     expect(ports.canonicalAccept).not.toHaveBeenCalled()
   })
@@ -86,7 +86,7 @@ describe('explicit independent staff invitation acceptance', () => {
     { company_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff' }, { invited_user_id: null }, { invited_user_id: '22222222-2222-4222-8222-222222222222' }, { status: 'revoked' }, { expires_at: '2020-01-01T00:00:00Z' },
   ])('rejects a foreign, undelivered, revoked or expired invitation: %j', async changes => {
     const { handler, ports } = boundary()
-    ports.findInvitation.mockResolvedValue({ id: inviteId, company_id: company, email: 'staff@example.invalid', invited_user_id: userId, status: 'pending', expires_at: '2030-01-01T00:00:00Z', ...changes } as never)
+    ports.findInvitation.mockResolvedValue({ id: inviteId, company_id: company, email: 'staff@example.invalid', invited_user_id: userId, status: 'pending', expires_at: '2030-01-01T00:00:00Z', ...changes })
     expect((await handler(request())).status).toBeGreaterThanOrEqual(400)
     expect(ports.canonicalAccept).not.toHaveBeenCalled()
   })
@@ -98,7 +98,8 @@ describe('explicit independent staff invitation acceptance', () => {
   })
   it.each([{ purpose: 'customer' }, { is_active: false }, { company_id: 'ffffffff-ffff-4fff-8fff-ffffffffffff' }])('rejects wrong staff provider binding: %j', async changes => {
     const { handler, ports } = boundary()
-    const provider = await ports.loadProvider()
+    const provider = await ports.loadProvider(company)
+    if (!provider) throw new Error('The synthetic provider fixture is missing.')
     ports.loadProvider.mockResolvedValue({ ...provider, ...changes })
     expect((await handler(request())).status).toBe(403)
     expect(ports.canonicalAccept).not.toHaveBeenCalled()

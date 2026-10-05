@@ -96271,6 +96271,10 @@ export type Database = {
         }
         Returns: Json
       }
+      gridex_accept_staff_invitation_v1: {
+        Args: { p_command: Json }
+        Returns: Json
+      }
       gridex_acquire_automation_lock: {
         Args: {
           p_company_id?: string

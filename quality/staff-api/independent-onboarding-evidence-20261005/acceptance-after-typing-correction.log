@@ -1,0 +1,8 @@
+
+ RUN  v4.1.9 /workspace/gridex-support-portal-ops
+
+
+ Test Files  1 passed (1)
+      Tests  28 passed (28)
+   Start at  10:54:00
+   Duration  1.04s (transform 399ms, setup 55ms, import 597ms, tests 177ms, environment 0ms)

@@ -75,17 +75,22 @@ Baseline48/15evidence remains preserved; new receipts are separate addenda.
 
 Publication: OPS draftPR578 https://github.com/heke99/gridex-ops-platform/pull/578;
 web draftPR45 https://github.com/heke99/gridex-web/pull/45. Web final code54b406d
-already published; OPS new source is awaiting its source commit/push. Both PRs
+already published with all three required remote checks GREEN; OPS source46ecb047e
+is published as the native-artifact pilot. Both PRs
 are attached to this chat. No production migration, account/provider/client,
 Auth callback setting, real email, environment change or domain move occurred.
 
-Active next action: authentic generated artifacts. Frozen SQL forward SHA256
+Authentic generated artifacts imported. Frozen SQL forward SHA256
 ac58bb9af7f94b31b2daaa526e4bb2fc19793179b29e2118e1ca2c2813f32492 is registered;
-checksum integrity1067files and contract hardening PASS, but db:types:check
-correctly fails new migration tail. Publish reviewed draft source to obtain
-real clean-replay type/schema artifacts, commit their exact bytes/manifests,
-then pass required final native clean/upgrade/schema CI. Do not hand-edit
-artifacts or call old schema current. Source receipt84tests:
+checksum integrity1067files and contract hardening PASS. Exact46ec capture-only
+workflow37299065849/artifact11341610088 SUCCESS; published ZIP digest750944617...
+and all4members/8inputhashes/rawoutputhashes/source tree verified. Raw types/schema/
+fingerprint imported; all nonfunction sections unchanged. Aggregate migration
+check now PASS. The pilot's type/upgrade failures were the expected old artifacts;
+its test typing issue is fixed with exact port mocks, fulltesttypes and28affected
+tests PASS, runtime/SQL unchanged. Active next action: commit/publish reviewed
+import and test correction, then pass final required native clean/upgrade/schema
+CI. Do not call capture-only native acceptance. Source receipt84tests:
 quality/staff-api/independent-onboarding-evidence-20261005/manifest.json.
 
 After source CI: Prod dependency closure additionally must resolve genuine

@@ -33346,8 +33346,9 @@ CREATE FUNCTION public.authenticate_integration_request_v1(p_key_prefix text, p_
   -- may grant this new family. Unknown staff paths fail closed.
   with staff_policy as (
     select
-      p_route ~ '^/api/v1/staff(/|$)' as is_staff_route,
+      p_route ~ '^/api/v1/(staff|staff-onboarding)(/|$)' as is_staff_route,
       case
+        when p_route='/api/v1/staff-onboarding/invitations/accept' then array['staff_users.write']::text[]
         when p_route='/api/v1/staff/users' then array['staff_users.read','staff_users.write']::text[]
         when p_route='/api/v1/staff/roles' then array['staff_users.read']::text[]
         when p_route ~ '^/api/v1/staff/users/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}(/(disable|enable))?$' then array['staff_users.write']::text[]
@@ -47346,6 +47347,108 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: gridex_accept_staff_invitation_v1(jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'pg_catalog'
+    AS $_$
+DECLARE
+  v_company_id uuid := nullif(p_command->>'company_id','')::uuid;
+  v_user_id uuid := nullif(p_command->>'user_id','')::uuid;
+  v_actor_id uuid := nullif(p_command->>'actor_user_id','')::uuid;
+  v_invitation_id uuid := nullif(p_command->>'invitation_id','')::uuid;
+  v_client_id uuid := nullif(p_command->>'api_client_id','')::uuid;
+  v_provider_id uuid := nullif(p_command->>'provider_id','')::uuid;
+  v_key text := nullif(btrim(p_command->>'idempotency_key'),'');
+  v_client public.integration_api_clients%rowtype;
+  v_provider public.tenant_customer_identity_providers%rowtype;
+  v_invitation public.company_invitations%rowtype;
+  v_binding jsonb;
+  v_origin text;
+  v_email text;
+  v_auth_confirmed timestamptz;
+  v_deleted timestamptz;
+  v_banned timestamptz;
+  v_company_status text;
+  v_company_active boolean;
+BEGIN
+  IF v_company_id IS NULL OR v_user_id IS NULL OR v_actor_id IS DISTINCT FROM v_user_id
+    OR v_invitation_id IS NULL OR v_client_id IS NULL OR v_provider_id IS NULL OR v_key IS NULL
+    OR p_command->>'channel' IS DISTINCT FROM 'staff_onboarding'
+    OR jsonb_typeof(p_command->'verified_client') IS DISTINCT FROM 'object'
+    OR jsonb_typeof(p_command->'verified_provider') IS DISTINCT FROM 'object'
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_identity_invalid'; END IF;
+
+  -- Shared staff commands lock company first. Client/provider/Auth updates
+  -- cannot invalidate a checked snapshot during the canonical transaction.
+  SELECT status,is_active INTO v_company_status,v_company_active FROM public.companies WHERE id=v_company_id FOR NO KEY UPDATE;
+  IF NOT FOUND OR v_company_status IS DISTINCT FROM 'active' OR v_company_active IS DISTINCT FROM true
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_company_inactive'; END IF;
+  SELECT * INTO v_client FROM public.integration_api_clients
+    WHERE id=v_client_id AND company_id=v_company_id FOR SHARE;
+  IF NOT FOUND OR v_client.status IS DISTINCT FROM 'active' OR v_client.deleted_at IS NOT NULL OR v_client.revoked_at IS NOT NULL
+    OR (v_client.expires_at IS NOT NULL AND v_client.expires_at<=now())
+    OR NOT ('staff_users.write'=ANY(coalesce(v_client.scopes,ARRAY[]::text[])))
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_invalid'; END IF;
+  v_origin := v_client.metadata->>'staff_onboarding_origin';
+  IF v_origin IS NULL OR v_origin !~ '^https://([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$'
+    OR v_origin ~ '\.(localhost|local|internal|test|invalid)$'
+    OR NOT (v_origin=ANY(coalesce(v_client.allowed_origins,ARRAY[]::text[])))
+    OR p_command->'verified_client' IS DISTINCT FROM jsonb_build_object(
+      'secret_hash',v_client.secret_hash,'scopes',to_jsonb(v_client.scopes),
+      'allowed_origins',to_jsonb(v_client.allowed_origins),'staff_onboarding_origin',v_origin)
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_client_changed'; END IF;
+
+  SELECT * INTO v_provider FROM public.tenant_customer_identity_providers
+    WHERE id=v_provider_id AND company_id=v_company_id FOR SHARE;
+  IF NOT FOUND OR v_provider.purpose IS DISTINCT FROM 'staff' OR NOT coalesce(v_provider.is_active,false)
+    OR v_provider.subject_claim IS DISTINCT FROM 'sub' OR v_provider.enforcement IS DISTINCT FROM 'enforce'
+    OR p_command->'verified_provider' IS DISTINCT FROM jsonb_build_object(
+      'kind',v_provider.kind,'issuer',v_provider.issuer,'audience',v_provider.audience,
+      'jwks_uri',v_provider.jwks_uri,'public_jwk',v_provider.public_jwk,
+      'subject_claim',v_provider.subject_claim,'enforcement',v_provider.enforcement)
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_provider_changed'; END IF;
+
+  SELECT lower(u.email),u.email_confirmed_at,u.deleted_at,u.banned_until
+    INTO v_email,v_auth_confirmed,v_deleted,v_banned FROM auth.users u WHERE u.id=v_user_id FOR SHARE;
+  IF NOT FOUND OR v_email IS NULL OR v_auth_confirmed IS NULL OR v_deleted IS NOT NULL
+    OR (v_banned IS NOT NULL AND v_banned>now())
+    OR NOT EXISTS(SELECT FROM public.user_profiles WHERE id=v_user_id AND user_status='active')
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_auth_invalid'; END IF;
+  SELECT * INTO v_invitation FROM public.company_invitations
+    WHERE id=v_invitation_id AND company_id=v_company_id FOR UPDATE;
+  IF NOT FOUND OR v_invitation.invited_user_id IS DISTINCT FROM v_user_id
+    OR lower(btrim(v_invitation.email)) IS DISTINCT FROM v_email
+    OR v_invitation.status NOT IN ('pending','accepted')
+    OR (v_invitation.status='pending' AND (v_invitation.expires_at IS NULL OR v_invitation.expires_at<=now()))
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_invalid'; END IF;
+  SELECT request_payload INTO v_binding FROM public.canonical_command_results
+    WHERE company_id=v_company_id AND command_type='tenant.invitation.create'
+      AND result_payload->>'invitation_id'=v_invitation_id::text FOR SHARE;
+  IF NOT FOUND OR v_binding->>'company_id' IS DISTINCT FROM v_company_id::text
+    OR v_binding->>'channel' IS DISTINCT FROM 'staff_api'
+    OR v_binding->>'staff_operation' IS DISTINCT FROM 'invite'
+    OR v_binding->>'api_client_id' IS DISTINCT FROM v_client_id::text
+  THEN RAISE EXCEPTION USING ERRCODE='42501',MESSAGE='staff_onboarding_invitation_client_mismatch'; END IF;
+
+  -- Only stable canonical authority fields enter the durable request/hash.
+  -- Verification snapshots and secrets are never copied into receipts/audits.
+  RETURN public.canonical_accept_tenant_invitation(jsonb_build_object(
+    'company_id',v_company_id,'invitation_id',v_invitation_id,'user_id',v_user_id,
+    'actor_user_id',v_user_id,'idempotency_key',v_key,
+    'channel','staff_onboarding','api_client_id',v_client_id));
+END;
+$_$;
+
+--
+-- Name: FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) IS 'Independent staff onboarding: verified Prod Auth and signed provider proof are checked by the API; locked native client/provider/invitation authority is checked before unchanged canonical acceptance. Service-only.';
 
 --
 -- Name: gridex_acquire_automation_lock(text, uuid, uuid, integer, jsonb); Type: FUNCTION; Schema: public; Owner: -
@@ -187561,6 +187664,13 @@ GRANT ALL ON FUNCTION public.ediel_witness_confirmed_customer_source_v1(p_compan
 --
 
 GRANT ALL ON FUNCTION public.ensure_customer_invoice_reference_v1() TO service_role;
+
+--
+-- Name: FUNCTION gridex_accept_staff_invitation_v1(p_command jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.gridex_accept_staff_invitation_v1(p_command jsonb) TO service_role;
 
 --
 -- Name: FUNCTION gridex_acquire_automation_lock(p_lock_key text, p_lock_token uuid, p_company_id uuid, p_ttl_seconds integer, p_metadata jsonb); Type: ACL; Schema: public; Owner: -

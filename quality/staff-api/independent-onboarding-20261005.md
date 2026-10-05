@@ -22,13 +22,23 @@ predecessor function body hash must match. Authenticated request credentials
 provide the transient hash snapshot; no stored credential hash is exposed in
 the frozen authentication RPC or persisted into canonical receipts.
 
-**Generated artifacts/native acceptance are pending.** Checksum integrity
-passes with 1067 files. The aggregate migration check currently refuses the
-new migration tail until Supabase types are regenerated from real native clean
-replay. Do not hand-edit types or falsely relabel the old manifest. Publish the
-reviewed draft to obtain the actual generated type/schema artifacts, commit
-those bytes and provenance, and pass final required clean/upgrade/schema CI.
-Embedded PGlite qualification is not native replay, RLS or concurrency proof.
+**Authentic generated artifacts are imported; native acceptance is pending.**
+Capture-only workflow `37299065849` succeeded on exact source `46ecb047e`.
+Artifact `11341610088` matches its published ZIP digest, exact four members,
+all eight captured replay inputs and the frozen migration hash. Types, schema
+and fingerprint were copied byte for byte; the complete previous manifest and
+capture lineage remain preserved. Only the new wrapper type, intended function
+bodies and wrapper function grants differ; all nonfunction fingerprint sections
+are unchanged. The aggregate migration check now passes with 1067 files.
+Final native clean/upgrade/schema CI still must pass. Embedded PGlite and this
+capture-only job do not establish native acceptance, RLS or concurrency proof.
+
+The original source pilot correctly failed its generated-type tail check and
+the upgrade comparison at the newly added function. It also exposed two test
+mock typing errors. Those declarations now use the exact port function types;
+full test TypeScript and the 28 affected acceptance tests pass. Frozen SQL and
+runtime code are unchanged. The original pilot receipts remain historical;
+the generated import and test typing delta have separate evidence.
 
 **Named gridex-prod activation is blocked.** Project `ayiuxjlfazkjmmtlvhsl`
 lacks Staff/canonical/runtime prerequisites and a verified Gridex tenant/admin.
