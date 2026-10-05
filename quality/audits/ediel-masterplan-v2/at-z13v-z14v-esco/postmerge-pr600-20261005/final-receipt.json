@@ -1,0 +1,390 @@
+{
+  "receipt_kind": "PR600 sole exact-head ordinary CI observer terminal receipt",
+  "sealed_at": "2026-10-05T17:36:59.638495+00:00",
+  "pr_url": "https://github.com/heke99/gridex-ops-platform/pull/600",
+  "expected_head": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+  "actual_pr_head": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+  "committed_source_tree": "ea5f37e9ea0431d50bd96cfc0c566d343764161a",
+  "head_match": true,
+  "pr_state_at_terminal_read": "open",
+  "pr_merged_at_terminal_read": false,
+  "workflow_gate": "PASS",
+  "mandatory_success": 9,
+  "mandatory_required": 9,
+  "terminal_check_observed_at": "2026-10-05T17:33:49.407610+00:00",
+  "terminal_poll_index": 46,
+  "mandatory_jobs": [
+    {
+      "name": "clean-migration-replay",
+      "id": 111869614757,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:39:15Z",
+      "completed_at": "2026-10-05T17:33:32Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555899/job/111869614757",
+      "job_id": 111869614757,
+      "run_id": 37341555899,
+      "run_attempt": 1
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111869614570,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:39:22Z",
+      "completed_at": "2026-10-05T16:49:38Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555899/job/111869614570",
+      "job_id": 111869614570,
+      "run_id": 37341555899,
+      "run_attempt": 1
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111869614760,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:34:11Z",
+      "completed_at": "2026-10-05T16:46:04Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555899/job/111869614760",
+      "job_id": 111869614760,
+      "run_id": 37341555899,
+      "run_attempt": 1
+    },
+    {
+      "name": "verify",
+      "id": 111869614834,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:37:47Z",
+      "completed_at": "2026-10-05T16:39:12Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555899/job/111869614834",
+      "job_id": 111869614834,
+      "run_id": 37341555899,
+      "run_attempt": 1
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111869616893,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:37:03Z",
+      "completed_at": "2026-10-05T16:41:22Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555786/job/111869616893",
+      "job_id": 111869616893,
+      "run_id": 37341555786,
+      "run_attempt": 1
+    },
+    {
+      "name": "browser-public",
+      "id": 111869615681,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:40:28Z",
+      "completed_at": "2026-10-05T16:41:52Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341556049/job/111869615681",
+      "job_id": 111869615681,
+      "run_id": 37341556049,
+      "run_attempt": 1
+    },
+    {
+      "name": "smoke",
+      "id": 111869614272,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:47:34Z",
+      "completed_at": "2026-10-05T16:49:23Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555864/job/111869614272",
+      "job_id": 111869614272,
+      "run_id": 37341555864,
+      "run_attempt": 1
+    },
+    {
+      "name": "coverage",
+      "id": 111869613963,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:38:16Z",
+      "completed_at": "2026-10-05T16:41:56Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555864/job/111869613963",
+      "job_id": 111869613963,
+      "run_id": 37341555864,
+      "run_attempt": 1
+    },
+    {
+      "name": "pr-certificate",
+      "id": 111877076374,
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T16:58:30Z",
+      "completed_at": "2026-10-05T16:58:42Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37341555864/job/111877076374",
+      "job_id": 111877076374,
+      "run_id": 37341555864,
+      "run_attempt": 1
+    }
+  ],
+  "all_four_workflow_runs": [
+    {
+      "id": 37341556049,
+      "name": "Gridex browser and quality E2E",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T16:41:52Z"
+    },
+    {
+      "id": 37341555786,
+      "name": "Ediel masterplan v2 regressions",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T16:41:23Z"
+    },
+    {
+      "id": 37341555864,
+      "name": "Gridex full E2E",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T16:58:43Z"
+    },
+    {
+      "id": 37341555899,
+      "name": "OPS hardening",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "run_attempt": 1,
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "updated_at": "2026-10-05T17:33:33Z"
+    }
+  ],
+  "conditional_checks_not_passes": [
+    {
+      "id": 111869620544,
+      "name": "staging-quality-certificate",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869618182,
+      "name": "k6-staging-load",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869617604,
+      "name": "k6-staging-soak",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869617400,
+      "name": "zap-staging-baseline",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869617331,
+      "name": "browser-staging",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869616890,
+      "name": "nightly-release-certificate",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869616375,
+      "name": "full",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869615913,
+      "name": "runtime-staging",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 111869615885,
+      "name": "real-customer-staging",
+      "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+      "status": "completed",
+      "conclusion": "skipped"
+    }
+  ],
+  "commit_status_read": {
+    "reads": 1,
+    "observed_at": "2026-10-05T17:34:49.154314+00:00",
+    "sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+    "combined_state": "success",
+    "total_count": 1,
+    "contexts": [
+      {
+        "id": 55621173879,
+        "context": "CodeRabbit",
+        "state": "success",
+        "description": "Review skipped: manual review required for this OSS repository",
+        "target_url": null,
+        "created_at": "2026-10-05T16:32:03Z",
+        "updated_at": "2026-10-05T16:32:03Z"
+      }
+    ],
+    "non_green_contexts": [],
+    "CodeRabbit": [
+      {
+        "id": 55621173879,
+        "context": "CodeRabbit",
+        "state": "success",
+        "description": "Review skipped: manual review required for this OSS repository",
+        "target_url": null,
+        "created_at": "2026-10-05T16:32:03Z",
+        "updated_at": "2026-10-05T16:32:03Z"
+      }
+    ],
+    "automated_review_qualified": false,
+    "note": "CodeRabbit success means Review skipped: manual review required for this OSS repository; do not infer an executed automated review."
+  },
+  "clean_metadata_once": {
+    "reads": 1,
+    "observed_at": "2026-10-05T17:11:11.180791+00:00",
+    "job_id": 111869614757,
+    "head_sha": "52a0e77cbf4816d2f55cfea083b29888632c374c",
+    "job_started_at": "2026-10-05T16:39:15Z",
+    "then_in_progress_step": [
+      {
+        "number": 7,
+        "name": "Clean empty-database replay and verify generated types",
+        "status": "in_progress",
+        "conclusion": null,
+        "started_at": "2026-10-05T16:40:03Z",
+        "completed_at": null
+      }
+    ],
+    "then_failed_steps": [],
+    "terminal_job_completed_at": "2026-10-05T17:33:32Z",
+    "terminal_job_conclusion": "success",
+    "successful_job_logs_read": false,
+    "artifacts_read": false
+  },
+  "source_and_checkout_identity": {
+    "source_lookups": "Read-only git show52a:path; no checkout performed.",
+    "committed_tree": "ea5f37e9ea0431d50bd96cfc0c566d343764161a",
+    "workflow_source_files": [
+      "committed-.github__workflows__ops-hardening.yml",
+      "committed-.github__workflows__ediel-masterplan-v2.yml",
+      "committed-.github__workflows__full-e2e.yml",
+      "committed-.github__workflows__browser-quality-e2e.yml"
+    ],
+    "authentic_identity": "Every mandatory check, each of the four actual attempt1 pull_request workflow runs, and the once-read clean-job metadata carry exact52a head_sha.",
+    "actual_checkout_bytes_or_artifact_payload": "NOT_EXECUTED; no successful job logs/artifacts were retrieved.",
+    "initial_root_checks_sha256": "6251d98667229b7e59a0ed17b97ec1b8c4b1774b6eda690f220a553a99bf73e5"
+  },
+  "observer_chain": {
+    "observation_count": 46,
+    "first_poll_at": "2026-10-05T16:38:28.354681+00:00",
+    "terminal_poll_at": "2026-10-05T17:33:49.407610+00:00",
+    "indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "wait_between_polls_seconds": 60,
+    "one_sequential_pause_resume": "Root-requested one-time clean metadata read; control log preserves it.",
+    "stopped": true,
+    "other_prs_or_main_observed": false,
+    "network_api_attempt_failures": []
+  },
+  "initial_name_assumption_and_correction": {
+    "initial_parent_ninth": "full-release-suites",
+    "actual_committed_ninth": "pr-certificate",
+    "source": "52a0e77cbf4816d2f55cfea083b29888632c374c:.github/workflows/full-e2e.yml:100\u2013129",
+    "dependencies": [
+      "smoke",
+      "coverage"
+    ],
+    "root_confirmed_correction": true,
+    "initial_snapshot_counts": {
+      "all_check_runs": 17,
+      "mandatory_materialized": 8,
+      "conditional_skipped": 9,
+      "pr_certificate": "not_yet_materialized"
+    }
+  },
+  "scope_limits": [
+    "This receipt proves authentic exact-head statuses of the nine actual ordinary workflow jobs and the separately read commit-status contexts.",
+    "No new unit/native counts, successful log or artifact payload, actual checkout bytes, whole-card acceptance, source/schema approval, formal Ediel approval, market activation or live traffic are qualified by this observer.",
+    "Existing peer/manual review and retained source/native evidence remain with their original owners and source attribution. PR589 verdict was not reused.",
+    "No source edits, pushes, runner starts, reruns, artifact downloads, failed-job logs (no job failed), external comments or merge performed.",
+    "Root exclusively owns the subsequent fresh main/head/check/serial merge guard; this observer is stopped."
+  ]
+}
