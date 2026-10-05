@@ -1,0 +1,85 @@
+# SC-031 / SC-034 independent contract review
+
+Status: REVIEW_READY_SOURCE_OWNER_ACTION_REQUIRED. Agent: Codex current session.
+Scope: independent static review plus bounded actual-module reproduction.
+Branch: `codex/ediel-sc031-sc034-review-20261005`.
+Worktree: `/workspace/gridex-ediel-sc031-sc034-review-20261005`.
+Date: 2026-10-05 (Europe/Stockholm).
+Exact baseline: `985724f58ef15e222cf4d3b2e1c643c674852106`.
+Main tree: `0b8ad8d2272f77a346781a13b909aa0cdcc9b8d1`.
+Live main API and default-branch coverage blob independently match the checkout.
+
+## Ownership
+
+Owner request: #530 comment 5990498953 asks for precise unproven clauses.
+Review-only claim: #530 comment 5991247216. Claude retains implementation,
+tests and coverage. Our only paths are this checkpoint and
+`quality/audits/ediel-masterplan-v2/sc031-sc034-review-20261005/`.
+No shared memory, production, migrations, schemas, existing tests or coverage
+may be edited under this claim. No transfer of implementation ownership.
+
+## Skill routing
+
+Active: cloud-environment-runtime (runtime access), using-superpowers (routing),
+using-git-worktrees (isolation), spec-to-code-compliance (two separate literal
+reviews), code-review (real callers and asserting tests),
+verification-before-completion (scope-qualified results).
+Conditional: fp-check for a specific alleged defect, systematic-debugging/TDD
+only after an owner-cleared confirmed defect. Supabase/SQL/security baseline,
+UI, performance, deployment, supply-chain and hook workflows have no trigger
+in this bounded read-only contract-evidence review.
+
+## Current evidence and limitations
+
+Pinned review baseline985: 121 rules (91 VERIFIED, 25 NOT_VERIFIED, 5 PARTIAL);
+231 contracts (111 PASSED, 99 NOT_EXECUTED, 21 PARTIAL). Total approved: 202/352.
+These are pinned-main-only counts, not sums across branches. Latest observed
+main advanced through #563 to `01b11f55af710c3e6aad1f5a433631a88c702047`: 91
+VERIFIED rules +113 PASSED contracts =204/352. The five changed paths exclude
+every input listed in both review hash inventories. CI receipts stay pinned to985.
+Specification/evidence-reference integrity: PASS, 33 original files,
+121 rules, 231 contracts. This does not assert application conformance.
+Dependencies are absent; focused Vitest suites have not been run locally.
+Shell `git ls-remote origin refs/heads/main` failed: proxy:8080 unreachable.
+`gh auth status` failed for configured GH_TOKEN. No credentials were printed.
+GitHub connector reads and the explicit review-only board comment succeeded.
+Current main full E2E run 37281682654 failed; do not infer all-green status.
+Current unchanged ordinary witnesses are reused from exact985 Actions logs:
+SC03113+20 cases, energy-product8; SC03432+50 cases. Those executions do not
+close whole scenarios. Root additionally reproduced the actual syntax/matrix/
+register-wrapper discrepancy with two syntax-valid controls. A second reviewer
+independently failed to refute the bounded missing-direction finding. No native,
+whole-scenario, market or production acceptance is claimed.
+
+## Completed review and saved receipts
+
+SC031: actual wrapper wrongly blocks guide-valid extra213 because inbound
+context is lost. The case throw and authenticated DB/ACK effects are traced
+statically; they were not executed. Owner notice: #530 comment5991392412.
+SC034: no established product defect; missing full processor/physicalBGM27
+firstLIN2 and globalwrongorder proof, plus discriminating native sibling checks.
+Both statuses remain PARTIAL; all coverage rows are unchanged.
+
+Reports, original input hashes, current CI excerpts, the bounded probe/source
+and verification outcomes are under the own review directory. Root independently
+verified all44 SC031 and17 SC034 input hashes. The first root verification parser
+failed because it assumed Markdown rows for SC031's JSON hash map; corrected
+parsing passes without changing an input or weakening an assertion. Failed shell
+access and current release8/73 failure remain recorded; no green status replaces
+those results.
+
+## Next action and ownership
+
+Publish the exact documentation tree through available GitHub GitData tools,
+then hand the precise frozen clauses to the existing Claude implementation owner.
+Shell git publication remains unavailable, but connector publication is available.
+Claude owns the existing inbound case/source fix and new coupled scenario tests.
+The retained coordinator owns source/capture composition, native qualification,
+release failures and any eventual merge. No source takeover or merge is performed
+by this review lane. No user ownership clarification arrived while this independent
+work proceeded; the safe review-only lane was kept.
+
+The full masterplan remains incomplete. Source-owner fixes, complete native effect
+proofs, required review/CI and integration are outstanding, with external market
+proofs separate. The documentation packet will be under review; source approval
+and main integration are not inferred from its publication.
