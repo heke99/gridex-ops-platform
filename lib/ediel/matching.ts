@@ -19,6 +19,22 @@ function messageCompanyId(message: EdielMessageRow): string | null {
   return stringOrNull(message.company_id)
 }
 
+// U-19: an RFF+TN PRODAT case reference (field 226) is an optional
+// correlation hint only, never a mandatory authorization key.
+function parsedProdatCaseReferences(message: EdielMessageRow): string[] {
+  const references = (message.parsed_payload ?? {}).references
+  // edielEmailParser persists references keyed by qualifier: { TN: [...] }.
+  if (references && typeof references === 'object' && !Array.isArray(references)) {
+    const tn = (references as Record<string, unknown>).TN
+    return uniqueStrings(Array.isArray(tn) ? tn.map((value) => stringOrNull(value)) : [])
+  }
+  if (!Array.isArray(references)) return []
+  return uniqueStrings(references.map((reference) => {
+    const entry = reference as { qualifier?: unknown; value?: unknown } | null
+    return String(entry?.qualifier ?? '').trim().toUpperCase() === 'TN' ? stringOrNull(entry?.value) : null
+  }))
+}
+
 function parsedText(message: EdielMessageRow, ...keys: string[]): string[] {
   const payload = message.parsed_payload ?? {}
   return uniqueStrings(keys.map((key) => stringOrNull(payload[key])))
@@ -221,6 +237,7 @@ export async function findMatchingGridOwnerDataRequest(
     stringOrNull(message.external_reference),
     stringOrNull(message.transaction_reference),
     ...parsedText(message, 'externalReference', 'transactionReference'),
+    ...parsedProdatCaseReferences(message),
   ])
 
   if (references.length > 0) {

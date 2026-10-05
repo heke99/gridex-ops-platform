@@ -1,4 +1,4 @@
-// masterplan: U-18, AT-U-18, U-02
+// masterplan: U-18, AT-U-18, U-02, AT-U-02
 import { describe, expect, it } from 'vitest'
 import { canonicalMessageFacts, parseCanonicalEdifactAst } from '@/lib/ediel/core/canonicalEdifactAst'
 

@@ -1,3 +1,4 @@
+import { OUTBOUND_BUSINESS_RESPONSE_STATUSES } from '@/lib/inbound-mail/canonicalInboundAckStatusUpdater'
 import { buildInboundCanonicalIdentity, findInboundDuplicateByCanonicalIdentity } from '@/lib/ediel/core/dedupe'
 import { recordInboundReception, requireFirstReception } from '@/lib/ediel/inbound/receptions'
 import { assertEdielTenantActor } from '@/lib/ediel/services/authorization'
@@ -527,6 +528,7 @@ export async function createUnresolvedInboundEdielMessage(input: {
     business_match_status: 'blocked',
     processing_status: resolutionStatus,
     inbound_email_message_id: input.inboundEmailMessageId,
+    mailbox_message_id: input.inboundEmailMessageId,
     message_received_at: nowIso(),
     parsed_at: nowIso(),
     failure_reason: null,
@@ -995,7 +997,7 @@ export async function applySafeInboundStatusUpdate(input: {
   if (input.parsed.messageFamily === 'CONTRL') {
     const isNegative = isNegativeContrL(input.parsed)
     if (input.outboundMatch.entityType === 'outbound_request') {
-      await supabaseService
+      const ackRequest = supabaseService
         .from('outbound_requests')
         .update({
           status: isNegative ? 'syntax_rejected' : 'syntax_accepted',
@@ -1007,6 +1009,8 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
+      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
@@ -1032,7 +1036,7 @@ export async function applySafeInboundStatusUpdate(input: {
   if (input.parsed.messageFamily === 'APERAK') {
     const isNegative = isNegativeAperak(input.parsed)
     if (input.outboundMatch.entityType === 'outbound_request') {
-      await supabaseService
+      const ackRequest = supabaseService
         .from('outbound_requests')
         .update({
           status: isNegative ? 'application_rejected' : 'application_accepted',
@@ -1044,6 +1048,8 @@ export async function applySafeInboundStatusUpdate(input: {
         })
         .eq('id', input.outboundMatch.entityId)
         .eq('company_id', input.companyId)
+      // A positive ACK after the business response (e.g. Z04 first) never rolls the request back.
+      await (isNegative ? ackRequest : ackRequest.not('status', 'in', OUTBOUND_BUSINESS_RESPONSE_STATUSES))
 
       await updateOutboundEdielAckState({ companyId: input.companyId, outboundRequestId: input.outboundMatch.entityId, parsed: input.parsed, inboundEdielMessageId, responsePayload })
       await updateBusinessStatusFromInbound({ companyId: input.companyId, parsed: input.parsed, outboundMatch: input.outboundMatch, meteringPointMatch: input.meteringPointMatch, inboundEdielMessageId, responsePayload, actorUserId: input.actorUserId ?? null })
