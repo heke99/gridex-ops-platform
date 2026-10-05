@@ -383,8 +383,17 @@
     {
       "id": "ENV-07",
       "acceptance_id": "AT-ENV-07",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "lib/ediel/prodat/prodatInterchangeBatch.ts",
+        "lib/ediel/core/edifactEnvelopeCodec.ts",
+        "lib/ediel/core/messageBuilder/payloadPreflight.ts",
+        "lib/ediel/outbox/claimOutboxItems.ts",
+        "lib/ediel/outbox/processEdielOutbox.ts",
+        "lib/ediel/outbox/sendOutboxItem.ts",
+        "__tests__/ediel-prodat-interchange-batching.test.ts",
+        "__tests__/ediel-env07-outbox-separation.test.ts"
+      ]
     },
     {
       "id": "ENV-08",
@@ -2489,8 +2498,11 @@
     },
     {
       "id": "AT-ENV-07",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "__tests__/ediel-prodat-interchange-batching.test.ts",
+        "__tests__/ediel-env07-outbox-separation.test.ts"
+      ]
     },
     {
       "id": "AT-ENV-08",
