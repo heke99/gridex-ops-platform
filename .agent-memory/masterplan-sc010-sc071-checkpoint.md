@@ -4,6 +4,7 @@ Agent: Codex grant-revalidation-20261005. Status: component VERIFIED; whole SC-0
 Branch: `codex/ediel-sc010-sc071-grant-revalidation-20261005`.
 Checkout: `/workspace/gridex-sc010-sc071`.
 Base/source commit: `985724f58ef15e222cf4d3b2e1c643c674852106` (actual main, 2026-10-05).
+Exact technical/component commit: `b06c58fd837f2405ee20eafcd82dbaded025c1c1`; later document-only HEAD is read from Git. Tests/production inputs do not change in the metadata follow-up.
 Claim: https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-5991253973.
 
 ## Scope and ownership

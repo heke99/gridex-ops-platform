@@ -101,5 +101,7 @@
   "publication_status": "LOCAL_COMPONENT_VERIFIED_REVIEW_CI_INTEGRATION_PENDING",
   "independent_review_sha256": "03ece3573a785feca76e397e281878e0ac64e435dbd0708ce72bc289fc013d5a",
   "independent_review_outcome": "component test acceptable; no actionable test defect; full literal SC010/071 BLOCKED",
-  "additional_native_oracle_limit": "Existing f.effects() omits projection_receipts and ediel_service_history; native owner must assert those directly while preserving legitimate revocation/history writes"
+  "additional_native_oracle_limit": "Existing f.effects() omits projection_receipts and ediel_service_history; native owner must assert those directly while preserving legitimate revocation/history writes",
+  "technical_commit": "b06c58fd837f2405ee20eafcd82dbaded025c1c1",
+  "owned_test_sha256": "576261e90616efabd396c2c660af2de7279b16a1e35c02228ef66a7dd6e8a0d9"
 }
