@@ -1,0 +1,235 @@
+{
+  "status": "PASS_SELECTED_SCOPE_WITH_PASSWORD_ROTATION_FINDING",
+  "reviewed_at": "2026-10-05T10:12:58.336138+00:00",
+  "source": {
+    "commit": "a1b30968beccced6c293137b82e822ceea3fb6e5",
+    "tree": "18eadb9697fd72f39f1d97f58b0b5d3a759857e4",
+    "marketing_base": "ff950425b6922df88817f840dc5a395cbceab8eb",
+    "inputs": [
+      {
+        "path": ".github/workflows/support-quality.yml",
+        "sha256": "2f086180636b18d6e791d2e0c98c18e04c45ee571c254d7571591a7e2f94fec6"
+      },
+      {
+        "path": "apps/support/AGENTS.md",
+        "sha256": "63f2c50380ed6303237cce215ce27af1d620d094c215e28d1b1538a3c070e3bb"
+      },
+      {
+        "path": "apps/support/CLAUDE.md",
+        "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+      },
+      {
+        "path": "apps/support/README.md",
+        "sha256": "37f17ac94c8b2358a5334095650659a06736e72559ef92e62a081d42d6d96289"
+      },
+      {
+        "path": "apps/support/app/(workspace)/cases/[reference]/attachments/[attachment]/route.ts",
+        "sha256": "abbdec8a27bb9449b83b2163813cde6c01ab80327575a2e3a87eb84e118ac215"
+      },
+      {
+        "path": "apps/support/app/(workspace)/cases/[reference]/page.tsx",
+        "sha256": "94cdf4d88e7a47288f1bf6ba7959a7324d201680ee0994f1e0f46179ade5ae58"
+      },
+      {
+        "path": "apps/support/app/(workspace)/cases/new/page.tsx",
+        "sha256": "43a03490220c11e54a6a21c7d9aa435269b70c375139b00d9d17e8e93a679e5f"
+      },
+      {
+        "path": "apps/support/app/(workspace)/customers/[reference]/page.tsx",
+        "sha256": "dcfb07cb5a2853f4e40eb02381fd22ac276c4329f5383d842912a43b2ff58fc2"
+      },
+      {
+        "path": "apps/support/app/(workspace)/customers/page.tsx",
+        "sha256": "454c094e2e77caf0dc01b020c8e3bd2e9c223a0a880f2203c48e873af7c3b4da"
+      },
+      {
+        "path": "apps/support/app/(workspace)/layout.tsx",
+        "sha256": "0c31785764c4abf094be3fdf34371ae469b5d0853d8cdb9eff19d1eead08ebab"
+      },
+      {
+        "path": "apps/support/app/(workspace)/page.tsx",
+        "sha256": "757119d324a438c310c5c383b6a5b4a4ced234821b388628197561b0a4b68065"
+      },
+      {
+        "path": "apps/support/app/(workspace)/team/page.tsx",
+        "sha256": "1f2a6bb921a5b371c51da468e865ed83377a0437121500200652c8bbdc921d98"
+      },
+      {
+        "path": "apps/support/app/actions.ts",
+        "sha256": "4559c56451ed64797fbb19afaf48dac89f122673098292ae3dd18ecbfb72c18f"
+      },
+      {
+        "path": "apps/support/app/error.tsx",
+        "sha256": "67445ec97f1d6c4c320acfb7dc36245ecc8c523918bebd2c6e0d7c590a86ae2d"
+      },
+      {
+        "path": "apps/support/app/layout.tsx",
+        "sha256": "29a42e12d931f948ce06c82529528186773eacbf710eebaee180dc2ac37165a2"
+      },
+      {
+        "path": "apps/support/app/loading.tsx",
+        "sha256": "2598fde7123e11a832848b3e10877e58fbdd2d20fb0de125c367685d8d41be34"
+      },
+      {
+        "path": "apps/support/app/login/actions.ts",
+        "sha256": "d43ba05ef8731fbcd3d3f3897d163acc10311a6597257b9584cd9d4c33ce54bd"
+      },
+      {
+        "path": "apps/support/app/login/page.tsx",
+        "sha256": "481556b907862d8eafc2be04215e2e3177c5bbf7eaf9ff67bd2caa6b261869d5"
+      },
+      {
+        "path": "apps/support/app/login/update-password/page.tsx",
+        "sha256": "85ba3210bdbc11905b67d73a6f84332501641c98edf66c7e6d540d5158899762"
+      },
+      {
+        "path": "apps/support/app/style.css",
+        "sha256": "8a80b9276b3a4dacff7c8cabc4e961a9a41dce82c80fd274903862d3127f5ed6"
+      },
+      {
+        "path": "apps/support/components/ActionForm.tsx",
+        "sha256": "023797001afe049ec01686afcce79c0dd85697edfca1ce766dade85277b3bf8e"
+      },
+      {
+        "path": "apps/support/lib/auth-config.ts",
+        "sha256": "c745da983d29e3075bc0089010a3c3b141bf8e4472dea30d3c05f23a4fb4817f"
+      },
+      {
+        "path": "apps/support/lib/presentation.ts",
+        "sha256": "4e770cb4c88f49f488726da84e8f565bb209d7d180256ad516d96a7efccb0a89"
+      },
+      {
+        "path": "apps/support/lib/session.ts",
+        "sha256": "e48709cb33ff68848504040c4b8970c67d99bee9f71d24d7623cf46651e94c9f"
+      },
+      {
+        "path": "apps/support/next.config.ts",
+        "sha256": "4021da758534333656f4265d0e3bf3ca1c7f7db9b9c38b6a838d356ce7aeab3e"
+      },
+      {
+        "path": "apps/support/package.json",
+        "sha256": "5459f5f35e1f148f591932ee2b8d5975c809deb2c385eaedc0ab317cc89f134d"
+      },
+      {
+        "path": "apps/support/proxy.ts",
+        "sha256": "220006f6566df5aef05df7c3b9c626682c9ea7e16977d9c4a3503895b25ac6f0"
+      },
+      {
+        "path": "apps/support/tsconfig.json",
+        "sha256": "cd07042cbd0b5a8b6b8df521f65b7e7f47f1e77c728bd967970b2277542d62b9"
+      },
+      {
+        "path": "lib/staff-api/assertion.ts",
+        "sha256": "fa6d036271d63cb6a74b382d07894aeee84c20706b78925f6a65646beb93091b"
+      },
+      {
+        "path": "lib/staff-api/client.ts",
+        "sha256": "d6cd9135f531f6de1d5e3e3224281d5b44934f518ebd424d7ec051e7327aa091"
+      },
+      {
+        "path": "lib/staff-api/config.ts",
+        "sha256": "761301c6c78d34da3c9065040e6c240a96d79556dbb012620c47e4571fadd420"
+      },
+      {
+        "path": "lib/staff-api/contract.json",
+        "sha256": "cb4996ba68c49be70fdc9d134535eda263f54e8b415f446f703ff07c6fdffc00"
+      },
+      {
+        "path": "lib/staff-api/errors.ts",
+        "sha256": "ff756c4ff39c6468639871cedf92d2fd16f8f8610d33f7e645e54941b7b61991"
+      },
+      {
+        "path": "lib/staff-api/types.ts",
+        "sha256": "80efaef7f0ebecde9ff069c120e25ea8d02ba3c9197d6f073521a676cdd18a11"
+      },
+      {
+        "path": "package.json",
+        "sha256": "f72d2446dcb19f6b303551b215535cb406f9902438f3adb93ae724be88c395a4"
+      },
+      {
+        "path": "quality/support123/evidence-20261005/manifest.json",
+        "sha256": "5b87fe3af05a14838239190f620d22ee79a42d9b8c1c14b3d0caec8137e86ed8"
+      },
+      {
+        "path": "quality/support123/verification-20261005.md",
+        "sha256": "d4486501d5b8c1dc9dc5c8855da1c0f9069aaaab06357209578c38c0acd157e4"
+      },
+      {
+        "path": "tests/fixtures/support-runtime.mjs",
+        "sha256": "7f69c5c685d39bcbec3119ca320a770f8850995f2e02777ca17e7786cbb2f2c6"
+      },
+      {
+        "path": "tests/run-support-browser.mjs",
+        "sha256": "65c6d6556c68ee7789fb7eaf5d87fcd6b513bb307058b4f4d074fe92ea494c6e"
+      },
+      {
+        "path": "tests/support-browser.mjs",
+        "sha256": "aa881a05c4dd8eae068b35c2b9da029f7673df6674d4bfdbace56430cdb54ee9"
+      },
+      {
+        "path": "tsconfig.json",
+        "sha256": "3430d0c448f80fed3df23762033d2d9848b964c04d0c85912c2395cb8f0b1eae"
+      }
+    ]
+  },
+  "scope": [
+    "formatted pages/actions",
+    "verified independent Auth session and signed API production-target protection",
+    "runtime/browser synthetic outbound boundary and finally cleanup",
+    "support-quality workflow/docs"
+  ],
+  "verified": {
+    "original_marketing_routes_changed": false,
+    "ops_ui_links_present": false,
+    "own_host_only_auth_cookie": true,
+    "getUser_verified_subject_to_signed_api": true,
+    "every_operational_command_reauthorizes_case_read": true,
+    "fixed_prod_request_header_and_success_json_binary_attestation": true,
+    "browser_actor_or_company_fields_grant_authority": false,
+    "customer_filter_retained_search_case_pagination": true,
+    "automatic_write_retry": false,
+    "arbitrary_role_create_or_attachment_upload_claimed": false,
+    "live_activation_claimed": false,
+    "fixture_imported_by_production_source": false,
+    "fixed_synthetic_auth_staff_fetch_boundary": true,
+    "owned_server_process_group_sigterm_in_finally": true,
+    "durable_evidence_hashes_checked": 12
+  },
+  "findings": [
+    {
+      "priority": "P2",
+      "status": "CONFIRMED_SOURCE_GAP_IF_COMPULSORY_INITIAL_ROTATION_REQUIRED",
+      "title": "Editable user metadata cannot enforce mandatory temporary-password rotation",
+      "evidence": [
+        {
+          "path": "apps/support/lib/session.ts",
+          "line": 69
+        },
+        {
+          "path": "apps/support/app/login/actions.ts",
+          "line": 31
+        },
+        {
+          "path": "apps/support/app/login/actions.ts",
+          "line": 59
+        },
+        {
+          "path": "tests/fixtures/support-runtime.mjs",
+          "line": 91
+        }
+      ],
+      "proof": "Sole rotation gates read user.user_metadata; ordinary Auth updateUser accepts a data-only change without password, as also explicitly modeled by existing fixture. No server-controlled completion state is checked.",
+      "impact": "A valid temporary-password holder can clear the flag without rotating. Company/role API authorization is retained; live activation remains blocked.",
+      "remedy": "Onboarding owner: canonical/profile/app_metadata server-controlled completion check; deny data-only self-metadata bypass and prove actual password completion. No reviewer edits."
+    }
+  ],
+  "limits": [
+    "No tests, browser, HTTP, connectors, install or production execution. Root48test/15browser baseline remains its original proof.",
+    "Excluded independently authored untracked callback/invitation files.",
+    "Server harness uses process-group SIGTERM with bounded2s wait; force-kill/reap failure paths not runtime-qualified by this static review.",
+    "Production tenant/admin/schema/readiness/provider/client/domain remain unresolved; synthetic browser is not live acceptance."
+  ],
+  "repository_edits": [],
+  "tests_rerun": false,
+  "hosted_calls": 0
+}
