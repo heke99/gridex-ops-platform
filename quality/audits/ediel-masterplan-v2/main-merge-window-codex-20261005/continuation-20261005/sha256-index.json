@@ -1,14 +1,14 @@
 {
   "algorithm": "SHA256",
   "snapshot_main_commit": "2964415adec9e36932583e95f8506437d262c507",
-  "scope": "Final local own documentation union. Current main source preserved; all prior original/published/prepared records and four bounded status-custody records retained. Index intentionally excludes itself.",
+  "scope": "Additive actual PR520 delivery continuation of published 818fd66d. Historical proof remains fixed at main296; current_handoff_main_commit records the verified delivery. Root handles genuine current-main carry and publication. Prior inventory and snapshot_boundary metadata retain their historical 818/b83 scope. All prior proof, immutable history, 18 raw gate/delivery records and status-custody records are preserved. Whole-plan and full-main GREEN are not claimed. Index intentionally excludes itself.",
   "previous_published_index_sha256": "5031f5885e330fe2f0d71eca0d52074f3f78476445ca7d03850995e70d1a453f",
   "previous_prepared_index_sha256": "71aaf59899fc6cfda8480a31606fd05cbf94b2bd8a176b606caeff2fe312dbf3",
   "files": [
     {
       "path": ".agent-memory/masterplan-codex-main-merge-window-20261005.md",
-      "bytes": 11462,
-      "sha256": "a92b66d0c90a9c11b897785138f408f8d38b1f7f81df23c95dcad39fe86646f8",
+      "bytes": 13032,
+      "sha256": "3547fa54576dc866bc6c181987201be140cb9dbde7ea88ec7b5a640144213ae3",
       "kind": "appended_own_memory"
     },
     {
@@ -73,8 +73,8 @@
     },
     {
       "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/README.md",
-      "bytes": 8085,
-      "sha256": "458a3dd27906a489eeb32513a79ef88c0f21b051593b179c16c743ff95187d5b",
+      "bytes": 9888,
+      "sha256": "472e5186b90d4158e2a282cf32e834381c1b7c86f48ecc4b277d5e06f53795f7",
       "kind": "continuation"
     },
     {
@@ -250,9 +250,21 @@
       "bytes": 1361,
       "sha256": "2ecf4bfe6203b5ed7f0b3d097589f27c505f08ac11e3dfd39ce12f0b37b604a0",
       "kind": "bounded_status_custody"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge520-final-gate-receipt.json",
+      "bytes": 2022,
+      "sha256": "478663680f1ec763194bae020dbb0e2ea1895c23b449e1a8b281eff0564a1458",
+      "kind": "actual_delivery_continuation"
+    },
+    {
+      "path": "quality/audits/ediel-masterplan-v2/main-merge-window-codex-20261005/continuation-20261005/receipts/gridex-merge520-final-delivery-receipt.json",
+      "bytes": 2290,
+      "sha256": "65028f4446fed135ac8a835ae539e12b3454d49f74390b7a16e3e48a3bf6028a",
+      "kind": "actual_delivery_continuation"
     }
   ],
-  "current_handoff_main_commit": "b83b284467c8e0fcaa277706a708706e0a705068",
+  "current_handoff_main_commit": "1a1a2e4599d7f191c0f477a5649d919d56ced4e1",
   "current_handoff_inventory_at": "2026-10-05T22:32:20.297909+00:00",
   "snapshot_boundary": "snapshot_main_commit retains the immutable historical proof baseline296; current_handoff_main_commit identifies the genuinely carried b83 source/status continuation. No whole-main readiness claim."
 }

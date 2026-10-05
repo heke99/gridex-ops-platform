@@ -73,3 +73,11 @@ Next: root clarifies the existing README, genuinely carries actual main, indepen
 ## Bounded inventory refresh — 2026-10-06, 00:32 CEST
 
 Actual main remains `b83b284467c8e0fcaa277706a708706e0a705068`; the refreshed GitHub inventory has 24 open PRs. Existing #612 is now `6d69aea82bf1f2e7fab048e024fff3339c2f3477`, #578 `ebf380da2528b6a32a17f94ca245835726babca4`, #594 `c5cf7921a3047f803ae707a186ede52951919806`, and #211 `37eba257f7af69777cea624241e06ae78c809fea`. Older 773 lint/a249 observations above are historical; new heads require their original current-source qualifications. No new rule or duplicate observer/review has started. The existing integrations remain underway and this publication is an interim handoff, not their completion.
+
+## Actual #520 delivery — 2026-10-06, 00:54:07 CEST
+
+Root normally merged #520 source `17c37e1d3e11748a16d9f5ab15e76de7fd1962e6` after all nine ordinary current-source gates passed. Actual main is `1a1a2e4599d7f191c0f477a5649d919d56ced4e1`, tree `264b9568a361fe88fc3d9fe8db1047d1ce497ccf`; root verified ordered parents `9538c4818a5802e066cbae5639a5f07a28675560` and the #520 source head. [Actual delivery on GitHub #530](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6004903884). Earlier #520 HOLD and 8/9 observations above retain only their historical scope.
+
+This is the seventeenth actual root delivery. #611's prior actual delivery `9538c4818a5802e066cbae5639a5f07a28675560` belongs to another team and is preserved as incoming main. The two final #520 gate/delivery receipts are copied byte-exact into the existing continuation receipts folder; prior memory, proof, history and original receipts remain exact. Stored coverage remains 108/10/3 rules and 163/54/14 contracts. Current-source PR gates do not certify whole-plan or full-main GREEN.
+
+Other existing agent integrations and their owners remain active. The STOP on new Masterplan rules remains in force; no next rule is selected. Root handles genuine current-main carry, independent documentation review and normal publication to the existing sole adoption queue. This additive receipt closes only our delivered #520 part; it does not end the remaining integration. No source, CI, test, native, capture, Git-ref, commit or push action is performed by this documentation worker.

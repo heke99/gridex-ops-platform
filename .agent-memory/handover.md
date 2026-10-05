@@ -1322,3 +1322,4 @@ composition/capture/allgreen→authorizedmerge, thennexttwo freecards.
 - 2026-10-05 main integration: #588 aa271e14b8a39145dca04aa1433dd54be88f44bd — actual parentsd10402d5 +7453605e, tree b519b3271f5bdd41bc3aac794b607420b5b725f5; F/G proposal-only release, whole AT/native HELD, helper continuation excluded; no production apply.
 
 - 2026-10-05 main integration: #548 cf275d78d252bdaa8e49fb4e5f65afaa61bf0128 — actual parents aa271e14 +99af2133, tree80d5b295ceae1c65b57b924a42e259897b5412cd; SC013/SC020 PASSED, nine exact-head gates plus CodeRabbit SUCCESS, main222→224; 350 foreign rows and7,788 paths exact; no production apply.
+- 2026-10-04 DB-01/DB-02 ej godkända efter fp-check: F-DB-01 (tre aktiva ruttauktoriteter) och F-DB-02 (UUID-only FK, inga periodexkluderingar) bekräftade i pr426-rule-review/FINDINGS.md; coverage oförändrad NOT_VERIFIED.

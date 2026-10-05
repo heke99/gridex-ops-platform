@@ -1,3 +1,13 @@
+# Actual #520 delivery — current handoff, 2026-10-06 00:54:07 CEST
+
+Root normally merged #520 after **all nine ordinary current-source gates passed**. Actual main is `1a1a2e4599d7f191c0f477a5649d919d56ced4e1`, tree `264b9568a361fe88fc3d9fe8db1047d1ce497ccf`, with verified ordered parents `9538c4818a5802e066cbae5639a5f07a28675560` and #520 source `17c37e1d3e11748a16d9f5ab15e76de7fd1962e6`. See the [public actual delivery](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6004903884) and byte-exact [final gate receipt](receipts/gridex-merge520-final-gate-receipt.json) / [final delivery receipt](receipts/gridex-merge520-final-delivery-receipt.json).
+
+This packet now records **17 actual root deliveries**. #611 supplied incoming main `9538c4818a5802e066cbae5639a5f07a28675560` through another team's delivery; it is not added to our count. Coverage remains **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules** and **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL contracts**. These retained source-bound gates and stored counts do not claim whole-plan or full-main GREEN.
+
+**STOP new Masterplan rules.** Other existing agent deliveries continue with their retained owners. Root handles genuine current-main carry, independent guard and normal publication to the [existing sole owned-adoption queue](https://github.com/heke99/gridex-ops-platform/issues/530#issuecomment-6003048805); this documentation worker creates no new PR, source, CI or capture. The complete published `818fd66d` README below is preserved byte-exact as historical context; its earlier pending #520/#611 and 24-open inventory statements are superseded only by the qualified actual deliveries above. Original proof, history and receipts retain their original source/scope.
+
+## Preserved 818fd66d interim packet
+
 # Existing PR integration — current handoff
 
 This continuation physically carries actual main `b83b284467c8e0fcaa277706a708706e0a705068` (tree `eea46bab1cc77fd76a762fe48ecc3b639db03504`) after the qualified #606 delivery and #225 closure. The bounded inventory at 2026-10-06 00:32 CEST still has **24 open PRs**. Coverage is unchanged: **108 VERIFIED / 10 NOT_VERIFIED / 3 PARTIAL rules**, **163 PASSED / 54 NOT_EXECUTED / 14 PARTIAL contracts**. This is an interim source/status handoff while existing integration continues, not a completed queue or full-main GREEN claim.
