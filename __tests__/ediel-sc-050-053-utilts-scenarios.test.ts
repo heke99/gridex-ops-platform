@@ -1,5 +1,5 @@
 // masterplan: SC-050, SC-053
-// SC-050: a full +0100 day at 15 minutes with 88 of 96 energy values is
+// SC-050: a full +0100 (winter) day at 15 minutes with 88 of 96 energy values is
 // rejected with E87 even when the energy total equals the complete control.
 // SC-053: a missing observation keeps a null value and its own quality, a
 // verified zero keeps 0, and readings (QTY 220) never merge with energy (QTY 136).
@@ -12,23 +12,27 @@ import {mapMeteringQuality} from '@/lib/ediel/metering/meteringQualityMapper'
 import {energyHandoffMessage} from './helpers/utiltsObservationHandoff'
 import {recountEdifactUnt} from './helpers/recountEdifactUnt'
 
+// A full winter day in +0100 (Swedish standard time), 15-minute resolution.
 const day=(skip:(i:number)=>boolean,value:number)=>{
  const source=energyHandoffMessage('2026-10-01'),lines=source.raw_payload!.split('\n'),at=lines.findIndex(l=>l.startsWith('SEQ+'))
- const head=lines.slice(0,at).map(l=>l.replace('202607010000202607010015:719','202607010000202607020000:719').replace('DTM+597:202607010020:203','DTM+597:202607020020:203'))
+ const head=lines.slice(0,at).map(l=>l.replace("DTM+735:?+0200:406'","DTM+735:?+0100:406'")
+  .replace('DTM+137:202610011811:203','DTM+137:202601161811:203')
+  .replace('202607010000202607010015:719','202601150000202601160000:719').replace('DTM+597:202607010020:203','DTM+597:202601160020:203'))
  const obs:string[]=[];let seq=0
  for(let i=0;i<96;i++){if(skip(i))continue;seq++
-  const ts=new Date(Date.UTC(2026,6,1)+i*900000).toISOString().slice(0,16).replace(/[-T:]/g,'')
+  const ts=new Date(Date.UTC(2026,0,15)+i*900000).toISOString().slice(0,16).replace(/[-T:]/g,'')
   obs.push(`SEQ++${seq}'`,`QTY+136:${value}'`,`DTM+597:${ts}:203'`,"STS+7++21::260'")}
  return {...source,raw_payload:recountEdifactUnt([...head,...obs,"UNT+0+1'",lines[lines.length-1]].join('\n'))}
 }
 
 describe('SC-050 88 of 96 quarters',()=>{
  it('a matching energy total does not mask eight missing quarters; E87 makes the gap visible',()=>{
-  const complete=runUtiltsRuntimeForMessage(day(()=>false,11),{referenceDate:'2026-10-01'})
-  const gap=runUtiltsRuntimeForMessage(day(i=>i>=40&&i<48,12),{referenceDate:'2026-10-01'})
+  const complete=runUtiltsRuntimeForMessage(day(()=>false,11),{referenceDate:'2026-01-16'})
+  const gap=runUtiltsRuntimeForMessage(day(i=>i>=40&&i<48,12),{referenceDate:'2026-01-16'})
+  expect(day(()=>false,11).raw_payload).toContain("DTM+735:?+0100:406'")
   expect(96*11).toBe(88*12)
   expect(complete.ackPlan.utiltsErrCodes).toEqual([])
-  expect(gap.ackPlan.utiltsErrCodes).toContain('E87')
+  expect(gap.ackPlan.utiltsErrCodes).toContain('E87');expect(gap.ackPlan.shouldSendUtiltsErr).toBe(true)
   const count=gap.validation.issues.find(i=>i.utiltsErrCode==='E87')
   expect(count?.description).toMatch(/88/);expect(count?.description).toMatch(/96/)
  })

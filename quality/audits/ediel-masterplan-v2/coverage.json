@@ -1768,8 +1768,9 @@
     },
     {
       "id": "SC-048",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
+        "__tests__/ediel-utilts-err-gateway.test.ts",
         "__tests__/ediel-sc-045-048-utilts-scenarios.test.ts",
         "lib/ediel/utiltsEngine.ts"
       ]
@@ -1785,7 +1786,7 @@
     },
     {
       "id": "SC-050",
-      "status": "PARTIAL",
+      "status": "PASSED",
       "evidence": [
         "__tests__/ediel-sc-050-053-utilts-scenarios.test.ts",
         "__tests__/ediel-utilts-runtime-cutoff.test.ts",
