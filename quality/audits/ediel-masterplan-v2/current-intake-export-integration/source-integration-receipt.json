@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "scope": "source composition pending authentic combined capture/current mandatory gates",
+  "main": "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+  "main_adoption": "13735ed37978c295f9762f8d3054feac26615423",
+  "export_source": "9b50b1b9a5aae19e9cabead09c92af4e0443c44c",
+  "export_adoption": "daac5e58946630c82fec6873724edee2be8d8f2f",
+  "intake_source": "7d42301009a551118bd8277045e39f1275e42bb3",
+  "resolution": "Actual intake protected birth plus unchanged current/root positive ACK filters and resolved mail selectors. Existing raw-only synthetic NULL-company APERAK fixture replaced by finite actual public caller/RPC linkage and early denial. Actual SQL birth remains source owner code.",
+  "admission": "Exactly two runtime additions, existing official/base checksum history unchanged",
+  "native_registration": "Only existing source-owner SC0104, SC0716 (exact qualified export-races patch) and intake24 suite; no second stack/helper/producer",
+  "observed_checks": {
+    "mailbox_link_tests": {
+      "exit": 0,
+      "pass": 2,
+      "fail": 0,
+      "skip": 0,
+      "junit_sha256": "e3abc1d3c71cee7afd929fc021fe4714b77d0df2fbc4e3fa13fd532bf8de3825"
+    },
+    "late_ack_retained_state": {
+      "exit": 0,
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "files": [
+        "__tests__/ediel-sc-036-legacy-late-ack.test.ts",
+        "__tests__/ediel-sc-036-late-ack-after-z04.test.ts"
+      ]
+    },
+    "migration_integrity": {
+      "exit": 0,
+      "files": 1073,
+      "version_groups": 976
+    },
+    "frozen_spec": {
+      "exit": 0,
+      "originals": 33,
+      "rules": 121,
+      "contracts": 231
+    }
+  },
+  "capture": "NOT_RUN on this composed prefix; original raw generated files retained, composition_capture_pending=true",
+  "whole_SC_status": "SC014/SC010/SC071 remain unapproved; historical bounded native evidence is not relabelled as candidate parity",
+  "input_sha256": {
+    "lib/inbound-mail/inboundStatusUpdater.ts": "3b79126cbed5c5fd622a697be81c1f3d8c93c57f058a265c6a690f6ada3677af",
+    "__tests__/ediel-unresolved-inbound-mailbox-selector.test.ts": "c449d0a96a4964110d1d0c09af768c6bf453892f68dd96dc20f64a1b7676f7b0",
+    "scripts/ediel-source-owner-native.config.ts": "722e7d4f59e4fcb851e258d9f1b1f58136a24aeb04af4a4167371db93874fe56",
+    "scripts/migration-history-manifest.runtime.additions.json": "8527b908ea69ef5b06d5ad1ae198aba971de1b0d5bb162c032509d54223b4134",
+    "scripts/supabase-types-manifest.json": "10c7394d1688fc1663d114cae35d2fab649d9b8ea6867d2480e3dc9c05afd708",
+    "scripts/ediel-sc-010-beneficiary-export-native.test.ts": "14611ac1edc3a4c0795e2fe4888e52524f033d98606d436becba1bdaf6809c66",
+    "scripts/ediel-sc-071-projection-revocation-native.test.ts": "33b7d52a6a5b94bc75eb77c5446f93942fbdebf64a678f3684ff3f77208a0dc4",
+    "scripts/ediel-sc014-technical-intake-native.test.ts": "7388fe22df96a46ba580ef3a399995924f8f0da4fa2dc61390bd2a966410d824",
+    "supabase/migrations/20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+    "supabase/migrations/20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+  }
+}

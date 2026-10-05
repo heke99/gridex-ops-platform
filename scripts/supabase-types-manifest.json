@@ -61,39 +61,17 @@
     "purpose": "immutable original main provenance pointer; no relabeled capture"
   },
   "current_prefix_verification": {
-    "kind": "mandatory_external_final_head_proof",
-    "capture_latest_migration": "20261005020000_ediel_production_contract_ack_confirmation.sql",
-    "source_migrations": [
-      {
-        "name": "20261004175536_ediel_dsn_encoded_source_identity.sql",
-        "sha256": "40056d310e4d012fe51a9c7c55e2bf86d05fd40202da757a2894bf54b6b46985"
-      },
-      {
-        "name": "20261004205603_staff_customer_retention_read_prerequisite.sql",
-        "sha256": "13f9d5671867fc498a425726bff7684ac8e73c1b00cfeda6f1d9fe18ad543cf1"
-      },
-      {
-        "name": "20261004205816_support_attachment_quarantine_carrier.sql",
-        "sha256": "6d9be86a3706328aa9d217db2a596b1f3a8e5337130f6e224d9757e93882d594"
-      },
-      {
-        "name": "20261005004623_customer_contact_version_conflict_http409.sql",
-        "sha256": "9adcd287c2e33beeb748b02a30fa8ee38d8e4f474bb11043dde98248a95db89d"
-      },
-      {
-        "name": "20261005010327_customer_identity_version_conflict_http409.sql",
-        "sha256": "936d3487a9ad411ff4282f6395adef8f2a4d698553f9dd6ecdfce9b3626b292b"
-      },
-      {
-        "name": "20261005020000_ediel_production_contract_ack_confirmation.sql",
-        "sha256": "af03080ef1c5f57caaf9e4b221092f4271b1d90bc4e7f91143c68213a0d67aa1"
-      }
-    ],
+    "kind": "source_integration_pending_authentic_capture_and_current_gates",
+    "latest_source_migration": "20261005101500_ediel_beneficiary_export_jobs.sql",
+    "admitted_migrations": {
+      "20261005043923_ediel_unattributed_technical_intake.sql": "a2d0aa2a62f48ee800b4df393d328acb1a1928d91ee96d9c16b94e5174463e27",
+      "20261005101500_ediel_beneficiary_export_jobs.sql": "d0e4ec7285796cb4c53786dd7016d6e4ce9dc5aa9be111481481b490a62a0596"
+    },
     "requirements": [
-      "Authentic capture-only input/output provenance is recorded by this import; native/browser/comparison/upgrade are NOT_RUN.",
-      "Fresh full mandatory final-head clean native SQL/browser tests, upgrade parity, application tests, types, lint, API contract and required CI checks pass after this generated-file/provenance import."
+      "Authentic capture binds exact source checkout/tree and all replay inputs; import raw schema/types/fingerprint unchanged.",
+      "Current composed-head clean and upgrade replay/native/browser/type/schema parity and ordinary required checks pass."
     ],
-    "completion_receipt": "Authoritative final-head CI artifacts are recorded independently; this source capture is not CI acceptance."
+    "status": "PENDING; historical captures remain bound to their original prefixes."
   },
   "superseded_capture": {
     "purpose": "capture_only",
@@ -542,5 +520,5 @@
     },
     "scope": "Immutable original combined root capture; not relabelled as current-main or composed-source proof."
   },
-  "source_latest_migration": "ediel_rules.sql"
+  "source_latest_migration": "20261005101500_ediel_beneficiary_export_jobs.sql"
 }
