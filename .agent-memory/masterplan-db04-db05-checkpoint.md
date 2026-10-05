@@ -26,3 +26,10 @@
 - `npm run ediel:masterplan-v2:test-coverage -- --check` exit 0: 352 IDs, 213 approved, 236 tagged green, 0 failing; DB-05/AT-DB-05 listed "tagged green, not yet approved".
 - coverage.json NOT changed. Approval waits on: independent review of the whole card, root schema.sql/types regen for migration 20261005130000, and root answer on native-only evidence (DB-04).
 - Next: request independent review on #530; nothing else claimed.
+
+## 2026-10-05 ~15:40Z DB-05 + AT-DB-05 APPROVED on branch (not merged)
+- Independent review (agent a64e54f88e7412af9) 3 rounds: R1 CHANGES (status shortcut, TRUNCATE, sanctioned path, native purge) -> fixed 10a9cb0; R2 CHANGES (canonical pending_deletion->deleted_test_only) -> fixed 93f12b0 (retained-history helper); R3 VERDICT: APPROVE at 93f12b0.
+- Native CI run 37331134378 @93f12b0: clean replay + 4/4 native tests green.
+- coverage.json: DB-05 VERIFIED, AT-DB-05 PASSED; `--check` exit 0, 352 IDs, approved 215, 0 failing.
+- Non-blocking follow-ups (from review): add ediel_messages/ediel_ack_transaction_results to gridex_company_retained_history_v1; CI assertion that every FK child of companies/customers carries gridex_history_truncate_guard; non-customer retention classes are PGlite-only (legal activation separate gate).
+- Still for root: schema.sql/fingerprint/types regen for migration 20261005130000; DB-04 native-only approval decision. Status: branch-approved, CI-green (native workflow), NOT merged, no PR.

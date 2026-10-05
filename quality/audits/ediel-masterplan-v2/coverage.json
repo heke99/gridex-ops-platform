@@ -1256,8 +1256,16 @@
     {
       "id": "DB-05",
       "acceptance_id": "AT-DB-05",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        ".github/workflows/ediel-db04-native.yml",
+        "__tests__/db-05-hard-delete-guard.test.ts",
+        "scripts/db-05-hard-delete-guard-native.test.ts",
+        "scripts/db-05-tenant-offboarding-native.test.ts",
+        "scripts/ediel-customer-retention-native.test.ts",
+        "scripts/test-ediel-db-05-retention.cjs",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql"
+      ]
     },
     {
       "id": "DB-06",
@@ -2981,8 +2989,16 @@
     },
     {
       "id": "AT-DB-05",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        ".github/workflows/ediel-db04-native.yml",
+        "__tests__/db-05-hard-delete-guard.test.ts",
+        "scripts/db-05-hard-delete-guard-native.test.ts",
+        "scripts/db-05-tenant-offboarding-native.test.ts",
+        "scripts/ediel-customer-retention-native.test.ts",
+        "scripts/test-ediel-db-05-retention.cjs",
+        "supabase/migrations/20261005130000_hard_delete_guard_companies_customers.sql"
+      ]
     },
     {
       "id": "AT-DB-06",
