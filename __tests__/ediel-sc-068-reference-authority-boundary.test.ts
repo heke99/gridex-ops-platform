@@ -77,8 +77,11 @@ it.each(['catalog_evidence', 'historical_replay'] as const)(
     Object.assign(message, receivedUtiltsOwnerFixture(message)); qualifyUtiltsFixtureSource(message); io.get.mockResolvedValue(message)
     const original = structuredClone(message)
     const initial = await resolveCanonicalRuntimeDecisionWithRegistry(message)
-    const diagnosticPolicy = resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: '2026-10-01',
-      associationAssignedCode: 'E5SE5A', applicationReference: message.application_reference, mode })
+    const diagnosticPolicy = { ...resolveCanonicalEdielPolicy({ family: 'UTILTS', messageCode: 'E66', direction: 'inbound', referenceDate: '2026-10-01',
+      associationAssignedCode: 'E5SE5A', applicationReference: message.application_reference, mode }),
+      // Keep the source-owned time context coherent so this reaches the opaque
+      // ownership boundary rather than the earlier missing-time-context hold.
+      timeAnchors: initial.policy!.timeAnchors }
     // This real catalogue resolver returns semantics, not private original
     // authority. Attaching them to a copied genuine initial object loses its
     // opaque ownership; no invented wire/row/mode authority is supplied.
