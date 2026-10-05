@@ -1,3 +1,7 @@
+## Full exact owner handoff resolved — 2026-10-05T14:37:43.033866+00:00
+
+Earlier fullpatch503publication was NOT_EXECUTED after automatic sensitive-egress rejection. New actualrepo visibilitypublic/privatefalse and unauthenticated priorpatchf936-byteproof show the entire sourcealreadypublic; v3onlyswaps2existingpublicdeclrows. Same destination/action was submitted for new automaticreview with this proof and ACCEPTED: actual503comment5996672127 containscompleteexactapprovedv3patch. Originalfailure/publicproof/acceptedreceiptpreserved; no bypass/indirecttooling. Priorblockedstatussuperseded, source/nativeowner now hasconcretelyapplicablepatch pinnedtargeta544/d473/candidatea82. TypesPASS0/peerproposalAPPROVE only; nativeDB/provider/product/imports stillNOT_RUN and retainedowner alone applies/executes. No closed583/589push ornewCI. Root completes actual589postmergee898localdocs/530MERGED5996560557, deliversSC051068boundedreview5996409226, and awaitsnextfreshfreeownershipscout.
+
 ## Qualified unapplied proposal follow-up — 2026-10-05T14:19:25.993436+00:00
 
 Existing missing222/326 proposal-v2 is now semantically FAIL9, all own target errors/0 elsewhere: the last visible callback overload makes projection's Awaited<ReturnType<typeof qualify>> void. Earlier parse/transpile success is not semantic approval. Original v1/v2 artifacts, initial Node24 receipt-only EPERM/no-verdict and actual Node22v2 diagnostics are preserved exactly.

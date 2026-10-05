@@ -277,5 +277,20 @@
     "explicitExclusion": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/attempt2-node22/stdout.txt",
     "rawBytesNotTrimmed": true,
     "filteredCommand": "git diff --cached --check -- . :(exclude)quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/attempt2-node22/stdout.txt"
+  },
+  "sameDestinationResolvedPublication": {
+    "actualComment": 5996672127,
+    "url": "https://github.com/heke99/gridex-ops-platform/pull/503#issuecomment-5996672127",
+    "priorRejection": "Preserved firstattempt NOT_EXECUTED, not overwritten",
+    "qualification": "Repo public/privatefalse metadata; unauthenticated exactpublicpriorSHAf9367af5; only publicoverloaddeclaration order differs",
+    "newReview": "Same destination/fullpayload action reconsidered after evidence disproves private-source premise; ACCEPTED / ACTUALLY_POSTED",
+    "noBypass": "No indirect publishing/tool workaround",
+    "native": "NOT_RUN",
+    "status530ActuallyPosted": 5996697300,
+    "publicPriorSourceReuse": "Unauthenticated bytes remain in /tmp; exactduplicate already durably retained as attempt2-node22/published-v2.patch. Header/visibility/newproof saved without second identical sourcecopy",
+    "actualRawStagedWhitespaceExitCode": 2,
+    "rawWhitespaceDiagnostic": "Actual HTTP headers contain CRLF and terminal blankline; preserve exactrawheader. Initial tool artifact copy had one extraEOFline beyond sentcomment; corrected to exactsentbody, no source/publication change.",
+    "whitespaceExplicitExcluded": "quality/audits/ediel-masterplan-v2/at-z13v-z14v-esco/native-owner-proposal/semantic-followup-v3/gridex-z14-v3-public-prior-patch.headers",
+    "actualHeaderSHA256": "e4ad927708d0ca4acff608db3727cf30f2f105ac2884084ee52cc72e0f9b7035"
   }
 }
