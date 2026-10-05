@@ -316,7 +316,7 @@
     },
     "scope": "Historical staff source/capture only; completed 2c CI is not qualification of this combined candidate."
   },
-  "composition_capture_pending_scope": "External tenant staff identity migration20261005124901 requires authentic disposablePG17 type/schema capture; previous generated files remain unchanged. Historical captures do not include this forward.",
+  "composition_capture_pending_scope": "Completed authentic capture37318392819 of exact64c9c652c8033998c239ea2a7019c4d724604bbd with latest20261005124901 c6bf; all three generated files byte-imported from artifact11349745078. Final composed-source full native clean/upgrade and type/schema/API/required CI remain pending. Historical capture origins retain their original scopes.",
   "inherited_capture_artifact_scope": "Main 7edef historical P08 raw baseline only; no assertion that its capture includes either staff PT409 forward.",
   "prior_current_capture": {
     "manifest_source_commit": "8a395fd4e3a7cc501b1c0d80d01daf3359648e12",

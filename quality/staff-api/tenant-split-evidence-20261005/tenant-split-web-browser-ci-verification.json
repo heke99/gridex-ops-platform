@@ -1,0 +1,38 @@
+{
+  "status": "AUTHENTIC_CI_ARTIFACT_DIGEST_AND_CRC_VERIFIED",
+  "commit": "f792aedfc557e66251cfd581c5d3887ac8992129",
+  "workflow_run": 37318535835,
+  "artifact_id": 11349312521,
+  "zip_sha256": "15e705fa027053df6dd9cd89dab122c48acacc9bf544e3181eb85271bedd3b98",
+  "verification": {
+    "status": "PASS_OFFLINE_BROWSER",
+    "checks": [
+      "anonymous inbox requires own staff login",
+      "login layout has no marketing or OPS navigation",
+      "mobile login fits viewport",
+      "own invitation page captures and removes Auth fragment without granting access on GET",
+      "invalid invitation does not expose an acceptance form",
+      "verified Gridex staff login opens real case inbox",
+      "case detail and attachment available",
+      "reply creates customer-visible history",
+      "internal note remains staff-only",
+      "status action updates case",
+      "customer contact mutation is version-bound",
+      "team lists tenant staff and assigned RBAC roles",
+      "new case uses customer API and creates one case",
+      "sign out clears protected access",
+      "read-only account cannot submit a write",
+      "foreign tenant staff cannot enter Gridex queue",
+      "no browser application errors"
+    ],
+    "errors": [],
+    "origin": "http://127.0.0.1:40293",
+    "production_data": false,
+    "tenant_auth_project": "ayiuxjlfazkjmmtlvhsl",
+    "central_api_project": "piidsfebjqjmnepdpnas",
+    "backend": "schema-faithful synthetic fixture with verified RSA and explicit distinct tenant/central identity binding",
+    "limitations": [
+      "No production enrollment, database migration, real invitation email or live acceptance"
+    ]
+  }
+}

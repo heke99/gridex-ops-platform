@@ -1,0 +1,34 @@
+{
+  "status": "PASS_LOCAL_POSTCAPTURE_TYPES_MIGRATION_API_CHECKS",
+  "qualified_composition_commit": "7dc45526b27ca5edd651ff3fd44c55d483f3fc15",
+  "checks": {
+    "app_types": "PASSexit0",
+    "full_test_types": "PASSexit0",
+    "full_migrations_check": "PASSexit0",
+    "complete_api_docs_parity": "PASSexit0"
+  },
+  "logs_lossless_gzip": {
+    "tenant-split-postcapture-app-types.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "tenant-split-postcapture-app-types.log.gz",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    "tenant-split-postcapture-test-types.log": {
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "file": "tenant-split-postcapture-test-types.log.gz",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec"
+    },
+    "tenant-split-postcapture-db-check.log": {
+      "raw_sha256": "17d3555623b8124be968e063b98c6b2fde1319d1ba23bd9bb7aaabfe2faec750",
+      "file": "tenant-split-postcapture-db-check.log.gz",
+      "gzip_sha256": "bf35c79449c08145fa2d59a100b21cd685be6b347fbf1b22eb38ced50015c20d"
+    },
+    "tenant-split-postcapture-api-docs.log": {
+      "raw_sha256": "368ea28c0b5c23770e094fe009aca43db6727c428f3ced2e2f9f6f3858313445",
+      "file": "tenant-split-postcapture-api-docs.log.gz",
+      "gzip_sha256": "bdf5d4158ea9f69a4fe409298cc88dd07e29990bdb3e9ab9c42afcd53451d4db"
+    }
+  },
+  "native_ci": "PENDING",
+  "hosted_writes": false
+}
