@@ -1,4 +1,4 @@
-// masterplan: U-13, AT-U-13, SC-048
+// masterplan: U-13, AT-U-13, SC-045, SC-048
 import { createHash, randomUUID } from 'node:crypto'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { utiltsErrGatewayFixture } from './helpers/utiltsErrGatewayFixture'
