@@ -4,6 +4,99 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
+const { createHash } = require('node:crypto')
+
+// OPS03 records actual runner artifacts separately from ordinary CI GREEN.
+// This channel supplies step execution evidence, not Ediel acceptance, native
+// scope qualification or an authenticated external counterparty receipt.
+function checkoutSource(root) {
+  function git(args) {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 })
+    return result.status === 0 ? String(result.stdout || '').trim() : null
+  }
+  const commit = git(['rev-parse', 'HEAD']), tree = git(['rev-parse', 'HEAD^{tree}'])
+  return {
+    candidateSha: /^[0-9a-f]{40}$/.test(commit || '') ? commit : null,
+    candidateTree: /^[0-9a-f]{40}$/.test(tree || '') ? tree : null,
+    checkoutClean: git(['status', '--porcelain', '--untracked-files=normal']) === '',
+    eventSha: process.env.GITHUB_SHA || null,
+    runId: process.env.GITHUB_RUN_ID || null,
+    runAttempt: process.env.GITHUB_RUN_ATTEMPT || null,
+  }
+}
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex')
+function runnerArtifactPaths(report) {
+  const logs = report.results.filter(row => row.log_file).map(row => {
+    if (!/^e2e-artifacts\/logs\/[^/]+\.log$/.test(row.log_file)) throw Error('runner_log_reference_invalid')
+    return row.log_file.slice('e2e-artifacts/'.length)
+  })
+  return ['gridex-e2e-report.json', 'gridex-e2e-junit.xml', ...logs]
+}
+function assembleEdielReleaseEvidence(root, ciPassed, modes) {
+  const source = checkoutSource(root), blockers = []
+  if (!source.candidateSha || !source.candidateTree || !source.checkoutClean) blockers.push('checkout_provenance_unqualified')
+  if (!ciPassed) blockers.push('ci_not_passed')
+  const executions = modes.map(mode => {
+    const directory = path.join(root, 'e2e-artifacts', 'inputs', mode)
+    const sourceReference = path.relative(root, path.join(directory, 'gridex-executed-evidence.json'))
+    try {
+      const indexBytes = fs.readFileSync(path.join(directory, 'gridex-executed-evidence.json'))
+      const index = JSON.parse(String(indexBytes))
+      if (index.format !== 'gridex_runner_execution_artifact_v1' || index.mode !== mode || index.sourceUnchanged !== true
+        || !source.candidateSha || !source.candidateTree || !source.checkoutClean || !source.runId || !source.runAttempt
+        || index.source?.checkoutClean !== true || index.source.candidateSha !== source.candidateSha || index.source.candidateTree !== source.candidateTree
+        || index.source.runId !== source.runId || index.source.runAttempt !== source.runAttempt || !Array.isArray(index.files)) throw Error('runner_source_unqualified')
+      const report = JSON.parse(String(fs.readFileSync(path.join(directory, 'gridex-e2e-report.json'))))
+      if (report.schema_version !== 2 || report.suite !== 'gridex-full-production-e2e' || report.mode !== mode || report.status !== 'passed'
+        || !Array.isArray(report.results) || !report.results.length || report.summary?.total !== report.results.length
+        || report.summary.passed !== report.results.length || report.summary.failed !== 0
+        || !report.results.every(row => row.status === 'passed' && row.exit_code === 0 && row.log_file)) throw Error('runner_result_unqualified')
+      const requiredPaths = runnerArtifactPaths(report)
+      if (index.files.length !== requiredPaths.length || new Set(index.files.map(file => file.path)).size !== requiredPaths.length) throw Error('runner_artifact_set_unqualified')
+      for (const reference of requiredPaths) {
+        const file = index.files.find(entry => entry.path === reference)
+        if (!file || !/^[0-9a-f]{64}$/.test(file.sha256 || '') || sha256(fs.readFileSync(path.join(directory, reference))) !== file.sha256) throw Error('runner_artifact_bytes_unqualified')
+      }
+      return { mode, status: 'qualified', qualification: 'runner_step_exit_status', sourceReference, payloadSha256: sha256(indexBytes),
+        files: index.files, stepCount: report.results.length,
+        steps: report.results.map(row => ({ id: row.id, kind: row.kind, command: row.script || row.file, status: row.status })),
+        limits: ['JUnit records orchestrator steps, not individual test cases.',
+          'Successful commands do not qualify test ports, tenant roles, DDQ/DGI assignments, transport or TGT.'] }
+    } catch {
+      blockers.push('runner_artifact_missing_or_unqualified:' + mode)
+      return { mode, status: 'unqualified', sourceReference }
+    }
+  })
+  // No producer in this workflow currently qualifies the complete Ediel case
+  // matrix. Keep those obligations missing rather than accept caller-supplied
+  // cases, infer roles from step names or turn specification JSON into E2E.
+  const levels = Object.fromEntries(['document', 'unit', 'integration', 'tenant_e2e', 'transport', 'TGT']
+    .map(level => [level, { status: 'missing', qualification: 'not_established_by_runner_step_results' }]))
+  blockers.push(...Object.keys(levels).map(level => 'evidence_level_missing_or_unqualified:' + level), 'scope_matrix_incomplete')
+  return { ...source, sourceAuthentication: 'same_workflow_artifact_channel', codeEvidence: 'incomplete', fullCardVerification: 'NOT_VERIFIED',
+    formalEdielApproval: false, liveCounterpartyVerified: false, levels,
+    scopeMatrix: { tenantIds: [], DDQ: false, DGI: false, crossTenantAssignments: false }, executions, blockers }
+}
+
+const certificateMode = process.argv.find(arg => arg.startsWith('--certificate='))?.split('=')[1]
+if (certificateMode) {
+  const root = path.resolve(__dirname, '..')
+  const states = certificateMode === 'pr'
+    ? { smoke: process.env.SMOKE_RESULT, coverage: process.env.COVERAGE_RESULT }
+    : certificateMode === 'nightly'
+      ? { full: process.env.FULL_RESULT, runtime_staging: process.env.RUNTIME_RESULT, protected_customer_staging: process.env.REAL_RESULT }
+      : null
+  if (!states) { console.error('Unknown release certificate mode'); process.exitCode = 2 }
+  else {
+    const passed = Object.values(states).every(status => status === 'success')
+    const artifactDir = path.join(root, 'e2e-artifacts')
+    fs.mkdirSync(artifactDir, { recursive: true })
+    const certificate = { schema_version: 1, ...Object.fromEntries(Object.entries(states).map(([key, value]) => [key, value ?? 'missing'])),
+      verdict: passed ? 'GREEN' : 'RED', edielReleaseEvidence: assembleEdielReleaseEvidence(root, passed, certificateMode === 'pr' ? ['smoke'] : ['full', 'runtime', 'real']) }
+    fs.writeFileSync(path.join(artifactDir, certificateMode + '-release-certificate.json'), JSON.stringify(certificate, null, 2) + '\n')
+    if (!passed) process.exitCode = 1
+  }
+} else {
 
 const root = path.resolve(__dirname, '..')
 const artifactDir = path.join(root, 'e2e-artifacts')
@@ -272,6 +365,7 @@ function xmlEscape(value) {
     .replace(/'/g, '&apos;')
 }
 
+const executionSource = checkoutSource(root)
 const results = []
 const startedAt = new Date().toISOString()
 for (const step of steps) results.push(runStep(step))
@@ -344,7 +438,14 @@ const junitCases = results.map((row) => {
 }).join('')
 const junit = `<?xml version="1.0" encoding="UTF-8"?>\n<testsuite name="gridex-full-production-e2e" tests="${results.length}" failures="${failed}" time="${(totalDuration / 1000).toFixed(3)}">${junitCases}</testsuite>\n`
 fs.writeFileSync(path.join(artifactDir, 'gridex-e2e-junit.xml'), junit)
+const finishedSource = checkoutSource(root)
+const sourceUnchanged = Boolean(executionSource.candidateSha && executionSource.candidateTree && executionSource.checkoutClean
+  && finishedSource.checkoutClean && executionSource.candidateSha === finishedSource.candidateSha && executionSource.candidateTree === finishedSource.candidateTree)
+const executionArtifact = { format: 'gridex_runner_execution_artifact_v1', mode: requested, source: executionSource, sourceUnchanged,
+  files: runnerArtifactPaths(report).map(reference => ({ path: reference, sha256: sha256(fs.readFileSync(path.join(artifactDir, reference))) })) }
+fs.writeFileSync(path.join(artifactDir, 'gridex-executed-evidence.json'), JSON.stringify(executionArtifact, null, 2) + '\n')
 
 console.log(`\nGridex E2E ${report.status}: ${passed}/${results.length} passed, ${failed} failed.`)
 console.log('Evidence: e2e-artifacts/gridex-e2e-report.md, .json, JUnit XML and per-step redacted logs.')
 if (failed > 0) process.exitCode = 1
+}

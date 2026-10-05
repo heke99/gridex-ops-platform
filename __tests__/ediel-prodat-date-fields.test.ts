@@ -1,3 +1,5 @@
+// masterplan: P-08, AT-P-08
+// masterplan: P-07, AT-P-07
 // masterplan: SC-026
 import { selectedAddressFact, selectedInvoiceeFact } from './fixtures/prodat-ud'
 import { describe, expect, it } from 'vitest'

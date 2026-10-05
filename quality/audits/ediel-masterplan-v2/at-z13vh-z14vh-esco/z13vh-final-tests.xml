@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="6" failures="0" errors="0" time="0.152514626">
+    <testsuite name="__tests__/ediel-at-z13vh-esco-profile.test.ts" timestamp="2026-10-05T12:51:08.720Z" hostname="8095447c6b62" tests="6" failures="0" errors="0" skipped="0" time="0.152514626">
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; joins the historical timing guard, actual identityless S18 draft and source authority" time="0.078424694">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds missingEnd against the independently declared history" time="0.019958614">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds changedEnd against the independently declared history" time="0.016739065">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; holds ongoingReason against the independently declared history" time="0.013422843">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; requires the independent evaluation clock rather than a stored parsed snapshot" time="0.018760927">
+        </testcase>
+        <testcase classname="__tests__/ediel-at-z13vh-esco-profile.test.ts" name="Z13VH bounded history profile with independent source and clock &gt; refuses an absent bounded end at the timing and actual service-source boundary" time="0.003011253">
+        </testcase>
+    </testsuite>
+</testsuites>

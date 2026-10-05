@@ -114,9 +114,26 @@ export function extractMarketActorEdielIdFromRawPayload(rawPayload: string | nul
   return identities.length === 1 ? identities[0] : null
 }
 
+/** TEN-06: PRODAT/UTILTS name their legal receiver only in NAD+DO/NAD+MR. When
+ * that is missing or ambiguous the message is held; the UNB transport receiver is
+ * never promoted. Families without such a qualifier keep the UNB receiver. */
+export function inboundLegalReceiverEdielId(rawPayload: string | null | undefined, transportReceiverEdielId: string | null | undefined): string | null {
+  const source = rawPayload ? tokenizeEdifact(rawPayload) : null
+  const family = source ? segmentComposite(source.segments.find(segment => segment.tag === 'UNH'), 2, source.una)[0] : null
+  if (family === 'PRODAT' || family === 'UTILTS') return extractMarketActorEdielIdFromRawPayload(rawPayload)
+  return clean(transportReceiverEdielId)
+}
+
+function familyHasLegalReceiverQualifier(family: string | null | undefined): boolean {
+  // Normalized subfamilies (e.g. UTILTS_ERR for UNH UTILTS + BGM ERR) keep the
+  // physical family's NAD+DO/MR receiver qualifier.
+  const normalized = String(family ?? '').trim().toUpperCase()
+  return ['PRODAT', 'UTILTS'].some(base => normalized === base || normalized.startsWith(`${base}_`))
+}
+
 function normalizeInput(input: ResolveInboundTenantInput) {
   const receiverEdielId = clean(input.receiverEdielId)
-  const marketActorEdielId = clean(input.marketActorEdielId) ?? receiverEdielId
+  const marketActorEdielId = clean(input.marketActorEdielId) ?? (familyHasLegalReceiverQualifier(input.messageFamily) ? null : receiverEdielId)
   return {
     existingCompanyId: clean(input.existingCompanyId),
     mailboxCompanyId: clean(input.mailboxCompanyId),

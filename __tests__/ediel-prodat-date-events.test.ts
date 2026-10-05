@@ -1,3 +1,4 @@
+// masterplan: P-08, AT-P-08
 import { describe, expect, it } from 'vitest';
 import { resolveCanonicalEdielPolicy } from '@/lib/ediel/rulebook/canonicalEdielPolicy';
 import { validateCanonicalPolicyFields } from '@/lib/ediel/rulebook/canonicalPolicyFieldValidator';

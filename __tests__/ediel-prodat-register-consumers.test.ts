@@ -1,3 +1,4 @@
+// masterplan: SC-031
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { parseInboundProdat } from '@/lib/ediel/prodat/compatAdapter'
 import { parseInboundProdatBusinessData, createOrUpdateInboundProdatCase } from '@/lib/ediel/inboundCases'
@@ -73,5 +74,21 @@ for (const alphabet of alphabets) describe(`register consumers with UNA ${alphab
  it('TGT compares constants as exact values, not punctuation-stripped numbers',()=>{
   const payload=raw([line('1','A'),qty('1'),...characteristic('Z02','1.2',3)],'Z04',alphabet)
   expect(compareInboundPayloadToTgtTestData({message:message(payload),testData:td([{'209':'A','214':'12'}])}).some(i=>i.fieldCode==='214')).toBe(true)
+ })
+})
+
+describe('SC-031 the inbound case caller keeps the received direction (P26.A p119)',()=>{
+ const z01=(extra:Parts[])=>({...message(raw([line('1','735123456789012345'),...extra],'Z01')),message_code:'Z01'} as EdielMessageRow)
+ const reachesLookup=async(row:EdielMessageRow)=>{
+  const error=await createOrUpdateInboundProdatCase({actorUserId:'actor',message:row}).then(()=>null,(e:Error)=>e)
+  return {structural:String(error?.message).includes('PRODAT_REGISTER_STRUCTURE_INVALID'),db:db.from.mock.calls.length>0}
+ }
+ it('an ignorable received X field (QTY+31, field 213) does not stop the case before its own lookup',async()=>{
+  expect(await reachesLookup(z01([]))).toEqual({structural:false,db:true})
+  db.from.mockClear()
+  expect(await reachesLookup(z01([['QTY',['31','777','KWH']]]))).toEqual({structural:false,db:true})
+ })
+ it('the same extra field on an own outbound row is still rejected before any lookup',async()=>{
+  expect(await reachesLookup({...z01([['QTY',['31','777','KWH']]]),direction:'outbound'} as EdielMessageRow)).toEqual({structural:true,db:false})
  })
 })

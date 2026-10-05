@@ -1,0 +1,11 @@
+
+ RUN  v4.1.9 /workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005
+
+ ✓ __tests__/ediel-at-z13vh-esco-profile.test.ts (6 tests) 153ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  12:51:04
+   Duration  3.80s (transform 2.84s, setup 30ms, import 3.43s, tests 153ms, environment 0ms)
+
+JUNIT report written to /workspace/gridex-ediel-at-z13vh-z14vh-esco-20261005/quality/audits/ediel-masterplan-v2/at-z13vh-z14vh-esco/z13vh-final-tests.xml

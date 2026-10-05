@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="9" failures="1" errors="0" time="1.634242064">
+    <testsuite name="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" timestamp="2026-10-05T04:47:49.691Z" hostname="c8313f035683" tests="9" failures="1" errors="0" skipped="8" time="1.634242064">
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; previews the actual XML without changing actor/role/market/route/source state" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; imports identical bytes twice without duplicating any of17 public/private relations" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; previews all three later contradictory PRODAT addresses as explicit route changes" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; keeps all old/new routes and history, markets and roles, holding both sides of each contradiction" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; ends the actual controlled apply with terminal status and held readiness" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; records blocking terminal zero-route preview and denies apply without source or masterdata effects" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; rolls back an interrupted real owner after transient running and earlier mutations, leaving no unattended run" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="SC057 complete literal registry lifecycle with declared finite ports &gt; denies unauthorized apply and executes four exact current captured owner bodies" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" name="__tests__/ediel-sc-057-registry-import-lifecycle.test.ts" time="1.634242064">
+            <system-out>
+RED same installed market owner: current tenant/registry legal alias absent
+
+            </system-out>
+            <failure message="column &quot;completed_at&quot; does not exist" type="error">
+error: column &quot;completed_at&quot; does not exist
+ ❯ be.$r ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:432:10
+ ❯ be.za ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:210:15
+ ❯ be.parse ../gridex-masterplan-review-491/node_modules/@electric-sql/pg-protocol/src/parser.ts:102:24
+ ❯ ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/src/pglite.ts:398:27
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2608882
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:2609769
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:5283187
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:366756
+ ❯ invoke_v ../gridex-masterplan-review-491/node_modules/@electric-sql/pglite/release/pglite.js:9:389209
+ ❯ null.&lt;anonymous&gt; wasm:/wasm/021cbcb2:1:368873
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 112, severity: &apos;ERROR&apos;, code: &apos;42703&apos;, detail: undefined, hint: undefined, position: &apos;15&apos;, internalPosition: undefined, internalQuery: undefined, where: undefined, schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: &apos;parse_relation.c&apos;, routine: &apos;errorMissingColumn&apos;, query: &apos;SELECT status,completed_at FROM actor_registry_import_runs WHERE id=$1&apos;, params: [ &apos;59289c69-31ea-4ab1-ba2f-23da87264ee4&apos; ], queryOptions: undefined }
+            </failure>
+        </testcase>
+    </testsuite>
+</testsuites>
