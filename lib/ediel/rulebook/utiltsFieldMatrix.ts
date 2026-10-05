@@ -145,6 +145,12 @@ export const UTILTS_25_A_3_FIELD_RULES: readonly UtiltsFieldRule[] = [
   rule({ ruleKey: 'request_513_metering_point_type', fieldNo: '513', semanticKey: 'metering_point_type', fieldLabel: 'Metering point type', segmentPath: 'SG7/CCI+++E12/CAV/C889/7111', scope: 'transaction', requirements: { E72: 'X', E73: 'R', E74: 'R', S06: 'X' } }),
 ] as const
 
+for (const row of UTILTS_25_A_3_FIELD_RULES) {
+  Object.freeze(row.requirements)
+  Object.freeze(row)
+}
+Object.freeze(UTILTS_25_A_3_FIELD_RULES)
+
 export function getUtiltsFieldRules(messageCode: string | null | undefined): readonly UtiltsFieldRule[] {
   const code = String(messageCode ?? '').trim().toUpperCase() as UtiltsCurrentMessageCode
   if (!normalCodes.includes(code)) return []

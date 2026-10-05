@@ -7,8 +7,39 @@
     {
       "id": "GOV-01",
       "acceptance_id": "AT-GOV-01",
-      "status": "NOT_VERIFIED",
-      "evidence": []
+      "status": "VERIFIED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/source_manifest.json",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/deadlinePolicy.ts",
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+        "lib/ediel/rulebook/utiltsRulebook.ts",
+        "lib/ediel/rulebook/mapEdielError.ts",
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-utilts-field-matrix.test.ts",
+        "__tests__/ediel-utilts-effective-date.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-utilts-profiles.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-canonical-business-semantics.test.ts",
+        "__tests__/ediel-canonical-deadline-policy.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-ack-canonical-admission.test.ts",
+        "__tests__/ediel-ack-inherited-guide-consumers.test.ts",
+        "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.md",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.json",
+        ".agent-memory/masterplan-gov01-checkpoint.md"
+      ]
     },
     {
       "id": "GOV-02",
@@ -1653,8 +1684,20 @@
     },
     {
       "id": "SC-011",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "lib/ediel/flows/prodatPermissionLifecycle.ts",
+        "lib/ediel/permissions/permissionMarketTransition.ts",
+        "supabase/migrations/20261001044351_ediel_partial_permission_source_effects.sql",
+        "supabase/migrations/20261001043917_ediel_service_source_network_period_timing.sql",
+        "supabase/migrations/20261001035402_ediel_beneficiary_receipt_read_before_write_replay.sql",
+        "scripts/ediel-partial-permission-source-sql-regression.mjs",
+        "scripts/ediel-service-grant-set-sql-regression.mjs",
+        "__tests__/ediel-permission-own-partition.test.ts",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.md",
+        "quality/audits/ediel-masterplan-v2/sc011-sc023/independent-review-d05b479a.json",
+        ".agent-memory/masterplan-sc011-sc023-checkpoint.md"
+      ]
     },
     {
       "id": "SC-012",
@@ -2296,8 +2339,39 @@
     },
     {
       "id": "AT-GOV-01",
-      "status": "NOT_EXECUTED",
-      "evidence": []
+      "status": "PASSED",
+      "evidence": [
+        "docs/ediel/masterplan-v2/registers/source_manifest.json",
+        "lib/ediel/rulebook/guideRegistry.ts",
+        "lib/ediel/rulebook/canonicalRulePackRegistry.ts",
+        "lib/ediel/core/runtimeDecision.ts",
+        "lib/ediel/transport/index.part-2.ts",
+        "lib/ediel/ack/canonicalAckEngine.ts",
+        "lib/ediel/prodat/prodat26AFieldMatrix.ts",
+        "lib/ediel/prodat/prodatDependentConditionEngine.ts",
+        "lib/ediel/rulebook/businessSemantics.ts",
+        "lib/ediel/rulebook/deadlinePolicy.ts",
+        "lib/ediel/rulebook/utilts25A4.ts",
+        "lib/ediel/rulebook/utiltsFieldMatrix.ts",
+        "lib/ediel/rulebook/utiltsMarketSemantics.ts",
+        "lib/ediel/rulebook/utiltsRulebook.ts",
+        "lib/ediel/rulebook/mapEdielError.ts",
+        "__tests__/ediel-prodat-26a-field-matrix.test.ts",
+        "__tests__/ediel-utilts-field-matrix.test.ts",
+        "__tests__/ediel-utilts-effective-date.test.ts",
+        "__tests__/ediel-canonical-ack.test.ts",
+        "__tests__/ediel-utilts-profiles.test.ts",
+        "__tests__/prodat-dependent-condition-engine.test.ts",
+        "__tests__/ediel-canonical-business-semantics.test.ts",
+        "__tests__/ediel-canonical-deadline-policy.test.ts",
+        "__tests__/ediel-local-failure-disposition.test.ts",
+        "__tests__/ediel-ack-canonical-admission.test.ts",
+        "__tests__/ediel-ack-inherited-guide-consumers.test.ts",
+        "__tests__/ediel-prodat-free-text-smtp.test.ts",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.md",
+        "quality/audits/ediel-masterplan-v2/gov01-published-source-20261005/gridex-gov01-root-whole-review-e0906c50.json",
+        ".agent-memory/masterplan-gov01-checkpoint.md"
+      ]
     },
     {
       "id": "AT-GOV-02",

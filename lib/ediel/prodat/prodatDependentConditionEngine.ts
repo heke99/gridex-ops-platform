@@ -253,6 +253,12 @@ export const PRODAT_26A_DEPENDENT_CONDITION_REGISTRY = GROUPS.flatMap((group) =>
   })),
 )
 
+for (const entry of PRODAT_26A_DEPENDENT_CONDITION_REGISTRY) {
+  Object.freeze(entry.source)
+  Object.freeze(entry)
+}
+Object.freeze(PRODAT_26A_DEPENDENT_CONDITION_REGISTRY)
+
 function matrixDependentCellIds(): string[] {
   const result: string[] = []
   for (const row of PRODAT_26A_FIELD_MATRIX) {
