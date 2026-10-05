@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "scope": "Actual main integration of twelve owned Z15V/VH profile/component paths; no whole/native/external approval",
+  "actual_merge": "cfcee6877f57c4ff52265cafc6a8a1fa5692a714",
+  "merged_at": "2026-10-05T13:33:20Z",
+  "actual_tree": "779cc833d9f160a9892a33e598e8a828e38b209d",
+  "actual_ordered_parents": [
+    "a8c991c1672d97cb03486a15ca34a16d1b2814e3",
+    "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc"
+  ],
+  "published_head": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+  "candidate_tree": "0ba17152de8332eb61a77d63db13f793b6a5aecc",
+  "preserved_local_frozen": "6707d77c63c8fe21f91cb639705223b8633181ef",
+  "preserved_local_status_before_main_adoption": "59a358331dfbb9c3bade667b63b1df22331a07ac",
+  "required_checks": [
+    {
+      "name": "browser-public",
+      "id": 111763004522,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:31:03Z",
+      "completed_at": "2026-10-05T12:32:20Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066614/job/111763004522"
+    },
+    {
+      "name": "smoke",
+      "id": 111763002598,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:31:03Z",
+      "completed_at": "2026-10-05T12:33:10Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066618/job/111763002598"
+    },
+    {
+      "name": "verify",
+      "id": 111763546291,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:32:28Z",
+      "completed_at": "2026-10-05T12:34:19Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066646/job/111763546291"
+    },
+    {
+      "name": "targeted-regressions",
+      "id": 111763002018,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:31:02Z",
+      "completed_at": "2026-10-05T12:35:06Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066624/job/111763002018"
+    },
+    {
+      "name": "coverage",
+      "id": 111763003040,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:31:03Z",
+      "completed_at": "2026-10-05T12:36:59Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066618/job/111763003040"
+    },
+    {
+      "name": "pr-certificate",
+      "id": 111765320488,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:37:03Z",
+      "completed_at": "2026-10-05T12:37:26Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066618/job/111765320488"
+    },
+    {
+      "name": "quality-release-gates",
+      "id": 111763546274,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:32:28Z",
+      "completed_at": "2026-10-05T12:41:07Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066646/job/111763546274"
+    },
+    {
+      "name": "clean-migration-replay",
+      "id": 111763546064,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:32:28Z",
+      "completed_at": "2026-10-05T13:24:40Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066646/job/111763546064"
+    },
+    {
+      "name": "upgrade-migration-replay",
+      "id": 111763546439,
+      "head_sha": "8c52ce0d6aa8016a636460a0b1d69990ab1e58fc",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-05T12:32:29Z",
+      "completed_at": "2026-10-05T12:42:57Z",
+      "details_url": "https://github.com/heke99/gridex-ops-platform/actions/runs/37310066646/job/111763546439"
+    }
+  ],
+  "required_count": 9,
+  "all_four_workflow_runs": "SUCCESS attempt1, independently observed by sole watcher at2026-10-05T13:25:09Z",
+  "independent_review_COMMENT": 5414519011,
+  "substantive_CodeRabbit_review": 5414427593,
+  "verified_minor_reply": 4183997149,
+  "minor_thread_resolved": true,
+  "intended_merge_comment": 5995461544,
+  "merged_release_comment": 5995567079,
+  "selected_qualified_source_pins": 392,
+  "changed_selected_pins": [],
+  "new_owned_paths": 12,
+  "all_candidate_owned_blobs_identical_in_merge": true,
+  "coverage_blob": "d4af3c2edad38ba133a9839f6e2e1d43a5eff4fa",
+  "coverage_unchanged": true,
+  "actual_merge_tree_matches_qualified_composition_and_git_merge_tree": true,
+  "premerge_guard_history": [
+    "Initial genuinefff qualification superseded when remote moved683b3e60 (#586). No merge on stale main.",
+    "Authentic fetch thenobserveda8c991c1 (#583); requalified all392 pins/ownscope/coverage and preservedforeignpaths.",
+    "GitHub mergeable remainednull; fetched actualpublished8c52 and realgitmerge-tree exited0 with exactexpectedtree. Usedordinaryexpected-head merge, nooverride/admin/CIwaiver."
+  ],
+  "local_adoption_conflict": "Only own add/add checkpoint; full preserved59a status retained, allforeign/mainpaths unchanged.",
+  "whole_acceptance": "HELD",
+  "own_AT_rows": "NOT_EXECUTED / evidence[]",
+  "machine_tags": false,
+  "native": "NOT_RUN",
+  "external_market_activation": "NOT_VERIFIED",
+  "artifact_payload_inspected": false,
+  "receipt_limits": [
+    "Local42 profiles qualifiedd2ad and all392 selectedinputs matchnewmain; selectedpins are not entire dynamicapplication/nativeclosure.",
+    "Prior16PGlitemechanics are fixturebound only, not native authority/history/liveDDQ/physicalACK.",
+    "RequiredCI success is exactpublishedhead only and doesnotpromote whole acceptance.",
+    "Originalfailedruns/candidates/receipts and ownlocal/remotecommits are preserved; no retroactivePASS."
+  ],
+  "postmerge_record_checks": {
+    "initial_full_local_merge_index_diff_check_exit": 2,
+    "initial_full_scope_reason": "Compared preserved local59a to imported main and reported pre-existing foreign blank/trailing whitespace in #583/#586 audit log/markdown/unapplied patch artifacts. This was not the PR585 added-file diff and no foreign artifact was edited.",
+    "owned_status_diff_against_actual_merge_exit": 0,
+    "owned_status_paths_only": 2,
+    "foreign_actual_main_blobs_preserved": true
+  }
+}
